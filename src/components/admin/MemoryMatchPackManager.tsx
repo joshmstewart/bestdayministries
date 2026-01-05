@@ -46,6 +46,7 @@ import milkPitcherImg from "@/assets/games/memory-match/milk-pitcher.png";
 import coffeeGrinderImg from "@/assets/games/memory-match/coffee-grinder.png";
 import cinnamonSticksImg from "@/assets/games/memory-match/cinnamon-sticks.png";
 import sugarBowlImg from "@/assets/games/memory-match/sugar-bowl.png";
+import coffeeShopCardBackImg from "@/assets/games/memory-match/card-back-coffee-shop.png";
 
 const DEFAULT_BUNDLED_IMAGES = [
   { name: "French Press", image_url: frenchPressImg },
@@ -60,11 +61,14 @@ const DEFAULT_BUNDLED_IMAGES = [
   { name: "Sugar Bowl", image_url: sugarBowlImg },
 ];
 
+const DEFAULT_CARD_BACK = coffeeShopCardBackImg;
+
 interface ImagePack {
   id: string;
   name: string;
   description: string | null;
   preview_image_url: string | null;
+  card_back_url: string | null;
   is_default: boolean;
   is_active: boolean;
   price_coins: number;
@@ -102,6 +106,9 @@ export const MemoryMatchPackManager = () => {
   // Delete confirmation state
   const [imageToDelete, setImageToDelete] = useState<PackImage | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Card back generation state
+  const [generatingCardBack, setGeneratingCardBack] = useState<string | null>(null);
 
   // Pack dialog state
   const [packDialogOpen, setPackDialogOpen] = useState(false);
@@ -461,6 +468,48 @@ export const MemoryMatchPackManager = () => {
     }
   };
 
+  const handleGenerateCardBack = async (pack: ImagePack) => {
+    setGeneratingCardBack(pack.id);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-memory-match-card-back",
+        {
+          body: {
+            packId: pack.id,
+            packName: pack.name,
+            themeDescription: pack.description,
+          },
+        }
+      );
+
+      if (error) {
+        console.error("Failed to generate card back:", error);
+        toast.error(`Failed to generate card back: ${error.message}`);
+        return;
+      }
+
+      if ((data as any)?.error) {
+        toast.error(`Failed to generate card back: ${(data as any).error}`);
+        return;
+      }
+
+      const cardBackUrl = (data as any)?.cardBackUrl;
+      if (cardBackUrl) {
+        const cacheBustedUrl = `${cardBackUrl}?t=${Date.now()}`;
+        setPacks((prev) =>
+          prev.map((p) => (p.id === pack.id ? { ...p, card_back_url: cacheBustedUrl } : p))
+        );
+        toast.success(`Card back generated for ${pack.name}!`);
+      }
+    } catch (error) {
+      console.error("Failed to generate card back:", error);
+      toast.error("Failed to generate card back");
+    } finally {
+      setGeneratingCardBack(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -521,30 +570,53 @@ export const MemoryMatchPackManager = () => {
               <Package className="w-5 h-5 text-primary" />
               <div>
                 <CardTitle className="text-lg">☕ Coffee Shop</CardTitle>
-                <CardDescription>Default bundled pack (10 images) - Always available</CardDescription>
+                <CardDescription>Default bundled pack (10 images + card back) - Always available</CardDescription>
               </div>
             </div>
             <Badge variant="secondary">Bundled</Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {DEFAULT_BUNDLED_IMAGES.map((img, idx) => (
-              <div
-                key={idx}
-                className="relative rounded-lg border-2 border-border overflow-hidden aspect-square"
-              >
+        <CardContent className="space-y-4">
+          {/* Card Back Preview */}
+          <div>
+            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+              🎴 Card Back Design
+            </h4>
+            <div className="flex items-start gap-4">
+              <div className="relative rounded-lg border-2 border-primary overflow-hidden w-24 h-24 flex-shrink-0">
                 <img
-                  src={img.image_url}
-                  alt={img.name}
+                  src={DEFAULT_CARD_BACK}
+                  alt="Coffee Shop Card Back"
                   className="w-full h-full object-cover"
-                  loading="lazy"
                 />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-4">
-                  <span className="text-xs text-white font-medium">{img.name}</span>
-                </div>
               </div>
-            ))}
+              <p className="text-sm text-muted-foreground">
+                Elegant coffee-themed playing card back with ornate borders and symmetrical design.
+              </p>
+            </div>
+          </div>
+
+          {/* Images Grid */}
+          <div>
+            <h4 className="text-sm font-medium mb-2">Card Face Images</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {DEFAULT_BUNDLED_IMAGES.map((img, idx) => (
+                <div
+                  key={idx}
+                  className="relative rounded-lg border-2 border-border overflow-hidden aspect-square"
+                >
+                  <img
+                    src={img.image_url}
+                    alt={img.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-4">
+                    <span className="text-xs text-white font-medium">{img.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -595,6 +667,66 @@ export const MemoryMatchPackManager = () => {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-4 pb-6">
+                  {/* Card Back Section */}
+                  <div className="mb-6 p-4 rounded-lg bg-muted/50 border">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      🎴 Card Back Design
+                    </h4>
+                    <div className="flex items-start gap-4">
+                      {pack.card_back_url ? (
+                        <div className="relative group rounded-lg border-2 border-primary overflow-hidden w-24 h-24 flex-shrink-0">
+                          <img
+                            src={`${pack.card_back_url}?t=${Date.now()}`}
+                            alt={`${pack.name} Card Back`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleGenerateCardBack(pack)}
+                              disabled={generatingCardBack === pack.id}
+                            >
+                              {generatingCardBack === pack.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border-2 border-dashed border-muted-foreground/30 w-24 h-24 flex-shrink-0 flex items-center justify-center bg-muted">
+                          <ImageOff className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {pack.card_back_url 
+                            ? "Hover over the card back to regenerate it with a new design."
+                            : "Generate a themed playing card back design for this pack."}
+                        </p>
+                        <Button
+                          size="sm"
+                          onClick={() => handleGenerateCardBack(pack)}
+                          disabled={generatingCardBack === pack.id}
+                        >
+                          {generatingCardBack === pack.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-4 h-4 mr-1" />
+                              {pack.card_back_url ? "Regenerate Card Back" : "Generate Card Back"}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Pack Actions */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     <Button

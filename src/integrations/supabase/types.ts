@@ -2696,6 +2696,7 @@ export type Database = {
       }
       memory_match_packs: {
         Row: {
+          card_back_url: string | null
           created_at: string
           description: string | null
           display_order: number | null
@@ -2709,6 +2710,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          card_back_url?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
@@ -2722,6 +2724,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          card_back_url?: string | null
           created_at?: string
           description?: string | null
           display_order?: number | null
