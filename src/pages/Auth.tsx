@@ -313,7 +313,7 @@ const Auth = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
                 disabled={loading}
               >
                 {loading ? "Sending..." : "Send Reset Link"}
@@ -482,7 +482,7 @@ const Auth = () => {
 
             <Button 
               type="submit" 
-              className="relative z-30 w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+              className="relative z-30 w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
               disabled={loading || (isSignUp && !acceptedTerms)}
             >
               {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}

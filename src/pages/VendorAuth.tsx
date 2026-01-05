@@ -646,7 +646,7 @@ const VendorAuth = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
                 disabled={loading || !agreedToVendorTerms}
               >
                 {loading ? "Please wait..." : "Submit Application"}
@@ -1073,7 +1073,7 @@ const VendorAuth = () => {
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
                 disabled={loading || (isSignUp && (!agreedToVendorTerms || !acceptedUserTerms))}
               >
                 {loading ? "Please wait..." : isSignUp ? "Submit Application" : "Sign In"}
