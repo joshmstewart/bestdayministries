@@ -23,8 +23,13 @@ export function PicturePasswordNotificationManager() {
 
   if (loading || !user) return null;
 
-  // Handle close after setup - refresh to check if prompt should still show
-  const handleClose = async () => {
+  // Handle simple close (click outside or X) - just close, will show again next login
+  const handleClose = () => {
+    closeFeaturePrompt();
+  };
+
+  // Handle close after setup completion - refresh to check if prompt should still show
+  const handleSetupComplete = async () => {
     await refreshCheck();
   };
 
@@ -46,6 +51,7 @@ export function PicturePasswordNotificationManager() {
       <PicturePasswordFeaturePrompt
         open={showFeaturePrompt}
         onClose={handleClose}
+        onSetupComplete={handleSetupComplete}
         onMaybeLater={dismissMaybeLater}
         onDontShowAgain={dismissDontShowAgain}
         isGuardian={isGuardian}
