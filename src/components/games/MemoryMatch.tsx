@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check, ChevronDown, ChevronUp, Gamepad2, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
+import { CoinIcon } from "@/components/CoinIcon";
 
 // Default coffee shop theme images
 import croissantImg from "@/assets/games/memory-match/croissant.png";
@@ -497,10 +498,11 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                         {!canUse && pack.is_purchasable && (
                           <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none z-10">
                             <div 
-                              className="absolute top-3 -right-8 bg-yellow-500 text-black text-[9px] font-bold py-0.5 px-8 rotate-45 shadow-md"
+                              className="absolute top-3 -right-8 bg-yellow-500 text-black text-[9px] font-bold py-0.5 px-8 rotate-45 shadow-md flex items-center gap-1"
                               style={{ transformOrigin: 'center' }}
                             >
-                              {pack.price_coins} 🪙
+                              {pack.price_coins}
+                              <CoinIcon size={10} />
                             </div>
                           </div>
                         )}

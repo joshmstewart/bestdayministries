@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { showErrorToast } from "@/lib/errorToast";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -31,7 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus, Check, Trash2 } from "lucide-react";
+import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus, Check, Trash2, Upload, Image } from "lucide-react";
+import { invalidateCoinCache } from "@/components/CoinIcon";
+import defaultCoinImage from "@/assets/joycoin.png";
 
 interface CoinReward {
   id: string;
@@ -101,10 +104,95 @@ export const CoinRewardsManager = () => {
     is_active: true,
     category: "other",
   });
+  
+  // Custom coin image state
+  const [customCoinUrl, setCustomCoinUrl] = useState<string | null>(null);
+  const [uploadingCoin, setUploadingCoin] = useState(false);
+  const coinInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadRewards();
+    loadCustomCoinImage();
   }, []);
+  
+  const loadCustomCoinImage = async () => {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "custom_coin_image")
+      .maybeSingle();
+    
+    const settingValue = data?.setting_value as { url?: string } | null;
+    if (settingValue?.url) {
+      setCustomCoinUrl(settingValue.url);
+    }
+  };
+  
+  const handleCoinImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    
+    setUploadingCoin(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `custom-coin-${Date.now()}.${fileExt}`;
+      const filePath = `coin-icons/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(filePath);
+      
+      const publicUrl = urlData.publicUrl;
+      
+      // Save to app_settings
+      const { error: settingsError } = await supabase
+        .from("app_settings")
+        .upsert({
+          setting_key: "custom_coin_image",
+          setting_value: { url: publicUrl },
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "setting_key" });
+      
+      if (settingsError) throw settingsError;
+      
+      setCustomCoinUrl(publicUrl);
+      invalidateCoinCache();
+      toast.success("Custom coin image uploaded!");
+    } catch (error) {
+      console.error("Failed to upload coin image:", error);
+      showErrorToast("Failed to upload coin image");
+    } finally {
+      setUploadingCoin(false);
+      if (coinInputRef.current) coinInputRef.current.value = "";
+    }
+  };
+  
+  const handleRemoveCoinImage = async () => {
+    try {
+      await supabase
+        .from("app_settings")
+        .delete()
+        .eq("setting_key", "custom_coin_image");
+      
+      setCustomCoinUrl(null);
+      invalidateCoinCache();
+      toast.success("Custom coin image removed");
+    } catch (error) {
+      console.error("Failed to remove coin image:", error);
+      showErrorToast("Failed to remove coin image");
+    }
+  };
 
   const loadRewards = async () => {
     const { data, error } = await supabase
@@ -297,6 +385,67 @@ export const CoinRewardsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Custom Coin Image Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Image className="w-5 h-5" />
+            Custom Coin Image
+          </CardTitle>
+          <CardDescription>
+            Upload a custom image to use for coins throughout the app
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="relative w-16 h-16 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
+              <img 
+                src={customCoinUrl || defaultCoinImage} 
+                alt="Coin" 
+                className="w-12 h-12 object-contain"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => coinInputRef.current?.click()}
+                  disabled={uploadingCoin}
+                >
+                  {uploadingCoin ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  Upload Image
+                </Button>
+                {customCoinUrl && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveCoinImage}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Recommended: PNG with transparent background, 512x512px
+              </p>
+            </div>
+            <input
+              ref={coinInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleCoinImageUpload}
+              className="hidden"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Coin Rewards</h3>
