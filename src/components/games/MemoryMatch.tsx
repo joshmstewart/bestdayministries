@@ -475,7 +475,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                     // Use preview_image_url if set, otherwise use first image from pack
                     const previewImage = pack.preview_image_url || pack.images[0]?.image_url;
                     
-                    return (
+                      return (
                       <div
                         key={pack.id}
                         onClick={() => {
@@ -491,15 +491,27 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                             : canUse 
                               ? 'border-border hover:border-primary/50 hover:scale-102'
                               : 'border-border hover:border-yellow-500/50'
-                        } ${!canUse ? 'grayscale-[30%]' : ''}`}
+                        }`}
                       >
+                        {/* Diagonal Banner for Purchasable Packs */}
+                        {!canUse && pack.is_purchasable && (
+                          <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none z-10">
+                            <div 
+                              className="absolute top-3 -right-8 bg-yellow-500 text-black text-[9px] font-bold py-0.5 px-8 rotate-45 shadow-md"
+                              style={{ transformOrigin: 'center' }}
+                            >
+                              {pack.price_coins} 🪙
+                            </div>
+                          </div>
+                        )}
+                        
                         {/* Preview Image */}
                         <div className="aspect-square bg-muted">
                           {previewImage ? (
                             <img 
                               src={previewImage} 
                               alt={pack.name}
-                              className="w-full h-full object-cover"
+                              className={`w-full h-full object-cover ${!canUse ? 'grayscale-[30%]' : ''}`}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -514,29 +526,21 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                             <span className="text-xs font-medium text-white truncate">
                               {pack.name}
                             </span>
-                            <div className="flex items-center gap-1">
-                              {!canUse && pack.is_purchasable && (
-                                <span className="text-[10px] text-yellow-400 font-medium flex items-center gap-0.5">
-                                  <ShoppingCart className="w-2.5 h-2.5" />
-                                  {pack.price_coins}
-                                </span>
-                              )}
-                              {!canUse && <span className="text-xs">🔒</span>}
-                            </div>
+                            {!canUse && <span className="text-xs">🔒</span>}
                           </div>
                         </div>
                         
                         {/* Selected Indicator */}
                         {isSelected && (
-                          <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5">
+                          <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5 z-20">
                             <Check className="w-2.5 h-2.5 text-primary-foreground" />
                           </div>
                         )}
                         
-                        {/* Purchase overlay for locked purchasable packs */}
+                        {/* Purchase overlay for locked purchasable packs on hover */}
                         {!canUse && pack.is_purchasable && (
-                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                            <div className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded">
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10">
+                            <div className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg">
                               Buy in Store
                             </div>
                           </div>
