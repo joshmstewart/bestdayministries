@@ -989,7 +989,32 @@ export const MemoryMatchPackManager = () => {
               <AccordionItem key={pack.id} value={pack.id} className="border rounded-lg px-4">
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex items-center gap-3 flex-1">
-                    <Package className="w-5 h-5 text-primary" />
+                    {/* Show card back or preview image */}
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0 border">
+                      {pack.card_back_url ? (
+                        <img 
+                          src={pack.card_back_url} 
+                          alt="Card back" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : pack.preview_image_url ? (
+                        <img 
+                          src={pack.preview_image_url} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : images[0]?.image_url ? (
+                        <img 
+                          src={images[0].image_url} 
+                          alt="First image" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                     <div className="text-left">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{pack.name}</span>
