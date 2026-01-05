@@ -14,9 +14,6 @@ const MemoryMatchPage = () => {
         style={{ backgroundColor }}
       >
         <div className="container max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-center mb-8 gradient-text">
-            Memory Match
-          </h1>
           <MemoryMatch onBackgroundColorChange={setBackgroundColor} />
         </div>
       </main>
