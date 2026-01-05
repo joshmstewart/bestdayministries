@@ -249,8 +249,12 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     return () => clearInterval(interval);
   }, [gameStarted, gameCompleted, startTime]);
 
-  const initializeGame = () => {
-    const pairCount = DIFFICULTY_CONFIG[difficulty].pairs;
+  const initializeGame = (selectedDifficulty?: Difficulty) => {
+    const diff = selectedDifficulty || difficulty;
+    if (selectedDifficulty) {
+      setDifficulty(selectedDifficulty);
+    }
+    const pairCount = DIFFICULTY_CONFIG[diff].pairs;
     // Randomly select images from the available set
     const shuffledImages = [...currentImages].sort(() => Math.random() - 0.5);
     const selectedImages = shuffledImages.slice(0, pairCount);
@@ -476,7 +480,11 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                     className={`cursor-pointer transition-all hover:scale-105 ${
                       difficulty === diff ? 'ring-2 ring-primary' : ''
                     } ${isLocked ? 'opacity-50' : ''}`}
-                    onClick={() => !isLocked && setDifficulty(diff)}
+                    onClick={() => {
+                      if (!isLocked) {
+                        initializeGame(diff);
+                      }
+                    }}
                   >
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
@@ -501,27 +509,16 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                           </p>
                         </div>
                       )}
+                      {isLocked && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Unlock Hard Mode in the store for 100 coins!
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 );
               })}
             </div>
-
-            <Button
-              onClick={initializeGame}
-              size="lg"
-              className="w-full"
-              disabled={difficulty === 'hard' && !hasHardMode}
-            >
-              <Zap className="h-5 w-5 mr-2" />
-              Start {DIFFICULTY_CONFIG[difficulty].label} Game
-            </Button>
-
-            {difficulty === 'hard' && !hasHardMode && (
-              <p className="text-center text-muted-foreground text-sm">
-                Unlock Hard Mode in the store for 100 coins!
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>
@@ -571,7 +568,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                 </p>
               </div>
               <div className="flex gap-4 justify-center">
-                <Button onClick={initializeGame}>
+                <Button onClick={() => initializeGame()}>
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Play Again
                 </Button>
