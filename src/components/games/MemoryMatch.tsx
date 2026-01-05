@@ -448,7 +448,6 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                               {pack.name}
                             </span>
                             <div className="flex items-center gap-1">
-                              {pack.is_default && <span className="text-yellow-400 text-xs">⭐</span>}
                               {!canUse && <span className="text-xs">🔒</span>}
                             </div>
                           </div>
