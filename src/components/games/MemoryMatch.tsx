@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check } from "lucide-react";
+import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check, ChevronDown, ChevronUp, Gamepad2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 
@@ -97,6 +97,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     background: '#F97316',
     module: '#FFFFFF',
   });
+  const [packsExpanded, setPacksExpanded] = useState(false);
 
   useEffect(() => {
     checkHardModeUnlock();
@@ -405,11 +406,31 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
             {/* Image Pack Selection */}
             {availablePacks.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Choose Your Pack
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold flex items-center gap-2">
+                    <Package className="h-4 w-4" />
+                    Choose Your Pack
+                  </h3>
+                  {availablePacks.filter(p => p.images.length >= 10).length > 4 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setPacksExpanded(!packsExpanded)}
+                      className="text-xs"
+                    >
+                      {packsExpanded ? (
+                        <>Show Less <ChevronUp className="w-3 h-3 ml-1" /></>
+                      ) : (
+                        <>Show All <ChevronDown className="w-3 h-3 ml-1" /></>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 ${
+                  !packsExpanded && availablePacks.filter(p => p.images.length >= 10).length > 4 
+                    ? 'max-h-[120px] overflow-hidden' 
+                    : ''
+                }`}>
                   {availablePacks.filter(p => p.images.length >= 10).map((pack) => {
                     const canUse = canUsePack(pack);
                     const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
@@ -436,27 +457,27 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-8 h-8 text-muted-foreground" />
+                              <Package className="w-6 h-6 text-muted-foreground" />
                             </div>
                           )}
                         </div>
                         
                         {/* Pack Name Overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-white truncate">
+                            <span className="text-[10px] font-medium text-white truncate">
                               {pack.name}
                             </span>
                             <div className="flex items-center gap-1">
-                              {!canUse && <span className="text-xs">🔒</span>}
+                              {!canUse && <span className="text-[10px]">🔒</span>}
                             </div>
                           </div>
                         </div>
                         
                         {/* Selected Indicator */}
                         {isSelected && (
-                          <div className="absolute top-2 right-2 bg-primary rounded-full p-1">
-                            <Check className="w-3 h-3 text-primary-foreground" />
+                          <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5">
+                            <Check className="w-2.5 h-2.5 text-primary-foreground" />
                           </div>
                         )}
                       </div>
@@ -467,7 +488,12 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
             )}
 
             {/* Difficulty Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Gamepad2 className="h-4 w-4" />
+                Choose Difficulty
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => {
                 const config = DIFFICULTY_CONFIG[diff];
                 const isLocked = diff === 'hard' && !hasHardMode;
@@ -517,6 +543,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                   </Card>
                 );
               })}
+              </div>
             </div>
           </CardContent>
         </Card>
