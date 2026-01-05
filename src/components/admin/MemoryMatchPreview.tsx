@@ -69,7 +69,9 @@ export const MemoryMatchPreview = ({
   }, [open]);
 
   const initializeGame = () => {
-    const selectedImages = validImages.slice(0, pairCount);
+    // Randomly select images from the available set
+    const shuffledImages = [...validImages].sort(() => Math.random() - 0.5);
+    const selectedImages = shuffledImages.slice(0, pairCount);
     const gameCards = [...selectedImages, ...selectedImages]
       .sort(() => Math.random() - 0.5)
       .map((img, index) => ({
