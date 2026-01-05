@@ -1180,7 +1180,7 @@ export const MemoryMatchPackManager = () => {
                         setGamePreviewPack({
                           name: pack.name,
                           images: imgs.map(img => ({ name: img.name, image_url: img.image_url })),
-                          cardBackUrl: pack.card_back_url,
+                          cardBackUrl: pack.card_back_url ? `${pack.card_back_url}?t=${Date.now()}` : null,
                           backgroundColor: pack.background_color,
                           moduleColor: pack.module_color,
                         });
