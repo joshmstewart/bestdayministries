@@ -119,7 +119,7 @@ export const MemoryMatchPackManager = () => {
     description: "",
     price_coins: 0,
     is_active: false, // New packs start inactive
-    design_style: "Vibrant colorful 3D rendered style, playful and kid-friendly, bright saturated colors, soft shadows, white background, cute and charming aesthetic",
+    design_style: "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements",
   });
   const [savingPack, setSavingPack] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -395,7 +395,7 @@ export const MemoryMatchPackManager = () => {
   };
 
   const openPackDialog = (pack?: ImagePack) => {
-    const defaultStyle = "Vibrant colorful 3D rendered style, playful and kid-friendly, bright saturated colors, soft shadows, white background, cute and charming aesthetic";
+    const defaultStyle = "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements";
     if (pack) {
       setEditingPack(pack);
       setPackFormData({

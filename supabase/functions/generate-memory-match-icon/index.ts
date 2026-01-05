@@ -23,10 +23,10 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Use the design style passed in, or default to Clean Realism coffee shop style
-    const style = designStyle || "Professional flat illustration style, clean vector-like design, warm neutrals, subtle shadow, white background, realistic proportions, elegant coffee shop aesthetic";
+    // Use the design style passed in, or default to clean adult-appropriate style
+    const style = designStyle || "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements";
 
-    const iconPrompt = `${style}. Create a perfectly square 1:1 aspect ratio icon of a ${imageName}. Image must be exactly 512x512 pixels with equal width and height. No text, no face, no gradients. Center the item within the square frame. Make it clean and easily recognizable. Pack theme: ${packName || "Coffee Shop"}.`;
+    const iconPrompt = `${style}. Create a perfectly square 1:1 aspect ratio icon of a ${imageName}. Image must be exactly 512x512 pixels with equal width and height. NO cartoon faces, NO baby/childish characters, NO cute mascots. Just the object itself in a clean, elegant style. Center the item within the square frame. Make it sophisticated and easily recognizable for adults. Pack theme: ${packName || "General"}.`;
 
     console.log("Generating icon for memory match image:", imageName);
     console.log("Prompt:", iconPrompt);
