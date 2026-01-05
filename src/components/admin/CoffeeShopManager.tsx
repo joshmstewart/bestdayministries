@@ -5,12 +5,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Coffee, ExternalLink, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Coffee, ExternalLink, Upload } from "lucide-react";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
 import { compressImage } from "@/lib/imageUtils";
+import CoffeeShopMenuManager from "./CoffeeShopMenuManager";
 
 const CoffeeShopManager = () => {
   const [loading, setLoading] = useState(true);
@@ -180,6 +182,17 @@ const CoffeeShopManager = () => {
         </div>
       </div>
 
+      <Tabs defaultValue="settings" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="settings">Site Settings</TabsTrigger>
+          <TabsTrigger value="menu">Menu</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="menu">
+          <CoffeeShopMenuManager />
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
       {/* Hero Section */}
       <Card>
         <CardHeader>
@@ -475,6 +488,8 @@ const CoffeeShopManager = () => {
         title="Crop Hero Image"
         description="Adjust the crop area for the hero image"
       />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
