@@ -200,32 +200,55 @@ if (retryCount < 2) {
 }
 ```
 
-## Copyable Error Toasts
+## Error Toast Standard (MANDATORY)
 
-For errors that users might need to report or debug, use the centralized `showErrorToastWithCopy` function.
+**⚠️ ALL errors in this application MUST use the centralized error toast utilities.**
+
+All error toasts are:
+- **Red** (destructive variant)
+- **Persistent** (won't auto-dismiss - user must close)
+- **Copyable** (includes "Copy error details" button)
 
 ### Import
 
 ```tsx
-import { showErrorToastWithCopy } from "@/lib/errorToast";
+import { showErrorToast, showErrorToastWithCopy } from "@/lib/errorToast";
 ```
 
 ### Usage
 
 ```tsx
+// Simple error message
+showErrorToast("Something went wrong");
+
+// Error with context (preferred for catch blocks)
 try {
   await someOperation();
 } catch (error) {
   console.error("Error context:", error);
-  showErrorToastWithCopy("Operation name", error);
+  showErrorToastWithCopy("Saving profile", error);
 }
+```
+
+### ❌ DO NOT use raw toast() for errors
+
+```tsx
+// WRONG - Do not do this!
+toast({
+  title: "Error",
+  description: "Something failed",
+  variant: "destructive",
+});
+
+// CORRECT - Use the centralized function
+showErrorToast("Something failed");
 ```
 
 ### Features
 
 - Displays full error details in a scrollable `<pre>` element
-- Includes a "Copy error details" button
-- Persistent toast (won't auto-dismiss)
+- Includes a "Copy error details" button for user support
+- Persistent toast (won't auto-dismiss until user closes)
 - Uses `getFullErrorText()` internally for complete error serialization including:
   - Error name, message, and stack trace
   - All extra properties (including nested context objects)
@@ -235,9 +258,9 @@ try {
 
 - Users can always copy complete error details for support tickets
 - Includes all nested error properties (e.g., Supabase error context)
-- Consistent error handling across all admin operations
+- Consistent error handling across the entire application
 - Prevents information loss from truncated or stringified errors
-- **Centralized**: One function used everywhere, not duplicated per component
+- **Centralized**: One function used everywhere, easy to update globally
 
 ## Browser Compatibility Patterns
 
