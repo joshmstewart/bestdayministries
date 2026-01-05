@@ -485,14 +485,10 @@ export const MemoryMatchPackManager = () => {
       setPackDialogOpen(false);
       await loadPacks();
 
-      // If creating new pack and we have suggested items, offer to add them
+      // If creating new pack and we have suggested items, auto-add and generate them
       if (!editingPack && packId && suggestedItems.length > 0) {
-        const addItems = window.confirm(
-          `Would you like to add the ${suggestedItems.length} suggested items and generate their icons?\n\n${suggestedItems.join(", ")}`
-        );
-        if (addItems) {
-          await handleAddSuggestedItems(packId, suggestedItems);
-        }
+        toast.info(`Generating ${suggestedItems.length} card icons + card back...`);
+        await handleAddSuggestedItems(packId, suggestedItems);
       }
 
       setSuggestedItems([]);
@@ -1061,22 +1057,79 @@ export const MemoryMatchPackManager = () => {
               />
             </div>
 
-            {/* Suggested Items Preview */}
-            {suggestedItems.length > 0 && !editingPack && (
-              <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
-                <div className="flex items-center gap-2">
-                  <Wand2 className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">Suggested Items ({suggestedItems.length})</span>
+            {/* Suggested Items - Editable List */}
+            {suggestedItems.length > 0 && (
+              <div className="p-3 rounded-lg bg-muted/50 border space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium">Card Items ({suggestedItems.length})</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSuggestedItems([])}
+                    className="h-7 px-2 text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Clear All
+                  </Button>
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-2">
                   {suggestedItems.map((item, idx) => (
-                    <Badge key={idx} variant="secondary" className="text-xs">
+                    <Badge 
+                      key={idx} 
+                      variant="secondary" 
+                      className="text-xs pr-1 flex items-center gap-1"
+                    >
                       {item}
+                      <button
+                        type="button"
+                        onClick={() => setSuggestedItems(prev => prev.filter((_, i) => i !== idx))}
+                        className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </Badge>
                   ))}
                 </div>
+                {/* Add new item input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Add another item..."
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const input = e.currentTarget;
+                        const value = input.value.trim();
+                        if (value && !suggestedItems.includes(value)) {
+                          setSuggestedItems(prev => [...prev, value]);
+                          input.value = "";
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={(e) => {
+                      const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                      const value = input?.value.trim();
+                      if (value && !suggestedItems.includes(value)) {
+                        setSuggestedItems(prev => [...prev, value]);
+                        input.value = "";
+                      }
+                    }}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  These items will be added and their icons generated after creating the pack.
+                  ✨ These items + card back will be generated after saving. Edit the list as needed.
                 </p>
               </div>
             )}
