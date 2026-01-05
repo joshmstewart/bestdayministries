@@ -136,7 +136,7 @@ export const MemoryMatchPackManager = () => {
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
 
   // Game preview state
-  const [gamePreviewPack, setGamePreviewPack] = useState<{ name: string; images: { name: string; image_url: string | null }[]; cardBackUrl: string | null } | null>(null);
+  const [gamePreviewPack, setGamePreviewPack] = useState<{ name: string; images: { name: string; image_url: string | null }[]; cardBackUrl: string | null; backgroundColor: string | null; moduleColor: string | null } | null>(null);
 
   useEffect(() => {
     loadPacks();
@@ -1148,6 +1148,8 @@ export const MemoryMatchPackManager = () => {
                           name: pack.name,
                           images: imgs.map(img => ({ name: img.name, image_url: img.image_url })),
                           cardBackUrl: pack.card_back_url,
+                          backgroundColor: pack.background_color,
+                          moduleColor: pack.module_color,
                         });
                       }}
                       disabled={!images.some(img => img.image_url)}
@@ -1692,6 +1694,8 @@ export const MemoryMatchPackManager = () => {
         packName={gamePreviewPack?.name || ""}
         images={gamePreviewPack?.images || []}
         cardBackUrl={gamePreviewPack?.cardBackUrl}
+        backgroundColor={gamePreviewPack?.backgroundColor}
+        moduleColor={gamePreviewPack?.moduleColor}
       />
     </div>
   );
