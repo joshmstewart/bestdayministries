@@ -23,6 +23,10 @@ export function Toaster() {
         const descriptionText = typeof description === 'string' ? description : '';
         const fullText = copyText || [titleText, descriptionText].filter(Boolean).join('\n');
         
+        // If description is a React element (like from showErrorToast), it has its own copy button
+        const descriptionIsElement = description && typeof description !== 'string';
+        const showCopyButton = fullText && !descriptionIsElement;
+        
         return (
           <Toast key={id} variant={variant} {...props}>
             <div className="grid gap-1 flex-1">
@@ -30,7 +34,7 @@ export function Toaster() {
               {description && (
                 <div className="flex items-start gap-2">
                   <ToastDescription className="flex-1">{description}</ToastDescription>
-                  {fullText && (
+                  {showCopyButton && (
                     <Button
                       variant="ghost"
                       size="icon"
