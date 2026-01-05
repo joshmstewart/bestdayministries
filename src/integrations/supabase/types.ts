@@ -2829,6 +2829,7 @@ export type Database = {
       }
       memory_match_packs: {
         Row: {
+          background_color: string | null
           card_back_url: string | null
           created_at: string
           description: string | null
@@ -2837,6 +2838,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          module_color: string | null
           name: string
           preview_image_url: string | null
           price_coins: number | null
@@ -2844,6 +2846,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          background_color?: string | null
           card_back_url?: string | null
           created_at?: string
           description?: string | null
@@ -2852,6 +2855,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          module_color?: string | null
           name: string
           preview_image_url?: string | null
           price_coins?: number | null
@@ -2859,6 +2863,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          background_color?: string | null
           card_back_url?: string | null
           created_at?: string
           description?: string | null
@@ -2867,6 +2872,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          module_color?: string | null
           name?: string
           preview_image_url?: string | null
           price_coins?: number | null

@@ -76,6 +76,8 @@ interface ImagePack {
   price_coins: number;
   display_order: number;
   design_style: string | null;
+  background_color: string | null;
+  module_color: string | null;
 }
 
 interface PackImage {
@@ -122,6 +124,8 @@ export const MemoryMatchPackManager = () => {
     price_coins: 0,
     is_active: false, // New packs start inactive
     design_style: "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements",
+    background_color: "#F97316",
+    module_color: "#FFFFFF",
   });
   const [savingPack, setSavingPack] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -409,6 +413,8 @@ export const MemoryMatchPackManager = () => {
         price_coins: pack.price_coins,
         is_active: pack.is_active,
         design_style: pack.design_style || defaultStyle,
+        background_color: pack.background_color || "#F97316",
+        module_color: pack.module_color || "#FFFFFF",
       });
     } else {
       setEditingPack(null);
@@ -418,6 +424,8 @@ export const MemoryMatchPackManager = () => {
         price_coins: 0,
         is_active: true,
         design_style: defaultStyle,
+        background_color: "#F97316",
+        module_color: "#FFFFFF",
       });
     }
     setPackDialogOpen(true);
@@ -565,6 +573,8 @@ export const MemoryMatchPackManager = () => {
             price_coins: packFormData.price_coins,
             is_active: packFormData.is_active,
             design_style: packFormData.design_style.trim() || null,
+            background_color: packFormData.background_color || "#F97316",
+            module_color: packFormData.module_color || "#FFFFFF",
           })
           .eq("id", editingPack.id);
 
@@ -581,6 +591,8 @@ export const MemoryMatchPackManager = () => {
             is_active: false, // Always start inactive
             display_order: packs.length,
             design_style: packFormData.design_style.trim() || null,
+            background_color: packFormData.background_color || "#F97316",
+            module_color: packFormData.module_color || "#FFFFFF",
           })
           .select()
           .single();
@@ -1419,7 +1431,64 @@ export const MemoryMatchPackManager = () => {
               </p>
             </div>
 
-            {/* Card Items - Editable List (always show when editing, or when there are suggestions) */}
+            {/* Color Customization */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Game Colors</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="background-color" className="text-xs text-muted-foreground">
+                    Background Glow
+                  </Label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      id="background-color"
+                      value={packFormData.background_color}
+                      onChange={(e) =>
+                        setPackFormData((prev) => ({ ...prev, background_color: e.target.value }))
+                      }
+                      className="w-10 h-10 rounded cursor-pointer border-2 border-border"
+                    />
+                    <Input
+                      value={packFormData.background_color}
+                      onChange={(e) =>
+                        setPackFormData((prev) => ({ ...prev, background_color: e.target.value }))
+                      }
+                      placeholder="#F97316"
+                      className="flex-1 font-mono text-sm uppercase"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="module-color" className="text-xs text-muted-foreground">
+                    Module Background
+                  </Label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="color"
+                      id="module-color"
+                      value={packFormData.module_color}
+                      onChange={(e) =>
+                        setPackFormData((prev) => ({ ...prev, module_color: e.target.value }))
+                      }
+                      className="w-10 h-10 rounded cursor-pointer border-2 border-border"
+                    />
+                    <Input
+                      value={packFormData.module_color}
+                      onChange={(e) =>
+                        setPackFormData((prev) => ({ ...prev, module_color: e.target.value }))
+                      }
+                      placeholder="#FFFFFF"
+                      className="flex-1 font-mono text-sm uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Background Glow: outer warm glow area. Module: the white card with game elements.
+              </p>
+            </div>
+
             {(editingPack || suggestedItems.length > 0) && (
               <div className="p-3 rounded-lg bg-muted/50 border space-y-3">
                 <div className="flex items-center justify-between">
