@@ -40,6 +40,7 @@ interface ImagePack {
   images: { name: string; image_url: string }[];
   background_color: string | null;
   module_color: string | null;
+  card_back_url: string | null;
 }
 
 // Default bundled images (always available)
@@ -86,6 +87,7 @@ export const MemoryMatch = () => {
   const [ownedPackIds, setOwnedPackIds] = useState<string[]>([]);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [currentImages, setCurrentImages] = useState(DEFAULT_IMAGES);
+  const [currentCardBackUrl, setCurrentCardBackUrl] = useState<string | null>(null);
   const [currentColors, setCurrentColors] = useState<{ background: string; module: string }>({
     background: '#F97316',
     module: '#FFFFFF',
@@ -107,6 +109,7 @@ export const MemoryMatch = () => {
           background: pack.background_color || '#F97316',
           module: pack.module_color || '#FFFFFF',
         });
+        setCurrentCardBackUrl(pack.card_back_url);
       }
     } else {
       // Use the default pack from the database if available
@@ -117,12 +120,14 @@ export const MemoryMatch = () => {
           background: defaultPack.background_color || '#F97316',
           module: defaultPack.module_color || '#FFFFFF',
         });
+        setCurrentCardBackUrl(defaultPack.card_back_url);
       } else {
         setCurrentImages(DEFAULT_IMAGES);
         setCurrentColors({
           background: '#F97316',
           module: '#FFFFFF',
         });
+        setCurrentCardBackUrl(null);
       }
     }
   }, [selectedPackId, availablePacks]);
@@ -133,7 +138,7 @@ export const MemoryMatch = () => {
     // Load all active packs with their images
     const { data: packs } = await supabase
       .from('memory_match_packs')
-      .select('id, name, description, preview_image_url, is_default, price_coins, background_color, module_color')
+      .select('id, name, description, preview_image_url, is_default, price_coins, background_color, module_color, card_back_url')
       .eq('is_active', true)
       .order('display_order');
 
@@ -371,7 +376,7 @@ export const MemoryMatch = () => {
       <div 
         className="max-w-4xl mx-auto space-y-6 p-6 rounded-2xl"
         style={{ 
-          background: `radial-gradient(ellipse at center, ${currentColors.background}40 0%, transparent 70%)`,
+          backgroundColor: currentColors.background,
         }}
       >
         <Card style={{ backgroundColor: currentColors.module }}>
@@ -484,7 +489,7 @@ export const MemoryMatch = () => {
     <div 
       className="max-w-4xl mx-auto space-y-6 p-6 rounded-2xl"
       style={{ 
-        background: `radial-gradient(ellipse at center, ${currentColors.background}40 0%, transparent 70%)`,
+        backgroundColor: currentColors.background,
       }}
     >
       <Card style={{ backgroundColor: currentColors.module }}>
@@ -560,6 +565,12 @@ export const MemoryMatch = () => {
                       src={card.imageUrl} 
                       alt={card.imageName}
                       className="w-full h-full object-contain p-2"
+                    />
+                  ) : currentCardBackUrl ? (
+                    <img 
+                      src={`${currentCardBackUrl}?t=${Date.now()}`}
+                      alt="Card back"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="text-4xl text-muted-foreground">?</span>
