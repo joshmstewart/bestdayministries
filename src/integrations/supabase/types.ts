@@ -2699,6 +2699,7 @@ export type Database = {
           card_back_url: string | null
           created_at: string
           description: string | null
+          design_style: string | null
           display_order: number | null
           id: string
           is_active: boolean | null
@@ -2713,6 +2714,7 @@ export type Database = {
           card_back_url?: string | null
           created_at?: string
           description?: string | null
+          design_style?: string | null
           display_order?: number | null
           id?: string
           is_active?: boolean | null
@@ -2727,6 +2729,7 @@ export type Database = {
           card_back_url?: string | null
           created_at?: string
           description?: string | null
+          design_style?: string | null
           display_order?: number | null
           id?: string
           is_active?: boolean | null
