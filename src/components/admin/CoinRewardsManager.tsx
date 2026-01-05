@@ -587,26 +587,39 @@ export const CoinRewardsManager = () => {
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Select a preset to auto-fill the form, or enter custom values below
+                      Select a preset to auto-fill all fields, or create a custom reward below
                     </p>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="reward-key">Reward Key</Label>
-                  <Input
-                    id="reward-key"
-                    placeholder="e.g., new_game_bonus"
-                    value={formData.reward_key}
-                    onChange={(e) => {
-                      setSelectedPreset("");
-                      setFormData((prev) => ({ ...prev, reward_key: e.target.value }));
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Unique identifier used in code (lowercase, underscores)
-                  </p>
-                </div>
+                {/* Only show reward key for custom rewards (not presets) */}
+                {!selectedPreset && (
+                  <div className="space-y-2">
+                    <Label htmlFor="reward-key">Reward Key</Label>
+                    <Input
+                      id="reward-key"
+                      placeholder="e.g., new_game_bonus"
+                      value={formData.reward_key}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, reward_key: e.target.value }))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Unique identifier used in code (lowercase, underscores)
+                    </p>
+                  </div>
+                )}
+                
+                {selectedPreset && (
+                  <div className="p-3 bg-muted/50 rounded-lg border">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Preset selected:</span> {formData.reward_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Key: <code className="bg-muted px-1 rounded">{formData.reward_key}</code>
+                    </p>
+                  </div>
+                )}
               </>
             )}
 
@@ -655,9 +668,17 @@ export const CoinRewardsManager = () => {
                 <Label htmlFor="category">Category</Label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, category: value }))
-                  }
+                  onValueChange={(value) => {
+                    if (value === "__new__") {
+                      const newCategory = prompt("Enter new category name (lowercase):");
+                      if (newCategory && newCategory.trim()) {
+                        const formatted = newCategory.trim().toLowerCase().replace(/\s+/g, "_");
+                        setFormData((prev) => ({ ...prev, category: formatted }));
+                      }
+                    } else {
+                      setFormData((prev) => ({ ...prev, category: value }));
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -667,6 +688,18 @@ export const CoinRewardsManager = () => {
                     <SelectItem value="daily">Daily</SelectItem>
                     <SelectItem value="pets">Pets</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
+                    {/* Show any custom categories already in use */}
+                    {Array.from(new Set(rewards.map(r => r.category)))
+                      .filter(c => !["games", "daily", "pets", "other"].includes(c))
+                      .map(customCat => (
+                        <SelectItem key={customCat} value={customCat}>
+                          {customCat.charAt(0).toUpperCase() + customCat.slice(1).replace(/_/g, " ")}
+                        </SelectItem>
+                      ))
+                    }
+                    <SelectItem value="__new__" className="text-primary font-medium">
+                      + Create New Category...
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
