@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, GripVertical, Eye, EyeOff, ChevronRight } from "lucide-react";
+import { Plus, Trash2, GripVertical, Eye, EyeOff, ChevronRight, ChevronDown } from "lucide-react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -49,6 +49,9 @@ function SortableLink({
   onUpdate,
   onDelete,
   onAddChild,
+  onToggleCollapse,
+  isCollapsed,
+  hasChildren,
   children,
   level = 0,
 }: {
@@ -56,6 +59,9 @@ function SortableLink({
   onUpdate: (id: string, updates: Partial<NavigationLink>) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string) => void;
+  onToggleCollapse?: (id: string) => void;
+  isCollapsed?: boolean;
+  hasChildren?: boolean;
   children?: React.ReactNode;
   level?: number;
 }) {
@@ -74,6 +80,20 @@ function SortableLink({
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
           <GripVertical className="h-5 w-5 text-muted-foreground" />
         </button>
+
+        {level === 0 && link.link_type === 'dropdown' && hasChildren && (
+          <button 
+            onClick={() => onToggleCollapse?.(link.id)}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            title={isCollapsed ? "Expand children" : "Collapse children"}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+        )}
 
         {level > 0 && (
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -228,6 +248,7 @@ function SortableLink({
 
 export function NavigationBarManager() {
   const [links, setLinks] = useState<NavigationLink[]>([]);
+  const [collapsedParents, setCollapsedParents] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -323,6 +344,18 @@ export function NavigationBarManager() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleToggleCollapse = (parentId: string) => {
+    setCollapsedParents(prev => {
+      const next = new Set(prev);
+      if (next.has(parentId)) {
+        next.delete(parentId);
+      } else {
+        next.add(parentId);
+      }
+      return next;
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -504,6 +537,7 @@ export function NavigationBarManager() {
     
     return topLevelLinks.map((link) => {
       const children = links.filter(l => l.parent_id === link.id);
+      const isCollapsed = collapsedParents.has(link.id);
       
       return (
         <SortableLink
@@ -512,9 +546,12 @@ export function NavigationBarManager() {
           onUpdate={handleUpdateLink}
           onDelete={handleDeleteLink}
           onAddChild={handleAddChild}
+          onToggleCollapse={handleToggleCollapse}
+          isCollapsed={isCollapsed}
+          hasChildren={children.length > 0}
           level={0}
         >
-          {children.length > 0 && (
+          {children.length > 0 && !isCollapsed && (
             <div className="space-y-2 mt-2">
               {children.map((child) => (
                 <SortableLink
