@@ -67,30 +67,31 @@ DO NOT generate: "flat illustrations", "simple shapes", "bold silhouettes", "car
       };
       requiredFields = ["design_style"];
     } else if (mode === "items") {
-      userPrompt = `Generate ONLY 10-12 suggested items for a memory match card pack called "${packName}".
+      userPrompt = `Generate 15-20 suggested items for a memory match card pack called "${packName}".
 
 CRITICAL REQUIREMENTS:
 - Items must be CONCRETE, DRAWABLE OBJECTS or THINGS - NOT movies, books, songs, or abstract concepts
-- Each item should be easily illustrated as a simple icon
+- Each item should be easily illustrated as a realistic icon
 - Items should be visually DISTINCT from each other
 - Mix obvious/simple items with a few more interesting ones
 - Keep names SHORT (1-3 words max)
+- Generate at least 15 items so the game has variety each play
 
-GOOD examples for a "Space" pack: Rocket, Astronaut, Moon, Saturn, Alien, UFO, Comet, Space Helmet, Telescope, Mars Rover
+GOOD examples for a "Space" pack: Rocket, Astronaut, Moon, Saturn, Alien, UFO, Comet, Space Helmet, Telescope, Mars Rover, Space Station, Meteor, Nebula, Black Hole, Satellite
 BAD examples: "Interstellar", "2001: A Space Odyssey", "The Martian" (these are movies, not drawable objects!)
 
-GOOD examples for an "Ocean" pack: Whale, Octopus, Anchor, Submarine, Coral, Seahorse, Treasure Chest
+GOOD examples for an "Ocean" pack: Whale, Octopus, Anchor, Submarine, Coral, Seahorse, Treasure Chest, Starfish, Jellyfish, Shark, Dolphin, Crab, Lobster, Pearl, Seashell
 BAD examples: "Finding Nemo", "The Little Mermaid", "Ocean's Eleven" (movies/media, not objects!)`;
       toolParams = {
-        suggested_items: { type: "array", items: { type: "string" }, description: "10-12 SHORT names of concrete, drawable objects - NOT movies, books, or abstract concepts" }
+        suggested_items: { type: "array", items: { type: "string" }, description: "15-20 SHORT names of concrete, drawable objects - NOT movies, books, or abstract concepts" }
       };
       requiredFields = ["suggested_items"];
     } else {
       // mode === "all"
-      userPrompt = `Generate content for a memory match card pack called "${packName}". Include a description, 10-12 item suggestions, and a visual style. Everything should be adult-appropriate.`;
+      userPrompt = `Generate content for a memory match card pack called "${packName}". Include a description, 15-20 item suggestions, and a visual style. Everything should be adult-appropriate.`;
       toolParams = {
         description: { type: "string", description: "A short 1-2 sentence description of the pack" },
-        suggested_items: { type: "array", items: { type: "string" }, description: "10-12 suggested item names that fit this pack theme" },
+        suggested_items: { type: "array", items: { type: "string" }, description: "15-20 suggested item names that fit this pack theme" },
         design_style: { type: "string", description: "A visual style description. Elegant, adult-appropriate, describing colors, art style, mood." }
       };
       requiredFields = ["description", "suggested_items", "design_style"];
