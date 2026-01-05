@@ -15,6 +15,7 @@ interface LinkedBestie {
 interface PicturePasswordFeaturePromptProps {
   open: boolean;
   onClose: () => void;
+  onSetupComplete: () => void;
   onMaybeLater: () => void;
   onDontShowAgain: () => void;
   isGuardian: boolean;
@@ -27,6 +28,7 @@ interface PicturePasswordFeaturePromptProps {
 export function PicturePasswordFeaturePrompt({
   open,
   onClose,
+  onSetupComplete,
   onMaybeLater,
   onDontShowAgain,
   isGuardian,
@@ -58,7 +60,7 @@ export function PicturePasswordFeaturePrompt({
     setShowSetup(false);
     setSelectedBestieId(null);
     setSetupForSelf(false);
-    onClose();
+    onSetupComplete(); // Re-check conditions after setup
   };
 
   const bestiesWithoutPassword = linkedBesties.filter(b => !b.hasPicturePassword);
