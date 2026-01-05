@@ -520,7 +520,8 @@ const Auth = () => {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-transparent px-2 text-muted-foreground">Or</span>
+                  <span className="absolute inset-0 mx-auto w-10 bg-card" />
+                  <span className="relative px-2 text-muted-foreground">Or</span>
                 </div>
               </div>
             )}
