@@ -25,18 +25,28 @@ serve(async (req) => {
 
     // Use the design style passed in, or default to clean adult-appropriate style
     const style = designStyle || "Clean flat illustration, elegant, simple shapes, adult aesthetic";
+    
+    // Pick ONE background color from the pack's color palette (based on pack name hash for consistency)
+    const brightColors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9"];
+    const colorIndex = Math.abs(packName?.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) || 0) % brightColors.length;
+    const backgroundColor = brightColors[colorIndex];
 
-    const iconPrompt = `512x512 icon of ${imageName}. ${style}.
+    const iconPrompt = `Generate a 512x512 square image.
 
-RULES:
-- Subject fills 70-80%, LARGE and prominent
-- BRIGHT solid background (red/orange/yellow/green/teal/blue/purple/pink - NOT dark)
-- Bold, simple, iconic - like a road sign
-- Sharp rectangular corners only
-- High contrast between subject and background
-- NO space backgrounds, NO gradients, NO dark colors
+SUBJECT: ${imageName} (from a "${packName || "General"}" themed pack)
 
-Pack: ${packName || "General"}.`;
+STYLE: ${style}
+
+CRITICAL REQUIREMENTS:
+1. FULL BLEED: Subject and background must extend to ALL EDGES with NO margins, NO borders, NO padding
+2. COLORFUL: Subject must be VIBRANT and FULL COLOR (NOT black/white, NOT monotone, NOT silhouettes)
+3. BACKGROUND: Solid ${backgroundColor} color filling entire canvas edge-to-edge
+4. SUBJECT SIZE: Large, filling 70-80% of the image area
+5. STYLE: Bold, simple, iconic shapes - like a colorful app icon or road sign
+6. CORNERS: Sharp rectangular corners (no rounded edges)
+7. CONTRAST: High contrast between colorful subject and solid background
+
+DO NOT: Add any borders, margins, white space at edges, gradients, or dark backgrounds. Subject must be colorful, not black/gray/monotone.`;
 
     console.log("Generating icon for memory match image:", imageName);
     console.log("Prompt:", iconPrompt);
