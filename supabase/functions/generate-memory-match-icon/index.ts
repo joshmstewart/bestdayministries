@@ -7,13 +7,55 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const SIZE = 512;
+
+// Helper: deterministic hash for picking palette index
+const stableHash = (s: string) =>
+  Math.abs(s.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0));
+
+// Helper: parse hex to RGB
+const parseHex = (hex: string) => {
+  const clean = hex.replace("#", "");
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16),
+  };
+};
+
+// Helper: pick a background hex based on pack theme
+const pickBackgroundHex = (pack: string | undefined) => {
+  const packLower = (pack || "").toLowerCase();
+
+  const palettes: Record<string, string[]> = {
+    space: ["#8B5CF6", "#EC4899", "#3B82F6", "#22D3EE"],
+    ocean: ["#0EA5E9", "#06B6D4", "#3B82F6"],
+    nature: ["#22C55E", "#84CC16", "#10B981"],
+    farm: ["#F59E0B", "#F97316", "#EAB308"],
+    food: ["#FDE047", "#FB7185", "#A78BFA"],
+    animals: ["#60A5FA", "#F472B6", "#34D399"],
+    sports: ["#22C55E", "#F97316", "#3B82F6"],
+    music: ["#A855F7", "#EC4899", "#38BDF8"],
+    vehicles: ["#94A3B8", "#60A5FA", "#F97316"],
+    coffee: ["#D4A574", "#8B4513", "#A0522D"],
+  };
+
+  const matchedTheme = Object.keys(palettes).find((k) => packLower.includes(k));
+  const palette = matchedTheme
+    ? palettes[matchedTheme]
+    : ["#22D3EE", "#F472B6", "#A78BFA", "#FDE047"];
+
+  const idx = pack ? stableHash(pack) % palette.length : 0;
+  return palette[idx];
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageId, imageName, packName, designStyle } = await req.json();
+    const { imageId, imageName, packName } = await req.json();
 
     if (!imageId || !imageName) {
       throw new Error("Missing imageId or imageName");
@@ -24,85 +66,43 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Use the design style passed in - this is the source of truth for the pack's visual style
-    const hasCustomStyle = designStyle && designStyle.trim().length > 0;
-    
-    let iconPrompt: string;
-    
-    if (hasCustomStyle) {
-      // Pack has a custom design style - use it directly as the primary instruction
-      iconPrompt = `Generate a 512x512 square image.
+    const backgroundHex = pickBackgroundHex(packName);
+    const { r, g, b } = parseHex(backgroundHex);
+
+    // Always use realistic / photorealistic style, subject on TRANSPARENT background
+    const iconPrompt = `Create a ${SIZE}x${SIZE} PNG with a fully TRANSPARENT background (alpha channel).
 
 SUBJECT: "${imageName}"
 
-PACK STYLE GUIDE (FOLLOW THIS EXACTLY):
-${designStyle}
-
-TECHNICAL REQUIREMENTS:
-1. Subject fills 70-80% of the canvas
-2. FULL BLEED - image extends to all edges, NO margins, NO borders, NO padding
-3. Sharp rectangular corners
-4. Clean icon-style illustration
-
-Follow the pack style guide above for colors, background, and artistic style.`;
-    } else {
-      // Default style - clean flat illustrations with theme-based backgrounds
-      const themeBackgrounds: Record<string, string> = {
-        space: "#9B59B6",      // Vibrant purple for space
-        ocean: "#0077B6",      // Deep blue for ocean
-        nature: "#2D6A4F",     // Forest green for nature
-        farm: "#D4A574",       // Warm tan for farm
-        food: "#FFF8DC",       // Cornsilk cream for food
-        animals: "#87CEEB",    // Sky blue for animals
-        sports: "#228B22",     // Forest green for sports
-        music: "#9B59B6",      // Purple for music
-        vehicles: "#708090",   // Slate gray for vehicles
-        default: "#40E0D0",    // Turquoise as default
-      };
-      
-      const packNameLower = (packName || "").toLowerCase();
-      let backgroundColor = themeBackgrounds.default;
-      
-      for (const [theme, color] of Object.entries(themeBackgrounds)) {
-        if (packNameLower.includes(theme)) {
-          backgroundColor = color;
-          break;
-        }
-      }
-      
-      if (backgroundColor === themeBackgrounds.default && packName) {
-        const defaultColors = ["#40E0D0", "#F0E68C", "#DDA0DD", "#98FB98", "#FFB6C1", "#87CEEB", "#F5DEB3", "#B0C4DE"];
-        const colorIndex = Math.abs(packName.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % defaultColors.length;
-        backgroundColor = defaultColors[colorIndex];
-      }
-
-      iconPrompt = `Generate a 512x512 square image.
-
-SUBJECT: "${imageName}" - draw this object in clean, realistic colors
-
-BACKGROUND: Solid ${backgroundColor} - uniform, flat, fills entire canvas
-
 STYLE:
-1. Clean flat illustration, simple shapes, modern app icon style
-2. Subject fills 70-80% of the canvas
-3. FULL BLEED - extends to all edges, NO margins, NO borders
-4. Sharp rectangular corners
-5. High contrast between subject and background
+- Realistic illustration or photorealistic render
+- Natural, accurate colors (e.g. a rocket is white/silver/red, an apple is red/green, coffee beans are brown)
+- Clean, high-detail, slightly stylized realism - like a premium stock icon or app icon
+- Subject should fill about 70-80% of the canvas
+- NO cartoon style, NO flat colors, NO abstract shapes
 
-DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
-    }
+BACKGROUND:
+- 100% TRANSPARENT (the server will composite the solid color ${backgroundHex} behind the subject)
+- Do NOT draw any background shape, frame, shadow, vignette, or container
 
-    console.log("Generating icon for memory match image:", imageName);
-    console.log("Has custom style:", hasCustomStyle);
-    console.log("Prompt:", iconPrompt);
+TECHNICAL:
+- Full bleed: use entire canvas with NO margins, NO borders, NO rounded corners
+- Output: PNG with alpha transparency
+- Sharp rectangular edges
 
-    // Call Lovable AI to generate the image with retry logic
+If you cannot produce transparency, at minimum leave the background a single solid color with no gradients.`;
+
+    console.log("Generating REALISTIC icon for:", imageName);
+    console.log("Pack:", packName);
+    console.log("Background hex (applied server-side):", backgroundHex);
+
+    // Call Lovable AI with retry logic
     let imageData: string | null = null;
-    let lastError: string = "No image generated";
-    
+    let lastError = "No image generated";
+
     for (let attempt = 1; attempt <= 3; attempt++) {
       console.log(`Attempt ${attempt}/3 for generating icon: ${imageName}`);
-      
+
       try {
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -112,25 +112,19 @@ DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
           },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: iconPrompt,
-              },
-            ],
+            messages: [{ role: "user", content: iconPrompt }],
             modalities: ["image", "text"],
           }),
         });
 
         if (!response.ok) {
           if (response.status === 429) {
-            console.error("Rate limited by AI gateway, waiting before retry...");
-            await new Promise(r => setTimeout(r, 2000 * attempt));
+            console.error("Rate limited, waiting...");
+            await new Promise((r) => setTimeout(r, 2000 * attempt));
             lastError = "Rate limited - please wait and try again";
             continue;
           }
           if (response.status === 402) {
-            console.error("AI credits exhausted");
             throw new Error("AI credits exhausted - please add credits");
           }
           const errorText = await response.text();
@@ -140,28 +134,20 @@ DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
         }
 
         const data = await response.json();
-        console.log("API response structure:", JSON.stringify({
-          hasChoices: !!data.choices,
-          choicesLength: data.choices?.length,
-          hasMessage: !!data.choices?.[0]?.message,
-          hasImages: !!data.choices?.[0]?.message?.images,
-          imagesLength: data.choices?.[0]?.message?.images?.length,
-        }));
-        
         imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
         if (imageData) {
-          console.log(`Successfully got image data on attempt ${attempt}`);
+          console.log(`Got image data on attempt ${attempt}`);
           break;
         } else {
-          console.log(`No image in response on attempt ${attempt}, retrying...`);
+          console.log(`No image in response on attempt ${attempt}`);
           lastError = "No image generated - model returned empty response";
-          await new Promise(r => setTimeout(r, 1000 * attempt));
+          await new Promise((r) => setTimeout(r, 1000 * attempt));
         }
       } catch (fetchError) {
         console.error(`Fetch error on attempt ${attempt}:`, fetchError);
         lastError = fetchError instanceof Error ? fetchError.message : "Fetch failed";
-        await new Promise(r => setTimeout(r, 1000 * attempt));
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
     }
 
@@ -169,18 +155,13 @@ DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
       throw new Error(lastError);
     }
 
-    // Upload to Supabase Storage
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Convert base64 to bytes
+    // Decode AI image
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
     const rawBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-    // Post-process to guarantee full-bleed square with consistent solid background
+    // Post-process: composite subject onto solid background for guaranteed full-bleed square
     const subject = await Image.decode(rawBytes);
-    const subjectMax = Math.round(SIZE * 0.8);
+    const subjectMax = Math.round(SIZE * 0.85);
     const subjectResized = subject.contain(subjectMax, subjectMax);
 
     const canvas = new Image(SIZE, SIZE);
@@ -192,9 +173,13 @@ DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
 
     const finalPngBytes = await canvas.encode();
 
+    // Upload to Supabase Storage
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const fileName = `memory-match/${imageId}.png`;
 
-    // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from("game-assets")
       .upload(fileName, finalPngBytes, {
@@ -207,14 +192,9 @@ DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
       throw new Error(`Failed to upload image: ${uploadError.message}`);
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from("game-assets")
-      .getPublicUrl(fileName);
-
+    const { data: urlData } = supabase.storage.from("game-assets").getPublicUrl(fileName);
     const imageUrl = urlData.publicUrl;
 
-    // Update the image with the URL
     const { error: updateError } = await supabase
       .from("memory_match_images")
       .update({ image_url: imageUrl })
@@ -225,14 +205,10 @@ DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
       throw new Error(`Failed to update image: ${updateError.message}`);
     }
 
-    console.log("Successfully generated and saved icon for:", imageName);
+    console.log("Successfully generated realistic icon for:", imageName);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        imageUrl,
-        imageName,
-      }),
+      JSON.stringify({ success: true, imageUrl, imageName }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
