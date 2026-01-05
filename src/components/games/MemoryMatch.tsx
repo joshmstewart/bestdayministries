@@ -463,13 +463,13 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                         </div>
                         
                         {/* Pack Name Overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 pt-4">
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-5">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-medium text-white truncate">
+                            <span className="text-xs font-medium text-white truncate">
                               {pack.name}
                             </span>
                             <div className="flex items-center gap-1">
-                              {!canUse && <span className="text-[10px]">🔒</span>}
+                              {!canUse && <span className="text-xs">🔒</span>}
                             </div>
                           </div>
                         </div>
@@ -560,7 +560,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
               <Star className="h-6 w-6 text-yellow-500" />
               Memory Match - {DIFFICULTY_CONFIG[difficulty].label}
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={() => navigate('/community')}>
+            <Button variant="outline" size="sm" onClick={() => setGameStarted(false)}>
               <Home className="h-4 w-4 mr-2" />
               Exit
             </Button>
