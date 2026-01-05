@@ -109,11 +109,21 @@ export const MemoryMatch = () => {
         });
       }
     } else {
-      setCurrentImages(DEFAULT_IMAGES);
-      setCurrentColors({
-        background: '#F97316',
-        module: '#FFFFFF',
-      });
+      // Use the default pack from the database if available
+      const defaultPack = availablePacks.find(p => p.is_default && p.images.length > 0);
+      if (defaultPack) {
+        setCurrentImages(defaultPack.images);
+        setCurrentColors({
+          background: defaultPack.background_color || '#F97316',
+          module: defaultPack.module_color || '#FFFFFF',
+        });
+      } else {
+        setCurrentImages(DEFAULT_IMAGES);
+        setCurrentColors({
+          background: '#F97316',
+          module: '#FFFFFF',
+        });
+      }
     }
   }, [selectedPackId, availablePacks]);
 
@@ -383,25 +393,20 @@ export const MemoryMatch = () => {
                   Image Pack
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedPackId === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPackId(null)}
-                  >
-                    ☕ Coffee Shop (Default)
-                  </Button>
-                  {availablePacks.filter(p => !p.is_default && p.images.length >= 10).map((pack) => {
+                  {availablePacks.filter(p => p.images.length >= 10).map((pack) => {
                     const canUse = canUsePack(pack);
+                    const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
                     return (
                       <Button
                         key={pack.id}
-                        variant={selectedPackId === pack.id ? "default" : "outline"}
+                        variant={isSelected ? "default" : "outline"}
                         size="sm"
-                        onClick={() => canUse && setSelectedPackId(pack.id)}
+                        onClick={() => canUse && setSelectedPackId(pack.is_default ? null : pack.id)}
                         disabled={!canUse}
                         className={!canUse ? "opacity-50" : ""}
                       >
                         {pack.name}
+                        {pack.is_default && " ⭐"}
                         {!canUse && <span className="ml-1">🔒</span>}
                       </Button>
                     );
