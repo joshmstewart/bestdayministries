@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Image } from "https://deno.land/x/imagescript@1.2.9/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,23 +7,6 @@ const corsHeaders = {
 };
 
 const SIZE = 512;
-
-// Helper: deterministic hash for picking palette index
-const stableHash = (s: string) =>
-  Math.abs(s.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0));
-
-// Helper: parse hex to RGB
-const parseHex = (hex: string) => {
-  const clean = hex.replace("#", "");
-  return {
-    r: parseInt(clean.slice(0, 2), 16),
-    g: parseInt(clean.slice(2, 4), 16),
-    b: parseInt(clean.slice(4, 6), 16),
-  };
-};
-
-// Always use white background for consistency
-const pickBackgroundHex = (_pack: string | undefined) => "#FFFFFF";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -43,9 +25,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const backgroundHex = pickBackgroundHex(packName);
-    const { r, g, b } = parseHex(backgroundHex);
-
     // Build style instructions - use designStyle if provided, otherwise default
     const styleInstructions = designStyle 
       ? `Follow this style guide: ${designStyle}
@@ -53,8 +32,8 @@ serve(async (req) => {
 Additional requirements:`
       : `STYLE:`;
 
-    // Always use realistic / photorealistic style, subject on TRANSPARENT background
-    const iconPrompt = `Create a ${SIZE}x${SIZE} PNG with a fully TRANSPARENT background (alpha channel).
+    // Request image with white background directly from the AI
+    const iconPrompt = `Create a ${SIZE}x${SIZE} PNG image.
 
 SUBJECT: "${imageName}"
 
@@ -62,24 +41,23 @@ ${styleInstructions}
 - Realistic illustration or photorealistic render
 - Natural, accurate colors (e.g. a rocket is white/silver/red, an apple is red/green, coffee beans are brown)
 - Clean, high-detail, slightly stylized realism - like a premium stock icon or app icon
-- Subject should fill about 70-80% of the canvas
+- Subject should fill about 70-80% of the canvas, centered
 - NO cartoon style, NO flat colors, NO abstract shapes
 
 BACKGROUND:
-- 100% TRANSPARENT (the server will composite the solid color ${backgroundHex} behind the subject)
-- Do NOT draw any background shape, frame, shadow, vignette, or container
+- SOLID PURE WHITE background (#FFFFFF)
+- NO gradients, NO shadows, NO vignettes
+- The background MUST be completely white
 
 TECHNICAL:
 - Full bleed: use entire canvas with NO margins, NO borders, NO rounded corners
-- Output: PNG with alpha transparency
+- Output: PNG format
 - Sharp rectangular edges
+- Subject centered on pure white background`;
 
-If you cannot produce transparency, at minimum leave the background a single solid color with no gradients.`;
-
-    console.log("Generating REALISTIC icon for:", imageName);
+    console.log("Generating icon for:", imageName);
     console.log("Pack:", packName);
     console.log("Design style:", designStyle || "(default realistic)");
-    console.log("Background hex (applied server-side):", backgroundHex);
 
     // Call Lovable AI with retry logic
     let imageData: string | null = null;
@@ -140,25 +118,11 @@ If you cannot produce transparency, at minimum leave the background a single sol
       throw new Error(lastError);
     }
 
-    // Decode AI image
+    // Decode AI image - the AI should return a PNG with white background
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
     const rawBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-    // Post-process: composite subject onto solid background for guaranteed full-bleed square
-    const subject = await Image.decode(rawBytes);
-    const subjectMax = Math.round(SIZE * 0.85);
-    const subjectResized = subject.contain(subjectMax, subjectMax);
-
-    const canvas = new Image(SIZE, SIZE);
-    canvas.fill(Image.rgbaToColor(r, g, b, 255));
-
-    const x = Math.floor((SIZE - subjectResized.width) / 2);
-    const y = Math.floor((SIZE - subjectResized.height) / 2);
-    canvas.composite(subjectResized, x, y);
-
-    const finalPngBytes = await canvas.encode();
-
-    // Upload to Supabase Storage
+    // Upload directly to Supabase Storage (no post-processing needed)
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -167,7 +131,7 @@ If you cannot produce transparency, at minimum leave the background a single sol
 
     const { error: uploadError } = await supabase.storage
       .from("game-assets")
-      .upload(fileName, finalPngBytes, {
+      .upload(fileName, rawBytes, {
         contentType: "image/png",
         upsert: true,
       });
@@ -190,7 +154,7 @@ If you cannot produce transparency, at minimum leave the background a single sol
       throw new Error(`Failed to update image: ${updateError.message}`);
     }
 
-    console.log("Successfully generated realistic icon for:", imageName);
+    console.log("Successfully generated icon for:", imageName);
 
     return new Response(
       JSON.stringify({ success: true, imageUrl, imageName }),
