@@ -30,10 +30,15 @@ serve(async (req) => {
     }
 
     // Create a prompt for the vibe icon - matches ingredient icon style
-    const prompt = `Create a square icon representing "${vibeName}" for a coffee drink app. The icon should visually capture: ${atmosphereHint || vibeName}. The image should have a solid colored background that fills the ENTIRE image edge-to-edge with NO vignettes, NO circular highlights, NO gradients fading to edges. The background color should complement the theme. Cute illustrated style, evocative and atmospheric, no text. The background MUST extend fully to all four edges of the square.
+    const prompt = `Create a 256x256 pixel icon representing "${vibeName}" for a coffee drink app. Visually capture: ${atmosphereHint || vibeName}.
 
-CRITICAL FRAMING: The main visual element must fill 70-80% of the image frame - make it LARGE and prominent, not small and distant.
-CRITICAL SHAPE: The image must have SHARP 90-DEGREE CORNERS - absolutely NO rounded corners, NO circular frames, NO curved edges. The card UI will handle any rounding.`;
+MANDATORY REQUIREMENTS:
+1. FRAMING: The main visual element must fill 70-80% of the image - make it LARGE and prominent
+2. CORNERS: RECTANGULAR image with SHARP 90-DEGREE CORNERS ONLY. DO NOT round ANY edges. DO NOT use circular or oval frames. DO NOT add ANY curved borders or vignettes. The corners must be perfectly square like a photograph.
+3. BACKGROUND: Solid single flat color extending to ALL four corners with NO gradients, NO fading, NO corner treatments, NO vignettes, NO circular highlights
+4. STYLE: Cute illustrated style, evocative and atmospheric, no text
+
+FORBIDDEN: rounded corners, circular frames, oval shapes, curved edges, border radius, vignette effects, corner fading`;
 
     // Generate image using Lovable AI
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
