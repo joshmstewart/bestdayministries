@@ -1,5 +1,33 @@
 BUTTON STYLING STANDARDS
 
+## ⚠️ CRITICAL: Correct vs Wrong Gradient
+
+### ✅ CORRECT: `bg-gradient-warm`
+```tsx
+<Button className="bg-gradient-warm border-0 shadow-warm hover:shadow-glow">
+```
+- **Visual:** Burnt orange with organic yellow SPOTS throughout (radial gradients)
+- **Effect:** Liquid, organic appearance - yellow spots scattered across orange base
+- **Use for:** ALL primary CTA buttons
+
+### ❌ WRONG: `bg-gradient-to-r from-primary via-accent to-secondary`
+```tsx
+// DO NOT USE THIS FOR BUTTONS!
+<Button className="bg-gradient-to-r from-primary via-accent to-secondary">
+```
+- **Visual:** Linear left-to-right gradient (orange → yellow → brown)
+- **Problem:** Old style, not brand-consistent for buttons
+- **Exception:** OK for TEXT gradients (`bg-clip-text text-transparent`) and decorative elements
+
+### Quick Reference
+| Use Case | Correct Class |
+|----------|---------------|
+| Primary buttons | `bg-gradient-warm` |
+| Gradient TEXT | `bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent` |
+| Loading spinners | `bg-gradient-to-r from-primary via-accent to-secondary` (OK for decorative) |
+
+---
+
 ## Overview
 Consistent button styling guidelines for when to use gradients vs solid colors, ensuring visual hierarchy and brand cohesion.
 
