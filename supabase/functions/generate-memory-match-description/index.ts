@@ -35,11 +35,11 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a creative writer for a memory match card game. Generate short, engaging descriptions for themed card packs. Keep descriptions to 1-2 sentences, fun and appealing. Do not use quotes around the response."
+            content: "You are a creative writer for a memory match card game designed for ADULTS with special needs. Generate short, engaging descriptions for themed card packs. Keep descriptions to 1-2 sentences, fun and appealing but NOT childish. Also suggest an appropriate visual style for the card images - elegant, sophisticated, clean illustrations suitable for adults."
           },
           {
             role: "user",
-            content: `Generate a short, engaging description for a memory match card pack called "${packName}". The description should hint at what kind of images/items players will find in this pack.`
+            content: `Generate content for a memory match card pack called "${packName}". Include a description, 10-12 item suggestions, and a visual style that fits this theme. The style should be adult-appropriate (not childish or cartoonish).`
           }
         ],
         tools: [
@@ -47,7 +47,7 @@ serve(async (req) => {
             type: "function",
             function: {
               name: "generate_pack_content",
-              description: "Generate description and suggested card items for a memory match pack",
+              description: "Generate description, suggested card items, and visual style for a memory match pack",
               parameters: {
                 type: "object",
                 properties: {
@@ -59,9 +59,13 @@ serve(async (req) => {
                     type: "array",
                     items: { type: "string" },
                     description: "10-12 suggested item names that would fit this pack theme"
+                  },
+                  design_style: {
+                    type: "string",
+                    description: "A visual style description for generating the card images. Should be elegant and adult-appropriate, describing colors, art style, and mood. Example: 'Watercolor botanical style, soft pastels, delicate linework, white background, sophisticated and calming'"
                   }
                 },
-                required: ["description", "suggested_items"],
+                required: ["description", "suggested_items", "design_style"],
                 additionalProperties: false
               }
             }
@@ -90,7 +94,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         description: result.description,
-        suggestedItems: result.suggested_items
+        suggestedItems: result.suggested_items,
+        designStyle: result.design_style
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
