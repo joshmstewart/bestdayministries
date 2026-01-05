@@ -76,6 +76,7 @@ import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
 import { RecipeIngredientsManager } from "@/components/admin/RecipeIngredientsManager";
 import { RecipeToolsManager } from "@/components/admin/RecipeToolsManager";
 import { MemoryMatchPackManager } from "@/components/admin/MemoryMatchPackManager";
+import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 import { PicturePasswordImagesViewer } from "@/components/admin/PicturePasswordImagesViewer";
@@ -475,14 +476,19 @@ const Admin = () => {
                 <CardDescription>Manage game assets and settings</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="memory-match" className="space-y-4">
+                <Tabs defaultValue="earn-coins" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="earn-coins">Earn Coins</TabsTrigger>
                     <TabsTrigger value="memory-match">Memory Match</TabsTrigger>
                     <TabsTrigger value="drink-ingredients">Drink Ingredients</TabsTrigger>
                     <TabsTrigger value="drink-vibes">Drink Vibes</TabsTrigger>
                     <TabsTrigger value="recipe-ingredients">Recipe Ingredients</TabsTrigger>
                     <TabsTrigger value="recipe-tools">Recipe Tools</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="earn-coins">
+                    <CoinRewardsManager />
+                  </TabsContent>
 
                   <TabsContent value="memory-match">
                     <MemoryMatchPackManager />
