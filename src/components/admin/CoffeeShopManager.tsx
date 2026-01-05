@@ -72,11 +72,14 @@ const CoffeeShopManager = () => {
     try {
       const { error } = await supabase
         .from("app_settings")
-        .upsert({
-          setting_key: "coffee_shop_content",
-          setting_value: content,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(
+          {
+            setting_key: "coffee_shop_content",
+            setting_value: content,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: "setting_key" }
+        );
 
       if (error) throw error;
 
