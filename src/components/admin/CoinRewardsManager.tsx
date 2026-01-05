@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus } from "lucide-react";
+import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus, Check } from "lucide-react";
 
 interface CoinReward {
   id: string;
@@ -50,12 +50,49 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactNode; co
   other: { label: "Other", icon: <Coins className="w-4 h-4" />, color: "bg-gray-100 text-gray-800" },
 };
 
+// Preset reward templates for quick adding
+const PRESET_REWARDS = [
+  { key: "daily_login", name: "Daily Login", description: "Reward for logging in each day", category: "daily", coins: 10 },
+  { key: "first_login", name: "First Time Login", description: "Welcome bonus for new users", category: "daily", coins: 50 },
+  { key: "weekly_streak", name: "Weekly Streak", description: "Bonus for 7 consecutive days", category: "daily", coins: 100 },
+  { key: "monthly_streak", name: "Monthly Streak", description: "Bonus for 30 consecutive days", category: "daily", coins: 500 },
+  { key: "memory_match_easy", name: "Memory Match - Easy", description: "Complete an easy Memory Match game", category: "games", coins: 5 },
+  { key: "memory_match_medium", name: "Memory Match - Medium", description: "Complete a medium Memory Match game", category: "games", coins: 10 },
+  { key: "memory_match_hard", name: "Memory Match - Hard", description: "Complete a hard Memory Match game", category: "games", coins: 20 },
+  { key: "memory_match_perfect", name: "Memory Match - Perfect Game", description: "Complete Memory Match without mistakes", category: "games", coins: 25 },
+  { key: "puzzle_complete", name: "Puzzle Complete", description: "Complete a puzzle game", category: "games", coins: 15 },
+  { key: "trivia_correct", name: "Trivia Correct Answer", description: "Answer a trivia question correctly", category: "games", coins: 5 },
+  { key: "trivia_streak", name: "Trivia Streak Bonus", description: "Multiple correct answers in a row", category: "games", coins: 20 },
+  { key: "recipe_created", name: "Recipe Created", description: "Create a new recipe", category: "games", coins: 10 },
+  { key: "recipe_made", name: "Recipe Completed", description: "Mark a recipe as made", category: "games", coins: 5 },
+  { key: "recipe_saved", name: "Recipe Saved", description: "Save a recipe to cookbook", category: "games", coins: 3 },
+  { key: "drink_created", name: "Custom Drink Created", description: "Create a custom drink", category: "games", coins: 10 },
+  { key: "pet_feed", name: "Feed Pet", description: "Feed your virtual pet", category: "pets", coins: 2 },
+  { key: "pet_play", name: "Play with Pet", description: "Play with your virtual pet", category: "pets", coins: 3 },
+  { key: "pet_groom", name: "Groom Pet", description: "Groom your virtual pet", category: "pets", coins: 2 },
+  { key: "pet_levelup", name: "Pet Level Up", description: "Your pet reached a new level", category: "pets", coins: 25 },
+  { key: "discussion_post", name: "Create Discussion Post", description: "Create a new discussion post", category: "other", coins: 10 },
+  { key: "discussion_comment", name: "Comment on Discussion", description: "Leave a comment on a post", category: "other", coins: 5 },
+  { key: "event_attend", name: "Event Attendance", description: "RSVP to an event", category: "other", coins: 10 },
+  { key: "profile_complete", name: "Complete Profile", description: "Fill out all profile information", category: "other", coins: 50 },
+  { key: "share_content", name: "Share Content", description: "Share content with friends", category: "other", coins: 5 },
+  { key: "referral_signup", name: "Referral Signup", description: "Someone you referred signed up", category: "other", coins: 100 },
+  { key: "sticker_rare", name: "Rare Sticker Found", description: "Found a rare sticker", category: "daily", coins: 15 },
+  { key: "sticker_epic", name: "Epic Sticker Found", description: "Found an epic sticker", category: "daily", coins: 25 },
+  { key: "sticker_legendary", name: "Legendary Sticker Found", description: "Found a legendary sticker", category: "daily", coins: 50 },
+  { key: "collection_complete", name: "Collection Complete", description: "Complete a sticker collection", category: "daily", coins: 200 },
+  { key: "album_upload", name: "Album Upload", description: "Upload photos to an album", category: "other", coins: 5 },
+  { key: "video_watch", name: "Watch Video", description: "Watch a video to completion", category: "other", coins: 3 },
+];
+
 export const CoinRewardsManager = () => {
   const [rewards, setRewards] = useState<CoinReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<CoinReward | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string>("");
   const [formData, setFormData] = useState({
     reward_key: "",
     reward_name: "",
@@ -88,6 +125,7 @@ export const CoinRewardsManager = () => {
   const openDialog = (reward?: CoinReward) => {
     if (reward) {
       setEditingReward(reward);
+      setSelectedPreset("");
       setFormData({
         reward_key: reward.reward_key,
         reward_name: reward.reward_name,
@@ -98,6 +136,7 @@ export const CoinRewardsManager = () => {
       });
     } else {
       setEditingReward(null);
+      setSelectedPreset("");
       setFormData({
         reward_key: "",
         reward_name: "",
@@ -109,6 +148,26 @@ export const CoinRewardsManager = () => {
     }
     setDialogOpen(true);
   };
+
+  const handlePresetSelect = (presetKey: string) => {
+    const preset = PRESET_REWARDS.find((p) => p.key === presetKey);
+    if (preset) {
+      setSelectedPreset(presetKey);
+      setFormData({
+        reward_key: preset.key,
+        reward_name: preset.name,
+        description: preset.description,
+        coins_amount: preset.coins,
+        is_active: true,
+        category: preset.category,
+      });
+    }
+  };
+
+  // Get available presets (not already in rewards)
+  const availablePresets = PRESET_REWARDS.filter(
+    (preset) => !rewards.some((r) => r.reward_key === preset.key)
+  );
 
   const handleSave = async () => {
     if (!formData.reward_key.trim() || !formData.reward_name.trim()) {
@@ -179,6 +238,7 @@ export const CoinRewardsManager = () => {
   };
 
   const updateCoins = async (reward: CoinReward, newAmount: number) => {
+    setSavingId(reward.id);
     try {
       const { error } = await supabase
         .from("coin_rewards_settings")
@@ -190,10 +250,13 @@ export const CoinRewardsManager = () => {
       setRewards((prev) =>
         prev.map((r) => (r.id === reward.id ? { ...r, coins_amount: newAmount } : r))
       );
-      toast.success("Coins updated");
+      
+      // Brief delay to show the checkmark
+      setTimeout(() => setSavingId(null), 1000);
     } catch (error) {
       console.error("Failed to update coins:", error);
       showErrorToast("Failed to update coins");
+      setSavingId(null);
     }
   };
 
@@ -271,13 +334,15 @@ export const CoinRewardsManager = () => {
                           }}
                           onBlur={(e) => {
                             const val = parseInt(e.target.value) || 0;
-                            if (val !== reward.coins_amount) {
-                              updateCoins(reward, val);
-                            }
+                            updateCoins(reward, val);
                           }}
                           className="w-20 text-center"
                         />
-                        <Coins className="w-4 h-4 text-yellow-500" />
+                        {savingId === reward.id ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Coins className="w-4 h-4 text-yellow-500" />
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
@@ -323,20 +388,47 @@ export const CoinRewardsManager = () => {
 
           <div className="space-y-4 py-4">
             {!editingReward && (
-              <div className="space-y-2">
-                <Label htmlFor="reward-key">Reward Key</Label>
-                <Input
-                  id="reward-key"
-                  placeholder="e.g., new_game_bonus"
-                  value={formData.reward_key}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, reward_key: e.target.value }))
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  Unique identifier used in code (lowercase, underscores)
-                </p>
-              </div>
+              <>
+                {availablePresets.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Quick Add from Presets</Label>
+                    <Select value={selectedPreset} onValueChange={handlePresetSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a preset reward..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {availablePresets.map((preset) => (
+                          <SelectItem key={preset.key} value={preset.key}>
+                            <span className="flex items-center gap-2">
+                              <span className="font-medium">{preset.name}</span>
+                              <span className="text-muted-foreground text-xs">({preset.coins} coins)</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Select a preset to auto-fill the form, or enter custom values below
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="reward-key">Reward Key</Label>
+                  <Input
+                    id="reward-key"
+                    placeholder="e.g., new_game_bonus"
+                    value={formData.reward_key}
+                    onChange={(e) => {
+                      setSelectedPreset("");
+                      setFormData((prev) => ({ ...prev, reward_key: e.target.value }));
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Unique identifier used in code (lowercase, underscores)
+                  </p>
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
