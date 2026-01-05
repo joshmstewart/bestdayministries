@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Edit, Trash2, GripVertical, Eye, EyeOff, Coffee } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { showErrorToastWithCopy } from "@/lib/errorUtils";
 
 interface MenuCategory {
   id: string;
@@ -140,7 +141,7 @@ const CoffeeShopMenuManager = () => {
       setCategoryForm({ name: "", description: "" });
       toast.success(editingCategory ? "Category updated" : "Category created");
     },
-    onError: () => toast.error("Failed to save category")
+    onError: (error) => showErrorToastWithCopy("Saving category", error)
   });
 
   const deleteCategoryMutation = useMutation({
@@ -156,7 +157,7 @@ const CoffeeShopMenuManager = () => {
       queryClient.invalidateQueries({ queryKey: ["coffee-menu-items"] });
       toast.success("Category deleted");
     },
-    onError: () => toast.error("Failed to delete category")
+    onError: (error) => showErrorToastWithCopy("Deleting category", error)
   });
 
   const toggleCategoryMutation = useMutation({
@@ -212,7 +213,7 @@ const CoffeeShopMenuManager = () => {
       resetItemForm();
       toast.success(editingItem ? "Item updated" : "Item created");
     },
-    onError: () => toast.error("Failed to save item")
+    onError: (error) => showErrorToastWithCopy("Saving item", error)
   });
 
   const deleteItemMutation = useMutation({
@@ -227,7 +228,7 @@ const CoffeeShopMenuManager = () => {
       queryClient.invalidateQueries({ queryKey: ["coffee-menu-items"] });
       toast.success("Item deleted");
     },
-    onError: () => toast.error("Failed to delete item")
+    onError: (error) => showErrorToastWithCopy("Deleting item", error)
   });
 
   const toggleItemMutation = useMutation({
@@ -272,7 +273,7 @@ const CoffeeShopMenuManager = () => {
       setAddonForm({ category_id: "", name: "", price: "" });
       toast.success(editingAddon ? "Add-on updated" : "Add-on created");
     },
-    onError: () => toast.error("Failed to save add-on")
+    onError: (error) => showErrorToastWithCopy("Saving add-on", error)
   });
 
   const deleteAddonMutation = useMutation({
@@ -287,7 +288,7 @@ const CoffeeShopMenuManager = () => {
       queryClient.invalidateQueries({ queryKey: ["coffee-menu-addons"] });
       toast.success("Add-on deleted");
     },
-    onError: () => toast.error("Failed to delete add-on")
+    onError: (error) => showErrorToastWithCopy("Deleting add-on", error)
   });
 
   const resetItemForm = () => {
