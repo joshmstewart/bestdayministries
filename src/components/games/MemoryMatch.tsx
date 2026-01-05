@@ -210,7 +210,9 @@ export const MemoryMatch = () => {
 
   const initializeGame = () => {
     const pairCount = DIFFICULTY_CONFIG[difficulty].pairs;
-    const selectedImages = currentImages.slice(0, pairCount);
+    // Randomly select images from the available set
+    const shuffledImages = [...currentImages].sort(() => Math.random() - 0.5);
+    const selectedImages = shuffledImages.slice(0, pairCount);
     const gameCards = [...selectedImages, ...selectedImages]
       .sort(() => Math.random() - 0.5)
       .map((img, index) => ({
