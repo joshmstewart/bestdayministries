@@ -23,7 +23,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2, Package, Eye, EyeOff, Edit, Star } from "lucide-react";
+import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2, Package, Eye, EyeOff, Edit, Star, Play } from "lucide-react";
+import { MemoryMatchPreview } from "./MemoryMatchPreview";
 import {
   Dialog,
   DialogContent,
@@ -128,6 +129,9 @@ export const MemoryMatchPackManager = () => {
 
   // Image preview state
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
+
+  // Game preview state
+  const [gamePreviewPack, setGamePreviewPack] = useState<{ name: string; images: { name: string; image_url: string | null }[]; cardBackUrl: string | null } | null>(null);
 
   useEffect(() => {
     loadPacks();
@@ -1118,6 +1122,22 @@ export const MemoryMatchPackManager = () => {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => {
+                        const imgs = packImages[pack.id] || [];
+                        setGamePreviewPack({
+                          name: pack.name,
+                          images: imgs.map(img => ({ name: img.name, image_url: img.image_url })),
+                          cardBackUrl: pack.card_back_url,
+                        });
+                      }}
+                      disabled={!images.some(img => img.image_url)}
+                    >
+                      <Play className="w-4 h-4 mr-1" />
+                      Preview Game
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => togglePackActive(pack)}
                     >
                       {pack.is_active ? (
@@ -1587,6 +1607,15 @@ export const MemoryMatchPackManager = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Game Preview Dialog */}
+      <MemoryMatchPreview
+        open={!!gamePreviewPack}
+        onOpenChange={(open) => !open && setGamePreviewPack(null)}
+        packName={gamePreviewPack?.name || ""}
+        images={gamePreviewPack?.images || []}
+        cardBackUrl={gamePreviewPack?.cardBackUrl}
+      />
     </div>
   );
 };
