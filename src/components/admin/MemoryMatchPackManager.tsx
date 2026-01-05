@@ -73,6 +73,7 @@ interface ImagePack {
   is_active: boolean;
   price_coins: number;
   display_order: number;
+  design_style: string | null;
 }
 
 interface PackImage {
@@ -118,6 +119,7 @@ export const MemoryMatchPackManager = () => {
     description: "",
     price_coins: 0,
     is_active: false, // New packs start inactive
+    design_style: "Vibrant colorful 3D rendered style, playful and kid-friendly, bright saturated colors, soft shadows, white background, cute and charming aesthetic",
   });
   const [savingPack, setSavingPack] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -214,7 +216,7 @@ export const MemoryMatchPackManager = () => {
       setNewImageName("");
 
       // Generate icon for the new image
-      const result = await generateIcon(newImage as PackImage, pack?.name || "Custom");
+      const result = await generateIcon(newImage as PackImage, pack?.name || "Custom", pack?.design_style);
 
       if (result.ok) {
         toast.success(`Icon generated for ${newImageName}!`);
@@ -234,7 +236,8 @@ export const MemoryMatchPackManager = () => {
 
   const generateIcon = async (
     image: PackImage,
-    packName: string
+    packName: string,
+    designStyle?: string | null
   ): Promise<{ ok: boolean; imageUrl?: string; errorMessage?: string }> => {
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -244,6 +247,7 @@ export const MemoryMatchPackManager = () => {
             imageId: image.id,
             imageName: image.name,
             packName,
+            designStyle: designStyle || undefined,
           },
         }
       );
@@ -290,7 +294,7 @@ export const MemoryMatchPackManager = () => {
 
     const results = await Promise.all(
       batch.map(async (image) => {
-        const result = await generateIcon(image, pack?.name || "Custom");
+        const result = await generateIcon(image, pack?.name || "Custom", pack?.design_style);
         return { image, result };
       })
     );
@@ -327,7 +331,7 @@ export const MemoryMatchPackManager = () => {
     setRegeneratingId(image.id);
 
     const pack = packs.find((p) => p.id === image.pack_id);
-    const result = await generateIcon(image, pack?.name || "Custom");
+    const result = await generateIcon(image, pack?.name || "Custom", pack?.design_style);
 
     if (result.ok) {
       if (result.imageUrl) {
@@ -391,6 +395,7 @@ export const MemoryMatchPackManager = () => {
   };
 
   const openPackDialog = (pack?: ImagePack) => {
+    const defaultStyle = "Vibrant colorful 3D rendered style, playful and kid-friendly, bright saturated colors, soft shadows, white background, cute and charming aesthetic";
     if (pack) {
       setEditingPack(pack);
       setPackFormData({
@@ -398,6 +403,7 @@ export const MemoryMatchPackManager = () => {
         description: pack.description || "",
         price_coins: pack.price_coins,
         is_active: pack.is_active,
+        design_style: pack.design_style || defaultStyle,
       });
     } else {
       setEditingPack(null);
@@ -406,6 +412,7 @@ export const MemoryMatchPackManager = () => {
         description: "",
         price_coins: 0,
         is_active: true,
+        design_style: defaultStyle,
       });
     }
     setPackDialogOpen(true);
@@ -461,6 +468,7 @@ export const MemoryMatchPackManager = () => {
             description: packFormData.description.trim() || null,
             price_coins: packFormData.price_coins,
             is_active: packFormData.is_active,
+            design_style: packFormData.design_style.trim() || null,
           })
           .eq("id", editingPack.id);
 
@@ -476,6 +484,7 @@ export const MemoryMatchPackManager = () => {
             price_coins: packFormData.price_coins,
             is_active: false, // Always start inactive
             display_order: packs.length,
+            design_style: packFormData.design_style.trim() || null,
           })
           .select()
           .single();
@@ -553,7 +562,7 @@ export const MemoryMatchPackManager = () => {
 
       for (let i = 0; i < (insertedImages?.length || 0); i += BATCH_SIZE) {
         const batch = insertedImages!.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(batch.map((img) => generateIcon(img as PackImage, pack.name)));
+        const results = await Promise.all(batch.map((img) => generateIcon(img as PackImage, pack.name, packFormData.design_style)));
 
         results.forEach((result, idx) => {
           if (result.ok) {
@@ -935,6 +944,19 @@ export const MemoryMatchPackManager = () => {
                     </div>
                   </div>
 
+                  {/* Design Style Preview */}
+                  {pack.design_style && (
+                    <div className="mb-4 p-3 rounded-lg bg-accent/50 border border-accent">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Wand2 className="w-3 h-3 text-primary" />
+                        <span className="text-xs font-medium">Image Style</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {pack.design_style}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Pack Actions */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     <Button
@@ -1165,6 +1187,23 @@ export const MemoryMatchPackManager = () => {
                   setPackFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
               />
+            </div>
+
+            {/* Design Style / Aesthetic */}
+            <div className="space-y-2">
+              <Label htmlFor="pack-design-style">Image Style / Aesthetic</Label>
+              <Textarea
+                id="pack-design-style"
+                placeholder="Describe the visual style for generated images..."
+                value={packFormData.design_style}
+                onChange={(e) =>
+                  setPackFormData((prev) => ({ ...prev, design_style: e.target.value }))
+                }
+                className="min-h-[80px] text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                This defines how AI-generated icons will look. Examples: "Pixel art retro style", "Watercolor soft tones", "Bold cartoon with thick outlines"
+              </p>
             </div>
 
             {/* Card Items - Editable List (always show when editing, or when there are suggestions) */}
