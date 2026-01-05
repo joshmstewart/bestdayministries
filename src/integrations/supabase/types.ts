@@ -731,6 +731,139 @@ export type Database = {
         }
         Relationships: []
       }
+      coffee_shop_menu_addons: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price: number
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coffee_shop_menu_addons_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_shop_menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coffee_shop_menu_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coffee_shop_menu_items: {
+        Row: {
+          category_id: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_featured: boolean
+          name: string
+          price_hot_12oz: number | null
+          price_hot_16oz: number | null
+          price_iced_16oz: number | null
+          price_iced_24oz: number | null
+          price_large: number | null
+          price_small: number | null
+          single_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name: string
+          price_hot_12oz?: number | null
+          price_hot_16oz?: number | null
+          price_iced_16oz?: number | null
+          price_iced_24oz?: number | null
+          price_large?: number | null
+          price_small?: number | null
+          single_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_featured?: boolean
+          name?: string
+          price_hot_12oz?: number | null
+          price_hot_16oz?: number | null
+          price_iced_16oz?: number | null
+          price_iced_24oz?: number | null
+          price_large?: number | null
+          price_small?: number | null
+          single_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coffee_shop_menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_shop_menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coin_transactions: {
         Row: {
           amount: number

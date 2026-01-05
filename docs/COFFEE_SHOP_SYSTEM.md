@@ -4,11 +4,17 @@
 Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with admin management interface.
 
 ## Database
-**Storage:** Content stored in `app_settings` table with key `coffee_shop_content`
+**Settings:** Content stored in `app_settings` table with key `coffee_shop_content`
+
+**Menu Tables:**
+- `coffee_shop_menu_categories` - Menu categories (Coffee, Crepes, etc.)
+- `coffee_shop_menu_items` - Individual menu items with flexible pricing
+- `coffee_shop_menu_addons` - Add-ons (espresso shot, milk substitutes)
 
 ## Admin Management
 **Location:** Admin → Coffee Shop Website tab
 
+### Site Settings Tab
 **Editable Content:**
 - Hero section: heading, subheading, image (upload with crop)
 - Mission: title, description
@@ -21,12 +27,18 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 - Uploads to `app-assets/coffee-shop/` bucket
 - Compressed to 4.5MB max
 
-**Button Links:**
-- **Type selection:** Internal page or custom URL
-- **Internal:** Dropdown with all pages from `INTERNAL_PAGES`
-- **Custom:** Text input for external URLs or anchor links (#menu)
-- Menu button default: `#menu` (scrolls to menu section)
-- About button default: `/about` (internal page)
+### Menu Tab
+**Features:**
+- CRUD for categories, items, and add-ons
+- Flexible pricing: single price, small/large, or coffee-style (hot 12oz/16oz, iced 16oz/24oz)
+- Visibility toggle per item/category
+- Display order management
+- Featured item flag
+
+**Pricing Types:**
+- **Single Price:** For items with one price (e.g., Affogato $5.00)
+- **Small/Large:** For crepes and specialty drinks
+- **Coffee-style:** For coffee with hot/iced and size options
 
 ## Frontend Display
 **Component:** `CoffeeShopHome.tsx`
@@ -36,58 +48,29 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 1. Hero with background image, heading, subheading, CTA buttons
 2. Mission statement card
 3. Hours/location info cards
-4. Menu (conditionally rendered based on `show_menu` toggle)
+4. Menu (database-driven, conditionally rendered)
 
-**Button Behavior:**
-- Internal links: Navigate using `window.location.href`
-- Anchor links (#): Smooth scroll to element
-- External links: Open in new tab
+**Menu Display:** `CoffeeShopMenu.tsx`
+- Fetches from database
+- Auto-detects pricing type and renders appropriate layout
+- Coffee table for multi-size drinks
+- Card grid for crepes and specialty items
+- Warm amber/orange color scheme for café aesthetic
 
-## Menu Integration
-**Component:** `CoffeeShopMenu.tsx`
-**Displays:** Coffee, specialty drinks, crepes, ice cream (hard-coded from original menu.html)
-
-## Admin Preview
-- **Preview button:** Opens `/coffee-shop` in new tab
-- **Live Site button:** Opens actual domain (bestdayevercoffeeandcrepes.com)
-
-## Content Structure
-```typescript
-{
-  hero_heading: string;
-  hero_subheading: string;
-  hero_image_url: string;
-  menu_button_text: string;
-  menu_button_link: string;
-  menu_button_link_type: "internal" | "custom";
-  about_button_text: string;
-  about_button_link: string;
-  about_button_link_type: "internal" | "custom";
-  mission_title: string;
-  mission_description: string;
-  hours_title: string;
-  hours_content: string;
-  address: string;
-  phone: string;
-  show_menu: boolean;
-}
-```
-
-## Key Features
-- Fully customizable via admin panel
-- No code changes needed for content updates
-- Image upload with cropping
-- Flexible button linking (internal/external/anchors)
-- Toggle menu visibility
-- Real-time preview capability
+## Domain Routing
+**Hook:** `useDomainRouting.ts`
+- Detects coffee shop domain (`bestdayevercoffeeandcrepes.com`)
+- Shows coffee shop landing page when accessed from that domain
+- Handles legacy domain redirects
 
 ## Files
-- `src/components/admin/CoffeeShopManager.tsx` - Admin interface
+- `src/components/admin/CoffeeShopManager.tsx` - Admin interface with tabs
+- `src/components/admin/CoffeeShopMenuManager.tsx` - Menu CRUD admin
 - `src/pages/CoffeeShopHome.tsx` - Frontend display
-- `src/components/CoffeeShopMenu.tsx` - Menu component
-- `src/lib/internalPages.ts` - Page dropdown options
+- `src/components/CoffeeShopMenu.tsx` - Menu component (database-driven)
+- `src/hooks/useDomainRouting.ts` - Domain detection
 - `docs/COFFEE_SHOP_SYSTEM.md` - This documentation
 
 ---
 
-**Last Updated:** After implementing image upload and flexible button links
+**Last Updated:** After implementing database-driven menu management
