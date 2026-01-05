@@ -515,13 +515,13 @@ const Auth = () => {
             </Button>
 
             {!isSignUp && (
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
+              <div className="relative z-0">
+                <div className="absolute inset-0 flex items-center z-0">
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="absolute inset-0 mx-auto w-10 bg-card" />
-                  <span className="relative px-2 text-muted-foreground">Or</span>
+                  <span className="absolute inset-0 mx-auto w-10 bg-card -z-10" />
+                  <span className="relative z-10 px-2 text-muted-foreground">Or</span>
                 </div>
               </div>
             )}
