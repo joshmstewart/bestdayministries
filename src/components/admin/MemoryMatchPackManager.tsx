@@ -636,7 +636,8 @@ export const MemoryMatchPackManager = () => {
     packName: string, 
     packDescription: string,
     designStyle: string,
-    insertedImages: PackImage[]
+    insertedImages: PackImage[],
+    existingCardBackUrl?: string | null
   ) => {
     // Generate icons in batches of 3
     const BATCH_SIZE = 3;
@@ -672,13 +673,15 @@ export const MemoryMatchPackManager = () => {
       toast.success(`Generated all ${successCount} icons!`, { id: `gen-progress-${packId}` });
     }
 
-    // Also generate card back
-    const packForCardBack = {
-      id: packId,
-      name: packName,
-      description: packDescription,
-    } as ImagePack;
-    await handleGenerateCardBack(packForCardBack);
+    // Only generate card back if one doesn't already exist
+    if (!existingCardBackUrl) {
+      const packForCardBack = {
+        id: packId,
+        name: packName,
+        description: packDescription,
+      } as ImagePack;
+      await handleGenerateCardBack(packForCardBack);
+    }
 
     await loadPacks();
     setGeneratingAllContent(false);
@@ -686,9 +689,11 @@ export const MemoryMatchPackManager = () => {
 
   const handleAddSuggestedItems = async (packId: string, items: string[], runInBackground = false) => {
     setGeneratingAllContent(true);
-    const pack = packs.find((p) => p.id === packId) || { name: packFormData.name.trim() };
+    const pack = packs.find((p) => p.id === packId);
+    const packName = pack?.name || packFormData.name.trim();
     const designStyle = packFormData.design_style;
     const packDescription = packFormData.description;
+    const existingCardBackUrl = pack?.card_back_url;
 
     try {
       // Insert all items first
@@ -710,7 +715,7 @@ export const MemoryMatchPackManager = () => {
 
       if (runInBackground) {
         // Don't await - let it run in background
-        runBackgroundGeneration(packId, pack.name, packDescription, designStyle, insertedImages as PackImage[]);
+        runBackgroundGeneration(packId, packName, packDescription, designStyle, insertedImages as PackImage[], existingCardBackUrl);
         return; // Return immediately, generation continues in background
       }
 
@@ -721,7 +726,7 @@ export const MemoryMatchPackManager = () => {
 
       for (let i = 0; i < (insertedImages?.length || 0); i += BATCH_SIZE) {
         const batch = insertedImages!.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(batch.map((img) => generateIcon(img as PackImage, pack.name, designStyle)));
+        const results = await Promise.all(batch.map((img) => generateIcon(img as PackImage, packName, designStyle)));
 
         results.forEach((result, idx) => {
           if (result.ok) {
@@ -744,13 +749,15 @@ export const MemoryMatchPackManager = () => {
         toast.success(`Generated all ${successCount} icons!`);
       }
 
-      // Also generate card back
-      const packForCardBack = {
-        id: packId,
-        name: pack.name,
-        description: packDescription,
-      } as ImagePack;
-      await handleGenerateCardBack(packForCardBack);
+      // Only generate card back if one doesn't already exist
+      if (!existingCardBackUrl) {
+        const packForCardBack = {
+          id: packId,
+          name: packName,
+          description: packDescription,
+        } as ImagePack;
+        await handleGenerateCardBack(packForCardBack);
+      }
 
       await loadPacks();
     } catch (error) {
