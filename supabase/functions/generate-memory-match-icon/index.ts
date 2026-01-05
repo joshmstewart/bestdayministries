@@ -80,36 +80,66 @@ TECHNICAL:
           }),
         });
 
+        console.log(`API response status: ${response.status}`);
+
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`API error response (${response.status}):`, errorText);
+          
           if (response.status === 429) {
             console.error("Rate limited, waiting...");
             await new Promise((r) => setTimeout(r, 2000 * attempt));
-            lastError = "Rate limited - please wait and try again";
+            lastError = `Rate limited (429): ${errorText}`;
             continue;
           }
           if (response.status === 402) {
-            throw new Error("AI credits exhausted - please add credits");
+            throw new Error(`AI credits exhausted (402): ${errorText}`);
           }
-          const errorText = await response.text();
-          console.error("AI API error:", errorText);
-          lastError = `AI API error: ${response.status}`;
+          lastError = `AI API error ${response.status}: ${errorText}`;
           continue;
         }
 
-        const data = await response.json();
+        const responseText = await response.text();
+        console.log(`Raw response length: ${responseText.length} chars`);
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("Failed to parse response as JSON:", responseText.substring(0, 500));
+          lastError = `Invalid JSON response: ${responseText.substring(0, 200)}`;
+          continue;
+        }
+
+        // Log the full response structure (without huge base64 data)
+        const debugData = JSON.stringify({
+          id: data.id,
+          model: data.model,
+          choices_count: data.choices?.length,
+          has_message: !!data.choices?.[0]?.message,
+          has_images: !!data.choices?.[0]?.message?.images,
+          images_count: data.choices?.[0]?.message?.images?.length,
+          content_preview: data.choices?.[0]?.message?.content?.substring(0, 100),
+          finish_reason: data.choices?.[0]?.finish_reason,
+          error: data.error,
+        });
+        console.log(`Response structure: ${debugData}`);
+
         imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
         if (imageData) {
-          console.log(`Got image data on attempt ${attempt}`);
+          console.log(`Got image data on attempt ${attempt}, length: ${imageData.length}`);
           break;
         } else {
           console.log(`No image in response on attempt ${attempt}`);
-          lastError = "No image generated - model returned empty response";
+          lastError = `No image generated. Response: ${debugData}`;
           await new Promise((r) => setTimeout(r, 1000 * attempt));
         }
       } catch (fetchError) {
         console.error(`Fetch error on attempt ${attempt}:`, fetchError);
-        lastError = fetchError instanceof Error ? fetchError.message : "Fetch failed";
+        const errorMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        console.error(`Fetch error details: ${errorMsg}`);
+        lastError = `Fetch failed: ${errorMsg}`;
         await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
     }
