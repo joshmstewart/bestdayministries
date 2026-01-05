@@ -23,63 +23,76 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Use the design style passed in, or default to clean adult-appropriate style
-    const style = designStyle || "Clean flat illustration, elegant, simple shapes, adult aesthetic";
+    // Use the design style passed in - this is the source of truth for the pack's visual style
+    const hasCustomStyle = designStyle && designStyle.trim().length > 0;
     
-    // Theme-based background colors - pick ONE based on pack name hash for consistency
-    const themeBackgrounds: Record<string, string> = {
-      space: "#1A1A2E",      // Dark navy for space
-      ocean: "#0077B6",      // Deep blue for ocean
-      nature: "#2D6A4F",     // Forest green for nature
-      farm: "#8B4513",       // Saddle brown for farm
-      food: "#FFF8DC",       // Cornsilk cream for food
-      animals: "#87CEEB",    // Sky blue for animals
-      sports: "#228B22",     // Forest green for sports
-      music: "#4B0082",      // Indigo for music
-      vehicles: "#708090",   // Slate gray for vehicles
-      default: "#40E0D0",    // Turquoise as default
-    };
+    let iconPrompt: string;
     
-    // Match pack name to theme, fallback to hash-based selection
-    const packNameLower = (packName || "").toLowerCase();
-    let backgroundColor = themeBackgrounds.default;
-    
-    for (const [theme, color] of Object.entries(themeBackgrounds)) {
-      if (packNameLower.includes(theme)) {
-        backgroundColor = color;
-        break;
+    if (hasCustomStyle) {
+      // Pack has a custom design style - use it directly as the primary instruction
+      iconPrompt = `Generate a 512x512 square image.
+
+SUBJECT: "${imageName}"
+
+PACK STYLE GUIDE (FOLLOW THIS EXACTLY):
+${designStyle}
+
+TECHNICAL REQUIREMENTS:
+1. Subject fills 70-80% of the canvas
+2. FULL BLEED - image extends to all edges, NO margins, NO borders, NO padding
+3. Sharp rectangular corners
+4. Clean icon-style illustration
+
+Follow the pack style guide above for colors, background, and artistic style.`;
+    } else {
+      // Default style - clean flat illustrations with theme-based backgrounds
+      const themeBackgrounds: Record<string, string> = {
+        space: "#9B59B6",      // Vibrant purple for space
+        ocean: "#0077B6",      // Deep blue for ocean
+        nature: "#2D6A4F",     // Forest green for nature
+        farm: "#D4A574",       // Warm tan for farm
+        food: "#FFF8DC",       // Cornsilk cream for food
+        animals: "#87CEEB",    // Sky blue for animals
+        sports: "#228B22",     // Forest green for sports
+        music: "#9B59B6",      // Purple for music
+        vehicles: "#708090",   // Slate gray for vehicles
+        default: "#40E0D0",    // Turquoise as default
+      };
+      
+      const packNameLower = (packName || "").toLowerCase();
+      let backgroundColor = themeBackgrounds.default;
+      
+      for (const [theme, color] of Object.entries(themeBackgrounds)) {
+        if (packNameLower.includes(theme)) {
+          backgroundColor = color;
+          break;
+        }
       }
+      
+      if (backgroundColor === themeBackgrounds.default && packName) {
+        const defaultColors = ["#40E0D0", "#F0E68C", "#DDA0DD", "#98FB98", "#FFB6C1", "#87CEEB", "#F5DEB3", "#B0C4DE"];
+        const colorIndex = Math.abs(packName.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % defaultColors.length;
+        backgroundColor = defaultColors[colorIndex];
+      }
+
+      iconPrompt = `Generate a 512x512 square image.
+
+SUBJECT: "${imageName}" - draw this object in clean, realistic colors
+
+BACKGROUND: Solid ${backgroundColor} - uniform, flat, fills entire canvas
+
+STYLE:
+1. Clean flat illustration, simple shapes, modern app icon style
+2. Subject fills 70-80% of the canvas
+3. FULL BLEED - extends to all edges, NO margins, NO borders
+4. Sharp rectangular corners
+5. High contrast between subject and background
+
+DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
     }
-    
-    // If no theme matched, use hash for consistent color
-    if (backgroundColor === themeBackgrounds.default && packName) {
-      const defaultColors = ["#40E0D0", "#F0E68C", "#DDA0DD", "#98FB98", "#FFB6C1", "#87CEEB", "#F5DEB3", "#B0C4DE"];
-      const colorIndex = Math.abs(packName.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % defaultColors.length;
-      backgroundColor = defaultColors[colorIndex];
-    }
-
-    const iconPrompt = `Generate a 512x512 square image.
-
-SUBJECT: "${imageName}" - draw this object/thing in REALISTIC, NATURAL colors
-
-BACKGROUND: EXACTLY the hex color ${backgroundColor} - this MUST be solid, uniform, and fill the entire canvas
-
-STYLE REQUIREMENTS:
-1. Subject uses REALISTIC/NATURAL colors (a rocket is white/silver with red/orange flames, an astronaut has a white suit, the moon is gray/white, Saturn is tan/gold with rings)
-2. Background is EXACTLY ${backgroundColor} - solid, flat, no gradients, no variations
-3. Subject fills 70-80% of the canvas
-4. FULL BLEED - image extends to all edges, NO margins, NO borders, NO padding
-5. Clean, simple illustration style - like a modern app icon
-6. Sharp rectangular corners
-
-DO NOT:
-- Use fantasy/neon/unrealistic colors on the subject
-- Add gradients or texture to the background
-- Add borders, margins, or white space at edges
-- Make the subject black/white/monotone`;
 
     console.log("Generating icon for memory match image:", imageName);
-    console.log("Using background color:", backgroundColor);
+    console.log("Has custom style:", hasCustomStyle);
     console.log("Prompt:", iconPrompt);
 
     // Call Lovable AI to generate the image with retry logic
