@@ -492,10 +492,10 @@ const CoffeeShopMenuManager = () => {
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3 min-w-0">
                           <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{item.name}</p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {category?.name} • {item.description || "No description"}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {category?.name} {item.description && `• ${item.description}`}
                             </p>
                           </div>
                         </div>
