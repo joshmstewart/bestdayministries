@@ -503,6 +503,27 @@ export const MemoryMatchPackManager = () => {
     }
   };
 
+  const formatErrorForDisplay = (err: unknown) => {
+    if (!err) return "Unknown error";
+    const anyErr = err as any;
+
+    // PostgrestError typically contains: message, details, hint, code
+    const parts: string[] = [];
+    if (typeof anyErr.message === "string" && anyErr.message.trim()) parts.push(anyErr.message.trim());
+    if (typeof anyErr.details === "string" && anyErr.details.trim()) parts.push(`Details: ${anyErr.details.trim()}`);
+    if (typeof anyErr.hint === "string" && anyErr.hint.trim()) parts.push(`Hint: ${anyErr.hint.trim()}`);
+    if (typeof anyErr.code === "string" && anyErr.code.trim()) parts.push(`Code: ${anyErr.code.trim()}`);
+    if (typeof anyErr.status === "number") parts.push(`HTTP: ${anyErr.status}`);
+
+    if (parts.length > 0) return parts.join("\n");
+
+    try {
+      return JSON.stringify(anyErr, null, 2);
+    } catch {
+      return String(anyErr);
+    }
+  };
+
   const handleAddSuggestedItems = async (packId: string, items: string[]) => {
     setGeneratingAllContent(true);
     const pack = packs.find((p) => p.id === packId) || { name: packFormData.name.trim() };
@@ -528,19 +549,17 @@ export const MemoryMatchPackManager = () => {
       // Generate icons in batches of 3
       const BATCH_SIZE = 3;
       let successCount = 0;
-      const errors: GenerationError[] = [];
+      const generationErrors: GenerationError[] = [];
 
       for (let i = 0; i < (insertedImages?.length || 0); i += BATCH_SIZE) {
         const batch = insertedImages!.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(
-          batch.map((img) => generateIcon(img as PackImage, pack.name))
-        );
+        const results = await Promise.all(batch.map((img) => generateIcon(img as PackImage, pack.name)));
 
         results.forEach((result, idx) => {
           if (result.ok) {
             successCount++;
           } else {
-            errors.push({
+            generationErrors.push({
               imageName: batch[idx].name,
               error: result.errorMessage || "Unknown error",
             });
@@ -548,21 +567,38 @@ export const MemoryMatchPackManager = () => {
         });
       }
 
-      if (errors.length > 0) {
-        setErrors(errors);
-        toast.warning(`Generated ${successCount}/${items.length} icons. ${errors.length} failed.`);
+      if (generationErrors.length > 0) {
+        setErrors(generationErrors);
+        toast.warning(
+          `Generated ${successCount}/${items.length} icons. ${generationErrors.length} failed.`
+        );
       } else {
         toast.success(`Generated all ${successCount} icons!`);
       }
 
       // Also generate card back
-      const packForCardBack = { id: packId, name: pack.name, description: packFormData.description } as ImagePack;
+      const packForCardBack = {
+        id: packId,
+        name: pack.name,
+        description: packFormData.description,
+      } as ImagePack;
       await handleGenerateCardBack(packForCardBack);
 
       await loadPacks();
     } catch (error) {
+      const message = formatErrorForDisplay(error);
       console.error("Failed to add suggested items:", error);
-      toast.error("Failed to add suggested items");
+
+      // Persistent, copyable error panel
+      setErrors((prev) => [
+        ...prev,
+        {
+          imageName: "Add suggested items",
+          error: message,
+        },
+      ]);
+
+      toast.error("Failed to add suggested items (see error panel above)");
     } finally {
       setGeneratingAllContent(false);
     }
