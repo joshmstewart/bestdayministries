@@ -328,7 +328,7 @@ const Community = () => {
                       
                       {/* Home of section */}
                       <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
-                        <span className="text-lg text-muted-foreground">Home of...</span>
+                        <span className="text-sm text-muted-foreground">Home of...</span>
                         <Button
                           variant="outline"
                           className="gap-2 border-primary/30 hover:border-primary hover:bg-primary/5"
