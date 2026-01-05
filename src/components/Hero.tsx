@@ -63,7 +63,7 @@ const Hero = ({ content = {} }: HeroProps) => {
   const hasGradient = gradientIndex > -1 && gradient_text;
 
   return (
-    <section className="relative min-h-[70vh] flex items-start overflow-hidden bg-background">
+    <section className="relative -mt-8 md:-mt-12 min-h-[70vh] flex items-start overflow-hidden bg-background">
       {/* Soft background wash (prevents hard gradient edges at top/bottom) */}
       <div
         aria-hidden="true"
@@ -81,7 +81,11 @@ const Hero = ({ content = {} }: HeroProps) => {
       
       <div className="container mx-auto px-4 pt-4 pb-12 relative z-10">
         {/* Quick Action Buttons */}
-        <div className="flex flex-wrap justify-center gap-4 md:gap-10 mb-8">
+        <div className="relative flex flex-wrap justify-center gap-4 md:gap-10 mb-8">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 -top-10 h-28 bg-primary/20 blur-3xl"
+          />
           {quickActions.map((action, index) => (
             <Button
               key={action.path}
