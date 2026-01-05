@@ -541,6 +541,7 @@ TERMS:Guard+Dialog→versions-in-useTermsCheck→FIXED-2025-10-25[no-double-prom
 EDGE:record-acceptance[auth-required|IP-tracking+audit-trail]→called-DURING-signup
 SECURITY:handle_new_user()[DEFINER]|has_role()[DEFINER]
 RLS:profiles[own+guardians-linked+admins-all]|user_roles[SELECT-auth|INSERT-UPDATE-DELETE-admins]
+UI-DIVIDER:Or-divider-z-stacking[line-z-0→white-box-z-10→Or-text-z-20→SignIn-button-z-30]→button-shadow-shows-above-white-box
 DOC:AUTH_SYSTEM_CONCISE.md|CHANGELOG_2025_10_25.md
 
 ## AUTH_CONTEXT
