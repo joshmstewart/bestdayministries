@@ -26,6 +26,9 @@ serve(async (req) => {
     // Generate a prompt for the food ingredient icon - show realistic kitchen/grocery forms
     const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName} (food ingredient). 256x256 pixels. Simple flat illustration style.
 
+CRITICAL FRAMING: The ${ingredientName} must fill 70-80% of the image frame - make it LARGE and prominent, not small and distant.
+CRITICAL SHAPE: The image must have SHARP 90-DEGREE CORNERS - absolutely NO rounded corners, NO circular frames, NO curved edges. The card UI will handle any rounding.
+
 CRITICAL: Show this ingredient exactly as someone would find it in their kitchen or grocery store:
 - Cereal = colorful cereal box with some cereal spilling out
 - Oatmeal = round oatmeal canister/container
@@ -43,7 +46,7 @@ CRITICAL: Show this ingredient exactly as someone would find it in their kitchen
 - Frozen items = in freezer bag or box
 - Broth/stock = carton or can
 
-Show the ACTUAL packaging or common kitchen form. Solid single-color background. No text labels, sharp corners, no frames. Center items in frame. Make it instantly recognizable. Category: ${category}.`;
+Show the ACTUAL packaging or common kitchen form. Solid single-color background. No text labels. Make it instantly recognizable. Category: ${category}.`;
 
     console.log("Generating icon for recipe ingredient:", ingredientName);
     console.log("Prompt:", iconPrompt);

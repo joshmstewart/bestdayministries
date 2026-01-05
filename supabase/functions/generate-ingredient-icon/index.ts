@@ -23,8 +23,13 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Generate a prompt for the ingredient icon - request small, simple square icons
-    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName}. Image must be exactly 256x256 pixels with equal width and height. Simple flat illustration style with minimal details. Solid single-color background filling entire square canvas edge-to-edge. Sharp 90-degree corners, no rounded frames or borders. No text, no gradients, no shadows. Center the subject within the square frame. Category: ${category}.`;
+    // Generate a prompt for the ingredient icon - request square icons with object filling frame
+    const iconPrompt = `Create a perfectly square 1:1 aspect ratio icon of ${ingredientName}. Image must be exactly 256x256 pixels with equal width and height. Simple flat illustration style with minimal details. Solid single-color background filling entire square canvas edge-to-edge.
+
+CRITICAL FRAMING: The ${ingredientName} must fill 70-80% of the image frame - make it LARGE and prominent, not small and distant.
+CRITICAL SHAPE: The image must have SHARP 90-DEGREE CORNERS - absolutely NO rounded corners, NO circular frames, NO curved edges. The card UI will handle any rounding.
+
+No text, no gradients, no shadows. Category: ${category}.`;
 
     console.log("Generating icon for:", ingredientName);
     console.log("Prompt:", iconPrompt);

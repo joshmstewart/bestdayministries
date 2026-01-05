@@ -26,7 +26,12 @@ serve(async (req) => {
     // Use the design style passed in, or default to clean adult-appropriate style
     const style = designStyle || "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements";
 
-    const iconPrompt = `${style}. Create a perfectly square 1:1 aspect ratio icon of a ${imageName}. Image must be exactly 512x512 pixels with equal width and height. NO cartoon faces, NO baby/childish characters, NO cute mascots. Just the object itself in a clean, elegant style. Center the item within the square frame. Make it sophisticated and easily recognizable for adults. Pack theme: ${packName || "General"}.`;
+    const iconPrompt = `${style}. Create a perfectly square 1:1 aspect ratio icon of a ${imageName}. Image must be exactly 512x512 pixels with equal width and height. 
+
+CRITICAL FRAMING: The ${imageName} must fill 70-80% of the image frame - make it LARGE and prominent, not small and distant.
+CRITICAL SHAPE: The image must have SHARP 90-DEGREE CORNERS - absolutely NO rounded corners, NO circular frames, NO curved edges. The card UI will handle any rounding.
+
+NO cartoon faces, NO baby/childish characters, NO cute mascots. Just the object itself in a clean, elegant style. Make it sophisticated and easily recognizable for adults. Pack theme: ${packName || "General"}.`;
 
     console.log("Generating icon for memory match image:", imageName);
     console.log("Prompt:", iconPrompt);
