@@ -45,15 +45,11 @@ export function showErrorToastWithCopy(context: string, error: unknown) {
 }
 
 /**
- * Shows a simple error toast for non-critical errors.
- * Use showErrorToastWithCopy for errors that need debugging.
+ * Shows a persistent error toast with copy button.
+ * This is an alias for showErrorToastWithCopy for simple string errors.
  * 
  * @param message - The error message to display
  */
 export function showErrorToast(message: string) {
-  toast({
-    title: "Error",
-    description: message,
-    variant: "destructive",
-  });
+  showErrorToastWithCopy("Error", message);
 }
