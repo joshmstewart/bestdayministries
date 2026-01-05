@@ -24,17 +24,24 @@ serve(async (req) => {
     }
 
     // Use the design style passed in, or default to clean adult-appropriate style
-    const style = designStyle || "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements";
+    const style = designStyle || "Clean modern illustration, elegant and sophisticated, simple shapes, approachable but adult aesthetic, no cartoon faces or childish elements";
 
-    const iconPrompt = `${style}. Create a 512x512 pixel icon of a ${imageName}.
+    const iconPrompt = `Create a 512x512 pixel icon of a ${imageName}.
+
+CRITICAL - VISUAL DISTINCTION:
+- Each icon MUST be instantly recognizable and visually DIFFERENT from other icons
+- Use a UNIQUE, VIBRANT background color that contrasts with the subject (pick from: bright red, orange, yellow, lime green, teal, sky blue, purple, pink, coral, mint - NOT dark colors)
+- The ${imageName} should have colors that POP against the background
+- Make the subject BOLD, SIMPLE, and ICONIC - think road sign clarity
 
 MANDATORY REQUIREMENTS:
 1. FRAMING: The ${imageName} must fill 70-80% of the image - make it LARGE and prominent
-2. CORNERS: RECTANGULAR image with SHARP 90-DEGREE CORNERS ONLY. DO NOT round ANY edges. DO NOT use circular or oval frames. DO NOT add ANY curved borders or vignettes. The corners must be perfectly square like a photograph.
-3. BACKGROUND: Solid single flat color extending to ALL four corners with NO gradients, NO fading, NO corner treatments
-4. STYLE: NO cartoon faces, NO baby/childish characters, NO cute mascots. Just the object itself in a clean, elegant style.
+2. CORNERS: RECTANGULAR image with SHARP 90-DEGREE CORNERS ONLY. NO rounded edges.
+3. BACKGROUND: Solid single BRIGHT flat color extending to ALL corners - NO gradients, NO dark backgrounds, NO space/galaxy backgrounds
+4. STYLE: ${style}. Clean, flat illustration style with bold outlines. Easy to identify at a glance.
+5. SUBJECT: Show the most ICONIC, recognizable version of ${imageName} - simplified but unmistakable
 
-FORBIDDEN: rounded corners, circular frames, oval shapes, curved edges, border radius, vignette effects, corner fading
+FORBIDDEN: rounded corners, dark backgrounds, space/galaxy backgrounds, similar colors to other icons, complex detailed renderings, photorealistic style
 
 Pack theme: ${packName || "General"}.`;
 
