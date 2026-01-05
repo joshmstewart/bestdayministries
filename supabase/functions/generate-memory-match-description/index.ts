@@ -11,18 +11,56 @@ serve(async (req) => {
   }
 
   try {
-    const { packName } = await req.json();
+    const { packName, generateOnly } = await req.json();
     
     if (!packName) {
       throw new Error("Pack name is required");
     }
+
+    // generateOnly can be: "all" (default), "description", "style", or "items"
+    const mode = generateOnly || "all";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log(`Generating description for pack: ${packName}`);
+    console.log(`Generating content for pack: ${packName}, mode: ${mode}`);
+
+    // Build prompt based on mode
+    let systemPrompt = "You are a creative writer for a memory match card game designed for ADULTS with special needs. Content should be fun and appealing but NOT childish or cartoonish.";
+    let userPrompt = "";
+    let toolParams: Record<string, any> = {};
+    let requiredFields: string[] = [];
+
+    if (mode === "description") {
+      userPrompt = `Generate ONLY a short 1-2 sentence description for a memory match card pack called "${packName}".`;
+      toolParams = {
+        description: { type: "string", description: "A short 1-2 sentence description of the pack" }
+      };
+      requiredFields = ["description"];
+    } else if (mode === "style") {
+      userPrompt = `Generate ONLY a visual style description for a memory match card pack called "${packName}". The style should be elegant, sophisticated, and adult-appropriate.`;
+      toolParams = {
+        design_style: { type: "string", description: "A visual style description for generating card images. Describe colors, art style, and mood. Should be elegant and adult-appropriate." }
+      };
+      requiredFields = ["design_style"];
+    } else if (mode === "items") {
+      userPrompt = `Generate ONLY 10-12 suggested item names for a memory match card pack called "${packName}".`;
+      toolParams = {
+        suggested_items: { type: "array", items: { type: "string" }, description: "10-12 suggested item names that fit this pack theme" }
+      };
+      requiredFields = ["suggested_items"];
+    } else {
+      // mode === "all"
+      userPrompt = `Generate content for a memory match card pack called "${packName}". Include a description, 10-12 item suggestions, and a visual style. Everything should be adult-appropriate.`;
+      toolParams = {
+        description: { type: "string", description: "A short 1-2 sentence description of the pack" },
+        suggested_items: { type: "array", items: { type: "string" }, description: "10-12 suggested item names that fit this pack theme" },
+        design_style: { type: "string", description: "A visual style description. Elegant, adult-appropriate, describing colors, art style, mood." }
+      };
+      requiredFields = ["description", "suggested_items", "design_style"];
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -33,39 +71,19 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          {
-            role: "system",
-            content: "You are a creative writer for a memory match card game designed for ADULTS with special needs. Generate short, engaging descriptions for themed card packs. Keep descriptions to 1-2 sentences, fun and appealing but NOT childish. Also suggest an appropriate visual style for the card images - elegant, sophisticated, clean illustrations suitable for adults."
-          },
-          {
-            role: "user",
-            content: `Generate content for a memory match card pack called "${packName}". Include a description, 10-12 item suggestions, and a visual style that fits this theme. The style should be adult-appropriate (not childish or cartoonish).`
-          }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
         ],
         tools: [
           {
             type: "function",
             function: {
               name: "generate_pack_content",
-              description: "Generate description, suggested card items, and visual style for a memory match pack",
+              description: "Generate content for a memory match pack",
               parameters: {
                 type: "object",
-                properties: {
-                  description: {
-                    type: "string",
-                    description: "A short 1-2 sentence description of the pack"
-                  },
-                  suggested_items: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "10-12 suggested item names that would fit this pack theme"
-                  },
-                  design_style: {
-                    type: "string",
-                    description: "A visual style description for generating the card images. Should be elegant and adult-appropriate, describing colors, art style, and mood. Example: 'Watercolor botanical style, soft pastels, delicate linework, white background, sophisticated and calming'"
-                  }
-                },
-                required: ["description", "suggested_items", "design_style"],
+                properties: toolParams,
+                required: requiredFields,
                 additionalProperties: false
               }
             }
@@ -91,12 +109,14 @@ serve(async (req) => {
 
     const result = JSON.parse(toolCall.function.arguments);
 
+    // Return only what was requested
+    const responseData: Record<string, any> = {};
+    if (result.description) responseData.description = result.description;
+    if (result.suggested_items) responseData.suggestedItems = result.suggested_items;
+    if (result.design_style) responseData.designStyle = result.design_style;
+
     return new Response(
-      JSON.stringify({
-        description: result.description,
-        suggestedItems: result.suggested_items,
-        designStyle: result.design_style
-      }),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

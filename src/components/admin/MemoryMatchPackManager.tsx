@@ -418,7 +418,11 @@ export const MemoryMatchPackManager = () => {
     setPackDialogOpen(true);
   };
 
-  const handleGenerateDescription = async () => {
+  // State for individual regeneration
+  const [generatingStyle, setGeneratingStyle] = useState(false);
+  const [generatingItems, setGeneratingItems] = useState(false);
+
+  const handleGenerateAll = async () => {
     if (!packFormData.name.trim()) {
       toast.error("Please enter a pack name first");
       return;
@@ -428,7 +432,7 @@ export const MemoryMatchPackManager = () => {
     try {
       const { data, error } = await supabase.functions.invoke(
         "generate-memory-match-description",
-        { body: { packName: packFormData.name.trim() } }
+        { body: { packName: packFormData.name.trim(), generateOnly: "all" } }
       );
 
       if (error) throw error;
@@ -444,12 +448,96 @@ export const MemoryMatchPackManager = () => {
         setPackFormData((prev) => ({ ...prev, design_style: data.designStyle }));
       }
 
-      toast.success("Description generated!");
+      toast.success("All content generated!");
+    } catch (error) {
+      console.error("Failed to generate content:", error);
+      toast.error("Failed to generate content");
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!packFormData.name.trim()) {
+      toast.error("Please enter a pack name first");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-memory-match-description",
+        { body: { packName: packFormData.name.trim(), generateOnly: "description" } }
+      );
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.description) {
+        setPackFormData((prev) => ({ ...prev, description: data.description }));
+        toast.success("Description generated!");
+      }
     } catch (error) {
       console.error("Failed to generate description:", error);
       toast.error("Failed to generate description");
     } finally {
       setGeneratingDescription(false);
+    }
+  };
+
+  const handleGenerateStyle = async () => {
+    if (!packFormData.name.trim()) {
+      toast.error("Please enter a pack name first");
+      return;
+    }
+
+    setGeneratingStyle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-memory-match-description",
+        { body: { packName: packFormData.name.trim(), generateOnly: "style" } }
+      );
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.designStyle) {
+        setPackFormData((prev) => ({ ...prev, design_style: data.designStyle }));
+        toast.success("Style generated!");
+      }
+    } catch (error) {
+      console.error("Failed to generate style:", error);
+      toast.error("Failed to generate style");
+    } finally {
+      setGeneratingStyle(false);
+    }
+  };
+
+  const handleGenerateItems = async () => {
+    if (!packFormData.name.trim()) {
+      toast.error("Please enter a pack name first");
+      return;
+    }
+
+    setGeneratingItems(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-memory-match-description",
+        { body: { packName: packFormData.name.trim(), generateOnly: "items" } }
+      );
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.suggestedItems) {
+        setSuggestedItems(data.suggestedItems);
+        toast.success("Items generated!");
+      }
+    } catch (error) {
+      console.error("Failed to generate items:", error);
+      toast.error("Failed to generate items");
+    } finally {
+      setGeneratingItems(false);
     }
   };
 
@@ -1163,9 +1251,9 @@ export const MemoryMatchPackManager = () => {
                   type="button"
                   variant="outline"
                   size="icon"
-                  onClick={handleGenerateDescription}
-                  disabled={generatingDescription || !packFormData.name.trim()}
-                  title="Generate description & suggested items from name"
+                  onClick={handleGenerateAll}
+                  disabled={generatingDescription || generatingStyle || generatingItems || !packFormData.name.trim()}
+                  title="Generate ALL: description, items, and style"
                 >
                   {generatingDescription ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1178,13 +1266,25 @@ export const MemoryMatchPackManager = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="pack-description">Description</Label>
-                {generatingDescription && (
-                  <span className="text-xs text-muted-foreground">Generating...</span>
-                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription || !packFormData.name.trim()}
+                  className="h-7 px-2"
+                  title="Regenerate description only"
+                >
+                  {generatingDescription ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-3 h-3" />
+                  )}
+                </Button>
               </div>
               <Textarea
                 id="pack-description"
-                placeholder="Describe this image pack... (click the wand to auto-generate)"
+                placeholder="Describe this image pack..."
                 value={packFormData.description}
                 onChange={(e) =>
                   setPackFormData((prev) => ({ ...prev, description: e.target.value }))
@@ -1200,12 +1300,12 @@ export const MemoryMatchPackManager = () => {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={handleGenerateDescription}
-                  disabled={generatingDescription || !packFormData.name.trim()}
+                  onClick={handleGenerateStyle}
+                  disabled={generatingStyle || !packFormData.name.trim()}
                   className="h-7 px-2"
-                  title="Regenerate style based on pack name"
+                  title="Regenerate style only"
                 >
-                  {generatingDescription ? (
+                  {generatingStyle ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
                   ) : (
                     <Wand2 className="w-3 h-3" />
@@ -1222,7 +1322,7 @@ export const MemoryMatchPackManager = () => {
                 className="min-h-[80px] text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Click ✨ to auto-generate a style, or write your own. Examples: "Watercolor botanical", "Vintage travel poster", "Minimalist line art"
+                Describe colors, art style, mood. Examples: "Watercolor botanical", "Vintage travel poster", "Minimalist line art"
               </p>
             </div>
 
@@ -1240,12 +1340,12 @@ export const MemoryMatchPackManager = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={handleGenerateDescription}
-                      disabled={generatingDescription || !packFormData.name.trim()}
+                      onClick={handleGenerateItems}
+                      disabled={generatingItems || !packFormData.name.trim()}
                       className="h-7 px-2"
-                      title="Generate AI suggestions based on pack name"
+                      title="Regenerate items only"
                     >
-                      {generatingDescription ? (
+                      {generatingItems ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : (
                         <Wand2 className="w-3 h-3" />
