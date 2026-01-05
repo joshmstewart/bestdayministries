@@ -17,10 +17,16 @@ export function PicturePasswordNotificationManager() {
     dismissMaybeLater,
     dismissDontShowAgain,
     markBestieNotificationRead,
-    closeFeaturePrompt
+    closeFeaturePrompt,
+    refreshCheck
   } = usePicturePasswordNotifications();
 
   if (loading || !user) return null;
+
+  // Handle close after setup - refresh to check if prompt should still show
+  const handleClose = async () => {
+    await refreshCheck();
+  };
 
   // Priority: Show bestie created code notification first
   if (showBestieCreatedCode && currentBestieNotification) {
@@ -39,7 +45,7 @@ export function PicturePasswordNotificationManager() {
     return (
       <PicturePasswordFeaturePrompt
         open={showFeaturePrompt}
-        onClose={closeFeaturePrompt}
+        onClose={handleClose}
         onMaybeLater={dismissMaybeLater}
         onDontShowAgain={dismissDontShowAgain}
         isGuardian={isGuardian}

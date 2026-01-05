@@ -252,6 +252,12 @@ export function usePicturePasswordNotifications() {
     setShowFeaturePrompt(false);
   };
 
+  // Refresh the check (called after user creates a picture password)
+  const refreshCheck = useCallback(async () => {
+    const shouldShowPrompt = await checkFeaturePrompt();
+    setShowFeaturePrompt(shouldShowPrompt);
+  }, [checkFeaturePrompt]);
+
   return {
     loading,
     showFeaturePrompt,
@@ -264,6 +270,7 @@ export function usePicturePasswordNotifications() {
     dismissMaybeLater,
     dismissDontShowAgain,
     markBestieNotificationRead,
-    closeFeaturePrompt
+    closeFeaturePrompt,
+    refreshCheck
   };
 }
