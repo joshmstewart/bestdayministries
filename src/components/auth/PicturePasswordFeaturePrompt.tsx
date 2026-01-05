@@ -148,14 +148,17 @@ export function PicturePasswordFeaturePrompt({
                   Set up for {bestie.display_name}
                 </Button>
               ))}
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
+              {/* Only show "or" divider if guardian doesn't have a picture password */}
+              {!userHasPicturePassword && (
+                <div className="relative my-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">or</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">or</span>
-                </div>
-              </div>
+              )}
             </>
           )}
 
