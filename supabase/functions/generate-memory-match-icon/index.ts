@@ -41,44 +41,77 @@ Pack: ${packName || "General"}.`;
     console.log("Generating icon for memory match image:", imageName);
     console.log("Prompt:", iconPrompt);
 
-    // Call Lovable AI to generate the image
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: iconPrompt,
+    // Call Lovable AI to generate the image with retry logic
+    let imageData: string | null = null;
+    let lastError: string = "No image generated";
+    
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      console.log(`Attempt ${attempt}/3 for generating icon: ${imageName}`);
+      
+      try {
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
           },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image-preview",
+            messages: [
+              {
+                role: "user",
+                content: iconPrompt,
+              },
+            ],
+            modalities: ["image", "text"],
+          }),
+        });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        console.error("Rate limited by AI gateway");
-        throw new Error("Rate limited - please wait and try again");
+        if (!response.ok) {
+          if (response.status === 429) {
+            console.error("Rate limited by AI gateway, waiting before retry...");
+            await new Promise(r => setTimeout(r, 2000 * attempt));
+            lastError = "Rate limited - please wait and try again";
+            continue;
+          }
+          if (response.status === 402) {
+            console.error("AI credits exhausted");
+            throw new Error("AI credits exhausted - please add credits");
+          }
+          const errorText = await response.text();
+          console.error("AI API error:", errorText);
+          lastError = `AI API error: ${response.status}`;
+          continue;
+        }
+
+        const data = await response.json();
+        console.log("API response structure:", JSON.stringify({
+          hasChoices: !!data.choices,
+          choicesLength: data.choices?.length,
+          hasMessage: !!data.choices?.[0]?.message,
+          hasImages: !!data.choices?.[0]?.message?.images,
+          imagesLength: data.choices?.[0]?.message?.images?.length,
+        }));
+        
+        imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+        if (imageData) {
+          console.log(`Successfully got image data on attempt ${attempt}`);
+          break;
+        } else {
+          console.log(`No image in response on attempt ${attempt}, retrying...`);
+          lastError = "No image generated - model returned empty response";
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+        }
+      } catch (fetchError) {
+        console.error(`Fetch error on attempt ${attempt}:`, fetchError);
+        lastError = fetchError instanceof Error ? fetchError.message : "Fetch failed";
+        await new Promise(r => setTimeout(r, 1000 * attempt));
       }
-      if (response.status === 402) {
-        console.error("AI credits exhausted");
-        throw new Error("AI credits exhausted - please add credits");
-      }
-      const errorText = await response.text();
-      console.error("AI API error:", errorText);
-      throw new Error(`AI API error: ${response.status}`);
     }
 
-    const data = await response.json();
-    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
     if (!imageData) {
-      throw new Error("No image generated");
+      throw new Error(lastError);
     }
 
     // Upload to Supabase Storage
