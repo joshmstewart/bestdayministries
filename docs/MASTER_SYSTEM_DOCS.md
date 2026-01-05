@@ -878,6 +878,16 @@ WORKFLOW:1)Sentry-catch→2)alert-webhook→3)log-DB→4)admin-view
 SETUP:Sentry-dashboard[Alerts→WebHooks→add-edge-URL]
 FIELDS:error_message|type|stack_trace|user_id|user_email|browser_info|url|sentry_event_id|severity|environment|metadata|created_at
 
+## MEMORY_MATCH_SYSTEM
+OVERVIEW:memory-match-game+admin-pack-manager+AI-icon-generation+pack-preview
+ROUTE:/games/memory-match
+ADMIN:Admin→Games→Memory-Match-tab→MemoryMatchPackManager[CRUD-packs+images+preview]
+DB:memory_match_packs|memory_match_images|user_memory_match_packs|game_sessions
+BACKEND_FUNCTIONS:generate-memory-match-icon|generate-memory-match-card-back|generate-memory-match-description
+ICON_PIPELINE:AI-generates-subject-on-transparent→backend-composites-on-solid-theme-hex→guarantees-full-bleed-512x512-squares
+BACKGROUND_RULE:deterministic-theme-palette-by-pack-name; admins-can-override-by-including-a-hex-in-design_style
+DOC:MEMORY_MATCH_SYSTEM.md
+
 ## STICKER_PACK_SYSTEM
 OVERVIEW:daily-free-packs+purchasable-bonus-packs+rarity-based-drops+animated-pack-opening+collection-progress+duplicate-tracking
 DB:sticker_collections|stickers|daily_scratch_cards|user_stickers|badges
