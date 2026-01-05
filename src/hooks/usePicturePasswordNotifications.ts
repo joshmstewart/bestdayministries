@@ -29,6 +29,7 @@ export function usePicturePasswordNotifications() {
   const [showFeaturePrompt, setShowFeaturePrompt] = useState(false);
   const [showBestieCreatedCode, setShowBestieCreatedCode] = useState(false);
   const [currentBestieNotification, setCurrentBestieNotification] = useState<PicturePasswordNotification | null>(null);
+  const [userHasPicturePassword, setUserHasPicturePassword] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const isGuardian = role === "caregiver" || role === "admin" || role === "owner";
@@ -57,8 +58,17 @@ export function usePicturePasswordNotifications() {
       }
     }
 
-    // For guardians, check if they have linked besties without picture passwords
+    // For guardians, check if they or their linked besties don't have picture passwords
     if (isGuardian) {
+      // Check if guardian themselves has a picture password
+      const { data: guardianPassword } = await supabase
+        .from("picture_passwords")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const guardianHasPassword = !!guardianPassword;
+      setUserHasPicturePassword(guardianHasPassword);
       const { data: links } = await supabase
         .from("caregiver_bestie_links")
         .select("bestie_id, profiles!caregiver_bestie_links_bestie_id_fkey(id, display_name)")
@@ -83,10 +93,13 @@ export function usePicturePasswordNotifications() {
 
         setLinkedBesties(bestiesData);
 
-        // Show prompt if any bestie doesn't have a picture password
+        // Show prompt if guardian doesn't have one OR any bestie doesn't have a picture password
         const hasUnsetBesties = bestiesData.some(b => !b.hasPicturePassword);
-        return hasUnsetBesties;
+        return !guardianHasPassword || hasUnsetBesties;
       }
+
+      // Guardian has no linked besties - show prompt if they don't have a picture password
+      return !guardianHasPassword;
     }
 
     // For besties, check if they have a picture password
@@ -247,6 +260,7 @@ export function usePicturePasswordNotifications() {
     linkedBesties,
     isGuardian,
     isBestie,
+    userHasPicturePassword,
     dismissMaybeLater,
     dismissDontShowAgain,
     markBestieNotificationRead,

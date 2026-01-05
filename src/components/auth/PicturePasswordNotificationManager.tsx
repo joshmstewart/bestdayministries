@@ -13,6 +13,7 @@ export function PicturePasswordNotificationManager() {
     linkedBesties,
     isGuardian,
     isBestie,
+    userHasPicturePassword,
     dismissMaybeLater,
     dismissDontShowAgain,
     markBestieNotificationRead,
@@ -45,6 +46,7 @@ export function PicturePasswordNotificationManager() {
         isBestie={isBestie}
         linkedBesties={linkedBesties}
         userId={user.id}
+        userHasPicturePassword={userHasPicturePassword}
       />
     );
   }

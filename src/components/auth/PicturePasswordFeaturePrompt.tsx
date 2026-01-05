@@ -21,6 +21,7 @@ interface PicturePasswordFeaturePromptProps {
   isBestie: boolean;
   linkedBesties: LinkedBestie[];
   userId: string;
+  userHasPicturePassword?: boolean;
 }
 
 export function PicturePasswordFeaturePrompt({
@@ -31,7 +32,8 @@ export function PicturePasswordFeaturePrompt({
   isGuardian,
   isBestie,
   linkedBesties,
-  userId
+  userId,
+  userHasPicturePassword = false
 }: PicturePasswordFeaturePromptProps) {
   const [showSetup, setShowSetup] = useState(false);
   const [selectedBestieId, setSelectedBestieId] = useState<string | null>(null);
@@ -167,7 +169,7 @@ export function PicturePasswordFeaturePrompt({
             </Button>
           )}
 
-          {isGuardian && (
+          {isGuardian && !userHasPicturePassword && (
             <Button
               variant="secondary"
               className="w-full"
@@ -176,6 +178,12 @@ export function PicturePasswordFeaturePrompt({
               <KeyRound className="h-4 w-4 mr-2" />
               Set up for myself
             </Button>
+          )}
+
+          {isGuardian && userHasPicturePassword && bestiesWithoutPassword.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center">
+              ✓ You already have Picture Login set up!
+            </p>
           )}
         </div>
 
