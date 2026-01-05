@@ -1228,7 +1228,7 @@ export const MemoryMatchPackManager = () => {
 
       {/* Pack Dialog */}
       <Dialog open={packDialogOpen} onOpenChange={setPackDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPack ? "Edit Pack" : "Create New Pack"}</DialogTitle>
             <DialogDescription>
