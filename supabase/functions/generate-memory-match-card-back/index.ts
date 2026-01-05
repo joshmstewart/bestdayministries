@@ -24,7 +24,24 @@ serve(async (req) => {
     }
 
     // Generate a hyper-realistic playing card back design themed to the pack
-    const cardBackPrompt = `Create a hyper-realistic, elegant playing card back design. The design should be perfectly symmetrical (rotational symmetry like traditional playing cards). Include ornate decorative borders with intricate filigree patterns typical of premium playing cards. The center should feature a sophisticated ${packName} themed design - ${themeDescription || `incorporate elegant ${packName.toLowerCase()} motifs and symbols`}. Use rich, deep colors with subtle gradients. Include corner decorations and edge patterns. The overall aesthetic should look like a luxury deck of cards you'd find at a high-end casino or collector's edition. Make it look photorealistic and premium. Square 1:1 aspect ratio, 512x512 pixels.`;
+    // CRITICAL: The card design must fill the ENTIRE image - no table, no background, no borders outside the card
+    const cardBackPrompt = `IMPORTANT FRAMING RULES:
+- The card back design MUST fill the ENTIRE image from edge to edge
+- NO table, surface, or background visible - ONLY the card design itself
+- The design bleeds ALL THE WAY to the edges of the image
+- This is a FLAT, TOP-DOWN view of JUST the card back pattern - nothing else
+
+DESIGN REQUIREMENTS:
+Create a hyper-realistic, elegant playing card back design for a "${packName}" themed deck.
+- Perfectly symmetrical (180° rotational symmetry like traditional playing cards)
+- Ornate decorative border pattern running along all 4 edges, integrated INTO the card design
+- Intricate filigree and scrollwork patterns typical of premium playing cards
+- Center features sophisticated ${packName} themed motifs - ${themeDescription || `elegant ${packName.toLowerCase()} symbols and imagery woven into the pattern`}
+- Rich, deep colors with subtle gradients and metallic accents
+- Corner decorations with matching theme elements
+- The aesthetic of a luxury collector's edition deck
+
+OUTPUT: Square 1:1, 512x512 pixels. The card pattern fills 100% of the image with NO margins or external elements.`;
 
     console.log("Generating card back for pack:", packName);
     console.log("Prompt:", cardBackPrompt);
