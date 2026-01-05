@@ -469,39 +469,13 @@ const Auth = () => {
                 </div>
                 
                 <div className="text-center pt-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <button className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1">
-                        <Store className="h-4 w-4" />
-                        Click here to become a vendor
-                      </button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <Store className="h-5 w-5 text-primary" />
-                          Become a Vendor
-                        </DialogTitle>
-                        <DialogDescription className="space-y-3 pt-4">
-                          <p>
-                            You can sell your handmade products through our marketplace!
-                          </p>
-                          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                            <p className="font-semibold text-foreground">How it works:</p>
-                            <ol className="list-decimal list-inside space-y-1 text-sm">
-                              <li>First, create your account using this form</li>
-                              <li>After signing in, visit the Marketplace</li>
-                              <li>Click "Become a Vendor" to apply</li>
-                              <li>Once approved, manage your store and community participation from one account</li>
-                            </ol>
-                          </div>
-                          <p className="text-sm">
-                            Your account will give you access to both the community features and vendor tools once approved.
-                          </p>
-                        </DialogDescription>
-                      </DialogHeader>
-                    </DialogContent>
-                  </Dialog>
+                  <Link 
+                    to="/vendor-auth" 
+                    className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1"
+                  >
+                    <Store className="h-4 w-4" />
+                    Click here to become a vendor
+                  </Link>
                 </div>
               </>
             )}
