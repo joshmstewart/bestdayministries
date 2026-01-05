@@ -440,6 +440,9 @@ export const MemoryMatchPackManager = () => {
       if (data?.suggestedItems) {
         setSuggestedItems(data.suggestedItems);
       }
+      if (data?.designStyle) {
+        setPackFormData((prev) => ({ ...prev, design_style: data.designStyle }));
+      }
 
       toast.success("Description generated!");
     } catch (error) {
@@ -1191,7 +1194,24 @@ export const MemoryMatchPackManager = () => {
 
             {/* Design Style / Aesthetic */}
             <div className="space-y-2">
-              <Label htmlFor="pack-design-style">Image Style / Aesthetic</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="pack-design-style">Image Style / Aesthetic</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription || !packFormData.name.trim()}
+                  className="h-7 px-2"
+                  title="Regenerate style based on pack name"
+                >
+                  {generatingDescription ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-3 h-3" />
+                  )}
+                </Button>
+              </div>
               <Textarea
                 id="pack-design-style"
                 placeholder="Describe the visual style for generated images..."
@@ -1202,7 +1222,7 @@ export const MemoryMatchPackManager = () => {
                 className="min-h-[80px] text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                This defines how AI-generated icons will look. Examples: "Pixel art retro style", "Watercolor soft tones", "Bold cartoon with thick outlines"
+                Click ✨ to auto-generate a style, or write your own. Examples: "Watercolor botanical", "Vintage travel poster", "Minimalist line art"
               </p>
             </div>
 
