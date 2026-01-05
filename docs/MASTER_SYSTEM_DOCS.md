@@ -253,10 +253,124 @@ HOOKS:useNotifications|useContactFormCount|useGuardianApprovalsCount|useModerati
 PERF-OPTIMIZATION:all-hooks-consume-AuthContext→eliminates-redundant-auth-calls→see-AUTH_CONTEXT
 
 ## ERROR_HANDLING
-COMPS:ErrorBoundary[catch-fallback-retry]|HeaderSkeleton[loading-prevent-shift]
-HOOK:useRetryFetch[exp-backoff-3×]
-PATTERN:Promise.allSettled+auto-retry+skeleton+boundary
-FILES:ErrorBoundary.tsx|HeaderSkeleton.tsx|useRetryFetch.ts
+OVERVIEW:centralized-error-utilities+ErrorBoundary+retry-logic+persistent-copyable-toasts
+
+### ERROR_TOASTS[MANDATORY]
+FILE:src/lib/errorToast.tsx
+UTILITIES:showErrorToast[simple-message]|showErrorToastWithCopy[context+error-object]
+FORMAT:ALL-errors→red-destructive+persistent-until-closed+copy-button
+HELPER:src/lib/errorUtils.ts→getFullErrorText[serializes-all-error-properties+stack+nested-context]
+
+USAGE-PATTERNS:
+  SIMPLE-ERROR:showErrorToast("Something went wrong")
+  CATCH-BLOCK:
+```tsx
+import { showErrorToastWithCopy } from "@/lib/errorToast";
+try {
+  await someOperation();
+} catch (error) {
+  console.error("Context:", error);
+  showErrorToastWithCopy("Operation name", error);
+}
+```
+
+CRITICAL-RULES:
+  ✅ALWAYS-use-showErrorToast-or-showErrorToastWithCopy
+  ✅ALWAYS-console.error-before-showing-toast[for-debugging]
+  ✅PREFER-showErrorToastWithCopy-in-catch-blocks[full-error-details]
+  ❌NEVER-use-raw-toast({variant:"destructive"})
+  ❌NEVER-create-custom-error-toast-patterns
+  ❌NEVER-auto-dismiss-error-toasts[user-must-see-and-copy]
+
+WRONG-PATTERN:
+```tsx
+// ❌ DO NOT DO THIS
+toast({
+  title: "Error",
+  description: "Something failed",
+  variant: "destructive",
+});
+```
+
+CORRECT-PATTERN:
+```tsx
+// ✅ DO THIS
+import { showErrorToast, showErrorToastWithCopy } from "@/lib/errorToast";
+showErrorToast("Something failed");
+// OR for caught errors:
+showErrorToastWithCopy("Saving data", error);
+```
+
+FEATURES:
+  PERSISTENT:duration=Infinity→won't-auto-dismiss→user-must-close
+  COPYABLE:button→copies-full-error-text→clipboard→confirmation-toast
+  SCROLLABLE:pre-element→max-h-40→overflow-auto→handles-long-errors
+  FULL-DETAILS:getFullErrorText→name+message+stack+all-properties+nested-objects
+
+BENEFITS:
+  USER-SUPPORT:users-can-copy-full-error-details-for-tickets
+  DEBUGGING:includes-all-nested-properties[Supabase-context|API-responses]
+  CONSISTENCY:one-pattern-everywhere→easy-to-update-globally
+  NO-INFO-LOSS:prevents-truncated-or-stringified-errors
+
+### ERROR_BOUNDARY
+COMP:src/components/ErrorBoundary.tsx
+PURPOSE:catch-JS-errors-in-component-tree→show-fallback-UI→prevent-app-crash
+FEATURES:custom-fallback|retry-button|onReset-callback
+USAGE:
+```tsx
+<ErrorBoundary
+  fallback={<FallbackUI />}
+  onReset={() => resetState()}
+>
+  <Component />
+</ErrorBoundary>
+```
+WRAP:critical-components[header|main-content|feature-sections]
+
+### RETRY_LOGIC
+HOOK:src/hooks/useRetryFetch.ts
+PURPOSE:wrap-async-functions→auto-retry→exponential-backoff
+CONFIG:maxRetries=3|initialDelay=1000ms|backoff=exponential-with-jitter
+USAGE:
+```tsx
+const { fetchWithRetry, isRetrying, retryCount } = useRetryFetch(
+  async () => {
+    const { data, error } = await supabase.from('table').select();
+    if (error) throw error;
+    return data;
+  },
+  { maxRetries: 3 }
+);
+```
+
+### LOADING_STATES
+COMP:src/components/HeaderSkeleton.tsx
+PURPOSE:prevent-layout-shift→show-placeholder-while-loading
+PATTERN:skeleton→same-dimensions-as-content→pulse-animation
+
+### DATA_LOADING_PATTERN
+CONSOLIDATE:Promise.allSettled→parallel-requests→single-loading-state
+RETRY:if-failures→setTimeout→exponential-backoff[1s→2s→4s]
+EXAMPLE:
+```tsx
+const [logoResult, navResult] = await Promise.allSettled([
+  loadLogo(),
+  loadNavLinks()
+]);
+if (hasFailures && retryCount < 3) {
+  setTimeout(() => setRetryCount(prev => prev + 1), 1000 * Math.pow(2, retryCount));
+}
+```
+
+### BROWSER_COMPATIBILITY
+iOS-18.x-ISSUE:CSS-transforms→pages-disappear
+DETECTION:src/lib/browserDetection.ts[isProblematicIOSVersion]
+SOLUTION:conditional-className+ErrorBoundary-wrapper
+DOC:see-BROWSER_COMPATIBILITY-section-above
+
+FILES:src/lib/errorToast.tsx|src/lib/errorUtils.ts|src/components/ErrorBoundary.tsx|src/hooks/useRetryFetch.ts|src/components/HeaderSkeleton.tsx|src/lib/browserDetection.ts
+DOC:ERROR_HANDLING_PATTERNS.md[exhaustive-guide]
 
 ## BESTIE_LINKING
 FRIEND-CODE:3-emoji[20-set=8k-combos]|UUID-based-links-preserved
