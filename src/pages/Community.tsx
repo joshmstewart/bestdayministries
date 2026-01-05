@@ -327,26 +327,24 @@ const Community = () => {
                       </p>
                       
                       {/* Home of section */}
-                      <div className="pt-4">
-                        <p className="text-lg text-muted-foreground mb-3">Home of...</p>
-                        <div className="flex flex-wrap justify-center gap-4">
-                          <Button
-                            variant="outline"
-                            className="gap-2 border-primary/30 hover:border-primary hover:bg-primary/5"
-                            onClick={() => navigate("/coffee-shop")}
-                          >
-                            <Icons.Coffee className="w-5 h-5 text-primary" />
-                            <span className="font-medium">Best Day Ever Coffee & Crepes</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            className="gap-2 border-accent/30 hover:border-accent hover:bg-accent/5"
-                            onClick={() => navigate("/marketplace")}
-                          >
-                            <Icons.Home className="w-5 h-5 text-accent" />
-                            <span className="font-medium">Joy House</span>
-                          </Button>
-                        </div>
+                      <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
+                        <span className="text-lg text-muted-foreground">Home of...</span>
+                        <Button
+                          variant="outline"
+                          className="gap-2 border-primary/30 hover:border-primary hover:bg-primary/5"
+                          onClick={() => navigate("/coffee-shop")}
+                        >
+                          <Icons.Coffee className="w-5 h-5 text-primary" />
+                          <span className="font-medium">Best Day Ever Coffee & Crepes</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="gap-2 border-accent/30 hover:border-accent hover:bg-accent/5"
+                          onClick={() => navigate("/marketplace")}
+                        >
+                          <Icons.Home className="w-5 h-5 text-accent" />
+                          <span className="font-medium">Joy House</span>
+                        </Button>
                       </div>
                     </div>
                   </div>
