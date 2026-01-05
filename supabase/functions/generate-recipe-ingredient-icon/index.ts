@@ -34,7 +34,31 @@ MANDATORY REQUIREMENTS:
 
 FORBIDDEN: rounded corners, circular frames, oval shapes, curved edges, border radius, vignette effects, corner fading
 
-Show this ingredient exactly as found in kitchen/grocery: Cereal=box, Milk=carton/jug, Cheese=wedge/slices, Butter=stick, Eggs=carton, Bread=loaf, Pasta=box, Canned goods=can, Bottled items=bottle, Spices=jar, Fresh produce=whole/cut, Frozen=bag/box, Broth=carton/can.`;
+CRITICAL PACKAGING AWARENESS: Always show ingredients in their REAL grocery store packaging or common kitchen form. Think about how this specific ingredient is actually sold and stored:
+
+SPECIFIC EXAMPLES:
+- Applesauce = plastic pudding cup or jar
+- Canned fruit/vegetables = metal can
+- Yogurt = plastic cup with foil lid
+- Pudding = plastic snack cup
+- Cereal = cardboard box
+- Milk/juice = carton or jug
+- Cheese = wedge, slices, or block
+- Butter = stick in wrapper
+- Eggs = carton showing eggs
+- Bread = sliced loaf
+- Pasta = box or clear bag
+- Soup/broth = can or carton
+- Condiments = squeeze bottle or jar
+- Spices = small jar or tin
+- Frozen items = bag or box
+- Fresh produce = whole or cut
+- Crackers/cookies = box or sleeve
+- Peanut butter/jelly = jar
+- Cream cheese = foil-wrapped block or tub
+- Sour cream = plastic tub
+
+GENERAL RULE: If the ingredient name contains words like "canned", "jarred", "frozen", "boxed", etc., show that specific container. Always infer the most common real-world packaging for the ingredient.`;
 
     console.log("Generating icon for recipe ingredient:", ingredientName);
     console.log("Prompt:", iconPrompt);
