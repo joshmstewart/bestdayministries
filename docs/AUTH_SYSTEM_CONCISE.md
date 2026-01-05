@@ -129,6 +129,28 @@ SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = _user_id AND role = _rol
 | Avatar not showing | Check `avatar_number` in profiles |
 | Newsletter redirect | Form redirects to landing page after 1.5s |
 
+## UI Details
+
+### "Or" Divider Stacking Order
+The login form has an "Or" divider between Sign In and Picture Password buttons. Correct z-index stacking (bottom to top):
+1. **Line** (`z-0`) - the horizontal border-t divider
+2. **White box** (`z-10`) - breaks the line so text is readable
+3. **"Or" text** (`z-20`) - displayed on top of white box
+4. **Sign In button** (`z-30`) - button and its orange shadow appear above everything
+
+```tsx
+<Button className="relative z-30 ...shadow-warm...">Sign In</Button>
+<div className="relative z-0">
+  <div className="absolute inset-0 flex items-center z-0">
+    <span className="w-full border-t" />
+  </div>
+  <div className="relative flex justify-center z-10">
+    <span className="absolute inset-0 mx-auto w-10 bg-card z-10" />
+    <span className="relative z-20 px-2 text-muted-foreground">Or</span>
+  </div>
+</div>
+```
+
 **Files:** `Auth.tsx`, `TermsAcceptanceGuard.tsx`, `TermsAcceptanceDialog.tsx`, `useTermsCheck.ts`, `record-terms-acceptance/index.ts`
 
 **Triggers:** `on_auth_user_created` → `handle_new_user()`
