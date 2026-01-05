@@ -40,9 +40,20 @@ serve(async (req) => {
       };
       requiredFields = ["description"];
     } else if (mode === "style") {
-      userPrompt = `Generate ONLY a visual style description for a memory match card pack called "${packName}". The style should be elegant, sophisticated, and adult-appropriate.`;
+      userPrompt = `Generate ONLY a visual style description for a memory match card pack called "${packName}".
+
+CRITICAL REQUIREMENTS for the style:
+- Icons must be INSTANTLY RECOGNIZABLE and visually DISTINCT from each other
+- Use BRIGHT, SOLID background colors (pick from: red, orange, yellow, lime green, teal, sky blue, purple, pink, coral, mint)
+- NO dark backgrounds, NO space/galaxy backgrounds, NO gradients
+- Style should be clean, flat illustration with bold outlines - like road signs or app icons
+- Subjects should be BOLD, SIMPLE, and ICONIC
+- Adult-appropriate but NOT sophisticated/abstract - prioritize CLARITY over artistry
+- Each icon should look completely different from others at a glance
+
+Example good style: "Clean flat illustration style with bold black outlines. Each icon has a unique bright solid background color. Subjects are large, simple, and iconic - filling 70-80% of the image. Colors pop with high contrast."`;
       toolParams = {
-        design_style: { type: "string", description: "A visual style description for generating card images. Describe colors, art style, and mood. Should be elegant and adult-appropriate." }
+        design_style: { type: "string", description: "A visual style description emphasizing BRIGHT solid backgrounds, bold simple subjects, high contrast, and road-sign clarity. NO dark colors or gradients." }
       };
       requiredFields = ["design_style"];
     } else if (mode === "items") {
