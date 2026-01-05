@@ -24,26 +24,19 @@ serve(async (req) => {
     }
 
     // Use the design style passed in, or default to clean adult-appropriate style
-    const style = designStyle || "Clean modern illustration, elegant and sophisticated, simple shapes, approachable but adult aesthetic, no cartoon faces or childish elements";
+    const style = designStyle || "Clean flat illustration, elegant, simple shapes, adult aesthetic";
 
-    const iconPrompt = `Create a 512x512 pixel icon of a ${imageName}.
+    const iconPrompt = `512x512 icon of ${imageName}. ${style}.
 
-CRITICAL - VISUAL DISTINCTION:
-- Each icon MUST be instantly recognizable and visually DIFFERENT from other icons
-- Use a UNIQUE, VIBRANT background color that contrasts with the subject (pick from: bright red, orange, yellow, lime green, teal, sky blue, purple, pink, coral, mint - NOT dark colors)
-- The ${imageName} should have colors that POP against the background
-- Make the subject BOLD, SIMPLE, and ICONIC - think road sign clarity
+RULES:
+- Subject fills 70-80%, LARGE and prominent
+- BRIGHT solid background (red/orange/yellow/green/teal/blue/purple/pink - NOT dark)
+- Bold, simple, iconic - like a road sign
+- Sharp rectangular corners only
+- High contrast between subject and background
+- NO space backgrounds, NO gradients, NO dark colors
 
-MANDATORY REQUIREMENTS:
-1. FRAMING: The ${imageName} must fill 70-80% of the image - make it LARGE and prominent
-2. CORNERS: RECTANGULAR image with SHARP 90-DEGREE CORNERS ONLY. NO rounded edges.
-3. BACKGROUND: Solid single BRIGHT flat color extending to ALL corners - NO gradients, NO dark backgrounds, NO space/galaxy backgrounds
-4. STYLE: ${style}. Clean, flat illustration style with bold outlines. Easy to identify at a glance.
-5. SUBJECT: Show the most ICONIC, recognizable version of ${imageName} - simplified but unmistakable
-
-FORBIDDEN: rounded corners, dark backgrounds, space/galaxy backgrounds, similar colors to other icons, complex detailed renderings, photorealistic style
-
-Pack theme: ${packName || "General"}.`;
+Pack: ${packName || "General"}.`;
 
     console.log("Generating icon for memory match image:", imageName);
     console.log("Prompt:", iconPrompt);
