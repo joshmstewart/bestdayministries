@@ -63,7 +63,11 @@ const DIFFICULTY_CONFIG = {
   hard: { pairs: 10, coins: 40, label: 'Hard', color: 'bg-red-500' },
 };
 
-export const MemoryMatch = () => {
+interface MemoryMatchProps {
+  onBackgroundColorChange?: (color: string) => void;
+}
+
+export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
@@ -101,12 +105,15 @@ export const MemoryMatch = () => {
 
   // Update current images and colors when pack selection changes
   useEffect(() => {
+    let newBackgroundColor = '#F97316';
+    
     if (selectedPackId) {
       const pack = availablePacks.find(p => p.id === selectedPackId);
       if (pack && pack.images.length > 0) {
         setCurrentImages(pack.images);
+        newBackgroundColor = pack.background_color || '#F97316';
         setCurrentColors({
-          background: pack.background_color || '#F97316',
+          background: newBackgroundColor,
           module: pack.module_color || '#FFFFFF',
         });
         setCurrentCardBackUrl(pack.card_back_url);
@@ -116,8 +123,9 @@ export const MemoryMatch = () => {
       const defaultPack = availablePacks.find(p => p.is_default && p.images.length > 0);
       if (defaultPack) {
         setCurrentImages(defaultPack.images);
+        newBackgroundColor = defaultPack.background_color || '#F97316';
         setCurrentColors({
-          background: defaultPack.background_color || '#F97316',
+          background: newBackgroundColor,
           module: defaultPack.module_color || '#FFFFFF',
         });
         setCurrentCardBackUrl(defaultPack.card_back_url);
@@ -130,7 +138,10 @@ export const MemoryMatch = () => {
         setCurrentCardBackUrl(null);
       }
     }
-  }, [selectedPackId, availablePacks]);
+    
+    // Notify parent of background color change
+    onBackgroundColorChange?.(newBackgroundColor);
+  }, [selectedPackId, availablePacks, onBackgroundColorChange]);
 
   const loadImagePacks = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -373,12 +384,7 @@ export const MemoryMatch = () => {
 
   if (!gameStarted) {
     return (
-      <div 
-        className="max-w-4xl mx-auto space-y-6 p-6 rounded-2xl"
-        style={{ 
-          backgroundColor: currentColors.background,
-        }}
-      >
+      <div className="max-w-4xl mx-auto space-y-6">
         <Card style={{ backgroundColor: currentColors.module }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-3xl">
@@ -486,12 +492,7 @@ export const MemoryMatch = () => {
   }
 
   return (
-    <div 
-      className="max-w-4xl mx-auto space-y-6 p-6 rounded-2xl"
-      style={{ 
-        backgroundColor: currentColors.background,
-      }}
-    >
+    <div className="max-w-4xl mx-auto space-y-6">
       <Card style={{ backgroundColor: currentColors.module }}>
         <CardHeader>
           <div className="flex items-center justify-between">
