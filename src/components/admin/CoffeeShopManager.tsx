@@ -13,7 +13,7 @@ import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
 import { compressImage } from "@/lib/imageUtils";
 import CoffeeShopMenuManager from "./CoffeeShopMenuManager";
-import { showErrorToastWithCopy } from "@/lib/errorUtils";
+
 const CoffeeShopManager = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,7 +61,7 @@ const CoffeeShopManager = () => {
       }
     } catch (error) {
       console.error("Error loading coffee shop content:", error);
-      showErrorToastWithCopy("Loading coffee shop content", error);
+      toast.error("Failed to load coffee shop content");
     } finally {
       setLoading(false);
     }
@@ -70,28 +70,20 @@ const CoffeeShopManager = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // First check if record exists
-      const { data: existing } = await supabase
-        .from("app_settings")
-        .select("id")
-        .eq("setting_key", "coffee_shop_content")
-        .maybeSingle();
-
       const { error } = await supabase
         .from("app_settings")
         .upsert({
-          id: existing?.id,
           setting_key: "coffee_shop_content",
           setting_value: content,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'setting_key' });
+        });
 
       if (error) throw error;
 
       toast.success("Coffee shop content updated successfully!");
     } catch (error) {
       console.error("Error saving coffee shop content:", error);
-      showErrorToastWithCopy("Saving coffee shop content", error);
+      toast.error("Failed to save coffee shop content");
     } finally {
       setSaving(false);
     }
@@ -142,7 +134,7 @@ const CoffeeShopManager = () => {
       toast.success("Hero image uploaded successfully!");
     } catch (error) {
       console.error("Error uploading image:", error);
-      showErrorToastWithCopy("Uploading hero image", error);
+      toast.error("Failed to upload image");
     } finally {
       setUploading(false);
     }

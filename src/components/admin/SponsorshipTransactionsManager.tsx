@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { showErrorToastWithCopy } from "@/lib/errorUtils";
+import { getFullErrorText } from "@/lib/errorUtils";
 import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 
@@ -90,7 +90,35 @@ export const SponsorshipTransactionsManager = () => {
   const [receiptHtml, setReceiptHtml] = useState<string>('');
   const { toast } = useToast();
 
-  // Using centralized showErrorToastWithCopy from "@/lib/errorUtils"
+  const showErrorToastWithCopy = (context: string, error: any) => {
+    const fullText = getFullErrorText(error);
+
+    toast({
+      title: `Error: ${context}`,
+      description: (
+        <div className="space-y-2">
+          <pre className="max-h-60 overflow-auto whitespace-pre-wrap text-xs font-mono">
+            {fullText}
+          </pre>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fullText);
+              toast({
+                title: "Copied",
+                description: "Full error details copied to clipboard.",
+              });
+            }}
+            className="text-xs underline hover:no-underline"
+          >
+            Copy full error details
+          </button>
+        </div>
+      ),
+      variant: "destructive",
+      duration: 100000,
+      copyText: fullText,
+    });
+  };
 
   useEffect(() => {
     loadTransactions();

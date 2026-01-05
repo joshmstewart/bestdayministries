@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { showErrorToastWithCopy } from "@/lib/errorUtils";
+import { useToast } from "@/hooks/use-toast";
+import { getFullErrorText } from "@/lib/errorUtils";
 import { RefreshCw, Package, Check, Eye, ExternalLink, AlertTriangle, Archive, ArchiveRestore, ChevronDown, ImageIcon, Palette, Trash2 } from "lucide-react";
 import { PrintifyPreviewDialog } from "./PrintifyPreviewDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -62,12 +63,36 @@ const ImportedProductCard = ({
 }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { toast: toastWithCopy } = useToast();
 
-  // Using centralized showErrorToastWithCopy from "@/lib/errorUtils"
+  const showErrorToast = (context: string, error: any) => {
+    const fullText = getFullErrorText(error);
+    toastWithCopy({
+      title: `Error: ${context}`,
+      description: (
+        <div className="space-y-2">
+          <pre className="max-h-60 overflow-auto whitespace-pre-wrap text-xs font-mono">
+            {fullText}
+          </pre>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(fullText);
+              toast.success("Copied to clipboard");
+            }}
+            className="text-xs underline hover:no-underline"
+          >
+            Copy full error details
+          </button>
+        </div>
+      ),
+      variant: "destructive",
+      duration: 100000,
+    });
+  };
 
   const handleRefresh = async () => {
     if (!product.local_product_id) {
-      showErrorToastWithCopy("Refresh from Printify", {
+      showErrorToast("Refresh from Printify", {
         message: "Could not find local product ID",
         details: `Printify product ID: ${product.id}. Please try clicking "Refresh" at the top to reload the product list, then try again.`
       });
@@ -86,7 +111,7 @@ const ImportedProductCard = ({
       toast.success(data.message);
       onRefreshSuccess();
     } catch (error) {
-      showErrorToastWithCopy("Refresh from Printify", error);
+      showErrorToast("Refresh from Printify", error);
     } finally {
       setIsRefreshing(false);
     }
@@ -94,7 +119,7 @@ const ImportedProductCard = ({
 
   const handleCheckImages = async () => {
     if (!product.local_product_id) {
-      showErrorToastWithCopy("Check Images", {
+      showErrorToast("Check Images", {
         message: "Could not find local product ID",
         details: `Printify product ID: ${product.id}. Please try clicking "Refresh" at the top to reload the product list, then try again.`
       });
@@ -116,7 +141,7 @@ const ImportedProductCard = ({
         toast.info(data.message, { duration: 8000 });
       }
     } catch (error) {
-      showErrorToastWithCopy("Check Images", error);
+      showErrorToast("Check Images", error);
     } finally {
       setIsGenerating(false);
     }
@@ -301,7 +326,7 @@ export const PrintifyProductImporter = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (error: Error) => {
-      showErrorToastWithCopy("Import failed", error);
+      toast.error(`Import failed: ${error.message}`);
     },
   });
 
@@ -359,7 +384,7 @@ export const PrintifyProductImporter = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (error: Error) => {
-      showErrorToastWithCopy("Sync failed", error);
+      toast.error(`Sync failed: ${error.message}`);
     },
   });
 
@@ -396,7 +421,7 @@ export const PrintifyProductImporter = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (error: Error) => {
-      showErrorToastWithCopy("Dismiss updates failed", error);
+      toast.error(`Failed: ${error.message}`);
     },
   });
 
@@ -435,7 +460,7 @@ export const PrintifyProductImporter = () => {
       queryClient.invalidateQueries({ queryKey: ['printify-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (error: any) {
-      showErrorToastWithCopy("Failed to delete", error);
+      toast.error(`Failed to delete: ${error.message}`);
     } finally {
       setIsDeleting(false);
     }
@@ -454,7 +479,7 @@ export const PrintifyProductImporter = () => {
       queryClient.invalidateQueries({ queryKey: ['printify-products'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
     } catch (error: any) {
-      showErrorToastWithCopy("Failed to deactivate", error);
+      toast.error(`Failed to deactivate: ${error.message}`);
     }
   };
 
