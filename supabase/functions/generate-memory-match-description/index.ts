@@ -58,9 +58,22 @@ Bad example: "Dark navy space backgrounds with subtle nebula effects" - this bre
       };
       requiredFields = ["design_style"];
     } else if (mode === "items") {
-      userPrompt = `Generate ONLY 10-12 suggested item names for a memory match card pack called "${packName}".`;
+      userPrompt = `Generate ONLY 10-12 suggested items for a memory match card pack called "${packName}".
+
+CRITICAL REQUIREMENTS:
+- Items must be CONCRETE, DRAWABLE OBJECTS or THINGS - NOT movies, books, songs, or abstract concepts
+- Each item should be easily illustrated as a simple icon
+- Items should be visually DISTINCT from each other
+- Mix obvious/simple items with a few more interesting ones
+- Keep names SHORT (1-3 words max)
+
+GOOD examples for a "Space" pack: Rocket, Astronaut, Moon, Saturn, Alien, UFO, Comet, Space Helmet, Telescope, Mars Rover
+BAD examples: "Interstellar", "2001: A Space Odyssey", "The Martian" (these are movies, not drawable objects!)
+
+GOOD examples for an "Ocean" pack: Whale, Octopus, Anchor, Submarine, Coral, Seahorse, Treasure Chest
+BAD examples: "Finding Nemo", "The Little Mermaid", "Ocean's Eleven" (movies/media, not objects!)`;
       toolParams = {
-        suggested_items: { type: "array", items: { type: "string" }, description: "10-12 suggested item names that fit this pack theme" }
+        suggested_items: { type: "array", items: { type: "string" }, description: "10-12 SHORT names of concrete, drawable objects - NOT movies, books, or abstract concepts" }
       };
       requiredFields = ["suggested_items"];
     } else {
