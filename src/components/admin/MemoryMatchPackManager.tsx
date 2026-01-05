@@ -488,9 +488,9 @@ export const MemoryMatchPackManager = () => {
       setPackDialogOpen(false);
       await loadPacks();
 
-      // If creating new pack and we have suggested items, auto-add and generate them
-      if (!editingPack && packId && suggestedItems.length > 0) {
-        toast.info(`Generating ${suggestedItems.length} card icons + card back...`);
+      // If we have suggested items, add and generate them (works for both new and edit)
+      if (packId && suggestedItems.length > 0) {
+        toast.info(`Adding ${suggestedItems.length} card items and generating icons + card back...`);
         await handleAddSuggestedItems(packId, suggestedItems);
       }
 
