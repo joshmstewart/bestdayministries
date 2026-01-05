@@ -79,7 +79,7 @@ const Hero = ({ content = {} }: HeroProps) => {
         />
       </div>
       
-      <div className="container mx-auto px-4 pt-4 pb-12 relative z-10">
+      <div className="container mx-auto px-4 pt-28 pb-12 relative z-10">
         {/* Quick Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 md:gap-10 mb-8">
           {quickActions.map((action, index) => (
@@ -87,7 +87,7 @@ const Hero = ({ content = {} }: HeroProps) => {
               key={action.path}
               size="lg"
               onClick={() => navigate(action.path)}
-              className={`${action.color} text-primary-foreground transition-all hover:scale-110 px-8 py-7 text-lg font-bold rounded-xl animate-fade-in`}
+              className={`${action.color} text-primary-foreground transition-all hover:scale-110 px-8 py-7 text-lg font-bold rounded-xl animate-fade-in shadow-warm hover:shadow-glow`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <action.icon className="w-6 h-6 mr-2" />
