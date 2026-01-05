@@ -508,7 +508,7 @@ const Auth = () => {
 
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+              className="relative z-30 w-full bg-gradient-to-r from-primary via-accent to-secondary border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
               disabled={loading || (isSignUp && !acceptedTerms)}
             >
               {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
@@ -516,12 +516,15 @@ const Auth = () => {
 
             {!isSignUp && (
               <div className="relative z-0">
+                {/* Line stays behind everything in this block */}
                 <div className="absolute inset-0 flex items-center z-0">
                   <span className="w-full border-t" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="absolute inset-0 mx-auto w-10 bg-card -z-10" />
-                  <span className="relative z-10 px-2 text-muted-foreground">Or</span>
+
+                {/* White breaker sits above the line but below the Sign In button */}
+                <div className="relative flex justify-center text-xs uppercase z-10">
+                  <span className="absolute inset-0 mx-auto w-10 bg-card z-10" />
+                  <span className="relative z-20 px-2 text-muted-foreground">Or</span>
                 </div>
               </div>
             )}
