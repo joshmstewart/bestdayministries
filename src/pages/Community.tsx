@@ -340,7 +340,7 @@ const Community = () => {
                         <Button
                           variant="outline"
                           className="gap-2 border-accent/30 hover:border-accent hover:bg-accent/5"
-                          onClick={() => navigate("/marketplace")}
+                          onClick={() => navigate("/joyhousestore")}
                         >
                           <Icons.Home className="w-5 h-5 text-accent" />
                           <span className="font-medium">Joy House</span>
