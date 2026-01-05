@@ -1167,43 +1167,71 @@ export const MemoryMatchPackManager = () => {
               />
             </div>
 
-            {/* Suggested Items - Editable List */}
-            {suggestedItems.length > 0 && (
+            {/* Card Items - Editable List (always show when editing, or when there are suggestions) */}
+            {(editingPack || suggestedItems.length > 0) && (
               <div className="p-3 rounded-lg bg-muted/50 border space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wand2 className="w-4 h-4 text-primary" />
                     <span className="text-sm font-medium">Card Items ({suggestedItems.length})</span>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSuggestedItems([])}
-                    className="h-7 px-2 text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="w-3 h-3 mr-1" />
-                    Clear All
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedItems.map((item, idx) => (
-                    <Badge 
-                      key={idx} 
-                      variant="secondary" 
-                      className="text-xs pr-1 flex items-center gap-1"
+                  <div className="flex items-center gap-1">
+                    {/* Generate suggestions button */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleGenerateDescription}
+                      disabled={generatingDescription || !packFormData.name.trim()}
+                      className="h-7 px-2"
+                      title="Generate AI suggestions based on pack name"
                     >
-                      {item}
-                      <button
+                      {generatingDescription ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Wand2 className="w-3 h-3" />
+                      )}
+                    </Button>
+                    {suggestedItems.length > 0 && (
+                      <Button
                         type="button"
-                        onClick={() => setSuggestedItems(prev => prev.filter((_, i) => i !== idx))}
-                        className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSuggestedItems([])}
+                        className="h-7 px-2 text-muted-foreground hover:text-destructive"
                       >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                        <X className="w-3 h-3 mr-1" />
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                
+                {suggestedItems.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedItems.map((item, idx) => (
+                      <Badge 
+                        key={idx} 
+                        variant="secondary" 
+                        className="text-xs pr-1 flex items-center gap-1"
+                      >
+                        {item}
+                        <button
+                          type="button"
+                          onClick={() => setSuggestedItems(prev => prev.filter((_, i) => i !== idx))}
+                          className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Click the ✨ wand above to generate suggestions, or add items manually below
+                  </p>
+                )}
+                
                 {/* Add new item input */}
                 <div className="flex gap-2">
                   <Input
@@ -1238,70 +1266,33 @@ export const MemoryMatchPackManager = () => {
                     <Plus className="w-3 h-3" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  ✨ These items + card back will be generated after saving. Edit the list as needed.
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="pack-price">Price (coins)</Label>
-              <Input
-                id="pack-price"
-                type="number"
-                min="0"
-                value={packFormData.price_coins}
-                onChange={(e) =>
-                  setPackFormData((prev) => ({ ...prev, price_coins: parseInt(e.target.value) || 0 }))
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="pack-active">Active</Label>
-              <Switch
-                id="pack-active"
-                checked={packFormData.is_active}
-                onCheckedChange={(checked) =>
-                  setPackFormData((prev) => ({ ...prev, is_active: checked }))
-                }
-              />
-            </div>
-
-            {/* Add Image section - only when editing an existing pack */}
-            {editingPack && (
-              <div className="space-y-2 pt-4 border-t">
-                <Label>Add New Image</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="e.g., Rocket Ship, Alien Friend"
-                    value={newImageName}
-                    onChange={(e) => setNewImageName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && newImageName.trim() && !addingImage) {
-                        e.preventDefault();
-                        handleAddImage(editingPack.id);
-                      }
-                    }}
-                    className="flex-1"
-                  />
+                
+                {/* Generate All button - only when editing and there are items */}
+                {editingPack && suggestedItems.length > 0 && (
                   <Button
                     type="button"
-                    onClick={() => handleAddImage(editingPack.id)}
-                    disabled={addingImage || !newImageName.trim()}
-                    title="Add image and generate icon"
+                    onClick={() => handleAddSuggestedItems(editingPack.id, suggestedItems)}
+                    disabled={generatingAllContent}
+                    className="w-full"
                   >
-                    {addingImage ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                    {generatingAllContent ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating {suggestedItems.length} images...
+                      </>
                     ) : (
                       <>
                         <Wand2 className="w-4 h-4 mr-2" />
-                        Add & Generate
+                        Generate All {suggestedItems.length} Images
                       </>
                     )}
                   </Button>
-                </div>
+                )}
+                
                 <p className="text-xs text-muted-foreground">
-                  Enter a name and click to add to this pack with auto-generated icon
+                  {editingPack 
+                    ? "✨ Add items to your list, then click 'Generate All' to create icons" 
+                    : "✨ These items + card back will be generated after saving"}
                 </p>
               </div>
             )}
