@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.2.9/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -173,16 +174,30 @@ DO NOT: Add gradients, textures, borders, margins, or white space at edges.`;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Convert base64 to blob
+    // Convert base64 to bytes
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-    const imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    const rawBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+    // Post-process to guarantee full-bleed square with consistent solid background
+    const subject = await Image.decode(rawBytes);
+    const subjectMax = Math.round(SIZE * 0.8);
+    const subjectResized = subject.contain(subjectMax, subjectMax);
+
+    const canvas = new Image(SIZE, SIZE);
+    canvas.fill(Image.rgbaToColor(r, g, b, 255));
+
+    const x = Math.floor((SIZE - subjectResized.width) / 2);
+    const y = Math.floor((SIZE - subjectResized.height) / 2);
+    canvas.composite(subjectResized, x, y);
+
+    const finalPngBytes = await canvas.encode();
 
     const fileName = `memory-match/${imageId}.png`;
 
     // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from("game-assets")
-      .upload(fileName, imageBytes, {
+      .upload(fileName, finalPngBytes, {
         contentType: "image/png",
         upsert: true,
       });

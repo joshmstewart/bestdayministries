@@ -89,6 +89,11 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`generate-recipe-tool-icon`** - [Admin Only] Generates kitchen tool icon via Lovable AI
 - **`backfill-recipe-tools`** - [Admin Only] Infers tools from recipe steps using regex pattern matching
 
+### Games & Gamification
+- **`generate-memory-match-icon`** - [Auth Required] Generates a memory match card icon (AI subject → server composites solid theme background for full-bleed 512×512)
+- **`generate-memory-match-card-back`** - [Auth Required] Generates themed card-back art for a pack
+- **`generate-memory-match-description`** - [Auth Required] Generates pack description/style/items suggestions
+
 ---
 
 ## Alphabetical Index
