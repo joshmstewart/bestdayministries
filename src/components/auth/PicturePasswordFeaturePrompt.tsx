@@ -95,8 +95,8 @@ export function PicturePasswordFeaturePrompt({
   }
 
   const ttsText = isGuardian 
-    ? "New Feature: Picture Login! Make signing in easier for your besties with a simple 4-picture code! Just remember 4 pictures, it's that easy!"
-    : "New Feature: Picture Login! Sign in faster with a fun 4-picture code instead of typing a password! Just remember 4 pictures, it's that easy!";
+    ? "Picture Login! Make signing in easier for your besties with a simple 4-picture code! Just remember 4 pictures, it's that easy!"
+    : "Picture Login! Sign in faster with a fun 4-picture code instead of typing a password! Just remember 4 pictures, it's that easy!";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -104,7 +104,7 @@ export function PicturePasswordFeaturePrompt({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-primary" />
-            New Feature: Picture Login! 🎉
+            Picture Login 🎉
             <TextToSpeech text={ttsText} size="icon" />
           </DialogTitle>
           <DialogDescription>
