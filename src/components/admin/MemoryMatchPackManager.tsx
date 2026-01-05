@@ -73,6 +73,7 @@ interface ImagePack {
   card_back_url: string | null;
   is_default: boolean;
   is_active: boolean;
+  is_purchasable: boolean;
   price_coins: number;
   display_order: number;
   design_style: string | null;
@@ -121,6 +122,7 @@ export const MemoryMatchPackManager = () => {
   const [packFormData, setPackFormData] = useState({
     name: "",
     description: "",
+    is_purchasable: false,
     price_coins: 0,
     is_active: false, // New packs start inactive
     design_style: "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements",
@@ -411,6 +413,7 @@ export const MemoryMatchPackManager = () => {
       setPackFormData({
         name: pack.name,
         description: pack.description || "",
+        is_purchasable: pack.is_purchasable,
         price_coins: pack.price_coins,
         is_active: pack.is_active,
         design_style: pack.design_style || defaultStyle,
@@ -422,6 +425,7 @@ export const MemoryMatchPackManager = () => {
       setPackFormData({
         name: "",
         description: "",
+        is_purchasable: false,
         price_coins: 0,
         is_active: true,
         design_style: defaultStyle,
@@ -603,7 +607,8 @@ export const MemoryMatchPackManager = () => {
           .update({
             name: packFormData.name.trim(),
             description: packFormData.description.trim() || null,
-            price_coins: packFormData.price_coins,
+            is_purchasable: packFormData.is_purchasable,
+            price_coins: packFormData.is_purchasable ? packFormData.price_coins : 0,
             is_active: packFormData.is_active,
             design_style: packFormData.design_style.trim() || null,
             background_color: packFormData.background_color || "#F97316",
@@ -620,7 +625,8 @@ export const MemoryMatchPackManager = () => {
           .insert({
             name: packFormData.name.trim(),
             description: packFormData.description.trim() || null,
-            price_coins: packFormData.price_coins,
+            is_purchasable: packFormData.is_purchasable,
+            price_coins: packFormData.is_purchasable ? packFormData.price_coins : 0,
             is_active: false, // Always start inactive
             display_order: packs.length,
             design_style: packFormData.design_style.trim() || null,
@@ -1071,8 +1077,14 @@ export const MemoryMatchPackManager = () => {
                             Inactive
                           </Badge>
                         )}
-                        {pack.price_coins > 0 && (
-                          <Badge variant="secondary">{pack.price_coins} coins</Badge>
+                        {pack.is_purchasable ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
+                            🛒 {pack.price_coins} coins
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-blue-600 border-blue-300">
+                            Free
+                          </Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -1430,6 +1442,46 @@ export const MemoryMatchPackManager = () => {
                   setPackFormData((prev) => ({ ...prev, description: e.target.value }))
                 }
               />
+            </div>
+
+            {/* Availability Settings */}
+            <div className="space-y-4 p-4 rounded-lg bg-muted/50 border">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                💰 Availability & Pricing
+              </h4>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is-purchasable">Require Purchase</Label>
+                  <p className="text-xs text-muted-foreground">
+                    If enabled, users must buy this pack with coins
+                  </p>
+                </div>
+                <Switch
+                  id="is-purchasable"
+                  checked={packFormData.is_purchasable}
+                  onCheckedChange={(checked) =>
+                    setPackFormData((prev) => ({ ...prev, is_purchasable: checked }))
+                  }
+                />
+              </div>
+              {packFormData.is_purchasable && (
+                <div className="space-y-2">
+                  <Label htmlFor="price-coins">Price (JoyCoins)</Label>
+                  <Input
+                    id="price-coins"
+                    type="number"
+                    min={0}
+                    value={packFormData.price_coins}
+                    onChange={(e) =>
+                      setPackFormData((prev) => ({ ...prev, price_coins: parseInt(e.target.value) || 0 }))
+                    }
+                    placeholder="100"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    How many coins users need to unlock this pack
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Design Style / Aesthetic */}
