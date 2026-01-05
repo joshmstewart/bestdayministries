@@ -23,6 +23,8 @@ interface MemoryMatchPreviewProps {
   packName: string;
   images: PreviewImage[];
   cardBackUrl?: string | null;
+  backgroundColor?: string | null;
+  moduleColor?: string | null;
 }
 
 export const MemoryMatchPreview = ({
@@ -31,6 +33,8 @@ export const MemoryMatchPreview = ({
   packName,
   images,
   cardBackUrl,
+  backgroundColor,
+  moduleColor,
 }: MemoryMatchPreviewProps) => {
   const [cards, setCards] = useState<GameCard[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
@@ -138,9 +142,17 @@ export const MemoryMatchPreview = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const bgColor = backgroundColor || '#F97316';
+  const modColor = moduleColor || '#FFFFFF';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        style={{ 
+          background: `radial-gradient(ellipse at center, ${bgColor}40 0%, transparent 70%), ${modColor}`,
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             🎮 Preview: {packName}
