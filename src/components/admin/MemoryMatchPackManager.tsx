@@ -37,33 +37,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
-// Default bundled images (Coffee Shop pack - always available as fallback)
-import croissantImg from "@/assets/games/memory-match/croissant.png";
-import coffeeBeansImg from "@/assets/games/memory-match/coffee-beans.png";
-import muffinImg from "@/assets/games/memory-match/muffin.png";
-import donutImg from "@/assets/games/memory-match/donut.png";
-import frenchPressImg from "@/assets/games/memory-match/french-press.png";
-import cookieImg from "@/assets/games/memory-match/cookie.png";
-import milkPitcherImg from "@/assets/games/memory-match/milk-pitcher.png";
-import coffeeGrinderImg from "@/assets/games/memory-match/coffee-grinder.png";
-import cinnamonSticksImg from "@/assets/games/memory-match/cinnamon-sticks.png";
-import sugarBowlImg from "@/assets/games/memory-match/sugar-bowl.png";
-import coffeeShopCardBackImg from "@/assets/games/memory-match/card-back-coffee-shop.png";
-
-const DEFAULT_BUNDLED_IMAGES = [
-  { name: "French Press", image_url: frenchPressImg },
-  { name: "Croissant", image_url: croissantImg },
-  { name: "Coffee Beans", image_url: coffeeBeansImg },
-  { name: "Muffin", image_url: muffinImg },
-  { name: "Donut", image_url: donutImg },
-  { name: "Cookie", image_url: cookieImg },
-  { name: "Milk Pitcher", image_url: milkPitcherImg },
-  { name: "Coffee Grinder", image_url: coffeeGrinderImg },
-  { name: "Cinnamon Sticks", image_url: cinnamonSticksImg },
-  { name: "Sugar Bowl", image_url: sugarBowlImg },
-];
-
-const DEFAULT_CARD_BACK = coffeeShopCardBackImg;
 
 interface ImagePack {
   id: string;
@@ -971,71 +944,6 @@ export const MemoryMatchPackManager = () => {
         </Alert>
       )}
 
-      {/* Default Bundled Pack (Coffee Shop) - Static fallback display */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Package className="w-5 h-5 text-primary" />
-              <div>
-                <CardTitle className="text-lg">☕ Coffee Shop (Bundled Default)</CardTitle>
-                <CardDescription>These 10 images are bundled with the app and always available as fallback</CardDescription>
-              </div>
-            </div>
-            <Badge variant="secondary">Static Assets</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Card Back Preview */}
-          <div>
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              🎴 Card Back Design
-            </h4>
-            <div className="flex items-start gap-4">
-              <div 
-                className="relative rounded-lg border-2 border-primary overflow-hidden w-24 h-24 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                onClick={() => setPreviewImage({ url: DEFAULT_CARD_BACK, name: "Coffee Shop Card Back" })}
-              >
-                <img
-                  src={DEFAULT_CARD_BACK}
-                  alt="Coffee Shop Card Back"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Elegant coffee-themed playing card back with ornate borders and symmetrical design. Click to enlarge.
-              </p>
-            </div>
-          </div>
-
-          {/* Images Grid */}
-          <div>
-            <h4 className="text-sm font-medium mb-2">Card Face Images ({DEFAULT_BUNDLED_IMAGES.length} bundled)</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {DEFAULT_BUNDLED_IMAGES.map((img, idx) => (
-                <div
-                  key={idx}
-                  className="relative rounded-lg border-2 border-border overflow-hidden aspect-square cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                  onClick={() => setPreviewImage({ url: img.image_url, name: img.name })}
-                >
-                  <img
-                    src={img.image_url}
-                    alt={img.name}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-4">
-                    <span className="text-xs text-white font-medium">{img.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            💡 To customize packs with add/delete/regenerate features, create a new pack or use an existing database pack below.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Database Packs */}
       {packs.length === 0 ? (
