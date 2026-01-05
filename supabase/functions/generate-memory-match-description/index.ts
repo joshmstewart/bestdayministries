@@ -66,6 +66,27 @@ DO NOT generate: "flat illustrations", "simple shapes", "bold silhouettes", "car
         design_style: { type: "string", description: "Visual style description emphasizing REALISTIC/PHOTOREALISTIC rendering with natural colors on WHITE backgrounds" }
       };
       requiredFields = ["design_style"];
+    } else if (mode === "colors") {
+      userPrompt = `Generate harmonious color scheme for a memory match card game pack called "${packName}".
+
+You need to provide TWO hex colors:
+1. background_glow: A warm, themed accent color for the outer glow/aura around the game area. Should complement the pack theme.
+2. module_color: The background color for the main card area. Usually white (#FFFFFF) or a soft off-white/cream for readability, but can be lightly tinted to match the theme.
+
+Examples:
+- Coffee Shop: background_glow=#8B4513 (coffee brown), module_color=#FFF8F0 (warm cream)
+- Space: background_glow=#1E3A5F (deep space blue), module_color=#F0F4FF (cool white)
+- Ocean: background_glow=#0077B6 (ocean blue), module_color=#F0FFFF (azure white)
+- Garden: background_glow=#228B22 (forest green), module_color=#F5FFF5 (mint cream)
+- Bakery: background_glow=#D2691E (warm orange-brown), module_color=#FFFAF0 (floral white)
+
+The module_color should always be very light (near white) for good card visibility, just with a subtle tint.`;
+
+      toolParams = {
+        background_glow: { type: "string", description: "Hex color for the warm glow effect (e.g. #8B4513)" },
+        module_color: { type: "string", description: "Hex color for the card area background, usually near-white (e.g. #FFFFFF)" }
+      };
+      requiredFields = ["background_glow", "module_color"];
     } else if (mode === "items") {
       userPrompt = `Generate 15-20 suggested items for a memory match card pack called "${packName}".
 
@@ -149,6 +170,8 @@ BAD examples: "Finding Nemo", "The Little Mermaid", "Ocean's Eleven" (movies/med
     if (result.description) responseData.description = result.description;
     if (result.suggested_items) responseData.suggestedItems = result.suggested_items;
     if (result.design_style) responseData.designStyle = result.design_style;
+    if (result.background_glow) responseData.backgroundGlow = result.background_glow;
+    if (result.module_color) responseData.moduleColor = result.module_color;
 
     return new Response(
       JSON.stringify(responseData),

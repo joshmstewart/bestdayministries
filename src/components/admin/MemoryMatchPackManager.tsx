@@ -129,6 +129,7 @@ export const MemoryMatchPackManager = () => {
   });
   const [savingPack, setSavingPack] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [generatingColors, setGeneratingColors] = useState(false);
   const [suggestedItems, setSuggestedItems] = useState<string[]>([]);
   const [generatingAllContent, setGeneratingAllContent] = useState(false);
 
@@ -523,6 +524,38 @@ export const MemoryMatchPackManager = () => {
       showErrorToast("Failed to generate style");
     } finally {
       setGeneratingStyle(false);
+    }
+  };
+
+  const handleGenerateColors = async () => {
+    if (!packFormData.name.trim()) {
+      showErrorToast("Please enter a pack name first");
+      return;
+    }
+
+    setGeneratingColors(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "generate-memory-match-description",
+        { body: { packName: packFormData.name.trim(), generateOnly: "colors" } }
+      );
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.backgroundGlow && data?.moduleColor) {
+        setPackFormData((prev) => ({
+          ...prev,
+          background_color: data.backgroundGlow,
+          module_color: data.moduleColor,
+        }));
+        toast.success("Colors generated!");
+      }
+    } catch (error) {
+      console.error("Failed to generate colors:", error);
+      showErrorToast("Failed to generate colors");
+    } finally {
+      setGeneratingColors(false);
     }
   };
 
@@ -1435,7 +1468,23 @@ export const MemoryMatchPackManager = () => {
 
             {/* Color Customization */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Game Colors</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Game Colors</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateColors}
+                  disabled={generatingColors || !packFormData.name.trim()}
+                  className="h-7 px-2"
+                >
+                  {generatingColors ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="background-color" className="text-xs text-muted-foreground">
