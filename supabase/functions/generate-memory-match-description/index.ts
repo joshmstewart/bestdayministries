@@ -42,19 +42,28 @@ serve(async (req) => {
     } else if (mode === "style") {
       userPrompt = `Generate ONLY a visual style description for a memory match card pack called "${packName}".
 
-You CAN incorporate thematic elements inspired by "${packName}" (colors, mood, subject rendering style), BUT these REQUIREMENTS are NON-NEGOTIABLE:
-- Icons must be INSTANTLY RECOGNIZABLE and visually DISTINCT from each other
-- Backgrounds must be BRIGHT and SOLID (can be theme-inspired colors, but must be vibrant, not dark)
-- NO dark/black backgrounds, NO busy patterns, NO gradients
-- Subjects should be BOLD and SIMPLE - filling 70-80% of the image
-- Style should prioritize CLARITY - like road signs or app icons
-- Each icon must look completely different from others at a glance
+CRITICAL STYLE REQUIREMENTS - ALL GENERATED IMAGES WILL BE:
+- REALISTIC ILLUSTRATIONS or PHOTOREALISTIC renders (NOT flat, NOT cartoon, NOT stylized icons)
+- Natural, accurate colors for subjects (e.g., a rocket is white/silver/red, coffee beans are brown)
+- High-detail, clean renders - like premium stock photos or product renders
+- Subjects fill 70-80% of the image with crisp, clear details
+- Solid, vibrant BRIGHT backgrounds (theme-appropriate colors, never dark/black)
 
-Good example: For a "Space" pack, you could use: "Bold flat illustrations with cosmic-inspired bright backgrounds (electric purple, hot pink, vibrant blue). Subjects are simple, iconic silhouettes with clean edges. High contrast between subject and background."
+Your description should specify:
+1. The realistic rendering style appropriate for "${packName}"
+2. What kinds of subjects will be shown (concrete objects related to the theme)
+3. The solid background color palette (bright, theme-appropriate colors like warm caramel, vibrant blue, etc.)
 
-Bad example: "Dark navy space backgrounds with subtle nebula effects" - this breaks the bright background rule.`;
+Example for "Coffee Shop":
+"Photorealistic renders of coffee shop essentials - steaming ceramic mugs, freshly roasted beans with natural brown tones, golden flaky croissants, and polished espresso machines. Each item is rendered with natural textures and accurate colors against warm solid backgrounds in shades of caramel, creamy latte, and rich mahogany."
+
+Example for "Space":
+"Realistic illustrations of space exploration - detailed rockets with metallic silver and red accents, astronauts in white suits, planets with natural surface textures, and high-tech satellites. Each subject is rendered with accurate colors and realistic details against vibrant cosmic backgrounds in electric purple, hot pink, and deep blue."
+
+DO NOT generate: "flat illustrations", "simple shapes", "bold silhouettes", "cartoon style"`;
+
       toolParams = {
-        design_style: { type: "string", description: "A thematic visual style that MUST include bright solid backgrounds, bold simple subjects, and high contrast. Theme-inspired colors OK but must be vibrant, not dark." }
+        design_style: { type: "string", description: "Visual style description emphasizing REALISTIC/PHOTOREALISTIC rendering with natural colors and solid vibrant backgrounds" }
       };
       requiredFields = ["design_style"];
     } else if (mode === "items") {

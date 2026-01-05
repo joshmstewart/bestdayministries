@@ -55,7 +55,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageId, imageName, packName } = await req.json();
+    const { imageId, imageName, packName, designStyle } = await req.json();
 
     if (!imageId || !imageName) {
       throw new Error("Missing imageId or imageName");
@@ -69,12 +69,19 @@ serve(async (req) => {
     const backgroundHex = pickBackgroundHex(packName);
     const { r, g, b } = parseHex(backgroundHex);
 
+    // Build style instructions - use designStyle if provided, otherwise default
+    const styleInstructions = designStyle 
+      ? `Follow this style guide: ${designStyle}
+
+Additional requirements:`
+      : `STYLE:`;
+
     // Always use realistic / photorealistic style, subject on TRANSPARENT background
     const iconPrompt = `Create a ${SIZE}x${SIZE} PNG with a fully TRANSPARENT background (alpha channel).
 
 SUBJECT: "${imageName}"
 
-STYLE:
+${styleInstructions}
 - Realistic illustration or photorealistic render
 - Natural, accurate colors (e.g. a rocket is white/silver/red, an apple is red/green, coffee beans are brown)
 - Clean, high-detail, slightly stylized realism - like a premium stock icon or app icon
@@ -94,6 +101,7 @@ If you cannot produce transparency, at minimum leave the background a single sol
 
     console.log("Generating REALISTIC icon for:", imageName);
     console.log("Pack:", packName);
+    console.log("Design style:", designStyle || "(default realistic)");
     console.log("Background hex (applied server-side):", backgroundHex);
 
     // Call Lovable AI with retry logic
