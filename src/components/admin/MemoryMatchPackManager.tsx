@@ -124,6 +124,9 @@ export const MemoryMatchPackManager = () => {
   const [suggestedItems, setSuggestedItems] = useState<string[]>([]);
   const [generatingAllContent, setGeneratingAllContent] = useState(false);
 
+  // Image preview state
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
+
   useEffect(() => {
     loadPacks();
   }, []);
@@ -699,7 +702,10 @@ export const MemoryMatchPackManager = () => {
               🎴 Card Back Design
             </h4>
             <div className="flex items-start gap-4">
-              <div className="relative rounded-lg border-2 border-primary overflow-hidden w-24 h-24 flex-shrink-0">
+              <div 
+                className="relative rounded-lg border-2 border-primary overflow-hidden w-24 h-24 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                onClick={() => setPreviewImage({ url: DEFAULT_CARD_BACK, name: "Coffee Shop Card Back" })}
+              >
                 <img
                   src={DEFAULT_CARD_BACK}
                   alt="Coffee Shop Card Back"
@@ -707,7 +713,7 @@ export const MemoryMatchPackManager = () => {
                 />
               </div>
               <p className="text-sm text-muted-foreground">
-                Elegant coffee-themed playing card back with ornate borders and symmetrical design.
+                Elegant coffee-themed playing card back with ornate borders and symmetrical design. Click to enlarge.
               </p>
             </div>
           </div>
@@ -719,7 +725,8 @@ export const MemoryMatchPackManager = () => {
               {DEFAULT_BUNDLED_IMAGES.map((img, idx) => (
                 <div
                   key={idx}
-                  className="relative rounded-lg border-2 border-border overflow-hidden aspect-square"
+                  className="relative rounded-lg border-2 border-border overflow-hidden aspect-square cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                  onClick={() => setPreviewImage({ url: img.image_url, name: img.name })}
                 >
                   <img
                     src={img.image_url}
@@ -797,13 +804,27 @@ export const MemoryMatchPackManager = () => {
                           <img
                             src={`${pack.card_back_url}?t=${Date.now()}`}
                             alt={`${pack.name} Card Back`}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => setPreviewImage({ url: `${pack.card_back_url}?t=${Date.now()}`, name: `${pack.name} Card Back` })}
                           />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
                             <Button
                               size="sm"
                               variant="secondary"
-                              onClick={() => handleGenerateCardBack(pack)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewImage({ url: `${pack.card_back_url}?t=${Date.now()}`, name: `${pack.name} Card Back` });
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGenerateCardBack(pack);
+                              }}
                               disabled={generatingCardBack === pack.id}
                             >
                               {generatingCardBack === pack.id ? (
@@ -951,8 +972,9 @@ export const MemoryMatchPackManager = () => {
                             <img
                               src={image.image_url}
                               alt={image.name}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover cursor-pointer"
                               loading="lazy"
+                              onClick={() => setPreviewImage({ url: image.image_url!, name: image.name })}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-muted">
@@ -967,6 +989,16 @@ export const MemoryMatchPackManager = () => {
 
                           {/* Actions on hover */}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                            {image.image_url && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setPreviewImage({ url: image.image_url!, name: image.name })}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="secondary"
@@ -1205,6 +1237,24 @@ export const MemoryMatchPackManager = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{previewImage?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-4">
+            {previewImage && (
+              <img
+                src={previewImage.url}
+                alt={previewImage.name}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
