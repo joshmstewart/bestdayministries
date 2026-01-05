@@ -63,7 +63,7 @@ const Hero = ({ content = {} }: HeroProps) => {
   const hasGradient = gradientIndex > -1 && gradient_text;
 
   return (
-    <section className="relative -mt-8 md:-mt-12 min-h-[70vh] flex items-start overflow-hidden bg-background">
+    <section className="relative min-h-[70vh] flex items-start overflow-hidden bg-background">
       {/* Soft background wash (prevents hard gradient edges at top/bottom) */}
       <div
         aria-hidden="true"
