@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package } from "lucide-react";
+import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 
@@ -401,25 +401,60 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold flex items-center gap-2">
                   <Package className="h-4 w-4" />
-                  Image Pack
+                  Choose Your Pack
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {availablePacks.filter(p => p.images.length >= 10).map((pack) => {
                     const canUse = canUsePack(pack);
                     const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
+                    // Use preview_image_url if set, otherwise use first image from pack
+                    const previewImage = pack.preview_image_url || pack.images[0]?.image_url;
+                    
                     return (
-                      <Button
+                      <div
                         key={pack.id}
-                        variant={isSelected ? "default" : "outline"}
-                        size="sm"
                         onClick={() => canUse && setSelectedPackId(pack.is_default ? null : pack.id)}
-                        disabled={!canUse}
-                        className={!canUse ? "opacity-50" : ""}
+                        className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all ${
+                          isSelected 
+                            ? 'border-primary ring-2 ring-primary/50 scale-105' 
+                            : 'border-border hover:border-primary/50'
+                        } ${!canUse ? 'opacity-50 cursor-not-allowed' : 'hover:scale-102'}`}
                       >
-                        {pack.name}
-                        {pack.is_default && " ⭐"}
-                        {!canUse && <span className="ml-1">🔒</span>}
-                      </Button>
+                        {/* Preview Image */}
+                        <div className="aspect-square bg-muted">
+                          {previewImage ? (
+                            <img 
+                              src={previewImage} 
+                              alt={pack.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Pack Name Overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-white truncate">
+                              {pack.name}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {pack.is_default && <span className="text-yellow-400 text-xs">⭐</span>}
+                              {!canUse && <span className="text-xs">🔒</span>}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Selected Indicator */}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-primary rounded-full p-1">
+                            <Check className="w-3 h-3 text-primary-foreground" />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

@@ -850,6 +850,25 @@ export const MemoryMatchPackManager = () => {
     }
   };
 
+  const setPreviewImageForPack = async (packId: string, imageUrl: string) => {
+    try {
+      const { error } = await supabase
+        .from("memory_match_packs")
+        .update({ preview_image_url: imageUrl })
+        .eq("id", packId);
+
+      if (error) throw error;
+
+      setPacks((prev) =>
+        prev.map((p) => (p.id === packId ? { ...p, preview_image_url: imageUrl } : p))
+      );
+      toast.success("Preview image set!");
+    } catch (error) {
+      console.error("Failed to set preview image:", error);
+      showErrorToast("Failed to set preview image");
+    }
+  };
+
   const handleGenerateCardBack = async (pack: ImagePack) => {
     setGeneratingCardBack(pack.id);
 
@@ -1214,68 +1233,96 @@ export const MemoryMatchPackManager = () => {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      {images.map((image) => (
-                        <div
-                          key={image.id}
-                          className="relative group rounded-lg border-2 border-border overflow-hidden aspect-square"
-                        >
-                          {image.image_url ? (
-                            <img
-                              src={image.image_url}
-                              alt={image.name}
-                              className="w-full h-full object-cover cursor-pointer"
-                              loading="lazy"
-                              onClick={() => setPreviewImage({ url: image.image_url!, name: image.name })}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-muted">
-                              <ImageOff className="w-8 h-8 text-muted-foreground" />
+                      {images.map((image) => {
+                        const isPreview = pack.preview_image_url === image.image_url;
+                        return (
+                          <div
+                            key={image.id}
+                            className={`relative group rounded-lg border-2 overflow-hidden aspect-square ${
+                              isPreview ? 'border-primary ring-2 ring-primary/50' : 'border-border'
+                            }`}
+                          >
+                            {image.image_url ? (
+                              <img
+                                src={image.image_url}
+                                alt={image.name}
+                                className="w-full h-full object-cover cursor-pointer"
+                                loading="lazy"
+                                onClick={() => setPreviewImage({ url: image.image_url!, name: image.name })}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted">
+                                <ImageOff className="w-8 h-8 text-muted-foreground" />
+                              </div>
+                            )}
+
+                            {/* Preview badge */}
+                            {isPreview && (
+                              <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full font-medium">
+                                Preview
+                              </div>
+                            )}
+
+                            {/* Name overlay */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-4">
+                              <span className="text-xs text-white font-medium">{image.name}</span>
                             </div>
-                          )}
 
-                          {/* Name overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-4">
-                            <span className="text-xs text-white font-medium">{image.name}</span>
-                          </div>
-
-                          {/* Actions on hover */}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            {image.image_url && (
+                            {/* Actions on hover */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                              {image.image_url && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setPreviewImage({ url: image.image_url!, name: image.name })}
+                                    className="text-xs h-7"
+                                  >
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    View
+                                  </Button>
+                                  {!isPreview && (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => setPreviewImageForPack(pack.id, image.image_url!)}
+                                      className="text-xs h-7"
+                                    >
+                                      <Star className="w-3 h-3 mr-1" />
+                                      Set Preview
+                                    </Button>
+                                  )}
+                                </>
+                              )}
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                onClick={() => setPreviewImage({ url: image.image_url!, name: image.name })}
+                                onClick={() => handleRegenerate(image)}
+                                disabled={regeneratingId === image.id || generating}
+                                className="text-xs h-7"
                               >
-                                <Eye className="w-4 h-4 mr-1" />
-                                View
+                                {regeneratingId === image.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 mr-1" />
+                                    Regen
+                                  </>
+                                )}
                               </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleRegenerate(image)}
-                              disabled={regeneratingId === image.id || generating}
-                            >
-                              {regeneratingId === image.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <RefreshCw className="w-4 h-4 mr-1" />
-                                  Regenerate
-                                </>
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => setImageToDelete(image)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Delete
-                            </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setImageToDelete(image)}
+                                className="text-xs h-7"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </AccordionContent>
