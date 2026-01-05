@@ -79,7 +79,7 @@ const Hero = ({ content = {} }: HeroProps) => {
         />
       </div>
       
-      <div className="container mx-auto px-4 pt-28 pb-12 relative z-10">
+      <div className="container mx-auto px-4 pt-4 pb-12 relative z-10">
         {/* Quick Action Buttons */}
         <div className="flex flex-wrap justify-center gap-4 md:gap-10 mb-8">
           {quickActions.map((action, index) => (
