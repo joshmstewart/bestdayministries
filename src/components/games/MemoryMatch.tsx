@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check, ChevronDown, ChevronUp, Gamepad2 } from "lucide-react";
+import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check, ChevronDown, ChevronUp, Gamepad2, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 
@@ -478,12 +478,20 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                     return (
                       <div
                         key={pack.id}
-                        onClick={() => canUse && setSelectedPackId(pack.is_default ? null : pack.id)}
+                        onClick={() => {
+                          if (canUse) {
+                            setSelectedPackId(pack.is_default ? null : pack.id);
+                          } else if (pack.is_purchasable) {
+                            navigate('/store');
+                          }
+                        }}
                         className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all ${
                           isSelected 
                             ? 'border-primary ring-2 ring-primary/50 scale-105' 
-                            : 'border-border hover:border-primary/50'
-                        } ${!canUse ? 'opacity-50 cursor-not-allowed' : 'hover:scale-102'}`}
+                            : canUse 
+                              ? 'border-border hover:border-primary/50 hover:scale-102'
+                              : 'border-border hover:border-yellow-500/50'
+                        } ${!canUse ? 'grayscale-[30%]' : ''}`}
                       >
                         {/* Preview Image */}
                         <div className="aspect-square bg-muted">
@@ -507,6 +515,12 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                               {pack.name}
                             </span>
                             <div className="flex items-center gap-1">
+                              {!canUse && pack.is_purchasable && (
+                                <span className="text-[10px] text-yellow-400 font-medium flex items-center gap-0.5">
+                                  <ShoppingCart className="w-2.5 h-2.5" />
+                                  {pack.price_coins}
+                                </span>
+                              )}
                               {!canUse && <span className="text-xs">🔒</span>}
                             </div>
                           </div>
@@ -516,6 +530,15 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                         {isSelected && (
                           <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5">
                             <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                          </div>
+                        )}
+                        
+                        {/* Purchase overlay for locked purchasable packs */}
+                        {!canUse && pack.is_purchasable && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded">
+                              Buy in Store
+                            </div>
                           </div>
                         )}
                       </div>
