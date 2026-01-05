@@ -1266,6 +1266,45 @@ export const MemoryMatchPackManager = () => {
                 }
               />
             </div>
+
+            {/* Add Image section - only when editing an existing pack */}
+            {editingPack && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label>Add New Image</Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., Rocket Ship, Alien Friend"
+                    value={newImageName}
+                    onChange={(e) => setNewImageName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newImageName.trim() && !addingImage) {
+                        e.preventDefault();
+                        handleAddImage(editingPack.id);
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => handleAddImage(editingPack.id)}
+                    disabled={addingImage || !newImageName.trim()}
+                    title="Add image and generate icon"
+                  >
+                    {addingImage ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        Add & Generate
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter a name and click to add to this pack with auto-generated icon
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPackDialogOpen(false)}>
