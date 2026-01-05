@@ -45,6 +45,53 @@ function extractFirstHexColor(text?: string | null): string | null {
   return match ? normalizeHex(match[0]) : null;
 }
 
+// Map common color names to hex values
+const COLOR_NAME_MAP: Record<string, string> = {
+  white: "#FFFFFF",
+  cream: "#FFFDD0",
+  ivory: "#FFFFF0",
+  beige: "#F5F5DC",
+  gray: "#808080",
+  grey: "#808080",
+  "light gray": "#D3D3D3",
+  "light grey": "#D3D3D3",
+  "soft gray": "#C0C0C0",
+  "soft grey": "#C0C0C0",
+  neutral: "#E5E5E5",
+  black: "#000000",
+  red: "#F94144",
+  orange: "#FF6B35",
+  yellow: "#FFD700",
+  green: "#90BE6D",
+  blue: "#577590",
+  purple: "#BDB2FF",
+  pink: "#FFC8DD",
+  brown: "#8B4513",
+  tan: "#D2B48C",
+  coffee: "#6F4E37",
+  mocha: "#967969",
+  espresso: "#3C2415",
+  latte: "#E6D5B8",
+};
+
+function extractColorFromText(text?: string | null): string | null {
+  if (!text) return null;
+  const lowerText = text.toLowerCase();
+  
+  // First try to find a hex color
+  const hexMatch = extractFirstHexColor(text);
+  if (hexMatch) return hexMatch;
+  
+  // Then look for named colors in the text
+  for (const [name, hex] of Object.entries(COLOR_NAME_MAP)) {
+    if (lowerText.includes(name)) {
+      return hex;
+    }
+  }
+  
+  return null;
+}
+
 function pickBackgroundHex(packName?: string | null) {
   const key = (packName || "default").toLowerCase();
   const idx = Math.abs(hashString(key)) % DEFAULT_THEME_BACKGROUNDS.length;
@@ -68,7 +115,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    const backgroundHex = extractFirstHexColor(designStyle) ?? pickBackgroundHex(packName);
+    const backgroundHex = extractColorFromText(designStyle) ?? pickBackgroundHex(packName);
 
     // Style instructions:
     // - If designStyle is provided, follow it (do NOT add conflicting requirements)
