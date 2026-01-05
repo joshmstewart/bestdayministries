@@ -14,7 +14,9 @@ Memory Match is a card-matching game with optional, database-driven image packs.
 
 ## Database
 - `memory_match_packs` 
-  Pack metadata (name, description, design_style, is_active, is_default, card_back_url, etc.)
+  Pack metadata (name, description, design_style, is_active, is_default, card_back_url, background_color, module_color, etc.)
+  - `background_color` - Hex color for the outer glow/background area behind the game module
+  - `module_color` - Hex color for the inner module/card that contains the game elements
 - `memory_match_images` 
   Individual card faces (name, image_url, display_order, pack_id)
 - `user_memory_match_packs` 

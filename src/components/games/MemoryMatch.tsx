@@ -38,6 +38,8 @@ interface ImagePack {
   is_default: boolean;
   price_coins: number;
   images: { name: string; image_url: string }[];
+  background_color: string | null;
+  module_color: string | null;
 }
 
 // Default bundled images (always available)
@@ -84,6 +86,10 @@ export const MemoryMatch = () => {
   const [ownedPackIds, setOwnedPackIds] = useState<string[]>([]);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [currentImages, setCurrentImages] = useState(DEFAULT_IMAGES);
+  const [currentColors, setCurrentColors] = useState<{ background: string; module: string }>({
+    background: '#F97316',
+    module: '#FFFFFF',
+  });
 
   useEffect(() => {
     checkHardModeUnlock();
@@ -91,15 +97,23 @@ export const MemoryMatch = () => {
     loadImagePacks();
   }, []);
 
-  // Update current images when pack selection changes
+  // Update current images and colors when pack selection changes
   useEffect(() => {
     if (selectedPackId) {
       const pack = availablePacks.find(p => p.id === selectedPackId);
       if (pack && pack.images.length > 0) {
         setCurrentImages(pack.images);
+        setCurrentColors({
+          background: pack.background_color || '#F97316',
+          module: pack.module_color || '#FFFFFF',
+        });
       }
     } else {
       setCurrentImages(DEFAULT_IMAGES);
+      setCurrentColors({
+        background: '#F97316',
+        module: '#FFFFFF',
+      });
     }
   }, [selectedPackId, availablePacks]);
 
@@ -109,7 +123,7 @@ export const MemoryMatch = () => {
     // Load all active packs with their images
     const { data: packs } = await supabase
       .from('memory_match_packs')
-      .select('id, name, description, preview_image_url, is_default, price_coins')
+      .select('id, name, description, preview_image_url, is_default, price_coins, background_color, module_color')
       .eq('is_active', true)
       .order('display_order');
 
@@ -344,8 +358,13 @@ export const MemoryMatch = () => {
 
   if (!gameStarted) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <Card>
+      <div 
+        className="max-w-4xl mx-auto space-y-6 p-6 rounded-2xl"
+        style={{ 
+          background: `radial-gradient(ellipse at center, ${currentColors.background}40 0%, transparent 70%)`,
+        }}
+      >
+        <Card style={{ backgroundColor: currentColors.module }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-3xl">
               <Star className="h-8 w-8 text-yellow-500" />
@@ -457,8 +476,13 @@ export const MemoryMatch = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Card>
+    <div 
+      className="max-w-4xl mx-auto space-y-6 p-6 rounded-2xl"
+      style={{ 
+        background: `radial-gradient(ellipse at center, ${currentColors.background}40 0%, transparent 70%)`,
+      }}
+    >
+      <Card style={{ backgroundColor: currentColors.module }}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
