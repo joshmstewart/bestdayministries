@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { getFullErrorText } from "@/lib/errorUtils";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { Loader2, DollarSign, Mail, FileText, Trash2, AlertTriangle, RefreshCw, Database, Wrench } from "lucide-react";
 import { format } from "date-fns";
 import { ReconciliationJobLogsDialog } from "./ReconciliationJobLogsDialog";
@@ -35,34 +35,6 @@ export const DataMaintenanceTools = () => {
   
   const { toast } = useToast();
 
-  const showErrorToastWithCopy = (context: string, error: any) => {
-    const fullText = getFullErrorText(error);
-
-    toast({
-      title: `Error: ${context}`,
-      description: (
-        <div className="space-y-2">
-          <pre className="max-h-60 overflow-auto whitespace-pre-wrap text-xs font-mono">
-            {fullText}
-          </pre>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(fullText);
-              toast({
-                title: "Copied",
-                description: "Full error details copied to clipboard.",
-              });
-            }}
-            className="text-xs underline hover:no-underline"
-          >
-            Copy full error details
-          </button>
-        </div>
-      ),
-      variant: "destructive",
-      duration: 100000,
-    });
-  };
 
   useEffect(() => {
     loadReconciliationJobStatus();
