@@ -589,10 +589,10 @@ export const MemoryMatchPackManager = () => {
       await loadPacks();
 
       // Only add suggested items for NEW packs (not when editing)
-      // This prevents double-generation when user already generated icons via "Generate Missing"
+      // Run in background so dialog can close immediately
       if (!editingPack && packId && suggestedItems.length > 0) {
-        toast.info(`Adding ${suggestedItems.length} card items and generating icons + card back...`);
-        await handleAddSuggestedItems(packId, suggestedItems);
+        toast.info(`Adding ${suggestedItems.length} card items - icons will generate in background...`);
+        handleAddSuggestedItems(packId, suggestedItems, true); // true = run in background
       }
 
       setSuggestedItems([]);
@@ -625,9 +625,65 @@ export const MemoryMatchPackManager = () => {
     }
   };
 
-  const handleAddSuggestedItems = async (packId: string, items: string[]) => {
+  // Background generation - doesn't block UI
+  const runBackgroundGeneration = async (
+    packId: string, 
+    packName: string, 
+    packDescription: string,
+    designStyle: string,
+    insertedImages: PackImage[]
+  ) => {
+    // Generate icons in batches of 3
+    const BATCH_SIZE = 3;
+    let successCount = 0;
+    const generationErrors: GenerationError[] = [];
+
+    for (let i = 0; i < insertedImages.length; i += BATCH_SIZE) {
+      const batch = insertedImages.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(batch.map((img) => generateIcon(img, packName, designStyle)));
+
+      results.forEach((result, idx) => {
+        if (result.ok) {
+          successCount++;
+        } else {
+          generationErrors.push({
+            imageName: batch[idx].name,
+            error: result.errorMessage || "Unknown error",
+          });
+        }
+      });
+      
+      // Progress toast every batch
+      toast.info(`Generated ${successCount}/${insertedImages.length} icons...`, { id: `gen-progress-${packId}` });
+    }
+
+    if (generationErrors.length > 0) {
+      setErrors(prev => [...prev, ...generationErrors]);
+      toast.warning(
+        `Generated ${successCount}/${insertedImages.length} icons. ${generationErrors.length} failed.`,
+        { id: `gen-progress-${packId}` }
+      );
+    } else {
+      toast.success(`Generated all ${successCount} icons!`, { id: `gen-progress-${packId}` });
+    }
+
+    // Also generate card back
+    const packForCardBack = {
+      id: packId,
+      name: packName,
+      description: packDescription,
+    } as ImagePack;
+    await handleGenerateCardBack(packForCardBack);
+
+    await loadPacks();
+    setGeneratingAllContent(false);
+  };
+
+  const handleAddSuggestedItems = async (packId: string, items: string[], runInBackground = false) => {
     setGeneratingAllContent(true);
     const pack = packs.find((p) => p.id === packId) || { name: packFormData.name.trim() };
+    const designStyle = packFormData.design_style;
+    const packDescription = packFormData.description;
 
     try {
       // Insert all items first
@@ -645,16 +701,22 @@ export const MemoryMatchPackManager = () => {
 
       if (insertError) throw insertError;
 
-      toast.success(`Added ${items.length} items! Generating icons...`);
+      toast.success(`Added ${items.length} items! Generating icons in background...`);
 
-      // Generate icons in batches of 3
+      if (runInBackground) {
+        // Don't await - let it run in background
+        runBackgroundGeneration(packId, pack.name, packDescription, designStyle, insertedImages as PackImage[]);
+        return; // Return immediately, generation continues in background
+      }
+
+      // Original synchronous flow for "Generate All" button
       const BATCH_SIZE = 3;
       let successCount = 0;
       const generationErrors: GenerationError[] = [];
 
       for (let i = 0; i < (insertedImages?.length || 0); i += BATCH_SIZE) {
         const batch = insertedImages!.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(batch.map((img) => generateIcon(img as PackImage, pack.name, packFormData.design_style)));
+        const results = await Promise.all(batch.map((img) => generateIcon(img as PackImage, pack.name, designStyle)));
 
         results.forEach((result, idx) => {
           if (result.ok) {
@@ -681,7 +743,7 @@ export const MemoryMatchPackManager = () => {
       const packForCardBack = {
         id: packId,
         name: pack.name,
-        description: packFormData.description,
+        description: packDescription,
       } as ImagePack;
       await handleGenerateCardBack(packForCardBack);
 
@@ -701,7 +763,9 @@ export const MemoryMatchPackManager = () => {
 
       toast.error("Failed to add suggested items (see error panel above)");
     } finally {
-      setGeneratingAllContent(false);
+      if (!runInBackground) {
+        setGeneratingAllContent(false);
+      }
     }
   };
 
