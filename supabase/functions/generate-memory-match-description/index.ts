@@ -42,18 +42,19 @@ serve(async (req) => {
     } else if (mode === "style") {
       userPrompt = `Generate ONLY a visual style description for a memory match card pack called "${packName}".
 
-CRITICAL REQUIREMENTS for the style:
+You CAN incorporate thematic elements inspired by "${packName}" (colors, mood, subject rendering style), BUT these REQUIREMENTS are NON-NEGOTIABLE:
 - Icons must be INSTANTLY RECOGNIZABLE and visually DISTINCT from each other
-- Use BRIGHT, SOLID background colors (pick from: red, orange, yellow, lime green, teal, sky blue, purple, pink, coral, mint)
-- NO dark backgrounds, NO space/galaxy backgrounds, NO gradients
-- Style should be clean, flat illustration with bold outlines - like road signs or app icons
-- Subjects should be BOLD, SIMPLE, and ICONIC
-- Adult-appropriate but NOT sophisticated/abstract - prioritize CLARITY over artistry
-- Each icon should look completely different from others at a glance
+- Backgrounds must be BRIGHT and SOLID (can be theme-inspired colors, but must be vibrant, not dark)
+- NO dark/black backgrounds, NO busy patterns, NO gradients
+- Subjects should be BOLD and SIMPLE - filling 70-80% of the image
+- Style should prioritize CLARITY - like road signs or app icons
+- Each icon must look completely different from others at a glance
 
-Example good style: "Clean flat illustration style with bold black outlines. Each icon has a unique bright solid background color. Subjects are large, simple, and iconic - filling 70-80% of the image. Colors pop with high contrast."`;
+Good example: For a "Space" pack, you could use: "Bold flat illustrations with cosmic-inspired bright backgrounds (electric purple, hot pink, vibrant blue). Subjects are simple, iconic silhouettes with clean edges. High contrast between subject and background."
+
+Bad example: "Dark navy space backgrounds with subtle nebula effects" - this breaks the bright background rule.`;
       toolParams = {
-        design_style: { type: "string", description: "A visual style description emphasizing BRIGHT solid backgrounds, bold simple subjects, high contrast, and road-sign clarity. NO dark colors or gradients." }
+        design_style: { type: "string", description: "A thematic visual style that MUST include bright solid backgrounds, bold simple subjects, and high contrast. Theme-inspired colors OK but must be vibrant, not dark." }
       };
       requiredFields = ["design_style"];
     } else if (mode === "items") {
