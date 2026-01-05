@@ -58,7 +58,7 @@ const DEFAULT_IMAGES = [
   { name: "Sugar Bowl", image_url: sugarBowlImg },
 ];
 
-const DIFFICULTY_CONFIG = {
+const DEFAULT_DIFFICULTY_CONFIG = {
   easy: { pairs: 6, coins: 10, label: 'Easy', color: 'bg-green-500' },
   medium: { pairs: 8, coins: 20, label: 'Medium', color: 'bg-yellow-500' },
   hard: { pairs: 10, coins: 40, label: 'Hard', color: 'bg-red-500' },
@@ -98,11 +98,24 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     module: '#FFFFFF',
   });
   const [packsExpanded, setPacksExpanded] = useState(false);
+  const [coinRewards, setCoinRewards] = useState<Record<Difficulty, number>>({
+    easy: DEFAULT_DIFFICULTY_CONFIG.easy.coins,
+    medium: DEFAULT_DIFFICULTY_CONFIG.medium.coins,
+    hard: DEFAULT_DIFFICULTY_CONFIG.hard.coins,
+  });
+
+  // Create dynamic difficulty config with database coins
+  const DIFFICULTY_CONFIG = {
+    easy: { ...DEFAULT_DIFFICULTY_CONFIG.easy, coins: coinRewards.easy },
+    medium: { ...DEFAULT_DIFFICULTY_CONFIG.medium, coins: coinRewards.medium },
+    hard: { ...DEFAULT_DIFFICULTY_CONFIG.hard, coins: coinRewards.hard },
+  };
 
   useEffect(() => {
     checkHardModeUnlock();
     loadBestScores();
     loadImagePacks();
+    loadCoinRewards();
   }, []);
 
   // Update current images and colors when pack selection changes
@@ -185,6 +198,31 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
       if (owned) {
         setOwnedPackIds(owned.map(o => o.pack_id));
       }
+    }
+  };
+
+  const loadCoinRewards = async () => {
+    const { data } = await supabase
+      .from('coin_rewards_settings')
+      .select('reward_key, coins_amount, is_active')
+      .in('reward_key', ['memory_match_easy', 'memory_match_medium', 'memory_match_hard']);
+    
+    if (data) {
+      const rewards: Record<Difficulty, number> = {
+        easy: DEFAULT_DIFFICULTY_CONFIG.easy.coins,
+        medium: DEFAULT_DIFFICULTY_CONFIG.medium.coins,
+        hard: DEFAULT_DIFFICULTY_CONFIG.hard.coins,
+      };
+      
+      data.forEach(reward => {
+        if (reward.is_active) {
+          if (reward.reward_key === 'memory_match_easy') rewards.easy = reward.coins_amount;
+          if (reward.reward_key === 'memory_match_medium') rewards.medium = reward.coins_amount;
+          if (reward.reward_key === 'memory_match_hard') rewards.hard = reward.coins_amount;
+        }
+      });
+      
+      setCoinRewards(rewards);
     }
   };
 
