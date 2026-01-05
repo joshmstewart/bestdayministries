@@ -23,7 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2, Package, Eye, EyeOff, Edit } from "lucide-react";
+import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2, Package, Eye, EyeOff, Edit, Star } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -117,7 +117,7 @@ export const MemoryMatchPackManager = () => {
     name: "",
     description: "",
     price_coins: 0,
-    is_active: true,
+    is_active: false, // New packs start inactive
   });
   const [savingPack, setSavingPack] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -474,7 +474,7 @@ export const MemoryMatchPackManager = () => {
             name: packFormData.name.trim(),
             description: packFormData.description.trim() || null,
             price_coins: packFormData.price_coins,
-            is_active: packFormData.is_active,
+            is_active: false, // Always start inactive
             display_order: packs.length,
           })
           .select()
@@ -482,7 +482,7 @@ export const MemoryMatchPackManager = () => {
 
         if (error) throw error;
         packId = newPack.id;
-        toast.success("Pack created");
+        toast.success("Pack created (inactive - activate when ready)");
       }
 
       setPackDialogOpen(false);
@@ -584,6 +584,32 @@ export const MemoryMatchPackManager = () => {
     } catch (error) {
       console.error("Failed to toggle pack:", error);
       toast.error("Failed to update pack");
+    }
+  };
+
+  const setAsDefaultPack = async (pack: ImagePack) => {
+    try {
+      // First, unset any existing default
+      await supabase
+        .from("memory_match_packs")
+        .update({ is_default: false })
+        .eq("is_default", true);
+
+      // Then set this pack as default
+      const { error } = await supabase
+        .from("memory_match_packs")
+        .update({ is_default: true })
+        .eq("id", pack.id);
+
+      if (error) throw error;
+
+      setPacks((prev) =>
+        prev.map((p) => ({ ...p, is_default: p.id === pack.id }))
+      );
+      toast.success(`"${pack.name}" is now the default pack`);
+    } catch (error) {
+      console.error("Failed to set default pack:", error);
+      toast.error("Failed to set default pack");
     }
   };
 
@@ -776,6 +802,12 @@ export const MemoryMatchPackManager = () => {
                     <div className="text-left">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{pack.name}</span>
+                        {pack.is_default && (
+                          <Badge className="bg-amber-500 hover:bg-amber-600">
+                            <Star className="w-3 h-3 mr-1 fill-current" />
+                            Default
+                          </Badge>
+                        )}
                         {!pack.is_active && (
                           <Badge variant="outline" className="text-muted-foreground">
                             Inactive
@@ -890,6 +922,16 @@ export const MemoryMatchPackManager = () => {
                       <Edit className="w-4 h-4 mr-1" />
                       Edit Pack
                     </Button>
+                    {!pack.is_default && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setAsDefaultPack(pack)}
+                      >
+                        <Star className="w-4 h-4 mr-1" />
+                        Set as Default
+                      </Button>
+                    )}
                     {missingCount > 0 && (
                       <Button
                         size="sm"
