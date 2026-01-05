@@ -8,6 +8,49 @@ const corsHeaders = {
 
 const SIZE = 512;
 
+const DEFAULT_THEME_BACKGROUNDS = [
+  "#FF6B35", // warm orange
+  "#F7C59F", // peach
+  "#A2D2FF", // sky
+  "#BDB2FF", // lavender
+  "#FFC8DD", // pink
+  "#90BE6D", // green
+  "#F94144", // red
+  "#577590", // slate blue
+];
+
+function hashString(input: string) {
+  // Simple deterministic hash (stable across runtimes)
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
+function normalizeHex(hex: string) {
+  const raw = hex.replace("#", "").trim();
+  if (raw.length === 3) {
+    const r = raw[0];
+    const g = raw[1];
+    const b = raw[2];
+    return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+  }
+  return `#${raw}`.toUpperCase();
+}
+
+function extractFirstHexColor(text?: string | null): string | null {
+  if (!text) return null;
+  const match = text.match(/#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/);
+  return match ? normalizeHex(match[0]) : null;
+}
+
+function pickBackgroundHex(packName?: string | null) {
+  const key = (packName || "default").toLowerCase();
+  const idx = Math.abs(hashString(key)) % DEFAULT_THEME_BACKGROUNDS.length;
+  return DEFAULT_THEME_BACKGROUNDS[idx];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,35 +68,17 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Build style instructions - use designStyle if provided, otherwise default
-    const styleInstructions = designStyle 
-      ? `Follow this style guide: ${designStyle}
+    const backgroundHex = extractFirstHexColor(designStyle) ?? pickBackgroundHex(packName);
 
-Additional requirements:`
-      : `STYLE:`;
+    // Style instructions:
+    // - If designStyle is provided, follow it (do NOT add conflicting requirements)
+    // - Otherwise, default to premium "slightly stylized realism"
+    const styleBlock = designStyle
+      ? `STYLE GUIDE (follow exactly):\n${designStyle}`
+      : `STYLE:\n- Clean, high-detail, slightly stylized realism (premium stock icon / app icon)\n- Natural, accurate colors\n- Avoid flat/cartoon styles unless explicitly requested`;
 
-    // Request image with white background directly from the AI
-    const iconPrompt = `Create a ${SIZE}x${SIZE} PNG image.
-
-SUBJECT: "${imageName}"
-
-${styleInstructions}
-- Realistic illustration or photorealistic render
-- Natural, accurate colors (e.g. a rocket is white/silver/red, an apple is red/green, coffee beans are brown)
-- Clean, high-detail, slightly stylized realism - like a premium stock icon or app icon
-- Subject should fill about 70-80% of the canvas, centered
-- NO cartoon style, NO flat colors, NO abstract shapes
-
-BACKGROUND:
-- SOLID PURE WHITE background (#FFFFFF)
-- NO gradients, NO shadows, NO vignettes
-- The background MUST be completely white
-
-TECHNICAL:
-- Full bleed: use entire canvas with NO margins, NO borders, NO rounded corners
-- Output: PNG format
-- Sharp rectangular edges
-- Subject centered on pure white background`;
+    // Request image directly from the AI (solid deterministic background per pack)
+    const iconPrompt = `Create a ${SIZE}x${SIZE} PNG image.\n\nSUBJECT: "${imageName}"\n\n${styleBlock}\n\nCOMPOSITION:\n- Subject should fill about 70-80% of the canvas, centered\n- No borders, no frames, no rounded corners\n\nBACKGROUND:\n- SOLID single-color background: ${backgroundHex}\n- No gradients, no shadows, no vignettes\n- The background MUST be uniformly ${backgroundHex}\n\nOUTPUT:\n- PNG format\n- Sharp rectangular edges\n- Full bleed (use entire canvas)\n`;
 
     console.log("Generating icon for:", imageName);
     console.log("Pack:", packName);
@@ -145,7 +170,12 @@ TECHNICAL:
     }
 
     if (!imageData) {
-      throw new Error(lastError);
+      // Expected failure mode (AI returned text/no images). Return 200 so the admin UI can show the real reason.
+      console.error("AI did not return an image after retries:", lastError);
+      return new Response(
+        JSON.stringify({ success: false, error: lastError }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
     }
 
     // Decode AI image - the AI should return a PNG with white background
