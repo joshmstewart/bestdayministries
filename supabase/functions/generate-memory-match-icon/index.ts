@@ -23,31 +23,8 @@ const parseHex = (hex: string) => {
   };
 };
 
-// Helper: pick a background hex based on pack theme
-const pickBackgroundHex = (pack: string | undefined) => {
-  const packLower = (pack || "").toLowerCase();
-
-  const palettes: Record<string, string[]> = {
-    space: ["#8B5CF6", "#EC4899", "#3B82F6", "#22D3EE"],
-    ocean: ["#0EA5E9", "#06B6D4", "#3B82F6"],
-    nature: ["#22C55E", "#84CC16", "#10B981"],
-    farm: ["#F59E0B", "#F97316", "#EAB308"],
-    food: ["#FDE047", "#FB7185", "#A78BFA"],
-    animals: ["#60A5FA", "#F472B6", "#34D399"],
-    sports: ["#22C55E", "#F97316", "#3B82F6"],
-    music: ["#A855F7", "#EC4899", "#38BDF8"],
-    vehicles: ["#94A3B8", "#60A5FA", "#F97316"],
-    coffee: ["#D4A574", "#8B4513", "#A0522D"],
-  };
-
-  const matchedTheme = Object.keys(palettes).find((k) => packLower.includes(k));
-  const palette = matchedTheme
-    ? palettes[matchedTheme]
-    : ["#22D3EE", "#F472B6", "#A78BFA", "#FDE047"];
-
-  const idx = pack ? stableHash(pack) % palette.length : 0;
-  return palette[idx];
-};
+// Always use white background for consistency
+const pickBackgroundHex = (_pack: string | undefined) => "#FFFFFF";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
