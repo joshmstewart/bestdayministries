@@ -562,18 +562,18 @@ export const MemoryMatchPackManager = () => {
         </Alert>
       )}
 
-      {/* Default Bundled Pack (Coffee Shop) */}
-      <Card>
+      {/* Default Bundled Pack (Coffee Shop) - Static fallback display */}
+      <Card className="border-primary/20 bg-primary/5">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Package className="w-5 h-5 text-primary" />
               <div>
-                <CardTitle className="text-lg">☕ Coffee Shop</CardTitle>
-                <CardDescription>Default bundled pack (10 images + card back) - Always available</CardDescription>
+                <CardTitle className="text-lg">☕ Coffee Shop (Bundled Default)</CardTitle>
+                <CardDescription>These 10 images are bundled with the app and always available as fallback</CardDescription>
               </div>
             </div>
-            <Badge variant="secondary">Bundled</Badge>
+            <Badge variant="secondary">Static Assets</Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -598,7 +598,7 @@ export const MemoryMatchPackManager = () => {
 
           {/* Images Grid */}
           <div>
-            <h4 className="text-sm font-medium mb-2">Card Face Images</h4>
+            <h4 className="text-sm font-medium mb-2">Card Face Images ({DEFAULT_BUNDLED_IMAGES.length} bundled)</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {DEFAULT_BUNDLED_IMAGES.map((img, idx) => (
                 <div
@@ -618,6 +618,9 @@ export const MemoryMatchPackManager = () => {
               ))}
             </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            💡 To customize packs with add/delete/regenerate features, create a new pack or use an existing database pack below.
+          </p>
         </CardContent>
       </Card>
 
