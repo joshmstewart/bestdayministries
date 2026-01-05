@@ -36,6 +36,7 @@ interface ImagePack {
   description: string | null;
   preview_image_url: string | null;
   is_default: boolean;
+  is_purchasable: boolean;
   price_coins: number;
   images: { name: string; image_url: string }[];
   background_color: string | null;
@@ -149,7 +150,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     // Load all active packs with their images
     const { data: packs } = await supabase
       .from('memory_match_packs')
-      .select('id, name, description, preview_image_url, is_default, price_coins, background_color, module_color, card_back_url')
+      .select('id, name, description, preview_image_url, is_default, is_purchasable, price_coins, background_color, module_color, card_back_url')
       .eq('is_active', true)
       .order('display_order');
 
@@ -379,7 +380,8 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
   };
 
   const canUsePack = (pack: ImagePack) => {
-    return pack.is_default || ownedPackIds.includes(pack.id);
+    // Pack is usable if: it's the default, user owns it, OR it's not purchasable (free)
+    return pack.is_default || !pack.is_purchasable || ownedPackIds.includes(pack.id);
   };
 
   if (!gameStarted) {
