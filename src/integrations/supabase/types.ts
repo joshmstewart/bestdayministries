@@ -2664,7 +2664,7 @@ export type Database = {
           created_at: string
           display_order: number | null
           id: string
-          image_url: string
+          image_url: string | null
           name: string
           pack_id: string
         }
@@ -2672,7 +2672,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
-          image_url: string
+          image_url?: string | null
           name: string
           pack_id: string
         }
@@ -2680,7 +2680,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
-          image_url?: string
+          image_url?: string | null
           name?: string
           pack_id?: string
         }
