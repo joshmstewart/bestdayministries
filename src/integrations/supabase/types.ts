@@ -864,6 +864,42 @@ export type Database = {
           },
         ]
       }
+      coin_rewards_settings: {
+        Row: {
+          category: string
+          coins_amount: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          reward_key: string
+          reward_name: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          coins_amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          reward_key: string
+          reward_name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          coins_amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          reward_key?: string
+          reward_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coin_transactions: {
         Row: {
           amount: number
