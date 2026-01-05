@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToast } from "@/lib/errorToast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -144,7 +145,7 @@ export const MemoryMatchPackManager = () => {
       .order("display_order");
 
     if (packsError) {
-      toast.error("Failed to load packs");
+      showErrorToast("Failed to load packs");
       console.error(packsError);
       setLoading(false);
       return;
@@ -184,7 +185,7 @@ export const MemoryMatchPackManager = () => {
 
   const handleAddImage = async (packId: string) => {
     if (!newImageName.trim()) {
-      toast.error("Please enter an image name");
+      showErrorToast("Please enter an image name");
       return;
     }
 
@@ -194,7 +195,7 @@ export const MemoryMatchPackManager = () => {
       (img) => img.name.toLowerCase() === newImageName.toLowerCase()
     );
     if (exists) {
-      toast.error("This image already exists in this pack");
+      showErrorToast("This image already exists in this pack");
       return;
     }
 
@@ -232,7 +233,7 @@ export const MemoryMatchPackManager = () => {
       await loadPacks();
     } catch (error) {
       console.error("Failed to add image:", error);
-      toast.error("Failed to add image");
+      showErrorToast("Failed to add image");
     } finally {
       setAddingImage(false);
     }
@@ -354,7 +355,7 @@ export const MemoryMatchPackManager = () => {
         const filtered = prev.filter((e) => e.imageName !== image.name);
         return [...filtered, { imageName: image.name, error: result.errorMessage || "Unknown error" }];
       });
-      toast.error(`Failed to regenerate icon for ${image.name}`);
+      showErrorToast(`Failed to regenerate icon for ${image.name}`);
     }
 
     setRegeneratingId(null);
@@ -381,7 +382,7 @@ export const MemoryMatchPackManager = () => {
       }));
     } catch (error) {
       console.error("Failed to delete image:", error);
-      toast.error("Failed to delete image");
+      showErrorToast("Failed to delete image");
     } finally {
       setDeleting(false);
       setImageToDelete(null);
@@ -428,7 +429,7 @@ export const MemoryMatchPackManager = () => {
 
   const handleGenerateAll = async () => {
     if (!packFormData.name.trim()) {
-      toast.error("Please enter a pack name first");
+      showErrorToast("Please enter a pack name first");
       return;
     }
 
@@ -455,7 +456,7 @@ export const MemoryMatchPackManager = () => {
       toast.success("All content generated!");
     } catch (error) {
       console.error("Failed to generate content:", error);
-      toast.error("Failed to generate content");
+      showErrorToast("Failed to generate content");
     } finally {
       setGeneratingDescription(false);
     }
@@ -463,7 +464,7 @@ export const MemoryMatchPackManager = () => {
 
   const handleGenerateDescription = async () => {
     if (!packFormData.name.trim()) {
-      toast.error("Please enter a pack name first");
+      showErrorToast("Please enter a pack name first");
       return;
     }
 
@@ -483,7 +484,7 @@ export const MemoryMatchPackManager = () => {
       }
     } catch (error) {
       console.error("Failed to generate description:", error);
-      toast.error("Failed to generate description");
+      showErrorToast("Failed to generate description");
     } finally {
       setGeneratingDescription(false);
     }
@@ -491,7 +492,7 @@ export const MemoryMatchPackManager = () => {
 
   const handleGenerateStyle = async () => {
     if (!packFormData.name.trim()) {
-      toast.error("Please enter a pack name first");
+      showErrorToast("Please enter a pack name first");
       return;
     }
 
@@ -511,7 +512,7 @@ export const MemoryMatchPackManager = () => {
       }
     } catch (error) {
       console.error("Failed to generate style:", error);
-      toast.error("Failed to generate style");
+      showErrorToast("Failed to generate style");
     } finally {
       setGeneratingStyle(false);
     }
@@ -519,7 +520,7 @@ export const MemoryMatchPackManager = () => {
 
   const handleGenerateItems = async () => {
     if (!packFormData.name.trim()) {
-      toast.error("Please enter a pack name first");
+      showErrorToast("Please enter a pack name first");
       return;
     }
 
@@ -539,7 +540,7 @@ export const MemoryMatchPackManager = () => {
       }
     } catch (error) {
       console.error("Failed to generate items:", error);
-      toast.error("Failed to generate items");
+      showErrorToast("Failed to generate items");
     } finally {
       setGeneratingItems(false);
     }
@@ -547,7 +548,7 @@ export const MemoryMatchPackManager = () => {
 
   const handleSavePack = async () => {
     if (!packFormData.name.trim()) {
-      toast.error("Please enter a pack name");
+      showErrorToast("Please enter a pack name");
       return;
     }
 
@@ -602,7 +603,7 @@ export const MemoryMatchPackManager = () => {
       setSuggestedItems([]);
     } catch (error) {
       console.error("Failed to save pack:", error);
-      toast.error("Failed to save pack");
+      showErrorToast("Failed to save pack");
     } finally {
       setSavingPack(false);
     }
@@ -765,7 +766,7 @@ export const MemoryMatchPackManager = () => {
         },
       ]);
 
-      toast.error("Failed to add suggested items (see error panel above)");
+      showErrorToast("Failed to add suggested items (see error panel above)");
     } finally {
       if (!runInBackground) {
         setGeneratingAllContent(false);
@@ -788,7 +789,7 @@ export const MemoryMatchPackManager = () => {
       toast.success(`Pack ${!pack.is_active ? "activated" : "deactivated"}`);
     } catch (error) {
       console.error("Failed to toggle pack:", error);
-      toast.error("Failed to update pack");
+      showErrorToast("Failed to update pack");
     }
   };
 
@@ -814,7 +815,7 @@ export const MemoryMatchPackManager = () => {
       toast.success(`"${pack.name}" is now the default pack`);
     } catch (error) {
       console.error("Failed to set default pack:", error);
-      toast.error("Failed to set default pack");
+      showErrorToast("Failed to set default pack");
     }
   };
 
@@ -835,12 +836,12 @@ export const MemoryMatchPackManager = () => {
 
       if (error) {
         console.error("Failed to generate card back:", error);
-        toast.error(`Failed to generate card back: ${error.message}`);
+        showErrorToast(`Failed to generate card back: ${error.message}`);
         return;
       }
 
       if ((data as any)?.error) {
-        toast.error(`Failed to generate card back: ${(data as any).error}`);
+        showErrorToast(`Failed to generate card back: ${(data as any).error}`);
         return;
       }
 
@@ -854,7 +855,7 @@ export const MemoryMatchPackManager = () => {
       }
     } catch (error) {
       console.error("Failed to generate card back:", error);
-      toast.error("Failed to generate card back");
+      showErrorToast("Failed to generate card back");
     } finally {
       setGeneratingCardBack(null);
     }
