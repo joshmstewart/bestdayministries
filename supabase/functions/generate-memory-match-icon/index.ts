@@ -26,29 +26,60 @@ serve(async (req) => {
     // Use the design style passed in, or default to clean adult-appropriate style
     const style = designStyle || "Clean flat illustration, elegant, simple shapes, adult aesthetic";
     
-    // Pick ONE background color from the pack's color palette (based on pack name hash for consistency)
-    const brightColors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9"];
-    const colorIndex = Math.abs(packName?.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) || 0) % brightColors.length;
-    const backgroundColor = brightColors[colorIndex];
+    // Theme-based background colors - pick ONE based on pack name hash for consistency
+    const themeBackgrounds: Record<string, string> = {
+      space: "#1A1A2E",      // Dark navy for space
+      ocean: "#0077B6",      // Deep blue for ocean
+      nature: "#2D6A4F",     // Forest green for nature
+      farm: "#8B4513",       // Saddle brown for farm
+      food: "#FFF8DC",       // Cornsilk cream for food
+      animals: "#87CEEB",    // Sky blue for animals
+      sports: "#228B22",     // Forest green for sports
+      music: "#4B0082",      // Indigo for music
+      vehicles: "#708090",   // Slate gray for vehicles
+      default: "#40E0D0",    // Turquoise as default
+    };
+    
+    // Match pack name to theme, fallback to hash-based selection
+    const packNameLower = (packName || "").toLowerCase();
+    let backgroundColor = themeBackgrounds.default;
+    
+    for (const [theme, color] of Object.entries(themeBackgrounds)) {
+      if (packNameLower.includes(theme)) {
+        backgroundColor = color;
+        break;
+      }
+    }
+    
+    // If no theme matched, use hash for consistent color
+    if (backgroundColor === themeBackgrounds.default && packName) {
+      const defaultColors = ["#40E0D0", "#F0E68C", "#DDA0DD", "#98FB98", "#FFB6C1", "#87CEEB", "#F5DEB3", "#B0C4DE"];
+      const colorIndex = Math.abs(packName.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % defaultColors.length;
+      backgroundColor = defaultColors[colorIndex];
+    }
 
     const iconPrompt = `Generate a 512x512 square image.
 
-SUBJECT: ${imageName} (from a "${packName || "General"}" themed pack)
+SUBJECT: "${imageName}" - draw this object/thing in REALISTIC, NATURAL colors
 
-STYLE: ${style}
+BACKGROUND: EXACTLY the hex color ${backgroundColor} - this MUST be solid, uniform, and fill the entire canvas
 
-CRITICAL REQUIREMENTS:
-1. FULL BLEED: Subject and background must extend to ALL EDGES with NO margins, NO borders, NO padding
-2. COLORFUL: Subject must be VIBRANT and FULL COLOR (NOT black/white, NOT monotone, NOT silhouettes)
-3. BACKGROUND: Solid ${backgroundColor} color filling entire canvas edge-to-edge
-4. SUBJECT SIZE: Large, filling 70-80% of the image area
-5. STYLE: Bold, simple, iconic shapes - like a colorful app icon or road sign
-6. CORNERS: Sharp rectangular corners (no rounded edges)
-7. CONTRAST: High contrast between colorful subject and solid background
+STYLE REQUIREMENTS:
+1. Subject uses REALISTIC/NATURAL colors (a rocket is white/silver with red/orange flames, an astronaut has a white suit, the moon is gray/white, Saturn is tan/gold with rings)
+2. Background is EXACTLY ${backgroundColor} - solid, flat, no gradients, no variations
+3. Subject fills 70-80% of the canvas
+4. FULL BLEED - image extends to all edges, NO margins, NO borders, NO padding
+5. Clean, simple illustration style - like a modern app icon
+6. Sharp rectangular corners
 
-DO NOT: Add any borders, margins, white space at edges, gradients, or dark backgrounds. Subject must be colorful, not black/gray/monotone.`;
+DO NOT:
+- Use fantasy/neon/unrealistic colors on the subject
+- Add gradients or texture to the background
+- Add borders, margins, or white space at edges
+- Make the subject black/white/monotone`;
 
     console.log("Generating icon for memory match image:", imageName);
+    console.log("Using background color:", backgroundColor);
     console.log("Prompt:", iconPrompt);
 
     // Call Lovable AI to generate the image with retry logic
