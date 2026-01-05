@@ -171,7 +171,7 @@ const Marketplace = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <UnifiedHeader />
-        <main className="flex-1 pt-24 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center">
           <div className="animate-pulse flex flex-col items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-muted" />
             <div className="h-4 w-32 bg-muted rounded" />
@@ -187,7 +187,7 @@ const Marketplace = () => {
     return (
       <div className="min-h-screen flex flex-col">
         <UnifiedHeader />
-        <main className="flex-1 pt-24 flex items-center justify-center mt-16 py-40">
+        <main className="flex-1 flex items-center justify-center mt-16 py-40">
           <Card className="max-w-md mx-4">
             <CardHeader className="text-center">
               <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -220,7 +220,7 @@ const Marketplace = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1 pt-14">
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 py-16">
           <div className="container mx-auto px-4">
