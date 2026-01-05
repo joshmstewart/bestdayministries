@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus, Check } from "lucide-react";
+import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus, Check, Trash2 } from "lucide-react";
 
 interface CoinReward {
   id: string;
@@ -260,6 +260,25 @@ export const CoinRewardsManager = () => {
     }
   };
 
+  const deleteReward = async (reward: CoinReward) => {
+    if (!confirm(`Are you sure you want to delete "${reward.reward_name}"?`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from("coin_rewards_settings")
+        .delete()
+        .eq("id", reward.id);
+
+      if (error) throw error;
+
+      setRewards((prev) => prev.filter((r) => r.id !== reward.id));
+      toast.success("Reward deleted");
+    } catch (error) {
+      console.error("Failed to delete reward:", error);
+      showErrorToast("Failed to delete reward");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -352,14 +371,25 @@ export const CoinRewardsManager = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => openDialog(reward)}
-                        title="Edit reward"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => openDialog(reward)}
+                          title="Edit reward"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteReward(reward)}
+                          title="Delete reward"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
