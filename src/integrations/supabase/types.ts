@@ -2838,6 +2838,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_default: boolean | null
+          is_purchasable: boolean | null
           module_color: string | null
           name: string
           preview_image_url: string | null
@@ -2855,6 +2856,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          is_purchasable?: boolean | null
           module_color?: string | null
           name: string
           preview_image_url?: string | null
@@ -2872,6 +2874,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_default?: boolean | null
+          is_purchasable?: boolean | null
           module_color?: string | null
           name?: string
           preview_image_url?: string | null
