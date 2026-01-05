@@ -19,21 +19,22 @@ export function showErrorToastWithCopy(context: string, error: unknown) {
   const fullText = getFullErrorText(error);
 
   toast({
-    title: `Error: ${context}`,
+    title: context,
     description: (
       <div className="mt-2 space-y-2">
-        <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap break-all">
+        <pre className="max-h-40 overflow-auto rounded bg-black/20 p-2 text-xs whitespace-pre-wrap break-all text-white/90">
           {fullText}
         </pre>
         <button
-          onClick={() => {
-            navigator.clipboard.writeText(fullText);
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(`${context}: ${fullText}`);
             toast({
               title: "Copied to clipboard",
               duration: 2000,
             });
           }}
-          className="text-xs underline hover:no-underline"
+          className="text-xs underline hover:no-underline text-white/80 hover:text-white"
         >
           Copy error details
         </button>
@@ -46,10 +47,33 @@ export function showErrorToastWithCopy(context: string, error: unknown) {
 
 /**
  * Shows a persistent error toast with copy button.
- * This is an alias for showErrorToastWithCopy for simple string errors.
  * 
  * @param message - The error message to display
  */
 export function showErrorToast(message: string) {
-  showErrorToastWithCopy("Error", message);
+  toast({
+    title: "Error",
+    description: (
+      <div className="mt-2 space-y-2">
+        <pre className="max-h-40 overflow-auto rounded bg-black/20 p-2 text-xs whitespace-pre-wrap break-all text-white/90">
+          {message}
+        </pre>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(message);
+            toast({
+              title: "Copied to clipboard",
+              duration: 2000,
+            });
+          }}
+          className="text-xs underline hover:no-underline text-white/80 hover:text-white"
+        >
+          Copy error details
+        </button>
+      </div>
+    ),
+    variant: "destructive",
+    duration: Infinity,
+  });
 }
