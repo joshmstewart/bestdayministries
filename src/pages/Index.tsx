@@ -14,7 +14,7 @@ import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
 import { SEOHead, getOrganizationStructuredData } from "@/components/SEOHead";
 import VideoSection from "@/components/VideoSection";
-import { QuickActionBar } from "@/components/QuickActionBar";
+
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -179,7 +179,6 @@ const Index = () => {
       />
       <UnifiedHeader />
       <main className="pt-24">
-        <QuickActionBar />
         {loading ? (
           <div className="container mx-auto px-4 py-16">
             <div className="animate-pulse space-y-8">

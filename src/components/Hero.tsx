@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Heart } from "lucide-react";
+import { ArrowRight, Heart, Gift, Users, ShoppingBag } from "lucide-react";
 import heroImage from "@/assets/hero-hands.jpg";
 import { OptimizedImage } from "@/components/OptimizedImage";
+import { useNavigate } from "react-router-dom";
+
+const quickActions = [
+  { label: "Donate", icon: Gift, path: "/support", color: "bg-primary hover:bg-primary/90" },
+  { label: "Sponsor a Bestie", icon: Users, path: "/sponsor-bestie", color: "bg-secondary hover:bg-secondary/90" },
+  { label: "Joy House Store", icon: ShoppingBag, path: "/joyhousestore", color: "bg-accent hover:bg-accent/90" },
+];
 
 interface HeroContent {
   badge_text?: string;
@@ -23,6 +30,7 @@ interface HeroProps {
 }
 
 const Hero = ({ content = {} }: HeroProps) => {
+  const navigate = useNavigate();
   const {
     badge_text = "Building Community Through Creativity",
     heading = "Spreading JOY through the unique gifts of the special needs community",
@@ -72,6 +80,22 @@ const Hero = ({ content = {} }: HeroProps) => {
       </div>
       
       <div className="container mx-auto px-4 pt-4 pb-12 relative z-10">
+        {/* Quick Action Buttons */}
+        <div className="flex flex-wrap justify-center gap-4 md:gap-10 mb-8">
+          {quickActions.map((action, index) => (
+            <Button
+              key={action.path}
+              size="lg"
+              onClick={() => navigate(action.path)}
+              className={`${action.color} text-primary-foreground transition-all hover:scale-110 px-8 py-7 text-lg font-bold rounded-xl animate-fade-in`}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <action.icon className="w-6 h-6 mr-2" />
+              {action.label}
+            </Button>
+          ))}
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left Content */}
           <div className="space-y-6 animate-fade-in">
