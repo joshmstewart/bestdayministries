@@ -47,23 +47,23 @@ CRITICAL STYLE REQUIREMENTS - ALL GENERATED IMAGES WILL BE:
 - Natural, accurate colors for subjects (e.g., a rocket is white/silver/red, coffee beans are brown)
 - High-detail, clean renders - like premium stock photos or product renders
 - Subjects fill 70-80% of the image with crisp, clear details
-- Solid, vibrant BRIGHT backgrounds (theme-appropriate colors, never dark/black)
+- ALL backgrounds are CLEAN WHITE (#FFFFFF) - this is non-negotiable
 
 Your description should specify:
 1. The realistic rendering style appropriate for "${packName}"
 2. What kinds of subjects will be shown (concrete objects related to the theme)
-3. The solid background color palette (bright, theme-appropriate colors like warm caramel, vibrant blue, etc.)
+3. Mention that all items appear on clean white backgrounds
 
 Example for "Coffee Shop":
-"Photorealistic renders of coffee shop essentials - steaming ceramic mugs, freshly roasted beans with natural brown tones, golden flaky croissants, and polished espresso machines. Each item is rendered with natural textures and accurate colors against warm solid backgrounds in shades of caramel, creamy latte, and rich mahogany."
+"Photorealistic renders of coffee shop essentials - steaming ceramic mugs, freshly roasted beans with natural brown tones, golden flaky croissants, and polished espresso machines. Each item is rendered with natural textures and accurate colors against a clean white background."
 
 Example for "Space":
-"Realistic illustrations of space exploration - detailed rockets with metallic silver and red accents, astronauts in white suits, planets with natural surface textures, and high-tech satellites. Each subject is rendered with accurate colors and realistic details against vibrant cosmic backgrounds in electric purple, hot pink, and deep blue."
+"Realistic illustrations of space exploration - detailed rockets with metallic silver and red accents, astronauts in white suits, planets with natural surface textures, and high-tech satellites. Each subject is rendered with accurate colors and realistic details against a crisp white background."
 
-DO NOT generate: "flat illustrations", "simple shapes", "bold silhouettes", "cartoon style"`;
+DO NOT generate: "flat illustrations", "simple shapes", "bold silhouettes", "cartoon style", "colored backgrounds"`;
 
       toolParams = {
-        design_style: { type: "string", description: "Visual style description emphasizing REALISTIC/PHOTOREALISTIC rendering with natural colors and solid vibrant backgrounds" }
+        design_style: { type: "string", description: "Visual style description emphasizing REALISTIC/PHOTOREALISTIC rendering with natural colors on WHITE backgrounds" }
       };
       requiredFields = ["design_style"];
     } else if (mode === "items") {
