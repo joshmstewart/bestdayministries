@@ -573,23 +573,12 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
               </Button>
             </div>
 
-            {/* Sticker Picker */}
-            {showStickerPicker && (
-              <div className="border rounded-lg p-2 bg-muted/30">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm font-medium">Your Stickers</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowStickerPicker(false)}
-                    className="h-6 px-2"
-                  >
-                    ✕
-                  </Button>
-                </div>
-                <StickerPicker onSelectSticker={handleAddSticker} />
-              </div>
-            )}
+            {/* Sticker Picker Dialog */}
+            <StickerPicker 
+              open={showStickerPicker} 
+              onOpenChange={setShowStickerPicker}
+              onSelectSticker={handleAddSticker} 
+            />
 
             {/* Colors */}
             <div>

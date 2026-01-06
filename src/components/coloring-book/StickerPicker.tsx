@@ -2,13 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sticker } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface StickerPickerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSelectSticker: (stickerUrl: string) => void;
 }
 
-export function StickerPicker({ onSelectSticker }: StickerPickerProps) {
+export function StickerPicker({ open, onOpenChange, onSelectSticker }: StickerPickerProps) {
   const { user } = useAuth();
 
   const { data: userStickers, isLoading } = useQuery({
@@ -29,49 +37,52 @@ export function StickerPicker({ onSelectSticker }: StickerPickerProps) {
     enabled: !!user,
   });
 
-  if (!user) {
-    return (
-      <div className="text-xs text-muted-foreground text-center py-2">
-        Sign in to use your stickers
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return <div className="text-xs text-muted-foreground text-center py-2">Loading...</div>;
-  }
-
-  if (!userStickers?.length) {
-    return (
-      <div className="text-xs text-muted-foreground text-center py-2">
-        No stickers yet! Collect some from the daily scratch card.
-      </div>
-    );
-  }
+  const handleSelect = (url: string) => {
+    onSelectSticker(url);
+    onOpenChange(false);
+  };
 
   return (
-    <ScrollArea className="h-24">
-      <div className="grid grid-cols-4 gap-1">
-        {userStickers.map((userSticker) => (
-          <button
-            key={userSticker.id}
-            className="relative w-12 h-12 rounded border-2 border-transparent hover:border-primary transition-all hover:scale-105 bg-muted/50"
-            onClick={() => onSelectSticker(userSticker.sticker?.image_url)}
-            title={userSticker.sticker?.name}
-          >
-            <img
-              src={userSticker.sticker?.image_url}
-              alt={userSticker.sticker?.name}
-              className="w-full h-full object-contain p-0.5"
-            />
-            {userSticker.quantity > 1 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                {userSticker.quantity}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-    </ScrollArea>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Your Sticker Collection</DialogTitle>
+          <DialogDescription>
+            Tap a sticker to add it to your coloring
+          </DialogDescription>
+        </DialogHeader>
+
+        {!user ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Sign in to use your stickers
+          </div>
+        ) : isLoading ? (
+          <div className="text-center py-8 text-muted-foreground">Loading your stickers...</div>
+        ) : !userStickers?.length ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No stickers yet! Collect some from the daily scratch card on the Community page.
+          </div>
+        ) : (
+          <ScrollArea className="max-h-[60vh]">
+            <div className="grid grid-cols-4 gap-3 p-2">
+              {userStickers.map((userSticker) => (
+                <button
+                  key={userSticker.id}
+                  className="aspect-square rounded-lg border-2 border-transparent hover:border-primary transition-all hover:scale-105 bg-muted/50 p-2"
+                  onClick={() => handleSelect(userSticker.sticker?.image_url)}
+                  title={userSticker.sticker?.name}
+                >
+                  <img
+                    src={userSticker.sticker?.image_url}
+                    alt={userSticker.sticker?.name}
+                    className="w-full h-full object-contain"
+                  />
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
