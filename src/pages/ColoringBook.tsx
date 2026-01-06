@@ -12,7 +12,7 @@ import { ColoringGallery } from "@/components/coloring-book/ColoringGallery";
 
 export default function ColoringBook() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const [selectedPage, setSelectedPage] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("pages");
 
@@ -67,7 +67,7 @@ export default function ColoringBook() {
               <Image className="w-4 h-4" />
               Color Pages
             </TabsTrigger>
-            <TabsTrigger value="gallery" className="gap-2" disabled={!isAuthenticated}>
+            <TabsTrigger value="gallery" className="gap-2" disabled={loading || !isAuthenticated}>
               <BookOpen className="w-4 h-4" />
               My Gallery
             </TabsTrigger>
