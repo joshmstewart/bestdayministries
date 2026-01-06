@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, RefreshCw, BookOpen } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, RefreshCw, BookOpen, FileUp } from "lucide-react";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 
@@ -31,6 +31,9 @@ export function ColoringPagesManager() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [processingPdf, setProcessingPdf] = useState(false);
+  const [pdfPages, setPdfPages] = useState<string[]>([]);
 
   const { data: books } = useQuery({
     queryKey: ["admin-coloring-books-list"],
@@ -197,6 +200,100 @@ export function ColoringPagesManager() {
     setImageFile(null);
     setGeneratedImageUrl(null);
     setAiPrompt("");
+    setPdfFile(null);
+    setPdfPages([]);
+  };
+
+  const handlePdfUpload = async (file: File) => {
+    setPdfFile(file);
+    setProcessingPdf(true);
+    setPdfPages([]);
+    
+    try {
+      // Upload PDF to storage temporarily
+      const fileName = `temp-pdf/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(fileName, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(fileName);
+      
+      // Call edge function to extract pages as images
+      const { data, error } = await supabase.functions.invoke("extract-pdf-pages", {
+        body: { pdfUrl: urlData.publicUrl },
+      });
+      
+      if (error) throw error;
+      
+      setPdfPages(data.pages || []);
+      toast.success(`Extracted ${data.pages?.length || 0} pages from PDF`);
+      
+      // Clean up temp PDF
+      await supabase.storage.from("app-assets").remove([fileName]);
+    } catch (error) {
+      console.error("PDF processing error:", error);
+      toast.error("Failed to process PDF: " + (error as Error).message);
+    } finally {
+      setProcessingPdf(false);
+    }
+  };
+
+  const handleAddPdfPage = async (pageUrl: string, pageNum: number) => {
+    const baseTitle = pdfFile?.name.replace(/\.pdf$/i, "") || "PDF Page";
+    const title = `${baseTitle} - Page ${pageNum}`;
+    
+    try {
+      const { error } = await supabase.from("coloring_pages").insert({
+        title,
+        description: `Page ${pageNum} from ${pdfFile?.name || "PDF"}`,
+        image_url: pageUrl,
+        category: "general",
+        difficulty: formData.difficulty,
+        display_order: (pages?.length || 0) + pageNum,
+        book_id: formData.book_id || null,
+      });
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-pages"] });
+      toast.success(`Added page ${pageNum}`);
+    } catch (error) {
+      toast.error("Failed to add page: " + (error as Error).message);
+    }
+  };
+
+  const handleAddAllPdfPages = async () => {
+    if (!pdfPages.length) return;
+    
+    setUploading(true);
+    const baseTitle = pdfFile?.name.replace(/\.pdf$/i, "") || "PDF Page";
+    
+    try {
+      const pagesToInsert = pdfPages.map((pageUrl, idx) => ({
+        title: `${baseTitle} - Page ${idx + 1}`,
+        description: `Page ${idx + 1} from ${pdfFile?.name || "PDF"}`,
+        image_url: pageUrl,
+        category: "general",
+        difficulty: formData.difficulty,
+        display_order: (pages?.length || 0) + idx + 1,
+        book_id: formData.book_id || null,
+      }));
+      
+      const { error } = await supabase.from("coloring_pages").insert(pagesToInsert);
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-pages"] });
+      toast.success(`Added all ${pdfPages.length} pages!`);
+      handleCloseDialog();
+    } catch (error) {
+      toast.error("Failed to add pages: " + (error as Error).message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleEdit = (page: any) => {
@@ -378,6 +475,72 @@ export function ColoringPagesManager() {
                       alt="Preview" 
                       className="mt-2 w-32 h-32 object-cover rounded"
                     />
+                  )}
+                </div>
+
+                {/* PDF Upload Section */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or upload PDF</span>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <Label className="flex items-center gap-2">
+                    <FileUp className="w-4 h-4 text-primary" />
+                    Upload PDF (extracts each page as a coloring page)
+                  </Label>
+                  <Input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handlePdfUpload(file);
+                    }}
+                    disabled={processingPdf}
+                  />
+                  {processingPdf && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing PDF pages...
+                    </div>
+                  )}
+                  {pdfPages.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Found {pdfPages.length} pages. Click to add individually or add all:
+                      </p>
+                      <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                        {pdfPages.map((pageUrl, idx) => (
+                          <div 
+                            key={idx} 
+                            className="relative group cursor-pointer border rounded overflow-hidden"
+                            onClick={() => handleAddPdfPage(pageUrl, idx + 1)}
+                          >
+                            <img src={pageUrl} alt={`Page ${idx + 1}`} className="w-full aspect-square object-cover bg-white" />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Plus className="w-6 h-6 text-white" />
+                            </div>
+                            <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs text-center py-0.5">
+                              {idx + 1}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <Button 
+                        type="button" 
+                        onClick={handleAddAllPdfPages}
+                        disabled={uploading}
+                        className="w-full"
+                        variant="secondary"
+                      >
+                        {uploading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                        Add All {pdfPages.length} Pages
+                      </Button>
+                    </div>
                   )}
                 </div>
 

@@ -268,3 +268,6 @@ verify_jwt = true
 
 [functions.generate-memory-match-description]
 verify_jwt = true
+
+[functions.extract-pdf-pages]
+verify_jwt = true
