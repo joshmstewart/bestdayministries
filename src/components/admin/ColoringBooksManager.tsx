@@ -164,6 +164,8 @@ export function ColoringBooksManager() {
       display_order: book.display_order || 0,
     });
     setAiPrompt(book.title);
+    setImageFile(null);
+    setGeneratedImageUrl(null);
     setDialogOpen(true);
   };
 
@@ -294,6 +296,18 @@ export function ColoringBooksManager() {
                 </div>
               </div>
 
+              {/* Current Cover Preview */}
+              {editingBook?.cover_image_url && !imageFile && !generatedImageUrl && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <Label className="text-sm text-muted-foreground mb-2 block">Current Cover</Label>
+                  <img 
+                    src={editingBook.cover_image_url} 
+                    alt="Current cover" 
+                    className="w-full max-w-xs mx-auto rounded border"
+                  />
+                </div>
+              )}
+
               <div>
                 <Label>Upload Cover Image</Label>
                 <Input
@@ -304,9 +318,6 @@ export function ColoringBooksManager() {
                     if (e.target.files?.[0]) setGeneratedImageUrl(null);
                   }}
                 />
-                {editingBook?.cover_image_url && !imageFile && !generatedImageUrl && (
-                  <img src={editingBook.cover_image_url} alt="Current" className="mt-2 w-32 h-40 object-cover rounded" />
-                )}
                 {imageFile && (
                   <img 
                     src={URL.createObjectURL(imageFile)} 
