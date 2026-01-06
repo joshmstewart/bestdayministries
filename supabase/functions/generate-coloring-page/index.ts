@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,36 +21,77 @@ serve(async (req) => {
       );
     }
 
-    // Use Lovable AI to generate the coloring page image
-    const response = await fetch("https://ai.lovable.dev/v1/images/generations", {
+    console.log("Generating coloring book cover with prompt:", prompt);
+
+    // Use Lovable AI gateway with the correct endpoint for image generation
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024",
+        model: "google/gemini-2.5-flash-image-preview",
+        messages: [
+          {
+            role: "user",
+            content: `Generate a beautiful, colorful illustration suitable for a coloring book cover. The theme is: ${prompt}. Make it appealing, with clear outlines and vibrant colors that would look great as a book cover.`
+          }
+        ],
+        modalities: ["image", "text"]
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Lovable AI error:", errorText);
-      throw new Error(`Failed to generate image: ${response.status}`);
+      throw new Error(`Failed to generate image: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    const imageUrl = data.data?.[0]?.url;
+    console.log("AI response received");
+    
+    // Extract the base64 image from the response
+    const imageData = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-    if (!imageUrl) {
-      throw new Error("No image URL in response");
+    if (!imageData) {
+      console.error("No image in response:", JSON.stringify(data));
+      throw new Error("No image in response");
     }
 
+    // Upload the base64 image to Supabase Storage
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Convert base64 to blob
+    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+    const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    
+    const fileName = `coloring-covers/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('app-assets')
+      .upload(fileName, imageBytes, {
+        contentType: 'image/png',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      throw new Error(`Failed to upload image: ${uploadError.message}`);
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('app-assets')
+      .getPublicUrl(fileName);
+
+    console.log("Image uploaded successfully:", publicUrlData.publicUrl);
+
     return new Response(
-      JSON.stringify({ imageUrl }),
+      JSON.stringify({ imageUrl: publicUrlData.publicUrl }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
