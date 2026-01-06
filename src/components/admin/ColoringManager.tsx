@@ -130,7 +130,17 @@ export function ColoringManager() {
 
   // Generate coloring page image
   const generatePageImage = async (prompt: string): Promise<string> => {
-    const fullPrompt = `Black and white line art coloring page for children. Simple clean outlines, no shading, no filled areas, white background. Subject: ${prompt}. Style: Simple cartoon line drawing suitable for coloring, thick black outlines on pure white background.`;
+    const fullPrompt = `Create a simple black and white line art coloring page. Subject: ${prompt}.
+
+CRITICAL REQUIREMENTS:
+- ONLY draw the subject itself - no decorative elements like stars, hearts, swirls, or random shapes unless they are part of the subject
+- NO text, words, letters, titles, or captions anywhere in the image
+- NO decorative borders or frames around the image
+- ALL outlines must be FULLY CLOSED and connected - every shape must be completely enclosed with no gaps in the lines (important for paint bucket fill tools)
+- Use thick, clean black outlines on pure white background
+- Simple cartoon style suitable for coloring
+- No shading, hatching, or filled areas - only outlines
+- The subject should fill most of the image`;
     
     const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
       body: { prompt: fullPrompt },
