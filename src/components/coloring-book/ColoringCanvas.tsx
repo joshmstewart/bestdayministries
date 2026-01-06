@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, PencilBrush, FabricImage } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush } from "lucide-react";
@@ -19,7 +19,9 @@ interface ColoringCanvasProps {
 }
 
 export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Two-layer system: base canvas for image/fills, fabric canvas for brush strokes
+  const baseCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fabricCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeColor, setActiveColor] = useState("#FF0000");
@@ -27,23 +29,56 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const [activeTool, setActiveTool] = useState<"fill" | "brush" | "eraser">("fill");
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const originalImageRef = useRef<HTMLImageElement | null>(null);
 
+  const CANVAS_SIZE = 600;
+
+  // Initialize base canvas with the coloring image
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!baseCanvasRef.current) return;
 
-    const canvas = new FabricCanvas(canvasRef.current, {
-      width: 600,
-      height: 600,
-      backgroundColor: "#ffffff",
-      isDrawingMode: false, // Start with fill mode, not drawing
-    });
+    const baseCanvas = baseCanvasRef.current;
+    const ctx = baseCanvas.getContext("2d");
+    if (!ctx) return;
 
-    // Load the coloring page image as background
-    FabricImage.fromURL(page.image_url, { crossOrigin: 'anonymous' }).then((img) => {
-      const scale = Math.min(600 / (img.width || 600), 600 / (img.height || 600));
-      img.scale(scale);
-      canvas.backgroundImage = img;
-      canvas.renderAll();
+    baseCanvas.width = CANVAS_SIZE;
+    baseCanvas.height = CANVAS_SIZE;
+
+    // Fill with white background
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    // Load the coloring page image
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const scale = Math.min(CANVAS_SIZE / img.width, CANVAS_SIZE / img.height);
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const offsetX = (CANVAS_SIZE - scaledWidth) / 2;
+      const offsetY = (CANVAS_SIZE - scaledHeight) / 2;
+
+      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+      originalImageRef.current = img;
+      setImageLoaded(true);
+    };
+    img.onerror = () => {
+      console.error("Failed to load coloring page image");
+      toast.error("Failed to load image");
+    };
+    img.src = page.image_url;
+  }, [page.image_url]);
+
+  // Initialize Fabric.js canvas for brush strokes (transparent overlay)
+  useEffect(() => {
+    if (!fabricCanvasRef.current || !imageLoaded) return;
+
+    const canvas = new FabricCanvas(fabricCanvasRef.current, {
+      width: CANVAS_SIZE,
+      height: CANVAS_SIZE,
+      backgroundColor: "transparent",
+      isDrawingMode: false,
     });
 
     canvas.freeDrawingBrush = new PencilBrush(canvas);
@@ -55,9 +90,9 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     return () => {
       canvas.dispose();
     };
-  }, [page.image_url]);
+  }, [imageLoaded]);
 
-  // Update brush/tool settings when they change
+  // Update tool settings
   useEffect(() => {
     if (!fabricCanvas) return;
 
@@ -70,35 +105,14 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     } else if (activeTool === "eraser") {
       fabricCanvas.isDrawingMode = true;
       if (fabricCanvas.freeDrawingBrush) {
+        // For eraser, we'll use white to "erase" on the overlay
         fabricCanvas.freeDrawingBrush.color = "#FFFFFF";
         fabricCanvas.freeDrawingBrush.width = brushSize * 2;
       }
     } else {
-      // Fill mode - disable drawing
       fabricCanvas.isDrawingMode = false;
     }
   }, [activeTool, activeColor, brushSize, fabricCanvas]);
-
-  // Handle canvas click for flood fill
-  useEffect(() => {
-    if (!fabricCanvas) return;
-
-    const handleMouseDown = (e: any) => {
-      if (activeTool !== "fill") return;
-      
-      const pointer = fabricCanvas.getPointer(e.e);
-      const x = Math.floor(pointer.x);
-      const y = Math.floor(pointer.y);
-      
-      floodFill(x, y, activeColor);
-    };
-
-    fabricCanvas.on('mouse:down', handleMouseDown);
-
-    return () => {
-      fabricCanvas.off('mouse:down', handleMouseDown);
-    };
-  }, [fabricCanvas, activeTool, activeColor]);
 
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -112,103 +126,190 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   };
 
   const floodFill = useCallback((startX: number, startY: number, fillColor: string) => {
-    if (!fabricCanvas) return;
+    if (!baseCanvasRef.current) return;
 
-    const ctx = fabricCanvas.getContext();
-    const width = fabricCanvas.width!;
-    const height = fabricCanvas.height!;
-    
+    const canvas = baseCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+
     const imageData = ctx.getImageData(0, 0, width, height);
     const data = imageData.data;
 
-    // Convert hex color to RGB
     const fillRGB = hexToRgb(fillColor);
     if (!fillRGB) return;
 
     // Get the color at the clicked position
-    const startPos = (startY * width + startX) * 4;
-    const startR = data[startPos];
-    const startG = data[startPos + 1];
-    const startB = data[startPos + 2];
+    const getPixelColor = (x: number, y: number) => {
+      const pos = (y * width + x) * 4;
+      return {
+        r: data[pos],
+        g: data[pos + 1],
+        b: data[pos + 2],
+        a: data[pos + 3],
+      };
+    };
+
+    const startColor = getPixelColor(startX, startY);
 
     // Don't fill if clicking on the same color
-    if (startR === fillRGB.r && startG === fillRGB.g && startB === fillRGB.b) return;
+    if (
+      startColor.r === fillRGB.r &&
+      startColor.g === fillRGB.g &&
+      startColor.b === fillRGB.b
+    ) {
+      return;
+    }
 
-    // Don't fill black lines (the outline) - threshold of 50
-    if (startR < 50 && startG < 50 && startB < 50) return;
+    // Don't fill very dark pixels (the outlines) - threshold of 60
+    const isDark = (r: number, g: number, b: number) => r < 60 && g < 60 && b < 60;
+    if (isDark(startColor.r, startColor.g, startColor.b)) {
+      return;
+    }
 
-    const tolerance = 32;
-    const pixelStack: [number, number][] = [[startX, startY]];
-    const visited = new Set<string>();
+    const tolerance = 40;
 
-    const matchColor = (pos: number): boolean => {
-      const r = data[pos];
-      const g = data[pos + 1];
-      const b = data[pos + 2];
+    const colorMatch = (x: number, y: number): boolean => {
+      if (x < 0 || x >= width || y < 0 || y >= height) return false;
+      const pixel = getPixelColor(x, y);
       
-      // Don't cross black lines
-      if (r < 50 && g < 50 && b < 50) return false;
-      
+      // Don't cross dark lines
+      if (isDark(pixel.r, pixel.g, pixel.b)) return false;
+
       return (
-        Math.abs(r - startR) <= tolerance &&
-        Math.abs(g - startG) <= tolerance &&
-        Math.abs(b - startB) <= tolerance
+        Math.abs(pixel.r - startColor.r) <= tolerance &&
+        Math.abs(pixel.g - startColor.g) <= tolerance &&
+        Math.abs(pixel.b - startColor.b) <= tolerance
       );
     };
 
-    while (pixelStack.length > 0) {
-      const [x, y] = pixelStack.pop()!;
-      const key = `${x},${y}`;
-      
-      if (visited.has(key)) continue;
-      if (x < 0 || x >= width || y < 0 || y >= height) continue;
-      
-      const pos = (y * width + x) * 4;
-      if (!matchColor(pos)) continue;
-      
-      visited.add(key);
-      
-      // Fill the pixel
-      data[pos] = fillRGB.r;
-      data[pos + 1] = fillRGB.g;
-      data[pos + 2] = fillRGB.b;
-      data[pos + 3] = 255;
+    // Use a scanline flood fill algorithm (more efficient)
+    const visited = new Uint8Array(width * height);
+    const stack: [number, number][] = [[startX, startY]];
 
-      // Add neighbors
-      pixelStack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    while (stack.length > 0) {
+      const [x, y] = stack.pop()!;
+      const idx = y * width + x;
+
+      if (visited[idx]) continue;
+      if (!colorMatch(x, y)) continue;
+
+      // Find the left and right boundaries
+      let left = x;
+      let right = x;
+
+      while (left > 0 && colorMatch(left - 1, y) && !visited[(y * width) + left - 1]) {
+        left--;
+      }
+      while (right < width - 1 && colorMatch(right + 1, y) && !visited[(y * width) + right + 1]) {
+        right++;
+      }
+
+      // Fill the scanline
+      for (let i = left; i <= right; i++) {
+        const pos = (y * width + i) * 4;
+        data[pos] = fillRGB.r;
+        data[pos + 1] = fillRGB.g;
+        data[pos + 2] = fillRGB.b;
+        data[pos + 3] = 255;
+        visited[y * width + i] = 1;
+
+        // Check above and below
+        if (y > 0 && !visited[(y - 1) * width + i] && colorMatch(i, y - 1)) {
+          stack.push([i, y - 1]);
+        }
+        if (y < height - 1 && !visited[(y + 1) * width + i] && colorMatch(i, y + 1)) {
+          stack.push([i, y + 1]);
+        }
+      }
     }
 
     ctx.putImageData(imageData, 0, 0);
-    fabricCanvas.renderAll();
-  }, [fabricCanvas]);
+  }, []);
+
+  // Handle click for fill tool
+  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (activeTool !== "fill" || !baseCanvasRef.current) return;
+
+    const rect = baseCanvasRef.current.getBoundingClientRect();
+    const scaleX = CANVAS_SIZE / rect.width;
+    const scaleY = CANVAS_SIZE / rect.height;
+    
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+    if (x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
+      floodFill(x, y, activeColor);
+    }
+  }, [activeTool, activeColor, floodFill]);
 
   const handleClear = () => {
-    if (!fabricCanvas) return;
-    
-    // Clear all drawn objects
-    fabricCanvas.getObjects().forEach((obj) => fabricCanvas.remove(obj));
-    
-    // Reload the background image to reset fill colors
-    FabricImage.fromURL(page.image_url, { crossOrigin: 'anonymous' }).then((img) => {
-      const scale = Math.min(600 / (img.width || 600), 600 / (img.height || 600));
-      img.scale(scale);
-      fabricCanvas.backgroundImage = img;
+    if (!baseCanvasRef.current) return;
+
+    const baseCanvas = baseCanvasRef.current;
+    const ctx = baseCanvas.getContext("2d");
+    if (!ctx) return;
+
+    // Clear and redraw original image
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    if (originalImageRef.current) {
+      const img = originalImageRef.current;
+      const scale = Math.min(CANVAS_SIZE / img.width, CANVAS_SIZE / img.height);
+      const scaledWidth = img.width * scale;
+      const scaledHeight = img.height * scale;
+      const offsetX = (CANVAS_SIZE - scaledWidth) / 2;
+      const offsetY = (CANVAS_SIZE - scaledHeight) / 2;
+      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+    }
+
+    // Clear Fabric.js canvas
+    if (fabricCanvas) {
+      fabricCanvas.getObjects().forEach((obj) => fabricCanvas.remove(obj));
       fabricCanvas.renderAll();
-    });
-    
+    }
+
     toast("Canvas cleared!");
   };
 
+  const getCompositeCanvas = (): HTMLCanvasElement | null => {
+    if (!baseCanvasRef.current || !fabricCanvasRef.current) return null;
+
+    // Create a composite canvas
+    const composite = document.createElement("canvas");
+    composite.width = CANVAS_SIZE;
+    composite.height = CANVAS_SIZE;
+    const ctx = composite.getContext("2d");
+    if (!ctx) return null;
+
+    // Draw base canvas (fills + original image)
+    ctx.drawImage(baseCanvasRef.current, 0, 0);
+
+    // Draw Fabric.js canvas (brush strokes) on top
+    ctx.drawImage(fabricCanvasRef.current, 0, 0);
+
+    return composite;
+  };
+
   const handleSave = async () => {
-    if (!fabricCanvas || !user) {
+    if (!user) {
       toast.error("Please sign in to save your work");
       return;
     }
 
+    const composite = getCompositeCanvas();
+    if (!composite) return;
+
     setSaving(true);
     try {
-      const canvasData = JSON.stringify(fabricCanvas.toJSON());
-      const thumbnailUrl = fabricCanvas.toDataURL({ multiplier: 0.5, format: 'png' });
+      const thumbnailUrl = composite.toDataURL("image/png", 0.5);
+      const canvasData = JSON.stringify({
+        baseCanvas: baseCanvasRef.current?.toDataURL("image/png"),
+        fabricObjects: fabricCanvas?.toJSON(),
+      });
 
       const { error } = await supabase.from("user_colorings").upsert({
         user_id: user.id,
@@ -228,9 +329,11 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   };
 
   const handleDownload = () => {
-    if (!fabricCanvas) return;
-    const dataUrl = fabricCanvas.toDataURL({ multiplier: 1, format: 'png' });
-    const link = document.createElement('a');
+    const composite = getCompositeCanvas();
+    if (!composite) return;
+
+    const dataUrl = composite.toDataURL("image/png");
+    const link = document.createElement("a");
     link.download = `${page.title}-colored.png`;
     link.href = dataUrl;
     link.click();
@@ -248,10 +351,25 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
         <h2 className="text-2xl font-bold text-center mb-4">{page.title}</h2>
 
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Canvas */}
+          {/* Canvas Container */}
           <div ref={containerRef} className="flex-1 flex justify-center">
-            <div className="border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg">
-              <canvas ref={canvasRef} className="max-w-full" />
+            <div
+              className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg cursor-crosshair"
+              style={{ width: CANVAS_SIZE, height: CANVAS_SIZE, maxWidth: "100%" }}
+              onClick={handleCanvasClick}
+            >
+              {/* Base canvas for image and fills */}
+              <canvas
+                ref={baseCanvasRef}
+                className="absolute top-0 left-0 w-full h-full"
+                style={{ pointerEvents: "none" }}
+              />
+              {/* Fabric.js canvas for brush strokes */}
+              <canvas
+                ref={fabricCanvasRef}
+                className="absolute top-0 left-0 w-full h-full"
+                style={{ pointerEvents: activeTool === "fill" ? "none" : "auto" }}
+              />
             </div>
           </div>
 
@@ -303,8 +421,8 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                     key={color}
                     className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
                       activeColor === color && activeTool !== "eraser"
-                        ? 'border-primary ring-2 ring-primary'
-                        : 'border-gray-300'
+                        ? "border-primary ring-2 ring-primary"
+                        : "border-gray-300"
                     }`}
                     style={{ backgroundColor: color }}
                     onClick={() => {
@@ -356,9 +474,9 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
 
             {/* Tool hint */}
             <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
-              {activeTool === "fill" && "Tap an area to fill it with the selected color"}
+              {activeTool === "fill" && "Tap inside any white area to fill it with color"}
               {activeTool === "brush" && "Draw freely with your finger or mouse"}
-              {activeTool === "eraser" && "Erase colors by drawing over them"}
+              {activeTool === "eraser" && "Erase brush strokes"}
             </div>
           </div>
         </div>
