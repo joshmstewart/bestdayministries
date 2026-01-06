@@ -9,7 +9,7 @@ import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, Chevr
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
 import { StickerBookButton } from "@/components/StickerBookButton";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinIcon } from "@/components/CoinIcon";
 import { useCoins } from "@/hooks/useCoins";
 import { useToast } from "@/hooks/use-toast";
 import { useModerationCount } from "@/hooks/useModerationCount";
@@ -660,7 +660,7 @@ export const UnifiedHeader = () => {
                         title="JoyCoins Store"
                         aria-label="JoyCoins Store"
                       >
-                        <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" />
+                        <CoinIcon className="drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" size={24} />
                         <span className="font-semibold text-sm">{coins.toLocaleString()}</span>
                       </button>
                     </div>
@@ -792,7 +792,7 @@ export const UnifiedHeader = () => {
                         title="JoyCoins Store"
                         aria-label="JoyCoins Store"
                       >
-                        <img src={joycoinImage} alt="JoyCoins" className="w-6 h-6 md:w-8 md:h-8 drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" />
+                        <CoinIcon className="drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" size={24} />
                         <span className="font-semibold text-sm md:text-base">{coins.toLocaleString()}</span>
                       </button>
                     )}

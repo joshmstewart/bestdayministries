@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles } from "lucide-react";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinIcon } from "@/components/CoinIcon";
 import confetti from "canvas-confetti";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -650,7 +650,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
                         </>
                       ) : (
                         <>
-                          <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
+                          <CoinIcon className="mr-2" size={20} />
                           Buy Another Sticker ({nextCost} coins)
                         </>
                       )}
