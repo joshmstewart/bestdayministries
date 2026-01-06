@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Palette, Image, BookOpen, Lock, Coins, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Palette, Image, BookOpen, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ColoringCanvas } from "@/components/coloring-book/ColoringCanvas";
 import { ColoringGallery } from "@/components/coloring-book/ColoringGallery";
@@ -13,6 +13,8 @@ import { useCoins } from "@/hooks/useCoins";
 import { toast } from "sonner";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
+import { PriceRibbon } from "@/components/ui/price-ribbon";
+import { CoinIcon } from "@/components/CoinIcon";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -278,25 +280,16 @@ export default function ColoringBook() {
                       onClick={() => handleBookClick(book)}
                     >
                       <CardContent className="p-0">
-                        <div className="relative">
+                        <div className="relative overflow-hidden">
                           <img
                             src={book.cover_image_url}
                             alt={book.title}
-                            className={`w-full h-auto ${!hasAccess ? 'opacity-70' : ''}`}
+                            className={`w-full h-auto ${!hasAccess ? 'opacity-80 grayscale-[30%]' : ''}`}
                           />
-                          {!book.is_free && !hasAccess && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <div className="bg-primary text-primary-foreground px-3 py-2 rounded-full flex items-center gap-2">
-                                <Lock className="w-4 h-4" />
-                                <Coins className="w-4 h-4" />
-                                <span className="font-bold">{book.coin_price}</span>
-                              </div>
-                            </div>
-                          )}
-                          {book.is_free && (
-                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                              FREE
-                            </div>
+                          {book.is_free ? (
+                            <PriceRibbon isFree size="md" />
+                          ) : !hasAccess && (
+                            <PriceRibbon price={book.coin_price} size="md" />
                           )}
                         </div>
                         <div className="p-3">
@@ -334,14 +327,14 @@ export default function ColoringBook() {
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span>Price:</span>
                 <span className="flex items-center gap-1 font-bold">
-                  <Coins className="w-4 h-4 text-yellow-500" />
+                  <CoinIcon size={16} />
                   {bookToPurchase?.coin_price} coins
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span>Your balance:</span>
                 <span className="flex items-center gap-1 font-bold">
-                  <Coins className="w-4 h-4 text-yellow-500" />
+                  <CoinIcon size={16} />
                   {coins} coins
                 </span>
               </div>
