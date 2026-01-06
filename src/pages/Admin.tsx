@@ -69,6 +69,7 @@ import IssueReportsManager from "@/components/admin/IssueReportsManager";
 import TestRunsManager from "@/components/admin/TestRunsManager";
 import { StickerCollectionManager } from "@/components/admin/StickerCollectionManager";
 import { ColoringPagesManager } from "@/components/admin/ColoringPagesManager";
+import { ColoringBooksManager } from "@/components/admin/ColoringBooksManager";
 import { NewsletterManager } from "@/components/admin/NewsletterManager";
 import { AudioClipsManager } from "@/components/admin/AudioClipsManager";
 import { SoundEffectsManager } from "@/components/admin/SoundEffectsManager";
@@ -489,6 +490,7 @@ const Admin = () => {
                     <TabsTrigger value="drink-vibes">Drink Vibes</TabsTrigger>
                     <TabsTrigger value="recipe-ingredients">Recipe Ingredients</TabsTrigger>
                     <TabsTrigger value="recipe-tools">Recipe Tools</TabsTrigger>
+                    <TabsTrigger value="coloring-books">Coloring Books</TabsTrigger>
                     <TabsTrigger value="coloring-pages">Coloring Pages</TabsTrigger>
                   </TabsList>
 
@@ -530,6 +532,10 @@ const Admin = () => {
 
                   <TabsContent value="recipe-tools">
                     <RecipeToolsManager />
+                  </TabsContent>
+
+                  <TabsContent value="coloring-books">
+                    <ColoringBooksManager />
                   </TabsContent>
 
                   <TabsContent value="coloring-pages">

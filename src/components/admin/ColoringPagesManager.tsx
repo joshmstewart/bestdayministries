@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, RefreshCw, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/imageUtils";
 
@@ -16,12 +16,14 @@ export function ColoringPagesManager() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<any>(null);
+  const [selectedBookId, setSelectedBookId] = useState<string>("all");
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     category: "general",
     difficulty: "easy",
     display_order: 0,
+    book_id: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -30,13 +32,31 @@ export function ColoringPagesManager() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
-  const { data: pages, isLoading } = useQuery({
-    queryKey: ["admin-coloring-pages"],
+  const { data: books } = useQuery({
+    queryKey: ["admin-coloring-books-list"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("coloring_pages")
-        .select("*")
+        .from("coloring_books")
+        .select("id, title")
         .order("display_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: pages, isLoading } = useQuery({
+    queryKey: ["admin-coloring-pages", selectedBookId],
+    queryFn: async () => {
+      let query = supabase
+        .from("coloring_pages")
+        .select("*, coloring_books(title)")
+        .order("display_order", { ascending: true });
+      
+      if (selectedBookId !== "all") {
+        query = query.eq("book_id", selectedBookId);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -79,7 +99,6 @@ export function ColoringPagesManager() {
     try {
       const imageUrl = await generateImage(prompt);
       
-      // Update the page with new image
       const { error } = await supabase
         .from("coloring_pages")
         .update({ image_url: imageUrl })
@@ -117,7 +136,11 @@ export function ColoringPagesManager() {
 
       if (!imageUrl) throw new Error("Image is required");
 
-      const payload = { ...data, image_url: imageUrl };
+      const payload = { 
+        ...data, 
+        image_url: imageUrl,
+        book_id: data.book_id || null,
+      };
 
       if (editingPage) {
         const { error } = await supabase
@@ -132,6 +155,7 @@ export function ColoringPagesManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-coloring-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
       toast.success(editingPage ? "Page updated!" : "Page created!");
       handleCloseDialog();
     },
@@ -148,6 +172,7 @@ export function ColoringPagesManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-coloring-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
       toast.success("Page deleted!");
     },
   });
@@ -168,7 +193,7 @@ export function ColoringPagesManager() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingPage(null);
-    setFormData({ title: "", description: "", category: "general", difficulty: "easy", display_order: 0 });
+    setFormData({ title: "", description: "", category: "general", difficulty: "easy", display_order: 0, book_id: "" });
     setImageFile(null);
     setGeneratedImageUrl(null);
     setAiPrompt("");
@@ -182,6 +207,7 @@ export function ColoringPagesManager() {
       category: page.category || "general",
       difficulty: page.difficulty || "easy",
       display_order: page.display_order || 0,
+      book_id: page.book_id || "",
     });
     setAiPrompt(page.description || page.title);
     setDialogOpen(true);
@@ -194,141 +220,174 @@ export function ColoringPagesManager() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
         <CardTitle>Coloring Pages</CardTitle>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" /> Add Page
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingPage ? "Edit" : "Add"} Coloring Page</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Title</Label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g., Cute Puppy"
-                  required
-                />
-              </div>
-              <div>
-                <Label>Description (used for AI generation)</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => {
-                    setFormData({ ...formData, description: e.target.value });
-                    setAiPrompt(e.target.value);
-                  }}
-                  placeholder="Describe what the coloring page should show..."
-                  rows={2}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-2">
+          <Select value={selectedBookId} onValueChange={setSelectedBookId}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by book" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Books</SelectItem>
+              {books?.map((book) => (
+                <SelectItem key={book.id} value={book.id}>{book.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" /> Add Page
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingPage ? "Edit" : "Add"} Coloring Page</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label>Difficulty</Label>
+                  <Label>Title</Label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="e.g., Cute Puppy"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label>Description (used for AI generation)</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => {
+                      setFormData({ ...formData, description: e.target.value });
+                      setAiPrompt(e.target.value);
+                    }}
+                    placeholder="Describe what the coloring page should show..."
+                    rows={2}
+                  />
+                </div>
+
+                {/* Book Selection */}
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    Assign to Book
+                  </Label>
                   <Select
-                    value={formData.difficulty}
-                    onValueChange={(v) => setFormData({ ...formData, difficulty: v })}
+                    value={formData.book_id}
+                    onValueChange={(v) => setFormData({ ...formData, book_id: v })}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select a book..." /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="easy">Easy</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="hard">Hard</SelectItem>
+                      {books?.map((book) => (
+                        <SelectItem key={book.id} value={book.id}>{book.title}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Display Order</Label>
-                  <Input
-                    type="number"
-                    value={formData.display_order}
-                    onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
 
-              {/* AI Image Generation */}
-              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                <Label className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  Generate with AI
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="e.g., a friendly dragon flying over mountains"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleGenerateImage}
-                    disabled={generatingImage || !aiPrompt.trim()}
-                    variant="secondary"
-                  >
-                    {generatingImage ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                {generatedImageUrl && (
-                  <div className="relative">
-                    <img 
-                      src={generatedImageUrl} 
-                      alt="Generated" 
-                      className="w-full max-w-xs mx-auto rounded border"
-                    />
-                    <p className="text-xs text-muted-foreground text-center mt-1">AI Generated</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Difficulty</Label>
+                    <Select
+                      value={formData.difficulty}
+                      onValueChange={(v) => setFormData({ ...formData, difficulty: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                )}
-              </div>
-
-              {/* Or Upload */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <div>
+                    <Label>Display Order</Label>
+                    <Input
+                      type="number"
+                      value={formData.display_order}
+                      onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or upload</span>
-                </div>
-              </div>
 
-              <div>
-                <Label>Upload Line Art Image</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    setImageFile(e.target.files?.[0] || null);
-                    if (e.target.files?.[0]) setGeneratedImageUrl(null);
-                  }}
-                />
-                {editingPage?.image_url && !imageFile && !generatedImageUrl && (
-                  <img src={editingPage.image_url} alt="Current" className="mt-2 w-32 h-32 object-cover rounded" />
-                )}
-                {imageFile && (
-                  <img 
-                    src={URL.createObjectURL(imageFile)} 
-                    alt="Preview" 
-                    className="mt-2 w-32 h-32 object-cover rounded"
+                {/* AI Image Generation */}
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    Generate with AI
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="e.g., a friendly dragon flying over mountains"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleGenerateImage}
+                      disabled={generatingImage || !aiPrompt.trim()}
+                      variant="secondary"
+                    >
+                      {generatingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {generatedImageUrl && (
+                    <div className="relative">
+                      <img 
+                        src={generatedImageUrl} 
+                        alt="Generated" 
+                        className="w-full max-w-xs mx-auto rounded border"
+                      />
+                      <p className="text-xs text-muted-foreground text-center mt-1">AI Generated</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Or Upload */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or upload</span>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Upload Line Art Image</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      setImageFile(e.target.files?.[0] || null);
+                      if (e.target.files?.[0]) setGeneratedImageUrl(null);
+                    }}
                   />
-                )}
-              </div>
+                  {editingPage?.image_url && !imageFile && !generatedImageUrl && (
+                    <img src={editingPage.image_url} alt="Current" className="mt-2 w-32 h-32 object-cover rounded" />
+                  )}
+                  {imageFile && (
+                    <img 
+                      src={URL.createObjectURL(imageFile)} 
+                      alt="Preview" 
+                      className="mt-2 w-32 h-32 object-cover rounded"
+                    />
+                  )}
+                </div>
 
-              <Button type="submit" disabled={saveMutation.isPending || uploading || generatingImage} className="w-full">
-                {uploading ? "Uploading..." : saveMutation.isPending ? "Saving..." : "Save"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <Button type="submit" disabled={saveMutation.isPending || uploading || generatingImage} className="w-full">
+                  {uploading ? "Uploading..." : saveMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -337,18 +396,21 @@ export function ColoringPagesManager() {
           <p className="text-muted-foreground">No coloring pages yet.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {pages.map((page) => (
+            {pages.map((page: any) => (
               <div key={page.id} className="relative group border rounded-lg overflow-hidden">
                 <img src={page.image_url} alt={page.title} className="w-full aspect-square object-cover bg-white" />
                 <div className="p-2">
                   <p className="font-medium text-sm truncate">{page.title}</p>
                   <p className="text-xs text-muted-foreground capitalize">{page.difficulty}</p>
+                  {page.coloring_books?.title && (
+                    <p className="text-xs text-primary truncate">{page.coloring_books.title}</p>
+                  )}
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     size="icon"
                     variant="outline"
-                    className="h-8 w-8"
+                    className="h-8 w-8 bg-background/80"
                     onClick={() => toggleActiveMutation.mutate({ id: page.id, is_active: !page.is_active })}
                     title={page.is_active ? "Hide" : "Show"}
                   >
@@ -357,7 +419,7 @@ export function ColoringPagesManager() {
                   <Button 
                     size="icon" 
                     variant="outline" 
-                    className="h-8 w-8" 
+                    className="h-8 w-8 bg-background/80" 
                     onClick={() => handleRegenerateImage(page)}
                     disabled={regeneratingId === page.id}
                     title="Regenerate image with AI"
@@ -368,7 +430,7 @@ export function ColoringPagesManager() {
                       <RefreshCw className="w-4 h-4" />
                     )}
                   </Button>
-                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => handleEdit(page)} title="Edit">
+                  <Button size="icon" variant="outline" className="h-8 w-8 bg-background/80" onClick={() => handleEdit(page)} title="Edit">
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button
