@@ -304,8 +304,8 @@ const Community = () => {
                     {/* Daily Sticker Pack Button - positioned naturally in top right with slight rotation */}
                     {user && (
                       <div 
-                        className={`absolute top-16 md:-top-2 right-4 md:right-8 z-10 animate-fade-in bg-transparent ${
-                          !isProblematicIOSVersion() ? '[transform:rotate(-8deg)] [transform-origin:center_center] [will-change:transform] [backface-visibility:hidden]' : ''
+                        className={`absolute top-16 md:-top-2 right-4 md:right-8 z-10 bg-transparent ${
+                          !isProblematicIOSVersion() ? '[transform:rotate(-8deg)]' : ''
                         }`}
                       >
                         <ErrorBoundary fallback={null}>
