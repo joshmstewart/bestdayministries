@@ -489,18 +489,18 @@ const CoffeeShopMenuManager = () => {
                 return (
                   <Card key={item.id} className={!item.is_active ? "opacity-60" : ""}>
                     <CardContent className="py-3 px-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{item.name}</p>
-                            <p className="text-sm text-muted-foreground truncate">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-muted-foreground">
                               {category?.name} • {item.description || "No description"}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-sm font-medium text-primary">
+                          <span className="text-sm font-medium text-primary whitespace-nowrap">
                             {item.single_price ? `$${item.single_price.toFixed(2)}` : 
                              item.price_small ? `$${item.price_small.toFixed(2)}+` :
                              item.price_hot_12oz ? `$${item.price_hot_12oz.toFixed(2)}+` : "—"}
