@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, Coins, BookOpen } from "lucide-react";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { compressImage } from "@/lib/imageUtils";
 
 export function ColoringBooksManager() {
@@ -65,7 +66,7 @@ export function ColoringBooksManager() {
       setImageFile(null);
       toast.success("Cover generated!");
     } catch (error) {
-      toast.error("Failed to generate cover: " + (error as Error).message);
+      showErrorToastWithCopy("Generating cover", error);
     } finally {
       setGeneratingImage(false);
     }
@@ -115,7 +116,7 @@ export function ColoringBooksManager() {
       handleCloseDialog();
     },
     onError: (error) => {
-      toast.error("Failed to save: " + (error as Error).message);
+      showErrorToastWithCopy("Saving book", error);
       setUploading(false);
     },
   });
