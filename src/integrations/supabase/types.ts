@@ -948,8 +948,51 @@ export type Database = {
           },
         ]
       }
+      coloring_books: {
+        Row: {
+          coin_price: number
+          cover_image_url: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_free: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          coin_price?: number
+          cover_image_url: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          coin_price?: number
+          cover_image_url?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coloring_pages: {
         Row: {
+          book_id: string | null
           category: string | null
           created_at: string
           created_by: string | null
@@ -963,6 +1006,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          book_id?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null
@@ -976,6 +1020,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          book_id?: string | null
           category?: string | null
           created_at?: string
           created_by?: string | null
@@ -988,7 +1033,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "coloring_pages_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "coloring_books"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       commission_settings: {
         Row: {
@@ -5945,6 +5998,38 @@ export type Database = {
             columns: ["badge_id"]
             isOneToOne: false
             referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_coloring_books: {
+        Row: {
+          book_id: string
+          coins_spent: number
+          id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_coloring_books_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "coloring_books"
             referencedColumns: ["id"]
           },
         ]
