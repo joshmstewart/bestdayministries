@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker } from "lucide-react";
+import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,6 +46,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [customColors, setCustomColors] = useState<string[]>([]);
+  const [hasSelection, setHasSelection] = useState(false);
   const MAX_HISTORY = 20;
 
   const CANVAS_SIZE = 600;
@@ -151,12 +152,50 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
       }
     }
 
+    // Track selection changes for delete button visibility
+    canvas.on('selection:created', () => setHasSelection(true));
+    canvas.on('selection:updated', () => setHasSelection(true));
+    canvas.on('selection:cleared', () => setHasSelection(false));
+
     setFabricCanvas(canvas);
 
     return () => {
       canvas.dispose();
     };
   }, [imageLoaded]);
+
+  // Keyboard handler for delete/backspace
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!fabricCanvas) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const activeObject = fabricCanvas.getActiveObject();
+        if (activeObject) {
+          e.preventDefault();
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.discardActiveObject();
+          fabricCanvas.renderAll();
+          setHasSelection(false);
+          toast.success("Sticker deleted");
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fabricCanvas]);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (!fabricCanvas) return;
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+      fabricCanvas.remove(activeObject);
+      fabricCanvas.discardActiveObject();
+      fabricCanvas.renderAll();
+      setHasSelection(false);
+      toast.success("Sticker deleted");
+    }
+  }, [fabricCanvas]);
 
   // Update tool settings
   useEffect(() => {
@@ -558,19 +597,31 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                   Eraser
                 </Button>
               </div>
-              <Button
-                variant={activeTool === "sticker" ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setActiveTool("sticker");
-                  setShowStickerPicker(true);
-                }}
-                className="w-full mt-2"
-                title="Add stickers from your collection"
-              >
-                <Sticker className="w-4 h-4 mr-1" />
-                Add Sticker
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant={activeTool === "sticker" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setActiveTool("sticker");
+                    setShowStickerPicker(true);
+                  }}
+                  className="flex-1"
+                  title="Add stickers from your collection"
+                >
+                  <Sticker className="w-4 h-4 mr-1" />
+                  Add Sticker
+                </Button>
+                {hasSelection && activeTool === "sticker" && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteSelected}
+                    title="Delete selected sticker"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Sticker Picker Dialog */}
