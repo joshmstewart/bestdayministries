@@ -450,116 +450,120 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Image Pack Selection */}
-            {availablePacks.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Choose Your Pack
-                  </h3>
-                  {availablePacks.filter(p => p.images.length >= 10).length > 4 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setPacksExpanded(!packsExpanded)}
-                      className="text-xs"
-                    >
-                      {packsExpanded ? (
-                        <>Show Less <ChevronUp className="w-3 h-3 ml-1" /></>
-                      ) : (
-                        <>Show All <ChevronDown className="w-3 h-3 ml-1" /></>
-                      )}
-                    </Button>
-                  )}
-                </div>
-                <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 ${
-                  !packsExpanded && availablePacks.filter(p => p.images.length >= 10).length > 4 
-                    ? 'max-h-[120px] overflow-hidden' 
-                    : ''
-                }`}>
-                  {availablePacks.filter(p => p.images.length >= 10).map((pack) => {
-                    const canUse = canUsePack(pack);
-                    const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
-                    // Use preview_image_url if set, otherwise use first image from pack
-                    const previewImage = pack.preview_image_url || pack.images[0]?.image_url;
-                    
-                      return (
-                      <div
-                        key={pack.id}
-                        onClick={() => {
-                          if (canUse) {
-                            setSelectedPackId(pack.is_default ? null : pack.id);
-                          } else if (pack.is_purchasable) {
-                            navigate('/store');
-                          }
-                        }}
-                        className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all ${
-                          isSelected 
-                            ? 'border-primary ring-2 ring-primary/50 scale-105' 
-                            : canUse 
-                              ? 'border-border hover:border-primary/50 hover:scale-102'
-                              : 'border-border hover:border-yellow-500/50'
-                        }`}
+            {availablePacks.length > 0 && (() => {
+              const usablePacks = availablePacks.filter(p => p.images.length >= 10);
+              // Packs per row: use 5 as a middle-ground (md shows 5, sm shows 4, mobile shows 3)
+              const packsPerRow = 5;
+              const hasMultipleRows = usablePacks.length > packsPerRow;
+              
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Choose Your Pack
+                    </h3>
+                    {hasMultipleRows && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setPacksExpanded(!packsExpanded)}
+                        className="text-sm"
                       >
-                        {/* Diagonal Banner for Purchasable Packs */}
-                        {!canUse && pack.is_purchasable && (
-                          <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none z-10">
-                            <div 
-                              className="absolute top-3 -right-8 bg-yellow-500 text-black text-[9px] font-bold py-0.5 px-8 rotate-45 shadow-md flex items-center gap-1"
-                              style={{ transformOrigin: 'center' }}
-                            >
-                              {pack.price_coins}
-                              <CoinIcon size={10} />
+                        {packsExpanded ? (
+                          <>Show Less <ChevronUp className="w-4 h-4 ml-1" /></>
+                        ) : (
+                          <>Show All <ChevronDown className="w-4 h-4 ml-1" /></>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 ${
+                    !packsExpanded && hasMultipleRows ? 'max-h-[200px] overflow-hidden' : ''
+                  }`}>
+                    {usablePacks.map((pack) => {
+                      const canUse = canUsePack(pack);
+                      const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
+                      const previewImage = pack.preview_image_url || pack.images[0]?.image_url;
+                      
+                      return (
+                        <div
+                          key={pack.id}
+                          onClick={() => {
+                            if (canUse) {
+                              setSelectedPackId(pack.is_default ? null : pack.id);
+                            } else if (pack.is_purchasable) {
+                              navigate('/store');
+                            }
+                          }}
+                          className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all ${
+                            isSelected 
+                              ? 'border-primary ring-2 ring-primary/50 scale-105' 
+                              : canUse 
+                                ? 'border-border hover:border-primary/50 hover:scale-102'
+                                : 'border-border hover:border-yellow-500/50'
+                          }`}
+                        >
+                          {/* Diagonal Banner for Purchasable Packs */}
+                          {!canUse && pack.is_purchasable && (
+                            <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none z-10">
+                              <div 
+                                className="absolute top-3 -right-8 bg-yellow-500 text-black text-[9px] font-bold py-0.5 px-8 rotate-45 shadow-md flex items-center gap-1"
+                                style={{ transformOrigin: 'center' }}
+                              >
+                                {pack.price_coins}
+                                <CoinIcon size={10} />
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Preview Image */}
+                          <div className="aspect-square bg-muted">
+                            {previewImage ? (
+                              <img 
+                                src={previewImage} 
+                                alt={pack.name}
+                                className={`w-full h-full object-cover ${!canUse ? 'grayscale-[30%]' : ''}`}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="w-6 h-6 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Pack Name Overlay */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-white truncate">
+                                {pack.name}
+                              </span>
+                              {!canUse && <span className="text-xs">🔒</span>}
                             </div>
                           </div>
-                        )}
-                        
-                        {/* Preview Image */}
-                        <div className="aspect-square bg-muted">
-                          {previewImage ? (
-                            <img 
-                              src={previewImage} 
-                              alt={pack.name}
-                              className={`w-full h-full object-cover ${!canUse ? 'grayscale-[30%]' : ''}`}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-6 h-6 text-muted-foreground" />
+                          
+                          {/* Selected Indicator */}
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5 z-20">
+                              <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                            </div>
+                          )}
+                          
+                          {/* Purchase overlay for locked purchasable packs on hover */}
+                          {!canUse && pack.is_purchasable && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10">
+                              <div className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg">
+                                Buy in Store
+                              </div>
                             </div>
                           )}
                         </div>
-                        
-                        {/* Pack Name Overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-white truncate">
-                              {pack.name}
-                            </span>
-                            {!canUse && <span className="text-xs">🔒</span>}
-                          </div>
-                        </div>
-                        
-                        {/* Selected Indicator */}
-                        {isSelected && (
-                          <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5 z-20">
-                            <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                          </div>
-                        )}
-                        
-                        {/* Purchase overlay for locked purchasable packs on hover */}
-                        {!canUse && pack.is_purchasable && (
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10">
-                            <div className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg">
-                              Buy in Store
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Difficulty Selection */}
             <div className="space-y-3">
