@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, RefreshCw, 
-  BookOpen, Coins, ImageOff, Wand2, Check
+  BookOpen, Coins, ImageOff, Wand2, Check, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
@@ -76,6 +76,7 @@ export function ColoringManager() {
   const [activeBookId, setActiveBookId] = useState<string | null>(null);
   const [newPageName, setNewPageName] = useState("");
   const [addingPage, setAddingPage] = useState(false);
+  const [uploadingPageFor, setUploadingPageFor] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
 
@@ -205,7 +206,54 @@ export function ColoringManager() {
     }
   };
 
-  // Regenerate page image
+  // Upload page image
+  const handleUploadPage = async (bookId: string, file: File, title: string) => {
+    setUploadingPageFor(bookId);
+    try {
+      const compressed = await compressImage(file);
+      const fileName = `${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(`coloring-pages/${fileName}`, compressed);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(`coloring-pages/${fileName}`);
+      
+      const { error: insertError } = await supabase
+        .from("coloring_pages")
+        .insert({
+          title: title || file.name.replace(/\.[^/.]+$/, ""),
+          book_id: bookId,
+          image_url: urlData.publicUrl,
+          display_order: (bookPages[bookId]?.length || 0),
+        });
+      
+      if (insertError) throw insertError;
+      
+      // Refresh pages
+      const { data: pages } = await supabase
+        .from("coloring_pages")
+        .select("*")
+        .eq("book_id", bookId)
+        .order("display_order", { ascending: true });
+      
+      if (pages) {
+        setBookPages((prev) => ({ ...prev, [bookId]: pages }));
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+      setNewPageName("");
+      toast.success("Page uploaded!");
+    } catch (error) {
+      showErrorToastWithCopy("Uploading page", error);
+    } finally {
+      setUploadingPageFor(null);
+    }
+  };
+
   const handleRegeneratePage = async (page: ColoringPage) => {
     setRegeneratingId(page.id);
     try {
@@ -440,7 +488,19 @@ export function ColoringManager() {
                               className="w-full h-full object-cover cursor-pointer"
                               onClick={() => setPreviewImage({ url: book.cover_image_url, name: `${book.title} Cover` })}
                             />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewImage({ url: book.cover_image_url, name: `${book.title} Cover` });
+                                }}
+                                className="text-xs h-7"
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="secondary"
@@ -449,11 +509,15 @@ export function ColoringManager() {
                                   handleGenerateCover(book.id);
                                 }}
                                 disabled={generatingCover === book.id}
+                                className="text-xs h-7"
                               >
                                 {generatingCover === book.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <Loader2 className="w-3 h-3 animate-spin" />
                                 ) : (
-                                  <RefreshCw className="w-4 h-4" />
+                                  <>
+                                    <RefreshCw className="w-3 h-3 mr-1" />
+                                    Regen
+                                  </>
                                 )}
                               </Button>
                             </div>
@@ -526,33 +590,74 @@ export function ColoringManager() {
                     </div>
 
                     {/* Add New Page */}
-                    <div className="flex gap-2 mb-4">
-                      <Input
-                        placeholder="Enter page name (e.g., Cute Puppy, Rainbow...)"
-                        value={activeBookId === book.id ? newPageName : ""}
-                        onChange={(e) => {
-                          setActiveBookId(book.id);
-                          setNewPageName(e.target.value);
-                        }}
-                        onFocus={() => setActiveBookId(book.id)}
-                        disabled={addingPage}
-                      />
-                      <Button
-                        onClick={() => handleAddPage(book.id)}
-                        disabled={!newPageName.trim() || addingPage || activeBookId !== book.id}
-                      >
-                        {addingPage && activeBookId === book.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                            Adding...
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add & Generate
-                          </>
-                        )}
-                      </Button>
+                    <div className="space-y-3 mb-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter page name (e.g., Cute Puppy, Rainbow...)"
+                          value={activeBookId === book.id ? newPageName : ""}
+                          onChange={(e) => {
+                            setActiveBookId(book.id);
+                            setNewPageName(e.target.value);
+                          }}
+                          onFocus={() => setActiveBookId(book.id)}
+                          disabled={addingPage || uploadingPageFor === book.id}
+                        />
+                        <Button
+                          onClick={() => handleAddPage(book.id)}
+                          disabled={!newPageName.trim() || addingPage || activeBookId !== book.id || uploadingPageFor === book.id}
+                        >
+                          {addingPage && activeBookId === book.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              Adding...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4 mr-1" />
+                              Add & Generate
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {/* Upload option */}
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleUploadPage(book.id, file, newPageName);
+                              }
+                              e.target.value = '';
+                            }}
+                            disabled={uploadingPageFor === book.id || addingPage}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingPageFor === book.id || addingPage}
+                          >
+                            {uploadingPageFor === book.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-1" />
+                                Upload Image
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Or upload your own coloring page image
+                        </span>
+                      </div>
                     </div>
 
                     {/* Pages Grid */}
