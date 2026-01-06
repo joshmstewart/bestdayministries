@@ -479,7 +479,11 @@ const Admin = () => {
                 <Tabs defaultValue="earn-coins" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
                     <TabsTrigger value="earn-coins">Earn Coins</TabsTrigger>
+                    <TabsTrigger value="coins">Manage Coins</TabsTrigger>
+                    <TabsTrigger value="store-items">Store Items</TabsTrigger>
+                    <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
                     <TabsTrigger value="memory-match">Memory Match</TabsTrigger>
+                    <TabsTrigger value="stickers">Stickers</TabsTrigger>
                     <TabsTrigger value="drink-ingredients">Drink Ingredients</TabsTrigger>
                     <TabsTrigger value="drink-vibes">Drink Vibes</TabsTrigger>
                     <TabsTrigger value="recipe-ingredients">Recipe Ingredients</TabsTrigger>
@@ -489,9 +493,25 @@ const Admin = () => {
                   <TabsContent value="earn-coins">
                     <CoinRewardsManager />
                   </TabsContent>
+                  
+                  <TabsContent value="coins">
+                    <CoinsManager />
+                  </TabsContent>
+                  
+                  <TabsContent value="store-items">
+                    <StoreItemsManager />
+                  </TabsContent>
+                  
+                  <TabsContent value="pet-types">
+                    <PetTypesManager />
+                  </TabsContent>
 
                   <TabsContent value="memory-match">
                     <MemoryMatchPackManager />
+                  </TabsContent>
+                  
+                  <TabsContent value="stickers">
+                    <StickerCollectionManager />
                   </TabsContent>
 
                   <TabsContent value="drink-ingredients">
@@ -515,10 +535,31 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="vendors">
-            <div className="space-y-6">
-              <MarketplaceStripeModeSwitcher />
-              <VendorManagement />
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Store & Vendors</CardTitle>
+                <CardDescription>Manage marketplace settings and vendors</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="vendors" className="space-y-4">
+                  <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="vendors">Vendors</TabsTrigger>
+                    <TabsTrigger value="marketplace">Marketplace Settings</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="vendors">
+                    <div className="space-y-6">
+                      <MarketplaceStripeModeSwitcher />
+                      <VendorManagement />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="marketplace">
+                    <StoreAccessManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="newsletter">
@@ -749,10 +790,6 @@ const Admin = () => {
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
                     <TabsTrigger value="picture-passwords">Picture Passwords</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
-                    <TabsTrigger value="coins">Coins</TabsTrigger>
-                    <TabsTrigger value="store">Store Items</TabsTrigger>
-                    <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
-                    <TabsTrigger value="pet-types">Pet Types</TabsTrigger>
                     <TabsTrigger value="locations">Locations</TabsTrigger>
                     <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
                   </TabsList>
@@ -798,22 +835,6 @@ const Admin = () => {
 
                   <TabsContent value="tts">
                     <TTSVoiceManager />
-                  </TabsContent>
-
-                  <TabsContent value="coins">
-                    <CoinsManager />
-                  </TabsContent>
-
-                  <TabsContent value="store">
-                    <StoreItemsManager />
-                  </TabsContent>
-
-                  <TabsContent value="marketplace">
-                    <StoreAccessManager />
-                  </TabsContent>
-
-                  <TabsContent value="pet-types">
-                    <PetTypesManager />
                   </TabsContent>
 
                   <TabsContent value="locations">
