@@ -48,7 +48,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
 
   const CANVAS_SIZE = 600;
 
-  // Initialize base canvas with the coloring image
+  // Initialize base canvas with the coloring image (or saved data)
   useEffect(() => {
     if (!baseCanvasRef.current) return;
 
@@ -58,6 +58,31 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
 
     baseCanvas.width = CANVAS_SIZE;
     baseCanvas.height = CANVAS_SIZE;
+
+    // Check if we have saved canvas data to restore
+    if (page.savedCanvasData) {
+      try {
+        const savedData = JSON.parse(page.savedCanvasData);
+        if (savedData.baseCanvas) {
+          const savedImg = new Image();
+          savedImg.onload = () => {
+            ctx.drawImage(savedImg, 0, 0);
+            // Still need to store original image for clear function
+            const origImg = new Image();
+            origImg.crossOrigin = "anonymous";
+            origImg.onload = () => {
+              originalImageRef.current = origImg;
+              setImageLoaded(true);
+            };
+            origImg.src = page.image_url;
+          };
+          savedImg.src = savedData.baseCanvas;
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to parse saved canvas data:", e);
+      }
+    }
 
     // Fill with white background
     ctx.fillStyle = "#FFFFFF";
@@ -82,7 +107,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
       toast.error("Failed to load image");
     };
     img.src = page.image_url;
-  }, [page.image_url]);
+  }, [page.image_url, page.savedCanvasData]);
 
   // Initialize Fabric.js canvas for brush strokes (transparent overlay)
   useEffect(() => {
@@ -98,6 +123,20 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     canvas.freeDrawingBrush = new PencilBrush(canvas);
     canvas.freeDrawingBrush.color = activeColor;
     canvas.freeDrawingBrush.width = brushSize;
+
+    // Restore saved fabric objects if available
+    if (page.savedCanvasData) {
+      try {
+        const savedData = JSON.parse(page.savedCanvasData);
+        if (savedData.fabricObjects) {
+          canvas.loadFromJSON(savedData.fabricObjects, () => {
+            canvas.renderAll();
+          });
+        }
+      } catch (e) {
+        console.error("Failed to restore fabric objects:", e);
+      }
+    }
 
     setFabricCanvas(canvas);
 
