@@ -44,17 +44,20 @@ export default function ColoringBook() {
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [bookToPurchase, setBookToPurchase] = useState<ColoringBook | null>(null);
 
-  // Fetch all books
+  // Fetch all books with page count
   const { data: coloringBooks, isLoading: booksLoading } = useQuery({
     queryKey: ["coloring-books"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("coloring_books")
-        .select("*")
+        .select(`
+          *,
+          coloring_pages(count)
+        `)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
       if (error) throw error;
-      return data as ColoringBook[];
+      return data as (ColoringBook & { coloring_pages: { count: number }[] })[];
     },
   });
 
@@ -275,11 +278,11 @@ export default function ColoringBook() {
                       onClick={() => handleBookClick(book)}
                     >
                       <CardContent className="p-0">
-                        <div className="aspect-[3/4] relative">
+                        <div className="relative">
                           <img
                             src={book.cover_image_url}
                             alt={book.title}
-                            className={`w-full h-full object-cover ${!hasAccess ? 'opacity-70' : ''}`}
+                            className={`w-full h-auto ${!hasAccess ? 'opacity-70' : ''}`}
                           />
                           {!book.is_free && !hasAccess && (
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30">
@@ -298,6 +301,9 @@ export default function ColoringBook() {
                         </div>
                         <div className="p-3">
                           <h3 className="font-medium text-sm truncate">{book.title}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {(book.coloring_pages?.[0]?.count || 0)} {(book.coloring_pages?.[0]?.count || 0) === 1 ? 'page' : 'pages'}
+                          </p>
                           {book.description && (
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                               {book.description}
