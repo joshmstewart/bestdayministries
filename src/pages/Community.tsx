@@ -48,6 +48,7 @@ const Community = () => {
   const [latestDiscussions, setLatestDiscussions] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
+  const [quickLinksLoaded, setQuickLinksLoaded] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<Array<{key: string, visible: boolean}>>([]);
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
@@ -254,25 +255,32 @@ const Community = () => {
         setUpcomingEvents(topThree);
       }
 
-      // Fetch quick links from database
-      const { data: linksData, error: linksError } = await supabase
-        .from('community_quick_links')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      // Only fetch quick links once to prevent flickering
+      if (!quickLinksLoaded) {
+        // Fetch quick links from database
+        const { data: linksData, error: linksError } = await supabase
+          .from('community_quick_links')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
 
-      if (linksError) throw linksError;
-      
-      // Use database links if available, otherwise fallback to default
-      if (linksData && linksData.length > 0) {
-        setQuickLinks(linksData);
-      } else {
-        setQuickLinks(defaultQuickLinks);
+        if (linksError) throw linksError;
+        
+        // Use database links if available, otherwise fallback to default
+        if (linksData && linksData.length > 0) {
+          setQuickLinks(linksData);
+        } else {
+          setQuickLinks(defaultQuickLinks);
+        }
+        setQuickLinksLoaded(true);
       }
     } catch (error) {
       console.error('Error loading content:', error);
       // Set default quick links on error
-      setQuickLinks(defaultQuickLinks);
+      if (!quickLinksLoaded) {
+        setQuickLinks(defaultQuickLinks);
+        setQuickLinksLoaded(true);
+      }
     }
   };
 
