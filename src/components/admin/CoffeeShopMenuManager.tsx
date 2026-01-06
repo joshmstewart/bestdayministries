@@ -481,52 +481,60 @@ const CoffeeShopMenuManager = () => {
             </Button>
           </div>
           
-          <div className="grid gap-3">
-            {items
-              .filter(item => !selectedCategoryId || selectedCategoryId === "all" || item.category_id === selectedCategoryId)
-              .map((item) => {
-                const category = categories.find(c => c.id === item.category_id);
+          <div className="space-y-6">
+            {categories
+              .filter(cat => !selectedCategoryId || selectedCategoryId === "all" || cat.id === selectedCategoryId)
+              .map((category) => {
+                const categoryItems = items.filter(item => item.category_id === category.id);
+                if (categoryItems.length === 0) return null;
                 return (
-                  <Card key={item.id} className={!item.is_active ? "opacity-60" : ""}>
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 min-w-0 flex-1">
-                          <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {category?.name} • {item.description || "No description"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-sm font-medium text-primary whitespace-nowrap">
-                            {item.single_price ? `$${item.single_price.toFixed(2)}` : 
-                             item.price_small ? `$${item.price_small.toFixed(2)}+` :
-                             item.price_hot_12oz ? `$${item.price_hot_12oz.toFixed(2)}+` : "—"}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => toggleItemMutation.mutate({ id: item.id, is_active: !item.is_active })}
-                          >
-                            {item.is_active ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-red-500" />}
-                          </Button>
-                          <Button size="icon" variant="outline" onClick={() => openEditItem(item)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => { if (confirm("Delete this item?")) deleteItemMutation.mutate(item.id); }}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div key={category.id} className="space-y-2">
+                    <h3 className="font-semibold text-lg border-b pb-2">{category.name}</h3>
+                    <div className="grid gap-2">
+                      {categoryItems.map((item) => (
+                        <Card key={item.id} className={!item.is_active ? "opacity-60" : ""}>
+                          <CardContent className="py-3 px-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-3 min-w-0 flex-1">
+                                <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium">{item.name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {item.description || "No description"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-sm font-medium text-primary whitespace-nowrap">
+                                  {item.single_price ? `$${item.single_price.toFixed(2)}` : 
+                                   item.price_small ? `$${item.price_small.toFixed(2)}+` :
+                                   item.price_hot_12oz ? `$${item.price_hot_12oz.toFixed(2)}+` : "—"}
+                                </span>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() => toggleItemMutation.mutate({ id: item.id, is_active: !item.is_active })}
+                                >
+                                  {item.is_active ? <Eye className="w-4 h-4 text-green-600" /> : <EyeOff className="w-4 h-4 text-red-500" />}
+                                </Button>
+                                <Button size="icon" variant="outline" onClick={() => openEditItem(item)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => { if (confirm("Delete this item?")) deleteItemMutation.mutate(item.id); }}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 );
               })}
             {items.length === 0 && (
