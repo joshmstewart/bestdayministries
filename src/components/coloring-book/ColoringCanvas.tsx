@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2 } from "lucide-react";
+import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,7 +49,17 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const [hasSelection, setHasSelection] = useState(false);
   const MAX_HISTORY = 20;
 
+  // Zoom state
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const lastPanPoint = useRef<{ x: number; y: number } | null>(null);
+  const lastPinchDistance = useRef<number | null>(null);
+  const zoomContainerRef = useRef<HTMLDivElement>(null);
+
   const CANVAS_SIZE = 600;
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 4;
 
   // Initialize base canvas with the coloring image (or saved data)
   useEffect(() => {
@@ -415,6 +425,114 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     ctx.putImageData(imageData, 0, 0);
   }, []);
 
+  // Zoom functions
+  const handleZoomIn = useCallback(() => {
+    setZoom(prev => Math.min(prev + 0.5, MAX_ZOOM));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom(prev => {
+      const newZoom = Math.max(prev - 0.5, MIN_ZOOM);
+      if (newZoom === MIN_ZOOM) {
+        setPanOffset({ x: 0, y: 0 });
+      }
+      return newZoom;
+    });
+  }, []);
+
+  const handleResetZoom = useCallback(() => {
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, []);
+
+  // Handle wheel zoom
+  useEffect(() => {
+    const container = zoomContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.25 : 0.25;
+        setZoom(prev => {
+          const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta));
+          if (newZoom === MIN_ZOOM) {
+            setPanOffset({ x: 0, y: 0 });
+          }
+          return newZoom;
+        });
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Handle pinch-to-zoom for touch devices
+  useEffect(() => {
+    const container = zoomContainerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastPinchDistance.current = Math.sqrt(dx * dx + dy * dy);
+      } else if (e.touches.length === 1 && zoom > 1) {
+        lastPanPoint.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        setIsPanning(true);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && lastPinchDistance.current !== null) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const delta = (distance - lastPinchDistance.current) * 0.01;
+        lastPinchDistance.current = distance;
+        
+        setZoom(prev => {
+          const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta));
+          if (newZoom === MIN_ZOOM) {
+            setPanOffset({ x: 0, y: 0 });
+          }
+          return newZoom;
+        });
+      } else if (e.touches.length === 1 && isPanning && lastPanPoint.current && zoom > 1) {
+        const dx = e.touches[0].clientX - lastPanPoint.current.x;
+        const dy = e.touches[0].clientY - lastPanPoint.current.y;
+        lastPanPoint.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        
+        setPanOffset(prev => {
+          const maxPan = (zoom - 1) * CANVAS_SIZE / 2;
+          return {
+            x: Math.max(-maxPan, Math.min(maxPan, prev.x + dx)),
+            y: Math.max(-maxPan, Math.min(maxPan, prev.y + dy)),
+          };
+        });
+      }
+    };
+
+    const handleTouchEnd = () => {
+      lastPinchDistance.current = null;
+      lastPanPoint.current = null;
+      setIsPanning(false);
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [zoom, isPanning]);
+
   // Handle click for fill tool
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (activeTool !== "fill" || !baseCanvasRef.current) return;
@@ -538,26 +656,83 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
         <h2 className="text-2xl font-bold text-center mb-4">{page.title}</h2>
 
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Canvas Container */}
-          <div ref={containerRef} className="flex-1 flex justify-center">
-            <div
-              className={`relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg ${activeTool === "fill" ? "cursor-crosshair" : "cursor-default"}`}
-              style={{ width: CANVAS_SIZE, height: CANVAS_SIZE, maxWidth: "100%" }}
-              onClick={activeTool === "fill" ? handleCanvasClick : undefined}
-            >
-              {/* Base canvas for image and fills */}
-              <canvas
-                ref={baseCanvasRef}
-                className="absolute top-0 left-0 w-full h-full"
-                style={{ pointerEvents: "none" }}
-              />
-              {/* Fabric.js canvas for brush strokes and stickers */}
-              <canvas
-                ref={fabricCanvasRef}
-                className="absolute top-0 left-0 w-full h-full"
-                style={{ pointerEvents: activeTool === "fill" ? "none" : "auto" }}
-              />
+          {/* Canvas Container with Zoom */}
+          <div ref={containerRef} className="flex-1 flex flex-col items-center gap-2">
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-2 bg-muted/80 rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomOut}
+                disabled={zoom <= MIN_ZOOM}
+                title="Zoom out"
+                className="h-8 w-8"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[3rem] text-center">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleZoomIn}
+                disabled={zoom >= MAX_ZOOM}
+                title="Zoom in"
+                className="h-8 w-8"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleResetZoom}
+                disabled={zoom === 1}
+                title="Reset zoom"
+                className="h-8 w-8"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </Button>
             </div>
+
+            {/* Zoomable Canvas Area */}
+            <div
+              ref={zoomContainerRef}
+              className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg"
+              style={{ 
+                width: CANVAS_SIZE, 
+                height: CANVAS_SIZE, 
+                maxWidth: "100%",
+                cursor: zoom > 1 ? (isPanning ? "grabbing" : "grab") : (activeTool === "fill" ? "crosshair" : "default"),
+              }}
+            >
+              <div
+                className="absolute top-0 left-0 w-full h-full origin-center transition-transform duration-100"
+                style={{ 
+                  transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+                }}
+                onClick={activeTool === "fill" && !isPanning ? handleCanvasClick : undefined}
+              >
+                {/* Base canvas for image and fills */}
+                <canvas
+                  ref={baseCanvasRef}
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{ pointerEvents: "none" }}
+                />
+                {/* Fabric.js canvas for brush strokes and stickers */}
+                <canvas
+                  ref={fabricCanvasRef}
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{ pointerEvents: activeTool === "fill" ? "none" : "auto" }}
+                />
+              </div>
+            </div>
+
+            {zoom > 1 && (
+              <p className="text-xs text-muted-foreground">
+                Pinch or drag to pan when zoomed
+              </p>
+            )}
           </div>
 
           {/* Tools */}
