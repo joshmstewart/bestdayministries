@@ -2,6 +2,17 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Canvas as FabricCanvas, PencilBrush } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -481,15 +492,30 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                 <Undo2 className="w-4 h-4 mr-1" />
                 Undo
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClear}
-                className="flex-1"
-              >
-                <RotateCcw className="w-4 h-4 mr-1" />
-                Clear
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    Clear
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear canvas?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will erase all your coloring and start fresh. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClear}>Clear</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             <div className="flex gap-2">
