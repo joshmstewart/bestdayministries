@@ -91,18 +91,31 @@ const Community = () => {
     }
   }, [isAuthenticated]);
 
+  // Track if content has been loaded to prevent duplicate fetches
+  const [contentLoaded, setContentLoaded] = useState(false);
+
   // Reload content when impersonation changes or when user/profile/effectiveRole are set
   useEffect(() => {
     console.log('Community - Content loading useEffect triggered', { 
       hasUser: !!user, 
       hasProfile: !!profile, 
-      effectiveRole 
+      effectiveRole,
+      contentLoaded
     });
-    if (user && profile && effectiveRole !== null) {
+    // Only load once, or reload if impersonation changes
+    if (user && profile && effectiveRole !== null && !contentLoaded) {
       console.log('Community - Calling loadLatestContent');
       loadLatestContent();
+      setContentLoaded(true);
     }
-  }, [user, profile, effectiveRole]); // Include all dependencies
+  }, [user, profile, effectiveRole, contentLoaded]); // Include all dependencies
+  
+  // Reset content loaded flag when impersonation changes
+  useEffect(() => {
+    if (isImpersonating !== undefined) {
+      setContentLoaded(false);
+    }
+  }, [isImpersonating]);
 
   const loadSectionOrder = async () => {
     try {
