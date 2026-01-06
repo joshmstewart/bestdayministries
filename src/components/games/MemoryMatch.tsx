@@ -325,29 +325,36 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     const newFlipped = [...flippedCards, cardId];
     setFlippedCards(newFlipped);
 
-    setCards(cards.map(card =>
+    // Use functional update to avoid stale closure
+    setCards(prevCards => prevCards.map(card =>
       card.id === cardId ? { ...card, isFlipped: true } : card
     ));
 
     if (newFlipped.length === 2) {
-      setMoves(moves + 1);
+      setMoves(prev => prev + 1);
       const [first, second] = newFlipped;
 
-      if (cards[first].imageUrl === cards[second].imageUrl) {
-        setCards(cards.map(card =>
+      // Need to check current cards state for matching
+      const firstCard = cards.find(c => c.id === first);
+      const secondCard = cards.find(c => c.id === second);
+
+      if (firstCard && secondCard && firstCard.imageUrl === secondCard.imageUrl) {
+        setCards(prevCards => prevCards.map(card =>
           card.id === first || card.id === second
-            ? { ...card, isMatched: true }
+            ? { ...card, isMatched: true, isFlipped: true }
             : card
         ));
-        setMatchedPairs(matchedPairs + 1);
+        setMatchedPairs(prev => {
+          const newCount = prev + 1;
+          if (newCount === DIFFICULTY_CONFIG[difficulty].pairs) {
+            completeGame();
+          }
+          return newCount;
+        });
         setFlippedCards([]);
-
-        if (matchedPairs + 1 === DIFFICULTY_CONFIG[difficulty].pairs) {
-          completeGame();
-        }
       } else {
         setTimeout(() => {
-          setCards(cards.map(card =>
+          setCards(prevCards => prevCards.map(card =>
             card.id === first || card.id === second
               ? { ...card, isFlipped: false }
               : card
