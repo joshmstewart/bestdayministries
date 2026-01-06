@@ -22,9 +22,10 @@ interface StoreItemGridProps {
   userCoins: number;
   loading: boolean;
   purchases: Purchase[];
+  purchasedPackIds?: Set<string>;
 }
 
-export const StoreItemGrid = ({ items, onPurchase, userCoins, loading, purchases }: StoreItemGridProps) => {
+export const StoreItemGrid = ({ items, onPurchase, userCoins, loading, purchases, purchasedPackIds }: StoreItemGridProps) => {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -46,7 +47,9 @@ export const StoreItemGrid = ({ items, onPurchase, userCoins, loading, purchases
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
       {items.map((item) => {
-        const isPurchased = purchases.some(p => p.store_item_id === item.id);
+        // Check both regular purchases and memory pack purchases
+        const isPurchased = purchases.some(p => p.store_item_id === item.id) || 
+                           (purchasedPackIds?.has(item.id) ?? false);
         return (
           <StoreItemCard
             key={item.id}

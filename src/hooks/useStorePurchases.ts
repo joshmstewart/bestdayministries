@@ -84,6 +84,10 @@ export const useStorePurchases = () => {
         return false;
       }
 
+      // Check if this is a memory match pack (id starts with "memory_pack_")
+      const isMemoryPack = itemId.startsWith("memory_pack_");
+      const actualItemId = isMemoryPack ? itemId.replace("memory_pack_", "") : itemId;
+
       // Start transaction: deduct coins and create purchase
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -103,25 +107,46 @@ export const useStorePurchases = () => {
 
       if (updateError) throw updateError;
 
-      // Create purchase record
-      const { error: purchaseError } = await supabase
-        .from("user_store_purchases")
-        .insert({
+      if (isMemoryPack) {
+        // Handle memory match pack purchase
+        const { error: packPurchaseError } = await supabase
+          .from("user_memory_match_packs")
+          .insert({
+            user_id: user.id,
+            pack_id: actualItemId,
+          });
+
+        if (packPurchaseError) throw packPurchaseError;
+
+        // Record transaction
+        await supabase.from("coin_transactions").insert({
           user_id: user.id,
-          store_item_id: itemId,
-          coins_spent: itemPrice,
+          amount: -itemPrice,
+          transaction_type: "store_purchase",
+          description: "Memory Match pack purchase",
+          related_item_id: actualItemId,
         });
+      } else {
+        // Create regular store purchase record
+        const { error: purchaseError } = await supabase
+          .from("user_store_purchases")
+          .insert({
+            user_id: user.id,
+            store_item_id: actualItemId,
+            coins_spent: itemPrice,
+          });
 
-      if (purchaseError) throw purchaseError;
+        if (purchaseError) throw purchaseError;
 
-      // Record transaction
-      await supabase.from("coin_transactions").insert({
-        user_id: user.id,
-        amount: -itemPrice,
-        transaction_type: "store_purchase",
-        description: "Store purchase",
-        related_item_id: itemId,
-      });
+        // Record transaction
+        await supabase.from("coin_transactions").insert({
+          user_id: user.id,
+          amount: -itemPrice,
+          transaction_type: "store_purchase",
+          description: "Store purchase",
+          related_item_id: actualItemId,
+        });
+      }
 
       toast({
         title: "Purchase Successful!",
