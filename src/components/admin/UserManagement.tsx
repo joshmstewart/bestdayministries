@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter, AlertTriangle, MailCheck } from "lucide-react";
+import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter, AlertTriangle, MailCheck, Download } from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -584,6 +584,66 @@ export const UserManagement = () => {
     }
   };
 
+  const handleDownloadCSV = () => {
+    // Prepare CSV data
+    const headers = [
+      "Display Name",
+      "Email",
+      "Role",
+      "Vendor Status",
+      "Business Name",
+      "Permissions",
+      "Terms Version",
+      "Privacy Version",
+      "Terms Accepted At",
+      "Newsletter Subscribed",
+      "Created At"
+    ];
+    
+    const rows = filteredUsers.map(user => [
+      user.display_name || "",
+      user.email || "",
+      user.role || "",
+      user.vendor_status || "",
+      user.business_name || "",
+      (user.permissions || []).join("; "),
+      user.terms_version || "",
+      user.privacy_version || "",
+      user.terms_accepted_at ? new Date(user.terms_accepted_at).toLocaleString() : "",
+      user.newsletter_subscribed ? "Yes" : "No",
+      user.created_at ? new Date(user.created_at).toLocaleString() : ""
+    ]);
+    
+    // Escape CSV values
+    const escapeCSV = (value: string) => {
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+    
+    const csvContent = [
+      headers.map(escapeCSV).join(","),
+      ...rows.map(row => row.map(escapeCSV).join(","))
+    ].join("\n");
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `user-data-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Download started",
+      description: `Exporting ${filteredUsers.length} users to CSV`,
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -755,13 +815,18 @@ export const UserManagement = () => {
             <CardTitle>User Management</CardTitle>
             <CardDescription>Create and manage community members</CardDescription>
           </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <UserPlus className="w-4 h-4" />
-              Create User
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={handleDownloadCSV}>
+              <Download className="w-4 h-4" />
+              Export CSV
             </Button>
-          </DialogTrigger>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  Create User
+                </Button>
+              </DialogTrigger>
           <DialogContent>
             <form onSubmit={handleCreateUser}>
               <DialogHeader>
@@ -844,6 +909,7 @@ export const UserManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
+          </div>
       </CardHeader>
       <CardContent>
         {/* Search and Filters */}
