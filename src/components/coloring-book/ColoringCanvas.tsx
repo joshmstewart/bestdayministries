@@ -120,7 +120,18 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
       height: CANVAS_SIZE,
       backgroundColor: "transparent",
       isDrawingMode: false,
+      enablePointerEvents: true,
+      preserveObjectStacking: true,
     });
+
+    // Ensure touch interactions work (especially on mobile Safari)
+    try {
+      // Fabric creates an upper canvas for events
+      (canvas as any).upperCanvasEl && (((canvas as any).upperCanvasEl as HTMLCanvasElement).style.touchAction = "none");
+      (canvas as any).upperCanvasEl && (((canvas as any).upperCanvasEl as HTMLCanvasElement).style.pointerEvents = "auto");
+    } catch {
+      // ignore
+    }
 
     canvas.freeDrawingBrush = new PencilBrush(canvas);
     canvas.freeDrawingBrush.color = activeColor;
@@ -188,22 +199,37 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
 
   const handleAddSticker = useCallback(async (stickerUrl: string) => {
     if (!fabricCanvas || !stickerUrl) return;
-    
+
     try {
       const img = await FabricImage.fromURL(stickerUrl, { crossOrigin: "anonymous" });
-      // Scale sticker to reasonable size (max 100px)
-      const maxSize = 100;
-      const scale = Math.min(maxSize / img.width!, maxSize / img.height!);
-      img.scale(scale);
+
+      // Make sure this object is interactive
       img.set({
-        left: CANVAS_SIZE / 2 - (img.width! * scale) / 2,
-        top: CANVAS_SIZE / 2 - (img.height! * scale) / 2,
+        selectable: true,
+        evented: true,
+        hasControls: true,
+        hasBorders: true,
+        centeredScaling: true,
+        centeredRotation: true,
       });
+
+      // Scale sticker to reasonable size (max 120px)
+      const maxSize = 120;
+      const scale = Math.min(maxSize / (img.width || 1), maxSize / (img.height || 1));
+      img.scale(scale);
+
+      img.set({
+        left: CANVAS_SIZE / 2 - ((img.width || 0) * scale) / 2,
+        top: CANVAS_SIZE / 2 - ((img.height || 0) * scale) / 2,
+      });
+
       fabricCanvas.add(img);
       fabricCanvas.setActiveObject(img);
+      img.setCoords();
       fabricCanvas.renderAll();
+
       setShowStickerPicker(false);
-      toast.success("Sticker added! Drag to move, corners to resize.");
+      toast.success("Sticker added! Drag to move, corners to resize/rotate.");
     } catch (error) {
       console.error("Failed to add sticker:", error);
       toast.error("Failed to add sticker");
