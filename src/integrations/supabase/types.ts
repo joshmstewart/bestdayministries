@@ -4061,6 +4061,39 @@ export type Database = {
         }
         Relationships: []
       }
+      page_visits: {
+        Row: {
+          id: string
+          page_title: string | null
+          page_url: string
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+          visited_at: string
+        }
+        Insert: {
+          id?: string
+          page_title?: string | null
+          page_url: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visited_at?: string
+        }
+        Update: {
+          id?: string
+          page_title?: string | null
+          page_url?: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          visited_at?: string
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
           created_at: string
@@ -6941,6 +6974,16 @@ export type Database = {
           time_diff_seconds: number | null
           transaction_date: string | null
           transaction_id: string | null
+        }
+        Relationships: []
+      }
+      page_visit_stats: {
+        Row: {
+          page_url: string | null
+          unique_sessions: number | null
+          unique_users: number | null
+          visit_count: number | null
+          visit_date: string | null
         }
         Relationships: []
       }
