@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, PencilBrush } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush, FabricImage } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -13,10 +13,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus } from "lucide-react";
+import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { StickerPicker } from "./StickerPicker";
 
 const COLORS = [
   "#FF0000", "#FF6B00", "#FFD700", "#00FF00", "#00CED1", 
@@ -37,7 +38,8 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeColor, setActiveColor] = useState("#FF0000");
   const [brushSize, setBrushSize] = useState(10);
-  const [activeTool, setActiveTool] = useState<"fill" | "brush" | "eraser">("fill");
+  const [activeTool, setActiveTool] = useState<"fill" | "brush" | "eraser" | "sticker">("fill");
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -162,10 +164,37 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
         fabricCanvas.freeDrawingBrush.color = "#FFFFFF";
         fabricCanvas.freeDrawingBrush.width = brushSize * 2;
       }
+    } else if (activeTool === "sticker") {
+      fabricCanvas.isDrawingMode = false;
+      fabricCanvas.selection = true;
     } else {
       fabricCanvas.isDrawingMode = false;
     }
   }, [activeTool, activeColor, brushSize, fabricCanvas]);
+
+  const handleAddSticker = useCallback(async (stickerUrl: string) => {
+    if (!fabricCanvas || !stickerUrl) return;
+    
+    try {
+      const img = await FabricImage.fromURL(stickerUrl, { crossOrigin: "anonymous" });
+      // Scale sticker to reasonable size (max 100px)
+      const maxSize = 100;
+      const scale = Math.min(maxSize / img.width!, maxSize / img.height!);
+      img.scale(scale);
+      img.set({
+        left: CANVAS_SIZE / 2 - (img.width! * scale) / 2,
+        top: CANVAS_SIZE / 2 - (img.height! * scale) / 2,
+      });
+      fabricCanvas.add(img);
+      fabricCanvas.setActiveObject(img);
+      fabricCanvas.renderAll();
+      setShowStickerPicker(false);
+      toast.success("Sticker added! Drag to move, corners to resize.");
+    } catch (error) {
+      console.error("Failed to add sticker:", error);
+      toast.error("Failed to add sticker");
+    }
+  }, [fabricCanvas]);
 
   const hexToRgb = (hex: string) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -482,7 +511,38 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                   Eraser
                 </Button>
               </div>
+              <Button
+                variant={activeTool === "sticker" ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setActiveTool("sticker");
+                  setShowStickerPicker(true);
+                }}
+                className="w-full mt-2"
+                title="Add stickers from your collection"
+              >
+                <Sticker className="w-4 h-4 mr-1" />
+                Add Sticker
+              </Button>
             </div>
+
+            {/* Sticker Picker */}
+            {showStickerPicker && (
+              <div className="border rounded-lg p-2 bg-muted/30">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-sm font-medium">Your Stickers</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowStickerPicker(false)}
+                    className="h-6 px-2"
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <StickerPicker onSelectSticker={handleAddSticker} />
+              </div>
+            )}
 
             {/* Colors */}
             <div>
@@ -627,6 +687,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
               {activeTool === "fill" && "Tap inside any white area to fill it with color"}
               {activeTool === "brush" && "Draw freely with your finger or mouse"}
               {activeTool === "eraser" && "Erase brush strokes"}
+              {activeTool === "sticker" && "Select a sticker, then drag to move or resize it"}
             </div>
           </div>
         </div>
