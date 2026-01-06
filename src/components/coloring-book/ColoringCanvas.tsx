@@ -203,7 +203,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     try {
       const img = await FabricImage.fromURL(stickerUrl, { crossOrigin: "anonymous" });
 
-      // Make sure this object is interactive
+      // Make sure this object is interactive with visible controls
       img.set({
         selectable: true,
         evented: true,
@@ -211,6 +211,13 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
         hasBorders: true,
         centeredScaling: true,
         centeredRotation: true,
+        borderColor: '#FF6B00',
+        cornerColor: '#FF6B00',
+        cornerStrokeColor: '#FFFFFF',
+        cornerStyle: 'circle',
+        cornerSize: 14,
+        transparentCorners: false,
+        borderScaleFactor: 2,
       });
 
       // Scale sticker to reasonable size (max 120px)
