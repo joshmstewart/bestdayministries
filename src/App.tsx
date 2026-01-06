@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
 import Index from "./pages/Index";
+import ColoringBook from "./pages/ColoringBook";
 import CoffeeShopHome from "./pages/CoffeeShopHome";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
@@ -211,6 +212,7 @@ const App = () => {
           <Route path="/games/drink-creator" element={<DrinkCreator />} />
           <Route path="/games/recipe-maker" element={<RecipeMaker />} />
           <Route path="/games/recipe-gallery" element={<RecipeGallery />} />
+          <Route path="/games/coloring-book" element={<ColoringBook />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
           <Route path="/store/product/:productId" element={<ProductDetail />} />
