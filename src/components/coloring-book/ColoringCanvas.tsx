@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2 } from "lucide-react";
+import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,6 +43,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const [history, setHistory] = useState<ImageData[]>([]);
+  const [customColors, setCustomColors] = useState<string[]>([]);
   const MAX_HISTORY = 20;
 
   const CANVAS_SIZE = 600;
@@ -464,6 +465,59 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                   />
                 ))}
               </div>
+            </div>
+
+            {/* Custom Color Picker */}
+            <div>
+              <p className="text-sm font-medium mb-2">Custom Color</p>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={activeColor}
+                  onChange={(e) => {
+                    setActiveColor(e.target.value);
+                    if (activeTool === "eraser") setActiveTool("fill");
+                  }}
+                  className="w-10 h-10 rounded cursor-pointer border-2 border-gray-300"
+                  title="Pick any color"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!customColors.includes(activeColor)) {
+                      setCustomColors(prev => [...prev.slice(-9), activeColor]);
+                      toast.success("Color saved!");
+                    }
+                  }}
+                  disabled={customColors.includes(activeColor) || COLORS.includes(activeColor)}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Save Color
+                </Button>
+              </div>
+              {customColors.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-muted-foreground mb-1">Saved Colors</p>
+                  <div className="flex flex-wrap gap-1">
+                    {customColors.map((color, idx) => (
+                      <button
+                        key={`custom-${idx}`}
+                        className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${
+                          activeColor === color && activeTool !== "eraser"
+                            ? "border-primary ring-2 ring-primary"
+                            : "border-gray-300"
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => {
+                          setActiveColor(color);
+                          if (activeTool === "eraser") setActiveTool("fill");
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Brush Size (only for brush/eraser) */}
