@@ -153,12 +153,14 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
 
     if (activeTool === "brush") {
       fabricCanvas.isDrawingMode = true;
+      fabricCanvas.selection = false;
       if (fabricCanvas.freeDrawingBrush) {
         fabricCanvas.freeDrawingBrush.color = activeColor;
         fabricCanvas.freeDrawingBrush.width = brushSize;
       }
     } else if (activeTool === "eraser") {
       fabricCanvas.isDrawingMode = true;
+      fabricCanvas.selection = false;
       if (fabricCanvas.freeDrawingBrush) {
         // For eraser, we'll use white to "erase" on the overlay
         fabricCanvas.freeDrawingBrush.color = "#FFFFFF";
@@ -167,8 +169,20 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     } else if (activeTool === "sticker") {
       fabricCanvas.isDrawingMode = false;
       fabricCanvas.selection = true;
+      // Make all objects selectable
+      fabricCanvas.getObjects().forEach(obj => {
+        obj.set({ selectable: true, evented: true });
+      });
+      fabricCanvas.renderAll();
     } else {
+      // Fill mode
       fabricCanvas.isDrawingMode = false;
+      fabricCanvas.selection = false;
+      // Disable object selection in fill mode
+      fabricCanvas.getObjects().forEach(obj => {
+        obj.set({ selectable: false, evented: false });
+      });
+      fabricCanvas.renderAll();
     }
   }, [activeTool, activeColor, brushSize, fabricCanvas]);
 
@@ -455,9 +469,9 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
           {/* Canvas Container */}
           <div ref={containerRef} className="flex-1 flex justify-center">
             <div
-              className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg cursor-crosshair"
+              className={`relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg ${activeTool === "fill" ? "cursor-crosshair" : "cursor-default"}`}
               style={{ width: CANVAS_SIZE, height: CANVAS_SIZE, maxWidth: "100%" }}
-              onClick={handleCanvasClick}
+              onClick={activeTool === "fill" ? handleCanvasClick : undefined}
             >
               {/* Base canvas for image and fills */}
               <canvas
@@ -465,7 +479,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                 className="absolute top-0 left-0 w-full h-full"
                 style={{ pointerEvents: "none" }}
               />
-              {/* Fabric.js canvas for brush strokes */}
+              {/* Fabric.js canvas for brush strokes and stickers */}
               <canvas
                 ref={fabricCanvasRef}
                 className="absolute top-0 left-0 w-full h-full"
