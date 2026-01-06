@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Trash2, RotateCcw, Copy } from "lucide-react";
+import { Trash2, RotateCcw, Copy, Palette } from "lucide-react";
 import { toast } from "sonner";
 
 interface ColoringGalleryProps {
@@ -133,7 +133,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
           <DialogHeader>
             <DialogTitle>{selectedColoring?.coloring_page?.title}</DialogTitle>
             <DialogDescription>
-              Choose how you want to continue with this coloring
+              Choose how you want to work on this coloring page
             </DialogDescription>
           </DialogHeader>
           
@@ -146,13 +146,13 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
           </div>
 
           <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={handleStartFresh}>
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Start Fresh
-            </Button>
             <Button onClick={handleContinue}>
               <Copy className="w-4 h-4 mr-2" />
               Continue Coloring
+            </Button>
+            <Button variant="outline" onClick={handleStartFresh}>
+              <Palette className="w-4 h-4 mr-2" />
+              Color New Copy
             </Button>
           </div>
 
