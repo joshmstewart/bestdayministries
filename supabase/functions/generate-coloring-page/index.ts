@@ -21,7 +21,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Generating coloring book cover with prompt:", prompt);
+    console.log("Generating coloring page with prompt:", prompt);
 
     // Use Lovable AI gateway with the correct endpoint for image generation
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -35,7 +35,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Generate a beautiful, colorful illustration suitable for a coloring book cover. The theme is: ${prompt}. Make it appealing, with clear outlines and vibrant colors that would look great as a book cover.`
+            content: prompt
           }
         ],
         modalities: ["image", "text"]
