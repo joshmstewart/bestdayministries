@@ -948,6 +948,48 @@ export type Database = {
           },
         ]
       }
+      coloring_pages: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       commission_settings: {
         Row: {
           commission_percentage: number
@@ -5903,6 +5945,47 @@ export type Database = {
             columns: ["badge_id"]
             isOneToOne: false
             referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_colorings: {
+        Row: {
+          canvas_data: string | null
+          coloring_page_id: string
+          created_at: string
+          id: string
+          is_completed: boolean | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canvas_data?: string | null
+          coloring_page_id: string
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canvas_data?: string | null
+          coloring_page_id?: string
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_colorings_coloring_page_id_fkey"
+            columns: ["coloring_page_id"]
+            isOneToOne: false
+            referencedRelation: "coloring_pages"
             referencedColumns: ["id"]
           },
         ]
