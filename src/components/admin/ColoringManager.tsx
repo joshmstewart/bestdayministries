@@ -80,6 +80,13 @@ export function ColoringManager() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
 
+  // Idea generation state
+  const [generatingIdeas, setGeneratingIdeas] = useState<string | null>(null);
+  const [pageIdeas, setPageIdeas] = useState<Record<string, string[]>>({});
+  const [selectedIdeas, setSelectedIdeas] = useState<Record<string, Set<string>>>({});
+  const [generatingFromIdeas, setGeneratingFromIdeas] = useState<string | null>(null);
+  const [ideaProgress, setIdeaProgress] = useState<{ current: number; total: number } | null>(null);
+
   // Fetch books
   const { data: books, isLoading } = useQuery({
     queryKey: ["admin-coloring-books"],
@@ -311,7 +318,108 @@ export function ColoringManager() {
     }
   };
 
-  // Book mutations
+  // Generate ideas for pages
+  const handleGenerateIdeas = async (book: ColoringBook) => {
+    setGeneratingIdeas(book.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-coloring-page-ideas", {
+        body: { bookTitle: book.title, bookDescription: book.description },
+      });
+      
+      if (error) throw error;
+      
+      setPageIdeas((prev) => ({ ...prev, [book.id]: data.ideas || [] }));
+      setSelectedIdeas((prev) => ({ ...prev, [book.id]: new Set() }));
+      toast.success(`Generated ${data.ideas?.length || 0} page ideas!`);
+    } catch (error) {
+      showErrorToastWithCopy("Generating ideas", error);
+    } finally {
+      setGeneratingIdeas(null);
+    }
+  };
+
+  // Toggle idea selection
+  const toggleIdeaSelection = (bookId: string, idea: string) => {
+    setSelectedIdeas((prev) => {
+      const current = prev[bookId] || new Set();
+      const newSet = new Set(current);
+      if (newSet.has(idea)) {
+        newSet.delete(idea);
+      } else {
+        newSet.add(idea);
+      }
+      return { ...prev, [bookId]: newSet };
+    });
+  };
+
+  // Select/deselect all ideas
+  const toggleAllIdeas = (bookId: string, selectAll: boolean) => {
+    const ideas = pageIdeas[bookId] || [];
+    setSelectedIdeas((prev) => ({
+      ...prev,
+      [bookId]: selectAll ? new Set(ideas) : new Set(),
+    }));
+  };
+
+  // Generate pages from selected ideas
+  const handleGenerateFromIdeas = async (bookId: string) => {
+    const selected = Array.from(selectedIdeas[bookId] || []);
+    if (selected.length === 0) {
+      toast.error("Select at least one idea to generate");
+      return;
+    }
+    
+    setGeneratingFromIdeas(bookId);
+    setIdeaProgress({ current: 0, total: selected.length });
+    
+    let successCount = 0;
+    for (let i = 0; i < selected.length; i++) {
+      const idea = selected[i];
+      setIdeaProgress({ current: i + 1, total: selected.length });
+      
+      try {
+        const imageUrl = await generatePageImage(idea);
+        
+        const { error: insertError } = await supabase
+          .from("coloring_pages")
+          .insert({
+            title: idea,
+            book_id: bookId,
+            description: idea,
+            image_url: imageUrl,
+            display_order: (bookPages[bookId]?.length || 0) + i,
+          });
+        
+        if (insertError) throw insertError;
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to generate page for "${idea}":`, error);
+      }
+    }
+    
+    // Refresh pages
+    const { data: pages } = await supabase
+      .from("coloring_pages")
+      .select("*")
+      .eq("book_id", bookId)
+      .order("display_order", { ascending: true });
+    
+    if (pages) {
+      setBookPages((prev) => ({ ...prev, [bookId]: pages }));
+    }
+    
+    // Clear selected ideas that were generated
+    setSelectedIdeas((prev) => ({ ...prev, [bookId]: new Set() }));
+    setPageIdeas((prev) => {
+      const remaining = (prev[bookId] || []).filter((idea) => !selected.includes(idea));
+      return { ...prev, [bookId]: remaining };
+    });
+    
+    queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+    setGeneratingFromIdeas(null);
+    setIdeaProgress(null);
+    toast.success(`Generated ${successCount} of ${selected.length} pages!`);
+  };
   const saveBookMutation = useMutation({
     mutationFn: async (data: typeof bookFormData) => {
       let coverUrl = editingBook?.cover_image_url || generatedCoverUrl;
@@ -657,6 +765,118 @@ export function ColoringManager() {
                         <span className="text-xs text-muted-foreground">
                           Or upload your own coloring page image
                         </span>
+                      </div>
+
+                      {/* Idea Wand Section */}
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <h5 className="text-sm font-medium flex items-center gap-2">
+                            <Wand2 className="w-4 h-4 text-primary" />
+                            Page Ideas
+                          </h5>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleGenerateIdeas(book)}
+                            disabled={generatingIdeas === book.id || generatingFromIdeas === book.id}
+                          >
+                            {generatingIdeas === book.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4 mr-1" />
+                                {pageIdeas[book.id]?.length ? "Refresh Ideas" : "Generate Ideas"}
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
+                        {pageIdeas[book.id]?.length > 0 && (
+                          <>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-muted-foreground">
+                                {selectedIdeas[book.id]?.size || 0} of {pageIdeas[book.id].length} selected
+                              </span>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => toggleAllIdeas(book.id, true)}
+                                  className="text-xs h-7"
+                                >
+                                  Select All
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => toggleAllIdeas(book.id, false)}
+                                  className="text-xs h-7"
+                                >
+                                  Clear
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {pageIdeas[book.id].map((idea) => {
+                                const isSelected = selectedIdeas[book.id]?.has(idea);
+                                return (
+                                  <Badge
+                                    key={idea}
+                                    variant={isSelected ? "default" : "outline"}
+                                    className={`cursor-pointer transition-colors ${
+                                      isSelected ? "" : "hover:bg-muted"
+                                    }`}
+                                    onClick={() => toggleIdeaSelection(book.id, idea)}
+                                  >
+                                    {isSelected && <Check className="w-3 h-3 mr-1" />}
+                                    {idea}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+
+                            {ideaProgress && generatingFromIdeas === book.id && (
+                              <div className="mb-3">
+                                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                                  <span>Generating pages...</span>
+                                  <span>{ideaProgress.current} / {ideaProgress.total}</span>
+                                </div>
+                                <Progress value={(ideaProgress.current / ideaProgress.total) * 100} />
+                              </div>
+                            )}
+
+                            <Button
+                              onClick={() => handleGenerateFromIdeas(book.id)}
+                              disabled={
+                                !selectedIdeas[book.id]?.size ||
+                                generatingFromIdeas === book.id ||
+                                generatingIdeas === book.id
+                              }
+                            >
+                              {generatingFromIdeas === book.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  Generating {ideaProgress?.current || 0}/{ideaProgress?.total || 0}...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4 mr-1" />
+                                  Generate {selectedIdeas[book.id]?.size || 0} Selected Pages
+                                </>
+                              )}
+                            </Button>
+                          </>
+                        )}
+
+                        {!pageIdeas[book.id]?.length && !generatingIdeas && (
+                          <p className="text-xs text-muted-foreground">
+                            Use AI to generate page ideas based on "{book.title}"
+                          </p>
+                        )}
                       </div>
                     </div>
 

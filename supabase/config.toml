@@ -253,3 +253,18 @@ verify_jwt = true
 
 [functions.picture-password-login]
 verify_jwt = false
+
+[functions.generate-coloring-page-ideas]
+verify_jwt = true
+
+[functions.generate-coloring-page]
+verify_jwt = true
+
+[functions.generate-memory-match-icon]
+verify_jwt = true
+
+[functions.generate-memory-match-card-back]
+verify_jwt = true
+
+[functions.generate-memory-match-description]
+verify_jwt = true
