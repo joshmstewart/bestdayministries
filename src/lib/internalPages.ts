@@ -69,6 +69,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/games/drink-creator", label: "Drink Creator" },
   { value: "/games/recipe-gallery", label: "Recipe Pal" },
   { value: "/games/recipe-maker", label: "Recipe Maker (→Recipe Pal)" },
+  { value: "/games/coloring-book", label: "Coloring Book" },
   { value: "/virtual-pet", label: "Virtual Pet" },
   { value: "/sticker-album", label: "Sticker Album" },
   { value: "/store", label: "JoyCoins Store" },
