@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Canvas as FabricCanvas, PencilBrush } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush } from "lucide-react";
+import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,6 +31,8 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const [saving, setSaving] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
+  const [history, setHistory] = useState<ImageData[]>([]);
+  const MAX_HISTORY = 20;
 
   const CANVAS_SIZE = 600;
 
@@ -124,6 +126,24 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
         }
       : null;
   };
+
+  const saveToHistory = useCallback(() => {
+    if (!baseCanvasRef.current) return;
+    const ctx = baseCanvasRef.current.getContext("2d");
+    if (!ctx) return;
+    const imageData = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    setHistory(prev => [...prev.slice(-MAX_HISTORY + 1), imageData]);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (!baseCanvasRef.current || history.length === 0) return;
+    const ctx = baseCanvasRef.current.getContext("2d");
+    if (!ctx) return;
+    
+    const previousState = history[history.length - 1];
+    ctx.putImageData(previousState, 0, 0);
+    setHistory(prev => prev.slice(0, -1));
+  }, [history]);
 
   const floodFill = useCallback((startX: number, startY: number, fillColor: string) => {
     if (!baseCanvasRef.current) return;
@@ -241,9 +261,10 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     const y = Math.floor((e.clientY - rect.top) * scaleY);
 
     if (x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
+      saveToHistory();
       floodFill(x, y, activeColor);
     }
-  }, [activeTool, activeColor, floodFill]);
+  }, [activeTool, activeColor, floodFill, saveToHistory]);
 
   const handleClear = () => {
     if (!baseCanvasRef.current) return;
@@ -450,6 +471,16 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
 
             {/* Actions */}
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUndo}
+                disabled={history.length === 0}
+                className="flex-1"
+              >
+                <Undo2 className="w-4 h-4 mr-1" />
+                Undo
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
