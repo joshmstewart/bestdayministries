@@ -12,6 +12,7 @@ import { FaviconManager } from "@/components/FaviconManager";
 import { ProductTourRunner } from "@/components/help/ProductTourRunner";
 import { WelcomeRedirectModal } from "@/components/WelcomeRedirectModal";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
+import { usePageTracking } from "@/hooks/usePageTracking";
 import { PicturePasswordNotificationManager } from "@/components/auth/PicturePasswordNotificationManager";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -143,6 +144,12 @@ const DomainRouter = () => {
   return <Index />;
 };
 
+// Component to track page visits
+function PageTracker() {
+  usePageTracking();
+  return null;
+}
+
 const App = () => {
   // Update app manifest dynamically based on database settings 
   useAppManifest();
@@ -166,6 +173,7 @@ const App = () => {
           <TourManager />
           <WelcomeRedirectModal />
           <PicturePasswordNotificationManager />
+          <PageTracker />
           <TermsAcceptanceGuard>
             <Routes>
             <Route path="/" element={<DomainRouter />} />

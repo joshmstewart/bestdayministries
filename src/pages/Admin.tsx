@@ -49,6 +49,7 @@ import EmailAuditLog from "@/components/admin/EmailAuditLog";
 import ContactFormSettings from "@/components/admin/ContactFormSettings";
 import ContactSubmissions from "@/components/admin/ContactSubmissions";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
+import { PageVisitsAnalytics } from "@/components/admin/PageVisitsAnalytics";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
@@ -312,7 +313,18 @@ const Admin = () => {
                 <CardDescription>Comprehensive insights into your platform's performance</CardDescription>
               </CardHeader>
               <CardContent>
-                <AnalyticsDashboard />
+                <Tabs defaultValue="overview" className="space-y-4">
+                  <TabsList>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="page-visits">Page Visits</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="overview">
+                    <AnalyticsDashboard />
+                  </TabsContent>
+                  <TabsContent value="page-visits">
+                    <PageVisitsAnalytics />
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>
