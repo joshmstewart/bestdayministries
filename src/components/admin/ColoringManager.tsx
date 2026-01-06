@@ -1,31 +1,809 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Palette } from "lucide-react";
-import { ColoringBooksManager } from "./ColoringBooksManager";
-import { ColoringPagesManager } from "./ColoringPagesManager";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, RefreshCw, 
+  BookOpen, Coins, ImageOff, Wand2, Check
+} from "lucide-react";
+import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
+import { compressImage } from "@/lib/imageUtils";
+
+interface ColoringBook {
+  id: string;
+  title: string;
+  description: string | null;
+  cover_image_url: string;
+  coin_price: number;
+  is_free: boolean;
+  is_active: boolean;
+  display_order: number;
+}
+
+interface ColoringPage {
+  id: string;
+  book_id: string | null;
+  title: string;
+  description: string | null;
+  image_url: string;
+  difficulty: string | null;
+  display_order: number | null;
+  is_active: boolean | null;
+}
 
 export function ColoringManager() {
+  const queryClient = useQueryClient();
+  
+  // Book state
+  const [bookDialogOpen, setBookDialogOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState<ColoringBook | null>(null);
+  const [bookFormData, setBookFormData] = useState({
+    title: "",
+    description: "",
+    coin_price: 0,
+    is_free: true,
+    display_order: 0,
+  });
+  const [bookImageFile, setBookImageFile] = useState<File | null>(null);
+  const [bookUploading, setBookUploading] = useState(false);
+  const [generatingCover, setGeneratingCover] = useState<string | null>(null);
+  const [generatedCoverUrl, setGeneratedCoverUrl] = useState<string | null>(null);
+  const [coverPrompt, setCoverPrompt] = useState("");
+
+  // Page state
+  const [bookPages, setBookPages] = useState<Record<string, ColoringPage[]>>({});
+  const [activeBookId, setActiveBookId] = useState<string | null>(null);
+  const [newPageName, setNewPageName] = useState("");
+  const [addingPage, setAddingPage] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
+
+  // Fetch books
+  const { data: books, isLoading } = useQuery({
+    queryKey: ["admin-coloring-books"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("coloring_books")
+        .select("*")
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return data as ColoringBook[];
+    },
+  });
+
+  // Fetch pages for each book
+  useEffect(() => {
+    if (books) {
+      books.forEach(async (book) => {
+        const { data, error } = await supabase
+          .from("coloring_pages")
+          .select("*")
+          .eq("book_id", book.id)
+          .order("display_order", { ascending: true });
+        if (!error && data) {
+          setBookPages((prev) => ({ ...prev, [book.id]: data }));
+        }
+      });
+    }
+  }, [books]);
+
+  // Generate cover image
+  const generateCover = async (prompt: string): Promise<string> => {
+    const fullPrompt = `Book cover illustration for a children's coloring book titled "${prompt}". Colorful, whimsical, inviting design that makes children want to open the book. Include decorative border elements.`;
+    
+    const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
+      body: { prompt: fullPrompt },
+    });
+    
+    if (error) throw error;
+    return data.imageUrl;
+  };
+
+  // Generate coloring page image
+  const generatePageImage = async (prompt: string): Promise<string> => {
+    const fullPrompt = `Black and white line art coloring page for children. Simple clean outlines, no shading, no filled areas, white background. Subject: ${prompt}. Style: Simple cartoon line drawing suitable for coloring, thick black outlines on pure white background.`;
+    
+    const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
+      body: { prompt: fullPrompt },
+    });
+    
+    if (error) throw error;
+    return data.imageUrl;
+  };
+
+  const handleGenerateCover = async (bookId?: string) => {
+    const prompt = bookId ? books?.find(b => b.id === bookId)?.title : coverPrompt;
+    if (!prompt?.trim()) return;
+    
+    setGeneratingCover(bookId || "new");
+    try {
+      const imageUrl = await generateCover(prompt);
+      
+      if (bookId) {
+        // Update existing book
+        const { error } = await supabase
+          .from("coloring_books")
+          .update({ cover_image_url: imageUrl })
+          .eq("id", bookId);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+        toast.success("Cover regenerated!");
+      } else {
+        // For new book dialog
+        setGeneratedCoverUrl(imageUrl);
+        setBookImageFile(null);
+        toast.success("Cover generated!");
+      }
+    } catch (error) {
+      showErrorToastWithCopy("Generating cover", error);
+    } finally {
+      setGeneratingCover(null);
+    }
+  };
+
+  // Add page and generate image
+  const handleAddPage = async (bookId: string) => {
+    if (!newPageName.trim()) return;
+    
+    setAddingPage(true);
+    try {
+      // Generate the image first
+      const imageUrl = await generatePageImage(newPageName);
+      
+      // Then insert the page with the image
+      const { error: insertError } = await supabase
+        .from("coloring_pages")
+        .insert({
+          title: newPageName,
+          book_id: bookId,
+          description: newPageName,
+          image_url: imageUrl,
+          display_order: (bookPages[bookId]?.length || 0),
+        });
+      
+      if (insertError) throw insertError;
+      
+      // Refresh pages
+      const { data: pages } = await supabase
+        .from("coloring_pages")
+        .select("*")
+        .eq("book_id", bookId)
+        .order("display_order", { ascending: true });
+      
+      if (pages) {
+        setBookPages((prev) => ({ ...prev, [bookId]: pages }));
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+      setNewPageName("");
+      toast.success("Page added!");
+    } catch (error) {
+      showErrorToastWithCopy("Adding page", error);
+    } finally {
+      setAddingPage(false);
+    }
+  };
+
+  // Regenerate page image
+  const handleRegeneratePage = async (page: ColoringPage) => {
+    setRegeneratingId(page.id);
+    try {
+      const imageUrl = await generatePageImage(page.description || page.title);
+      
+      const { error } = await supabase
+        .from("coloring_pages")
+        .update({ image_url: imageUrl })
+        .eq("id", page.id);
+      
+      if (error) throw error;
+      
+      // Refresh pages for this book
+      if (page.book_id) {
+        const { data: pages } = await supabase
+          .from("coloring_pages")
+          .select("*")
+          .eq("book_id", page.book_id)
+          .order("display_order", { ascending: true });
+        
+        if (pages) {
+          setBookPages((prev) => ({ ...prev, [page.book_id!]: pages }));
+        }
+      }
+      
+      toast.success("Image regenerated!");
+    } catch (error) {
+      showErrorToastWithCopy("Regenerating image", error);
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
+
+  // Delete page
+  const handleDeletePage = async (page: ColoringPage) => {
+    try {
+      const { error } = await supabase
+        .from("coloring_pages")
+        .delete()
+        .eq("id", page.id);
+      
+      if (error) throw error;
+      
+      if (page.book_id) {
+        setBookPages((prev) => ({
+          ...prev,
+          [page.book_id!]: prev[page.book_id!]?.filter((p) => p.id !== page.id) || [],
+        }));
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+      toast.success("Page deleted!");
+    } catch (error) {
+      showErrorToastWithCopy("Deleting page", error);
+    }
+  };
+
+  // Book mutations
+  const saveBookMutation = useMutation({
+    mutationFn: async (data: typeof bookFormData) => {
+      let coverUrl = editingBook?.cover_image_url || generatedCoverUrl;
+
+      if (bookImageFile) {
+        setBookUploading(true);
+        const compressed = await compressImage(bookImageFile);
+        const fileName = `${Date.now()}-${bookImageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(`coloring-books/${fileName}`, compressed);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from("app-assets")
+          .getPublicUrl(`coloring-books/${fileName}`);
+        coverUrl = urlData.publicUrl;
+        setBookUploading(false);
+      }
+
+      if (!coverUrl) throw new Error("Cover image is required");
+
+      const payload = { 
+        ...data, 
+        cover_image_url: coverUrl,
+        coin_price: data.is_free ? 0 : data.coin_price,
+      };
+
+      if (editingBook) {
+        const { error } = await supabase
+          .from("coloring_books")
+          .update(payload)
+          .eq("id", editingBook.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("coloring_books").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+      toast.success(editingBook ? "Book updated!" : "Book created!");
+      handleCloseBookDialog();
+    },
+    onError: (error) => {
+      showErrorToastWithCopy("Saving book", error);
+      setBookUploading(false);
+    },
+  });
+
+  const deleteBookMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("coloring_books").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+      toast.success("Book deleted!");
+    },
+  });
+
+  const toggleBookActiveMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase
+        .from("coloring_books")
+        .update({ is_active })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
+    },
+  });
+
+  const handleCloseBookDialog = () => {
+    setBookDialogOpen(false);
+    setEditingBook(null);
+    setBookFormData({ title: "", description: "", coin_price: 0, is_free: true, display_order: 0 });
+    setBookImageFile(null);
+    setGeneratedCoverUrl(null);
+    setCoverPrompt("");
+  };
+
+  const handleEditBook = (book: ColoringBook) => {
+    setEditingBook(book);
+    setBookFormData({
+      title: book.title,
+      description: book.description || "",
+      coin_price: book.coin_price || 0,
+      is_free: book.is_free,
+      display_order: book.display_order || 0,
+    });
+    setCoverPrompt(book.title);
+    setBookImageFile(null);
+    setGeneratedCoverUrl(null);
+    setBookDialogOpen(true);
+  };
+
+  const handleSubmitBook = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveBookMutation.mutate(bookFormData);
+  };
+
   return (
-    <div className="space-y-4">
-      <Tabs defaultValue="books" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="books" className="gap-2">
-            <BookOpen className="w-4 h-4" />
-            Books
-          </TabsTrigger>
-          <TabsTrigger value="pages" className="gap-2">
-            <Palette className="w-4 h-4" />
-            Pages
-          </TabsTrigger>
-        </TabsList>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <BookOpen className="w-5 h-5" />
+          Coloring Books
+        </CardTitle>
+        <Button onClick={() => setBookDialogOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> Add Book
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p>Loading...</p>
+        ) : !books?.length ? (
+          <p className="text-muted-foreground">No coloring books yet. Create your first book above.</p>
+        ) : (
+          <Accordion type="single" collapsible className="space-y-2">
+            {books.map((book) => {
+              const pages = bookPages[book.id] || [];
+              const missingCount = pages.filter((p) => !p.image_url).length;
+              
+              return (
+                <AccordionItem key={book.id} value={book.id} className="border rounded-lg overflow-hidden">
+                  <AccordionTrigger className="px-4 hover:no-underline hover:bg-muted/50">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border flex-shrink-0">
+                        {book.cover_image_url ? (
+                          <img
+                            src={book.cover_image_url}
+                            alt={book.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <ImageOff className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{book.title}</span>
+                          {!book.is_active && (
+                            <Badge variant="secondary" className="text-xs">Hidden</Badge>
+                          )}
+                          {book.is_free ? (
+                            <Badge variant="outline" className="text-xs">Free</Badge>
+                          ) : (
+                            <Badge variant="default" className="text-xs gap-1">
+                              <Coins className="w-3 h-3" />
+                              {book.coin_price}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">{pages.length} pages</span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  
+                  <AccordionContent className="px-4 pb-4">
+                    {/* Cover Section */}
+                    <div className="mb-6 p-4 rounded-lg bg-muted/50 border">
+                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        📖 Book Cover
+                      </h4>
+                      <div className="flex items-start gap-4">
+                        {book.cover_image_url ? (
+                          <div className="relative group rounded-lg border-2 border-primary overflow-hidden w-24 h-32 flex-shrink-0">
+                            <img
+                              src={book.cover_image_url}
+                              alt={`${book.title} Cover`}
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => setPreviewImage({ url: book.cover_image_url, name: `${book.title} Cover` })}
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleGenerateCover(book.id);
+                                }}
+                                disabled={generatingCover === book.id}
+                              >
+                                {generatingCover === book.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-lg border-2 border-dashed border-muted-foreground/30 w-24 h-32 flex-shrink-0 flex items-center justify-center bg-muted">
+                            <ImageOff className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {book.cover_image_url 
+                              ? "Hover over the cover to regenerate it with a new design."
+                              : "Generate a themed cover for this coloring book."}
+                          </p>
+                          <Button
+                            size="sm"
+                            onClick={() => handleGenerateCover(book.id)}
+                            disabled={generatingCover === book.id}
+                          >
+                            {generatingCover === book.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="w-4 h-4 mr-1" />
+                                {book.cover_image_url ? "Regenerate Cover" : "Generate Cover"}
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
 
-        <TabsContent value="books" className="mt-4">
-          <ColoringBooksManager />
-        </TabsContent>
+                    {/* Book Actions */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleBookActiveMutation.mutate({ id: book.id, is_active: !book.is_active })}
+                      >
+                        {book.is_active ? (
+                          <>
+                            <EyeOff className="w-4 h-4 mr-1" />
+                            Deactivate
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4 mr-1" />
+                            Activate
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditBook(book)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit Book
+                      </Button>
+                      {missingCount === 0 && pages.length > 0 && (
+                        <span className="flex items-center gap-1 text-sm text-green-600">
+                          <Check className="w-4 h-4" />
+                          All pages generated
+                        </span>
+                      )}
+                    </div>
 
-        <TabsContent value="pages" className="mt-4">
-          <ColoringPagesManager />
-        </TabsContent>
-      </Tabs>
-    </div>
+                    {/* Add New Page */}
+                    <div className="flex gap-2 mb-4">
+                      <Input
+                        placeholder="Enter page name (e.g., Cute Puppy, Rainbow...)"
+                        value={activeBookId === book.id ? newPageName : ""}
+                        onChange={(e) => {
+                          setActiveBookId(book.id);
+                          setNewPageName(e.target.value);
+                        }}
+                        onFocus={() => setActiveBookId(book.id)}
+                        disabled={addingPage}
+                      />
+                      <Button
+                        onClick={() => handleAddPage(book.id)}
+                        disabled={!newPageName.trim() || addingPage || activeBookId !== book.id}
+                      >
+                        {addingPage && activeBookId === book.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add & Generate
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Pages Grid */}
+                    {pages.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No pages yet. Add your first coloring page above.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {pages.map((page) => (
+                          <div
+                            key={page.id}
+                            className="relative group rounded-lg border-2 overflow-hidden aspect-square border-border"
+                          >
+                            {page.image_url ? (
+                              <img
+                                src={page.image_url}
+                                alt={page.title}
+                                className="w-full h-full object-cover cursor-pointer bg-white"
+                                loading="lazy"
+                                onClick={() => setPreviewImage({ url: page.image_url, name: page.title })}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-muted">
+                                <ImageOff className="w-8 h-8 text-muted-foreground" />
+                              </div>
+                            )}
+
+                            {/* Name overlay */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-4">
+                              <span className="text-xs text-white font-medium">{page.title}</span>
+                            </div>
+
+                            {/* Actions on hover */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                              {page.image_url && (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => setPreviewImage({ url: page.image_url, name: page.title })}
+                                  className="text-xs h-7"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleRegeneratePage(page)}
+                                disabled={regeneratingId === page.id}
+                                className="text-xs h-7"
+                              >
+                                {regeneratingId === page.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 mr-1" />
+                                    Regen
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeletePage(page)}
+                                className="text-xs h-7"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+      </CardContent>
+
+      {/* Book Dialog */}
+      <Dialog open={bookDialogOpen} onOpenChange={setBookDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingBook ? "Edit" : "Create New"} Coloring Book</DialogTitle>
+            <DialogDescription>
+              {editingBook ? "Update the book details below" : "Enter details for your new coloring book"}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitBook} className="space-y-4">
+            <div>
+              <Label>Title</Label>
+              <Input
+                value={bookFormData.title}
+                onChange={(e) => {
+                  setBookFormData({ ...bookFormData, title: e.target.value });
+                  if (!coverPrompt) setCoverPrompt(e.target.value);
+                }}
+                placeholder="e.g., Animal Friends"
+                required
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={bookFormData.description}
+                onChange={(e) => setBookFormData({ ...bookFormData, description: e.target.value })}
+                placeholder="What's this book about?"
+                rows={2}
+              />
+            </div>
+
+            {/* Pricing */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Coins className="w-4 h-4" />
+                  Free Book
+                </Label>
+                <Switch
+                  checked={bookFormData.is_free}
+                  onCheckedChange={(checked) => setBookFormData({ ...bookFormData, is_free: checked })}
+                />
+              </div>
+              {!bookFormData.is_free && (
+                <div>
+                  <Label>Price (coins)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={bookFormData.coin_price}
+                    onChange={(e) => setBookFormData({ ...bookFormData, coin_price: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label>Display Order</Label>
+              <Input
+                type="number"
+                value={bookFormData.display_order}
+                onChange={(e) => setBookFormData({ ...bookFormData, display_order: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+
+            {/* AI Cover Generation */}
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Generate Cover with AI
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={coverPrompt}
+                  onChange={(e) => setCoverPrompt(e.target.value)}
+                  placeholder="e.g., cute animals playing together"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={() => handleGenerateCover()}
+                  disabled={generatingCover === "new" || !coverPrompt.trim()}
+                  variant="secondary"
+                >
+                  {generatingCover === "new" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+              {generatedCoverUrl && (
+                <div className="relative">
+                  <img 
+                    src={generatedCoverUrl} 
+                    alt="Generated" 
+                    className="w-full max-w-xs mx-auto rounded border"
+                  />
+                  <p className="text-xs text-muted-foreground text-center mt-1">AI Generated Cover</p>
+                </div>
+              )}
+            </div>
+
+            {/* Current Cover Preview */}
+            {editingBook?.cover_image_url && !bookImageFile && !generatedCoverUrl && (
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <Label className="text-sm text-muted-foreground mb-2 block">Current Cover</Label>
+                <img 
+                  src={editingBook.cover_image_url} 
+                  alt="Current cover" 
+                  className="w-full max-w-xs mx-auto rounded border"
+                />
+              </div>
+            )}
+
+            {/* Or Upload */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or upload</span>
+              </div>
+            </div>
+
+            <div>
+              <Label>Upload Cover Image</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  setBookImageFile(e.target.files?.[0] || null);
+                  if (e.target.files?.[0]) setGeneratedCoverUrl(null);
+                }}
+              />
+              {bookImageFile && (
+                <img 
+                  src={URL.createObjectURL(bookImageFile)} 
+                  alt="Preview" 
+                  className="mt-2 w-32 h-40 object-cover rounded"
+                />
+              )}
+            </div>
+
+            <Button type="submit" disabled={saveBookMutation.isPending || bookUploading || generatingCover === "new"} className="w-full">
+              {bookUploading ? "Uploading..." : saveBookMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{previewImage?.name}</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <img
+              src={previewImage.url}
+              alt={previewImage.name}
+              className="w-full h-auto rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
