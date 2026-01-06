@@ -81,7 +81,7 @@ const Hero = ({ content = {} }: HeroProps) => {
       
       <div className="container mx-auto px-4 pt-4 pb-12 relative z-10">
         {/* Quick Action Buttons */}
-        <div className="relative flex flex-wrap justify-center gap-4 md:gap-10 mb-8">
+        <div className="relative flex flex-wrap justify-center gap-4 md:gap-10 mb-8 mt-6">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 -top-10 h-28 bg-primary/20 blur-3xl"
