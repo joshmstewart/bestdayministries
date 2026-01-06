@@ -5,7 +5,7 @@ import { ShoppingCart, Check } from "lucide-react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { useState } from "react";
 import { PurchaseDialog } from "./PurchaseDialog";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinIcon } from "@/components/CoinIcon";
 
 interface StoreItemCardProps {
   id: string;
@@ -84,7 +84,7 @@ export const StoreItemCard = ({
         </CardHeader>
         <CardContent className="flex-1">
           <div className="flex items-center gap-2 text-2xl font-bold text-primary">
-            <img src={joycoinImage} alt="JoyCoin" className="h-6 w-6" />
+            <CoinIcon size={24} />
             <span>{price.toLocaleString()}</span>
           </div>
         </CardContent>

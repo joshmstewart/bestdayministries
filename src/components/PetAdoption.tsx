@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinIcon } from "@/components/CoinIcon";
 
 interface PetType {
   id: string;
@@ -77,7 +77,7 @@ export function PetAdoption({ petTypes, adoptPet }: PetAdoptionProps) {
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-sm">
-                  <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4" />
+                  <CoinIcon size={16} />
                   <span className="font-semibold">
                     {petType.unlock_cost === 0 ? "Free" : `${petType.unlock_cost} coins`}
                   </span>

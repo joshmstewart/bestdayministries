@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Loader2, Lock, Clock, Sparkles, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinIcon } from "@/components/CoinIcon";
 import { PackOpeningDialog } from "./PackOpeningDialog";
 import { CollectionSelectorDialog } from "./CollectionSelectorDialog";
 import { TextToSpeech } from "./TextToSpeech";
@@ -754,7 +754,7 @@ export const StickerAlbum = () => {
                   </>
                 ) : (
                   <>
-                    <img src={joycoinImage} alt="JoyCoin" className="w-5 h-5 mr-2" />
+                    <CoinIcon className="mr-2" size={20} />
                     Buy Bonus Sticker ({nextCost} coins)
                   </>
                 )}

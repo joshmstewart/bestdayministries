@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinIcon } from "@/components/CoinIcon";
 
 interface PurchaseDialogProps {
   open: boolean;
@@ -43,7 +43,7 @@ export const PurchaseDialog = ({
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Price:</span>
                 <div className="flex items-center gap-2 font-semibold">
-                  <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4" />
+                  <CoinIcon size={16} />
                   <span>{itemPrice.toLocaleString()}</span>
                 </div>
               </div>
@@ -51,7 +51,7 @@ export const PurchaseDialog = ({
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Your Balance:</span>
                 <div className="flex items-center gap-2 font-semibold">
-                  <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4" />
+                  <CoinIcon size={16} />
                   <span>{userCoins.toLocaleString()}</span>
                 </div>
               </div>
@@ -59,7 +59,7 @@ export const PurchaseDialog = ({
               <div className="border-t pt-2 flex items-center justify-between">
                 <span className="text-muted-foreground">After Purchase:</span>
                 <div className="flex items-center gap-2 font-semibold">
-                  <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4" />
+                  <CoinIcon size={16} />
                   <span>{remainingCoins.toLocaleString()}</span>
                 </div>
               </div>

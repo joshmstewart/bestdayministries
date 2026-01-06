@@ -4,7 +4,7 @@ import { Package } from "lucide-react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { StorePurchase } from "@/hooks/useStorePurchases";
 import { format } from "date-fns";
-import joycoinImage from "@/assets/joycoin.png";
+import { CoinIcon } from "@/components/CoinIcon";
 
 interface UserInventoryProps {
   purchases: StorePurchase[];
@@ -62,7 +62,7 @@ export const UserInventory = ({ purchases, loading }: UserInventoryProps) => {
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
-                  <img src={joycoinImage} alt="JoyCoin" className="h-4 w-4" />
+                  <CoinIcon size={16} />
                   <span className="font-semibold">{purchase.coins_spent}</span>
                 </div>
                 <Badge variant="outline">
