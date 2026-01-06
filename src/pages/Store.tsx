@@ -30,6 +30,7 @@ const Store = () => {
   const { coins } = useCoins();
   const { purchases, loading: purchasesLoading, purchaseItem, refetch } = useStorePurchases();
   const [items, setItems] = useState<StoreItem[]>([]);
+  const [purchasedPackIds, setPurchasedPackIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [userRole, setUserRole] = useState<UserRole | null>(null);
@@ -48,14 +49,45 @@ const Store = () => {
         setUserRole(roleData?.role || "supporter");
       }
 
-      const { data, error } = await supabase
-        .from("store_items")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
+      // Fetch store items, purchasable memory match packs, and user's purchased packs in parallel
+      const [storeItemsResult, memoryPacksResult, userPacksResult] = await Promise.all([
+        supabase
+          .from("store_items")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("memory_match_packs")
+          .select("id, name, description, preview_image_url, price_coins, is_active, is_purchasable")
+          .eq("is_active", true)
+          .eq("is_purchasable", true),
+        user ? supabase
+          .from("user_memory_match_packs")
+          .select("pack_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] })
+      ]);
 
-      if (error) throw error;
-      setItems(data || []);
+      if (storeItemsResult.error) throw storeItemsResult.error;
+      
+      // Store purchased pack IDs
+      const purchasedPacks = new Set<string>(
+        (userPacksResult.data || []).map((p: { pack_id: string }) => `memory_pack_${p.pack_id}`)
+      );
+      setPurchasedPackIds(purchasedPacks);
+      
+      // Convert memory match packs to store item format
+      const memoryPackItems: StoreItem[] = (memoryPacksResult.data || []).map((pack, index) => ({
+        id: `memory_pack_${pack.id}`,
+        name: `Memory Match: ${pack.name}`,
+        description: pack.description || `Unlock the ${pack.name} theme for Memory Match game`,
+        price: pack.price_coins || 0,
+        category: "games",
+        image_url: pack.preview_image_url,
+        display_order: 1000 + index, // Put after regular store items
+      }));
+
+      // Combine and set items
+      setItems([...(storeItemsResult.data || []), ...memoryPackItems]);
     } catch (error) {
       console.error("Error fetching store items:", error);
     } finally {
@@ -145,6 +177,7 @@ const Store = () => {
                 userCoins={coins}
                 loading={loading}
                 purchases={purchases}
+                purchasedPackIds={purchasedPackIds}
               />
             </TabsContent>
 
