@@ -11,6 +11,8 @@ import { ColoringCanvas } from "@/components/coloring-book/ColoringCanvas";
 import { ColoringGallery } from "@/components/coloring-book/ColoringGallery";
 import { useCoins } from "@/hooks/useCoins";
 import { toast } from "sonner";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -156,66 +158,72 @@ export default function ColoringBook() {
   // Show pages within a book
   if (selectedBook) {
     return (
-      <main className="min-h-screen bg-background pt-24 pb-12">
-        <div className="container max-w-6xl mx-auto px-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setSelectedBook(null)}
-            className="mb-6"
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Back to Books
-          </Button>
+      <div className="min-h-screen flex flex-col">
+        <UnifiedHeader />
+        <main className="flex-1 pt-24 pb-12">
+          <div className="container max-w-6xl mx-auto px-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedBook(null)}
+              className="mb-6"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Back to Books
+            </Button>
 
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
-              <BookOpen className="w-8 h-8" />
-              {selectedBook.title}
-            </h1>
-            {selectedBook.description && (
-              <p className="text-muted-foreground mt-2">{selectedBook.description}</p>
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
+                <BookOpen className="w-8 h-8" />
+                {selectedBook.title}
+              </h1>
+              {selectedBook.description && (
+                <p className="text-muted-foreground mt-2">{selectedBook.description}</p>
+              )}
+            </div>
+
+            {pagesLoading ? (
+              <div className="text-center py-12">Loading pages...</div>
+            ) : !bookPages?.length ? (
+              <div className="text-center py-12 text-muted-foreground">
+                No pages in this book yet. Check back soon!
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {bookPages.map((page) => (
+                  <Card
+                    key={page.id}
+                    className="cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
+                    onClick={() => setSelectedPage(page)}
+                  >
+                    <CardContent className="p-0">
+                      <img
+                        src={page.image_url}
+                        alt={page.title}
+                        className="w-full aspect-square object-cover bg-white"
+                      />
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm truncate">{page.title}</h3>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {page.difficulty}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
           </div>
-
-          {pagesLoading ? (
-            <div className="text-center py-12">Loading pages...</div>
-          ) : !bookPages?.length ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No pages in this book yet. Check back soon!
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {bookPages.map((page) => (
-                <Card
-                  key={page.id}
-                  className="cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
-                  onClick={() => setSelectedPage(page)}
-                >
-                  <CardContent className="p-0">
-                    <img
-                      src={page.image_url}
-                      alt={page.title}
-                      className="w-full aspect-square object-cover bg-white"
-                    />
-                    <div className="p-3">
-                      <h3 className="font-medium text-sm truncate">{page.title}</h3>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {page.difficulty}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+        </main>
+        <Footer />
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background pt-24 pb-12">
+    <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      <main className="flex-1 pt-24 pb-12">
       <div className="container max-w-6xl mx-auto px-4">
         <Button
           variant="outline"
@@ -349,6 +357,8 @@ export default function ColoringBook() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+      </main>
+      <Footer />
+    </div>
   );
 }
