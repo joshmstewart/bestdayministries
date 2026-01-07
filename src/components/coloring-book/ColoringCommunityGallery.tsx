@@ -399,41 +399,28 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                     />
                     {selectedColoring.likes_count}
                   </Button>
-                  {/* For own drawings: Continue Coloring (with saved data) and Color New Copy */}
+                  {/* Edit button - only for owner */}
                   {onSelectColoring && selectedColoring.coloring_page && selectedColoring.user_id === userId && selectedColoring.canvas_data && (
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          // Pass saved canvas data like ColoringGallery does
-                          const pageWithSavedData = {
-                            ...selectedColoring.coloring_page,
-                            savedCanvasData: selectedColoring.canvas_data,
-                            isPublic: selectedColoring.is_public,
-                          };
-                          onSelectColoring(pageWithSavedData, true);
-                          setSelectedColoring(null);
-                        }}
-                      >
-                        <Palette className="h-4 w-4 mr-1" />
-                        Continue Coloring
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          onSelectColoring(selectedColoring.coloring_page, false);
-                          setSelectedColoring(null);
-                        }}
-                      >
-                        <Palette className="h-4 w-4 mr-1" />
-                        Color New Copy
-                      </Button>
-                    </>
-                  )}
-                  {/* For others' drawings: just Color This Template */}
-                  {onSelectColoring && selectedColoring.coloring_page && (selectedColoring.user_id !== userId || !selectedColoring.canvas_data) && (
                     <Button
+                      size="sm"
+                      onClick={() => {
+                        const pageWithSavedData = {
+                          ...selectedColoring.coloring_page,
+                          savedCanvasData: selectedColoring.canvas_data,
+                          isPublic: selectedColoring.is_public,
+                        };
+                        onSelectColoring(pageWithSavedData, true);
+                        setSelectedColoring(null);
+                      }}
+                    >
+                      <Palette className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                  {/* Color This Template - for everyone */}
+                  {onSelectColoring && selectedColoring.coloring_page && (
+                    <Button
+                      variant={selectedColoring.user_id === userId && selectedColoring.canvas_data ? "outline" : "default"}
                       size="sm"
                       onClick={() => {
                         onSelectColoring(selectedColoring.coloring_page, false);
