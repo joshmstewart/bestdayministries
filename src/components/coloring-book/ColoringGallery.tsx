@@ -115,10 +115,11 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
 
   const handleContinue = () => {
     if (selectedColoring) {
-      // Pass the saved data along with the page
+      // Pass the saved data along with the page, including is_public status
       const pageWithSavedData = {
         ...selectedColoring.coloring_page,
         savedCanvasData: selectedColoring.canvas_data,
+        isPublic: selectedColoring.is_public,
       };
       onSelectColoring(pageWithSavedData, true);
       setSelectedColoring(null);
