@@ -23,8 +23,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { 
-  Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, RefreshCw, 
-  BookOpen, Coins, ImageOff, Wand2, Check, Upload
+  Plus, Edit, Eye, EyeOff, Sparkles, Loader2, RefreshCw, 
+  BookOpen, Coins, ImageOff, Wand2, Check, Upload, Archive, ArchiveRestore
 } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
@@ -316,12 +316,13 @@ DRAWING REQUIREMENTS:
     }
   };
 
-  // Delete page
-  const handleDeletePage = async (page: ColoringPage) => {
+  // Archive/restore page (instead of delete)
+  const handleTogglePageActive = async (page: ColoringPage) => {
+    const newActiveState = !page.is_active;
     try {
       const { error } = await supabase
         .from("coloring_pages")
-        .delete()
+        .update({ is_active: newActiveState })
         .eq("id", page.id);
       
       if (error) throw error;
@@ -329,14 +330,16 @@ DRAWING REQUIREMENTS:
       if (page.book_id) {
         setBookPages((prev) => ({
           ...prev,
-          [page.book_id!]: prev[page.book_id!]?.filter((p) => p.id !== page.id) || [],
+          [page.book_id!]: prev[page.book_id!]?.map((p) =>
+            p.id === page.id ? { ...p, is_active: newActiveState } : p
+          ) || [],
         }));
       }
       
       queryClient.invalidateQueries({ queryKey: ["admin-coloring-books"] });
-      toast.success("Page deleted!");
+      toast.success(newActiveState ? "Page restored!" : "Page archived!");
     } catch (error) {
-      showErrorToastWithCopy("Deleting page", error);
+      showErrorToastWithCopy(newActiveState ? "Restoring page" : "Archiving page", error);
     }
   };
 
@@ -944,8 +947,21 @@ DRAWING REQUIREMENTS:
                         {pages.map((page) => (
                           <div
                             key={page.id}
-                            className="relative group rounded-lg border-2 overflow-hidden aspect-square border-border"
+                            className={`relative group rounded-lg border-2 overflow-hidden aspect-square ${
+                              page.is_active === false 
+                                ? "border-muted opacity-50" 
+                                : "border-border"
+                            }`}
                           >
+                            {/* Archived badge */}
+                            {page.is_active === false && (
+                              <div className="absolute top-1 left-1 z-10">
+                                <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                                  <Archive className="w-3 h-3 mr-1" />
+                                  Archived
+                                </Badge>
+                              </div>
+                            )}
                             {page.image_url ? (
                               <img
                                 src={page.image_url}
@@ -1008,12 +1024,21 @@ DRAWING REQUIREMENTS:
                               </Button>
                               <Button
                                 size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeletePage(page)}
+                                variant={page.is_active ? "secondary" : "default"}
+                                onClick={() => handleTogglePageActive(page)}
                                 className="text-xs h-7"
                               >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Delete
+                                {page.is_active ? (
+                                  <>
+                                    <Archive className="w-3 h-3 mr-1" />
+                                    Archive
+                                  </>
+                                ) : (
+                                  <>
+                                    <ArchiveRestore className="w-3 h-3 mr-1" />
+                                    Restore
+                                  </>
+                                )}
                               </Button>
                             </div>
                           </div>
