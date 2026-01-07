@@ -428,7 +428,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                       }}
                     >
                       <Palette className="h-4 w-4 mr-1" />
-                      Color This Template
+                      Start New Copy
                     </Button>
                   )}
                   {selectedColoring.user_id === userId && (
