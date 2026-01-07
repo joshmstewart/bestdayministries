@@ -80,7 +80,10 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
   const lastPinchDistance = useRef<number | null>(null);
   const zoomContainerRef = useRef<HTMLDivElement>(null);
 
-  const CANVAS_SIZE = 600;
+  // Dynamic canvas dimensions based on image aspect ratio
+  const [canvasWidth, setCanvasWidth] = useState(600);
+  const [canvasHeight, setCanvasHeight] = useState(600);
+  const MAX_CANVAS_DIMENSION = 600;
   const MIN_ZOOM = 1;
   const MAX_ZOOM = 4;
 
@@ -92,14 +95,17 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     const ctx = baseCanvas.getContext("2d");
     if (!ctx) return;
 
-    baseCanvas.width = CANVAS_SIZE;
-    baseCanvas.height = CANVAS_SIZE;
-
     // Check if we have saved canvas data to restore
     if (page.savedCanvasData) {
       try {
         const savedData = JSON.parse(page.savedCanvasData);
-        if (savedData.baseCanvas) {
+        if (savedData.baseCanvas && savedData.canvasWidth && savedData.canvasHeight) {
+          // Restore saved dimensions
+          setCanvasWidth(savedData.canvasWidth);
+          setCanvasHeight(savedData.canvasHeight);
+          baseCanvas.width = savedData.canvasWidth;
+          baseCanvas.height = savedData.canvasHeight;
+          
           const savedImg = new Image();
           savedImg.onload = () => {
             ctx.drawImage(savedImg, 0, 0);
@@ -120,21 +126,36 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       }
     }
 
-    // Fill with white background
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    // Load the coloring page image
+    // Load the coloring page image to get its dimensions
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      const scale = Math.min(CANVAS_SIZE / img.width, CANVAS_SIZE / img.height);
-      const scaledWidth = img.width * scale;
-      const scaledHeight = img.height * scale;
-      const offsetX = (CANVAS_SIZE - scaledWidth) / 2;
-      const offsetY = (CANVAS_SIZE - scaledHeight) / 2;
+      // Calculate canvas dimensions based on image aspect ratio
+      const aspectRatio = img.width / img.height;
+      let newWidth: number;
+      let newHeight: number;
+      
+      if (aspectRatio >= 1) {
+        // Landscape or square - fit to max width
+        newWidth = MAX_CANVAS_DIMENSION;
+        newHeight = MAX_CANVAS_DIMENSION / aspectRatio;
+      } else {
+        // Portrait - fit to max height
+        newHeight = MAX_CANVAS_DIMENSION;
+        newWidth = MAX_CANVAS_DIMENSION * aspectRatio;
+      }
+      
+      setCanvasWidth(newWidth);
+      setCanvasHeight(newHeight);
+      baseCanvas.width = newWidth;
+      baseCanvas.height = newHeight;
 
-      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+      // Fill with white background
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, newWidth, newHeight);
+
+      // Draw image to fill the entire canvas
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
       originalImageRef.current = img;
       setImageLoaded(true);
     };
@@ -150,8 +171,8 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     if (!fabricCanvasRef.current || !imageLoaded) return;
 
     const canvas = new FabricCanvas(fabricCanvasRef.current, {
-      width: CANVAS_SIZE,
-      height: CANVAS_SIZE,
+      width: canvasWidth,
+      height: canvasHeight,
       backgroundColor: "transparent",
       isDrawingMode: false,
       enablePointerEvents: true,
@@ -314,8 +335,8 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       img.scale(scale);
 
       img.set({
-        left: CANVAS_SIZE / 2 - ((img.width || 0) * scale) / 2,
-        top: CANVAS_SIZE / 2 - ((img.height || 0) * scale) / 2,
+        left: canvasWidth / 2 - ((img.width || 0) * scale) / 2,
+        top: canvasHeight / 2 - ((img.height || 0) * scale) / 2,
       });
 
       fabricCanvas.add(img);
@@ -347,7 +368,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     if (!baseCanvasRef.current) return;
     const ctx = baseCanvasRef.current.getContext("2d");
     if (!ctx) return;
-    const imageData = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
     setHistory(prev => [...prev.slice(-MAX_HISTORY + 1), imageData]);
   }, []);
 
@@ -506,7 +527,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
         // Regular scroll to pan when zoomed in
         e.preventDefault();
         setPanOffset(prev => {
-          const maxPan = (zoom - 1) * CANVAS_SIZE / 2;
+          const maxPan = (zoom - 1) * Math.max(canvasWidth, canvasHeight) / 2;
           return {
             x: Math.max(-maxPan, Math.min(maxPan, prev.x - e.deltaX)),
             y: Math.max(-maxPan, Math.min(maxPan, prev.y - e.deltaY)),
@@ -542,7 +563,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       lastPanPoint.current = { x: e.clientX, y: e.clientY };
       
       setPanOffset(prev => {
-        const maxPan = (zoom - 1) * CANVAS_SIZE / 2;
+        const maxPan = (zoom - 1) * Math.max(canvasWidth, canvasHeight) / 2;
         return {
           x: Math.max(-maxPan, Math.min(maxPan, prev.x + dx)),
           y: Math.max(-maxPan, Math.min(maxPan, prev.y + dy)),
@@ -612,7 +633,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
         lastPanPoint.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         
         setPanOffset(prev => {
-          const maxPan = (zoom - 1) * CANVAS_SIZE / 2;
+          const maxPan = (zoom - 1) * Math.max(canvasWidth, canvasHeight) / 2;
           return {
             x: Math.max(-maxPan, Math.min(maxPan, prev.x + dx)),
             y: Math.max(-maxPan, Math.min(maxPan, prev.y + dy)),
@@ -644,13 +665,13 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     if (activeTool !== "fill" && activeTool !== "eyedropper") return;
 
     const rect = baseCanvasRef.current.getBoundingClientRect();
-    const scaleX = CANVAS_SIZE / rect.width;
-    const scaleY = CANVAS_SIZE / rect.height;
+    const scaleX = canvasWidth / rect.width;
+    const scaleY = canvasHeight / rect.height;
     
     const x = Math.floor((e.clientX - rect.left) * scaleX);
     const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-    if (x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
+    if (x >= 0 && x < canvasWidth && y >= 0 && y < canvasHeight) {
       if (activeTool === "eyedropper") {
         // Sample color from canvas
         const ctx = baseCanvasRef.current.getContext("2d");
@@ -676,16 +697,12 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
 
     // Clear and redraw original image
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     if (originalImageRef.current) {
       const img = originalImageRef.current;
-      const scale = Math.min(CANVAS_SIZE / img.width, CANVAS_SIZE / img.height);
-      const scaledWidth = img.width * scale;
-      const scaledHeight = img.height * scale;
-      const offsetX = (CANVAS_SIZE - scaledWidth) / 2;
-      const offsetY = (CANVAS_SIZE - scaledHeight) / 2;
-      ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+      // Draw image to fill the entire canvas
+      ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
     }
 
     // Clear Fabric.js canvas
@@ -703,8 +720,8 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
 
     // Create a composite canvas
     const composite = document.createElement("canvas");
-    composite.width = CANVAS_SIZE;
-    composite.height = CANVAS_SIZE;
+    composite.width = canvasWidth;
+    composite.height = canvasHeight;
     const ctx = composite.getContext("2d");
     if (!ctx) return null;
 
@@ -737,6 +754,8 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       const canvasData = JSON.stringify({
         baseCanvas: baseCanvasRef.current?.toDataURL("image/png"),
         fabricObjects: fabricCanvas?.toJSON(),
+        canvasWidth,
+        canvasHeight,
       });
 
       // Check if this is a new save (for coin rewards)
@@ -859,10 +878,11 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           {/* Zoomable Canvas Area */}
           <div
             ref={zoomContainerRef}
-            className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg aspect-square"
+            className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg"
             style={{
               width: "100%",
-              maxWidth: CANVAS_SIZE,
+              maxWidth: canvasWidth,
+              aspectRatio: `${canvasWidth} / ${canvasHeight}`,
               cursor:
                 zoom > 1
                   ? isPanning
