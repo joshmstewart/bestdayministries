@@ -99,7 +99,26 @@ export default function ColoringBook() {
       if (!user?.id) throw new Error("Must be logged in");
       if ((coins || 0) < book.coin_price) throw new Error("Not enough coins");
       
-      // Deduct coins via transaction
+      // Get current coins and deduct
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("coins")
+        .eq("id", user.id)
+        .single();
+      
+      if (profileError) throw profileError;
+      
+      const newBalance = (profile.coins || 0) - book.coin_price;
+      
+      // Update coins
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ coins: newBalance })
+        .eq("id", user.id);
+      
+      if (updateError) throw updateError;
+      
+      // Record transaction
       const { error: txError } = await supabase
         .from("coin_transactions")
         .insert({
