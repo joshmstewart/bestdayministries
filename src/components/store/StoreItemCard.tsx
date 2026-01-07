@@ -68,7 +68,7 @@ export const StoreItemCard = ({
               <OptimizedImage
                 src={imageUrl}
                 alt={name}
-                className="w-full h-48 object-cover"
+                className="w-full h-48 object-contain"
               />
             </div>
           )}
