@@ -20,6 +20,7 @@ export function ColoringBooksManager() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    generation_prompt: "",
     coin_price: 0,
     is_free: true,
     display_order: 0,
@@ -148,7 +149,7 @@ export function ColoringBooksManager() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingBook(null);
-    setFormData({ title: "", description: "", coin_price: 0, is_free: true, display_order: 0 });
+    setFormData({ title: "", description: "", generation_prompt: "", coin_price: 0, is_free: true, display_order: 0 });
     setImageFile(null);
     setGeneratedImageUrl(null);
     setAiPrompt("");
@@ -159,6 +160,7 @@ export function ColoringBooksManager() {
     setFormData({
       title: book.title,
       description: book.description || "",
+      generation_prompt: book.generation_prompt || "",
       coin_price: book.coin_price || 0,
       is_free: book.is_free,
       display_order: book.display_order || 0,
@@ -212,6 +214,22 @@ export function ColoringBooksManager() {
                   placeholder="What's this book about?"
                   rows={2}
                 />
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-2 bg-primary/5">
+                <Label className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Generation Prompt (Theme for AI Pages)
+                </Label>
+                <Textarea
+                  value={formData.generation_prompt}
+                  onChange={(e) => setFormData({ ...formData, generation_prompt: e.target.value })}
+                  placeholder="e.g., 'cute cartoon animals in natural outdoor scenes with trees, flowers, and sunshine' - this will be combined with each page's title when generating images"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This theme is combined with each page title when generating AI images. Example: If this says "in a magical forest" and a page is titled "Bunny", the AI will generate "Bunny in a magical forest".
+                </p>
               </div>
 
               {/* Pricing */}
