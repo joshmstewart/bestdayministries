@@ -221,14 +221,18 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       if (fabricCanvas.freeDrawingBrush) {
         fabricCanvas.freeDrawingBrush.color = activeColor;
         fabricCanvas.freeDrawingBrush.width = brushSize;
+        // Reset to normal drawing mode
+        (fabricCanvas.freeDrawingBrush as any).globalCompositeOperation = "source-over";
       }
     } else if (activeTool === "eraser") {
       fabricCanvas.isDrawingMode = true;
       fabricCanvas.selection = false;
       if (fabricCanvas.freeDrawingBrush) {
-        // For eraser, we'll use white to "erase" on the overlay
-        fabricCanvas.freeDrawingBrush.color = "#FFFFFF";
+        // Use destination-out composite to erase user strokes without affecting template
+        fabricCanvas.freeDrawingBrush.color = "rgba(0,0,0,1)";
         fabricCanvas.freeDrawingBrush.width = brushSize * 2;
+        // Set global composite operation for erasing
+        (fabricCanvas.freeDrawingBrush as any).globalCompositeOperation = "destination-out";
       }
     } else if (activeTool === "sticker") {
       fabricCanvas.isDrawingMode = false;
