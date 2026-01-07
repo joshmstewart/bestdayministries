@@ -657,8 +657,8 @@ export const UnifiedHeader = () => {
                       <button 
                         onClick={() => navigate("/store")}
                         className="flex items-center gap-1.5 hover:scale-105 transition-transform"
-                        title="JoyCoin Shop"
-                        aria-label="JoyCoin Shop"
+                        title="Coin Shop"
+                        aria-label="Coin Shop"
                       >
                         <CoinIcon className="drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" size={24} />
                         <span className="font-semibold text-sm">{coins.toLocaleString()}</span>
@@ -789,8 +789,8 @@ export const UnifiedHeader = () => {
                       <button 
                         onClick={() => navigate("/store")}
                         className="flex items-center gap-2 hover:scale-105 transition-transform"
-                        title="JoyCoin Shop"
-                        aria-label="JoyCoin Shop"
+                        title="Coin Shop"
+                        aria-label="Coin Shop"
                       >
                         <CoinIcon className="drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" size={24} />
                         <span className="font-semibold text-sm md:text-base">{coins.toLocaleString()}</span>
