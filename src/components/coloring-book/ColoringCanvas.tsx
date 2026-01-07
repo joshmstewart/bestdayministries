@@ -993,8 +993,22 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
 
             <div className="flex flex-col gap-2">
               <Button 
+                onClick={() => handleSave(false)} 
+                disabled={saving || sharing}
+                className="w-full"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-1" />
+                )}
+                {saving ? "Saving..." : "Save"}
+              </Button>
+              
+              <Button 
+                variant={isShared ? "outline" : "secondary"}
                 onClick={() => handleSave(true)} 
-                disabled={saving || sharing || isShared}
+                disabled={saving || sharing}
                 className="w-full"
               >
                 {sharing ? (
@@ -1002,18 +1016,8 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                 ) : (
                   <Share2 className="w-4 h-4 mr-1" />
                 )}
-                {isShared ? "Shared!" : sharing ? "Sharing..." : "Save & Share"}
+                {sharing ? "Sharing..." : isShared ? "Update & Keep Shared" : "Save & Share"}
               </Button>
-              
-              {!isShared && (
-                <button
-                  onClick={() => handleSave(false)}
-                  disabled={saving || sharing}
-                  className="text-sm text-primary underline hover:text-primary/80 transition-colors disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save to My Gallery only (private)"}
-                </button>
-              )}
               
               <Button variant="outline" onClick={handleDownload} className="w-full">
                 <Download className="w-4 h-4 mr-1" />
