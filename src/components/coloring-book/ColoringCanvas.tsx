@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2, Share2, Loader2, Pipette } from "lucide-react";
+import { Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2, Share2, Loader2, Pipette, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -63,6 +63,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
   const { awardCoins } = useCoins();
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [unsharing, setUnsharing] = useState(false);
   const [isShared, setIsShared] = useState(page?.isPublic || false);
   const [hasChanges, setHasChanges] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -821,6 +822,27 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     }
   };
 
+  const handleUnshare = async () => {
+    if (!user) return;
+    setUnsharing(true);
+    try {
+      const { error } = await supabase
+        .from("user_colorings")
+        .update({ is_public: false })
+        .eq("user_id", user.id)
+        .eq("coloring_page_id", page.id);
+
+      if (error) throw error;
+      setIsShared(false);
+      toast.success("Drawing unshared - now private");
+    } catch (error) {
+      console.error("Unshare error:", error);
+      toast.error("Failed to unshare");
+    } finally {
+      setUnsharing(false);
+    }
+  };
+
   const handleDownload = () => {
     const composite = getCompositeCanvas();
     if (!composite) return;
@@ -1115,19 +1137,35 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
                 {saving ? "Saving..." : "Save"}
               </Button>
 
-              <Button
-                variant="secondary"
-                onClick={() => handleSave(true)}
-                disabled={saving || sharing || isShared}
-                className="w-full"
-              >
-                {sharing ? (
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                ) : (
-                  <Share2 className="w-4 h-4 mr-1" />
-                )}
-                {sharing ? "Sharing..." : "Save & Share"}
-              </Button>
+              {isShared ? (
+                <Button
+                  variant="secondary"
+                  onClick={handleUnshare}
+                  disabled={saving || sharing || unsharing}
+                  className="w-full"
+                >
+                  {unsharing ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 mr-1" />
+                  )}
+                  {unsharing ? "Unsharing..." : "Unshare"}
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={() => handleSave(true)}
+                  disabled={saving || sharing}
+                  className="w-full"
+                >
+                  {sharing ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Share2 className="w-4 h-4 mr-1" />
+                  )}
+                  {sharing ? "Sharing..." : "Save & Share"}
+                </Button>
+              )}
 
               <Button variant="outline" onClick={handleDownload} className="w-full">
                 <Download className="w-4 h-4 mr-1" />
