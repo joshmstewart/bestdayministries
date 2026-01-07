@@ -990,6 +990,35 @@ export type Database = {
         }
         Relationships: []
       }
+      coloring_likes: {
+        Row: {
+          coloring_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          coloring_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          coloring_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coloring_likes_coloring_id_fkey"
+            columns: ["coloring_id"]
+            isOneToOne: false
+            referencedRelation: "user_colorings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coloring_pages: {
         Row: {
           book_id: string | null
@@ -6074,6 +6103,8 @@ export type Database = {
           created_at: string
           id: string
           is_completed: boolean | null
+          is_public: boolean | null
+          likes_count: number | null
           thumbnail_url: string | null
           updated_at: string
           user_id: string
@@ -6084,6 +6115,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_completed?: boolean | null
+          is_public?: boolean | null
+          likes_count?: number | null
           thumbnail_url?: string | null
           updated_at?: string
           user_id: string
@@ -6094,6 +6127,8 @@ export type Database = {
           created_at?: string
           id?: string
           is_completed?: boolean | null
+          is_public?: boolean | null
+          likes_count?: number | null
           thumbnail_url?: string | null
           updated_at?: string
           user_id?: string
