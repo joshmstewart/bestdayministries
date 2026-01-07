@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -93,7 +93,6 @@ interface ColoringCommunityGalleryProps {
 }
 
 export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringCommunityGalleryProps) => {
-  const { toast } = useToast();
   const [colorings, setColorings] = useState<PublicColoring[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
@@ -135,11 +134,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
     const { data, error } = await query;
 
     if (error) {
-      toast({
-        title: "Error loading gallery",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(`Error loading gallery: ${error.message}`);
       return;
     }
 
@@ -244,11 +239,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
         }
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
     } finally {
       setLikingColoring(null);
     }
@@ -445,9 +436,9 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                           if (error) throw error;
                           setColorings(prev => prev.filter(c => c.id !== selectedColoring.id));
                           setSelectedColoring(null);
-                          toast({ title: "Drawing unshared", description: "Your drawing is now private." });
+                          toast.success("Drawing unshared - now private");
                         } catch (error: any) {
-                          toast({ title: "Error", description: error.message, variant: "destructive" });
+                          toast.error(error.message);
                         } finally {
                           setUnsharing(false);
                         }
