@@ -956,6 +956,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           display_order: number
+          generation_prompt: string | null
           id: string
           is_active: boolean
           is_free: boolean
@@ -969,6 +970,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          generation_prompt?: string | null
           id?: string
           is_active?: boolean
           is_free?: boolean
@@ -982,6 +984,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          generation_prompt?: string | null
           id?: string
           is_active?: boolean
           is_free?: boolean

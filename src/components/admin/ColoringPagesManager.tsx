@@ -40,7 +40,7 @@ export function ColoringPagesManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("coloring_books")
-        .select("id, title")
+        .select("id, title, generation_prompt")
         .order("display_order", { ascending: true });
       if (error) throw error;
       return data;
@@ -65,8 +65,18 @@ export function ColoringPagesManager() {
     },
   });
 
-  const generateImage = async (prompt: string): Promise<string> => {
-    const fullPrompt = `Black and white line art coloring page for children. Simple clean outlines, no shading, no filled areas, white background. Subject: ${prompt}. Style: Simple cartoon line drawing suitable for coloring, thick black outlines on pure white background.`;
+  const generateImage = async (prompt: string, bookId?: string): Promise<string> => {
+    // Get the book's generation prompt if a book is selected
+    const selectedBook = books?.find(b => b.id === bookId);
+    const bookTheme = selectedBook?.generation_prompt;
+    
+    // Combine the page prompt with the book theme
+    let subjectDescription = prompt;
+    if (bookTheme) {
+      subjectDescription = `${prompt}. Theme/context: ${bookTheme}`;
+    }
+    
+    const fullPrompt = `Black and white line art coloring page for children. Simple clean outlines, no shading, no filled areas, white background. Subject: ${subjectDescription}. Style: Simple cartoon line drawing suitable for coloring, thick black outlines on pure white background.`;
     
     const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
       body: { prompt: fullPrompt },
@@ -84,7 +94,7 @@ export function ColoringPagesManager() {
     
     setGeneratingImage(true);
     try {
-      const imageUrl = await generateImage(aiPrompt);
+      const imageUrl = await generateImage(aiPrompt, formData.book_id);
       setGeneratedImageUrl(imageUrl);
       setImageFile(null);
       toast.success("Image generated!");
@@ -100,7 +110,7 @@ export function ColoringPagesManager() {
     setRegeneratingId(page.id);
     
     try {
-      const imageUrl = await generateImage(prompt);
+      const imageUrl = await generateImage(prompt, page.book_id);
       
       const { error } = await supabase
         .from("coloring_pages")
@@ -414,6 +424,16 @@ export function ColoringPagesManager() {
                     <Sparkles className="w-4 h-4 text-primary" />
                     Generate with AI
                   </Label>
+                  
+                  {/* Show selected book's theme if available */}
+                  {formData.book_id && books?.find(b => b.id === formData.book_id)?.generation_prompt && (
+                    <div className="bg-primary/10 rounded-md p-2 text-sm">
+                      <span className="font-medium">Book theme: </span>
+                      <span className="text-muted-foreground">
+                        {books?.find(b => b.id === formData.book_id)?.generation_prompt}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Input
                       value={aiPrompt}
