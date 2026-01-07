@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Palette, Image, BookOpen, ChevronLeft, Users } from "lucide-react";
+import { Palette, Image, BookOpen, ChevronLeft, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ColoringCanvas } from "@/components/coloring-book/ColoringCanvas";
 import { ColoringGallery } from "@/components/coloring-book/ColoringGallery";
@@ -161,86 +161,65 @@ export default function ColoringBook() {
     );
   }
 
-  // Show pages within a book
-  if (selectedBook) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <UnifiedHeader />
-        <main className="flex-1 pt-24 pb-12">
-          <div className="container max-w-6xl mx-auto px-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedBook(null)}
-              className="mb-6"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Back to Books
-            </Button>
-
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
-                <BookOpen className="w-8 h-8" />
-                {selectedBook.title}
-              </h1>
-              {selectedBook.description && (
-                <p className="text-muted-foreground mt-2">{selectedBook.description}</p>
-              )}
-            </div>
-
-            {pagesLoading ? (
-              <div className="text-center py-12">Loading pages...</div>
-            ) : !bookPages?.length ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No pages in this book yet. Check back soon!
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {bookPages.map((page) => (
-                  <Card
-                    key={page.id}
-                    className="cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
-                    onClick={() => setSelectedPage(page)}
-                  >
-                    <CardContent className="p-0">
-                      <img
-                        src={page.image_url}
-                        alt={page.title}
-                        className="w-full aspect-square object-cover bg-white"
-                      />
-                      <div className="p-3">
-                        <h3 className="font-medium text-sm truncate">{page.title}</h3>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {page.difficulty}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </main>
-        <Footer />
+  // Render book pages content (used within tabs)
+  const renderBookPages = () => (
+    <>
+      <div className="flex items-center gap-4 mb-6">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSelectedBook(null)}
+        >
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          Back to Books
+        </Button>
+        <div>
+          <h2 className="text-xl font-bold text-primary">{selectedBook?.title}</h2>
+          {selectedBook?.description && (
+            <p className="text-sm text-muted-foreground">{selectedBook.description}</p>
+          )}
+        </div>
       </div>
-    );
-  }
+
+      {pagesLoading ? (
+        <div className="text-center py-12">Loading pages...</div>
+      ) : !bookPages?.length ? (
+        <div className="text-center py-12 text-muted-foreground">
+          No pages in this book yet. Check back soon!
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {bookPages.map((page) => (
+            <Card
+              key={page.id}
+              className="cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
+              onClick={() => setSelectedPage(page)}
+            >
+              <CardContent className="p-0">
+                <img
+                  src={page.image_url}
+                  alt={page.title}
+                  className="w-full aspect-square object-cover bg-white"
+                />
+                <div className="p-3">
+                  <h3 className="font-medium text-sm truncate">{page.title}</h3>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {page.difficulty}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
       <div className="container max-w-6xl mx-auto px-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/community")}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Community
-        </Button>
-
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
             <Palette className="w-8 h-8" />
@@ -268,7 +247,9 @@ export default function ColoringBook() {
           </TabsList>
 
           <TabsContent value="books">
-            {booksLoading ? (
+            {selectedBook ? (
+              renderBookPages()
+            ) : booksLoading ? (
               <div className="text-center py-12">Loading books...</div>
             ) : !coloringBooks?.length ? (
               <div className="text-center py-12 text-muted-foreground">
