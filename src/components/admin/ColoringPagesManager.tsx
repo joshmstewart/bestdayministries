@@ -458,12 +458,21 @@ export function ColoringPagesManager() {
 
                 <div>
                   <Label>Upload Line Art Image</Label>
-                  <Input
+                <Input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf,application/pdf"
                     onChange={(e) => {
-                      setImageFile(e.target.files?.[0] || null);
-                      if (e.target.files?.[0]) setGeneratedImageUrl(null);
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.type === 'application/pdf') {
+                          // If PDF, trigger the PDF upload handler instead
+                          handlePdfUpload(file);
+                          e.target.value = ''; // Reset so they can select again
+                        } else {
+                          setImageFile(file);
+                          setGeneratedImageUrl(null);
+                        }
+                      }
                     }}
                   />
                   {editingPage?.image_url && !imageFile && !generatedImageUrl && (
