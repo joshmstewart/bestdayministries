@@ -5,7 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Image, BookOpen, Users } from "lucide-react";
+import { Palette, Image, BookOpen, Users, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ColoringCanvas } from "@/components/coloring-book/ColoringCanvas";
 import { ColoringGallery } from "@/components/coloring-book/ColoringGallery";
 import { ColoringCommunityGallery } from "@/components/coloring-book/ColoringCommunityGallery";
@@ -44,6 +46,24 @@ export default function ColoringBook() {
   const [activeTab, setActiveTab] = useState("books");
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [bookToPurchase, setBookToPurchase] = useState<ColoringBook | null>(null);
+  const [previewBook, setPreviewBook] = useState<ColoringBook | null>(null);
+
+  // Fetch pages for preview
+  const { data: previewPages, isLoading: previewLoading } = useQuery({
+    queryKey: ["coloring-pages-preview", previewBook?.id],
+    queryFn: async () => {
+      if (!previewBook?.id) return [];
+      const { data, error } = await supabase
+        .from("coloring_pages")
+        .select("id, title, image_url")
+        .eq("book_id", previewBook.id)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!previewBook?.id,
+  });
 
   // Fetch all books with page count
   const { data: coloringBooks, isLoading: booksLoading } = useQuery({
@@ -330,6 +350,21 @@ export default function ColoringBook() {
                           ) : !hasAccess && (
                             <PriceRibbon price={book.coin_price} size="md" />
                           )}
+                          {/* Preview button for non-owned books */}
+                          {!hasAccess && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewBook(book);
+                              }}
+                            >
+                              <Eye className="w-3 h-3" />
+                              Preview
+                            </Button>
+                          )}
                         </div>
                         <div className="p-3">
                           <h3 className="font-medium text-sm truncate">{book.title}</h3>
@@ -366,6 +401,69 @@ export default function ColoringBook() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewBook} onOpenChange={(open) => !open && setPreviewBook(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Preview: {previewBook?.title}
+            </DialogTitle>
+            <DialogDescription>
+              {previewBook?.description || "See what's inside this coloring book before you buy!"}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh]">
+            {previewLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading preview...</div>
+            ) : !previewPages?.length ? (
+              <div className="text-center py-8 text-muted-foreground">No pages to preview yet.</div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 p-1">
+                {previewPages.map((page) => (
+                  <div key={page.id} className="space-y-1">
+                    <div className="rounded-lg overflow-hidden border bg-white">
+                      <img
+                        src={page.image_url}
+                        alt={page.title}
+                        className="w-full aspect-square object-cover"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center truncate">{page.title}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex items-center gap-2 text-sm">
+              <span>Price:</span>
+              <span className="flex items-center gap-1 font-bold text-primary">
+                <CoinIcon size={14} />
+                {previewBook?.coin_price}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setPreviewBook(null)}>
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  if (previewBook) {
+                    setPreviewBook(null);
+                    setBookToPurchase(previewBook);
+                    setPurchaseDialogOpen(true);
+                  }
+                }}
+                disabled={!isAuthenticated}
+              >
+                Purchase Book
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Purchase Dialog */}
       <AlertDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
