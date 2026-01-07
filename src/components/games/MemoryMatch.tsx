@@ -486,7 +486,16 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                   <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 ${
                     !packsExpanded && hasMultipleRows ? 'max-h-[200px] overflow-hidden' : ''
                   }`}>
-                    {usablePacks.map((pack) => {
+                    {[...usablePacks]
+                      .sort((a, b) => {
+                        // Available packs first (default, owned, or free), then purchasable
+                        const aCanUse = canUsePack(a);
+                        const bCanUse = canUsePack(b);
+                        if (aCanUse && !bCanUse) return -1;
+                        if (!aCanUse && bCanUse) return 1;
+                        return 0; // Keep original display_order within groups
+                      })
+                      .map((pack) => {
                       const canUse = canUsePack(pack);
                       const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
                       const previewImage = pack.preview_image_url || pack.images[0]?.image_url;
