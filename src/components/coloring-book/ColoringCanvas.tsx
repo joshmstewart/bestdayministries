@@ -63,7 +63,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
   const { awardCoins } = useCoins();
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [isShared, setIsShared] = useState(false);
+  const [isShared, setIsShared] = useState(page?.isPublic || false);
   const [hasChanges, setHasChanges] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
