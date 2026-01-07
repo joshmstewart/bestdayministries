@@ -859,11 +859,10 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           {/* Zoomable Canvas Area */}
           <div
             ref={zoomContainerRef}
-            className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg"
+            className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg aspect-square"
             style={{
-              width: CANVAS_SIZE,
-              height: CANVAS_SIZE,
-              maxWidth: "100%",
+              width: "100%",
+              maxWidth: CANVAS_SIZE,
               cursor:
                 zoom > 1
                   ? isPanning
@@ -877,7 +876,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
             }}
           >
             <div
-              className="absolute top-0 left-0 w-full h-full origin-center transition-transform duration-100"
+              className="absolute inset-0 origin-center transition-transform duration-100"
               style={{
                 transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
               }}
@@ -886,14 +885,22 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
               {/* Base canvas for image and fills */}
               <canvas
                 ref={baseCanvasRef}
-                className="absolute top-0 left-0 w-full h-full"
-                style={{ pointerEvents: "none" }}
+                className="absolute inset-0"
+                style={{ 
+                  width: "100%", 
+                  height: "100%", 
+                  pointerEvents: "none" 
+                }}
               />
               {/* Fabric.js canvas for brush strokes and stickers */}
               <canvas
                 ref={fabricCanvasRef}
-                className="absolute top-0 left-0 w-full h-full"
-                style={{ pointerEvents: activeTool === "fill" ? "none" : "auto" }}
+                className="absolute inset-0"
+                style={{ 
+                  width: "100%", 
+                  height: "100%", 
+                  pointerEvents: activeTool === "fill" ? "none" : "auto" 
+                }}
               />
             </div>
           </div>
