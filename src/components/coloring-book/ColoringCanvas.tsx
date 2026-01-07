@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2, Share2, Loader2 } from "lucide-react";
+import { Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2, Share2, Loader2, Pipette } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,7 +57,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeColor, setActiveColor] = useState("#FF0000");
   const [brushSize, setBrushSize] = useState(10);
-  const [activeTool, setActiveTool] = useState<"fill" | "brush" | "eraser" | "sticker">("fill");
+  const [activeTool, setActiveTool] = useState<"fill" | "brush" | "eraser" | "sticker" | "eyedropper">("fill");
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { user } = useAuth();
   const { awardCoins } = useCoins();
@@ -258,6 +258,14 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       // Make all objects selectable
       fabricCanvas.getObjects().forEach(obj => {
         obj.set({ selectable: true, evented: true });
+      });
+      fabricCanvas.renderAll();
+    } else if (activeTool === "eyedropper") {
+      fabricCanvas.isDrawingMode = false;
+      fabricCanvas.selection = false;
+      // Disable object selection in eyedropper mode
+      fabricCanvas.getObjects().forEach(obj => {
+        obj.set({ selectable: false, evented: false });
       });
       fabricCanvas.renderAll();
     } else {
@@ -624,9 +632,10 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     };
   }, [zoom, isPanning]);
 
-  // Handle click for fill tool
+  // Handle click for fill tool and eyedropper
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (activeTool !== "fill" || !baseCanvasRef.current) return;
+    if (!baseCanvasRef.current) return;
+    if (activeTool !== "fill" && activeTool !== "eyedropper") return;
 
     const rect = baseCanvasRef.current.getBoundingClientRect();
     const scaleX = CANVAS_SIZE / rect.width;
@@ -636,8 +645,18 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     const y = Math.floor((e.clientY - rect.top) * scaleY);
 
     if (x >= 0 && x < CANVAS_SIZE && y >= 0 && y < CANVAS_SIZE) {
-      saveToHistory();
-      floodFill(x, y, activeColor);
+      if (activeTool === "eyedropper") {
+        // Sample color from canvas
+        const ctx = baseCanvasRef.current.getContext("2d");
+        if (!ctx) return;
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const hex = `#${((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1).toUpperCase()}`;
+        setActiveColor(hex);
+        toast.success(`Color picked: ${hex}`);
+      } else {
+        saveToHistory();
+        floodFill(x, y, activeColor);
+      }
     }
   }, [activeTool, activeColor, floodFill, saveToHistory]);
 
@@ -843,7 +862,9 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
                     : "grab"
                   : activeTool === "fill"
                     ? "crosshair"
-                    : "default",
+                    : activeTool === "eyedropper"
+                      ? "crosshair"
+                      : "default",
             }}
           >
             <div
@@ -851,7 +872,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
               style={{
                 transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
               }}
-              onClick={activeTool === "fill" && !isPanning ? handleCanvasClick : undefined}
+              onClick={(activeTool === "fill" || activeTool === "eyedropper") && !isPanning ? handleCanvasClick : undefined}
             >
               {/* Base canvas for image and fills */}
               <canvas
@@ -894,7 +915,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
             </div>
 
             {/* Tool Buttons */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <Button
                 variant={activeTool === "fill" ? "secondary" : "outline"}
                 size="sm"
@@ -921,6 +942,16 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
               >
                 <Eraser className="w-4 h-4" />
                 Erase
+              </Button>
+              <Button
+                variant={activeTool === "eyedropper" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setActiveTool("eyedropper")}
+                className="gap-1"
+                title="Pick color from canvas"
+              >
+                <Pipette className="w-4 h-4" />
+                Pick
               </Button>
             </div>
 
