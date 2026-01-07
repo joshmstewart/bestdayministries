@@ -453,13 +453,14 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     setPanOffset({ x: 0, y: 0 });
   }, []);
 
-  // Handle wheel zoom
+  // Handle wheel zoom and pan
   useEffect(() => {
     const container = zoomContainerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
+        // Pinch zoom with trackpad
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.25 : 0.25;
         setZoom(prev => {
@@ -469,12 +470,76 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           }
           return newZoom;
         });
+      } else if (zoom > 1) {
+        // Regular scroll to pan when zoomed in
+        e.preventDefault();
+        setPanOffset(prev => {
+          const maxPan = (zoom - 1) * CANVAS_SIZE / 2;
+          return {
+            x: Math.max(-maxPan, Math.min(maxPan, prev.x - e.deltaX)),
+            y: Math.max(-maxPan, Math.min(maxPan, prev.y - e.deltaY)),
+          };
+        });
       }
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [zoom]);
+
+  // Handle mouse drag to pan when zoomed in
+  useEffect(() => {
+    const container = zoomContainerRef.current;
+    if (!container || zoom <= 1) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Only start panning with middle mouse button or when holding space
+      if (e.button === 1 || (e.button === 0 && e.altKey)) {
+        e.preventDefault();
+        lastPanPoint.current = { x: e.clientX, y: e.clientY };
+        setIsPanning(true);
+        container.style.cursor = 'grabbing';
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isPanning || !lastPanPoint.current) return;
+      
+      const dx = e.clientX - lastPanPoint.current.x;
+      const dy = e.clientY - lastPanPoint.current.y;
+      lastPanPoint.current = { x: e.clientX, y: e.clientY };
+      
+      setPanOffset(prev => {
+        const maxPan = (zoom - 1) * CANVAS_SIZE / 2;
+        return {
+          x: Math.max(-maxPan, Math.min(maxPan, prev.x + dx)),
+          y: Math.max(-maxPan, Math.min(maxPan, prev.y + dy)),
+        };
+      });
+    };
+
+    const handleMouseUp = () => {
+      if (isPanning) {
+        setIsPanning(false);
+        lastPanPoint.current = null;
+        container.style.cursor = zoom > 1 ? 'grab' : 'default';
+      }
+    };
+
+    container.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    // Set grab cursor when zoomed
+    container.style.cursor = 'grab';
+
+    return () => {
+      container.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      container.style.cursor = 'default';
+    };
+  }, [zoom, isPanning]);
 
   // Handle pinch-to-zoom for touch devices
   useEffect(() => {
