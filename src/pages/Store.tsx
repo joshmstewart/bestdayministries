@@ -1,15 +1,14 @@
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CoinsDisplay } from "@/components/CoinsDisplay";
 import { StoreItemGrid } from "@/components/store/StoreItemGrid";
-import { UserInventory } from "@/components/store/UserInventory";
 import { useStorePurchases } from "@/hooks/useStorePurchases";
 import { useCoins } from "@/hooks/useCoins";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShoppingBag, Package } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -34,6 +33,7 @@ const Store = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [hidePurchased, setHidePurchased] = useState(false);
 
   const fetchItems = async () => {
     try {
@@ -133,9 +133,13 @@ const Store = () => {
 
   const categories = ["all", ...new Set(roleFilteredItems.map(item => item.category))];
   
-  const filteredItems = selectedCategory === "all" 
-    ? roleFilteredItems 
-    : roleFilteredItems.filter(item => item.category === selectedCategory);
+  // Apply category and purchased filters
+  const filteredItems = roleFilteredItems.filter(item => {
+    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+    const isPurchased = purchases.some(p => p.store_item_id === item.id) || purchasedPackIds.has(item.id);
+    const matchesPurchased = !hidePurchased || !isPurchased;
+    return matchesCategory && matchesPurchased;
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -162,54 +166,43 @@ const Store = () => {
             </p>
           </div>
 
-          <Tabs defaultValue="store" className="space-y-6">
-            <TabsList className="inline-flex flex-wrap h-auto mx-auto">
-              <TabsTrigger value="store" className="flex items-center gap-2 whitespace-nowrap">
-                <ShoppingBag className="h-4 w-4" />
-                Browse Store
-              </TabsTrigger>
-              <TabsTrigger value="inventory" className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                My Inventory
-                {purchases.length > 0 && (
-                  <span className="ml-1 px-2 py-0.5 bg-primary text-primary-foreground text-xs rounded-full">
-                    {purchases.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="store" className="space-y-6">
-              <div className="flex flex-wrap gap-2 justify-center">
-                {categories.map((category) => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    onClick={() => setSelectedCategory(category)}
-                    className="capitalize"
-                  >
-                    {category}
-                  </Button>
-                ))}
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-2 justify-center items-center">
+              {categories.map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(category)}
+                  className="capitalize"
+                >
+                  {category}
+                </Button>
+              ))}
+              
+              <div className="flex items-center space-x-2 ml-4">
+                <Checkbox
+                  id="hide-purchased"
+                  checked={hidePurchased}
+                  onCheckedChange={(checked) => setHidePurchased(checked === true)}
+                />
+                <label
+                  htmlFor="hide-purchased"
+                  className="text-sm font-medium leading-none cursor-pointer"
+                >
+                  Hide purchased
+                </label>
               </div>
+            </div>
 
-              <StoreItemGrid
-                items={filteredItems}
-                onPurchase={purchaseItem}
-                userCoins={coins}
-                loading={loading}
-                purchases={purchases}
-                purchasedPackIds={purchasedPackIds}
-              />
-            </TabsContent>
-
-            <TabsContent value="inventory">
-              <UserInventory 
-                purchases={purchases} 
-                loading={purchasesLoading} 
-              />
-            </TabsContent>
-          </Tabs>
+            <StoreItemGrid
+              items={filteredItems}
+              onPurchase={purchaseItem}
+              userCoins={coins}
+              loading={loading}
+              purchases={purchases}
+              purchasedPackIds={purchasedPackIds}
+            />
+          </div>
         </div>
       </main>
       <Footer />
