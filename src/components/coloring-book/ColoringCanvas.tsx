@@ -987,30 +987,24 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
 
             {/* Custom Color */}
             <div className="mt-4">
-              <div className="text-sm font-medium mb-2">Custom Color</div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={activeColor}
-                  onChange={(e) => setActiveColor(e.target.value)}
-                  className="h-10 w-12 p-0 border border-border rounded"
-                  aria-label="Pick custom color"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (!customColors.includes(activeColor)) {
-                      setCustomColors((prev) => [...prev, activeColor]);
-                      toast.success("Saved color");
-                    }
-                  }}
-                  className="flex-1 gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Save Color
-                </Button>
-              </div>
+              <div className="text-sm font-medium mb-2">Pick Color</div>
+              <input
+                type="color"
+                value={activeColor}
+                onChange={(e) => {
+                  const newColor = e.target.value;
+                  setActiveColor(newColor);
+                  // Auto-save custom colors (keep 10 most recent, no duplicates)
+                  if (!COLORS.includes(newColor) && !customColors.includes(newColor)) {
+                    setCustomColors((prev) => {
+                      const updated = [newColor, ...prev.filter(c => c !== newColor)];
+                      return updated.slice(0, 10);
+                    });
+                  }
+                }}
+                className="h-10 w-full p-0 border border-border rounded cursor-pointer"
+                aria-label="Pick custom color"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-2 mt-4">
