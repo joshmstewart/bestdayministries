@@ -1079,7 +1079,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           {/* Save / Download */}
           <div className="bg-card rounded-lg p-4 shadow-sm border">
             <div className="flex flex-col gap-2">
-              <Button onClick={() => handleSave(false)} disabled={saving || sharing || isShared || !hasChanges} className="w-full">
+              <Button onClick={() => handleSave(false)} disabled={saving || sharing || !hasChanges} className="w-full">
                 {saving ? (
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                 ) : (
