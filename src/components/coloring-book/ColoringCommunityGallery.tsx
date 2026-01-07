@@ -83,6 +83,8 @@ interface PublicColoring {
   page_title: string | null;
   coloring_page_id: string;
   coloring_page: { id: string; title: string; image_url: string; book_id: string | null } | null;
+  canvas_data: any | null; // Only loaded for own colorings
+  is_public: boolean;
 }
 
 interface ColoringCommunityGalleryProps {
@@ -117,6 +119,8 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
         updated_at,
         user_id,
         coloring_page_id,
+        canvas_data,
+        is_public,
         coloring_page:coloring_pages(id, title, image_url, book_id)
       `)
       .eq("is_public", true)
@@ -165,6 +169,9 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
       page_title: (coloring.coloring_page as any)?.title || null,
       coloring_page_id: coloring.coloring_page_id,
       coloring_page: coloring.coloring_page,
+      // Only include canvas_data for own colorings (for privacy)
+      canvas_data: coloring.user_id === userId ? coloring.canvas_data : null,
+      is_public: coloring.is_public,
     }));
 
     setColorings(coloringsWithCreators as PublicColoring[]);
@@ -392,7 +399,40 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                     />
                     {selectedColoring.likes_count}
                   </Button>
-                  {onSelectColoring && selectedColoring.coloring_page && (
+                  {/* For own drawings: Continue Coloring (with saved data) and Color New Copy */}
+                  {onSelectColoring && selectedColoring.coloring_page && selectedColoring.user_id === userId && selectedColoring.canvas_data && (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          // Pass saved canvas data like ColoringGallery does
+                          const pageWithSavedData = {
+                            ...selectedColoring.coloring_page,
+                            savedCanvasData: selectedColoring.canvas_data,
+                            isPublic: selectedColoring.is_public,
+                          };
+                          onSelectColoring(pageWithSavedData, true);
+                          setSelectedColoring(null);
+                        }}
+                      >
+                        <Palette className="h-4 w-4 mr-1" />
+                        Continue Coloring
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          onSelectColoring(selectedColoring.coloring_page, false);
+                          setSelectedColoring(null);
+                        }}
+                      >
+                        <Palette className="h-4 w-4 mr-1" />
+                        Color New Copy
+                      </Button>
+                    </>
+                  )}
+                  {/* For others' drawings: just Color This Template */}
+                  {onSelectColoring && selectedColoring.coloring_page && (selectedColoring.user_id !== userId || !selectedColoring.canvas_data) && (
                     <Button
                       size="sm"
                       onClick={() => {
