@@ -72,7 +72,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/games/coloring-book", label: "Coloring Book" },
   { value: "/virtual-pet", label: "Virtual Pet" },
   { value: "/sticker-album", label: "Sticker Album" },
-  { value: "/store", label: "JoyCoins Store" },
+  { value: "/store", label: "JoyCoin Shop" },
   
   // Help & Support
   { value: "/help", label: "Help Center" },
