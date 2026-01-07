@@ -34,6 +34,7 @@ interface ColoringBook {
   id: string;
   title: string;
   description: string | null;
+  generation_prompt: string | null;
   cover_image_url: string;
   coin_price: number;
   is_free: boolean;
@@ -61,6 +62,7 @@ export function ColoringManager() {
   const [bookFormData, setBookFormData] = useState({
     title: "",
     description: "",
+    generation_prompt: "",
     coin_price: 0,
     is_free: true,
     display_order: 0,
@@ -129,8 +131,11 @@ export function ColoringManager() {
   };
 
   // Generate coloring page image
-  const generatePageImage = async (prompt: string): Promise<string> => {
-    const fullPrompt = `Create a coloring book page line drawing. Subject: ${prompt}.
+  const generatePageImage = async (prompt: string, bookId?: string | null): Promise<string> => {
+    const bookTheme = bookId ? books?.find((b) => b.id === bookId)?.generation_prompt : null;
+    const subject = bookTheme ? `${prompt}. Theme/context: ${bookTheme}` : prompt;
+
+    const fullPrompt = `Create a coloring book page line drawing. Subject: ${subject}.
 
 ABSOLUTELY CRITICAL - BLACK AND WHITE ONLY:
 - ONLY black lines on a pure white background - NO COLOR WHATSOEVER
@@ -145,11 +150,11 @@ DRAWING REQUIREMENTS:
 - Thick, clean black outlines only
 - Simple cartoon style suitable for children to color
 - Subject should fill most of the image`;
-    
+
     const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
       body: { prompt: fullPrompt },
     });
-    
+
     if (error) throw error;
     return data.imageUrl;
   };
@@ -191,7 +196,7 @@ DRAWING REQUIREMENTS:
     setAddingPage(true);
     try {
       // Generate the image first
-      const imageUrl = await generatePageImage(newPageName);
+      const imageUrl = await generatePageImage(newPageName, bookId);
       
       // Then insert the page with the image
       const { error: insertError } = await supabase
@@ -278,7 +283,7 @@ DRAWING REQUIREMENTS:
   const handleRegeneratePage = async (page: ColoringPage) => {
     setRegeneratingId(page.id);
     try {
-      const imageUrl = await generatePageImage(page.description || page.title);
+      const imageUrl = await generatePageImage(page.description || page.title, page.book_id);
       
       const { error } = await supabase
         .from("coloring_pages")
@@ -392,7 +397,7 @@ DRAWING REQUIREMENTS:
       setIdeaProgress({ current: i + 1, total: selected.length });
       
       try {
-        const imageUrl = await generatePageImage(idea);
+        const imageUrl = await generatePageImage(idea, bookId);
         
         const { error: insertError } = await supabase
           .from("coloring_pages")
@@ -510,7 +515,7 @@ DRAWING REQUIREMENTS:
   const handleCloseBookDialog = () => {
     setBookDialogOpen(false);
     setEditingBook(null);
-    setBookFormData({ title: "", description: "", coin_price: 0, is_free: true, display_order: 0 });
+    setBookFormData({ title: "", description: "", generation_prompt: "", coin_price: 0, is_free: true, display_order: 0 });
     setBookImageFile(null);
     setGeneratedCoverUrl(null);
     setCoverPrompt("");
@@ -521,6 +526,7 @@ DRAWING REQUIREMENTS:
     setBookFormData({
       title: book.title,
       description: book.description || "",
+      generation_prompt: book.generation_prompt || "",
       coin_price: book.coin_price || 0,
       is_free: book.is_free,
       display_order: book.display_order || 0,
@@ -1006,6 +1012,22 @@ DRAWING REQUIREMENTS:
                 placeholder="What's this book about?"
                 rows={2}
               />
+            </div>
+
+            <div className="border rounded-lg p-4 space-y-2 bg-primary/5">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Theme (used when generating pages)
+              </Label>
+              <Textarea
+                value={bookFormData.generation_prompt}
+                onChange={(e) => setBookFormData({ ...bookFormData, generation_prompt: e.target.value })}
+                placeholder="e.g., 'all characters are in a full outdoor nature scene with trees, flowers, and sky'"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                This gets automatically combined with each page title/description when generating AI pages.
+              </p>
             </div>
 
             {/* Pricing */}
