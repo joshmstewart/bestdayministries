@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Heart, Loader2, X, Palette } from "lucide-react";
+import { Heart, Loader2, X, Palette, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Lazy loading image component with blur placeholder
@@ -96,6 +96,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
   const [likingColoring, setLikingColoring] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [selectedColoring, setSelectedColoring] = useState<PublicColoring | null>(null);
+  const [unsharing, setUnsharing] = useState(false);
 
   useEffect(() => {
     loadColorings();
@@ -390,6 +391,33 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                     >
                       <Palette className="h-4 w-4 mr-1" />
                       Color This Template
+                    </Button>
+                  )}
+                  {selectedColoring.user_id === userId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        setUnsharing(true);
+                        try {
+                          const { error } = await supabase
+                            .from("user_colorings")
+                            .update({ is_public: false })
+                            .eq("id", selectedColoring.id);
+                          if (error) throw error;
+                          setColorings(prev => prev.filter(c => c.id !== selectedColoring.id));
+                          setSelectedColoring(null);
+                          toast({ title: "Drawing unshared", description: "Your drawing is now private." });
+                        } catch (error: any) {
+                          toast({ title: "Error", description: error.message, variant: "destructive" });
+                        } finally {
+                          setUnsharing(false);
+                        }
+                      }}
+                      disabled={unsharing}
+                    >
+                      {unsharing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <EyeOff className="h-4 w-4 mr-1" />}
+                      Unshare
                     </Button>
                   )}
                 </div>
