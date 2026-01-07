@@ -26,7 +26,7 @@ import {
 import { Trash2, Copy, Palette, Share2, Lock, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 interface ColoringGalleryProps {
-  onSelectColoring: (page: any, loadSavedData?: boolean) => void;
+  onSelectColoring: (page: any, loadSavedData?: boolean, book?: any) => void;
 }
 
 export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
@@ -44,7 +44,10 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
         .from("user_colorings")
         .select(`
           *,
-          coloring_page:coloring_pages(*)
+          coloring_page:coloring_pages(
+            *,
+            book:coloring_books(id, title, cover_image_url, description, coin_price, is_free)
+          )
         `)
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
@@ -115,13 +118,13 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
 
   const handleContinue = () => {
     if (selectedColoring) {
-      // Pass the saved data along with the page, including is_public status
+      // Pass the saved data along with the page, including is_public status and book info
       const pageWithSavedData = {
         ...selectedColoring.coloring_page,
         savedCanvasData: selectedColoring.canvas_data,
         isPublic: selectedColoring.is_public,
       };
-      onSelectColoring(pageWithSavedData, true);
+      onSelectColoring(pageWithSavedData, true, selectedColoring.coloring_page?.book);
       setSelectedColoring(null);
     }
   };
