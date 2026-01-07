@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, GripVertical, Eye, EyeOff, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, Trash2, GripVertical, Eye, EyeOff, ChevronRight, ChevronDown, List, LayoutList, X } from "lucide-react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -42,6 +42,99 @@ interface NavigationLink {
   visible_to_roles?: UserRole[];
   link_type: 'regular' | 'dropdown';
   parent_id?: string | null;
+}
+
+function SortableLinkCompact({
+  link,
+  onDelete,
+  onToggleCollapse,
+  isCollapsed,
+  hasChildren,
+  children,
+  level = 0,
+  onSelect,
+}: {
+  link: NavigationLink;
+  onDelete: (id: string) => void;
+  onToggleCollapse?: (id: string) => void;
+  isCollapsed?: boolean;
+  hasChildren?: boolean;
+  children?: React.ReactNode;
+  level?: number;
+  onSelect: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: link.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    marginLeft: level > 0 ? `${level * 1.5}rem` : undefined,
+  };
+
+  return (
+    <div className="space-y-0.5">
+      <div 
+        ref={setNodeRef} 
+        style={style} 
+        className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md hover:bg-muted/80 cursor-pointer group"
+        onClick={() => onSelect(link.id)}
+      >
+        <button 
+          {...attributes} 
+          {...listeners} 
+          className="cursor-grab active:cursor-grabbing"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        {level === 0 && link.link_type === 'dropdown' && hasChildren && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse?.(link.id);
+            }}
+            className="p-0.5 hover:bg-muted rounded transition-colors"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            )}
+          </button>
+        )}
+
+        {level > 0 && (
+          <ChevronRight className="h-3 w-3 text-muted-foreground" />
+        )}
+
+        <span className="font-medium text-sm flex-1 truncate">{link.label}</span>
+        
+        <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+          {link.href || (link.link_type === 'dropdown' ? '(dropdown)' : '')}
+        </span>
+
+        {link.link_type === 'dropdown' && level === 0 && (
+          <span className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded">dropdown</span>
+        )}
+
+        <div className={`w-2 h-2 rounded-full ${link.is_active ? "bg-green-500" : "bg-red-400"}`} />
+
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(link.id);
+          }}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+      {children}
+    </div>
+  );
 }
 
 function SortableLink({
@@ -250,6 +343,8 @@ export function NavigationBarManager() {
   const [links, setLinks] = useState<NavigationLink[]>([]);
   const [collapsedParents, setCollapsedParents] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [compactMode, setCompactMode] = useState(true);
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -532,6 +627,44 @@ export function NavigationBarManager() {
     }
   };
 
+  const selectedLink = selectedLinkId ? links.find(l => l.id === selectedLinkId) : null;
+
+  const renderCompactLinks = () => {
+    const topLevelLinks = links.filter(l => !l.parent_id);
+    
+    return topLevelLinks.map((link) => {
+      const children = links.filter(l => l.parent_id === link.id);
+      const isCollapsed = collapsedParents.has(link.id);
+      
+      return (
+        <SortableLinkCompact
+          key={link.id}
+          link={link}
+          onDelete={handleDeleteLink}
+          onToggleCollapse={handleToggleCollapse}
+          isCollapsed={isCollapsed}
+          hasChildren={children.length > 0}
+          level={0}
+          onSelect={setSelectedLinkId}
+        >
+          {children.length > 0 && !isCollapsed && (
+            <div className="space-y-0.5">
+              {children.map((child) => (
+                <SortableLinkCompact
+                  key={child.id}
+                  link={child}
+                  onDelete={handleDeleteLink}
+                  level={1}
+                  onSelect={setSelectedLinkId}
+                />
+              ))}
+            </div>
+          )}
+        </SortableLinkCompact>
+      );
+    });
+  };
+
   const renderLinks = () => {
     const topLevelLinks = links.filter(l => !l.parent_id);
     
@@ -572,17 +705,143 @@ export function NavigationBarManager() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-row items-center justify-between space-y-0">
         <CardTitle>Navigation Bar Manager</CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCompactMode(!compactMode)}
+          className="gap-2"
+        >
+          {compactMode ? <LayoutList className="h-4 w-4" /> : <List className="h-4 w-4" />}
+          {compactMode ? "Full View" : "Compact View"}
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={links.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {renderLinks()}
+        <div className={compactMode && selectedLink ? "grid grid-cols-2 gap-4" : ""}>
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={links.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+              <div className={compactMode ? "space-y-0.5" : "space-y-2"}>
+                {compactMode ? renderCompactLinks() : renderLinks()}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          {compactMode && selectedLink && (
+            <div className="border rounded-lg p-4 bg-background space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Edit: {selectedLink.label}</h4>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedLinkId(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Label</Label>
+                  <Input
+                    value={selectedLink.label}
+                    onChange={(e) => handleUpdateLink(selectedLink.id, { label: e.target.value })}
+                    placeholder="Link text"
+                  />
+                </div>
+
+                {!selectedLink.parent_id && (
+                  <div>
+                    <Label className="text-xs">Link Type</Label>
+                    <Select
+                      value={selectedLink.link_type}
+                      onValueChange={(value: 'regular' | 'dropdown') => {
+                        handleUpdateLink(selectedLink.id, { link_type: value });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="regular">Regular Link</SelectItem>
+                        <SelectItem value="dropdown">Dropdown Parent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div>
+                  <Label className="text-xs">
+                    Page
+                    {selectedLink.link_type === 'dropdown' && " (optional)"}
+                  </Label>
+                  <Select 
+                    value={selectedLink.href || "none"} 
+                    onValueChange={(value) => handleUpdateLink(selectedLink.id, { href: value === "none" ? "" : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select page" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedLink.link_type === 'dropdown' && (
+                        <SelectItem value="none">None (just dropdown)</SelectItem>
+                      )}
+                      {INTERNAL_PAGES.map((page) => (
+                        <SelectItem key={page.value} value={page.value}>
+                          {page.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Visible to Roles</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {USER_ROLES.map((role) => (
+                      <div key={role.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`compact-${selectedLink.id}-${role.value}`}
+                          checked={selectedLink.visible_to_roles?.includes(role.value) ?? true}
+                          onCheckedChange={(checked) => {
+                            const currentRoles = selectedLink.visible_to_roles || USER_ROLES.map(r => r.value);
+                            const newRoles = checked
+                              ? [...currentRoles, role.value]
+                              : currentRoles.filter(r => r !== role.value);
+                            handleUpdateLink(selectedLink.id, { visible_to_roles: newRoles });
+                          }}
+                        />
+                        <label
+                          htmlFor={`compact-${selectedLink.id}-${role.value}`}
+                          className="text-xs font-medium"
+                        >
+                          {role.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={selectedLink.is_active}
+                      onCheckedChange={(checked) => handleUpdateLink(selectedLink.id, { is_active: checked })}
+                    />
+                    <span className="text-sm">{selectedLink.is_active ? "Visible" : "Hidden"}</span>
+                  </div>
+                  
+                  {selectedLink.link_type === 'dropdown' && !selectedLink.parent_id && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleAddChild(selectedLink.id)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Child
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-          </SortableContext>
-        </DndContext>
+          )}
+        </div>
 
         <div className="flex gap-2">
           <Button onClick={handleAddLink} variant="outline">
