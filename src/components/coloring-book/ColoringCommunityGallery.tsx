@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Heart, Loader2, X } from "lucide-react";
+import { Heart, Loader2, X, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Lazy loading image component with blur placeholder
@@ -79,13 +79,16 @@ interface PublicColoring {
   user_id: string;
   creator_name: string | null;
   page_title: string | null;
+  coloring_page_id: string;
+  coloring_page: { id: string; title: string; image_url: string; book_id: string | null } | null;
 }
 
 interface ColoringCommunityGalleryProps {
   userId: string;
+  onSelectColoring?: (page: any, loadSavedData?: boolean) => void;
 }
 
-export const ColoringCommunityGallery = ({ userId }: ColoringCommunityGalleryProps) => {
+export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringCommunityGalleryProps) => {
   const { toast } = useToast();
   const [colorings, setColorings] = useState<PublicColoring[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +112,8 @@ export const ColoringCommunityGallery = ({ userId }: ColoringCommunityGalleryPro
         likes_count,
         created_at,
         user_id,
-        coloring_page:coloring_pages(title)
+        coloring_page_id,
+        coloring_page:coloring_pages(id, title, image_url, book_id)
       `)
       .eq("is_public", true)
       .limit(50);
@@ -154,9 +158,11 @@ export const ColoringCommunityGallery = ({ userId }: ColoringCommunityGalleryPro
       user_id: coloring.user_id,
       creator_name: profileMap.get(coloring.user_id) || null,
       page_title: (coloring.coloring_page as any)?.title || null,
+      coloring_page_id: coloring.coloring_page_id,
+      coloring_page: coloring.coloring_page,
     }));
 
-    setColorings(coloringsWithCreators);
+    setColorings(coloringsWithCreators as PublicColoring[]);
     setLoading(false);
   };
 
@@ -359,7 +365,7 @@ export const ColoringCommunityGallery = ({ userId }: ColoringCommunityGalleryPro
                 {selectedColoring.creator_name && (
                   <p className="text-sm text-muted-foreground">by {selectedColoring.creator_name}</p>
                 )}
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"
@@ -374,6 +380,18 @@ export const ColoringCommunityGallery = ({ userId }: ColoringCommunityGalleryPro
                     />
                     {selectedColoring.likes_count}
                   </Button>
+                  {onSelectColoring && selectedColoring.coloring_page && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        onSelectColoring(selectedColoring.coloring_page, false);
+                        setSelectedColoring(null);
+                      }}
+                    >
+                      <Palette className="h-4 w-4 mr-1" />
+                      Color This Template
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

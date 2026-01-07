@@ -387,7 +387,15 @@ export default function ColoringBook() {
           </TabsContent>
 
           <TabsContent value="community">
-            {user && <ColoringCommunityGallery userId={user.id} />}
+            {user && (
+              <ColoringCommunityGallery
+                userId={user.id}
+                onSelectColoring={(page) => {
+                  setSelectedPage(page);
+                  setActiveTab("books");
+                }}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="gallery">
