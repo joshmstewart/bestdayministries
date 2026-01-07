@@ -423,11 +423,11 @@ export default function ColoringBook() {
               <div className="grid grid-cols-3 gap-3 p-1">
                 {previewPages.map((page) => (
                   <div key={page.id} className="space-y-1">
-                    <div className="rounded-lg overflow-hidden border bg-white">
+                    <div className="rounded-lg overflow-hidden border bg-white p-1">
                       <img
                         src={page.image_url}
                         alt={page.title}
-                        className="w-full aspect-square object-cover"
+                        className="w-full h-auto object-contain"
                       />
                     </div>
                     <p className="text-xs text-muted-foreground text-center truncate">{page.title}</p>
