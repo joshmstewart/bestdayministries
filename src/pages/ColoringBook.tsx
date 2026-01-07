@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Image, BookOpen, ChevronLeft, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Palette, Image, BookOpen, Users } from "lucide-react";
 import { ColoringCanvas } from "@/components/coloring-book/ColoringCanvas";
 import { ColoringGallery } from "@/components/coloring-book/ColoringGallery";
 import { ColoringCommunityGallery } from "@/components/coloring-book/ColoringCommunityGallery";
@@ -37,7 +36,6 @@ interface ColoringBook {
 }
 
 export default function ColoringBook() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAuthenticated, loading } = useAuth();
   const { coins, refetch: refetchCoins } = useCoins();
@@ -152,33 +150,28 @@ export default function ColoringBook() {
     }
   };
 
-  if (selectedPage) {
-    return (
-      <ColoringCanvas
-        page={selectedPage}
-        onBack={() => setSelectedPage(null)}
-      />
-    );
-  }
 
-  // Render book pages content (used within tabs)
   const renderBookPages = () => (
     <>
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSelectedBook(null)}
-        >
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          Back to Books
-        </Button>
-        <div>
-          <h2 className="text-xl font-bold text-primary">{selectedBook?.title}</h2>
-          {selectedBook?.description && (
-            <p className="text-sm text-muted-foreground">{selectedBook.description}</p>
-          )}
+      <div className="mb-6">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedBook(null);
+              setSelectedPage(null);
+            }}
+            className="px-2"
+          >
+            Books
+          </Button>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-sm font-medium text-foreground">{selectedBook?.title}</span>
         </div>
+        {selectedBook?.description && (
+          <p className="text-sm text-muted-foreground mt-2">{selectedBook.description}</p>
+        )}
       </div>
 
       {pagesLoading ? (
@@ -215,6 +208,39 @@ export default function ColoringBook() {
     </>
   );
 
+  const renderCanvas = () => (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setSelectedBook(null);
+            setSelectedPage(null);
+          }}
+          className="px-2"
+        >
+          Books
+        </Button>
+        <span className="text-muted-foreground">/</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedPage(null)}
+          className="px-2"
+          disabled={!selectedBook}
+          title={selectedBook ? "Back to pages" : undefined}
+        >
+          {selectedBook?.title || "Pages"}
+        </Button>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-sm font-medium text-foreground">{selectedPage?.title}</span>
+      </div>
+
+      <ColoringCanvas page={selectedPage} onClose={() => setSelectedPage(null)} />
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
@@ -247,7 +273,9 @@ export default function ColoringBook() {
           </TabsList>
 
           <TabsContent value="books">
-            {selectedBook ? (
+            {selectedPage ? (
+              renderCanvas()
+            ) : selectedBook ? (
               renderBookPages()
             ) : booksLoading ? (
               <div className="text-center py-12">Loading books...</div>
@@ -270,7 +298,7 @@ export default function ColoringBook() {
                           <img
                             src={book.cover_image_url}
                             alt={book.title}
-                            className={`w-full h-auto ${!hasAccess ? 'opacity-80 grayscale-[30%]' : ''}`}
+                            className={`w-full h-auto ${!hasAccess ? "opacity-80 grayscale-[30%]" : ""}`}
                           />
                           {book.is_free ? (
                             <PriceRibbon isFree size="md" />
@@ -281,7 +309,8 @@ export default function ColoringBook() {
                         <div className="p-3">
                           <h3 className="font-medium text-sm truncate">{book.title}</h3>
                           <p className="text-xs text-muted-foreground">
-                            {(book.coloring_pages?.[0]?.count || 0)} {(book.coloring_pages?.[0]?.count || 0) === 1 ? 'page' : 'pages'}
+                            {(book.coloring_pages?.[0]?.count || 0)}{" "}
+                            {(book.coloring_pages?.[0]?.count || 0) === 1 ? "page" : "pages"}
                           </p>
                           {book.description && (
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">

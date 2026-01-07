@@ -13,13 +13,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2, Share2, Loader2 } from "lucide-react";
+import { Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2, Share2, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StickerPicker } from "./StickerPicker";
-import { UnifiedHeader } from "@/components/UnifiedHeader";
-import Footer from "@/components/Footer";
 import { useCoins } from "@/hooks/useCoins";
 
 const COLORS = [
@@ -30,10 +28,10 @@ const COLORS = [
 
 interface ColoringCanvasProps {
   page: any;
-  onBack: () => void;
+  onClose: () => void;
 }
 
-export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
+export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
   // Two-layer system: base canvas for image/fills, fabric canvas for brush strokes
   const baseCanvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -702,285 +700,248 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <UnifiedHeader />
-      <main className="flex-1 bg-background pt-24 pb-12">
-        <div className="container max-w-4xl mx-auto px-4">
-          <Button variant="outline" size="sm" onClick={onBack} className="mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Pages
-          </Button>
-
-          <h2 className="text-2xl font-bold text-center mb-4">{page.title}</h2>
-
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Canvas Container with Zoom */}
-          <div ref={containerRef} className="flex-1 flex flex-col items-center gap-2">
-            {/* Zoom Controls */}
-            <div className="flex items-center gap-2 bg-muted/80 rounded-lg p-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleZoomOut}
-                disabled={zoom <= MIN_ZOOM}
-                title="Zoom out"
-                className="h-8 w-8"
-              >
-                <ZoomOut className="w-4 h-4" />
-              </Button>
-              <span className="text-sm font-medium min-w-[3rem] text-center">
-                {Math.round(zoom * 100)}%
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleZoomIn}
-                disabled={zoom >= MAX_ZOOM}
-                title="Zoom in"
-                className="h-8 w-8"
-              >
-                <ZoomIn className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleResetZoom}
-                disabled={zoom === 1}
-                title="Reset zoom"
-                className="h-8 w-8"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Zoomable Canvas Area */}
-            <div
-              ref={zoomContainerRef}
-              className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg"
-              style={{ 
-                width: CANVAS_SIZE, 
-                height: CANVAS_SIZE, 
-                maxWidth: "100%",
-                cursor: zoom > 1 ? (isPanning ? "grabbing" : "grab") : (activeTool === "fill" ? "crosshair" : "default"),
-              }}
+    <div className="w-full">
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Canvas Container with Zoom */}
+        <div ref={containerRef} className="flex-1 flex flex-col items-center gap-2">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-2 bg-muted/80 rounded-lg p-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleZoomOut}
+              disabled={zoom <= MIN_ZOOM}
+              title="Zoom out"
+              className="h-8 w-8"
             >
-              <div
-                className="absolute top-0 left-0 w-full h-full origin-center transition-transform duration-100"
-                style={{ 
-                  transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
-                }}
-                onClick={activeTool === "fill" && !isPanning ? handleCanvasClick : undefined}
-              >
-                {/* Base canvas for image and fills */}
-                <canvas
-                  ref={baseCanvasRef}
-                  className="absolute top-0 left-0 w-full h-full"
-                  style={{ pointerEvents: "none" }}
-                />
-                {/* Fabric.js canvas for brush strokes and stickers */}
-                <canvas
-                  ref={fabricCanvasRef}
-                  className="absolute top-0 left-0 w-full h-full"
-                  style={{ pointerEvents: activeTool === "fill" ? "none" : "auto" }}
-                />
-              </div>
-            </div>
-
-            {zoom > 1 && (
-              <p className="text-xs text-muted-foreground">
-                Pinch or drag to pan when zoomed
-              </p>
-            )}
+              <ZoomOut className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-medium min-w-[3rem] text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleZoomIn}
+              disabled={zoom >= MAX_ZOOM}
+              title="Zoom in"
+              className="h-8 w-8"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleResetZoom}
+              disabled={zoom === 1}
+              title="Reset zoom"
+              className="h-8 w-8"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </Button>
           </div>
 
-          {/* Tools */}
-          <div className="lg:w-56 space-y-4">
-            {/* Tool Selection */}
-            <div>
-              <p className="text-sm font-medium mb-2">Tool</p>
-              <div className="flex gap-2">
-                <Button
-                  variant={activeTool === "fill" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTool("fill")}
-                  className="flex-1"
-                  title="Tap an area to fill it with color"
-                >
-                  <PaintBucket className="w-4 h-4 mr-1" />
-                  Fill
-                </Button>
-                <Button
-                  variant={activeTool === "brush" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTool("brush")}
-                  className="flex-1"
-                  title="Freehand drawing"
-                >
-                  <Brush className="w-4 h-4 mr-1" />
-                  Brush
-                </Button>
-                <Button
-                  variant={activeTool === "eraser" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTool("eraser")}
-                  className="flex-1"
-                  title="Erase colors"
-                >
-                  <Eraser className="w-4 h-4 mr-1" />
-                  Eraser
-                </Button>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <Button
-                  variant={activeTool === "sticker" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setActiveTool("sticker");
-                    setShowStickerPicker(true);
-                  }}
-                  className="flex-1"
-                  title="Add stickers from your collection"
-                >
-                  <Sticker className="w-4 h-4 mr-1" />
-                  Add Sticker
-                </Button>
-                {hasSelection && activeTool === "sticker" && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDeleteSelected}
-                    title="Delete selected sticker"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
+          {/* Zoomable Canvas Area */}
+          <div
+            ref={zoomContainerRef}
+            className="relative border-4 border-primary/20 rounded-lg overflow-hidden shadow-lg"
+            style={{
+              width: CANVAS_SIZE,
+              height: CANVAS_SIZE,
+              maxWidth: "100%",
+              cursor:
+                zoom > 1
+                  ? isPanning
+                    ? "grabbing"
+                    : "grab"
+                  : activeTool === "fill"
+                    ? "crosshair"
+                    : "default",
+            }}
+          >
+            <div
+              className="absolute top-0 left-0 w-full h-full origin-center transition-transform duration-100"
+              style={{
+                transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+              }}
+              onClick={activeTool === "fill" && !isPanning ? handleCanvasClick : undefined}
+            >
+              {/* Base canvas for image and fills */}
+              <canvas
+                ref={baseCanvasRef}
+                className="absolute top-0 left-0 w-full h-full"
+                style={{ pointerEvents: "none" }}
+              />
+              {/* Fabric.js canvas for brush strokes and stickers */}
+              <canvas
+                ref={fabricCanvasRef}
+                className="absolute top-0 left-0 w-full h-full"
+                style={{ pointerEvents: activeTool === "fill" ? "none" : "auto" }}
+              />
             </div>
+          </div>
 
-            {/* Sticker Picker Dialog */}
-            <StickerPicker 
-              open={showStickerPicker} 
-              onOpenChange={setShowStickerPicker}
-              onSelectSticker={handleAddSticker} 
-            />
+          {/* Zoom hint */}
+          {zoom > 1 && (
+            <div className="text-xs text-muted-foreground">Drag to pan • Pinch or Ctrl+scroll to zoom</div>
+          )}
+        </div>
 
-            {/* Colors */}
-            <div>
-              <p className="text-sm font-medium mb-2">Colors</p>
-              <div className="grid grid-cols-5 gap-1">
-                {COLORS.map((color) => (
-                  <button
-                    key={color}
-                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                      activeColor === color && activeTool !== "eraser"
-                        ? "border-primary ring-2 ring-primary"
-                        : "border-gray-300"
-                    }`}
-                    style={{ backgroundColor: color }}
-                    onClick={() => {
-                      setActiveColor(color);
-                      if (activeTool === "eraser") setActiveTool("fill");
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+        {/* Tools Panel */}
+        <div className="w-full lg:w-80 space-y-4">
+          <div className="bg-card rounded-lg p-4 shadow-sm border">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Tool</h3>
 
-            {/* Custom Color Picker */}
-            <div>
-              <p className="text-sm font-medium mb-2">Custom Color</p>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="color"
-                  value={activeColor}
-                  onChange={(e) => {
-                    setActiveColor(e.target.value);
-                    if (activeTool === "eraser") setActiveTool("fill");
-                  }}
-                  className="w-10 h-10 rounded cursor-pointer border-2 border-gray-300"
-                  title="Pick any color"
-                />
+              {hasSelection && (
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (!customColors.includes(activeColor)) {
-                      setCustomColors(prev => [...prev.slice(-9), activeColor]);
-                      toast.success("Color saved!");
-                    }
-                  }}
-                  disabled={customColors.includes(activeColor) || COLORS.includes(activeColor)}
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDeleteSelected}
+                  title="Delete selected sticker"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
                 >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Save Color
+                  <Trash2 className="w-4 h-4" />
                 </Button>
-              </div>
-              {customColors.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-xs text-muted-foreground mb-1">Saved Colors</p>
-                  <div className="flex flex-wrap gap-1">
-                    {customColors.map((color, idx) => (
-                      <button
-                        key={`custom-${idx}`}
-                        className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${
-                          activeColor === color && activeTool !== "eraser"
-                            ? "border-primary ring-2 ring-primary"
-                            : "border-gray-300"
-                        }`}
-                        style={{ backgroundColor: color }}
-                        onClick={() => {
-                          setActiveColor(color);
-                          if (activeTool === "eraser") setActiveTool("fill");
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
               )}
             </div>
 
-            {/* Brush Size (only for brush/eraser) */}
+            {/* Tool Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant={activeTool === "fill" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setActiveTool("fill")}
+                className="gap-1"
+              >
+                <PaintBucket className="w-4 h-4" />
+                Fill
+              </Button>
+              <Button
+                variant={activeTool === "brush" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setActiveTool("brush")}
+                className="gap-1"
+              >
+                <Brush className="w-4 h-4" />
+                Brush
+              </Button>
+              <Button
+                variant={activeTool === "eraser" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setActiveTool("eraser")}
+                className="gap-1"
+              >
+                <Eraser className="w-4 h-4" />
+                Erase
+              </Button>
+            </div>
+
+            <Button
+              variant={activeTool === "sticker" ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => {
+                setActiveTool("sticker");
+                setShowStickerPicker(true);
+              }}
+              className="w-full mt-2 gap-2"
+            >
+              <Sticker className="w-4 h-4" />
+              Add Sticker
+            </Button>
+
+            {/* Brush size */}
             {(activeTool === "brush" || activeTool === "eraser") && (
-              <div>
-                <p className="text-sm font-medium mb-2">Brush Size: {brushSize}</p>
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Size</span>
+                  <span className="text-sm text-muted-foreground">{brushSize}px</span>
+                </div>
                 <Slider
                   value={[brushSize]}
-                  onValueChange={(v) => setBrushSize(v[0])}
+                  onValueChange={(v) => setBrushSize(v[0] || 10)}
                   min={2}
                   max={50}
                   step={1}
                 />
               </div>
             )}
+          </div>
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleUndo}
-                disabled={history.length === 0}
-                className="flex-1"
-              >
-                <Undo2 className="w-4 h-4 mr-1" />
+          {/* Colors */}
+          <div className="bg-card rounded-lg p-4 shadow-sm border">
+            <h3 className="font-semibold mb-3">Colors</h3>
+            <div className="grid grid-cols-5 gap-2">
+              {COLORS.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setActiveColor(color)}
+                  className={`w-9 h-9 rounded-full border-2 transition-all ${
+                    activeColor === color ? "border-primary scale-110" : "border-border"
+                  }`}
+                  style={{ backgroundColor: color }}
+                  title={color}
+                />
+              ))}
+              {customColors.map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setActiveColor(color)}
+                  className={`w-9 h-9 rounded-full border-2 transition-all ${
+                    activeColor === color ? "border-primary scale-110" : "border-border"
+                  }`}
+                  style={{ backgroundColor: color }}
+                  title={color}
+                />
+              ))}
+            </div>
+
+            {/* Custom Color */}
+            <div className="mt-4">
+              <div className="text-sm font-medium mb-2">Custom Color</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={activeColor}
+                  onChange={(e) => setActiveColor(e.target.value)}
+                  className="h-10 w-12 p-0 border border-border rounded"
+                  aria-label="Pick custom color"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!customColors.includes(activeColor)) {
+                      setCustomColors((prev) => [...prev, activeColor]);
+                      toast.success("Saved color");
+                    }
+                  }}
+                  className="flex-1 gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Save Color
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              <Button variant="outline" size="sm" onClick={handleUndo} disabled={history.length === 0}>
+                <Undo2 className="w-4 h-4 mr-2" />
                 Undo
               </Button>
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-1" />
+                  <Button variant="outline" size="sm">
+                    <RotateCcw className="w-4 h-4 mr-2" />
                     Clear
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Clear canvas?</AlertDialogTitle>
+                    <AlertDialogTitle>Clear all colors?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will erase all your coloring and start fresh. This cannot be undone.
+                      This will reset your coloring page back to the original image.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -990,13 +951,12 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
+          </div>
 
+          {/* Save / Download */}
+          <div className="bg-card rounded-lg p-4 shadow-sm border">
             <div className="flex flex-col gap-2">
-              <Button 
-                onClick={() => handleSave(false)} 
-                disabled={saving || sharing}
-                className="w-full"
-              >
+              <Button onClick={() => handleSave(false)} disabled={saving || sharing} className="w-full">
                 {saving ? (
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                 ) : (
@@ -1004,10 +964,10 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                 )}
                 {saving ? "Saving..." : "Save"}
               </Button>
-              
-              <Button 
+
+              <Button
                 variant={isShared ? "outline" : "secondary"}
-                onClick={() => handleSave(true)} 
+                onClick={() => handleSave(true)}
                 disabled={saving || sharing}
                 className="w-full"
               >
@@ -1018,7 +978,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
                 )}
                 {sharing ? "Sharing..." : isShared ? "Update & Keep Shared" : "Save & Share"}
               </Button>
-              
+
               <Button variant="outline" onClick={handleDownload} className="w-full">
                 <Download className="w-4 h-4 mr-1" />
                 Download
@@ -1026,7 +986,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
             </div>
 
             {/* Tool hint */}
-            <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
+            <div className="text-xs text-muted-foreground p-2 bg-muted rounded mt-3">
               {activeTool === "fill" && "Tap inside any white area to fill it with color"}
               {activeTool === "brush" && "Draw freely with your finger or mouse"}
               {activeTool === "eraser" && "Erase brush strokes"}
@@ -1034,9 +994,14 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
             </div>
           </div>
         </div>
-        </div>
-      </main>
-      <Footer />
+
+        {/* Sticker Picker */}
+        <StickerPicker
+          open={showStickerPicker}
+          onOpenChange={setShowStickerPicker}
+          onSelectSticker={handleAddSticker}
+        />
+      </div>
     </div>
   );
 }
