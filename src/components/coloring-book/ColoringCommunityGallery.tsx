@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Heart, Loader2, X, Palette, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 // Lazy loading image component with blur placeholder
 const LazyImage = ({ 
@@ -76,6 +77,7 @@ interface PublicColoring {
   thumbnail_url: string | null;
   likes_count: number;
   created_at: string;
+  updated_at: string;
   user_id: string;
   creator_name: string | null;
   page_title: string | null;
@@ -112,6 +114,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
         thumbnail_url,
         likes_count,
         created_at,
+        updated_at,
         user_id,
         coloring_page_id,
         coloring_page:coloring_pages(id, title, image_url, book_id)
@@ -156,6 +159,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
       thumbnail_url: coloring.thumbnail_url,
       likes_count: coloring.likes_count || 0,
       created_at: coloring.created_at,
+      updated_at: coloring.updated_at,
       user_id: coloring.user_id,
       creator_name: profileMap.get(coloring.user_id) || null,
       page_title: (coloring.coloring_page as any)?.title || null,
@@ -366,6 +370,13 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                 {selectedColoring.creator_name && (
                   <p className="text-sm text-muted-foreground">by {selectedColoring.creator_name}</p>
                 )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Created {format(new Date(selectedColoring.created_at), "MMM d, yyyy")}
+                  {selectedColoring.updated_at && 
+                   new Date(selectedColoring.updated_at).getTime() - new Date(selectedColoring.created_at).getTime() > 60000 && (
+                    <> · Updated {format(new Date(selectedColoring.updated_at), "MMM d, yyyy")}</>
+                  )}
+                </p>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <Button
                     variant="outline"
