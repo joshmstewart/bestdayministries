@@ -18,6 +18,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StickerPicker } from "./StickerPicker";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 
 const COLORS = [
   "#FF0000", "#FF6B00", "#FFD700", "#00FF00", "#00CED1", 
@@ -661,14 +663,16 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   };
 
   return (
-    <main className="min-h-screen bg-background pt-24 pb-12">
-      <div className="container max-w-4xl mx-auto px-4">
-        <Button variant="outline" size="sm" onClick={onBack} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Pages
-        </Button>
+    <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      <main className="flex-1 bg-background pt-24 pb-12">
+        <div className="container max-w-4xl mx-auto px-4">
+          <Button variant="outline" size="sm" onClick={onBack} className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Pages
+          </Button>
 
-        <h2 className="text-2xl font-bold text-center mb-4">{page.title}</h2>
+          <h2 className="text-2xl font-bold text-center mb-4">{page.title}</h2>
 
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Canvas Container with Zoom */}
@@ -987,7 +991,9 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
             </div>
           </div>
         </div>
-      </div>
-    </main>
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 }
