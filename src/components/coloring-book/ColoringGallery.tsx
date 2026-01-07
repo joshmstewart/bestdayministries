@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCoins } from "@/hooks/useCoins";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ interface ColoringGalleryProps {
 
 export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
   const { user } = useAuth();
+  const { awardCoins } = useCoins();
   const queryClient = useQueryClient();
   const [selectedColoring, setSelectedColoring] = useState<any>(null);
 
@@ -43,12 +45,25 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
   });
 
   const toggleShareMutation = useMutation({
-    mutationFn: async ({ id, isPublic }: { id: string; isPublic: boolean }) => {
+    mutationFn: async ({ id, isPublic, wasPublic }: { id: string; isPublic: boolean; wasPublic: boolean }) => {
       const { error } = await supabase
         .from("user_colorings")
         .update({ is_public: isPublic })
         .eq("id", id);
       if (error) throw error;
+      
+      // Award coins for new shares (going from private to public)
+      if (isPublic && !wasPublic && user) {
+        const { data: shareReward } = await supabase
+          .from("coin_rewards_settings")
+          .select("coins_amount, is_active")
+          .eq("reward_key", "coloring_share")
+          .single();
+        
+        if (shareReward?.is_active && shareReward.coins_amount > 0) {
+          await awardCoins(user.id, shareReward.coins_amount, "Shared a coloring with the community");
+        }
+      }
     },
     onSuccess: (_, { isPublic }) => {
       refetch();
@@ -189,7 +204,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
             {selectedColoring?.is_public ? (
               <Button
                 variant="outline"
-                onClick={() => toggleShareMutation.mutate({ id: selectedColoring.id, isPublic: false })}
+                onClick={() => toggleShareMutation.mutate({ id: selectedColoring.id, isPublic: false, wasPublic: true })}
                 disabled={toggleShareMutation.isPending}
               >
                 {toggleShareMutation.isPending ? (
@@ -201,7 +216,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
               </Button>
             ) : (
               <Button
-                onClick={() => toggleShareMutation.mutate({ id: selectedColoring.id, isPublic: true })}
+                onClick={() => toggleShareMutation.mutate({ id: selectedColoring.id, isPublic: true, wasPublic: false })}
                 disabled={toggleShareMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
               >
