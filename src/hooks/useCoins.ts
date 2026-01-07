@@ -1,13 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const useCoins = () => {
   const { user, profile, isAuthenticated, loading: authLoading } = useAuth();
   const [coins, setCoins] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   // Initialize coins from profile when available
   useEffect(() => {
@@ -98,19 +97,12 @@ export const useCoins = () => {
 
       if (txError) throw txError;
 
-      toast({
-        title: amount > 0 ? "Coins Earned!" : "Coins Spent",
-        description: `${Math.abs(amount)} coins ${amount > 0 ? 'added to' : 'deducted from'} account`,
-      });
+      toast.success(`${Math.abs(amount)} coins ${amount > 0 ? 'earned' : 'spent'}!`);
 
       fetchCoins();
     } catch (error) {
       console.error('Error awarding coins:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update coins",
-        variant: "destructive",
-      });
+      toast.error("Failed to update coins");
     }
   };
 
