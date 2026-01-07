@@ -958,29 +958,31 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           {/* Colors */}
           <div className="bg-card rounded-lg p-4 shadow-sm border">
             <h3 className="font-semibold mb-3">Colors</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setActiveColor(color)}
-                  className={`w-9 h-9 rounded-full border-2 transition-all ${
-                    activeColor === color ? "border-primary scale-110" : "border-border"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  title={color}
-                />
-              ))}
-              {customColors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setActiveColor(color)}
-                  className={`w-9 h-9 rounded-full border-2 transition-all ${
-                    activeColor === color ? "border-primary scale-110" : "border-border"
-                  }`}
-                  style={{ backgroundColor: color }}
-                  title={color}
-                />
-              ))}
+            <div className="max-h-40 overflow-y-auto pr-1">
+              <div className="grid grid-cols-5 gap-2">
+                {COLORS.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setActiveColor(color)}
+                    className={`w-9 h-9 rounded-full border-2 transition-all ${
+                      activeColor === color ? "border-primary scale-110" : "border-border"
+                    }`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+                {customColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setActiveColor(color)}
+                    className={`w-9 h-9 rounded-full border-2 transition-all ${
+                      activeColor === color ? "border-primary scale-110" : "border-border"
+                    }`}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* Custom Color */}
