@@ -84,9 +84,14 @@ export const useStorePurchases = () => {
         return false;
       }
 
-      // Check if this is a memory match pack (id starts with "memory_pack_")
+      // Determine item type
       const isMemoryPack = itemId.startsWith("memory_pack_");
-      const actualItemId = isMemoryPack ? itemId.replace("memory_pack_", "") : itemId;
+      const isColoringBook = itemId.startsWith("coloring_book_");
+      const actualItemId = isMemoryPack 
+        ? itemId.replace("memory_pack_", "") 
+        : isColoringBook 
+          ? itemId.replace("coloring_book_", "") 
+          : itemId;
 
       // Start transaction: deduct coins and create purchase
       const { data: profile, error: profileError } = await supabase
@@ -124,6 +129,26 @@ export const useStorePurchases = () => {
           amount: -itemPrice,
           transaction_type: "store_purchase",
           description: "Memory Match pack purchase",
+          related_item_id: actualItemId,
+        });
+      } else if (isColoringBook) {
+        // Handle coloring book purchase
+        const { error: bookPurchaseError } = await supabase
+          .from("user_coloring_books")
+          .insert({
+            user_id: user.id,
+            book_id: actualItemId,
+            coins_spent: itemPrice,
+          });
+
+        if (bookPurchaseError) throw bookPurchaseError;
+
+        // Record transaction
+        await supabase.from("coin_transactions").insert({
+          user_id: user.id,
+          amount: -itemPrice,
+          transaction_type: "store_purchase",
+          description: "Coloring Book purchase",
           related_item_id: actualItemId,
         });
       } else {
