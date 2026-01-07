@@ -13,9 +13,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Trash2, Copy, Palette, Share2, Lock, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
 interface ColoringGalleryProps {
   onSelectColoring: (page: any, loadSavedData?: boolean) => void;
 }
@@ -25,6 +34,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
   const { awardCoins } = useCoins();
   const queryClient = useQueryClient();
   const [selectedColoring, setSelectedColoring] = useState<any>(null);
+  const [coloringToDelete, setColoringToDelete] = useState<{ id: string; event: React.MouseEvent } | null>(null);
 
   const { data: savedColorings, isLoading, refetch } = useQuery({
     queryKey: ["user-colorings", user?.id],
@@ -78,9 +88,14 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
     },
   });
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { error } = await supabase.from("user_colorings").delete().eq("id", id);
+    setColoringToDelete({ id, event: e });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!coloringToDelete) return;
+    const { error } = await supabase.from("user_colorings").delete().eq("id", coloringToDelete.id);
     if (error) {
       toast.error("Failed to delete");
     } else {
@@ -88,6 +103,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
       setSelectedColoring(null);
       refetch();
     }
+    setColoringToDelete(null);
   };
 
   const handleStartFresh = () => {
@@ -165,7 +181,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
                 variant="destructive"
                 size="icon"
                 className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                onClick={(e) => handleDelete(coloring.id, e)}
+                onClick={(e) => handleDeleteClick(coloring.id, e)}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -235,7 +251,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
-              onClick={(e) => selectedColoring && handleDelete(selectedColoring.id, e)}
+              onClick={(e) => selectedColoring && handleDeleteClick(selectedColoring.id, e)}
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete This Coloring
@@ -243,6 +259,24 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!coloringToDelete} onOpenChange={(open) => !open && setColoringToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this coloring?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your coloring. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
