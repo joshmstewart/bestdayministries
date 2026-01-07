@@ -321,27 +321,30 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
 
   const handleCardClick = (cardId: number) => {
     if (flippedCards.length === 2 || flippedCards.includes(cardId)) return;
-    if (cards[cardId].isMatched) return;
+    
+    const clickedCard = cards.find(c => c.id === cardId);
+    if (!clickedCard || clickedCard.isMatched) return;
 
     const newFlipped = [...flippedCards, cardId];
     setFlippedCards(newFlipped);
 
-    // Use functional update to avoid stale closure
+    // Flip the clicked card
     setCards(prevCards => prevCards.map(card =>
       card.id === cardId ? { ...card, isFlipped: true } : card
     ));
 
     if (newFlipped.length === 2) {
       setMoves(prev => prev + 1);
-      const [first, second] = newFlipped;
+      const [firstId, secondId] = newFlipped;
 
-      // Need to check current cards state for matching
-      const firstCard = cards.find(c => c.id === first);
-      const secondCard = cards.find(c => c.id === second);
+      // Get the card data from current state (before the flip update)
+      const firstCard = cards.find(c => c.id === firstId);
+      const secondCard = cardId === secondId ? clickedCard : cards.find(c => c.id === secondId);
 
       if (firstCard && secondCard && firstCard.imageUrl === secondCard.imageUrl) {
+        // Match found
         setCards(prevCards => prevCards.map(card =>
-          card.id === first || card.id === second
+          card.id === firstId || card.id === secondId
             ? { ...card, isMatched: true, isFlipped: true }
             : card
         ));
@@ -354,9 +357,10 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
         });
         setFlippedCards([]);
       } else {
+        // No match - flip cards back after delay
         setTimeout(() => {
           setCards(prevCards => prevCards.map(card =>
-            card.id === first || card.id === second
+            card.id === firstId || card.id === secondId
               ? { ...card, isFlipped: false }
               : card
           ));
