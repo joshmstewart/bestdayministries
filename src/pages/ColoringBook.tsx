@@ -337,7 +337,10 @@ export default function ColoringBook() {
           </TabsContent>
 
           <TabsContent value="gallery">
-            <ColoringGallery onSelectColoring={setSelectedPage} />
+            <ColoringGallery onSelectColoring={(page) => {
+              setSelectedPage(page);
+              setActiveTab("books"); // Switch to books tab to show the canvas
+            }} />
           </TabsContent>
         </Tabs>
       </div>
