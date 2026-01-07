@@ -214,12 +214,8 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
 
           <div className="flex gap-3 justify-center flex-wrap">
             <Button onClick={handleContinue}>
-              <Copy className="w-4 h-4 mr-2" />
-              Continue Coloring
-            </Button>
-            <Button variant="outline" onClick={handleStartFresh}>
               <Palette className="w-4 h-4 mr-2" />
-              Color New Copy
+              Edit
             </Button>
             {selectedColoring?.is_public ? (
               <Button
