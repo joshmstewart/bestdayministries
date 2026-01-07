@@ -135,7 +135,8 @@ export function ColoringPagesManager() {
       if (imageFile) {
         setUploading(true);
         const compressed = await compressImage(imageFile);
-        const fileName = `${Date.now()}-${imageFile.name}`;
+        const sanitizedName = imageFile.name.replace(/\s+/g, '_');
+        const fileName = `${Date.now()}-${sanitizedName}`;
         const { error: uploadError } = await supabase.storage
           .from("app-assets")
           .upload(`coloring-pages/${fileName}`, compressed);

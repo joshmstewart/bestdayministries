@@ -237,7 +237,8 @@ DRAWING REQUIREMENTS:
     setUploadingPageFor(bookId);
     try {
       const compressed = await compressImage(file);
-      const fileName = `${Date.now()}-${file.name}`;
+      const sanitizedName = file.name.replace(/\s+/g, '_');
+      const fileName = `${Date.now()}-${sanitizedName}`;
       const { error: uploadError } = await supabase.storage
         .from("app-assets")
         .upload(`coloring-pages/${fileName}`, compressed);
