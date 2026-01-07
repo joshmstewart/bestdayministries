@@ -285,7 +285,16 @@ export default function ColoringBook() {
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {coloringBooks.map((book) => {
+                {[...coloringBooks]
+                  .sort((a, b) => {
+                    // Available items first (free or purchased), then purchasable
+                    const aHasAccess = hasAccessToBook(a);
+                    const bHasAccess = hasAccessToBook(b);
+                    if (aHasAccess && !bHasAccess) return -1;
+                    if (!aHasAccess && bHasAccess) return 1;
+                    return 0; // Keep original display_order within groups
+                  })
+                  .map((book) => {
                   const hasAccess = hasAccessToBook(book);
                   return (
                     <Card
