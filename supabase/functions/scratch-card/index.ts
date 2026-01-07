@@ -230,6 +230,47 @@ serve(async (req) => {
       }
     }
 
+    // Award coins for opening the pack (only for daily cards, not bonus)
+    if (!card.is_bonus_card) {
+      const { data: rewardSetting } = await supabaseAdmin
+        .from('coin_rewards_settings')
+        .select('coins_amount')
+        .eq('reward_key', 'daily_scratch_card')
+        .eq('is_active', true)
+        .single();
+
+      if (rewardSetting && rewardSetting.coins_amount > 0) {
+        // Get current coins
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('coins')
+          .eq('id', card.user_id)
+          .single();
+
+        if (profile) {
+          const newBalance = (profile.coins || 0) + rewardSetting.coins_amount;
+
+          // Update coins
+          await supabase
+            .from('profiles')
+            .update({ coins: newBalance })
+            .eq('id', card.user_id);
+
+          // Log transaction
+          await supabase
+            .from('coin_transactions')
+            .insert({
+              user_id: card.user_id,
+              amount: rewardSetting.coins_amount,
+              transaction_type: 'earned',
+              description: 'Daily scratch card reward',
+            });
+
+          console.log(`Awarded ${rewardSetting.coins_amount} coins for daily scratch card`);
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
