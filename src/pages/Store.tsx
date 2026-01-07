@@ -49,8 +49,8 @@ const Store = () => {
         setUserRole(roleData?.role || "supporter");
       }
 
-      // Fetch store items, purchasable memory match packs, and user's purchased packs in parallel
-      const [storeItemsResult, memoryPacksResult, userPacksResult] = await Promise.all([
+      // Fetch store items, purchasable memory match packs, coloring books, and user's purchases in parallel
+      const [storeItemsResult, memoryPacksResult, coloringBooksResult, userPacksResult, userColoringBooksResult] = await Promise.all([
         supabase
           .from("store_items")
           .select("*")
@@ -61,19 +61,30 @@ const Store = () => {
           .select("id, name, description, preview_image_url, price_coins, is_active, is_purchasable")
           .eq("is_active", true)
           .eq("is_purchasable", true),
+        supabase
+          .from("coloring_books")
+          .select("id, title, description, cover_image_url, coin_price, is_free, is_active, display_order")
+          .eq("is_active", true)
+          .eq("is_free", false)
+          .gt("coin_price", 0),
         user ? supabase
           .from("user_memory_match_packs")
           .select("pack_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        user ? supabase
+          .from("user_coloring_books")
+          .select("book_id")
           .eq("user_id", user.id) : Promise.resolve({ data: [] })
       ]);
 
       if (storeItemsResult.error) throw storeItemsResult.error;
       
-      // Store purchased pack IDs
-      const purchasedPacks = new Set<string>(
-        (userPacksResult.data || []).map((p: { pack_id: string }) => `memory_pack_${p.pack_id}`)
-      );
-      setPurchasedPackIds(purchasedPacks);
+      // Store purchased pack IDs (memory packs and coloring books)
+      const purchasedIds = new Set<string>([
+        ...(userPacksResult.data || []).map((p: { pack_id: string }) => `memory_pack_${p.pack_id}`),
+        ...(userColoringBooksResult.data || []).map((p: { book_id: string }) => `coloring_book_${p.book_id}`)
+      ]);
+      setPurchasedPackIds(purchasedIds);
       
       // Convert memory match packs to store item format
       const memoryPackItems: StoreItem[] = (memoryPacksResult.data || []).map((pack, index) => ({
@@ -83,11 +94,22 @@ const Store = () => {
         price: pack.price_coins || 0,
         category: "games",
         image_url: pack.preview_image_url,
-        display_order: 1000 + index, // Put after regular store items
+        display_order: 1000 + index,
+      }));
+
+      // Convert coloring books to store item format
+      const coloringBookItems: StoreItem[] = (coloringBooksResult.data || []).map((book, index) => ({
+        id: `coloring_book_${book.id}`,
+        name: `Coloring Book: ${book.title}`,
+        description: book.description || `Unlock the ${book.title} coloring book`,
+        price: book.coin_price,
+        category: "games",
+        image_url: book.cover_image_url,
+        display_order: 2000 + (book.display_order || index),
       }));
 
       // Combine and set items
-      setItems([...(storeItemsResult.data || []), ...memoryPackItems]);
+      setItems([...(storeItemsResult.data || []), ...memoryPackItems, ...coloringBookItems]);
     } catch (error) {
       console.error("Error fetching store items:", error);
     } finally {
