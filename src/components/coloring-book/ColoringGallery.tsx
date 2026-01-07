@@ -219,7 +219,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
             </Button>
             <Button variant="outline" onClick={handleStartFresh}>
               <Copy className="w-4 h-4 mr-2" />
-              Start Fresh
+              Start New Copy
             </Button>
             {selectedColoring?.is_public ? (
               <Button
