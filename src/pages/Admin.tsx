@@ -498,8 +498,7 @@ const Admin = () => {
                     <TabsTrigger value="memory-match">Memory Match</TabsTrigger>
                     <TabsTrigger value="stickers">Stickers</TabsTrigger>
                     <TabsTrigger value="drink">Drink</TabsTrigger>
-                    <TabsTrigger value="recipe-ingredients">Recipe Ingredients</TabsTrigger>
-                    <TabsTrigger value="recipe-tools">Recipe Tools</TabsTrigger>
+                    <TabsTrigger value="recipes">Recipes</TabsTrigger>
                     <TabsTrigger value="coloring">Coloring</TabsTrigger>
                   </TabsList>
 
@@ -539,12 +538,19 @@ const Admin = () => {
                     </Tabs>
                   </TabsContent>
 
-                  <TabsContent value="recipe-ingredients">
-                    <RecipeIngredientsManager />
-                  </TabsContent>
-
-                  <TabsContent value="recipe-tools">
-                    <RecipeToolsManager />
+                  <TabsContent value="recipes">
+                    <Tabs defaultValue="ingredients" className="space-y-4">
+                      <TabsList>
+                        <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
+                        <TabsTrigger value="tools">Tools</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="ingredients">
+                        <RecipeIngredientsManager />
+                      </TabsContent>
+                      <TabsContent value="tools">
+                        <RecipeToolsManager />
+                      </TabsContent>
+                    </Tabs>
                   </TabsContent>
 
                   <TabsContent value="coloring">
