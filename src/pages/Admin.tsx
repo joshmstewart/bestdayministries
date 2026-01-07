@@ -497,7 +497,7 @@ const Admin = () => {
                     
                     <TabsTrigger value="memory-match">Memory Match</TabsTrigger>
                     <TabsTrigger value="stickers">Stickers</TabsTrigger>
-                    <TabsTrigger value="drink">Drink</TabsTrigger>
+                    <TabsTrigger value="drink">Drinks</TabsTrigger>
                     <TabsTrigger value="recipes">Recipes</TabsTrigger>
                     <TabsTrigger value="coloring">Coloring</TabsTrigger>
                   </TabsList>
