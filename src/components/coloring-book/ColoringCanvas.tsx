@@ -20,10 +20,28 @@ import { toast } from "sonner";
 import { StickerPicker } from "./StickerPicker";
 import { useCoins } from "@/hooks/useCoins";
 
+// Colors organized by hue: reds, oranges, yellows, greens, blues, purples, pinks, browns, neutrals
 const COLORS = [
-  "#FF0000", "#FF6B00", "#FFD700", "#00FF00", "#00CED1", 
-  "#0000FF", "#8B00FF", "#FF69B4", "#8B4513", "#000000",
-  "#FFFFFF", "#808080", "#FFC0CB", "#90EE90", "#87CEEB",
+  // Reds
+  "#8B0000", "#FF0000", "#FF6B6B",
+  // Oranges  
+  "#FF4500", "#FF8C00", "#FFA500",
+  // Yellows
+  "#FFD700", "#FFFF00", "#FFFACD",
+  // Greens
+  "#006400", "#228B22", "#32CD32", "#90EE90", "#98FB98",
+  // Cyans/Teals
+  "#008B8B", "#00CED1", "#40E0D0",
+  // Blues
+  "#00008B", "#0000FF", "#4169E1", "#87CEEB", "#ADD8E6",
+  // Purples
+  "#4B0082", "#8B00FF", "#9370DB", "#DDA0DD",
+  // Pinks
+  "#C71585", "#FF1493", "#FF69B4", "#FFC0CB",
+  // Browns
+  "#4A2C2A", "#8B4513", "#D2691E", "#DEB887",
+  // Neutrals
+  "#000000", "#404040", "#808080", "#C0C0C0", "#FFFFFF",
 ];
 
 interface ColoringCanvasProps {
