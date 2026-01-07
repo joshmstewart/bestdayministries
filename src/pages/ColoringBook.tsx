@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Palette, Image, BookOpen, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Palette, Image, BookOpen, ChevronLeft, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ColoringCanvas } from "@/components/coloring-book/ColoringCanvas";
 import { ColoringGallery } from "@/components/coloring-book/ColoringGallery";
+import { ColoringCommunityGallery } from "@/components/coloring-book/ColoringCommunityGallery";
 import { useCoins } from "@/hooks/useCoins";
 import { toast } from "sonner";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -251,10 +252,14 @@ export default function ColoringBook() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-6">
             <TabsTrigger value="books" className="gap-2">
               <BookOpen className="w-4 h-4" />
-              Coloring Books
+              Books
+            </TabsTrigger>
+            <TabsTrigger value="community" className="gap-2" disabled={loading || !isAuthenticated}>
+              <Users className="w-4 h-4" />
+              Community
             </TabsTrigger>
             <TabsTrigger value="gallery" className="gap-2" disabled={loading || !isAuthenticated}>
               <Image className="w-4 h-4" />
@@ -309,6 +314,10 @@ export default function ColoringBook() {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="community">
+            {user && <ColoringCommunityGallery userId={user.id} />}
           </TabsContent>
 
           <TabsContent value="gallery">

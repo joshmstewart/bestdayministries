@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ArrowLeft, Eraser, RotateCcw, Save, Download, PaintBucket, Brush, Undo2, Plus, Sticker, Trash2, ZoomIn, ZoomOut, Maximize2, Share2, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -42,6 +42,8 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [isShared, setIsShared] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const [history, setHistory] = useState<ImageData[]>([]);
@@ -599,7 +601,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     return composite;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (makePublic: boolean = false) => {
     if (!user) {
       toast.error("Please sign in to save your work");
       return;
@@ -608,7 +610,12 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
     const composite = getCompositeCanvas();
     if (!composite) return;
 
-    setSaving(true);
+    if (makePublic) {
+      setSharing(true);
+    } else {
+      setSaving(true);
+    }
+
     try {
       const thumbnailUrl = composite.toDataURL("image/png", 0.5);
       const canvasData = JSON.stringify({
@@ -621,15 +628,23 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
         coloring_page_id: page.id,
         canvas_data: canvasData,
         thumbnail_url: thumbnailUrl,
+        is_public: makePublic ? true : undefined,
       }, { onConflict: 'user_id,coloring_page_id' });
 
       if (error) throw error;
-      toast.success("Saved!");
+
+      if (makePublic) {
+        setIsShared(true);
+        toast.success("Saved & shared with the community! 🎨");
+      } else {
+        toast.success("Saved!");
+      }
     } catch (error) {
       console.error("Save error:", error);
       toast.error("Failed to save");
     } finally {
       setSaving(false);
+      setSharing(false);
     }
   };
 
@@ -933,12 +948,31 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
               </AlertDialog>
             </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving} className="flex-1">
-                <Save className="w-4 h-4 mr-1" />
-                {saving ? "Saving..." : "Save"}
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => handleSave(true)} 
+                disabled={saving || sharing || isShared}
+                className="w-full"
+              >
+                {sharing ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4 mr-1" />
+                )}
+                {isShared ? "Shared!" : sharing ? "Sharing..." : "Save & Share"}
               </Button>
-              <Button variant="outline" onClick={handleDownload} className="flex-1">
+              
+              {!isShared && (
+                <button
+                  onClick={() => handleSave(false)}
+                  disabled={saving || sharing}
+                  className="text-sm text-primary underline hover:text-primary/80 transition-colors disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save to My Gallery only (private)"}
+                </button>
+              )}
+              
+              <Button variant="outline" onClick={handleDownload} className="w-full">
                 <Download className="w-4 h-4 mr-1" />
                 Download
               </Button>
