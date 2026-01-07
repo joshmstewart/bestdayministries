@@ -166,6 +166,51 @@ const Store = () => {
             </p>
           </div>
 
+          {/* How It Works Section */}
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-2xl p-6 border border-yellow-200 dark:border-yellow-800">
+            <h2 className="text-xl font-bold text-center mb-4">💰 How JoyCoins Work</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <span className="text-2xl">✨</span> Earn Coins
+                </h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span><strong>Daily Sticker Pack</strong> – Open your free pack each day</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span><strong>Win Games</strong> – Beat Memory Match or Brew Blast</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span><strong>Share Creations</strong> – Save or share your coloring pages</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <span className="text-2xl">🛒</span> Spend Coins
+                </h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span><strong>Game Themes</strong> – Unlock new Memory Match packs</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span><strong>Coloring Books</strong> – Get new pages to color</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">•</span>
+                    <span><strong>Bonus Packs</strong> – Buy extra sticker packs</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-6">
             <div className="flex flex-wrap gap-2 justify-center items-center">
               {categories.map((category) => (
