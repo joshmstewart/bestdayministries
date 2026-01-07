@@ -81,6 +81,8 @@ export function ColoringManager() {
   const [uploadingPageFor, setUploadingPageFor] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
+  const [editingPage, setEditingPage] = useState<ColoringPage | null>(null);
+  const [editPageName, setEditPageName] = useState("");
 
   // Idea generation state
   const [generatingIdeas, setGeneratingIdeas] = useState<string | null>(null);
@@ -338,7 +340,38 @@ DRAWING REQUIREMENTS:
     }
   };
 
-  // Generate ideas for pages
+  // Update page name
+  const handleUpdatePageName = async (page: ColoringPage, newName: string) => {
+    if (!newName.trim()) {
+      toast.error("Page name cannot be empty");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("coloring_pages")
+        .update({ title: newName.trim() })
+        .eq("id", page.id);
+      
+      if (error) throw error;
+      
+      if (page.book_id) {
+        setBookPages((prev) => ({
+          ...prev,
+          [page.book_id!]: prev[page.book_id!]?.map((p) =>
+            p.id === page.id ? { ...p, title: newName.trim() } : p
+          ) || [],
+        }));
+      }
+      
+      setEditingPage(null);
+      setEditPageName("");
+      toast.success("Page name updated!");
+    } catch (error) {
+      showErrorToastWithCopy("Updating page name", error);
+    }
+  };
+
+
   const handleGenerateIdeas = async (book: ColoringBook) => {
     setGeneratingIdeas(book.id);
     try {
@@ -784,7 +817,7 @@ DRAWING REQUIREMENTS:
                           </Button>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          Or upload your own coloring page image
+                          {newPageName.trim() ? `Upload as "${newPageName}"` : "Uses filename as name (or enter name above first)"}
                         </span>
                       </div>
 
@@ -945,6 +978,18 @@ DRAWING REQUIREMENTS:
                                   View
                                 </Button>
                               )}
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => {
+                                  setEditingPage(page);
+                                  setEditPageName(page.title);
+                                }}
+                                className="text-xs h-7"
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit Name
+                              </Button>
                               <Button
                                 size="sm"
                                 variant="secondary"
@@ -1164,6 +1209,54 @@ DRAWING REQUIREMENTS:
               className="w-full h-auto rounded-lg"
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Page Name Dialog */}
+      <Dialog open={!!editingPage} onOpenChange={(open) => {
+        if (!open) {
+          setEditingPage(null);
+          setEditPageName("");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Page Name</DialogTitle>
+            <DialogDescription>
+              Update the name for this coloring page
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Page Name</Label>
+              <Input
+                value={editPageName}
+                onChange={(e) => setEditPageName(e.target.value)}
+                placeholder="Enter page name..."
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditingPage(null);
+                  setEditPageName("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (editingPage) {
+                    handleUpdatePageName(editingPage, editPageName);
+                  }
+                }}
+                disabled={!editPageName.trim()}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </Card>
