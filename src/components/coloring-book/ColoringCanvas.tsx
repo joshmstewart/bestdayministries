@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { StickerPicker } from "./StickerPicker";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
+import { useCoins } from "@/hooks/useCoins";
 
 const COLORS = [
   "#FF0000", "#FF6B00", "#FFD700", "#00FF00", "#00CED1", 
@@ -43,6 +44,7 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
   const [activeTool, setActiveTool] = useState<"fill" | "brush" | "eraser" | "sticker">("fill");
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const { user } = useAuth();
+  const { awardCoins } = useCoins();
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [isShared, setIsShared] = useState(false);
@@ -625,6 +627,17 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
         fabricObjects: fabricCanvas?.toJSON(),
       });
 
+      // Check if this is a new save (for coin rewards)
+      const { data: existingSave } = await supabase
+        .from("user_colorings")
+        .select("id, is_public")
+        .eq("user_id", user.id)
+        .eq("coloring_page_id", page.id)
+        .maybeSingle();
+
+      const isNewSave = !existingSave;
+      const isNewShare = makePublic && (!existingSave || !existingSave.is_public);
+
       const { error } = await supabase.from("user_colorings").upsert({
         user_id: user.id,
         coloring_page_id: page.id,
@@ -634,6 +647,32 @@ export function ColoringCanvas({ page, onBack }: ColoringCanvasProps) {
       }, { onConflict: 'user_id,coloring_page_id' });
 
       if (error) throw error;
+
+      // Award coins for new saves
+      if (isNewSave) {
+        const { data: saveReward } = await supabase
+          .from("coin_rewards_settings")
+          .select("coins_amount, is_active")
+          .eq("reward_key", "coloring_save")
+          .single();
+        
+        if (saveReward?.is_active && saveReward.coins_amount > 0) {
+          await awardCoins(user.id, saveReward.coins_amount, "Saved a coloring page");
+        }
+      }
+
+      // Award coins for new shares
+      if (isNewShare) {
+        const { data: shareReward } = await supabase
+          .from("coin_rewards_settings")
+          .select("coins_amount, is_active")
+          .eq("reward_key", "coloring_share")
+          .single();
+        
+        if (shareReward?.is_active && shareReward.coins_amount > 0) {
+          await awardCoins(user.id, shareReward.coins_amount, "Shared a coloring with the community");
+        }
+      }
 
       if (makePublic) {
         setIsShared(true);
