@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Trash2, RotateCcw, Copy, Palette } from "lucide-react";
+import { Trash2, Copy, Palette, Share2, Lock, Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ColoringGalleryProps {
@@ -20,6 +21,7 @@ interface ColoringGalleryProps {
 
 export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedColoring, setSelectedColoring] = useState<any>(null);
 
   const { data: savedColorings, isLoading, refetch } = useQuery({
@@ -38,6 +40,27 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
       return data;
     },
     enabled: !!user,
+  });
+
+  const toggleShareMutation = useMutation({
+    mutationFn: async ({ id, isPublic }: { id: string; isPublic: boolean }) => {
+      const { error } = await supabase
+        .from("user_colorings")
+        .update({ is_public: isPublic })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { isPublic }) => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ["community-colorings"] });
+      if (selectedColoring) {
+        setSelectedColoring({ ...selectedColoring, is_public: isPublic });
+      }
+      toast.success(isPublic ? "Shared with community!" : "Made private");
+    },
+    onError: () => {
+      toast.error("Failed to update sharing status");
+    },
   });
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -101,11 +124,20 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
             onClick={() => setSelectedColoring(coloring)}
           >
             <CardContent className="p-0">
-              <img
-                src={coloring.thumbnail_url || coloring.coloring_page?.image_url}
-                alt={coloring.coloring_page?.title}
-                className="w-full aspect-square object-cover"
-              />
+              <div className="relative">
+                <img
+                  src={coloring.thumbnail_url || coloring.coloring_page?.image_url}
+                  alt={coloring.coloring_page?.title}
+                  className="w-full aspect-square object-cover"
+                />
+                {/* Shared badge */}
+                {coloring.is_public && (
+                  <Badge className="absolute top-2 left-2 bg-green-500/90 text-white">
+                    <Globe className="w-3 h-3 mr-1" />
+                    Shared
+                  </Badge>
+                )}
+              </div>
               <div className="p-3">
                 <h3 className="font-medium text-sm truncate">
                   {coloring.coloring_page?.title}
@@ -145,7 +177,7 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
             />
           </div>
 
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
             <Button onClick={handleContinue}>
               <Copy className="w-4 h-4 mr-2" />
               Continue Coloring
@@ -154,6 +186,33 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
               <Palette className="w-4 h-4 mr-2" />
               Color New Copy
             </Button>
+            {selectedColoring?.is_public ? (
+              <Button
+                variant="outline"
+                onClick={() => toggleShareMutation.mutate({ id: selectedColoring.id, isPublic: false })}
+                disabled={toggleShareMutation.isPending}
+              >
+                {toggleShareMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Lock className="w-4 h-4 mr-2" />
+                )}
+                Make Private
+              </Button>
+            ) : (
+              <Button
+                onClick={() => toggleShareMutation.mutate({ id: selectedColoring.id, isPublic: true })}
+                disabled={toggleShareMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {toggleShareMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Share2 className="w-4 h-4 mr-2" />
+                )}
+                Share with Community
+              </Button>
+            )}
           </div>
 
           <div className="flex justify-center pt-2">
