@@ -64,6 +64,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [isShared, setIsShared] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const [history, setHistory] = useState<ImageData[]>([]);
@@ -188,6 +189,10 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     canvas.on('selection:created', () => setHasSelection(true));
     canvas.on('selection:updated', () => setHasSelection(true));
     canvas.on('selection:cleared', () => setHasSelection(false));
+    
+    // Track changes for brush strokes
+    canvas.on('path:created', () => setHasChanges(true));
+    canvas.on('object:modified', () => setHasChanges(true));
 
     setFabricCanvas(canvas);
 
@@ -319,6 +324,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       fabricCanvas.renderAll();
 
       setShowStickerPicker(false);
+      setHasChanges(true);
       toast.success("Sticker added! Drag to move, corners to resize/rotate.");
     } catch (error) {
       console.error("Failed to add sticker:", error);
@@ -656,6 +662,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       } else {
         saveToHistory();
         floodFill(x, y, activeColor);
+        setHasChanges(true);
       }
     }
   }, [activeTool, activeColor, floodFill, saveToHistory]);
@@ -687,6 +694,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       fabricCanvas.renderAll();
     }
 
+    setHasChanges(true);
     toast("Canvas cleared!");
   };
 
@@ -784,6 +792,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       } else {
         toast.success("Saved!");
       }
+      setHasChanges(false);
     } catch (error) {
       console.error("Save error:", error);
       toast.error("Failed to save");
@@ -1070,7 +1079,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           {/* Save / Download */}
           <div className="bg-card rounded-lg p-4 shadow-sm border">
             <div className="flex flex-col gap-2">
-              <Button onClick={() => handleSave(false)} disabled={saving || sharing} className="w-full">
+              <Button onClick={() => handleSave(false)} disabled={saving || sharing || isShared || !hasChanges} className="w-full">
                 {saving ? (
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                 ) : (
@@ -1080,9 +1089,9 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
               </Button>
 
               <Button
-                variant={isShared ? "outline" : "secondary"}
+                variant="secondary"
                 onClick={() => handleSave(true)}
-                disabled={saving || sharing}
+                disabled={saving || sharing || isShared}
                 className="w-full"
               >
                 {sharing ? (
@@ -1090,7 +1099,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
                 ) : (
                   <Share2 className="w-4 h-4 mr-1" />
                 )}
-                {sharing ? "Sharing..." : isShared ? "Update & Keep Shared" : "Save & Share"}
+                {sharing ? "Sharing..." : "Save & Share"}
               </Button>
 
               <Button variant="outline" onClick={handleDownload} className="w-full">
