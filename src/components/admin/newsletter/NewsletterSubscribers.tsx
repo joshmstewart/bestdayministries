@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Search, Upload, Loader2, Info } from "lucide-react";
+import { Download, Search, Upload, Loader2, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -21,19 +21,35 @@ export const NewsletterSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isUploading, setIsUploading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const { data: subscribers, isLoading } = useQuery({
     queryKey: ["newsletter-subscribers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("newsletter_subscribers")
-        .select("*")
-        .order("subscribed_at", { ascending: false });
+      // Fetch all subscribers - use range to bypass 1000 row limit
+      let allSubscribers: any[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      
+      while (true) {
+        const { data, error } = await supabase
+          .from("newsletter_subscribers")
+          .select("*")
+          .order("subscribed_at", { ascending: false })
+          .range(from, from + batchSize - 1);
 
-      if (error) throw error;
-      return data;
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        allSubscribers = [...allSubscribers, ...data];
+        if (data.length < batchSize) break;
+        from += batchSize;
+      }
+      
+      return allSubscribers;
     },
   });
 
@@ -60,6 +76,24 @@ export const NewsletterSubscribers = () => {
     const matchesStatus = statusFilter === "all" || sub.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Reset to page 1 when filters change
+  const totalPages = Math.ceil((filteredSubscribers?.length || 0) / pageSize);
+  const paginatedSubscribers = filteredSubscribers?.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  // Reset page when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
 
   const exportToCSV = () => {
     if (!subscribers) return;
@@ -327,11 +361,11 @@ export const NewsletterSubscribers = () => {
           <Input
             placeholder="Search by email or location..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Filter status" />
           </SelectTrigger>
@@ -388,7 +422,7 @@ export const NewsletterSubscribers = () => {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredSubscribers?.map((subscriber) => (
+                {paginatedSubscribers?.map((subscriber) => (
                   <tr key={subscriber.id} className="hover:bg-muted/50">
                     <td className="px-4 py-3 text-sm">{subscriber.email}</td>
                     <td className="px-4 py-3 text-sm">{getStatusBadge(subscriber.status)}</td>
@@ -406,6 +440,36 @@ export const NewsletterSubscribers = () => {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t px-4 py-3">
+              <p className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, filteredSubscribers?.length || 0)} of {filteredSubscribers?.length || 0} subscribers
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
     </div>
