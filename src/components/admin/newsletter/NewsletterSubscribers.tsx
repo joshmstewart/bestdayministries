@@ -252,17 +252,20 @@ export const NewsletterSubscribers = () => {
         inserted += batch.length;
       }
 
+      queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
+      queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
+
       toast.success(`Added ${inserted} new subscribers`, {
         description: subscriberData.length - newSubscribers.length > 0 
           ? `${subscriberData.length - newSubscribers.length} duplicates skipped`
           : undefined
       });
-
-      queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
-      queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
     } catch (error) {
       console.error("Bulk upload error:", error);
-      toast.error("Failed to upload subscribers");
+      // Refresh to show any data that was inserted before the error
+      queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
+      queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
+      toast.error("Upload encountered an issue - some subscribers may have been added");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
