@@ -107,40 +107,53 @@ export const NewsletterSubscribers = () => {
         return;
       }
 
-      // Parse header to find email column(s)
-      const header = lines[0].toLowerCase();
-      const headerCols = header.split(",").map(col => col.trim().replace(/^["']|["']$/g, ""));
+      // Parse header to find relevant columns
+      const headerCols = lines[0].split(",").map(col => col.trim().replace(/^["']|["']$/g, "").toLowerCase());
       
-      // Find columns that contain "email" in the header
+      // Find column indices
       const emailColIndices = headerCols
         .map((col, idx) => col.includes("email") && !col.includes("status") ? idx : -1)
         .filter(idx => idx !== -1);
+      
+      const cityColIdx = headerCols.findIndex(col => col.includes("city"));
+      const stateColIdx = headerCols.findIndex(col => col.includes("state") || col.includes("province"));
+      const countryColIdx = headerCols.findIndex(col => col.includes("country"));
 
       const hasHeader = emailColIndices.length > 0;
       const startIndex = hasHeader ? 1 : 0;
       
-      const emails: string[] = [];
+      interface SubscriberData {
+        email: string;
+        city?: string;
+        state?: string;
+        country?: string;
+      }
+      
+      const subscriberData: SubscriberData[] = [];
       for (let i = startIndex; i < lines.length; i++) {
         const cols = lines[i].split(",").map(col => col.trim().replace(/^["']|["']$/g, ""));
         
+        // Get location data if columns exist
+        const city = cityColIdx >= 0 ? cols[cityColIdx] || undefined : undefined;
+        const state = stateColIdx >= 0 ? cols[stateColIdx] || undefined : undefined;
+        const country = countryColIdx >= 0 ? cols[countryColIdx] || undefined : undefined;
+        
         if (hasHeader) {
-          // Extract from identified email columns
           for (const colIdx of emailColIndices) {
             const email = cols[colIdx];
             if (email && email.includes("@")) {
-              emails.push(email.toLowerCase());
+              subscriberData.push({ email: email.toLowerCase(), city, state, country });
             }
           }
         } else {
-          // No header - assume first column or find @ symbol
           const email = cols.find(col => col.includes("@"));
           if (email) {
-            emails.push(email.toLowerCase());
+            subscriberData.push({ email: email.toLowerCase(), city, state, country });
           }
         }
       }
 
-      if (emails.length === 0) {
+      if (subscriberData.length === 0) {
         toast.error("No valid emails found in file");
         return;
       }
@@ -151,9 +164,9 @@ export const NewsletterSubscribers = () => {
         .select("email");
       
       const existingEmails = new Set(existing?.map(e => e.email.toLowerCase()) || []);
-      const newEmails = emails.filter(email => !existingEmails.has(email));
+      const newSubscribers = subscriberData.filter(sub => !existingEmails.has(sub.email));
 
-      if (newEmails.length === 0) {
+      if (newSubscribers.length === 0) {
         toast.info("All emails already exist in the list");
         return;
       }
@@ -162,11 +175,14 @@ export const NewsletterSubscribers = () => {
       const batchSize = 100;
       let inserted = 0;
       
-      for (let i = 0; i < newEmails.length; i += batchSize) {
-        const batch = newEmails.slice(i, i + batchSize).map(email => ({
-          email,
+      for (let i = 0; i < newSubscribers.length; i += batchSize) {
+        const batch = newSubscribers.slice(i, i + batchSize).map(sub => ({
+          email: sub.email,
           status: "active" as const,
           source: "bulk_import",
+          location_city: sub.city || null,
+          location_state: sub.state || null,
+          location_country: sub.country || null,
         }));
 
         const { error } = await supabase
@@ -178,8 +194,8 @@ export const NewsletterSubscribers = () => {
       }
 
       toast.success(`Added ${inserted} new subscribers`, {
-        description: emails.length - newEmails.length > 0 
-          ? `${emails.length - newEmails.length} duplicates skipped`
+        description: subscriberData.length - newSubscribers.length > 0 
+          ? `${subscriberData.length - newSubscribers.length} duplicates skipped`
           : undefined
       });
 
