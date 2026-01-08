@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Search, Upload, Loader2 } from "lucide-react";
+import { Download, Search, Upload, Loader2, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -287,7 +288,19 @@ export const NewsletterSubscribers = () => {
         </Card>
         <Card className="p-6">
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Growth Rate</p>
+            <div className="flex items-center gap-1">
+              <p className="text-sm text-muted-foreground">Retention Rate</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px]">
+                    <p className="text-xs">Percentage of subscribers who remain active (haven't unsubscribed)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <p className="text-3xl font-bold">
               {stats?.total ? ((stats.active / stats.total) * 100).toFixed(1) : 0}%
             </p>
