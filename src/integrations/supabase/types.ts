@@ -4500,6 +4500,7 @@ export type Database = {
           email: string | null
           friend_code: string | null
           id: string
+          last_daily_login_reward_at: string | null
           tts_enabled: boolean
           tts_voice: string | null
           updated_at: string
@@ -4516,6 +4517,7 @@ export type Database = {
           email?: string | null
           friend_code?: string | null
           id: string
+          last_daily_login_reward_at?: string | null
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
@@ -4532,6 +4534,7 @@ export type Database = {
           email?: string | null
           friend_code?: string | null
           id?: string
+          last_daily_login_reward_at?: string | null
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string

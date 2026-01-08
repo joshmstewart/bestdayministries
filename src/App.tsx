@@ -15,6 +15,7 @@ import { useDomainRouting } from "@/hooks/useDomainRouting";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import { PicturePasswordNotificationManager } from "@/components/auth/PicturePasswordNotificationManager";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { DailyLoginRewardManager } from "@/components/DailyLoginRewardManager";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
@@ -173,6 +174,7 @@ const App = () => {
           <TourManager />
           <WelcomeRedirectModal />
           <PicturePasswordNotificationManager />
+          <DailyLoginRewardManager />
           <PageTracker />
           <TermsAcceptanceGuard>
             <Routes>
