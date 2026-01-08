@@ -127,7 +127,63 @@ export const NewsletterSubscribers = () => {
         city?: string;
         state?: string;
         country?: string;
+        timezone?: string;
       }
+      
+      // Map US states to timezones
+      const stateTimezones: Record<string, string> = {
+        // Eastern
+        CT: "America/New_York", DE: "America/New_York", FL: "America/New_York", GA: "America/New_York",
+        IN: "America/New_York", KY: "America/New_York", ME: "America/New_York", MD: "America/New_York",
+        MA: "America/New_York", MI: "America/New_York", NH: "America/New_York", NJ: "America/New_York",
+        NY: "America/New_York", NC: "America/New_York", OH: "America/New_York", PA: "America/New_York",
+        RI: "America/New_York", SC: "America/New_York", VT: "America/New_York", VA: "America/New_York",
+        WV: "America/New_York", DC: "America/New_York",
+        // Central
+        AL: "America/Chicago", AR: "America/Chicago", IL: "America/Chicago", IA: "America/Chicago",
+        KS: "America/Chicago", LA: "America/Chicago", MN: "America/Chicago", MS: "America/Chicago",
+        MO: "America/Chicago", NE: "America/Chicago", ND: "America/Chicago", OK: "America/Chicago",
+        SD: "America/Chicago", TN: "America/Chicago", TX: "America/Chicago", WI: "America/Chicago",
+        // Mountain
+        AZ: "America/Phoenix", CO: "America/Denver", ID: "America/Denver", MT: "America/Denver",
+        NM: "America/Denver", UT: "America/Denver", WY: "America/Denver",
+        // Pacific
+        CA: "America/Los_Angeles", NV: "America/Los_Angeles", OR: "America/Los_Angeles", WA: "America/Los_Angeles",
+        // Other
+        AK: "America/Anchorage", HI: "Pacific/Honolulu",
+      };
+
+      // Map Canadian provinces to timezones
+      const provinceTimezones: Record<string, string> = {
+        ON: "America/Toronto", QC: "America/Montreal", BC: "America/Vancouver",
+        AB: "America/Edmonton", MB: "America/Winnipeg", SK: "America/Regina",
+        NS: "America/Halifax", NB: "America/Moncton", NL: "America/St_Johns",
+        PE: "America/Halifax", YT: "America/Whitehorse", NT: "America/Yellowknife", NU: "America/Iqaluit",
+      };
+
+      const deriveTimezone = (state?: string, country?: string): string | undefined => {
+        if (!state) return undefined;
+        const stateUpper = state.toUpperCase().trim();
+        
+        // Check US states
+        if (stateTimezones[stateUpper]) return stateTimezones[stateUpper];
+        
+        // Check Canadian provinces
+        if (provinceTimezones[stateUpper]) return provinceTimezones[stateUpper];
+        
+        // Try full state names
+        const stateNameMap: Record<string, string> = {
+          CALIFORNIA: "CA", TEXAS: "TX", FLORIDA: "FL", "NEW YORK": "NY", COLORADO: "CO",
+          WASHINGTON: "WA", OREGON: "OR", ARIZONA: "AZ", NEVADA: "NV", UTAH: "UT",
+          ONTARIO: "ON", QUEBEC: "QC", "BRITISH COLUMBIA": "BC", ALBERTA: "AB",
+        };
+        const abbrev = stateNameMap[stateUpper];
+        if (abbrev) {
+          return stateTimezones[abbrev] || provinceTimezones[abbrev];
+        }
+        
+        return undefined;
+      };
       
       const subscriberData: SubscriberData[] = [];
       for (let i = startIndex; i < lines.length; i++) {
@@ -137,18 +193,19 @@ export const NewsletterSubscribers = () => {
         const city = cityColIdx >= 0 ? cols[cityColIdx] || undefined : undefined;
         const state = stateColIdx >= 0 ? cols[stateColIdx] || undefined : undefined;
         const country = countryColIdx >= 0 ? cols[countryColIdx] || undefined : undefined;
+        const timezone = deriveTimezone(state, country);
         
         if (hasHeader) {
           for (const colIdx of emailColIndices) {
             const email = cols[colIdx];
             if (email && email.includes("@")) {
-              subscriberData.push({ email: email.toLowerCase(), city, state, country });
+              subscriberData.push({ email: email.toLowerCase(), city, state, country, timezone });
             }
           }
         } else {
           const email = cols.find(col => col.includes("@"));
           if (email) {
-            subscriberData.push({ email: email.toLowerCase(), city, state, country });
+            subscriberData.push({ email: email.toLowerCase(), city, state, country, timezone });
           }
         }
       }
@@ -183,6 +240,7 @@ export const NewsletterSubscribers = () => {
           location_city: sub.city || null,
           location_state: sub.state || null,
           location_country: sub.country || null,
+          timezone: sub.timezone || null,
         }));
 
         const { error } = await supabase
