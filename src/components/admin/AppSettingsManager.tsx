@@ -82,7 +82,10 @@ export const AppSettingsManager = () => {
       }
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${settingKey}-${Date.now()}.${fileExt}`;
+      // Use a fixed filename for mobile app icon so iOS and Android use the same stable URL
+      const fileName = settingKey === "mobile_app_icon_url" 
+        ? `mobile-app-icon.${fileExt}`
+        : `${settingKey}-${Date.now()}.${fileExt}`;
       const filePath = fileName;
 
       const { error: uploadError } = await supabase.storage
@@ -241,9 +244,9 @@ export const AppSettingsManager = () => {
 
         {/* Mobile App Icon */}
         <div className="space-y-3">
-          <Label>Mobile App Icon</Label>
+          <Label>Mobile App Icon (iOS & Android)</Label>
           <p className="text-sm text-muted-foreground">
-            The icon used for the mobile app (recommended: 1024x1024px PNG)
+            The icon used when users add the app to their home screen on any device (recommended: 1024x1024px PNG)
           </p>
           {settings.mobile_app_icon_url && !settings.mobile_app_icon_url.includes('object/public/app-assets/icon.png') && (
             <div className="border rounded-lg p-4 bg-muted/50">
