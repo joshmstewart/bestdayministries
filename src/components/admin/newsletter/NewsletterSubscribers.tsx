@@ -5,6 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Download, Search, Upload, Loader2, Info } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useRef } from "react";
 import { format } from "date-fns";
@@ -12,6 +19,7 @@ import { toast } from "sonner";
 
 export const NewsletterSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -45,11 +53,13 @@ export const NewsletterSubscribers = () => {
     },
   });
 
-  const filteredSubscribers = subscribers?.filter((sub) =>
-    sub.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sub.location_city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sub.location_state?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSubscribers = subscribers?.filter((sub) => {
+    const matchesSearch = sub.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sub.location_city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      sub.location_state?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || sub.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const exportToCSV = () => {
     if (!subscribers) return;
@@ -311,8 +321,8 @@ export const NewsletterSubscribers = () => {
         </Card>
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
+      <div className="flex gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by email or location..."
@@ -321,6 +331,18 @@ export const NewsletterSubscribers = () => {
             className="pl-10"
           />
         </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="unsubscribed">Unsubscribed</SelectItem>
+            <SelectItem value="bounced">Bounced</SelectItem>
+            <SelectItem value="complained">Complained</SelectItem>
+          </SelectContent>
+        </Select>
         <input
           type="file"
           ref={fileInputRef}
