@@ -102,15 +102,41 @@ export const NewsletterSubscribers = () => {
       const text = await file.text();
       const lines = text.split(/\r?\n/).filter(line => line.trim());
       
-      // Skip header if it looks like one
-      const startIndex = lines[0]?.toLowerCase().includes("email") ? 1 : 0;
+      if (lines.length === 0) {
+        toast.error("File is empty");
+        return;
+      }
+
+      // Parse header to find email column(s)
+      const header = lines[0].toLowerCase();
+      const headerCols = header.split(",").map(col => col.trim().replace(/^["']|["']$/g, ""));
+      
+      // Find columns that contain "email" in the header
+      const emailColIndices = headerCols
+        .map((col, idx) => col.includes("email") && !col.includes("status") ? idx : -1)
+        .filter(idx => idx !== -1);
+
+      const hasHeader = emailColIndices.length > 0;
+      const startIndex = hasHeader ? 1 : 0;
       
       const emails: string[] = [];
       for (let i = startIndex; i < lines.length; i++) {
-        // Handle CSV with multiple columns - email is typically first
-        const email = lines[i].split(",")[0].trim().replace(/^["']|["']$/g, "");
-        if (email && email.includes("@")) {
-          emails.push(email.toLowerCase());
+        const cols = lines[i].split(",").map(col => col.trim().replace(/^["']|["']$/g, ""));
+        
+        if (hasHeader) {
+          // Extract from identified email columns
+          for (const colIdx of emailColIndices) {
+            const email = cols[colIdx];
+            if (email && email.includes("@")) {
+              emails.push(email.toLowerCase());
+            }
+          }
+        } else {
+          // No header - assume first column or find @ symbol
+          const email = cols.find(col => col.includes("@"));
+          if (email) {
+            emails.push(email.toLowerCase());
+          }
         }
       }
 
