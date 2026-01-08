@@ -27,6 +27,7 @@ const NOTIFICATION_TYPES = {
   new_sponsor_message: "Messages",
   vendor_application: "Vendors",
   product_update: "Updates",
+  content_like: "Likes",
 };
 
 export default function Notifications() {
