@@ -231,6 +231,7 @@ serve(async (req) => {
     }
 
     // Award coins for opening the pack (only for daily cards, not bonus)
+    let coinsAwarded = 0;
     if (!card.is_bonus_card) {
       const { data: rewardSetting } = await supabaseAdmin
         .from('coin_rewards_settings')
@@ -266,6 +267,7 @@ serve(async (req) => {
               description: 'Daily scratch card reward',
             });
 
+          coinsAwarded = rewardSetting.coins_amount;
           console.log(`Awarded ${rewardSetting.coins_amount} coins for daily scratch card`);
         }
       }
@@ -276,7 +278,8 @@ serve(async (req) => {
         success: true, 
         stickers: revealedStickers,
         // Keep for backwards compatibility
-        sticker: revealedStickers[0]
+        sticker: revealedStickers[0],
+        coinsAwarded
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
