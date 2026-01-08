@@ -9,6 +9,7 @@ import { Sparkles, Package, BookOpen, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { showCoinNotification } from "@/utils/coinNotification";
 
 interface PackOpeningDialogProps {
   open: boolean;
@@ -269,6 +270,11 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
 
           // Trigger celebration for first sticker
           triggerCelebration(stickers[0].rarity);
+          
+          // Show coin notification if coins were awarded
+          if (data.coinsAwarded && data.coinsAwarded > 0) {
+            showCoinNotification(data.coinsAwarded, "Daily pack opened!");
+          }
         } else {
           throw new Error('No stickers revealed');
         }
