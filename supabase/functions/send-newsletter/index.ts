@@ -218,6 +218,14 @@ serve(async (req) => {
       );
 
       subscribers = subscribersWithRoles.filter(Boolean);
+    } else if (targetAudience.type === 'specific_emails' && targetAudience.emails?.length > 0) {
+      // Send to specific email addresses (useful for testing)
+      console.log('Sending to specific emails:', targetAudience.emails);
+      subscribers = targetAudience.emails.map((email: string) => ({
+        email: email.trim(),
+        id: null,
+        user_id: null
+      }));
     }
 
     if (!subscribers || subscribers.length === 0) {
@@ -295,8 +303,9 @@ serve(async (req) => {
     for (let i = 0; i < subscribers.length; i += batchSize) {
       const batch = subscribers.slice(i, i + batchSize);
       
-      const emailPromises = batch.map(async (subscriber) => {
-        const personalizedHtml = htmlContent.replace(/{{subscriber_id}}/g, subscriber.id);
+      const emailPromises = batch.map(async (subscriber: { email: string; id: string | null; user_id: string | null }) => {
+        const subscriberId = subscriber.id || 'unknown';
+        const personalizedHtml = htmlContent.replace(/{{subscriber_id}}/g, subscriberId);
         
         try {
           const { data: emailData, error } = await resend.emails.send({
@@ -306,7 +315,7 @@ serve(async (req) => {
             html: personalizedHtml,
             headers: {
               "X-Campaign-ID": campaignId,
-              "X-Subscriber-ID": subscriber.id,
+              "X-Subscriber-ID": subscriberId,
             },
           });
 
