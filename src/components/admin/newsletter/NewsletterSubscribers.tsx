@@ -1,15 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Search } from "lucide-react";
-import { useState } from "react";
+import { Download, Search, Upload, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export const NewsletterSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   const { data: subscribers, isLoading } = useQuery({
     queryKey: ["newsletter-subscribers"],
@@ -88,6 +92,84 @@ export const NewsletterSubscribers = () => {
     }
   };
 
+  const handleBulkUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
+      
+      // Skip header if it looks like one
+      const startIndex = lines[0]?.toLowerCase().includes("email") ? 1 : 0;
+      
+      const emails: string[] = [];
+      for (let i = startIndex; i < lines.length; i++) {
+        // Handle CSV with multiple columns - email is typically first
+        const email = lines[i].split(",")[0].trim().replace(/^["']|["']$/g, "");
+        if (email && email.includes("@")) {
+          emails.push(email.toLowerCase());
+        }
+      }
+
+      if (emails.length === 0) {
+        toast.error("No valid emails found in file");
+        return;
+      }
+
+      // Get existing emails to avoid duplicates
+      const { data: existing } = await supabase
+        .from("newsletter_subscribers")
+        .select("email");
+      
+      const existingEmails = new Set(existing?.map(e => e.email.toLowerCase()) || []);
+      const newEmails = emails.filter(email => !existingEmails.has(email));
+
+      if (newEmails.length === 0) {
+        toast.info("All emails already exist in the list");
+        return;
+      }
+
+      // Insert in batches of 100
+      const batchSize = 100;
+      let inserted = 0;
+      
+      for (let i = 0; i < newEmails.length; i += batchSize) {
+        const batch = newEmails.slice(i, i + batchSize).map(email => ({
+          email,
+          status: "active" as const,
+          source: "bulk_import",
+        }));
+
+        const { error } = await supabase
+          .from("newsletter_subscribers")
+          .insert(batch);
+
+        if (error) throw error;
+        inserted += batch.length;
+      }
+
+      toast.success(`Added ${inserted} new subscribers`, {
+        description: emails.length - newEmails.length > 0 
+          ? `${emails.length - newEmails.length} duplicates skipped`
+          : undefined
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
+      queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
+    } catch (error) {
+      console.error("Bulk upload error:", error);
+      toast.error("Failed to upload subscribers");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
@@ -123,6 +205,25 @@ export const NewsletterSubscribers = () => {
             className="pl-10"
           />
         </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".csv,.txt"
+          onChange={handleBulkUpload}
+          className="hidden"
+        />
+        <Button 
+          variant="outline" 
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+        >
+          {isUploading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="mr-2 h-4 w-4" />
+          )}
+          Bulk Import
+        </Button>
         <Button variant="outline" onClick={exportToCSV}>
           <Download className="mr-2 h-4 w-4" />
           Export CSV
