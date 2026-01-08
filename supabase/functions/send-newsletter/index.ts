@@ -252,6 +252,18 @@ serve(async (req) => {
       htmlContent += footerData.setting_value.html;
     }
 
+    // Get organization info (needed for placeholders)
+    const orgInfo = orgData?.setting_value as any;
+    const orgName = orgInfo?.name || "Best Day Ministries";
+    const orgAddress = orgInfo?.address || "Your Address Here";
+    const fromEmail = orgInfo?.from_email || "newsletter@bestdayministries.org";
+    const fromName = orgInfo?.from_name || "Best Day Ministries";
+
+    // Replace content placeholders (like {{site_url}})
+    const siteUrl = Deno.env.get("SITE_URL") || "https://bestdayministries.org";
+    htmlContent = htmlContent.replace(/{{site_url}}/g, siteUrl);
+    htmlContent = htmlContent.replace(/{{organization_name}}/g, orgName);
+
     // Replace links with tracked versions
     const linkRegex = /href="(https?:\/\/[^"]+)"/g;
     const links: { original: string; shortCode: string }[] = [];
@@ -279,12 +291,17 @@ serve(async (req) => {
       );
     }
 
-    // Get organization info
-    const orgInfo = orgData?.setting_value as any;
-    const orgName = orgInfo?.name || "Best Day Ministries";
-    const orgAddress = orgInfo?.address || "Your Address Here";
-    const fromEmail = orgInfo?.from_email || "newsletter@bestdayministries.org";
-    const fromName = orgInfo?.from_name || "Best Day Ministries";
+    // Replace placeholders in subject line
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+    const currentMonth = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear().toString();
+    
+    let finalSubject = campaign.subject
+      .replace(/{{organization_name}}/g, orgName)
+      .replace(/{{month}}/g, currentMonth)
+      .replace(/{{year}}/g, currentYear);
 
     // Add unsubscribe link
     htmlContent += `
@@ -311,7 +328,7 @@ serve(async (req) => {
           const { data: emailData, error } = await resend.emails.send({
             from: `${fromName} <${fromEmail}>`,
             to: subscriber.email,
-            subject: campaign.subject,
+            subject: finalSubject,
             html: personalizedHtml,
             headers: {
               "X-Campaign-ID": campaignId,
@@ -327,7 +344,7 @@ serve(async (req) => {
               campaign_id: campaignId,
               recipient_email: subscriber.email,
               recipient_user_id: subscriber.user_id,
-              subject: campaign.subject,
+              subject: finalSubject,
               html_content: personalizedHtml,
               status: "failed",
               error_message: error.message || String(error),
@@ -342,7 +359,7 @@ serve(async (req) => {
             campaign_id: campaignId,
             recipient_email: subscriber.email,
             recipient_user_id: subscriber.user_id,
-            subject: campaign.subject,
+            subject: finalSubject,
             html_content: personalizedHtml,
             status: "sent",
             resend_email_id: emailData?.id,
@@ -366,7 +383,7 @@ serve(async (req) => {
             campaign_id: campaignId,
             recipient_email: subscriber.email,
             recipient_user_id: subscriber.user_id,
-            subject: campaign.subject,
+            subject: finalSubject,
             html_content: personalizedHtml,
             status: "failed",
             error_message: error.message || String(error),
