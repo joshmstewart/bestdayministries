@@ -264,60 +264,79 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    const setupRealtimeSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const userId = session.user.id;
+      
+      // Set up realtime subscription filtered by user_id
+      channel = supabase
+        .channel(`notifications-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            playSound('notification');
+            loadNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            loadNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            loadNotifications();
+          }
+        )
+        .subscribe();
+    };
+
     loadNotifications();
+    setupRealtimeSubscription();
     
     // Set up auth state change listener
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         loadNotifications();
+        setupRealtimeSubscription();
       } else if (event === 'SIGNED_OUT') {
         setNotifications([]);
         setUnreadCount(0);
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
       }
     });
 
-    // Set up realtime subscription
-    const channel = supabase
-      .channel('notifications-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-        },
-        () => {
-          playSound('notification');
-          loadNotifications();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-        },
-        () => {
-          loadNotifications();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-        },
-        () => {
-          loadNotifications();
-        }
-      )
-      .subscribe();
-
     return () => {
       authSubscription.unsubscribe();
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
