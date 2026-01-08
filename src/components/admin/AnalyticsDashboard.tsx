@@ -12,14 +12,15 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
-import { Users, DollarSign, Calendar, MessageSquare, ShoppingCart, TrendingUp } from "lucide-react";
+import { Users, DollarSign, Calendar, MessageSquare, ShoppingCart, TrendingUp, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AnalyticsData {
   userGrowth: Array<{ month: string; users: number }>;
@@ -379,7 +380,19 @@ export function AnalyticsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Growth Rate</CardTitle>
+            <div className="flex items-center gap-1">
+              <CardTitle className="text-sm font-medium">Growth Rate</CardTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px]">
+                    <p className="text-xs">Number of new users registered in the most recent month</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -388,7 +401,7 @@ export function AnalyticsDashboard() {
                 ? `+${analytics.userGrowth[analytics.userGrowth.length - 1]?.users || 0}`
                 : "0"}
             </div>
-            <p className="text-xs text-muted-foreground">Total users</p>
+            <p className="text-xs text-muted-foreground">New this month</p>
           </CardContent>
         </Card>
       </div>
@@ -416,7 +429,7 @@ export function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Legend />
                   <Line type="monotone" dataKey="users" stroke="hsl(var(--primary))" strokeWidth={2} />
                 </LineChart>
@@ -438,7 +451,7 @@ export function AnalyticsDashboard() {
                   <XAxis dataKey="month" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Legend />
                   <Area
                     yAxisId="left"
@@ -472,7 +485,7 @@ export function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Legend />
                   <Bar dataKey="events" fill="hsl(var(--accent))" />
                   <Bar dataKey="attendees" fill="hsl(var(--secondary))" />
@@ -494,7 +507,7 @@ export function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Legend />
                   <Line type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2} />
                   <Line type="monotone" dataKey="comments" stroke="hsl(var(--accent))" strokeWidth={2} />
@@ -517,7 +530,7 @@ export function AnalyticsDashboard() {
                   <XAxis dataKey="month" />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Legend />
                   <Bar yAxisId="left" dataKey="orders" fill="hsl(var(--burnt-orange))" />
                   <Bar yAxisId="right" dataKey="revenue" fill="hsl(var(--mustard))" />
@@ -550,7 +563,7 @@ export function AnalyticsDashboard() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <RechartsTooltip />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
