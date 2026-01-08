@@ -45,7 +45,7 @@ export const UnifiedHeader = () => {
   const { coins } = useCoins();
   
   // Use centralized auth context
-  const { user, profile: authProfile, role, isAdmin: authIsAdmin, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, profile: authProfile, role, isAdmin: authIsAdmin, isOwner, isAuthenticated, loading: authLoading } = useAuth();
   
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isTestAccount, setIsTestAccount] = useState(false);
@@ -376,7 +376,7 @@ export const UnifiedHeader = () => {
                     <span className="hidden sm:inline font-semibold">Messages</span>
                   </Button>
                 )}
-                {profile?.role === "caregiver" && (
+                {(profile?.role === "caregiver" || ((isAdmin || isOwner) && approvalsCount > 0)) && (
                   <Button 
                     onClick={() => navigate("/guardian-approvals")}
                     variant="outline"
