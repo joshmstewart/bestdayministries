@@ -66,17 +66,51 @@ export const NewsletterPreviewDialog = ({
     }
   };
 
+  // Replace placeholders in content
+  const processedContent = useMemo(() => {
+    const siteUrl = window.location.origin;
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+    const currentMonth = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear().toString();
+    const orgName = "Best Day Ministries"; // Could fetch from settings if needed
+
+    let content = htmlContent || '';
+    content = content.replace(/{{site_url}}/g, siteUrl);
+    content = content.replace(/{{organization_name}}/g, orgName);
+    content = content.replace(/{{month}}/g, currentMonth);
+    content = content.replace(/{{year}}/g, currentYear);
+    
+    return content;
+  }, [htmlContent]);
+
+  // Replace placeholders in subject
+  const processedSubject = useMemo(() => {
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+    const currentMonth = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear().toString();
+    const orgName = "Best Day Ministries";
+
+    return subject
+      .replace(/{{organization_name}}/g, orgName)
+      .replace(/{{month}}/g, currentMonth)
+      .replace(/{{year}}/g, currentYear);
+  }, [subject]);
+
   // Construct final email HTML with header and footer (memoized to prevent hot reload issues)
   const finalHtml = useMemo(() => `
     ${headerEnabled ? headerHtml : ""}
-    ${htmlContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>'}
+    ${processedContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>'}
     ${footerEnabled ? footerHtml : ""}
     <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
       <p>You're receiving this because you subscribed to our newsletter.</p>
       <p><a href="#" style="color: #666;">Unsubscribe</a></p>
       <p>Best Day Ministries<br/>Your Address Here</p>
     </div>
-  `, [headerEnabled, headerHtml, htmlContent, footerEnabled, footerHtml]);
+  `, [headerEnabled, headerHtml, processedContent, footerEnabled, footerHtml]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,7 +134,7 @@ export const NewsletterPreviewDialog = ({
           <div className="bg-muted/30 px-6 py-4 border-b">
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Subject:</div>
-              <div className="font-semibold">{subject || "(No subject)"}</div>
+              <div className="font-semibold">{processedSubject || "(No subject)"}</div>
               {previewText && (
                 <>
                   <div className="text-xs text-muted-foreground mt-2">Preview text:</div>
