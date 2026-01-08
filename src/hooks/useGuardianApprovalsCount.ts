@@ -3,13 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const useGuardianApprovalsCount = () => {
-  const { user, isGuardian, loading: authLoading } = useAuth();
+  const { user, isGuardian, isAdmin, isOwner, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [hasLinkedBesties, setHasLinkedBesties] = useState(false);
+
+  // Users who can approve: guardians, or admins/owners who are linked to besties
+  const canApprove = isGuardian || isAdmin || isOwner;
 
   const fetchApprovalsCount = useCallback(async () => {
-    if (!user || !isGuardian) {
+    if (!user || !canApprove) {
       setCount(0);
+      setHasLinkedBesties(false);
       setLoading(false);
       return;
     }
@@ -24,10 +29,12 @@ export const useGuardianApprovalsCount = () => {
       if (linksError) throw linksError;
       if (!links || links.length === 0) {
         setCount(0);
+        setHasLinkedBesties(false);
         setLoading(false);
         return;
       }
 
+      setHasLinkedBesties(true);
       let totalCount = 0;
 
       // Fetch pending posts, comments, and messages in parallel
@@ -77,12 +84,12 @@ export const useGuardianApprovalsCount = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, isGuardian]);
+  }, [user, canApprove]);
 
   useEffect(() => {
     if (authLoading) return;
 
-    if (!isGuardian) {
+    if (!canApprove) {
       setLoading(false);
       return;
     }
@@ -132,7 +139,7 @@ export const useGuardianApprovalsCount = () => {
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(linksChannel);
     };
-  }, [authLoading, isGuardian, fetchApprovalsCount]);
+  }, [authLoading, canApprove, fetchApprovalsCount]);
 
-  return { count, loading: loading || authLoading, refetch: fetchApprovalsCount, isGuardian };
+  return { count, loading: loading || authLoading, refetch: fetchApprovalsCount, hasLinkedBesties, canApprove };
 };

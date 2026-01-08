@@ -73,18 +73,38 @@ export default function GuardianApprovals() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!roleData || roleData.role !== "caregiver") {
-        toast({
-          title: "Access denied",
-          description: "Only guardians can access this page",
-          variant: "destructive",
-        });
-        navigate("/community");
+      const role = roleData?.role;
+      const isGuardian = role === "caregiver";
+      const isAdminOrOwner = role === "admin" || role === "owner";
+
+      // Guardians always have access. Admins/owners need to be linked to at least one bestie.
+      if (isGuardian) {
+        setCurrentUserId(user.id);
+        await loadPendingContent(user.id);
         return;
       }
 
-      setCurrentUserId(user.id);
-      await loadPendingContent(user.id);
+      if (isAdminOrOwner) {
+        // Check if they have any linked besties
+        const { data: links } = await supabase
+          .from("caregiver_bestie_links")
+          .select("bestie_id")
+          .eq("caregiver_id", user.id)
+          .limit(1);
+
+        if (links && links.length > 0) {
+          setCurrentUserId(user.id);
+          await loadPendingContent(user.id);
+          return;
+        }
+      }
+
+      toast({
+        title: "Access denied",
+        description: "Only guardians or admins/owners linked to besties can access this page",
+        variant: "destructive",
+      });
+      navigate("/community");
     } catch (error: any) {
       toast({
         title: "Error",
