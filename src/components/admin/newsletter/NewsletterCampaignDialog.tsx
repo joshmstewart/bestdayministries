@@ -251,20 +251,21 @@ export const NewsletterCampaignDialog = ({
             <Label>Target Audience</Label>
             <div className="space-y-3 rounded-lg border p-4">
               <div className="flex items-center space-x-2">
-                <Checkbox
+                <input
+                  type="radio"
                   id="target-specific"
+                  name="target-audience"
                   checked={useSpecificEmails}
-                  onCheckedChange={(checked) => {
-                    setUseSpecificEmails(checked as boolean);
-                    if (checked) {
-                      setTargetAll(false);
-                      setSelectedRoles([]);
-                    }
+                  onChange={() => {
+                    setUseSpecificEmails(true);
+                    setTargetAll(false);
+                    setSelectedRoles([]);
                   }}
+                  className="h-4 w-4 text-primary"
                 />
                 <label
                   htmlFor="target-specific"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none"
                 >
                   Send to specific email addresses (for testing)
                 </label>
@@ -283,94 +284,116 @@ export const NewsletterCampaignDialog = ({
                 </div>
               )}
 
-              {!useSpecificEmails && (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="target-all"
-                      checked={targetAll}
-                      onCheckedChange={(checked) => {
-                        setTargetAll(checked as boolean);
-                        if (checked) setSelectedRoles([]);
-                      }}
-                    />
-                    <label
-                      htmlFor="target-all"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Send to all newsletter subscribers
-                    </label>
-                  </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="target-all"
+                  name="target-audience"
+                  checked={targetAll && !useSpecificEmails}
+                  onChange={() => {
+                    setTargetAll(true);
+                    setUseSpecificEmails(false);
+                    setSelectedRoles([]);
+                  }}
+                  className="h-4 w-4 text-primary"
+                />
+                <label
+                  htmlFor="target-all"
+                  className="text-sm font-medium leading-none"
+                >
+                  Send to all newsletter subscribers
+                </label>
+              </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="target-all-members"
-                      checked={targetAll === false && selectedRoles.includes('all_site_members')}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setTargetAll(false);
-                          setSelectedRoles(['all_site_members']);
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor="target-all-members"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Send to all site members (whether subscribed or not)
-                    </label>
-                  </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="target-all-members"
+                  name="target-audience"
+                  checked={!targetAll && !useSpecificEmails && selectedRoles.includes('all_site_members')}
+                  onChange={() => {
+                    setTargetAll(false);
+                    setUseSpecificEmails(false);
+                    setSelectedRoles(['all_site_members']);
+                  }}
+                  className="h-4 w-4 text-primary"
+                />
+                <label
+                  htmlFor="target-all-members"
+                  className="text-sm font-medium leading-none"
+                >
+                  Send to all site members (whether subscribed or not)
+                </label>
+              </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="target-non-subscribers"
-                      checked={targetAll === false && selectedRoles.includes('non_subscribers')}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setTargetAll(false);
-                          setSelectedRoles(['non_subscribers']);
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor="target-non-subscribers"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      Send to non-subscribed members only
-                    </label>
-                  </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="target-non-subscribers"
+                  name="target-audience"
+                  checked={!targetAll && !useSpecificEmails && selectedRoles.includes('non_subscribers')}
+                  onChange={() => {
+                    setTargetAll(false);
+                    setUseSpecificEmails(false);
+                    setSelectedRoles(['non_subscribers']);
+                  }}
+                  className="h-4 w-4 text-primary"
+                />
+                <label
+                  htmlFor="target-non-subscribers"
+                  className="text-sm font-medium leading-none"
+                >
+                  Send to non-subscribed members only
+                </label>
+              </div>
 
-                  {!targetAll && !selectedRoles.includes('all_site_members') && !selectedRoles.includes('non_subscribers') && (
-                    <div className="space-y-2 pl-6">
-                      <p className="text-sm text-muted-foreground">
-                        Or select specific roles:
-                      </p>
-                      {USER_ROLES.map((role) => (
-                        <div key={role.value} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`role-${role.value}`}
-                            checked={selectedRoles.includes(role.value)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedRoles([...selectedRoles, role.value]);
-                              } else {
-                                setSelectedRoles(
-                                  selectedRoles.filter((r) => r !== role.value)
-                                );
-                              }
-                            }}
-                          />
-                          <label
-                            htmlFor={`role-${role.value}`}
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {role.label}
-                          </label>
-                        </div>
-                      ))}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="target-by-role"
+                  name="target-audience"
+                  checked={!targetAll && !useSpecificEmails && !selectedRoles.includes('all_site_members') && !selectedRoles.includes('non_subscribers') && selectedRoles.length > 0}
+                  onChange={() => {
+                    setTargetAll(false);
+                    setUseSpecificEmails(false);
+                    setSelectedRoles([]);
+                  }}
+                  className="h-4 w-4 text-primary"
+                />
+                <label
+                  htmlFor="target-by-role"
+                  className="text-sm font-medium leading-none"
+                >
+                  Send to specific user roles
+                </label>
+              </div>
+
+              {!targetAll && !useSpecificEmails && !selectedRoles.includes('all_site_members') && !selectedRoles.includes('non_subscribers') && (
+                <div className="space-y-2 pl-6">
+                  {USER_ROLES.map((role) => (
+                    <div key={role.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`role-${role.value}`}
+                        checked={selectedRoles.includes(role.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedRoles([...selectedRoles, role.value]);
+                          } else {
+                            setSelectedRoles(
+                              selectedRoles.filter((r) => r !== role.value)
+                            );
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`role-${role.value}`}
+                        className="text-sm leading-none"
+                      >
+                        {role.label}
+                      </label>
                     </div>
-                  )}
-                </>
+                  ))}
+                </div>
               )}
             </div>
           </div>
