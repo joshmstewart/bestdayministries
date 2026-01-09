@@ -42,6 +42,7 @@ interface NavigationLink {
   visible_to_roles?: UserRole[];
   link_type: 'regular' | 'dropdown';
   parent_id?: string | null;
+  emoji?: string | null;
 }
 
 function SortableLinkCompact({
@@ -108,7 +109,7 @@ function SortableLinkCompact({
           <ChevronRight className="h-3 w-3 text-muted-foreground" />
         )}
 
-        <span className="font-medium text-sm flex-1 truncate">{link.label}</span>
+        <span className="font-medium text-sm flex-1 truncate">{link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}</span>
         
         <span className="text-xs text-muted-foreground truncate max-w-[150px]">
           {link.href || (link.link_type === 'dropdown' ? '(dropdown)' : '')}
@@ -193,13 +194,25 @@ function SortableLink({
         )}
 
         <div className="flex-1 grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs">Label</Label>
-            <Input
-              value={link.label}
-              onChange={(e) => onUpdate(link.id, { label: e.target.value })}
-              placeholder="Link text"
-            />
+          <div className="col-span-2 grid grid-cols-[80px_1fr] gap-2">
+            <div>
+              <Label className="text-xs">Emoji</Label>
+              <Input
+                value={link.emoji || ''}
+                onChange={(e) => onUpdate(link.id, { emoji: e.target.value || null })}
+                placeholder="🏠"
+                className="text-center text-lg"
+                maxLength={4}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Label</Label>
+              <Input
+                value={link.label}
+                onChange={(e) => onUpdate(link.id, { label: e.target.value })}
+                placeholder="Link text"
+              />
+            </div>
           </div>
 
           {level === 0 && (
@@ -355,7 +368,7 @@ export function NavigationBarManager() {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id");
+        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id, emoji");
 
       if (error) throw error;
       
@@ -542,6 +555,7 @@ export function NavigationBarManager() {
             visible_to_roles: link.visible_to_roles || USER_ROLES.map(r => r.value),
             link_type: link.link_type,
             parent_id: null,
+            emoji: link.emoji || null,
           };
           
           if (isNew) {
@@ -587,6 +601,7 @@ export function NavigationBarManager() {
             visible_to_roles: link.visible_to_roles || USER_ROLES.map(r => r.value),
             link_type: link.link_type,
             parent_id: resolvedParentId,
+            emoji: link.emoji || null,
           };
           
           if (isNew) {
