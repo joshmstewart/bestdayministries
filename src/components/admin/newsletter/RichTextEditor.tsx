@@ -10,9 +10,27 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
+import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import { DOMSerializer } from "@tiptap/pm/model";
 import { StyledBox } from "./StyledBoxExtension";
 import { forwardRef, useImperativeHandle } from "react";
+
+// Custom FontSize extension
+const FontSize = TextStyle.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      fontSize: {
+        default: null,
+        parseHTML: element => element.style.fontSize?.replace(/['"]+/g, ''),
+        renderHTML: attributes => {
+          if (!attributes.fontSize) return {};
+          return { style: `font-size: ${attributes.fontSize}` };
+        },
+      },
+    };
+  },
+});
 
 // Custom Image extension with resize and alignment support
 const ResizableImage = Image.extend({
@@ -82,6 +100,9 @@ import {
   RemoveFormatting,
   Crop,
   Square,
+  TableIcon,
+  Columns,
+  Type,
 } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
@@ -112,6 +133,14 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [containerDialogOpen, setContainerDialogOpen] = useState(false);
+  const [tableDialogOpen, setTableDialogOpen] = useState(false);
+  const [columnsDialogOpen, setColumnsDialogOpen] = useState(false);
+  const [buttonDialogOpen, setButtonDialogOpen] = useState(false);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableCols, setTableCols] = useState(3);
+  const [buttonText, setButtonText] = useState("");
+  const [buttonUrl, setButtonUrl] = useState("");
+  const [buttonColor, setButtonColor] = useState("#f97316");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [isRecropping, setIsRecropping] = useState(false);
@@ -141,6 +170,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         },
       }),
       TextStyle,
+      FontSize,
       FontFamily,
       Color,
       Underline,
@@ -150,6 +180,15 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'newsletter-table',
+        },
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
       Placeholder.configure({
         placeholder: 'Start typing your newsletter content here... Use the toolbar above to format text, add images, videos, and links.',
       }),
@@ -663,6 +702,32 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           <RemoveFormatting className="h-4 w-4" />
         </Button>
         <div className="w-px h-6 bg-border mx-1" />
+        {/* Font Size Selector */}
+        <Select
+          value=""
+          onValueChange={(value) => {
+            if (value) {
+              editor.chain().focus().setMark('textStyle', { fontSize: value }).run();
+            }
+          }}
+        >
+          <SelectTrigger className="h-8 w-[80px] text-xs">
+            <SelectValue placeholder="Size" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="12px">12px</SelectItem>
+            <SelectItem value="14px">14px</SelectItem>
+            <SelectItem value="16px">16px</SelectItem>
+            <SelectItem value="18px">18px</SelectItem>
+            <SelectItem value="20px">20px</SelectItem>
+            <SelectItem value="24px">24px</SelectItem>
+            <SelectItem value="28px">28px</SelectItem>
+            <SelectItem value="32px">32px</SelectItem>
+            <SelectItem value="36px">36px</SelectItem>
+            <SelectItem value="48px">48px</SelectItem>
+          </SelectContent>
+        </Select>
+        {/* Text Style Selector */}
         <Select
           value=""
           onValueChange={(value) => {
@@ -687,6 +752,38 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             <SelectItem value="h3">Heading 3</SelectItem>
           </SelectContent>
         </Select>
+        <div className="w-px h-6 bg-border mx-1" />
+        {/* Table Button */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setTableDialogOpen(true)}
+          title="Insert table"
+        >
+          <TableIcon className="h-4 w-4" />
+        </Button>
+        {/* Columns Button */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setColumnsDialogOpen(true)}
+          title="Insert columns"
+        >
+          <Columns className="h-4 w-4" />
+        </Button>
+        {/* CTA Button */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setButtonDialogOpen(true)}
+          title="Insert button"
+          className="text-xs"
+        >
+          CTA
+        </Button>
         <div className="w-px h-6 bg-border mx-1" />
         <Button
           type="button"
@@ -1034,6 +1131,227 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Table Dialog */}
+      <Dialog open={tableDialogOpen} onOpenChange={setTableDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insert Table</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="table-rows">Rows</Label>
+                <Input
+                  id="table-rows"
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={tableRows}
+                  onChange={(e) => setTableRows(parseInt(e.target.value) || 3)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="table-cols">Columns</Label>
+                <Input
+                  id="table-cols"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={tableCols}
+                  onChange={(e) => setTableCols(parseInt(e.target.value) || 3)}
+                />
+              </div>
+            </div>
+            <div className="bg-muted p-3 rounded text-sm">
+              <p className="text-muted-foreground">Preview: {tableRows} rows × {tableCols} columns</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTableDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              if (editor) {
+                editor.chain().focus().insertTable({ rows: tableRows, cols: tableCols, withHeaderRow: true }).run();
+                setTableDialogOpen(false);
+                toast.success("Table inserted!");
+              }
+            }}>
+              Insert Table
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Columns Dialog */}
+      <Dialog open={columnsDialogOpen} onOpenChange={setColumnsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insert Columns</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select a column layout for your content:
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex flex-col gap-2"
+                onClick={() => {
+                  if (editor) {
+                    const html = `<table style="width: 100%; border-collapse: collapse; border: none;"><tr><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td></tr></table>`;
+                    editor.chain().focus().insertContent(html).run();
+                    setColumnsDialogOpen(false);
+                    toast.success("2-column layout inserted!");
+                  }
+                }}
+              >
+                <div className="flex gap-1 w-full">
+                  <div className="flex-1 h-12 bg-muted rounded"></div>
+                  <div className="flex-1 h-12 bg-muted rounded"></div>
+                </div>
+                <span className="text-xs">2 Columns</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex flex-col gap-2"
+                onClick={() => {
+                  if (editor) {
+                    const html = `<table style="width: 100%; border-collapse: collapse; border: none;"><tr><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 3</td></tr></table>`;
+                    editor.chain().focus().insertContent(html).run();
+                    setColumnsDialogOpen(false);
+                    toast.success("3-column layout inserted!");
+                  }
+                }}
+              >
+                <div className="flex gap-1 w-full">
+                  <div className="flex-1 h-12 bg-muted rounded"></div>
+                  <div className="flex-1 h-12 bg-muted rounded"></div>
+                  <div className="flex-1 h-12 bg-muted rounded"></div>
+                </div>
+                <span className="text-xs">3 Columns</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex flex-col gap-2"
+                onClick={() => {
+                  if (editor) {
+                    const html = `<table style="width: 100%; border-collapse: collapse; border: none;"><tr><td style="width: 30%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Sidebar</td><td style="width: 70%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Main Content</td></tr></table>`;
+                    editor.chain().focus().insertContent(html).run();
+                    setColumnsDialogOpen(false);
+                    toast.success("Sidebar layout inserted!");
+                  }
+                }}
+              >
+                <div className="flex gap-1 w-full">
+                  <div className="w-1/3 h-12 bg-muted rounded"></div>
+                  <div className="flex-1 h-12 bg-muted rounded"></div>
+                </div>
+                <span className="text-xs">Sidebar</span>
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setColumnsDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Button/CTA Dialog */}
+      <Dialog open={buttonDialogOpen} onOpenChange={setButtonDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insert Button (CTA)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="button-text">Button Text</Label>
+              <Input
+                id="button-text"
+                placeholder="Click Here"
+                value={buttonText}
+                onChange={(e) => setButtonText(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="button-url">Link URL</Label>
+              <Input
+                id="button-url"
+                placeholder="https://example.com"
+                value={buttonUrl}
+                onChange={(e) => setButtonUrl(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="button-color">Button Color</Label>
+              <div className="flex gap-2 items-center">
+                <input
+                  id="button-color"
+                  type="color"
+                  value={buttonColor}
+                  onChange={(e) => setButtonColor(e.target.value)}
+                  className="w-12 h-10 rounded cursor-pointer border"
+                />
+                <div className="flex gap-1">
+                  {['#f97316', '#3b82f6', '#22c55e', '#8b5cf6', '#ef4444', '#1f2937'].map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      className="w-8 h-8 rounded border-2"
+                      style={{ backgroundColor: color, borderColor: buttonColor === color ? '#000' : 'transparent' }}
+                      onClick={() => setButtonColor(color)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="bg-muted p-4 rounded flex justify-center">
+              <a
+                href="#"
+                style={{
+                  backgroundColor: buttonColor,
+                  color: 'white',
+                  padding: '12px 24px',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  fontWeight: 'bold',
+                  display: 'inline-block',
+                }}
+              >
+                {buttonText || 'Button Preview'}
+              </a>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setButtonDialogOpen(false);
+              setButtonText("");
+              setButtonUrl("");
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              if (editor && buttonText && buttonUrl) {
+                const buttonHtml = `<table cellpadding="0" cellspacing="0" border="0" style="margin: 16px auto;"><tr><td align="center" style="background-color: ${buttonColor}; border-radius: 6px;"><a href="${buttonUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; color: white; text-decoration: none; font-weight: bold; font-size: 16px;">${buttonText}</a></td></tr></table>`;
+                editor.chain().focus().insertContent(buttonHtml).run();
+                setButtonDialogOpen(false);
+                setButtonText("");
+                setButtonUrl("");
+                toast.success("Button inserted!");
+              } else {
+                toast.error("Please fill in button text and URL");
+              }
+            }}>
+              Insert Button
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
+
+RichTextEditor.displayName = 'RichTextEditor';
