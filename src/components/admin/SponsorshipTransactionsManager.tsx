@@ -107,151 +107,51 @@ export const SponsorshipTransactionsManager = () => {
     try {
       setLoading(true);
       
-      // Load sponsorships
-      console.log('🔵 [TRANSACTIONS] Fetching sponsorships...');
-      const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
-        .from('sponsorships')
-        .select(`
-          *,
-          sponsor_bestie:sponsor_besties(bestie_name)
-        `)
-        .order('started_at', { ascending: false });
-      
-      // Load receipts for sponsorships and donations
-      console.log('🔵 [TRANSACTIONS] Fetching receipts...');
-      const { data: receiptsData, error: receiptsError } = await supabase
-        .from('sponsorship_receipts')
-        .select('id, sponsorship_id, receipt_number, created_at, sponsor_email')
-        .order('created_at', { ascending: false });
-
-      if (sponsorshipsError) {
-        console.error('🔴 [TRANSACTIONS] Sponsorships query failed:', {
-          message: sponsorshipsError.message,
-          code: sponsorshipsError.code,
-          details: sponsorshipsError.details,
-          hint: sponsorshipsError.hint,
-        });
-        throw sponsorshipsError;
-      }
-      console.log('✅ [TRANSACTIONS] Sponsorships loaded:', sponsorshipsData?.length || 0);
-      
-      if (receiptsError) {
-        console.error('🔴 [TRANSACTIONS] Receipts query failed:', receiptsError);
-        // Don't throw, just log - receipts are optional
-      }
-      console.log('✅ [TRANSACTIONS] Receipts loaded:', receiptsData?.length || 0);
-      
-      // Create receipts map by sponsorship_id (include email for display)
-      const receiptsMap: Record<string, { receipt_number: string; created_at: string; email: string | null }> = {};
-      if (receiptsData) {
-        receiptsData.forEach(r => {
-          if (r.sponsorship_id) {
-            receiptsMap[r.sponsorship_id] = {
-              receipt_number: r.receipt_number,
-              created_at: r.created_at,
-              email: r.sponsor_email || null,
-            };
-          }
-        });
-      }
-
-      // Load donations
-      console.log('🔵 [TRANSACTIONS] Fetching donations...');
-      const { data: donationsData, error: donationsError } = await supabase
-        .from('donations')
+      // Load ALL individual payments from donation_stripe_transactions (the source of truth)
+      console.log('🔵 [TRANSACTIONS] Fetching donation_stripe_transactions...');
+      const { data: stripeTransactions, error: stripeError } = await supabase
+        .from('donation_stripe_transactions')
         .select('*')
-        .order('started_at', { ascending: false });
+        .order('transaction_date', { ascending: false });
 
-      if (donationsError) {
-        console.error('🔴 [TRANSACTIONS] Donations query failed:', {
-          message: donationsError.message,
-          code: donationsError.code,
-          details: donationsError.details,
-          hint: donationsError.hint,
-        });
-        throw donationsError;
+      if (stripeError) {
+        console.error('🔴 [TRANSACTIONS] Stripe transactions query failed:', stripeError);
+        throw stripeError;
       }
-      console.log('✅ [TRANSACTIONS] Donations loaded:', donationsData?.length || 0);
+      console.log('✅ [TRANSACTIONS] Stripe transactions loaded:', stripeTransactions?.length || 0);
 
-      // Map donation receipts via logs
-      const donationIds = (donationsData || []).map(d => d.id);
-      let donationReceiptsByDonationId: Record<string, { receipt_number: string; created_at: string; email: string | null }> = {};
+      // Load sponsor_besties for designation mapping
+      const { data: sponsorBesties } = await supabase
+        .from('sponsor_besties')
+        .select('id, bestie_name, bestie_id');
       
-      if (donationIds.length > 0 && receiptsData && receiptsData.length > 0) {
-        const { data: donationLogs } = await supabase
-          .from('receipt_generation_logs')
-          .select('donation_id, receipt_id, stage')
-          .in('donation_id', donationIds)
-          .in('stage', ['webhook_receipt_created', 'receipt_created', 'backfill_receipt_created']);
+      const sponsorBestieMap = new Map(
+        (sponsorBesties || []).map(sb => [sb.id, sb])
+      );
 
-        const receiptsById = new Map(
-          receiptsData.map(r => [r.id, r] as const)
-        );
-
-        (donationLogs || []).forEach(log => {
-          if (!log.receipt_id) return; // Skip logs with null receipt_id
-
-          const r = receiptsById.get(log.receipt_id);
-          if (r && log.donation_id) {
-            donationReceiptsByDonationId[log.donation_id] = {
-              receipt_number: r.receipt_number,
-              created_at: r.created_at,
-              email: r.sponsor_email || null,
-            };
-          }
-        });
-      }
-
-      // Get unique profile IDs from both sponsorships and donations
-      const sponsorIds = [...new Set(
-        (sponsorshipsData || [])
-          .map(s => s.sponsor_id)
-          .filter((id): id is string => id !== null)
-      )];
+      // Load sponsorships to map subscription IDs to sponsor_bestie_id
+      const { data: sponsorshipsData } = await supabase
+        .from('sponsorships')
+        .select('id, stripe_subscription_id, sponsor_bestie_id, sponsor_id, bestie_id');
       
-      const bestieIds = [...new Set(
-        (sponsorshipsData || [])
-          .map(s => s.bestie_id)
-          .filter((id): id is string => id !== null)
-      )];
-      
-      const donorIds = [...new Set(
-        (donationsData || [])
-          .map(d => d.donor_id)
+      const subscriptionToSponsorshipMap = new Map(
+        (sponsorshipsData || []).filter(s => s.stripe_subscription_id).map(s => [s.stripe_subscription_id, s])
+      );
+
+      // Get unique profile IDs
+      const profileIds = [...new Set(
+        (stripeTransactions || [])
+          .map(t => t.donor_id)
           .filter((id): id is string => id !== null)
       )];
 
-      const allProfileIds = [...new Set([...sponsorIds, ...bestieIds, ...donorIds])];
-      
-      console.log('🔵 [TRANSACTIONS] Profile IDs to fetch:', {
-        totalUnique: allProfileIds.length,
-        sponsorIds: sponsorIds.length,
-        bestieIds: bestieIds.length,
-        donorIds: donorIds.length,
-        allIds: allProfileIds,
-      });
-
-      // Fetch all profiles at once using profiles_public view to avoid RLS issues
+      // Fetch profiles
       let profilesMap: Record<string, any> = {};
-      if (allProfileIds.length > 0) {
-        console.log('🔵 [TRANSACTIONS] Fetching profiles from profiles_public...');
-        const { data: profilesData, error: profilesError } = await supabase
+      if (profileIds.length > 0) {
+        const { data: profilesData } = await supabase
           .from('profiles_public')
           .select('id, display_name, avatar_url, email')
-          .in('id', allProfileIds);
-        
-        if (profilesError) {
-          console.error('🔴 [TRANSACTIONS] Profiles query failed:', {
-            message: profilesError.message,
-            code: profilesError.code,
-            details: profilesError.details,
-            hint: profilesError.hint,
-            requestedIds: allProfileIds,
-          });
-          throw profilesError;
-        }
-        
-        console.log('✅ [TRANSACTIONS] Profiles loaded:', profilesData?.length || 0);
+          .in('id', profileIds);
         
         if (profilesData) {
           profilesMap = Object.fromEntries(
@@ -260,67 +160,65 @@ export const SponsorshipTransactionsManager = () => {
         }
       }
 
-      // Transform sponsorships
-      console.log('🔵 [TRANSACTIONS] Transforming sponsorships...');
-      const sponsorships: Transaction[] = (sponsorshipsData || []).map(s => {
-        const receipt = receiptsMap[s.id];
+      // Load receipts for receipt status display
+      const { data: receiptsData } = await supabase
+        .from('sponsorship_receipts')
+        .select('id, transaction_id, receipt_number, created_at, sponsor_email')
+        .order('created_at', { ascending: false });
+
+      // Create receipts map by transaction_id
+      const receiptsMap = new Map<string, { receipt_number: string; created_at: string }>();
+      (receiptsData || []).forEach(r => {
+        if (r.transaction_id) receiptsMap.set(r.transaction_id, { receipt_number: r.receipt_number, created_at: r.created_at });
+      });
+
+      // Transform stripe transactions
+      console.log('🔵 [TRANSACTIONS] Transforming transactions...');
+      const allTransactions: Transaction[] = (stripeTransactions || []).map(t => {
+        // Find related sponsorship data
+        const sponsorship = t.stripe_subscription_id ? subscriptionToSponsorshipMap.get(t.stripe_subscription_id) : null;
+        const sponsorBestie = sponsorship?.sponsor_bestie_id ? sponsorBestieMap.get(sponsorship.sponsor_bestie_id) : null;
+        
+        // Determine transaction type from designation
+        const isSponsorship = t.designation && t.designation !== 'General Support' && t.designation.startsWith('Sponsorship:');
+        
+        // Find receipt - try invoice ID format, payment intent format, or direct ID match
+        const receipt = receiptsMap.get(t.stripe_invoice_id || '') || 
+                       receiptsMap.get(t.stripe_payment_intent_id || '') ||
+                       receiptsMap.get(`in_${t.stripe_invoice_id?.replace('in_', '')}`) ||
+                       receiptsMap.get(t.id);
+
         return {
-          ...s,
-          sponsor_email: s.sponsor_email || receipt?.email || null,
-          transaction_type: 'sponsorship' as const,
-          sponsor_profile: s.sponsor_id ? profilesMap[s.sponsor_id] : undefined,
-          bestie_profile: s.bestie_id ? profilesMap[s.bestie_id] : undefined,
+          id: t.id,
+          sponsor_id: t.donor_id,
+          sponsor_email: t.email,
+          bestie_id: sponsorship?.bestie_id || null,
+          sponsor_bestie_id: sponsorship?.sponsor_bestie_id || null,
+          amount: t.amount,
+          frequency: t.frequency,
+          status: t.status,
+          stripe_subscription_id: t.stripe_subscription_id,
+          stripe_customer_id: t.stripe_customer_id,
+          stripe_mode: t.stripe_mode,
+          started_at: t.transaction_date,
+          ended_at: null,
+          transaction_type: isSponsorship ? 'sponsorship' as const : 'donation' as const,
+          sponsor_profile: t.donor_id ? profilesMap[t.donor_id] : undefined,
+          bestie_profile: undefined,
+          sponsor_bestie: sponsorBestie ? { bestie_name: sponsorBestie.bestie_name } : 
+                         (t.designation && t.designation.startsWith('Sponsorship:') ? { bestie_name: t.designation.replace('Sponsorship: ', '') } : undefined),
           receipt_number: receipt?.receipt_number || null,
           receipt_generated_at: receipt?.created_at || null,
         };
       });
-
-      // Transform donations
-      console.log('🔵 [TRANSACTIONS] Transforming donations...');
-      const donations: Transaction[] = (donationsData || []).map(d => {
-        const receipt = donationReceiptsByDonationId[d.id];
-        return {
-          id: d.id,
-          sponsor_id: d.donor_id,
-          sponsor_email: d.donor_email || receipt?.email || (d.donor_id ? profilesMap[d.donor_id]?.email : null),
-          bestie_id: null,
-          sponsor_bestie_id: null,
-          amount: d.amount_charged || d.amount,
-          frequency: d.frequency,
-          status: d.status,
-          stripe_subscription_id: d.stripe_subscription_id,
-          stripe_customer_id: d.stripe_customer_id,
-          stripe_mode: d.stripe_mode,
-          started_at: d.started_at,
-          ended_at: d.ended_at,
-          transaction_type: 'donation' as const,
-          sponsor_profile: d.donor_id ? profilesMap[d.donor_id] : undefined,
-          receipt_number: receipt?.receipt_number || null,
-          receipt_generated_at: receipt?.created_at || null,
-        };
-      });
-
-      // Merge and sort by date
-      const allTransactions = [...sponsorships, ...donations].sort((a, b) => 
-        new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
-      );
 
       console.log('✅ [TRANSACTIONS] Transformation complete:', {
         totalTransactions: allTransactions.length,
-        sponsorships: sponsorships.length,
-        donations: donations.length,
       });
 
       setTransactions(allTransactions);
     } catch (error: any) {
-      console.error('🔴 [TRANSACTIONS] Fatal error:', {
-        name: error?.name,
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint,
-        stack: error?.stack,
-      });
+      console.error('🔴 [TRANSACTIONS] Fatal error:', error);
       toast({
         title: "Error",
         description: "Failed to load transactions",
@@ -976,11 +874,12 @@ export const SponsorshipTransactionsManager = () => {
     })).reverse(); // Most recent first
   }, [transactions]);
 
-  // Calculate revenue for selected period
+  // Calculate revenue for selected period - now counting ALL individual payments
   const getRevenueForPeriod = (period: string) => {
+    // Filter to live mode and completed/paid transactions
     const liveTransactions = transactions.filter(t => 
       t.stripe_mode === 'live' && 
-      ((t.frequency === 'monthly' && t.status === 'active') || t.frequency === 'one-time')
+      ['paid', 'completed', 'active', 'succeeded'].includes(t.status?.toLowerCase() || '')
     );
     
     if (period === 'all-time') {
@@ -1000,16 +899,28 @@ export const SponsorshipTransactionsManager = () => {
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  // Calculate stats (Live mode only)
+  // Calculate stats (Live mode only) - now properly counting individual payments
+  const liveSuccessfulTransactions = transactions.filter(t => 
+    t.stripe_mode === 'live' && 
+    ['paid', 'completed', 'active', 'succeeded'].includes(t.status?.toLowerCase() || '')
+  );
+
+  // Get unique active subscriptions (those with recent payments)
+  const activeSubscriptions = new Set(
+    liveSuccessfulTransactions
+      .filter(t => t.frequency === 'monthly' && t.stripe_subscription_id)
+      .map(t => t.stripe_subscription_id)
+  );
+
   const stats = {
     total: transactions.length,
-    active: transactions.filter(t => t.status === 'active').length,
-    cancelled: transactions.filter(t => t.status === 'cancelled').length,
-    totalMonthlyRevenue: transactions
-      .filter(t => t.status === 'active' && t.frequency === 'monthly' && t.stripe_mode === 'live')
+    active: activeSubscriptions.size,
+    cancelled: 0, // Not applicable for individual transactions view
+    totalMonthlyRevenue: liveSuccessfulTransactions
+      .filter(t => t.frequency === 'monthly')
       .reduce((sum, t) => sum + t.amount, 0),
-    totalOneTime: transactions
-      .filter(t => t.frequency === 'one-time' && t.stripe_mode === 'live')
+    totalOneTime: liveSuccessfulTransactions
+      .filter(t => t.frequency === 'one-time')
       .reduce((sum, t) => sum + t.amount, 0),
   };
 
