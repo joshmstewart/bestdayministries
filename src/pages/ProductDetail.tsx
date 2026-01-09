@@ -191,15 +191,49 @@ const ProductDetail = () => {
     if (defaultSize && !selectedSize) setSelectedSize(defaultSize);
   }, [defaultColor, defaultSize]);
 
-  // Build ordered images (no duplicates): group by color using product_color_images mapping.
-  // - Includes Printify API images (already in products.images)
-  // - Includes any custom uploaded images (app-assets/product-colors)
-  // - Selecting a color will jump to that color's "section" in this ordered list
-  const allImages = useMemo(() => {
+  // Build a map of color -> all variant IDs for that color
+  const colorToAllVariantIds = useMemo(() => {
+    const map = new Map<string, number[]>();
+    variants.forEach(v => {
+      const parts = v.title.split(' / ');
+      if (parts.length >= 1) {
+        const color = parts[0]; // Color is always first in "Color / Size" format
+        if (!map.has(color)) {
+          map.set(color, []);
+        }
+        map.get(color)!.push(v.id);
+      }
+    });
+    return map;
+  }, [variants]);
+
+  // Get filtered images based on selected color
+  const filteredImages = useMemo(() => {
     const apiImages = (product?.images as string[]) || [];
-    const apiSet = new Set(apiImages);
     const rows = customColorImages || [];
 
+    // If no color selected or not a Printify product, show all images
+    if (!selectedColor || !product?.is_printify_product) {
+      const result: string[] = [];
+      const seen = new Set<string>();
+
+      const add = (url?: string | null) => {
+        if (!url) return;
+        if (seen.has(url)) return;
+        seen.add(url);
+        result.push(url);
+      };
+
+      // Add custom color images first
+      rows.forEach((r) => add(r.image_url));
+      // Then API images
+      apiImages.forEach((url) => add(url));
+
+      return result;
+    }
+
+    // Filter images by selected color's variant IDs
+    const variantIds = colorToAllVariantIds.get(selectedColor) || [];
     const result: string[] = [];
     const seen = new Set<string>();
 
@@ -210,95 +244,60 @@ const ProductDetail = () => {
       result.push(url);
     };
 
-    // 1) Add mapped images per color in order
-    colors.forEach((color) => {
-      const group = rows
-        .filter((r) => r.color_name === color)
-        .slice()
-        .sort((a, b) => {
-          const orderA = Number(a.display_order ?? 0);
-          const orderB = Number(b.display_order ?? 0);
-          if (orderA !== orderB) return orderA - orderB;
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        });
+    // Add custom uploaded images for this color
+    rows
+      .filter((r) => r.color_name === selectedColor)
+      .sort((a, b) => {
+        const orderA = Number(a.display_order ?? 0);
+        const orderB = Number(b.display_order ?? 0);
+        if (orderA !== orderB) return orderA - orderB;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      })
+      .forEach((r) => add(r.image_url));
 
-      group.forEach((r) => add(r.image_url));
+    // Add API images that contain any of this color's variant IDs in the URL
+    apiImages.forEach((url) => {
+      const matchesColor = variantIds.some(id => url.includes(`/${id}/`));
+      if (matchesColor) add(url);
     });
 
-    // 2) Add any remaining API images in their original order
-    apiImages.forEach((url) => add(url));
-
-    // 3) Add any remaining mapped rows (unassigned colors, etc.)
-    rows.forEach((r) => add(r.image_url));
+    // If no images found for this color, fall back to all images
+    if (result.length === 0) {
+      apiImages.forEach((url) => add(url));
+    }
 
     return result;
-  }, [product?.images, customColorImages, colors]);
+  }, [product?.images, product?.is_printify_product, customColorImages, selectedColor, colorToAllVariantIds]);
 
-  // Map colors to their first image index for navigation
-  const colorToFirstImageIndex = useMemo(() => {
-    const map = new Map<string, number>();
-    const rows = customColorImages || [];
-
-    colors.forEach((color) => {
-      // Prefer explicit mapping from product_color_images
-      const firstMappedUrl = rows
-        .filter((r) => r.color_name === color)
-        .slice()
-        .sort((a, b) => {
-          const orderA = Number(a.display_order ?? 0);
-          const orderB = Number(b.display_order ?? 0);
-          if (orderA !== orderB) return orderA - orderB;
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        })
-        .map((r) => r.image_url)
-        .find(Boolean);
-
-      if (firstMappedUrl) {
-        const idx = allImages.indexOf(firstMappedUrl);
-        if (idx !== -1) map.set(color, idx);
-        return;
-      }
-
-      // Fallback: detect by Printify variant ID in URL
-      const variantId = colorToVariantId.get(color);
-      if (variantId) {
-        const idx = allImages.findIndex((url) => url.includes(`/${variantId}/`));
-        if (idx !== -1) map.set(color, idx);
-      }
-    });
-
-    return map;
-  }, [colors, customColorImages, allImages, colorToVariantId]);
-
-  // On first load, if a default image was set in admin, start on it (but keep ordering intact)
+  // On first load, if a default image was set in admin, start on it
   const hasSetInitialImageRef = useRef(false);
   useEffect(() => {
     if (hasSetInitialImageRef.current) return;
-    if (!allImages.length) return;
+    if (!filteredImages.length) return;
 
     const def = product?.default_image_url;
     if (def) {
-      const idx = allImages.indexOf(def);
+      const idx = filteredImages.indexOf(def);
       if (idx !== -1) setCurrentImageIndex(idx);
     }
 
     hasSetInitialImageRef.current = true;
-  }, [allImages, product?.default_image_url]);
+  }, [filteredImages, product?.default_image_url]);
 
-  // When color changes, jump to that color's first image
+  // When color changes, reset to first image of filtered set
   useEffect(() => {
-    if (!selectedColor) return;
-    const targetIndex = colorToFirstImageIndex.get(selectedColor);
-    if (targetIndex !== undefined) setCurrentImageIndex(targetIndex);
-  }, [selectedColor, colorToFirstImageIndex]);
+    if (selectedColor) {
+      setCurrentImageIndex(0);
+    }
+  }, [selectedColor]);
 
   // Navigation handlers
   const goToPrevImage = () => {
-    setCurrentImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1);
+    setCurrentImageIndex(prev => prev > 0 ? prev - 1 : filteredImages.length - 1);
   };
 
   const goToNextImage = () => {
-    setCurrentImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0);
+    setCurrentImageIndex(prev => prev < filteredImages.length - 1 ? prev + 1 : 0);
   };
 
   // Build the effective variant from selections
@@ -368,8 +367,8 @@ const ProductDetail = () => {
     });
   };
 
-  const currentImage = allImages.length > 0 
-    ? allImages[currentImageIndex] 
+  const currentImage = filteredImages.length > 0 
+    ? filteredImages[currentImageIndex] 
     : '/placeholder.svg';
 
   if (isLoading) {
@@ -438,7 +437,7 @@ const ProductDetail = () => {
                 />
                 
                 {/* Left/Right Navigation Arrows */}
-                {allImages.length > 1 && (
+                {filteredImages.length > 1 && (
                   <>
                     <Button
                       variant="ghost"
@@ -459,16 +458,16 @@ const ProductDetail = () => {
                     
                     {/* Image counter */}
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-background/80 px-2 py-1 rounded text-xs font-medium">
-                      {currentImageIndex + 1} / {allImages.length}
+                      {currentImageIndex + 1} / {filteredImages.length}
                     </div>
                   </>
                 )}
               </div>
               
               {/* Thumbnail gallery - show all images, highlight current */}
-              {allImages.length > 1 && (
+              {filteredImages.length > 1 && (
                 <div className="grid grid-cols-5 gap-2 max-h-[200px] overflow-y-auto">
-                  {allImages.map((img: string, idx: number) => (
+                  {filteredImages.map((img: string, idx: number) => (
                     <button
                       key={idx}
                       onClick={() => setCurrentImageIndex(idx)}
@@ -585,12 +584,12 @@ const ProductDetail = () => {
       <FloatingCartButton cartCount={totalCartCount} onClick={() => setCartOpen(true)} />
       <UnifiedCartSheet open={cartOpen} onOpenChange={setCartOpen} />
       <ImageLightbox
-        images={allImages.map(url => ({ image_url: url, caption: product.name }))}
+        images={filteredImages.map(url => ({ image_url: url, caption: product.name }))}
         currentIndex={currentImageIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
-        onPrevious={() => setCurrentImageIndex(prev => prev > 0 ? prev - 1 : allImages.length - 1)}
-        onNext={() => setCurrentImageIndex(prev => prev < allImages.length - 1 ? prev + 1 : 0)}
+        onPrevious={() => setCurrentImageIndex(prev => prev > 0 ? prev - 1 : filteredImages.length - 1)}
+        onNext={() => setCurrentImageIndex(prev => prev < filteredImages.length - 1 ? prev + 1 : 0)}
       />
       <Footer />
     </div>
