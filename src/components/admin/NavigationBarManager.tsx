@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -778,22 +779,18 @@ export function NavigationBarManager() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">Emoji (all users)</Label>
-                    <Input
-                      value={selectedLink.emoji || ''}
-                      onChange={(e) => handleUpdateLink(selectedLink.id, { emoji: e.target.value || null })}
-                      placeholder="🏠"
-                      className="text-center text-lg"
-                      maxLength={4}
+                    <EmojiPicker
+                      value={selectedLink.emoji}
+                      onChange={(emoji) => handleUpdateLink(selectedLink.id, { emoji })}
+                      placeholder="Select emoji"
                     />
                   </div>
                   <div>
                     <Label className="text-xs">Bestie Emoji 🌟</Label>
-                    <Input
-                      value={selectedLink.bestie_emoji || ''}
-                      onChange={(e) => handleUpdateLink(selectedLink.id, { bestie_emoji: e.target.value || null })}
-                      placeholder="🎨"
-                      className="text-center text-lg"
-                      maxLength={4}
+                    <EmojiPicker
+                      value={selectedLink.bestie_emoji}
+                      onChange={(emoji) => handleUpdateLink(selectedLink.id, { bestie_emoji: emoji })}
+                      placeholder="Bestie only"
                       title="Emoji shown only to Besties (overrides regular emoji)"
                     />
                   </div>
