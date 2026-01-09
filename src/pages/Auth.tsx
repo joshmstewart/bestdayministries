@@ -7,13 +7,27 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Heart, Users, Sparkles, Store, Info } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -60,21 +74,34 @@ const Auth = () => {
   // This ensures users don't see the terms dialog again after accepting during signup
 
   useEffect(() => {
-    const redirectPath = searchParams.get('redirect');
-    const bestieId = searchParams.get('bestieId');
-    
-    // Check URL hash for recovery token FIRST before any session checks
-    // This prevents the redirect from happening when user clicks password reset link
+    const redirectPath = searchParams.get("redirect");
+    const bestieId = searchParams.get("bestieId");
+
+    // Detect recovery links early to prevent auto-redirect to /community.
+    // Recovery links can arrive as:
+    // - Hash params (implicit): #access_token=...&type=recovery
+    // - Query params (PKCE): ?code=...&type=recovery
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
-    
-    if (type === 'recovery' && accessToken) {
-      console.log('🔍 AUTH PAGE: Recovery token detected in URL, showing password update form');
+    const hashType = hashParams.get("type");
+    const hasAccessToken = !!hashParams.get("access_token");
+
+    const queryType = searchParams.get("type");
+    const code = searchParams.get("code");
+
+    const recoveryMode = hashType === "recovery" || queryType === "recovery";
+    if (recoveryMode) {
+      console.log("🔍 AUTH PAGE: Recovery mode detected, showing password update form");
       setIsPasswordRecovery(true);
-      return; // Don't set up redirect logic
+
+      // If we have a PKCE code, exchange it for a session so updateUser() works.
+      // If we have an access token (implicit), Supabase will typically hydrate session automatically.
+      if (code && !hasAccessToken) {
+        supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+          if (error) console.warn("🔍 AUTH PAGE: exchangeCodeForSession failed:", error);
+        });
+      }
     }
-    
+
     const checkAndRedirect = async (userId: string) => {
       try {
         // If there's a redirect path specified, use it
@@ -83,7 +110,7 @@ const Auth = () => {
           navigate(fullPath, { replace: true });
           return;
         }
-        
+
         // All users go to community by default
         // Vendors can navigate to their dashboard manually
         navigate("/community", { replace: true });
@@ -92,27 +119,34 @@ const Auth = () => {
       }
     };
 
-    // Check if user is already logged in (but not in recovery mode)
+    // Check if user is already logged in (but never redirect during recovery)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🔍 AUTH PAGE: getSession result:', session ? 'HAS SESSION' : 'NO SESSION', session?.user?.email);
-      if (session?.user && !isPasswordRecovery) {
-        console.log('🔍 AUTH PAGE: Redirecting authenticated user:', session.user.id);
+      console.log(
+        "🔍 AUTH PAGE: getSession result:",
+        session ? "HAS SESSION" : "NO SESSION",
+        session?.user?.email
+      );
+
+      if (session?.user && !recoveryMode && !isPasswordRecovery) {
+        console.log("🔍 AUTH PAGE: Redirecting authenticated user:", session.user.id);
         checkAndRedirect(session.user.id);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔍 AUTH PAGE: onAuthStateChange event:', event);
-      
-      // Handle password recovery event - show the update password form
-      if (event === 'PASSWORD_RECOVERY') {
-        console.log('🔍 AUTH PAGE: Password recovery detected, showing update form');
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("🔍 AUTH PAGE: onAuthStateChange event:", event);
+
+      // Supabase may emit either PASSWORD_RECOVERY or SIGNED_IN for recovery links,
+      // depending on auth flow (implicit vs PKCE). Treat both as recovery when the URL indicates it.
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && recoveryMode)) {
+        console.log("🔍 AUTH PAGE: Password recovery detected, showing update form");
         setIsPasswordRecovery(true);
-        return; // Don't redirect
+        return;
       }
-      
-      // For other auth events with a session, redirect if not in recovery mode
-      if (session?.user && !isPasswordRecovery) {
+
+      if (session?.user && !recoveryMode && !isPasswordRecovery) {
         checkAndRedirect(session.user.id);
       }
     });
@@ -267,7 +301,7 @@ const Auth = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${getPublicSiteUrl()}/auth`,
       });
 
       if (error) throw error;

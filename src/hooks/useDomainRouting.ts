@@ -49,7 +49,7 @@ export const useDomainRouting = () => {
     if (LEGACY_DOMAINS.includes(hostname)) {
       setIsLegacyDomain(true);
       // Redirect to primary domain while preserving the path
-      const currentPath = window.location.pathname + window.location.search;
+      const currentPath = window.location.pathname + window.location.search + window.location.hash;
       window.location.href = `https://${PRIMARY_DOMAIN}${currentPath}`;
       return;
     }
@@ -60,7 +60,7 @@ export const useDomainRouting = () => {
       try {
         if (window.self !== window.top) {
           // We're in an iframe on the primary domain - break out
-          const currentPath = window.location.pathname + window.location.search;
+          const currentPath = window.location.pathname + window.location.search + window.location.hash;
           window.top!.location.href = `https://${PRIMARY_DOMAIN}${currentPath}`;
           return;
         }

@@ -47,8 +47,9 @@ Authentication system (`/auth`) with signup/login, role assignment, terms accept
 1. Click "Forgot Password" → enter email
 2. `supabase.auth.resetPasswordForEmail()`
 3. Email sent with reset link
-4. User clicks link → redirected to `/auth` with reset token
-5. Enter new password → updates auth.users
+4. **Important:** Reset links should use the primary custom domain (not the preview/staging domain).
+5. User clicks link → redirected to `/auth` with recovery token (hash params) or recovery code (query params)
+6. Enter new password → updates auth.users
 
 ## Role Assignment
 **Available Roles:**
