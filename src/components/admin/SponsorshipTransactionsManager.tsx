@@ -1024,38 +1024,15 @@ export const SponsorshipTransactionsManager = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total Transactions</CardDescription>
-            <CardTitle className="text-3xl">{stats.total}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Active</CardDescription>
-            <CardTitle className="text-3xl text-green-600">{stats.active}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Monthly Revenue</CardDescription>
-            <CardTitle className="text-3xl">{formatAmount(stats.totalMonthlyRevenue)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>One-Time Total</CardDescription>
-            <CardTitle className="text-3xl">{formatAmount(stats.totalOneTime)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Total Revenue - Featured Card */}
+        <Card className="lg:col-span-2 bg-primary/5 border-primary/20">
+          <CardHeader>
             <div className="flex items-center justify-between gap-2">
-              <CardDescription className="font-medium">Total Revenue</CardDescription>
-              <div className="flex items-center gap-1">
+              <CardDescription className="font-medium text-base">Total Revenue</CardDescription>
+              <div className="flex items-center gap-2">
                 <Select value={revenuePeriod} onValueChange={setRevenuePeriod}>
-                  <SelectTrigger className="w-auto h-6 px-2 text-xs border-0 bg-transparent">
+                  <SelectTrigger className="w-auto h-8 px-3 text-sm bg-background/50">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1066,21 +1043,48 @@ export const SponsorshipTransactionsManager = () => {
                   </SelectContent>
                 </Select>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2"
                   onClick={() => setRevenueChartOpen(true)}
                   title="View revenue charts"
                 >
                   <BarChart3 className="h-4 w-4" />
+                  Charts
                 </Button>
               </div>
             </div>
-            <CardTitle className="text-3xl text-primary">
+            <CardTitle className="text-4xl lg:text-5xl text-primary mt-2">
               {formatAmount(getRevenueForPeriod(revenuePeriod))}
             </CardTitle>
+            <div className="flex gap-6 mt-4 pt-4 border-t border-primary/10">
+              <div>
+                <p className="text-sm text-muted-foreground">Monthly Recurring</p>
+                <p className="text-xl font-semibold">{formatAmount(stats.totalMonthlyRevenue)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">One-Time</p>
+                <p className="text-xl font-semibold">{formatAmount(stats.totalOneTime)}</p>
+              </div>
+            </div>
           </CardHeader>
         </Card>
+
+        {/* Secondary Stats - Compact */}
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardDescription className="text-xs">Total Transactions</CardDescription>
+              <CardTitle className="text-2xl">{stats.total}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="py-3 px-4">
+              <CardDescription className="text-xs">Active Subscriptions</CardDescription>
+              <CardTitle className="text-2xl text-green-600">{stats.active}</CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
       </div>
 
       {/* Main Table */}
