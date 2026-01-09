@@ -4,6 +4,28 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+const PRIMARY_DOMAIN = "bestdayministries.org";
+const DEFAULT_REDIRECT_URL = `https://${PRIMARY_DOMAIN}/auth?type=recovery`;
+
+const normalizeRedirectUrl = (candidate?: string) => {
+  if (!candidate) return DEFAULT_REDIRECT_URL;
+  try {
+    const url = new URL(candidate);
+
+    // Force all auth links to our primary public domain (even if requested from preview/staging).
+    url.protocol = "https:";
+    url.host = PRIMARY_DOMAIN;
+
+    // Ensure we land on the password recovery experience, not the homepage.
+    if (!url.pathname || url.pathname === "/") url.pathname = "/auth";
+    if (!url.searchParams.get("type")) url.searchParams.set("type", "recovery");
+
+    return url.toString();
+  } catch {
+    return DEFAULT_REDIRECT_URL;
+  }
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -36,12 +58,14 @@ const handler = async (req: Request): Promise<Response> => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    const redirectTo = normalizeRedirectUrl(redirectUrl);
+
     // Generate password reset link using admin API
     const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: email,
       options: {
-        redirectTo: redirectUrl,
+        redirectTo,
       },
     });
 
