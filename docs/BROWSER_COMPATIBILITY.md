@@ -289,6 +289,16 @@ Before deploying changes involving transforms, animations, or positioning:
 - **Discovered:** 2025-11-04
 - **Fixed:** 2025-11-04
 
+#### macOS Safari: Blank page until "Clear site data"
+- **Status:** MITIGATED
+- **Affected:** macOS Safari (reported on Safari 18)
+- **Symptoms:** App shell appears blank or partially rendered until user clears site data
+- **Root Cause (likely):** Stale cached HTML/JS OR corrupted localStorage JSON
+- **Solution:** Startup recovery: validate & clear corrupted storage + one-time cache-busting reload on module/chunk load failures
+- **Files:** `src/lib/appStartupRecovery.ts`, `src/main.tsx`, `index.html`
+- **Discovered:** 2026-01-09
+- **Fixed:** 2026-01-09
+
 ### Historical Issues
 
 (To be populated as issues are discovered and resolved)
