@@ -6,6 +6,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to upload with retry
+async function uploadWithRetry(
+  supabase: any,
+  fileName: string,
+  imageBytes: Uint8Array,
+  maxRetries = 3
+): Promise<{ data: any; error: any }> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const { data, error } = await supabase.storage
+      .from('app-assets')
+      .upload(fileName, imageBytes, {
+        contentType: 'image/png',
+        upsert: false
+      });
+
+    if (!error) {
+      return { data, error: null };
+    }
+
+    // If it's a timeout or 5xx error, retry
+    const errorStatus = (error as any).status || (error as any).statusCode || 0;
+    const isRetryable = error.message?.includes('timeout') || 
+                        error.message?.includes('timed out') ||
+                        (errorStatus >= 500);
+    
+    if (isRetryable && attempt < maxRetries) {
+      console.log(`Upload attempt ${attempt} failed: ${error.message}, retrying in ${attempt * 2}s...`);
+      await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+      continue;
+    }
+
+    return { data: null, error };
+  }
+  return { data: null, error: new Error('Max retries exceeded') };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -71,12 +107,11 @@ serve(async (req) => {
     
     const fileName = `coloring-covers/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
     
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('app-assets')
-      .upload(fileName, imageBytes, {
-        contentType: 'image/png',
-        upsert: false
-      });
+    const { data: uploadData, error: uploadError } = await uploadWithRetry(
+      supabase,
+      fileName,
+      imageBytes
+    );
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
