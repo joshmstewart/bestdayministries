@@ -7,23 +7,28 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const PRIMARY_DOMAIN = "bestdayministries.org";
 const DEFAULT_REDIRECT_URL = `https://${PRIMARY_DOMAIN}/auth?type=recovery`;
 
+// Token validity: 1 hour
+const TOKEN_VALIDITY_HOURS = 1;
+
 const normalizeRedirectUrl = (candidate?: string) => {
   if (!candidate) return DEFAULT_REDIRECT_URL;
   try {
     const url = new URL(candidate);
-
-    // Force all auth links to our primary public domain (even if requested from preview/staging).
     url.protocol = "https:";
     url.host = PRIMARY_DOMAIN;
-
-    // Ensure we land on the password recovery experience, not the homepage.
     if (!url.pathname || url.pathname === "/") url.pathname = "/auth";
     if (!url.searchParams.get("type")) url.searchParams.set("type", "recovery");
-
     return url.toString();
   } catch {
     return DEFAULT_REDIRECT_URL;
   }
+};
+
+// Generate a secure random token
+const generateSecureToken = (): string => {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
 };
 
 const corsHeaders = {
@@ -51,52 +56,62 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Create admin client to generate password reset link
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const redirectTo = normalizeRedirectUrl(redirectUrl);
+    // Look up user by email
+    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (userError) {
+      console.error("Error looking up users:", userError);
+      return new Response(
+        JSON.stringify({ success: true, message: "If an account exists, a reset email will be sent." }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
-    // Generate password reset link using admin API
-    const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
-      email: email,
-      options: {
-        redirectTo,
-      },
-    });
+    const user = userData.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
 
-    if (linkError) {
-      console.error("Error generating reset link:", linkError);
+    if (!user) {
       // Don't reveal if email exists or not for security
+      console.log("No user found for email (not revealing to client)");
       return new Response(
         JSON.stringify({ success: true, message: "If an account exists, a reset email will be sent." }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const hashedToken = data?.properties?.hashed_token;
+    // Generate our own reusable token
+    const token = generateSecureToken();
+    const expiresAt = new Date(Date.now() + TOKEN_VALIDITY_HOURS * 60 * 60 * 1000);
 
-    if (!hashedToken) {
-      console.error("No hashed token generated");
+    // Store token in database
+    const { error: insertError } = await supabaseAdmin
+      .from("password_reset_tokens")
+      .insert({
+        user_id: user.id,
+        token_hash: token,
+        expires_at: expiresAt.toISOString(),
+      });
+
+    if (insertError) {
+      console.error("Error storing reset token:", insertError);
       return new Response(
-        JSON.stringify({ success: true, message: "If an account exists, a reset email will be sent." }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "Failed to generate reset link" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // IMPORTANT: Do not send the /auth/v1/verify link directly.
-    // Many email clients/security scanners prefetch URLs, which can consume one-time tokens.
-    // Instead, send users to our /auth page with token_hash, and verify only after an explicit click.
+    // Build reset link with our custom token
     const redirectToUrl = new URL(normalizeRedirectUrl(redirectUrl));
-    redirectToUrl.searchParams.set("token_hash", hashedToken);
+    redirectToUrl.searchParams.set("reset_token", token);
 
     const resetLink = redirectToUrl.toString();
 
-    // Send email via Resend from your domain
+    // Send email via Resend
     const emailResponse = await resend.emails.send({
       from: "Best Day Ever <no-reply@bestdayministries.org>",
       to: [email],

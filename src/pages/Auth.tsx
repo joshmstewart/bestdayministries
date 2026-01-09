@@ -82,21 +82,25 @@ const Auth = () => {
     // Recovery links can arrive as:
     // - Hash params (implicit): #access_token=...&type=recovery
     // - Query params (PKCE): ?code=...&type=recovery
-    // - Token-hash links (safer): ?type=recovery&token_hash=...
+    // - Token-hash links (legacy): ?type=recovery&token_hash=...
+    // - Reset token links (new reusable): ?type=recovery&reset_token=...
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const hashType = hashParams.get("type");
     const hasAccessToken = !!hashParams.get("access_token");
     const hashErrorCode = hashParams.get("error_code");
     const hashErrorDescription = hashParams.get("error_description");
-    const hashTokenHash = hashParams.get("token_hash");
 
     const queryType = searchParams.get("type");
     const code = searchParams.get("code");
     const queryErrorCode = searchParams.get("error_code");
     const queryErrorDescription = searchParams.get("error_description");
-    const queryTokenHash = searchParams.get("token_hash");
-
-    const tokenHash = queryTokenHash || hashTokenHash;
+    
+    // New reusable reset_token (preferred) or legacy token_hash
+    const resetToken = searchParams.get("reset_token") || hashParams.get("reset_token");
+    const legacyTokenHash = searchParams.get("token_hash") || hashParams.get("token_hash");
+    const tokenToUse = resetToken || legacyTokenHash;
+    const isNewResetToken = !!resetToken;
+    
     const hasAuthError = !!hashErrorCode || !!queryErrorCode;
 
     // Handle expired/invalid email links gracefully (common: otp_expired)
@@ -122,13 +126,19 @@ const Auth = () => {
 
     const recoveryMode = hashType === "recovery" || queryType === "recovery";
 
-    // IMPORTANT: Do NOT auto-verify token_hash links.
-    // Many email clients/security scanners will prefetch links, which can consume one-time tokens.
-    // We require a user click to verify.
-    if (recoveryMode && tokenHash) {
+    // For reusable reset_token links, show the password form directly (no verification step needed)
+    // For legacy token_hash links, still require the verify click
+    if (recoveryMode && tokenToUse) {
       setIsForgotPassword(false);
-      setIsPasswordRecovery(false);
-      setRecoveryTokenHash(tokenHash);
+      if (isNewResetToken) {
+        // New reusable token - show password form directly
+        setIsPasswordRecovery(true);
+        setRecoveryTokenHash(tokenToUse);
+      } else {
+        // Legacy one-time token - require click to verify
+        setIsPasswordRecovery(false);
+        setRecoveryTokenHash(tokenToUse);
+      }
     } else if (recoveryMode) {
       console.log("🔍 AUTH PAGE: Recovery mode detected, showing password update form");
       setIsPasswordRecovery(true);
@@ -461,20 +471,53 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-
-      if (error) throw error;
+      // Check if we have our custom reset_token (reusable)
+      const resetToken = searchParams.get("reset_token");
+      
+      if (resetToken) {
+        // Use our custom edge function for reusable tokens
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-password-with-token`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: resetToken, newPassword: password }),
+          }
+        );
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to update password");
+        }
+      } else {
+        // Legacy flow: use Supabase auth.updateUser (requires active session)
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+      }
 
       toast({
         title: "Password updated!",
         description: "Your password has been successfully changed.",
       });
 
-      // Reset state and redirect
+      // Clear URL params and redirect
+      const url = new URL(window.location.href);
+      url.searchParams.delete("reset_token");
+      url.searchParams.delete("token_hash");
+      url.searchParams.delete("type");
+      window.history.replaceState({}, "", url.pathname);
+      
       setIsPasswordRecovery(false);
+      setRecoveryTokenHash(null);
       setPassword("");
       setConfirmPassword("");
-      navigate("/community", { replace: true });
+      navigate("/auth", { replace: true });
+      
+      toast({
+        title: "Please sign in",
+        description: "Your password has been updated. Please sign in with your new password.",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
