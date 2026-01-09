@@ -73,21 +73,20 @@ serve(async (req) => {
             role: "user",
             content: `Create a COLORING BOOK COVER design for: "${prompt}"
 
-COVER LAYOUT (like a real published coloring book):
-- Large, clear TITLE at the top: "${prompt}"
-- Subtitle below: "Coloring Book" 
+COVER LAYOUT (like a real published children's coloring book):
+- Large, decorative TITLE at the top: "${prompt}"
+- Subtitle text: "Coloring Book" or "A Coloring Adventure"
 - Decorative border/frame around the entire cover
 - Central illustration featuring the subject in a fun, dynamic pose
 - Professional book cover composition
 
 STYLE REQUIREMENTS:
-- Black and white LINE ART style with clean, bold outlines
-- White background with black linework only
-- NO shading, NO gradients, NO gray tones, NO filled solid areas
-- Simple, child-friendly design suitable for coloring with crayons or markers
-- Clear separation between all elements for easy coloring
-- Whimsical, fun coloring book aesthetic
-- Text should be in a decorative, hand-drawn style that matches the illustration`
+- FULL COLOR, vibrant, cheerful illustration
+- Bright, saturated colors - colorful and eye-catching
+- Whimsical, child-friendly cartoon style
+- Fun, playful aesthetic like a real published coloring book cover
+- Decorative, stylized title text that matches the theme
+- The cover should look like it belongs on a bookstore shelf`
           }
         ],
         modalities: ["image", "text"]
