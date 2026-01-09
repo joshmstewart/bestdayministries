@@ -106,6 +106,14 @@ import {
   Columns,
   Type,
   BarChart3,
+  Trash2,
+  Plus,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  RowsIcon,
+  ColumnsIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
@@ -163,6 +171,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [isImageSelected, setIsImageSelected] = useState(false);
+  const [isTableSelected, setIsTableSelected] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -220,6 +229,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     },
     onSelectionUpdate: ({ editor }) => {
       setIsImageSelected(editor.isActive('image'));
+      setIsTableSelected(editor.isActive('table'));
     },
   });
 
@@ -233,6 +243,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   useEffect(() => {
     if (editor) {
       setIsImageSelected(editor.isActive('image'));
+      setIsTableSelected(editor.isActive('table'));
     }
   }, [editor]);
 
@@ -488,6 +499,143 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           >
             <Crop className="h-4 w-4 mr-1" />
             Re-crop
+          </Button>
+        </div>
+      )}
+      {isTableSelected && editor && (
+        <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800 p-2 flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-blue-700 dark:text-blue-300 mr-2">📊 Table:</span>
+          
+          {/* Row controls */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">Rows:</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().addRowBefore().run()}
+              title="Add row above"
+              className="h-7 px-2"
+            >
+              <ArrowUp className="h-3 w-3 mr-1" />
+              <Plus className="h-3 w-3" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().addRowAfter().run()}
+              title="Add row below"
+              className="h-7 px-2"
+            >
+              <ArrowDown className="h-3 w-3 mr-1" />
+              <Plus className="h-3 w-3" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().deleteRow().run()}
+              title="Delete row"
+              className="h-7 px-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+            >
+              <RowsIcon className="h-3 w-3 mr-1" />
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Column controls */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">Cols:</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().addColumnBefore().run()}
+              title="Add column left"
+              className="h-7 px-2"
+            >
+              <ArrowLeft className="h-3 w-3 mr-1" />
+              <Plus className="h-3 w-3" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().addColumnAfter().run()}
+              title="Add column right"
+              className="h-7 px-2"
+            >
+              <ArrowRight className="h-3 w-3 mr-1" />
+              <Plus className="h-3 w-3" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().deleteColumn().run()}
+              title="Delete column"
+              className="h-7 px-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+            >
+              <ColumnsIcon className="h-3 w-3 mr-1" />
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Table actions */}
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+              title="Toggle header row"
+              className="h-7 px-2"
+            >
+              Header
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().mergeCells().run()}
+              title="Merge selected cells"
+              className="h-7 px-2"
+            >
+              Merge
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => editor.chain().focus().splitCell().run()}
+              title="Split merged cell"
+              className="h-7 px-2"
+            >
+              Split
+            </Button>
+          </div>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Delete table */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              editor.chain().focus().deleteTable().run();
+              toast.success("Table deleted");
+            }}
+            title="Delete entire table"
+            className="h-7 px-2 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Delete Table
           </Button>
         </div>
       )}
