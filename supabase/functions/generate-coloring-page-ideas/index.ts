@@ -24,20 +24,26 @@ serve(async (req) => {
 
     console.log(`Generating coloring page ideas for: ${bookTitle}`);
 
-    const systemPrompt = "You are a creative designer for children's coloring books. You suggest simple, appealing subjects that work well as coloring pages with clear outlines.";
+    const systemPrompt = "You are a creative designer for children's coloring books. You suggest simple, appealing subjects that work well as coloring pages with clear outlines. For character-based themes (superheroes, princesses, cartoon characters, etc.), prioritize the actual characters themselves, not just their accessories or items.";
     
     const userPrompt = `Generate 15-20 coloring page ideas for a coloring book titled "${bookTitle}"${bookDescription ? `. The book is about: ${bookDescription}` : ''}.
 
-REQUIREMENTS:
+CRITICAL REQUIREMENTS:
+- For character-based themes (superheroes, princesses, cartoon characters, movies, TV shows), suggest THE ACTUAL CHARACTERS first, then some items/scenes
 - Each idea should be a simple, drawable subject suitable for a coloring page
-- Ideas should be concrete objects, animals, scenes, or characters - NOT abstract concepts
+- Ideas should be characters, animals, objects, or scenes - NOT abstract concepts
 - Each should be visually distinct from the others
 - Keep names SHORT (1-4 words max)
-- Mix simple subjects with slightly more detailed ones
+- Mix character poses with action scenes and a few iconic items
 - Consider what children would enjoy coloring
 
+GOOD examples for "Marvel Superheroes" book: Spider-Man Swinging, Iron Man Flying, Hulk Smashing, Captain America, Thor with Hammer, Black Widow, Black Panther, Groot Dancing, Rocket Raccoon, Doctor Strange, Wolverine, Deadpool, Thanos, Avengers Team, Spider-Man vs Venom
+BAD examples: "Spider-Man Mask", "Iron Man Helmet", "Thor's Hammer" (these are just items - suggest the actual heroes!)
+
+GOOD examples for "Disney Princesses" book: Elsa with Magic, Moana Sailing, Rapunzel with Hair, Ariel Swimming, Belle Reading, Cinderella Dancing, Mulan with Sword, Tiana Cooking, Frozen Sisters, Princess Castle
+BAD examples: "Glass Slipper", "Magic Mirror", "Crown" (suggest the princesses, not just objects!)
+
 GOOD examples for an "Ocean Friends" book: Happy Dolphin, Smiling Starfish, Treasure Chest, Friendly Octopus, Sea Turtle, Coral Reef, Mermaid, Clownfish, Whale, Crab, Jellyfish, Seahorse, Submarine, Pirate Ship, Beach Scene
-BAD examples: "The Ocean", "Marine Biology", "Water" (too abstract or vague)
 
 GOOD examples for "Cute Animals" book: Fluffy Bunny, Sleeping Kitten, Playful Puppy, Baby Elephant, Smiling Frog, Butterfly Garden, Owl at Night, Happy Penguin, Teddy Bear, Friendly Lion, Dancing Duck, Hedgehog, Panda Bear, Giraffe, Koala
 BAD examples: "Animals", "Nature", "Pets" (too generic)`;
