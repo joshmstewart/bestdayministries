@@ -4,6 +4,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import joyRocksImage from "@/assets/joy-rocks.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import ImageCarousel from "@/components/ImageCarousel";
+import { isProblematicIOSVersion } from "@/lib/browserDetection";
 
 interface JoyRocksContent {
   badge_text?: string;
@@ -92,7 +93,7 @@ const JoyRocks = ({ content = {} }: JoyRocksProps) => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="order-2 lg:order-1 relative animate-scale-in">
             {/* Image or Album with modern treatment */}
-            <div className="absolute -inset-8 bg-gradient-warm rounded-[3rem] rotate-3 opacity-20 blur-2xl" />
+            <div className={`absolute -inset-8 bg-gradient-warm rounded-[3rem] ${!isProblematicIOSVersion() ? 'rotate-3' : ''} opacity-20 blur-2xl`} />
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/40 via-accent/30 to-secondary/40 rounded-[2.5rem] blur-xl" />
               <div className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white/50">

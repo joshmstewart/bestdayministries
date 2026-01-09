@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Coffee, Users, Heart, MapPin, Clock, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isProblematicIOSVersion } from "@/lib/browserDetection";
 
 interface CoffeeShopContent {
   hero_heading?: string;
@@ -137,7 +138,7 @@ const CoffeeShopHome = () => {
             </div>
             
             <div className="relative animate-scale-in">
-              <div className="absolute -inset-8 bg-gradient-warm rounded-[3rem] rotate-3 opacity-20 blur-2xl" />
+              <div className={`absolute -inset-8 bg-gradient-warm rounded-[3rem] ${!isProblematicIOSVersion() ? 'rotate-3' : ''} opacity-20 blur-2xl`} />
               <div className="relative">
                 <div className="absolute -inset-4 bg-gradient-to-br from-primary/40 via-accent/30 to-secondary/40 rounded-[2.5rem] blur-xl" />
                 <div className="relative rounded-[2rem] overflow-hidden shadow-xl border-4 border-white/50">

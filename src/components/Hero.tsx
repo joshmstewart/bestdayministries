@@ -3,6 +3,7 @@ import { ArrowRight, Heart, Gift, Users, ShoppingBag } from "lucide-react";
 import heroImage from "@/assets/hero-hands.jpg";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { useNavigate } from "react-router-dom";
+import { isProblematicIOSVersion } from "@/lib/browserDetection";
 
 const quickActions = [
   { label: "Donate", icon: Gift, path: "/support", color: "bg-primary hover:bg-primary/90" },
@@ -165,7 +166,7 @@ const Hero = ({ content = {} }: HeroProps) => {
 
           {/* Right Image */}
           <div className="relative lg:h-[500px] animate-scale-in" style={{ animationDelay: '0.3s' }}>
-            <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-secondary rounded-3xl rotate-3 opacity-20 blur-xl" />
+            <div className={`absolute inset-0 bg-gradient-to-r from-primary via-accent to-secondary rounded-3xl ${!isProblematicIOSVersion() ? 'rotate-3' : ''} opacity-20 blur-xl`} />
             <div className="relative h-full rounded-3xl overflow-hidden shadow-xl">
               <OptimizedImage
                 src={image_url}
