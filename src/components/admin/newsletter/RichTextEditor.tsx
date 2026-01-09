@@ -13,6 +13,8 @@ import { FontFamily } from "@tiptap/extension-font-family";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import { DOMSerializer } from "@tiptap/pm/model";
 import { StyledBox } from "./StyledBoxExtension";
+import { CTAButton } from "./CTAButtonExtension";
+import { StatsBlock, StatItem } from "./StatsBlockExtension";
 import { forwardRef, useImperativeHandle } from "react";
 
 // Custom FontSize extension
@@ -103,6 +105,7 @@ import {
   TableIcon,
   Columns,
   Type,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
@@ -136,11 +139,20 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [tableDialogOpen, setTableDialogOpen] = useState(false);
   const [columnsDialogOpen, setColumnsDialogOpen] = useState(false);
   const [buttonDialogOpen, setButtonDialogOpen] = useState(false);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
   const [buttonText, setButtonText] = useState("");
   const [buttonUrl, setButtonUrl] = useState("");
   const [buttonColor, setButtonColor] = useState("#f97316");
+  const [statsTitle, setStatsTitle] = useState("By the Numbers");
+  const [statsItems, setStatsItems] = useState<StatItem[]>([
+    { value: '100', label: 'Metric 1', color: '#f97316' },
+    { value: '50', label: 'Metric 2', color: '#22c55e' },
+    { value: '25', label: 'Metric 3', color: '#3b82f6' },
+    { value: '10', label: 'Metric 4', color: '#8b5cf6' },
+  ]);
+  const [statsBgColor, setStatsBgColor] = useState("#1f2937");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [isRecropping, setIsRecropping] = useState(false);
@@ -193,6 +205,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         placeholder: 'Start typing your newsletter content here... Use the toolbar above to format text, add images, videos, and links.',
       }),
       StyledBox,
+      CTAButton,
+      StatsBlock,
     ],
     content,
     editable: true,
@@ -779,10 +793,20 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           variant="ghost"
           size="sm"
           onClick={() => setButtonDialogOpen(true)}
-          title="Insert button"
+          title="Insert CTA button"
           className="text-xs"
         >
           CTA
+        </Button>
+        {/* Stats Block */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setStatsDialogOpen(true)}
+          title="Insert stats block (By the Numbers)"
+        >
+          <BarChart3 className="h-4 w-4" />
         </Button>
         <div className="w-px h-6 bg-border mx-1" />
         <Button
@@ -1419,8 +1443,11 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             </Button>
             <Button onClick={() => {
               if (editor && buttonText && buttonUrl) {
-                const buttonHtml = `<table cellpadding="0" cellspacing="0" border="0" style="margin: 16px auto;"><tr><td align="center" style="background-color: ${buttonColor}; border-radius: 6px;"><a href="${buttonUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; color: white; text-decoration: none; font-weight: bold; font-size: 16px;">${buttonText}</a></td></tr></table>`;
-                editor.chain().focus().insertContent(buttonHtml).run();
+                editor.commands.setCTAButton({
+                  text: buttonText,
+                  url: buttonUrl,
+                  color: buttonColor,
+                });
                 setButtonDialogOpen(false);
                 setButtonText("");
                 setButtonUrl("");
@@ -1430,6 +1457,129 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
               }
             }}>
               Insert Button
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stats Block Dialog */}
+      <Dialog open={statsDialogOpen} onOpenChange={setStatsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Insert Stats Block (By the Numbers)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="stats-title">Block Title</Label>
+              <Input
+                id="stats-title"
+                placeholder="December by the Numbers"
+                value={statsTitle}
+                onChange={(e) => setStatsTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Background Color</Label>
+              <div className="flex gap-2">
+                {[
+                  { color: '#1f2937', label: 'Dark' },
+                  { color: '#f3f4f6', label: 'Light' },
+                  { color: '#e8650d', label: 'Orange' },
+                  { color: '#faf5ef', label: 'Cream' },
+                ].map(({ color, label }) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-12 h-10 rounded border-2 flex items-center justify-center text-xs ${statsBgColor === color ? 'ring-2 ring-primary' : ''}`}
+                    style={{ backgroundColor: color, borderColor: statsBgColor === color ? 'hsl(var(--primary))' : '#e5e7eb', color: color === '#1f2937' || color === '#e8650d' ? 'white' : 'black' }}
+                    onClick={() => setStatsBgColor(color)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Label>Stats (up to 4)</Label>
+              {statsItems.map((stat, index) => (
+                <div key={index} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-center">
+                  <Input
+                    placeholder="100"
+                    value={stat.value}
+                    onChange={(e) => {
+                      const newStats = [...statsItems];
+                      newStats[index] = { ...stat, value: e.target.value };
+                      setStatsItems(newStats);
+                    }}
+                  />
+                  <Input
+                    placeholder="Label"
+                    value={stat.label}
+                    onChange={(e) => {
+                      const newStats = [...statsItems];
+                      newStats[index] = { ...stat, label: e.target.value };
+                      setStatsItems(newStats);
+                    }}
+                  />
+                  <input
+                    type="color"
+                    value={stat.color}
+                    onChange={(e) => {
+                      const newStats = [...statsItems];
+                      newStats[index] = { ...stat, color: e.target.value };
+                      setStatsItems(newStats);
+                    }}
+                    className="w-10 h-10 rounded cursor-pointer border"
+                    title="Number color"
+                  />
+                </div>
+              ))}
+            </div>
+            {/* Preview */}
+            <div 
+              className="p-6 rounded-lg"
+              style={{ backgroundColor: statsBgColor }}
+            >
+              <h3 
+                className="text-center font-bold text-lg mb-4"
+                style={{ color: statsBgColor === '#1f2937' || statsBgColor === '#e8650d' ? 'white' : '#1f2937' }}
+              >
+                {statsTitle}
+              </h3>
+              <div className="grid grid-cols-4 gap-4 text-center">
+                {statsItems.map((stat, index) => (
+                  <div key={index}>
+                    <div className="text-3xl font-bold" style={{ color: stat.color }}>
+                      {stat.value}
+                    </div>
+                    <div 
+                      className="text-sm mt-1"
+                      style={{ color: statsBgColor === '#1f2937' || statsBgColor === '#e8650d' ? '#d1d5db' : '#6b7280' }}
+                    >
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              if (editor) {
+                editor.commands.setStatsBlock({
+                  title: statsTitle,
+                  stats: statsItems,
+                  backgroundColor: statsBgColor,
+                  titleColor: statsBgColor === '#1f2937' || statsBgColor === '#e8650d' ? 'white' : '#1f2937',
+                });
+                setStatsDialogOpen(false);
+                toast.success("Stats block inserted!");
+              }
+            }}>
+              Insert Stats Block
             </Button>
           </DialogFooter>
         </DialogContent>
