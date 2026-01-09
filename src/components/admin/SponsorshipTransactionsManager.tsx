@@ -88,6 +88,7 @@ export const SponsorshipTransactionsManager = () => {
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [resendingReceipt, setResendingReceipt] = useState(false);
   const [receiptHtml, setReceiptHtml] = useState<string>('');
+  const [revenuePeriod, setRevenuePeriod] = useState<'all-time' | 'this-month'>('all-time');
   const { toast } = useToast();
 
 
@@ -933,6 +934,11 @@ export const SponsorshipTransactionsManager = () => {
     return stageNames[stage] || stage;
   };
 
+  // Calculate current month start
+  const currentMonthStart = new Date();
+  currentMonthStart.setDate(1);
+  currentMonthStart.setHours(0, 0, 0, 0);
+
   // Calculate stats (Live mode only)
   const stats = {
     total: transactions.length,
@@ -943,6 +949,18 @@ export const SponsorshipTransactionsManager = () => {
       .reduce((sum, t) => sum + t.amount, 0),
     totalOneTime: transactions
       .filter(t => t.frequency === 'one-time' && t.stripe_mode === 'live')
+      .reduce((sum, t) => sum + t.amount, 0),
+    // Total revenue calculations
+    totalRevenueAllTime: transactions
+      .filter(t => t.stripe_mode === 'live' && ['active', 'completed'].includes(t.status))
+      .reduce((sum, t) => sum + t.amount, 0),
+    totalRevenueThisMonth: transactions
+      .filter(t => {
+        if (t.stripe_mode !== 'live') return false;
+        if (!['active', 'completed'].includes(t.status)) return false;
+        const startDate = new Date(t.started_at);
+        return startDate >= currentMonthStart;
+      })
       .reduce((sum, t) => sum + t.amount, 0),
   };
 
@@ -957,7 +975,7 @@ export const SponsorshipTransactionsManager = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Transactions</CardDescription>
@@ -980,6 +998,25 @@ export const SponsorshipTransactionsManager = () => {
           <CardHeader className="pb-2">
             <CardDescription>One-Time Total</CardDescription>
             <CardTitle className="text-3xl">{formatAmount(stats.totalOneTime)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardDescription className="font-medium">Total Revenue</CardDescription>
+              <Select value={revenuePeriod} onValueChange={(v) => setRevenuePeriod(v as 'all-time' | 'this-month')}>
+                <SelectTrigger className="w-auto h-6 px-2 text-xs border-0 bg-transparent">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-time">All Time</SelectItem>
+                  <SelectItem value="this-month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <CardTitle className="text-3xl text-primary">
+              {formatAmount(revenuePeriod === 'all-time' ? stats.totalRevenueAllTime : stats.totalRevenueThisMonth)}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
