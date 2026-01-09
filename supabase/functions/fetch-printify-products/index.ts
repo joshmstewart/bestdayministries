@@ -6,6 +6,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to fetch with retry and timeout
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // If we get a 5xx error, retry
+      if (response.status >= 500 && attempt < maxRetries) {
+        console.log(`Attempt ${attempt} failed with ${response.status}, retrying in ${attempt * 2}s...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        continue;
+      }
+      
+      return response;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (attempt < maxRetries) {
+        console.log(`Attempt ${attempt} failed: ${errorMessage}, retrying in ${attempt * 2}s...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -46,7 +81,7 @@ serve(async (req) => {
 
     // First, get the shop ID
     console.log('Fetching Printify shops...');
-    const shopsResponse = await fetch('https://api.printify.com/v1/shops.json', {
+    const shopsResponse = await fetchWithRetry('https://api.printify.com/v1/shops.json', {
       headers: {
         'Authorization': `Bearer ${printifyApiKey}`,
       },
@@ -83,7 +118,7 @@ serve(async (req) => {
     let hasMore = true;
 
     while (hasMore) {
-      const productsResponse = await fetch(
+      const productsResponse = await fetchWithRetry(
         `https://api.printify.com/v1/shops/${shopId}/products.json?page=${page}&limit=${limit}`,
         {
           headers: {
