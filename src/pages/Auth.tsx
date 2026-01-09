@@ -173,6 +173,33 @@ const Auth = () => {
       }
     });
 
+    const stripTokenHashFromUrl = () => {
+      const url = new URL(window.location.href);
+      const rawHash = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
+      const hashParams = new URLSearchParams(rawHash);
+
+      let changed = false;
+
+      if (url.searchParams.has("token_hash")) {
+        url.searchParams.delete("token_hash");
+        changed = true;
+      }
+
+      if (hashParams.has("token_hash")) {
+        hashParams.delete("token_hash");
+        changed = true;
+      }
+
+      if (changed) {
+        const newHash = hashParams.toString();
+        window.history.replaceState(
+          {},
+          "",
+          `${url.pathname}${url.search}${newHash ? `#${newHash}` : ""}`
+        );
+      }
+    };
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -182,6 +209,11 @@ const Auth = () => {
       // depending on auth flow (implicit vs PKCE). Treat both as recovery when the URL indicates it.
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && recoveryMode)) {
         console.log("🔍 AUTH PAGE: Password recovery detected, showing update form");
+
+        // If a session has already been established from the recovery link,
+        // strip token_hash so we don't keep re-rendering the "Verify Reset Link" screen.
+        stripTokenHashFromUrl();
+
         setRecoveryTokenHash(null);
         setIsPasswordRecovery(true);
         return;
@@ -369,6 +401,7 @@ const Auth = () => {
   };
 
   const handleVerifyRecoveryLink = async () => {
+    console.log("🔍 AUTH PAGE: Continue clicked (verify recovery link)");
     if (!recoveryTokenHash) return;
 
     setLoading(true);
