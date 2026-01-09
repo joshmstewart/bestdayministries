@@ -37,6 +37,7 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(searchParams.get('signup') === 'true');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [recoveryTokenHash, setRecoveryTokenHash] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -81,17 +82,21 @@ const Auth = () => {
     // Recovery links can arrive as:
     // - Hash params (implicit): #access_token=...&type=recovery
     // - Query params (PKCE): ?code=...&type=recovery
+    // - Token-hash links (safer): ?type=recovery&token_hash=...
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const hashType = hashParams.get("type");
     const hasAccessToken = !!hashParams.get("access_token");
     const hashErrorCode = hashParams.get("error_code");
     const hashErrorDescription = hashParams.get("error_description");
+    const hashTokenHash = hashParams.get("token_hash");
 
     const queryType = searchParams.get("type");
     const code = searchParams.get("code");
     const queryErrorCode = searchParams.get("error_code");
     const queryErrorDescription = searchParams.get("error_description");
+    const queryTokenHash = searchParams.get("token_hash");
 
+    const tokenHash = queryTokenHash || hashTokenHash;
     const hasAuthError = !!hashErrorCode || !!queryErrorCode;
 
     // Handle expired/invalid email links gracefully (common: otp_expired)
@@ -105,16 +110,26 @@ const Auth = () => {
 
       console.warn("🔍 AUTH PAGE: Auth link error:", hashErrorCode || queryErrorCode, description);
       setIsPasswordRecovery(false);
+      setRecoveryTokenHash(null);
       setIsForgotPassword(true);
       toast({
         title: "Reset link expired",
         description,
         variant: "destructive",
       });
+      return;
     }
 
-    const recoveryMode = !hasAuthError && (hashType === "recovery" || queryType === "recovery");
-    if (recoveryMode) {
+    const recoveryMode = hashType === "recovery" || queryType === "recovery";
+
+    // IMPORTANT: Do NOT auto-verify token_hash links.
+    // Many email clients/security scanners will prefetch links, which can consume one-time tokens.
+    // We require a user click to verify.
+    if (recoveryMode && tokenHash) {
+      setIsForgotPassword(false);
+      setIsPasswordRecovery(false);
+      setRecoveryTokenHash(tokenHash);
+    } else if (recoveryMode) {
       console.log("🔍 AUTH PAGE: Recovery mode detected, showing password update form");
       setIsPasswordRecovery(true);
 
@@ -152,7 +167,7 @@ const Auth = () => {
         session?.user?.email
       );
 
-      if (session?.user && !recoveryMode && !hasAuthError && !isPasswordRecovery) {
+      if (session?.user && !recoveryMode && !isPasswordRecovery && !recoveryTokenHash) {
         console.log("🔍 AUTH PAGE: Redirecting authenticated user:", session.user.id);
         checkAndRedirect(session.user.id);
       }
@@ -167,11 +182,12 @@ const Auth = () => {
       // depending on auth flow (implicit vs PKCE). Treat both as recovery when the URL indicates it.
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && recoveryMode)) {
         console.log("🔍 AUTH PAGE: Password recovery detected, showing update form");
+        setRecoveryTokenHash(null);
         setIsPasswordRecovery(true);
         return;
       }
 
-      if (session?.user && !recoveryMode && !hasAuthError && !isPasswordRecovery) {
+      if (session?.user && !recoveryMode && !isPasswordRecovery && !recoveryTokenHash) {
         checkAndRedirect(session.user.id);
       }
     });
@@ -179,7 +195,7 @@ const Auth = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, searchParams, isPasswordRecovery, toast]);
+  }, [navigate, searchParams, isPasswordRecovery, recoveryTokenHash, toast]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,7 +355,7 @@ const Auth = () => {
         title: "Check your email",
         description: "We've sent you a password reset link.",
       });
-      
+
       setIsForgotPassword(false);
     } catch (error: any) {
       toast({
@@ -347,6 +363,42 @@ const Auth = () => {
         description: error.message || "Failed to send reset email",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyRecoveryLink = async () => {
+    if (!recoveryTokenHash) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: recoveryTokenHash,
+        type: "recovery",
+      });
+
+      if (error) throw error;
+
+      // Remove token_hash from the URL so refreshes don't re-verify.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("token_hash");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+
+      setRecoveryTokenHash(null);
+      setIsPasswordRecovery(true);
+    } catch (error: any) {
+      console.warn("🔍 AUTH PAGE: verifyOtp failed:", error);
+      toast({
+        title: "Reset link expired",
+        description:
+          error?.message ||
+          "This email link is invalid or has expired. Please request a new password reset email.",
+        variant: "destructive",
+      });
+      setRecoveryTokenHash(null);
+      setIsPasswordRecovery(false);
+      setIsForgotPassword(true);
     } finally {
       setLoading(false);
     }
@@ -421,22 +473,26 @@ const Auth = () => {
             )}
             <div>
               <h1 className="text-3xl font-black text-foreground mb-2">
-                {isPasswordRecovery 
-                  ? "Set New Password" 
-                  : isForgotPassword 
-                    ? "Reset Password" 
-                    : isSignUp 
-                      ? "Join Our Community" 
-                      : "Welcome Back"}
+                {isPasswordRecovery
+                  ? "Set New Password"
+                  : recoveryTokenHash
+                    ? "Verify Reset Link"
+                    : isForgotPassword
+                      ? "Reset Password"
+                      : isSignUp
+                        ? "Join Our Community"
+                        : "Welcome Back"}
               </h1>
               <p className="text-muted-foreground">
                 {isPasswordRecovery
                   ? "Enter your new password below"
-                  : isForgotPassword
-                    ? "Enter your email to receive a password reset link"
-                    : isSignUp 
-                      ? "Create your account to connect with our community" 
-                      : "Sign in to access your Best Day Ministries community"}
+                  : recoveryTokenHash
+                    ? "Click continue to securely verify your reset link"
+                    : isForgotPassword
+                      ? "Enter your email to receive a password reset link"
+                      : isSignUp
+                        ? "Create your account to connect with our community"
+                        : "Sign in to access your Best Day Ministries community"}
               </p>
             </div>
           </div>
@@ -469,14 +525,38 @@ const Auth = () => {
                 />
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
                 disabled={loading}
               >
                 {loading ? "Updating..." : "Update Password"}
               </Button>
             </form>
+          ) : recoveryTokenHash ? (
+            <div className="space-y-4">
+              <Button
+                type="button"
+                className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                disabled={loading}
+                onClick={handleVerifyRecoveryLink}
+              >
+                {loading ? "Verifying..." : "Continue"}
+              </Button>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveryTokenHash(null);
+                    setIsForgotPassword(false);
+                  }}
+                  className="text-primary hover:underline font-semibold"
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            </div>
           ) : isForgotPassword ? (
             <form onSubmit={handlePasswordReset} className="space-y-4">
               <div className="space-y-2">
@@ -491,8 +571,8 @@ const Auth = () => {
                 />
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
                 disabled={loading}
               >
@@ -697,15 +777,15 @@ const Auth = () => {
           </form>
           )}
 
-          {!isForgotPassword && !isPasswordRecovery && (
+          {!isForgotPassword && !isPasswordRecovery && !recoveryTokenHash && (
             <div className="text-center">
               <button
                 type="button"
                 onClick={() => setIsSignUp(!isSignUp)}
                 className="text-primary hover:underline font-semibold"
               >
-                {isSignUp 
-                  ? "Already have an account? Sign in" 
+                {isSignUp
+                  ? "Already have an account? Sign in"
                   : "Don't have an account? Sign up"}
               </button>
             </div>

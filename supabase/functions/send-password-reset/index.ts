@@ -78,15 +78,23 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    if (!data?.properties?.action_link) {
-      console.error("No action link generated");
+    const hashedToken = data?.properties?.hashed_token;
+
+    if (!hashedToken) {
+      console.error("No hashed token generated");
       return new Response(
         JSON.stringify({ success: true, message: "If an account exists, a reset email will be sent." }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const resetLink = data.properties.action_link;
+    // IMPORTANT: Do not send the /auth/v1/verify link directly.
+    // Many email clients/security scanners prefetch URLs, which can consume one-time tokens.
+    // Instead, send users to our /auth page with token_hash, and verify only after an explicit click.
+    const redirectToUrl = new URL(normalizeRedirectUrl(redirectUrl));
+    redirectToUrl.searchParams.set("token_hash", hashedToken);
+
+    const resetLink = redirectToUrl.toString();
 
     // Send email via Resend from your domain
     const emailResponse = await resend.emails.send({
