@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,26 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, Shield, Mail, Trash2, KeyRound, Edit, TestTube, Copy, LogIn, Store, Clock, CheckCircle, XCircle, Search, Filter, AlertTriangle, MailCheck, Download } from "lucide-react";
+import {
+  UserPlus,
+  Shield,
+  Mail,
+  Trash2,
+  KeyRound,
+  Edit,
+  TestTube,
+  Copy,
+  LogIn,
+  Store,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Search,
+  Filter,
+  AlertTriangle,
+  MailCheck,
+  Download,
+} from "lucide-react";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -216,7 +236,7 @@ export const UserManagement = () => {
   const handleSendPasswordReset = async (email: string, displayName: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${getPublicSiteUrl()}/auth`,
       });
 
       if (error) throw error;
