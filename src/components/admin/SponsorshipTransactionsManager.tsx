@@ -905,29 +905,38 @@ export const SponsorshipTransactionsManager = () => {
     })).reverse(); // Most recent first
   }, [transactions]);
 
-  // Calculate revenue for selected period - now counting ALL individual payments
+  // Revenue from receipts (stored separately for accurate individual payment tracking)
+  const [revenueFromReceipts, setRevenueFromReceipts] = useState<{total: number, byMonth: Record<string, number>}>({ total: 0, byMonth: {} });
+  
+  useEffect(() => {
+    const loadRevenue = async () => {
+      const { data: receipts } = await supabase
+        .from('sponsorship_receipts')
+        .select('amount, created_at, stripe_mode')
+        .eq('stripe_mode', 'live');
+      
+      if (receipts) {
+        const total = receipts.reduce((sum, r) => sum + (r.amount || 0), 0);
+        const byMonth: Record<string, number> = {};
+        
+        receipts.forEach(r => {
+          const date = new Date(r.created_at);
+          const key = format(date, "yyyy-MM");
+          byMonth[key] = (byMonth[key] || 0) + (r.amount || 0);
+        });
+        
+        setRevenueFromReceipts({ total, byMonth });
+      }
+    };
+    loadRevenue();
+  }, []);
+
+  // Calculate revenue for selected period using receipts data
   const getRevenueForPeriod = (period: string) => {
-    // Filter to live mode and completed/paid transactions
-    const liveTransactions = transactions.filter(t => 
-      t.stripe_mode === 'live' && 
-      ['paid', 'completed', 'active', 'succeeded'].includes(t.status?.toLowerCase() || '')
-    );
-    
     if (period === 'all-time') {
-      return liveTransactions.reduce((sum, t) => sum + t.amount, 0);
+      return revenueFromReceipts.total;
     }
-    
-    // Period is in format "yyyy-MM"
-    const [year, month] = period.split("-").map(Number);
-    const periodStart = new Date(year, month - 1, 1);
-    const periodEnd = new Date(year, month, 0, 23, 59, 59, 999);
-    
-    return liveTransactions
-      .filter(t => {
-        const date = new Date(t.started_at);
-        return date >= periodStart && date <= periodEnd;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
+    return revenueFromReceipts.byMonth[period] || 0;
   };
 
   // Calculate stats (Live mode only) - now properly counting individual payments
