@@ -4,12 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Edit, Trash2, Zap, GitBranch } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
 import { CampaignStatsDialog } from "./CampaignStatsDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
+import { SaveAsTemplateDialog } from "./SaveAsTemplateDialog";
 import { format } from "date-fns";
 import { Copy } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -23,6 +24,8 @@ export const NewsletterCampaigns = () => {
   const [statsCampaign, setStatsCampaign] = useState<any>(null);
   const [previewCampaign, setPreviewCampaign] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
+  const [templateCampaign, setTemplateCampaign] = useState<any>(null);
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["newsletter-campaigns"],
@@ -195,6 +198,17 @@ export const NewsletterCampaigns = () => {
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setTemplateCampaign(campaign);
+                          setSaveTemplateDialogOpen(true);
+                        }}
+                        title="Save as Template"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
                       <CampaignActions
                         campaignId={campaign.id}
                         campaignStatus={campaign.status}
@@ -220,6 +234,17 @@ export const NewsletterCampaigns = () => {
                         onClick={() => cloneCampaignMutation.mutate(campaign.id)}
                       >
                         <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setTemplateCampaign(campaign);
+                          setSaveTemplateDialogOpen(true);
+                        }}
+                        title="Save as Template"
+                      >
+                        <FileText className="h-4 w-4" />
                       </Button>
                     </>
                   )}
@@ -261,6 +286,16 @@ export const NewsletterCampaigns = () => {
           subject={previewCampaign.subject || ""}
           previewText={previewCampaign.preview_text || ""}
           htmlContent={previewCampaign.html_content || ""}
+        />
+      )}
+
+      {templateCampaign && (
+        <SaveAsTemplateDialog
+          open={saveTemplateDialogOpen}
+          onOpenChange={setSaveTemplateDialogOpen}
+          campaignSubject={templateCampaign.subject || ""}
+          campaignPreviewText={templateCampaign.preview_text || ""}
+          campaignHtmlContent={templateCampaign.html_content || ""}
         />
       )}
     </div>

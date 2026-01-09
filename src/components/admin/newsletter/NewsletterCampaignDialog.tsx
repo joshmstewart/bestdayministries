@@ -16,7 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { RichTextEditor } from "./RichTextEditor";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
-import { Eye, Calendar, Monitor, Smartphone } from "lucide-react";
+import { SaveAsTemplateDialog } from "./SaveAsTemplateDialog";
+import { Eye, Calendar, Monitor, Smartphone, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -54,6 +55,7 @@ export const NewsletterCampaignDialog = ({
   const [specificEmails, setSpecificEmails] = useState<string>("");
   const [useSpecificEmails, setUseSpecificEmails] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
   const [scheduledFor, setScheduledFor] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
@@ -531,6 +533,14 @@ export const NewsletterCampaignDialog = ({
             <Eye className="h-4 w-4 mr-2" />
             Preview
           </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsSaveTemplateOpen(true)}
+            disabled={!subject || !htmlContent}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Save as Template
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -550,6 +560,15 @@ export const NewsletterCampaignDialog = ({
         subject={subject}
         previewText={previewText}
         htmlContent={htmlContent}
+      />
+
+      <SaveAsTemplateDialog
+        open={isSaveTemplateOpen}
+        onOpenChange={setIsSaveTemplateOpen}
+        campaignSubject={subject}
+        campaignPreviewText={previewText}
+        campaignHtmlContent={htmlContent}
+        sourceTemplateId={selectedTemplate}
       />
     </Dialog>
   );
