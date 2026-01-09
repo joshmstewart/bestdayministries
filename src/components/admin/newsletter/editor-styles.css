@@ -679,3 +679,304 @@
   bottom: 0;
   cursor: col-resize;
 }
+
+/* CTA Button Tables - preserve button styling in editor */
+.ProseMirror table[cellpadding="0"][cellspacing="0"][border="0"] {
+  width: auto !important;
+  margin: 1rem auto !important;
+  border: none !important;
+  table-layout: auto !important;
+}
+
+.ProseMirror table[cellpadding="0"][cellspacing="0"][border="0"] td {
+  border: none !important;
+  padding: 0 !important;
+}
+
+.ProseMirror table[cellpadding="0"][cellspacing="0"][border="0"] td[style*="background-color"] {
+  border-radius: 6px !important;
+}
+
+.ProseMirror table[cellpadding="0"][cellspacing="0"][border="0"] a {
+  display: inline-block !important;
+  padding: 12px 24px !important;
+  color: white !important;
+  text-decoration: none !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+}
+
+/* Column Layout Tables - preserve column styling in editor */
+.ProseMirror table[style*="border: none"],
+.ProseMirror table[style*="border:none"] {
+  width: 100% !important;
+  border: none !important;
+  margin: 1rem 0 !important;
+}
+
+.ProseMirror table[style*="border: none"] td,
+.ProseMirror table[style*="border:none"] td {
+  border: 1px dashed #e5e7eb !important;
+  padding: 10px !important;
+  vertical-align: top !important;
+}
+
+/* Purple Box - also match RGB format */
+.ProseMirror div[style*="rgb(102, 126, 234)"],
+.ProseMirror div[style*="rgb(118, 75, 162)"] {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: white !important;
+  border: 4px solid #fbbf24 !important;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3) !important;
+  min-height: 6rem;
+  position: relative;
+}
+
+.ProseMirror div[style*="rgb(102, 126, 234)"]::before,
+.ProseMirror div[style*="rgb(118, 75, 162)"]::before {
+  content: "🌟 PURPLE GRADIENT";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #7c3aed;
+  background: #fbbf24;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="rgb(102, 126, 234)"] *,
+.ProseMirror div[style*="rgb(118, 75, 162)"] * {
+  color: white !important;
+}
+
+/* Blue Info Box - also match RGB format */
+.ProseMirror div[style*="rgb(219, 234, 254)"] {
+  background-color: #dbeafe !important;
+  border-left: 4px solid #3b82f6 !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: #1e40af !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
+  min-height: 6rem;
+  position: relative;
+}
+
+.ProseMirror div[style*="rgb(219, 234, 254)"]::before {
+  content: "ℹ️ BLUE INFO BOX";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: white;
+  background: #3b82f6;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="rgb(219, 234, 254)"] * {
+  color: #1e40af !important;
+}
+
+/* Orange/Warm gradient - also match RGB format */
+.ProseMirror div[style*="rgb(249, 115, 22)"],
+.ProseMirror div[style*="rgb(234, 88, 12)"] {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: white !important;
+  border: 4px solid #fcd34d !important;
+  box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.3) !important;
+  min-height: 6rem;
+  position: relative;
+}
+
+.ProseMirror div[style*="rgb(249, 115, 22)"]::before,
+.ProseMirror div[style*="rgb(234, 88, 12)"]::before {
+  content: "🔥 WARM GRADIENT";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #c2410c;
+  background: #fcd34d;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="rgb(249, 115, 22)"] *,
+.ProseMirror div[style*="rgb(234, 88, 12)"] * {
+  color: white !important;
+}
+
+/* Green Success Box - also match RGB format */
+.ProseMirror div[style*="rgb(220, 252, 231)"] {
+  background-color: #dcfce7 !important;
+  border-left: 4px solid #22c55e !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: #166534 !important;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2) !important;
+  min-height: 6rem;
+  position: relative;
+}
+
+.ProseMirror div[style*="rgb(220, 252, 231)"]::before {
+  content: "✅ GREEN SUCCESS BOX";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: white;
+  background: #22c55e;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="rgb(220, 252, 231)"] * {
+  color: #166534 !important;
+}
+
+/* Dark Charcoal Box - also match RGB format */
+.ProseMirror div[style*="rgb(31, 41, 55)"] {
+  background-color: #1f2937 !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: white !important;
+  border: 4px solid #6b7280 !important;
+  box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.3) !important;
+  min-height: 6rem;
+  position: relative;
+}
+
+.ProseMirror div[style*="rgb(31, 41, 55)"]::before {
+  content: "🌙 DARK CHARCOAL";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #1f2937;
+  background: #d1d5db;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="rgb(31, 41, 55)"] * {
+  color: white !important;
+}
+
+/* Amber Highlight Box - also match RGB format */
+.ProseMirror div[style*="rgb(254, 243, 199)"] {
+  background-color: #fef3c7 !important;
+  border-left: 4px solid #f59e0b !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: #92400e !important;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2) !important;
+  min-height: 6rem;
+  position: relative;
+}
+
+.ProseMirror div[style*="rgb(254, 243, 199)"]::before {
+  content: "⚠️ AMBER HIGHLIGHT";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #78350f;
+  background: #fcd34d;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="rgb(254, 243, 199)"] * {
+  color: #92400e !important;
+}
+
+/* Light Gray Box - also match RGB format */
+.ProseMirror div[style*="rgb(243, 244, 246)"] {
+  background-color: #f3f4f6 !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  border: 4px solid #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
+  min-height: 6rem;
+  position: relative;
+}
+
+.ProseMirror div[style*="rgb(243, 244, 246)"]::before {
+  content: "📦 LIGHT GRAY BOX";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: white;
+  background: #ef4444;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
