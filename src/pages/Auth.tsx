@@ -63,6 +63,18 @@ const Auth = () => {
     const redirectPath = searchParams.get('redirect');
     const bestieId = searchParams.get('bestieId');
     
+    // Check URL hash for recovery token FIRST before any session checks
+    // This prevents the redirect from happening when user clicks password reset link
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery' && accessToken) {
+      console.log('🔍 AUTH PAGE: Recovery token detected in URL, showing password update form');
+      setIsPasswordRecovery(true);
+      return; // Don't set up redirect logic
+    }
+    
     const checkAndRedirect = async (userId: string) => {
       try {
         // If there's a redirect path specified, use it
@@ -80,10 +92,10 @@ const Auth = () => {
       }
     };
 
-    // Check if user is already logged in
+    // Check if user is already logged in (but not in recovery mode)
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('🔍 AUTH PAGE: getSession result:', session ? 'HAS SESSION' : 'NO SESSION', session?.user?.email);
-      if (session?.user) {
+      if (session?.user && !isPasswordRecovery) {
         console.log('🔍 AUTH PAGE: Redirecting authenticated user:', session.user.id);
         checkAndRedirect(session.user.id);
       }
@@ -108,7 +120,7 @@ const Auth = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, searchParams]);
+  }, [navigate, searchParams, isPasswordRecovery]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
