@@ -47,19 +47,28 @@ export const StyledBox = Node.create<StyledBoxOptions>({
       style: {
         default: 'light-gray',
         parseHTML: element => {
-          const bg = element.style.background || element.style.backgroundColor;
+          // First check data attribute
+          const dataStyle = element.getAttribute('data-style');
+          if (dataStyle) return dataStyle;
+          
+          // Fallback to parsing inline styles
+          const inlineStyle = element.getAttribute('style') || '';
+          const bg = inlineStyle.toLowerCase();
+          
+          if (bg.includes('radial-gradient') && bg.includes('hsl(24')) return 'sunset-gradient';
           if (bg.includes('667eea') || bg.includes('764ba2')) return 'purple-gradient';
-          if (bg.includes('f97316') || bg.includes('ea580c')) return 'warm-gradient';
+          if (bg.includes('#f97316') || bg.includes('rgb(249, 115, 22)') || (bg.includes('f97316') && bg.includes('ea580c'))) return 'warm-gradient';
+          if (bg.includes('#e8650d') || bg.includes('rgb(232, 101, 13)')) return 'burnt-orange';
+          if (bg.includes('#eab308') || bg.includes('rgb(234, 179, 8)')) return 'mustard-gold';
+          if (bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)')) return 'warm-cream';
           if (bg.includes('#f3f4f6') || bg.includes('rgb(243, 244, 246)')) return 'light-gray';
           if (bg.includes('#dbeafe') || bg.includes('rgb(219, 234, 254)')) return 'blue-info';
           if (bg.includes('#dcfce7') || bg.includes('rgb(220, 252, 231)')) return 'green-success';
           if (bg.includes('#fef3c7') || bg.includes('rgb(254, 243, 199)')) return 'amber-highlight';
           if (bg.includes('#1f2937') || bg.includes('rgb(31, 41, 55)')) return 'dark-charcoal';
-          if (bg.includes('#e8650d') || bg.includes('rgb(232, 101, 13)')) return 'burnt-orange';
-          if (bg.includes('#eab308') || bg.includes('rgb(234, 179, 8)')) return 'mustard-gold';
-          if (bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)')) return 'warm-cream';
-          if (bg.includes('e8650d') && bg.includes('eab308')) return 'sunset-gradient';
-          return 'white-bordered';
+          if (bg.includes('white') && bg.includes('border')) return 'white-bordered';
+          
+          return 'light-gray';
         },
         renderHTML: attributes => {
           return { 'data-style': attributes.style };
@@ -72,6 +81,33 @@ export const StyledBox = Node.create<StyledBoxOptions>({
     return [
       {
         tag: 'div[data-styled-box]',
+      },
+      // Fallback: parse divs with inline styles that match our styled boxes
+      {
+        tag: 'div',
+        getAttrs: (element: HTMLElement) => {
+          const style = element.getAttribute('style') || '';
+          const bg = style.toLowerCase();
+          
+          // Check if this div has styling that matches our styled boxes
+          if (
+            bg.includes('#f3f4f6') || bg.includes('rgb(243, 244, 246)') || // light-gray
+            bg.includes('667eea') || bg.includes('764ba2') || // purple-gradient
+            bg.includes('#dbeafe') || bg.includes('rgb(219, 234, 254)') || // blue-info
+            bg.includes('#dcfce7') || bg.includes('rgb(220, 252, 231)') || // green-success
+            bg.includes('#fef3c7') || bg.includes('rgb(254, 243, 199)') || // amber-highlight
+            bg.includes('#1f2937') || bg.includes('rgb(31, 41, 55)') || // dark-charcoal
+            bg.includes('#e8650d') || bg.includes('rgb(232, 101, 13)') || // burnt-orange
+            bg.includes('#eab308') || bg.includes('rgb(234, 179, 8)') || // mustard-gold
+            bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)') || // warm-cream
+            bg.includes('radial-gradient') && bg.includes('hsl(24') || // sunset-gradient
+            bg.includes('#f97316') || bg.includes('rgb(249, 115, 22)') || // warm-gradient
+            (bg.includes('background') && bg.includes('white') && bg.includes('border')) // white-bordered
+          ) {
+            return {};
+          }
+          return false;
+        },
       },
     ];
   },
