@@ -84,11 +84,36 @@ const Auth = () => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const hashType = hashParams.get("type");
     const hasAccessToken = !!hashParams.get("access_token");
+    const hashErrorCode = hashParams.get("error_code");
+    const hashErrorDescription = hashParams.get("error_description");
 
     const queryType = searchParams.get("type");
     const code = searchParams.get("code");
+    const queryErrorCode = searchParams.get("error_code");
+    const queryErrorDescription = searchParams.get("error_description");
 
-    const recoveryMode = hashType === "recovery" || queryType === "recovery";
+    const hasAuthError = !!hashErrorCode || !!queryErrorCode;
+
+    // Handle expired/invalid email links gracefully (common: otp_expired)
+    if (hasAuthError) {
+      const descriptionRaw =
+        hashErrorDescription ||
+        queryErrorDescription ||
+        "This email link is invalid or has expired. Please request a new password reset email.";
+
+      const description = decodeURIComponent(descriptionRaw.replace(/\+/g, " "));
+
+      console.warn("🔍 AUTH PAGE: Auth link error:", hashErrorCode || queryErrorCode, description);
+      setIsPasswordRecovery(false);
+      setIsForgotPassword(true);
+      toast({
+        title: "Reset link expired",
+        description,
+        variant: "destructive",
+      });
+    }
+
+    const recoveryMode = !hasAuthError && (hashType === "recovery" || queryType === "recovery");
     if (recoveryMode) {
       console.log("🔍 AUTH PAGE: Recovery mode detected, showing password update form");
       setIsPasswordRecovery(true);
@@ -127,7 +152,7 @@ const Auth = () => {
         session?.user?.email
       );
 
-      if (session?.user && !recoveryMode && !isPasswordRecovery) {
+      if (session?.user && !recoveryMode && !hasAuthError && !isPasswordRecovery) {
         console.log("🔍 AUTH PAGE: Redirecting authenticated user:", session.user.id);
         checkAndRedirect(session.user.id);
       }
@@ -146,7 +171,7 @@ const Auth = () => {
         return;
       }
 
-      if (session?.user && !recoveryMode && !isPasswordRecovery) {
+      if (session?.user && !recoveryMode && !hasAuthError && !isPasswordRecovery) {
         checkAndRedirect(session.user.id);
       }
     });
@@ -154,7 +179,7 @@ const Auth = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, searchParams, isPasswordRecovery]);
+  }, [navigate, searchParams, isPasswordRecovery, toast]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,7 +329,7 @@ const Auth = () => {
       const response = await supabase.functions.invoke('send-password-reset', {
         body: {
           email,
-          redirectUrl: `${getPublicSiteUrl()}/auth`,
+          redirectUrl: `${getPublicSiteUrl()}/auth?type=recovery`,
         },
       });
 

@@ -239,7 +239,7 @@ export const UserManagement = () => {
       const response = await supabase.functions.invoke('send-password-reset', {
         body: {
           email,
-          redirectUrl: `${getPublicSiteUrl()}/auth`,
+          redirectUrl: `${getPublicSiteUrl()}/auth?type=recovery`,
         },
       });
 
