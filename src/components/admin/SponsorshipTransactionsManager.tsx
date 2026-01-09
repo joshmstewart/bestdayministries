@@ -969,16 +969,20 @@ export const SponsorshipTransactionsManager = () => {
     totalOneTime: transactions
       .filter(t => t.frequency === 'one-time' && t.stripe_mode === 'live')
       .reduce((sum, t) => sum + t.amount, 0),
-    // Total revenue calculations
+    // Total revenue calculations - monthly (active) + one-time (all live, regardless of status since payment was received)
     totalRevenueAllTime: transactions
-      .filter(t => t.stripe_mode === 'live' && ['active', 'completed'].includes(t.status))
+      .filter(t => t.stripe_mode === 'live' && (
+        (t.frequency === 'monthly' && t.status === 'active') || 
+        t.frequency === 'one-time'
+      ))
       .reduce((sum, t) => sum + t.amount, 0),
     totalRevenueThisMonth: transactions
       .filter(t => {
         if (t.stripe_mode !== 'live') return false;
-        if (!['active', 'completed'].includes(t.status)) return false;
         const startDate = new Date(t.started_at);
-        return startDate >= currentMonthStart;
+        if (startDate < currentMonthStart) return false;
+        // Monthly must be active, one-time counts regardless
+        return (t.frequency === 'monthly' && t.status === 'active') || t.frequency === 'one-time';
       })
       .reduce((sum, t) => sum + t.amount, 0),
   };
