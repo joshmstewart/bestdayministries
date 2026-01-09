@@ -649,6 +649,7 @@ DOC:CONTENT_MODERATION_CASCADE_DELETES.md
 ROUTE:/auth
 SIGNUP:email-pwd-name-role+avatar→signUp→handle_new_user()→record-terms-IMMEDIATE→redirect
 LOGIN:signInWithPassword→check-vendor→redirect
+PASSWORD_RESET:send-password-reset→verify-link(/auth/v1/verify)→if-redirects-to-/[hash/query]→App-catches→/auth?type=recovery
 ROLES:supporter|bestie|caregiver|moderator|admin|owner
 AVATAR:1-12→composite-{n}.png
 TERMS:Guard+Dialog→versions-in-useTermsCheck→FIXED-2025-10-25[no-double-prompt]

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useAppManifest } from "@/hooks/useAppManifest";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
@@ -19,6 +19,7 @@ import { DailyLoginRewardManager } from "@/components/DailyLoginRewardManager";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
+import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
 import Index from "./pages/Index";
 import ColoringBook from "./pages/ColoringBook";
 import CoffeeShopHome from "./pages/CoffeeShopHome";
@@ -151,6 +152,41 @@ function PageTracker() {
   return null;
 }
 
+// In production, enforce the primary public domain for all traffic.
+// This ensures email links that land on the .lovable.app domain immediately redirect to the custom domain.
+function PrimaryDomainEnforcer() {
+  useEffect(() => {
+    if (!import.meta.env.PROD) return;
+
+    const targetOrigin = getPublicSiteUrl();
+    if (targetOrigin !== window.location.origin) {
+      window.location.replace(
+        `${targetOrigin}${window.location.pathname}${window.location.search}${window.location.hash}`
+      );
+    }
+  }, []);
+
+  return null;
+}
+
+// Some auth verify links can redirect to "/" with recovery tokens or errors in the hash/query.
+// Catch those and route to the Auth page so users see the reset UI.
+function AuthVerifyRedirectCatcher() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const markers = `${location.search}${location.hash}`;
+    const looksAuthRelated = /access_token=|type=recovery|error_code=|error=|code=/.test(markers);
+
+    if (location.pathname === "/" && looksAuthRelated) {
+      navigate(`/auth${location.search}${location.hash}`, { replace: true });
+    }
+  }, [location.pathname, location.search, location.hash, navigate]);
+
+  return null;
+}
+
 const App = () => {
   // Update app manifest dynamically based on database settings 
   useAppManifest();
@@ -167,6 +203,8 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <PrimaryDomainEnforcer />
+            <AuthVerifyRedirectCatcher />
             <ScrollToTop />
           <FaviconManager />
           <ImpersonationBanner />
