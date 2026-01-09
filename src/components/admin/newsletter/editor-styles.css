@@ -237,10 +237,10 @@
   z-index: 10;
 }
 
-/* Ensure text is white in gradient boxes */
-.ProseMirror div[style*="667eea"] *,
-.ProseMirror div[style*="f97316"] * {
-  color: white !important;
+/* Default text color for gradient boxes - but NOT for elements with explicit inline colors */
+.ProseMirror div[style*="667eea"] > *:not([style*="color"]),
+.ProseMirror div[style*="f97316"] > *:not([style*="color"]) {
+  color: white;
 }
 
 /* Warm Orange Gradient Box */
@@ -309,9 +309,10 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="#dbeafe"] *,
-.ProseMirror div[style*="dbeafe"] * {
-  color: #1e40af !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="#dbeafe"] > *:not([style*="color"]),
+.ProseMirror div[style*="dbeafe"] > *:not([style*="color"]) {
+  color: #1e40af;
 }
 
 /* Green Success Box */
@@ -348,9 +349,10 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="#dcfce7"] *,
-.ProseMirror div[style*="dcfce7"] * {
-  color: #166534 !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="#dcfce7"] > *:not([style*="color"]),
+.ProseMirror div[style*="dcfce7"] > *:not([style*="color"]) {
+  color: #166534;
 }
 
 /* Amber Highlight Box */
@@ -387,9 +389,10 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="#fef3c7"] *,
-.ProseMirror div[style*="fef3c7"] * {
-  color: #92400e !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="#fef3c7"] > *:not([style*="color"]),
+.ProseMirror div[style*="fef3c7"] > *:not([style*="color"]) {
+  color: #92400e;
 }
 
 /* Dark Charcoal Box */
@@ -426,9 +429,10 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="#1f2937"] *,
-.ProseMirror div[style*="1f2937"] * {
-  color: white !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="#1f2937"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="1f2937"] > *:not([style*="color"]):not([data-stat-value]) {
+  color: white;
 }
 
 /* White Bordered Box */
@@ -500,10 +504,11 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="#e8650d"] *,
-.ProseMirror div[style*="e8650d"] *,
-.ProseMirror div[style*="rgb(232, 101, 13)"] * {
-  color: white !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="#e8650d"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="e8650d"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="rgb(232, 101, 13)"] > *:not([style*="color"]):not([data-stat-value]) {
+  color: white;
 }
 
 /* Mustard Gold Box */
@@ -542,10 +547,11 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="#eab308"] *,
-.ProseMirror div[style*="eab308"] *,
-.ProseMirror div[style*="rgb(234, 179, 8)"] * {
-  color: #78350f !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="#eab308"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="eab308"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="rgb(234, 179, 8)"] > *:not([style*="color"]):not([data-stat-value]) {
+  color: #78350f;
 }
 
 /* Warm Cream Box */
@@ -584,10 +590,11 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="#faf5ef"] *,
-.ProseMirror div[style*="faf5ef"] *,
-.ProseMirror div[style*="rgb(250, 245, 239)"] * {
-  color: #78350f !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="#faf5ef"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="faf5ef"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="rgb(250, 245, 239)"] > *:not([style*="color"]):not([data-stat-value]) {
+  color: #78350f;
 }
 
 /* Sunset Gradient Box */
@@ -627,9 +634,10 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="radial-gradient"][style*="hsl(24"] *,
-.ProseMirror div[style*="radial-gradient"][style*="mustard"] * {
-  color: white !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="radial-gradient"][style*="hsl(24"] > *:not([style*="color"]):not([data-stat-value]),
+.ProseMirror div[style*="radial-gradient"][style*="mustard"] > *:not([style*="color"]):not([data-stat-value]) {
+  color: white;
 }
 
 /* Table Styles */
@@ -756,9 +764,10 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="rgb(102, 126, 234)"] *,
-.ProseMirror div[style*="rgb(118, 75, 162)"] * {
-  color: white !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="rgb(102, 126, 234)"] > *:not([style*="color"]),
+.ProseMirror div[style*="rgb(118, 75, 162)"] > *:not([style*="color"]) {
+  color: white;
 }
 
 /* Blue Info Box - also match RGB format */
@@ -794,8 +803,9 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="rgb(219, 234, 254)"] * {
-  color: #1e40af !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="rgb(219, 234, 254)"] > *:not([style*="color"]) {
+  color: #1e40af;
 }
 
 /* Orange/Warm gradient - also match RGB format */
@@ -833,9 +843,10 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="rgb(249, 115, 22)"] *,
-.ProseMirror div[style*="rgb(234, 88, 12)"] * {
-  color: white !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="rgb(249, 115, 22)"] > *:not([style*="color"]),
+.ProseMirror div[style*="rgb(234, 88, 12)"] > *:not([style*="color"]) {
+  color: white;
 }
 
 /* Green Success Box - also match RGB format */
@@ -871,8 +882,9 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="rgb(220, 252, 231)"] * {
-  color: #166534 !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="rgb(220, 252, 231)"] > *:not([style*="color"]) {
+  color: #166534;
 }
 
 /* Dark Charcoal Box - also match RGB format */
@@ -908,8 +920,9 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="rgb(31, 41, 55)"] * {
-  color: white !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="rgb(31, 41, 55)"] > *:not([style*="color"]):not([data-stat-value]) {
+  color: white;
 }
 
 /* Amber Highlight Box - also match RGB format */
@@ -945,8 +958,9 @@
   z-index: 10;
 }
 
-.ProseMirror div[style*="rgb(254, 243, 199)"] * {
-  color: #92400e !important;
+/* Default text - only for elements without explicit color */
+.ProseMirror div[style*="rgb(254, 243, 199)"] > *:not([style*="color"]) {
+  color: #92400e;
 }
 
 /* Light Gray Box - also match RGB format */
@@ -979,4 +993,54 @@
   letter-spacing: 0.05em;
   white-space: nowrap;
   z-index: 10;
+}
+
+/* Stats Block - preserve colored numbers */
+.ProseMirror div[data-stats-block] {
+  position: relative;
+  border: 4px solid #8b5cf6 !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.3) !important;
+}
+
+.ProseMirror div[data-stats-block]::before {
+  content: "📊 STATS BLOCK";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: white;
+  background: #8b5cf6;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Preserve explicit colors in stats blocks */
+.ProseMirror div[data-stats-block] [data-stat-value] {
+  /* Don't override - let inline styles apply */
+}
+
+/* CTA Button - preserve button styling */
+.ProseMirror table[data-cta-button] {
+  border: 2px dashed #f97316 !important;
+  border-radius: 8px;
+}
+
+.ProseMirror table[data-cta-button]::before {
+  content: "🔘 CTA BUTTON";
+  display: block;
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #f97316;
+  padding: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
