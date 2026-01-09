@@ -71,9 +71,17 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `${prompt}
+            content: `Create a coloring book cover illustration for: ${prompt}
 
-CRITICAL INSTRUCTION: Do NOT include any text, words, letters, titles, or writing in the image. Generate a purely visual illustration with NO TEXT whatsoever. The image should be artwork only - no titles, labels, captions, or character names visible anywhere in the image.`
+STYLE REQUIREMENTS:
+- Black and white LINE ART style with clean outlines
+- Bold, clear black outlines on white background
+- NO shading, NO gradients, NO filled areas, NO colors
+- Simple, child-friendly design suitable for coloring with crayons or markers
+- Clear separation between elements so they can be colored individually
+- Whimsical and fun coloring book aesthetic
+
+CRITICAL: Do NOT include any text, words, letters, titles, or writing in the image. Generate a purely visual line art illustration with NO TEXT whatsoever. The image should be black and white line art only - no titles, labels, captions, or character names visible anywhere.`
           }
         ],
         modalities: ["image", "text"]
