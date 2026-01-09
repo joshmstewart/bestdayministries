@@ -43,6 +43,7 @@ interface NavigationLink {
   link_type: 'regular' | 'dropdown';
   parent_id?: string | null;
   emoji?: string | null;
+  bestie_emoji?: string | null;
 }
 
 function SortableLinkCompact({
@@ -194,7 +195,7 @@ function SortableLink({
         )}
 
         <div className="flex-1 grid grid-cols-2 gap-3">
-          <div className="col-span-2 grid grid-cols-[80px_1fr] gap-2">
+          <div className="col-span-2 grid grid-cols-[80px_80px_1fr] gap-2">
             <div>
               <Label className="text-xs">Emoji</Label>
               <Input
@@ -203,6 +204,17 @@ function SortableLink({
                 placeholder="🏠"
                 className="text-center text-lg"
                 maxLength={4}
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Bestie 🌟</Label>
+              <Input
+                value={link.bestie_emoji || ''}
+                onChange={(e) => onUpdate(link.id, { bestie_emoji: e.target.value || null })}
+                placeholder="🎨"
+                className="text-center text-lg"
+                maxLength={4}
+                title="Emoji shown only to Besties"
               />
             </div>
             <div>
@@ -368,7 +380,7 @@ export function NavigationBarManager() {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id, emoji");
+        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id, emoji, bestie_emoji");
 
       if (error) throw error;
       
@@ -556,6 +568,7 @@ export function NavigationBarManager() {
             link_type: link.link_type,
             parent_id: null,
             emoji: link.emoji || null,
+            bestie_emoji: link.bestie_emoji || null,
           };
           
           if (isNew) {
@@ -602,6 +615,7 @@ export function NavigationBarManager() {
             link_type: link.link_type,
             parent_id: resolvedParentId,
             emoji: link.emoji || null,
+            bestie_emoji: link.bestie_emoji || null,
           };
           
           if (isNew) {

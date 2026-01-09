@@ -3114,6 +3114,7 @@ export type Database = {
       }
       navigation_links: {
         Row: {
+          bestie_emoji: string | null
           created_at: string
           created_by: string
           display_order: number
@@ -3128,6 +3129,7 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          bestie_emoji?: string | null
           created_at?: string
           created_by: string
           display_order?: number
@@ -3142,6 +3144,7 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          bestie_emoji?: string | null
           created_at?: string
           created_by?: string
           display_order?: number
