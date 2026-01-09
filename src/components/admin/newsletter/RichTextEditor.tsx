@@ -1119,6 +1119,90 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   Clean & simple
                 </div>
               </Button>
+
+              {/* Burnt Orange Box - Brand Primary */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('burnt-orange').run();
+                    toast.success("Burnt orange box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Burnt Orange</div>
+                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ backgroundColor: '#e8650d' }}>
+                  Brand primary
+                </div>
+              </Button>
+
+              {/* Mustard Gold Box - Brand Secondary */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('mustard-gold').run();
+                    toast.success("Mustard gold box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Mustard Gold</div>
+                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-gray-900" style={{ backgroundColor: '#eab308' }}>
+                  Brand secondary
+                </div>
+              </Button>
+
+              {/* Warm Cream Box - Brand Subtle */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('warm-cream').run();
+                    toast.success("Warm cream box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Warm Cream</div>
+                <div className="w-full h-12 rounded flex items-center justify-center text-xs" style={{ backgroundColor: '#faf5ef', border: '2px solid #e8650d', color: '#1a1a1a' }}>
+                  Soft brand accent
+                </div>
+              </Button>
+
+              {/* Sunset Gradient Box - Brand Gradient */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('sunset-gradient').run();
+                    toast.success("Sunset gradient box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Sunset Gradient</div>
+                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ background: 'linear-gradient(135deg, #e8650d 0%, #eab308 100%)' }}>
+                  Brand gradient
+                </div>
+              </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-3">
               <strong>Tip:</strong> Select content first to wrap it, or insert an empty box to type in.
