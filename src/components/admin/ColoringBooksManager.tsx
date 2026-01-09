@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, Coins, BookOpen } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, Coins, BookOpen, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { compressImage } from "@/lib/imageUtils";
@@ -30,6 +30,7 @@ export function ColoringBooksManager() {
   const [generatingImage, setGeneratingImage] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   const { data: books, isLoading } = useQuery({
     queryKey: ["admin-coloring-books"],
@@ -171,6 +172,30 @@ export function ColoringBooksManager() {
     setDialogOpen(true);
   };
 
+  const handleGenerateDescription = async () => {
+    if (!formData.title.trim()) {
+      toast.error("Please enter a title first");
+      return;
+    }
+    
+    setGeneratingDescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-coloring-book-description", {
+        body: { bookTitle: formData.title },
+      });
+      
+      if (error) throw error;
+      if (data.description) {
+        setFormData({ ...formData, description: data.description });
+        toast.success("Description generated!");
+      }
+    } catch (error) {
+      showErrorToastWithCopy("Generating description", error);
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveMutation.mutate(formData);
@@ -207,7 +232,24 @@ export function ColoringBooksManager() {
                 />
               </div>
               <div>
-                <Label>Description</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Description</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateDescription}
+                    disabled={generatingDescription || !formData.title.trim()}
+                    className="h-7 px-2 text-xs gap-1"
+                  >
+                    {generatingDescription ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-3 h-3" />
+                    )}
+                    Generate
+                  </Button>
+                </div>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
