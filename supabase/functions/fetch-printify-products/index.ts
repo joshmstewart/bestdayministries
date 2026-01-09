@@ -79,7 +79,7 @@ serve(async (req) => {
     console.log('Fetching Printify products...');
     let allProducts: any[] = [];
     let page = 1;
-    const limit = 100; // Maximum per page
+    const limit = 50; // Printify max per page is 50
     let hasMore = true;
 
     while (hasMore) {
