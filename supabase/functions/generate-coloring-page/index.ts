@@ -71,7 +71,9 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: prompt
+            content: `${prompt}
+
+CRITICAL INSTRUCTION: Do NOT include any text, words, letters, titles, or writing in the image. Generate a purely visual illustration with NO TEXT whatsoever. The image should be artwork only - no titles, labels, captions, or character names visible anywhere in the image.`
           }
         ],
         modalities: ["image", "text"]
