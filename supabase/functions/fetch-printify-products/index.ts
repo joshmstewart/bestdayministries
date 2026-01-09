@@ -75,22 +75,44 @@ serve(async (req) => {
     const shopId = shops[0].id;
     console.log('Using shop ID:', shopId);
 
-    // Fetch products from Printify
+    // Fetch ALL products from Printify with pagination
     console.log('Fetching Printify products...');
-    const productsResponse = await fetch(`https://api.printify.com/v1/shops/${shopId}/products.json`, {
-      headers: {
-        'Authorization': `Bearer ${printifyApiKey}`,
-      },
-    });
+    let allProducts: any[] = [];
+    let page = 1;
+    const limit = 100; // Maximum per page
+    let hasMore = true;
 
-    if (!productsResponse.ok) {
-      const errorText = await productsResponse.text();
-      console.error('Printify products error:', errorText);
-      throw new Error(`Failed to fetch Printify products: ${productsResponse.status}`);
+    while (hasMore) {
+      const productsResponse = await fetch(
+        `https://api.printify.com/v1/shops/${shopId}/products.json?page=${page}&limit=${limit}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${printifyApiKey}`,
+          },
+        }
+      );
+
+      if (!productsResponse.ok) {
+        const errorText = await productsResponse.text();
+        console.error('Printify products error:', errorText);
+        throw new Error(`Failed to fetch Printify products: ${productsResponse.status}`);
+      }
+
+      const productsData = await productsResponse.json();
+      const pageProducts = productsData.data || [];
+      console.log(`Fetched page ${page}: ${pageProducts.length} products`);
+      
+      allProducts = allProducts.concat(pageProducts);
+      
+      // Check if there are more pages
+      if (pageProducts.length < limit) {
+        hasMore = false;
+      } else {
+        page++;
+      }
     }
 
-    const productsData = await productsResponse.json();
-    console.log('Fetched', productsData.data?.length || 0, 'products from Printify');
+    console.log('Fetched', allProducts.length, 'total products from Printify');
 
     // Helper to strip HTML from descriptions
     const stripHtml = (html: string): string => {
@@ -122,10 +144,10 @@ serve(async (req) => {
     );
 
     // Track Printify product IDs from API response to detect deletions
-    const printifyProductIds = new Set((productsData.data || []).map((p: any) => p.id));
+    const printifyProductIds = new Set(allProducts.map((p: any) => p.id));
 
     // Map Printify products to a simplified format
-    const products = (productsData.data || []).map((product: any) => {
+    const products = allProducts.map((product: any) => {
       const cleanedTitle = cleanTitle(product.title);
       const cleanedDescription = stripHtml(product.description);
       const existingProduct = importedByProductId.get(product.id);
