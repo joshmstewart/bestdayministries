@@ -109,10 +109,41 @@ serve(async (req) => {
     const fromEmail = orgInfo?.from_email || "newsletter@bestdayministries.org";
     const fromName = orgInfo?.from_name || "Best Day Ministries";
 
+    // Replace placeholders (match production send behavior)
+    const siteUrl = Deno.env.get("SITE_URL") || "https://bestdayministries.org";
+    const now = new Date();
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const currentMonth = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear().toString();
+
+    htmlContent = htmlContent
+      .replace(/{{site_url}}/g, siteUrl)
+      .replace(/{{organization_name}}/g, orgName)
+      .replace(/{{month}}/g, currentMonth)
+      .replace(/{{year}}/g, currentYear);
+
+    const finalSubject = `[TEST] ${(campaign.subject || "")
+      .replace(/{{organization_name}}/g, orgName)
+      .replace(/{{month}}/g, currentMonth)
+      .replace(/{{year}}/g, currentYear)}`;
+
     // Add test notice and unsubscribe footer
     htmlContent = `
       <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; margin-bottom: 20px; border-radius: 4px; color: #856404;">
-        <strong>⚠️ TEST EMAIL</strong> - This is a test version of your newsletter. Links and tracking are not functional in test mode.
+        <strong>⚠️ TEST EMAIL</strong> - This is a test version of your newsletter. Links are real, but click/open tracking is disabled in test mode.
       </div>
     ` + htmlContent;
 
@@ -126,35 +157,35 @@ serve(async (req) => {
 
     // Send via Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    
+
     const { data: emailData, error: sendError } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: testEmail,
-      subject: `[TEST] ${campaign.subject}`,
+      subject: finalSubject,
       html: htmlContent,
     });
 
     if (sendError) {
       console.error("Failed to send test email:", sendError);
-      
+
       // Log failed test send
       const { error: logError } = await supabaseClient.from("newsletter_emails_log").insert({
         campaign_id: campaignId,
         recipient_email: testEmail,
         recipient_user_id: user.id,
-        subject: `[TEST] ${campaign.subject}`,
+        subject: finalSubject,
         html_content: htmlContent,
         status: "failed",
         error_message: sendError.message || String(sendError),
         metadata: { is_test: true },
       });
-      
+
       if (logError) {
         console.error("Failed to log error to database:", logError);
       } else {
         console.log("Failed send logged to database");
       }
-      
+
       throw sendError;
     }
 
@@ -165,7 +196,7 @@ serve(async (req) => {
       campaign_id: campaignId,
       recipient_email: testEmail,
       recipient_user_id: user.id,
-      subject: `[TEST] ${campaign.subject}`,
+      subject: finalSubject,
       html_content: htmlContent,
       status: "sent",
       resend_email_id: emailData?.id,

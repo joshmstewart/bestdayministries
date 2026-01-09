@@ -329,6 +329,7 @@ try {
 - **Dual Mode Stripe**: Payment functions support test/live mode via `app_settings.stripe_mode`
 - **Security**: All webhook functions verify signatures before processing
 - **Testing**: Test functions prefixed with `test-` or contain "test" in name
+- **Newsletter placeholders**: Newsletter sends (including **test** sends) replace `{{organization_name}}`, `{{month}}`, `{{year}}`, and `{{site_url}}`. Test sends keep links clickable but disable tracking.
 
 ---
 

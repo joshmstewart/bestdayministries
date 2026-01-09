@@ -229,9 +229,10 @@ Sends campaign to all active subscribers.
 2. Fetches campaign details
 3. Loads header/footer/org settings
 4. Constructs final HTML
-5. Prepends test warning banner
-6. Sends via Resend
-7. **Logs send to `newsletter_emails_log` with `metadata: { is_test: true }`** (NEW)
+5. Replaces placeholders in subject/content: `{{organization_name}}`, `{{month}}`, `{{year}}`, `{{site_url}}`
+6. Prepends test warning banner (**tracking disabled**, links still clickable)
+7. Sends via Resend
+8. **Logs send to `newsletter_emails_log` with `metadata: { is_test: true }`** (NEW)
 
 **Response Success:**
 ```json

@@ -29,6 +29,8 @@ export const NewsletterPreviewDialog = ({
   const [footerHtml, setFooterHtml] = useState("");
   const [headerEnabled, setHeaderEnabled] = useState(false);
   const [footerEnabled, setFooterEnabled] = useState(false);
+  const [orgName, setOrgName] = useState("Best Day Ministries");
+  const [orgAddress, setOrgAddress] = useState("Your Address Here");
 
   useEffect(() => {
     if (open) {
@@ -38,17 +40,27 @@ export const NewsletterPreviewDialog = ({
 
   const loadHeaderFooter = async () => {
     try {
-      const { data: headerData } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "newsletter_header")
-        .single();
+      const [headerRes, footerRes, orgRes] = await Promise.all([
+        supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "newsletter_header")
+          .single(),
+        supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "newsletter_footer")
+          .single(),
+        supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "newsletter_organization")
+          .single(),
+      ]);
 
-      const { data: footerData } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "newsletter_footer")
-        .single();
+      const headerData = headerRes.data;
+      const footerData = footerRes.data;
+      const orgData = orgRes.data;
 
       if (headerData?.setting_value) {
         const headerValue = headerData.setting_value as any;
@@ -61,56 +73,82 @@ export const NewsletterPreviewDialog = ({
         setFooterEnabled(footerValue.enabled || false);
         setFooterHtml(footerValue.html || "");
       }
+
+      if (orgData?.setting_value) {
+        const orgValue = orgData.setting_value as any;
+        setOrgName(orgValue.name || "Best Day Ministries");
+        setOrgAddress(orgValue.address || "Your Address Here");
+      }
     } catch (error) {
-      console.error("Failed to load header/footer:", error);
+      console.error("Failed to load header/footer/org settings:", error);
     }
   };
 
-  // Replace placeholders in content
-  const processedContent = useMemo(() => {
+  const processedVars = useMemo(() => {
     const siteUrl = window.location.origin;
     const now = new Date();
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"];
-    const currentMonth = monthNames[now.getMonth()];
-    const currentYear = now.getFullYear().toString();
-    const orgName = "Best Day Ministries"; // Could fetch from settings if needed
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    return {
+      siteUrl,
+      month: monthNames[now.getMonth()],
+      year: now.getFullYear().toString(),
+    };
+  }, []);
 
-    let content = htmlContent || '';
-    content = content.replace(/{{site_url}}/g, siteUrl);
+  // Replace placeholders in content
+  const processedContent = useMemo(() => {
+    let content = htmlContent || "";
+    content = content.replace(/{{site_url}}/g, processedVars.siteUrl);
     content = content.replace(/{{organization_name}}/g, orgName);
-    content = content.replace(/{{month}}/g, currentMonth);
-    content = content.replace(/{{year}}/g, currentYear);
-    
+    content = content.replace(/{{month}}/g, processedVars.month);
+    content = content.replace(/{{year}}/g, processedVars.year);
+
     return content;
-  }, [htmlContent]);
+  }, [htmlContent, orgName, processedVars.month, processedVars.siteUrl, processedVars.year]);
 
   // Replace placeholders in subject
   const processedSubject = useMemo(() => {
-    const now = new Date();
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"];
-    const currentMonth = monthNames[now.getMonth()];
-    const currentYear = now.getFullYear().toString();
-    const orgName = "Best Day Ministries";
-
-    return subject
+    return (subject || "")
       .replace(/{{organization_name}}/g, orgName)
-      .replace(/{{month}}/g, currentMonth)
-      .replace(/{{year}}/g, currentYear);
-  }, [subject]);
+      .replace(/{{month}}/g, processedVars.month)
+      .replace(/{{year}}/g, processedVars.year);
+  }, [subject, orgName, processedVars.month, processedVars.year]);
 
   // Construct final email HTML with header and footer (memoized to prevent hot reload issues)
-  const finalHtml = useMemo(() => `
-    ${headerEnabled ? headerHtml : ""}
-    ${processedContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>'}
-    ${footerEnabled ? footerHtml : ""}
-    <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
-      <p>You're receiving this because you subscribed to our newsletter.</p>
-      <p><a href="#" style="color: #666;">Unsubscribe</a></p>
-      <p>Best Day Ministries<br/>Your Address Here</p>
-    </div>
-  `, [headerEnabled, headerHtml, processedContent, footerEnabled, footerHtml]);
+  const finalHtml = useMemo(
+    () => `
+      ${headerEnabled ? headerHtml : ""}
+      ${processedContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>'}
+      ${footerEnabled ? footerHtml : ""}
+      <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
+        <p>You're receiving this because you subscribed to our newsletter.</p>
+        <p><a href="#" style="color: #666;">Unsubscribe</a></p>
+        <p>${orgName}<br/>${orgAddress.replace(/\n/g, '<br/>')}</p>
+      </div>
+    `,
+    [
+      headerEnabled,
+      headerHtml,
+      processedContent,
+      footerEnabled,
+      footerHtml,
+      orgName,
+      orgAddress,
+    ]
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
