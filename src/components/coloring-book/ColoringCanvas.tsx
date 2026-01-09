@@ -120,20 +120,31 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     if (savedCanvasData) {
       try {
         const savedData = JSON.parse(savedCanvasData);
-        if (savedData.baseCanvas && savedData.canvasWidth && savedData.canvasHeight) {
-          console.log("[ColoringCanvas] Restoring saved canvas data");
+        // Support both new format (with dimensions) and old format (baseCanvas only)
+        if (savedData.baseCanvas) {
+          console.log("[ColoringCanvas] Restoring saved canvas data", {
+            hasWidth: !!savedData.canvasWidth,
+            hasHeight: !!savedData.canvasHeight
+          });
           hasInitializedRef.current = true;
-          
-          // Restore saved dimensions
-          setCanvasWidth(savedData.canvasWidth);
-          setCanvasHeight(savedData.canvasHeight);
-          baseCanvas.width = savedData.canvasWidth;
-          baseCanvas.height = savedData.canvasHeight;
           
           const savedImg = new Image();
           savedImg.onload = () => {
+            // Use saved dimensions if available, otherwise use image dimensions
+            const restoreWidth = savedData.canvasWidth || savedImg.width;
+            const restoreHeight = savedData.canvasHeight || savedImg.height;
+            
+            setCanvasWidth(restoreWidth);
+            setCanvasHeight(restoreHeight);
+            baseCanvas.width = restoreWidth;
+            baseCanvas.height = restoreHeight;
+            
             ctx.drawImage(savedImg, 0, 0);
-            console.log("[ColoringCanvas] Saved canvas image loaded successfully");
+            console.log("[ColoringCanvas] Saved canvas image loaded successfully", {
+              width: restoreWidth,
+              height: restoreHeight
+            });
+            
             // Still need to store original image for clear function
             const origImg = new Image();
             origImg.crossOrigin = "anonymous";
@@ -145,6 +156,8 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           };
           savedImg.onerror = (e) => {
             console.error("[ColoringCanvas] Failed to load saved canvas image:", e);
+            // Fallback: load original image instead
+            hasInitializedRef.current = false;
           };
           savedImg.src = savedData.baseCanvas;
           return;
