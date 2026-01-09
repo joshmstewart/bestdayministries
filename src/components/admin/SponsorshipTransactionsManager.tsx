@@ -107,18 +107,18 @@ export const SponsorshipTransactionsManager = () => {
     try {
       setLoading(true);
       
-      // Load ALL individual payments from donation_stripe_transactions (the source of truth)
-      console.log('🔵 [TRANSACTIONS] Fetching donation_stripe_transactions...');
-      const { data: stripeTransactions, error: stripeError } = await supabase
-        .from('donation_stripe_transactions')
+      // Load ALL individual payments from sponsorship_receipts (real-time source of truth)
+      console.log('🔵 [TRANSACTIONS] Fetching sponsorship_receipts...');
+      const { data: receiptsData, error: receiptsError } = await supabase
+        .from('sponsorship_receipts')
         .select('*')
-        .order('transaction_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
-      if (stripeError) {
-        console.error('🔴 [TRANSACTIONS] Stripe transactions query failed:', stripeError);
-        throw stripeError;
+      if (receiptsError) {
+        console.error('🔴 [TRANSACTIONS] Receipts query failed:', receiptsError);
+        throw receiptsError;
       }
-      console.log('✅ [TRANSACTIONS] Stripe transactions loaded:', stripeTransactions?.length || 0);
+      console.log('✅ [TRANSACTIONS] Receipts loaded:', receiptsData?.length || 0);
 
       // Load sponsor_besties for designation mapping
       const { data: sponsorBesties } = await supabase
@@ -129,19 +129,19 @@ export const SponsorshipTransactionsManager = () => {
         (sponsorBesties || []).map(sb => [sb.id, sb])
       );
 
-      // Load sponsorships to map subscription IDs to sponsor_bestie_id
+      // Load sponsorships to map IDs
       const { data: sponsorshipsData } = await supabase
         .from('sponsorships')
         .select('id, stripe_subscription_id, sponsor_bestie_id, sponsor_id, bestie_id');
       
-      const subscriptionToSponsorshipMap = new Map(
-        (sponsorshipsData || []).filter(s => s.stripe_subscription_id).map(s => [s.stripe_subscription_id, s])
+      const sponsorshipMap = new Map(
+        (sponsorshipsData || []).map(s => [s.id, s])
       );
 
       // Get unique profile IDs
       const profileIds = [...new Set(
-        (stripeTransactions || [])
-          .map(t => t.donor_id)
+        (receiptsData || [])
+          .map(r => r.user_id)
           .filter((id): id is string => id !== null)
       )];
 
@@ -160,55 +160,40 @@ export const SponsorshipTransactionsManager = () => {
         }
       }
 
-      // Load receipts for receipt status display
-      const { data: receiptsData } = await supabase
-        .from('sponsorship_receipts')
-        .select('id, transaction_id, receipt_number, created_at, sponsor_email')
-        .order('created_at', { ascending: false });
-
-      // Create receipts map by transaction_id
-      const receiptsMap = new Map<string, { receipt_number: string; created_at: string }>();
-      (receiptsData || []).forEach(r => {
-        if (r.transaction_id) receiptsMap.set(r.transaction_id, { receipt_number: r.receipt_number, created_at: r.created_at });
-      });
-
-      // Transform stripe transactions
-      console.log('🔵 [TRANSACTIONS] Transforming transactions...');
-      const allTransactions: Transaction[] = (stripeTransactions || []).map(t => {
+      // Transform receipts to transactions
+      console.log('🔵 [TRANSACTIONS] Transforming receipts to transactions...');
+      const allTransactions: Transaction[] = (receiptsData || []).map(r => {
         // Find related sponsorship data
-        const sponsorship = t.stripe_subscription_id ? subscriptionToSponsorshipMap.get(t.stripe_subscription_id) : null;
+        const sponsorship = r.sponsorship_id ? sponsorshipMap.get(r.sponsorship_id) : null;
         const sponsorBestie = sponsorship?.sponsor_bestie_id ? sponsorBestieMap.get(sponsorship.sponsor_bestie_id) : null;
         
-        // Determine transaction type from designation
-        const isSponsorship = t.designation && t.designation !== 'General Support' && t.designation.startsWith('Sponsorship:');
+        // Determine transaction type - if it has a bestie_name that's not General Support, it's a sponsorship
+        const isSponsorship = r.bestie_name && r.bestie_name !== 'General Support';
         
-        // Find receipt - try invoice ID format, payment intent format, or direct ID match
-        const receipt = receiptsMap.get(t.stripe_invoice_id || '') || 
-                       receiptsMap.get(t.stripe_payment_intent_id || '') ||
-                       receiptsMap.get(`in_${t.stripe_invoice_id?.replace('in_', '')}`) ||
-                       receiptsMap.get(t.id);
+        // Status is always 'paid' for receipts since they represent completed payments
+        const status = 'paid';
 
         return {
-          id: t.id,
-          sponsor_id: t.donor_id,
-          sponsor_email: t.email,
+          id: r.id,
+          sponsor_id: r.user_id,
+          sponsor_email: r.sponsor_email,
           bestie_id: sponsorship?.bestie_id || null,
           sponsor_bestie_id: sponsorship?.sponsor_bestie_id || null,
-          amount: t.amount,
-          frequency: t.frequency,
-          status: t.status,
-          stripe_subscription_id: t.stripe_subscription_id,
-          stripe_customer_id: t.stripe_customer_id,
-          stripe_mode: t.stripe_mode,
-          started_at: t.transaction_date,
+          amount: r.amount,
+          frequency: r.frequency || 'one-time',
+          status: status,
+          stripe_subscription_id: sponsorship?.stripe_subscription_id || null,
+          stripe_customer_id: null,
+          stripe_mode: r.stripe_mode || 'live',
+          started_at: r.transaction_date || r.created_at,
           ended_at: null,
           transaction_type: isSponsorship ? 'sponsorship' as const : 'donation' as const,
-          sponsor_profile: t.donor_id ? profilesMap[t.donor_id] : undefined,
+          sponsor_profile: r.user_id ? profilesMap[r.user_id] : undefined,
           bestie_profile: undefined,
           sponsor_bestie: sponsorBestie ? { bestie_name: sponsorBestie.bestie_name } : 
-                         (t.designation && t.designation.startsWith('Sponsorship:') ? { bestie_name: t.designation.replace('Sponsorship: ', '') } : undefined),
-          receipt_number: receipt?.receipt_number || null,
-          receipt_generated_at: receipt?.created_at || null,
+                         (r.bestie_name ? { bestie_name: r.bestie_name } : undefined),
+          receipt_number: r.receipt_number || null,
+          receipt_generated_at: r.created_at || null,
         };
       });
 
@@ -342,9 +327,11 @@ export const SponsorshipTransactionsManager = () => {
       paused: "secondary",
       pending: "outline",
       completed: "default",
+      paid: "default",
+      succeeded: "default",
     };
     return (
-      <Badge variant={variants[status] || "outline"} className={status === 'completed' ? 'bg-green-600' : ''}>
+      <Badge variant={variants[status] || "outline"} className={['completed', 'paid', 'succeeded'].includes(status) ? 'bg-green-600' : ''}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
