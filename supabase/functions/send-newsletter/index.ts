@@ -259,10 +259,18 @@ serve(async (req) => {
     const fromEmail = orgInfo?.from_email || "newsletter@bestdayministries.org";
     const fromName = orgInfo?.from_name || "Best Day Ministries";
 
-    // Replace content placeholders (like {{site_url}})
+    // Replace content placeholders
     const siteUrl = Deno.env.get("SITE_URL") || "https://bestdayministries.org";
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+    const currentMonth = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear().toString();
+    
     htmlContent = htmlContent.replace(/{{site_url}}/g, siteUrl);
     htmlContent = htmlContent.replace(/{{organization_name}}/g, orgName);
+    htmlContent = htmlContent.replace(/{{month}}/g, currentMonth);
+    htmlContent = htmlContent.replace(/{{year}}/g, currentYear);
 
     // Replace links with tracked versions
     const linkRegex = /href="(https?:\/\/[^"]+)"/g;
@@ -291,13 +299,7 @@ serve(async (req) => {
       );
     }
 
-    // Replace placeholders in subject line
-    const now = new Date();
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"];
-    const currentMonth = monthNames[now.getMonth()];
-    const currentYear = now.getFullYear().toString();
-    
+    // Replace placeholders in subject line (reuse date variables from content replacements)
     let finalSubject = campaign.subject
       .replace(/{{organization_name}}/g, orgName)
       .replace(/{{month}}/g, currentMonth)
