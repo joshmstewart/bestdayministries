@@ -88,19 +88,42 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
   const MIN_ZOOM = 1;
   const MAX_ZOOM = 4;
 
+  // Store initial savedCanvasData in a ref to prevent it from being lost on re-renders
+  const initialSavedDataRef = useRef<string | null>(page.savedCanvasData || null);
+  const hasInitializedRef = useRef(false);
+
   // Initialize base canvas with the coloring image (or saved data)
   useEffect(() => {
     if (!baseCanvasRef.current) return;
+    
+    // Prevent re-initialization if we've already loaded saved data
+    if (hasInitializedRef.current) {
+      console.log("[ColoringCanvas] Skipping re-initialization - already loaded");
+      return;
+    }
 
     const baseCanvas = baseCanvasRef.current;
     const ctx = baseCanvas.getContext("2d");
     if (!ctx) return;
 
+    // Use the ref to get saved data (persists across re-renders)
+    const savedCanvasData = initialSavedDataRef.current;
+    
+    console.log("[ColoringCanvas] Initializing canvas", {
+      hasSavedData: !!savedCanvasData,
+      savedDataLength: savedCanvasData?.length,
+      pageId: page.id,
+      imageUrl: page.image_url?.substring(0, 50)
+    });
+
     // Check if we have saved canvas data to restore
-    if (page.savedCanvasData) {
+    if (savedCanvasData) {
       try {
-        const savedData = JSON.parse(page.savedCanvasData);
+        const savedData = JSON.parse(savedCanvasData);
         if (savedData.baseCanvas && savedData.canvasWidth && savedData.canvasHeight) {
+          console.log("[ColoringCanvas] Restoring saved canvas data");
+          hasInitializedRef.current = true;
+          
           // Restore saved dimensions
           setCanvasWidth(savedData.canvasWidth);
           setCanvasHeight(savedData.canvasHeight);
@@ -110,6 +133,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           const savedImg = new Image();
           savedImg.onload = () => {
             ctx.drawImage(savedImg, 0, 0);
+            console.log("[ColoringCanvas] Saved canvas image loaded successfully");
             // Still need to store original image for clear function
             const origImg = new Image();
             origImg.crossOrigin = "anonymous";
@@ -119,13 +143,18 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
             };
             origImg.src = page.image_url;
           };
+          savedImg.onerror = (e) => {
+            console.error("[ColoringCanvas] Failed to load saved canvas image:", e);
+          };
           savedImg.src = savedData.baseCanvas;
           return;
         }
       } catch (e) {
-        console.error("Failed to parse saved canvas data:", e);
+        console.error("[ColoringCanvas] Failed to parse saved canvas data:", e);
       }
     }
+    
+    hasInitializedRef.current = true;
 
     // Load the coloring page image to get its dimensions
     const img = new Image();
@@ -165,7 +194,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       toast.error("Failed to load image");
     };
     img.src = page.image_url;
-  }, [page.image_url, page.savedCanvasData]);
+  }, [page.image_url]); // Remove savedCanvasData dependency - we use ref now
 
   // Initialize Fabric.js canvas for brush strokes (transparent overlay)
   useEffect(() => {
@@ -193,17 +222,19 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     canvas.freeDrawingBrush.color = activeColor;
     canvas.freeDrawingBrush.width = brushSize;
 
-    // Restore saved fabric objects if available
-    if (page.savedCanvasData) {
+    // Restore saved fabric objects if available (use ref for consistency)
+    const savedCanvasData = initialSavedDataRef.current;
+    if (savedCanvasData) {
       try {
-        const savedData = JSON.parse(page.savedCanvasData);
+        const savedData = JSON.parse(savedCanvasData);
         if (savedData.fabricObjects) {
+          console.log("[ColoringCanvas] Restoring fabric objects");
           canvas.loadFromJSON(savedData.fabricObjects, () => {
             canvas.renderAll();
           });
         }
       } catch (e) {
-        console.error("Failed to restore fabric objects:", e);
+        console.error("[ColoringCanvas] Failed to restore fabric objects:", e);
       }
     }
 
