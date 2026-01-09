@@ -775,6 +775,30 @@ export function NavigationBarManager() {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Emoji (all users)</Label>
+                    <Input
+                      value={selectedLink.emoji || ''}
+                      onChange={(e) => handleUpdateLink(selectedLink.id, { emoji: e.target.value || null })}
+                      placeholder="🏠"
+                      className="text-center text-lg"
+                      maxLength={4}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Bestie Emoji 🌟</Label>
+                    <Input
+                      value={selectedLink.bestie_emoji || ''}
+                      onChange={(e) => handleUpdateLink(selectedLink.id, { bestie_emoji: e.target.value || null })}
+                      placeholder="🎨"
+                      className="text-center text-lg"
+                      maxLength={4}
+                      title="Emoji shown only to Besties (overrides regular emoji)"
+                    />
+                  </div>
+                </div>
+
                 {!selectedLink.parent_id && (
                   <div>
                     <Label className="text-xs">Link Type</Label>
