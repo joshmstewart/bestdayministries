@@ -854,101 +854,177 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             <p className="text-sm text-muted-foreground">
               Select a box style to wrap your selected content:
             </p>
-            <div className="space-y-3">
+<div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
+              {/* Light Gray Box */}
               <Button
                 variant="outline"
-                className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                className="h-auto p-3 flex flex-col items-start gap-2"
                 onClick={() => {
-                  if (!editor) {
-                    toast.error("Editor not ready");
-                    return;
-                  }
-
-                  const { from, to, empty } = editor.state.selection;
-                  
+                  if (!editor) return;
                   try {
-                    const success = editor.chain().focus().setStyledBox('light-gray').run();
-                    if (success) {
-                      toast.success("Light gray box added - select content to wrap it!");
-                    } else {
-                      toast.error("Select some content first, then click to wrap it");
-                    }
+                    editor.chain().focus().setStyledBox('light-gray').run();
+                    toast.success("Light gray box added!");
                   } catch (error: any) {
-                    console.error("Error adding box:", error);
-                    toast.error("Error: " + error.message);
+                    toast.error("Select content first");
                   }
-                  
                   setContainerDialogOpen(false);
                 }}
               >
-                <div className="font-semibold">Light Gray Box</div>
-                <div className="w-full h-16 rounded bg-gray-100 border-2 border-gray-200 flex items-center justify-center text-xs">
-                  Preview: Light background
+                <div className="font-semibold text-sm">Light Gray</div>
+                <div className="w-full h-12 rounded bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-600">
+                  Neutral background
                 </div>
               </Button>
+
+              {/* Purple Gradient Box */}
               <Button
                 variant="outline"
-                className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                className="h-auto p-3 flex flex-col items-start gap-2"
                 onClick={() => {
-                  if (!editor) {
-                    toast.error("Editor not ready");
-                    return;
-                  }
-
+                  if (!editor) return;
                   try {
-                    const success = editor.chain().focus().setStyledBox('purple-gradient').run();
-                    if (success) {
-                      toast.success("Purple gradient box added - select content to wrap it!");
-                    } else {
-                      toast.error("Select some content first, then click to wrap it");
-                    }
+                    editor.chain().focus().setStyledBox('purple-gradient').run();
+                    toast.success("Purple gradient box added!");
                   } catch (error: any) {
-                    console.error("Error adding box:", error);
-                    toast.error("Error: " + error.message);
+                    toast.error("Select content first");
                   }
-                  
                   setContainerDialogOpen(false);
                 }}
               >
-                <div className="font-semibold">Purple Gradient Box</div>
-                <div className="w-full h-16 rounded bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-xs text-white">
-                  Preview: Gradient background
+                <div className="font-semibold text-sm">Purple Gradient</div>
+                <div className="w-full h-12 rounded bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-xs text-white">
+                  Eye-catching CTA
                 </div>
               </Button>
+
+              {/* Warm Orange Gradient Box */}
               <Button
                 variant="outline"
-                className="w-full h-auto p-4 flex flex-col items-start gap-2"
+                className="h-auto p-3 flex flex-col items-start gap-2"
                 onClick={() => {
-                  if (!editor) {
-                    toast.error("Editor not ready");
-                    return;
-                  }
-
-                  const { from, to, empty } = editor.state.selection;
-                  
+                  if (!editor) return;
                   try {
-                    const success = editor.chain().focus().setStyledBox('white-bordered').run();
-                    if (success) {
-                      toast.success("White bordered box added - select content to wrap it!");
-                    } else {
-                      toast.error("Select some content first, then click to wrap it");
-                    }
+                    editor.chain().focus().setStyledBox('warm-gradient').run();
+                    toast.success("Warm gradient box added!");
                   } catch (error: any) {
-                    console.error("Error adding box:", error);
-                    toast.error("Error: " + error.message);
+                    toast.error("Select content first");
                   }
-                  
                   setContainerDialogOpen(false);
                 }}
               >
-                <div className="font-semibold">White Bordered Box</div>
-                <div className="w-full h-16 rounded bg-white border-2 border-gray-300 flex items-center justify-center text-xs">
-                  Preview: White with border
+                <div className="font-semibold text-sm">Warm Gradient</div>
+                <div className="w-full h-12 rounded bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-xs text-white">
+                  Brand highlight
+                </div>
+              </Button>
+
+              {/* Blue Info Box */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('blue-info').run();
+                    toast.success("Blue info box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Blue Info</div>
+                <div className="w-full h-12 rounded bg-blue-100 border-l-4 border-blue-500 flex items-center justify-center text-xs text-blue-800">
+                  Information callout
+                </div>
+              </Button>
+
+              {/* Green Success Box */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('green-success').run();
+                    toast.success("Green success box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Green Success</div>
+                <div className="w-full h-12 rounded bg-green-100 border-l-4 border-green-500 flex items-center justify-center text-xs text-green-800">
+                  Good news / success
+                </div>
+              </Button>
+
+              {/* Amber Highlight Box */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('amber-highlight').run();
+                    toast.success("Amber highlight box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Amber Highlight</div>
+                <div className="w-full h-12 rounded bg-amber-100 border-l-4 border-amber-500 flex items-center justify-center text-xs text-amber-800">
+                  Important notice
+                </div>
+              </Button>
+
+              {/* Dark Charcoal Box */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('dark-charcoal').run();
+                    toast.success("Dark charcoal box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Dark Charcoal</div>
+                <div className="w-full h-12 rounded bg-gray-800 flex items-center justify-center text-xs text-white">
+                  Bold contrast
+                </div>
+              </Button>
+
+              {/* White Bordered Box */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('white-bordered').run();
+                    toast.success("White bordered box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">White Bordered</div>
+                <div className="w-full h-12 rounded bg-white border-2 border-gray-300 flex items-center justify-center text-xs text-gray-600">
+                  Clean & simple
                 </div>
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              <strong>Tip:</strong> Select text/content (preserves formatting like bold, italic, lists) to wrap in a box, or insert an empty box to type in. You can format text and add images inside boxes.
+            <p className="text-xs text-muted-foreground mt-3">
+              <strong>Tip:</strong> Select content first to wrap it, or insert an empty box to type in.
             </p>
           </div>
           <DialogFooter>
