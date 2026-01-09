@@ -86,15 +86,25 @@ export function RevenueChartDialog({ open, onOpenChange, transactions }: Revenue
     });
   }, [liveTransactions]);
 
-  // Daily chart data for selected month
+  // Daily chart data - for selected month or all time
   const dailyData = useMemo(() => {
-    if (selectedMonth === "all" || !selectedMonth) return [];
+    if (liveTransactions.length === 0) return [];
     
-    const [year, month] = selectedMonth.split("-").map(Number);
-    const monthStart = new Date(year, month - 1, 1);
-    const monthEnd = endOfMonth(monthStart);
+    let days: Date[];
     
-    const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    if (selectedMonth === "all" || !selectedMonth) {
+      // All time - show all days from earliest to now
+      const dates = liveTransactions.map(t => new Date(t.started_at));
+      const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
+      const now = new Date();
+      days = eachDayOfInterval({ start: earliest, end: now });
+    } else {
+      // Specific month
+      const [year, month] = selectedMonth.split("-").map(Number);
+      const monthStart = new Date(year, month - 1, 1);
+      const monthEnd = endOfMonth(monthStart);
+      days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    }
     
     return days.map(day => {
       const dayStart = new Date(day);
@@ -110,14 +120,14 @@ export function RevenueChartDialog({ open, onOpenChange, transactions }: Revenue
         .reduce((sum, t) => sum + t.amount, 0);
       
       return {
-        day: format(day, "d"),
-        fullDate: format(day, "MMM d"),
+        day: selectedMonth === "all" ? format(day, "M/d") : format(day, "d"),
+        fullDate: format(day, "MMM d, yyyy"),
         revenue: dayRevenue
       };
     });
   }, [liveTransactions, selectedMonth]);
 
-  // Cumulative daily data for selected month
+  // Cumulative daily data
   const cumulativeData = useMemo(() => {
     if (!dailyData.length) return [];
     
@@ -151,9 +161,10 @@ export function RevenueChartDialog({ open, onOpenChange, transactions }: Revenue
             {(chartView === "daily" || chartView === "cumulative") && (
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select month" />
+                  <SelectValue placeholder="Select period" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
                   {availableMonths.map(m => (
                     <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                   ))}
@@ -180,53 +191,42 @@ export function RevenueChartDialog({ open, onOpenChange, transactions }: Revenue
           </TabsContent>
           
           <TabsContent value="daily" className="h-[400px]">
-            {selectedMonth === "all" ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Select a month to view daily breakdown
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="day" className="text-xs" />
-                  <YAxis tickFormatter={(v) => `$${v}`} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelFormatter={(_, payload) => payload[0]?.payload?.fullDate || ""}
-                  />
-                  <Bar dataKey="revenue" name="Revenue" fill="hsl(var(--primary))" />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailyData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="day" className="text-xs" interval={selectedMonth === "all" ? "preserveStartEnd" : 0} />
+                <YAxis tickFormatter={(v) => `$${v}`} className="text-xs" />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  labelFormatter={(_, payload) => payload[0]?.payload?.fullDate || ""}
+                />
+                <Bar dataKey="revenue" name="Revenue" fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
           </TabsContent>
           
           <TabsContent value="cumulative" className="h-[400px]">
-            {selectedMonth === "all" ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Select a month to view cumulative daily revenue
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={cumulativeData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="day" className="text-xs" />
-                  <YAxis tickFormatter={(v) => `$${v}`} className="text-xs" />
-                  <Tooltip 
-                    formatter={(value: number) => formatCurrency(value)}
-                    labelFormatter={(_, payload) => payload[0]?.payload?.fullDate || ""}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="cumulative" 
-                    name="Cumulative Revenue" 
-                    stroke="hsl(var(--primary))" 
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={cumulativeData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="day" className="text-xs" interval={selectedMonth === "all" ? "preserveStartEnd" : 0} />
+                <YAxis tickFormatter={(v) => `$${v}`} className="text-xs" />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  labelFormatter={(_, payload) => payload[0]?.payload?.fullDate || ""}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="cumulative" 
+                  name="Cumulative Revenue" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </TabsContent>
+          
         </Tabs>
       </DialogContent>
     </Dialog>
