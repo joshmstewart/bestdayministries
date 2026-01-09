@@ -112,7 +112,7 @@ export const StyledBox = Node.create<StyledBoxOptions>({
         styleAttr = 'background-color: #faf5ef; border: 2px solid #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
         break;
       case 'sunset-gradient':
-        styleAttr = 'background: linear-gradient(135deg, #e8650d 0%, #eab308 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+        styleAttr = 'background: radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), radial-gradient(circle at 75% 20%, hsl(46, 95%, 55%, 0.2) 0%, transparent 30%), radial-gradient(circle at 85% 70%, hsl(46, 95%, 55%, 0.28) 0%, transparent 25%), radial-gradient(circle at 40% 80%, hsl(46, 95%, 55%, 0.18) 0%, transparent 35%), radial-gradient(circle at 15% 85%, hsl(46, 95%, 55%, 0.15) 0%, transparent 28%), hsl(24, 85%, 56%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
         break;
       case 'light-gray':
       default:
