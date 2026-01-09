@@ -22,8 +22,10 @@ const Auth = () => {
   const { playSound } = useSoundEffects();
   const [isSignUp, setIsSignUp] = useState(searchParams.get('signup') === 'true');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
@@ -88,7 +90,17 @@ const Auth = () => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
+      console.log('🔍 AUTH PAGE: onAuthStateChange event:', event);
+      
+      // Handle password recovery event - show the update password form
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('🔍 AUTH PAGE: Password recovery detected, showing update form');
+        setIsPasswordRecovery(true);
+        return; // Don't redirect
+      }
+      
+      // For other auth events with a session, redirect if not in recovery mode
+      if (session?.user && !isPasswordRecovery) {
         checkAndRedirect(session.user.id);
       }
     });
@@ -265,6 +277,55 @@ const Auth = () => {
     }
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password updated!",
+        description: "Your password has been successfully changed.",
+      });
+
+      // Reset state and redirect
+      setIsPasswordRecovery(false);
+      setPassword("");
+      setConfirmPassword("");
+      navigate("/community", { replace: true });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Decorative elements */}
@@ -285,19 +346,63 @@ const Auth = () => {
             )}
             <div>
               <h1 className="text-3xl font-black text-foreground mb-2">
-                {isForgotPassword ? "Reset Password" : isSignUp ? "Join Our Community" : "Welcome Back"}
+                {isPasswordRecovery 
+                  ? "Set New Password" 
+                  : isForgotPassword 
+                    ? "Reset Password" 
+                    : isSignUp 
+                      ? "Join Our Community" 
+                      : "Welcome Back"}
               </h1>
               <p className="text-muted-foreground">
-                {isForgotPassword
-                  ? "Enter your email to receive a password reset link"
-                  : isSignUp 
-                    ? "Create your account to connect with our community" 
-                    : "Sign in to access your Best Day Ministries community"}
+                {isPasswordRecovery
+                  ? "Enter your new password below"
+                  : isForgotPassword
+                    ? "Enter your email to receive a password reset link"
+                    : isSignUp 
+                      ? "Create your account to connect with our community" 
+                      : "Sign in to access your Best Day Ministries community"}
               </p>
             </div>
           </div>
 
-          {isForgotPassword ? (
+          {isPasswordRecovery ? (
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
+                disabled={loading}
+              >
+                {loading ? "Updating..." : "Update Password"}
+              </Button>
+            </form>
+          ) : isForgotPassword ? (
             <form onSubmit={handlePasswordReset} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -517,7 +622,7 @@ const Auth = () => {
           </form>
           )}
 
-          {!isForgotPassword && (
+          {!isForgotPassword && !isPasswordRecovery && (
             <div className="text-center">
               <button
                 type="button"
