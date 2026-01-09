@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
-import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download, ChevronDown } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Search, ExternalLink, DollarSign, Calendar, User, Mail, X, Copy, FileText, CheckCircle, XCircle, Clock, Trash2, Download, ChevronDown, BarChart3 } from "lucide-react";
+import { format, startOfMonth, eachMonthOfInterval } from "date-fns";
+import { RevenueChartDialog } from "./RevenueChartDialog";
 
 import {
   Dialog,
@@ -88,7 +89,8 @@ export const SponsorshipTransactionsManager = () => {
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [resendingReceipt, setResendingReceipt] = useState(false);
   const [receiptHtml, setReceiptHtml] = useState<string>('');
-  const [revenuePeriod, setRevenuePeriod] = useState<'all-time' | 'this-month'>('all-time');
+  const [revenuePeriod, setRevenuePeriod] = useState<string>('all-time');
+  const [revenueChartOpen, setRevenueChartOpen] = useState(false);
   const { toast } = useToast();
 
 
@@ -958,6 +960,46 @@ export const SponsorshipTransactionsManager = () => {
     firstTransactionIds.add(value.id);
   });
 
+  // Generate available months from earliest transaction to now
+  const availableMonths = useMemo(() => {
+    const liveTx = transactions.filter(t => t.stripe_mode === 'live');
+    if (liveTx.length === 0) return [];
+    
+    const dates = liveTx.map(t => new Date(t.started_at));
+    const earliest = new Date(Math.min(...dates.map(d => d.getTime())));
+    const now = new Date();
+    
+    const months = eachMonthOfInterval({ start: startOfMonth(earliest), end: now });
+    return months.map(m => ({
+      value: format(m, "yyyy-MM"),
+      label: format(m, "MMMM yyyy")
+    })).reverse(); // Most recent first
+  }, [transactions]);
+
+  // Calculate revenue for selected period
+  const getRevenueForPeriod = (period: string) => {
+    const liveTransactions = transactions.filter(t => 
+      t.stripe_mode === 'live' && 
+      ((t.frequency === 'monthly' && t.status === 'active') || t.frequency === 'one-time')
+    );
+    
+    if (period === 'all-time') {
+      return liveTransactions.reduce((sum, t) => sum + t.amount, 0);
+    }
+    
+    // Period is in format "yyyy-MM"
+    const [year, month] = period.split("-").map(Number);
+    const periodStart = new Date(year, month - 1, 1);
+    const periodEnd = new Date(year, month, 0, 23, 59, 59, 999);
+    
+    return liveTransactions
+      .filter(t => {
+        const date = new Date(t.started_at);
+        return date >= periodStart && date <= periodEnd;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
+
   // Calculate stats (Live mode only)
   const stats = {
     total: transactions.length,
@@ -968,22 +1010,6 @@ export const SponsorshipTransactionsManager = () => {
       .reduce((sum, t) => sum + t.amount, 0),
     totalOneTime: transactions
       .filter(t => t.frequency === 'one-time' && t.stripe_mode === 'live')
-      .reduce((sum, t) => sum + t.amount, 0),
-    // Total revenue calculations - monthly (active) + one-time (all live, regardless of status since payment was received)
-    totalRevenueAllTime: transactions
-      .filter(t => t.stripe_mode === 'live' && (
-        (t.frequency === 'monthly' && t.status === 'active') || 
-        t.frequency === 'one-time'
-      ))
-      .reduce((sum, t) => sum + t.amount, 0),
-    totalRevenueThisMonth: transactions
-      .filter(t => {
-        if (t.stripe_mode !== 'live') return false;
-        const startDate = new Date(t.started_at);
-        if (startDate < currentMonthStart) return false;
-        // Monthly must be active, one-time counts regardless
-        return (t.frequency === 'monthly' && t.status === 'active') || t.frequency === 'one-time';
-      })
       .reduce((sum, t) => sum + t.amount, 0),
   };
 
@@ -1025,20 +1051,33 @@ export const SponsorshipTransactionsManager = () => {
         </Card>
         <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <CardDescription className="font-medium">Total Revenue</CardDescription>
-              <Select value={revenuePeriod} onValueChange={(v) => setRevenuePeriod(v as 'all-time' | 'this-month')}>
-                <SelectTrigger className="w-auto h-6 px-2 text-xs border-0 bg-transparent">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all-time">All Time</SelectItem>
-                  <SelectItem value="this-month">This Month</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1">
+                <Select value={revenuePeriod} onValueChange={setRevenuePeriod}>
+                  <SelectTrigger className="w-auto h-6 px-2 text-xs border-0 bg-transparent">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-time">All Time</SelectItem>
+                    {availableMonths.map(m => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setRevenueChartOpen(true)}
+                  title="View revenue charts"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <CardTitle className="text-3xl text-primary">
-              {formatAmount(revenuePeriod === 'all-time' ? stats.totalRevenueAllTime : stats.totalRevenueThisMonth)}
+              {formatAmount(getRevenueForPeriod(revenuePeriod))}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -1555,6 +1594,13 @@ export const SponsorshipTransactionsManager = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Revenue Chart Dialog */}
+      <RevenueChartDialog
+        open={revenueChartOpen}
+        onOpenChange={setRevenueChartOpen}
+        transactions={transactions}
+      />
 
     </div>
   );
