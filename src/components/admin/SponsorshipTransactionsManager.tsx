@@ -939,6 +939,25 @@ export const SponsorshipTransactionsManager = () => {
   currentMonthStart.setDate(1);
   currentMonthStart.setHours(0, 0, 0, 0);
 
+  // Identify first transaction per subscription (for "New" badge)
+  // Group by stripe_subscription_id, find the earliest started_at for each
+  const firstTransactionIds = new Set<string>();
+  const subscriptionFirstDates = new Map<string, { id: string; date: Date }>();
+  
+  transactions.forEach(t => {
+    if (t.frequency === 'monthly' && t.stripe_subscription_id) {
+      const startDate = new Date(t.started_at);
+      const existing = subscriptionFirstDates.get(t.stripe_subscription_id);
+      if (!existing || startDate < existing.date) {
+        subscriptionFirstDates.set(t.stripe_subscription_id, { id: t.id, date: startDate });
+      }
+    }
+  });
+  
+  subscriptionFirstDates.forEach(value => {
+    firstTransactionIds.add(value.id);
+  });
+
   // Calculate stats (Live mode only)
   const stats = {
     total: transactions.length,
@@ -1198,7 +1217,16 @@ export const SponsorshipTransactionsManager = () => {
                           <span className="font-semibold">{formatAmount(transaction.amount)}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{getFrequencyBadge(transaction.frequency)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getFrequencyBadge(transaction.frequency)}
+                          {firstTransactionIds.has(transaction.id) && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                              New
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{getStatusBadge(transaction.status, transaction.ended_at)}</TableCell>
                       <TableCell>{getModeBadge(transaction.stripe_mode)}</TableCell>
                       <TableCell>
