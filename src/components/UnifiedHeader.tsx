@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HeaderSkeleton } from "@/components/HeaderSkeleton";
 import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle, Package, Store, Receipt } from "lucide-react";
+import { isProblematicIOSVersion } from "@/lib/browserDetection";
 
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -78,8 +79,18 @@ export const UnifiedHeader = () => {
   const effectiveRole = profile ? getEffectiveRole(impersonationCompatibleRole) : null;
   const isAdmin = effectiveRole === "admin" || effectiveRole === "owner";
 
-  useEffect(() => {
-    let lastScrollY = window.scrollY;
+  // Safari 18.x on macOS can exhibit similar rendering issues to iOS 18.x when mixing
+  // positioned elements + transforms/filters. This flag is used to disable motion/blur.
+  const isProblematicBrowser = isProblematicIOSVersion();
+  const navBackdropClass = isProblematicBrowser ? '' : 'backdrop-blur-xl';
+  const navTransitionClass = isProblematicBrowser ? '' : 'transition-all duration-300';
+  const mobileNavVisibilityClass = isProblematicBrowser
+    ? (showNav ? 'block' : 'hidden')
+    : (showNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0');
+  const desktopNavVisibilityClass = isProblematicBrowser
+    ? (showNav ? 'opacity-100 pointer-events-auto' : 'hidden opacity-0 pointer-events-none')
+    : (showNav ? 'translate-y-0 opacity-100 pointer-events-auto' : '-translate-y-full opacity-0 pointer-events-none');
+
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
