@@ -179,11 +179,30 @@ const ProductDetail = () => {
   })();
 
   // Rename state for clarity but keep backward compatibility
+  // NOTE: option1/option2 might be Size/Color or Color/Size depending on the product.
   const colors = option1Values;
   const sizes = option2Values;
   const colorToVariantId = option1ToVariantId;
   const defaultColor = defaultOption1;
   const defaultSize = defaultOption2;
+
+  // Which selected value is actually "Color" (sometimes it's option2)
+  const selectedColorName = useMemo(() => {
+    if (!product?.is_printify_product) return "";
+    const l1 = option1Label.trim().toLowerCase();
+    const l2 = option2Label.trim().toLowerCase();
+    if (l1 === "color") return selectedColor;
+    if (l2 === "color") return selectedSize;
+    return "";
+  }, [option1Label, option2Label, product?.is_printify_product, selectedColor, selectedSize]);
+
+  const availableColorValues = useMemo(() => {
+    const l1 = option1Label.trim().toLowerCase();
+    const l2 = option2Label.trim().toLowerCase();
+    if (l1 === "color") return option1Values;
+    if (l2 === "color") return option2Values;
+    return [] as string[];
+  }, [option1Label, option2Label, option1Values, option2Values]);
 
   // Auto-select single options when product loads
   useEffect(() => {
@@ -191,49 +210,69 @@ const ProductDetail = () => {
     if (defaultSize && !selectedSize) setSelectedSize(defaultSize);
   }, [defaultColor, defaultSize]);
 
-  // Build a map of color -> all variant IDs for that color
-  const colorToAllVariantIds = useMemo(() => {
-    const map = new Map<string, number[]>();
-    variants.forEach(v => {
-      const parts = v.title.split(' / ');
-      if (parts.length >= 1) {
-        const color = parts[0]; // Color is always first in "Color / Size" format
-        if (!map.has(color)) {
-          map.set(color, []);
-        }
-        map.get(color)!.push(v.id);
+  // --- Image ordering + "jump to color" behavior (per docs) ---
+  const normalizeKey = (value: string) => value.trim().toLowerCase();
+
+  // Build variantId -> colorKey mapping (handles "Color / Size" and "Size / Color")
+  const variantIdToColorKey = useMemo(() => {
+    const map = new Map<number, string>();
+    const sizePatterns = /^(xs|s|m|l|xl|xxl|2xl|3xl|4xl|5xl|6xl|one size|\d+)$/i;
+
+    variants.forEach((v) => {
+      const parts = v.title.split(" / ").map((p) => p.trim()).filter(Boolean);
+      if (parts.length === 2) {
+        const [a, b] = parts;
+        const color = sizePatterns.test(a) ? b : a;
+        map.set(v.id, normalizeKey(color));
+        return;
+      }
+
+      if (parts.length === 1) {
+        map.set(v.id, normalizeKey(parts[0]));
       }
     });
+
     return map;
   }, [variants]);
 
-  // Get filtered images based on selected color
+  // Map any URLs that have an explicit color assignment in product_color_images
+  const urlToAssignedColorKey = useMemo(() => {
+    const map = new Map<string, string>();
+    (customColorImages || []).forEach((r) => {
+      if (!r?.image_url || !r?.color_name) return;
+      map.set(r.image_url, normalizeKey(r.color_name));
+    });
+    return map;
+  }, [customColorImages]);
+
+  // Infer color from Printify image URLs when not explicitly assigned
+  const urlToInferredColorKey = useMemo(() => {
+    const map = new Map<string, string>();
+    const apiImages = (product?.images as string[]) || [];
+
+    apiImages.forEach((url) => {
+      if (!url || urlToAssignedColorKey.has(url)) return;
+
+      // Most reliable: Printify variant ID appears somewhere in the URL
+      for (const [variantId, colorKey] of variantIdToColorKey.entries()) {
+        const idStr = String(variantId);
+        if (url.includes(idStr)) {
+          map.set(url, colorKey);
+          break;
+        }
+      }
+    });
+
+    return map;
+  }, [product?.images, urlToAssignedColorKey, variantIdToColorKey]);
+
+  const getColorKeyForUrl = (url: string) => urlToAssignedColorKey.get(url) || urlToInferredColorKey.get(url) || null;
+
+  // Build gallery images: show ALL images, ordered by color sections, then the rest (no duplicates)
   const filteredImages = useMemo(() => {
     const apiImages = (product?.images as string[]) || [];
     const rows = customColorImages || [];
 
-    // If no color selected or not a Printify product, show all images
-    if (!selectedColor || !product?.is_printify_product) {
-      const result: string[] = [];
-      const seen = new Set<string>();
-
-      const add = (url?: string | null) => {
-        if (!url) return;
-        if (seen.has(url)) return;
-        seen.add(url);
-        result.push(url);
-      };
-
-      // Add custom color images first
-      rows.forEach((r) => add(r.image_url));
-      // Then API images
-      apiImages.forEach((url) => add(url));
-
-      return result;
-    }
-
-    // Filter images by selected color's variant IDs
-    const variantIds = colorToAllVariantIds.get(selectedColor) || [];
     const result: string[] = [];
     const seen = new Set<string>();
 
@@ -244,30 +283,42 @@ const ProductDetail = () => {
       result.push(url);
     };
 
-    // Add custom uploaded images for this color
-    rows
-      .filter((r) => r.color_name === selectedColor)
-      .sort((a, b) => {
-        const orderA = Number(a.display_order ?? 0);
-        const orderB = Number(b.display_order ?? 0);
-        if (orderA !== orderB) return orderA - orderB;
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      })
-      .forEach((r) => add(r.image_url));
-
-    // Add API images that contain any of this color's variant IDs in the URL
-    apiImages.forEach((url) => {
-      const matchesColor = variantIds.some(id => url.includes(`/${id}/`));
-      if (matchesColor) add(url);
-    });
-
-    // If no images found for this color, fall back to all images
-    if (result.length === 0) {
+    // If this isn't a Printify product, keep existing simple behavior (custom first, then API)
+    if (!product?.is_printify_product) {
+      rows.forEach((r) => add(r.image_url));
       apiImages.forEach((url) => add(url));
+      return result;
     }
 
+    // Color sections: use the actual color option values (could be option1 or option2)
+    const orderedColorKeys = availableColorValues.map(normalizeKey);
+
+    // For each color section: custom uploads (ordered), then matching API images
+    orderedColorKeys.forEach((colorKey) => {
+      rows
+        .filter((r) => normalizeKey(r.color_name || "") === colorKey)
+        .sort((a, b) => {
+          const orderA = Number(a.display_order ?? 0);
+          const orderB = Number(b.display_order ?? 0);
+          if (orderA !== orderB) return orderA - orderB;
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        })
+        .forEach((r) => add(r.image_url));
+
+      apiImages.forEach((url) => {
+        const urlKey = getColorKeyForUrl(url);
+        if (urlKey === colorKey) add(url);
+      });
+    });
+
+    // Any remaining custom rows (including any non-color-mapped ones)
+    rows.forEach((r) => add(r.image_url));
+
+    // Any remaining API images
+    apiImages.forEach((url) => add(url));
+
     return result;
-  }, [product?.images, product?.is_printify_product, customColorImages, selectedColor, colorToAllVariantIds]);
+  }, [availableColorValues, customColorImages, product?.images, product?.is_printify_product, urlToAssignedColorKey, urlToInferredColorKey]);
 
   // On first load, if a default image was set in admin, start on it
   const hasSetInitialImageRef = useRef(false);
@@ -284,12 +335,15 @@ const ProductDetail = () => {
     hasSetInitialImageRef.current = true;
   }, [filteredImages, product?.default_image_url]);
 
-  // When color changes, reset to first image of filtered set
+  // When the user selects a color, jump to the first image for that color (don’t hide others)
   useEffect(() => {
-    if (selectedColor) {
-      setCurrentImageIndex(0);
-    }
-  }, [selectedColor]);
+    if (!selectedColorName) return;
+    if (!filteredImages.length) return;
+
+    const selectedKey = normalizeKey(selectedColorName);
+    const idx = filteredImages.findIndex((url) => getColorKeyForUrl(url) === selectedKey);
+    setCurrentImageIndex(idx >= 0 ? idx : 0);
+  }, [selectedColorName, filteredImages, urlToAssignedColorKey, urlToInferredColorKey]);
 
   // Navigation handlers
   const goToPrevImage = () => {
