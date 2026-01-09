@@ -464,6 +464,174 @@
   z-index: 10;
 }
 
+/* Burnt Orange Box */
+.ProseMirror div[style*="#e8650d"],
+.ProseMirror div[style*="e8650d"],
+.ProseMirror div[style*="rgb(232, 101, 13)"] {
+  background-color: #e8650d !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: white !important;
+  border: 4px solid #fcd34d !important;
+  box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.3) !important;
+  min-height: 6rem;
+}
+
+.ProseMirror div[style*="#e8650d"]::before,
+.ProseMirror div[style*="e8650d"]::before,
+.ProseMirror div[style*="rgb(232, 101, 13)"]::before {
+  content: "🔥 BURNT ORANGE";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #92400e;
+  background: #fcd34d;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="#e8650d"] *,
+.ProseMirror div[style*="e8650d"] *,
+.ProseMirror div[style*="rgb(232, 101, 13)"] * {
+  color: white !important;
+}
+
+/* Mustard Gold Box */
+.ProseMirror div[style*="#eab308"],
+.ProseMirror div[style*="eab308"],
+.ProseMirror div[style*="rgb(234, 179, 8)"] {
+  background-color: #eab308 !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: #78350f !important;
+  border: 4px solid #fef3c7 !important;
+  box-shadow: 0 0 0 4px rgba(254, 243, 199, 0.4) !important;
+  min-height: 6rem;
+}
+
+.ProseMirror div[style*="#eab308"]::before,
+.ProseMirror div[style*="eab308"]::before,
+.ProseMirror div[style*="rgb(234, 179, 8)"]::before {
+  content: "✨ MUSTARD GOLD";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #78350f;
+  background: #fef3c7;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="#eab308"] *,
+.ProseMirror div[style*="eab308"] *,
+.ProseMirror div[style*="rgb(234, 179, 8)"] * {
+  color: #78350f !important;
+}
+
+/* Warm Cream Box */
+.ProseMirror div[style*="#faf5ef"],
+.ProseMirror div[style*="faf5ef"],
+.ProseMirror div[style*="rgb(250, 245, 239)"] {
+  background-color: #faf5ef !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: #78350f !important;
+  border: 4px solid #e8650d !important;
+  box-shadow: 0 0 0 4px rgba(232, 101, 13, 0.2) !important;
+  min-height: 6rem;
+}
+
+.ProseMirror div[style*="#faf5ef"]::before,
+.ProseMirror div[style*="faf5ef"]::before,
+.ProseMirror div[style*="rgb(250, 245, 239)"]::before {
+  content: "🍦 WARM CREAM";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: white;
+  background: #e8650d;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="#faf5ef"] *,
+.ProseMirror div[style*="faf5ef"] *,
+.ProseMirror div[style*="rgb(250, 245, 239)"] * {
+  color: #78350f !important;
+}
+
+/* Sunset Gradient Box */
+.ProseMirror div[style*="radial-gradient"][style*="hsl(24"],
+.ProseMirror div[style*="radial-gradient"][style*="mustard"] {
+  background: radial-gradient(ellipse at 20% 80%, hsl(45, 100%, 60%) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 20%, hsl(40, 100%, 55%) 0%, transparent 40%),
+              radial-gradient(ellipse at 40% 40%, hsl(35, 100%, 50%) 0%, transparent 35%),
+              hsl(24, 95%, 53%) !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  margin: 1rem 0 !important;
+  color: white !important;
+  border: 4px solid #fcd34d !important;
+  box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.3) !important;
+  min-height: 6rem;
+}
+
+.ProseMirror div[style*="radial-gradient"][style*="hsl(24"]::before,
+.ProseMirror div[style*="radial-gradient"][style*="mustard"]::before {
+  content: "🌅 SUNSET GRADIENT";
+  position: absolute;
+  top: -1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #92400e;
+  background: #fcd34d;
+  padding: 0.35rem 1rem;
+  border-radius: 0.5rem;
+  pointer-events: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.ProseMirror div[style*="radial-gradient"][style*="hsl(24"] *,
+.ProseMirror div[style*="radial-gradient"][style*="mustard"] * {
+  color: white !important;
+}
+
 /* Table Styles */
 .ProseMirror table {
   border-collapse: collapse;
