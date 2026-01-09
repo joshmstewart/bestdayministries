@@ -8,7 +8,11 @@ export type StyledBoxStyle =
   | 'blue-info'
   | 'green-success'
   | 'amber-highlight'
-  | 'dark-charcoal';
+  | 'dark-charcoal'
+  | 'burnt-orange'
+  | 'mustard-gold'
+  | 'warm-cream'
+  | 'sunset-gradient';
 
 export interface StyledBoxOptions {
   HTMLAttributes: Record<string, any>;
@@ -51,6 +55,10 @@ export const StyledBox = Node.create<StyledBoxOptions>({
           if (bg.includes('#dcfce7') || bg.includes('rgb(220, 252, 231)')) return 'green-success';
           if (bg.includes('#fef3c7') || bg.includes('rgb(254, 243, 199)')) return 'amber-highlight';
           if (bg.includes('#1f2937') || bg.includes('rgb(31, 41, 55)')) return 'dark-charcoal';
+          if (bg.includes('#e8650d') || bg.includes('rgb(232, 101, 13)')) return 'burnt-orange';
+          if (bg.includes('#eab308') || bg.includes('rgb(234, 179, 8)')) return 'mustard-gold';
+          if (bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)')) return 'warm-cream';
+          if (bg.includes('e8650d') && bg.includes('eab308')) return 'sunset-gradient';
           return 'white-bordered';
         },
         renderHTML: attributes => {
@@ -93,6 +101,18 @@ export const StyledBox = Node.create<StyledBoxOptions>({
         break;
       case 'white-bordered':
         styleAttr = 'background: white; border: 2px solid #e5e7eb; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;';
+        break;
+      case 'burnt-orange':
+        styleAttr = 'background-color: #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+        break;
+      case 'mustard-gold':
+        styleAttr = 'background-color: #eab308; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
+        break;
+      case 'warm-cream':
+        styleAttr = 'background-color: #faf5ef; border: 2px solid #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
+        break;
+      case 'sunset-gradient':
+        styleAttr = 'background: linear-gradient(135deg, #e8650d 0%, #eab308 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
         break;
       case 'light-gray':
       default:
