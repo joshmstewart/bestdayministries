@@ -71,17 +71,23 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Create a coloring book cover illustration for: ${prompt}
+            content: `Create a COLORING BOOK COVER design for: "${prompt}"
+
+COVER LAYOUT (like a real published coloring book):
+- Large, clear TITLE at the top: "${prompt}"
+- Subtitle below: "Coloring Book" 
+- Decorative border/frame around the entire cover
+- Central illustration featuring the subject in a fun, dynamic pose
+- Professional book cover composition
 
 STYLE REQUIREMENTS:
-- Black and white LINE ART style with clean outlines
-- Bold, clear black outlines on white background
-- NO shading, NO gradients, NO filled areas, NO colors
+- Black and white LINE ART style with clean, bold outlines
+- White background with black linework only
+- NO shading, NO gradients, NO gray tones, NO filled solid areas
 - Simple, child-friendly design suitable for coloring with crayons or markers
-- Clear separation between elements so they can be colored individually
-- Whimsical and fun coloring book aesthetic
-
-CRITICAL: Do NOT include any text, words, letters, titles, or writing in the image. Generate a purely visual line art illustration with NO TEXT whatsoever. The image should be black and white line art only - no titles, labels, captions, or character names visible anywhere.`
+- Clear separation between all elements for easy coloring
+- Whimsical, fun coloring book aesthetic
+- Text should be in a decorative, hand-drawn style that matches the illustration`
           }
         ],
         modalities: ["image", "text"]
