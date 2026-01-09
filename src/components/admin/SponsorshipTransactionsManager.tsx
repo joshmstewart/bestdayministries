@@ -76,7 +76,7 @@ export const SponsorshipTransactionsManager = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBestie, setFilterBestie] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string[]>(["active", "pending", "paused", "completed", "scheduled_cancel", "duplicate", "test"]);
+  const [filterStatus, setFilterStatus] = useState<string[]>(["active", "pending", "paused", "completed", "scheduled_cancel", "duplicate", "test", "paid", "succeeded"]);
   const [filterFrequency, setFilterFrequency] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -290,12 +290,14 @@ export const SponsorshipTransactionsManager = () => {
   const clearFilters = () => {
     setSearchTerm("");
     setFilterBestie("all");
-    setFilterStatus(["active", "pending", "paused", "completed", "scheduled_cancel", "duplicate", "test"]);
+    setFilterStatus(["active", "pending", "paused", "completed", "scheduled_cancel", "duplicate", "test", "paid", "succeeded"]);
     setFilterFrequency("all");
     setFilterType("all");
   };
 
   const allStatusOptions = [
+    { value: "paid", label: "Paid" },
+    { value: "succeeded", label: "Succeeded" },
     { value: "active", label: "Active" },
     { value: "scheduled_cancel", label: "Scheduled to Cancel" },
     { value: "pending", label: "Pending" },
