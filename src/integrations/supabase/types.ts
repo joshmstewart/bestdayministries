@@ -3117,6 +3117,7 @@ export type Database = {
           created_at: string
           created_by: string
           display_order: number
+          emoji: string | null
           href: string
           id: string
           is_active: boolean
@@ -3130,6 +3131,7 @@ export type Database = {
           created_at?: string
           created_by: string
           display_order?: number
+          emoji?: string | null
           href: string
           id?: string
           is_active?: boolean
@@ -3143,6 +3145,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           display_order?: number
+          emoji?: string | null
           href?: string
           id?: string
           is_active?: boolean

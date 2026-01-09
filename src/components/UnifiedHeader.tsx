@@ -53,7 +53,7 @@ export const UnifiedHeader = () => {
   const [hasSharedSponsorships, setHasSharedSponsorships] = useState(false);
   const [showNav, setShowNav] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number; visible_to_roles?: UserRole[]; link_type?: string; parent_id?: string | null }>>([]);
+  const [navLinks, setNavLinks] = useState<Array<{ id: string; label: string; href: string; display_order: number; visible_to_roles?: UserRole[]; link_type?: string; parent_id?: string | null; emoji?: string | null }>>([]);
   const [retryCount, setRetryCount] = useState(0);
   const [dataLoaded, setDataLoaded] = useState(false);
   const { count: moderationCount } = useModerationCount();
@@ -278,7 +278,7 @@ export const UnifiedHeader = () => {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("id, label, href, display_order, visible_to_roles, link_type, parent_id")
+        .select("id, label, href, display_order, visible_to_roles, link_type, parent_id, emoji")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
 
@@ -562,20 +562,20 @@ export const UnifiedHeader = () => {
                                           className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
                                           onClick={() => setMobileMenuOpen(false)}
                                         >
-                                          {link.label}
+                                          {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                                         </a>
                                       ) : (
-                                        <Link
+                                         <Link
                                           to={link.href}
                                           className="text-lg font-['Roca'] font-semibold text-foreground/90 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
                                           onClick={() => setMobileMenuOpen(false)}
                                         >
-                                          {link.label}
+                                          {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                                         </Link>
                                       )
                                     ) : (
                                       <div className="text-lg font-['Roca'] font-semibold text-foreground/90 py-2">
-                                        {link.label}
+                                        {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                                       </div>
                                     )}
                                     {children
@@ -595,7 +595,7 @@ export const UnifiedHeader = () => {
                                               className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
                                               onClick={() => setMobileMenuOpen(false)}
                                             >
-                                              {child.label}
+                                              {child.emoji && <span className="mr-1">{child.emoji}</span>}{child.label}
                                             </a>
                                           );
                                         }
@@ -606,7 +606,7 @@ export const UnifiedHeader = () => {
                                             className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2 pl-4"
                                             onClick={() => setMobileMenuOpen(false)}
                                           >
-                                            {child.label}
+                                            {child.emoji && <span className="mr-1">{child.emoji}</span>}{child.label}
                                           </Link>
                                         );
                                       })}
@@ -624,7 +624,7 @@ export const UnifiedHeader = () => {
                                     className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
                                     onClick={() => setMobileMenuOpen(false)}
                                   >
-                                    {link.label}
+                                    {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                                   </a>
                                 );
                               }
@@ -636,7 +636,7 @@ export const UnifiedHeader = () => {
                                   className="text-lg font-['Roca'] font-medium text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors py-2"
                                   onClick={() => setMobileMenuOpen(false)}
                                 >
-                                  {link.label}
+                                  {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                                 </Link>
                             );
                           })}
@@ -713,21 +713,21 @@ export const UnifiedHeader = () => {
                                           rel="noopener noreferrer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
-                                          {link.label}
+                                          {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                                         </a>
                                       ) : (
                                         <Link 
                                           to={link.href}
                                           onClick={(e) => e.stopPropagation()}
                                         >
-                                          {link.label}
+                                          {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                                         </Link>
                                       )}
                                       <ChevronDown className="inline-block w-3 h-3" />
                                     </span>
                                   ) : (
                                     <span>
-                                      {link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
+                                      {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label} <ChevronDown className="inline-block w-3 h-3 ml-1" />
                                     </span>
                                   )}
                                 </DropdownMenuTrigger>
@@ -742,7 +742,7 @@ export const UnifiedHeader = () => {
                                         return (
                                           <DropdownMenuItem key={child.id} asChild>
                                             <a href={child.href} target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-                                              {child.label}
+                                              {child.emoji && <span className="mr-1">{child.emoji}</span>}{child.label}
                                             </a>
                                           </DropdownMenuItem>
                                         );
@@ -750,7 +750,7 @@ export const UnifiedHeader = () => {
                                       return (
                                         <DropdownMenuItem key={child.id} asChild>
                                           <Link to={child.href} className="cursor-pointer">
-                                            {child.label}
+                                            {child.emoji && <span className="mr-1">{child.emoji}</span>}{child.label}
                                           </Link>
                                         </DropdownMenuItem>
                                       );
@@ -770,14 +770,14 @@ export const UnifiedHeader = () => {
                                 rel="noopener noreferrer"
                                 className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
                               >
-                                {link.label}
+                                {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                               </a>
                             ) : (
                               <Link 
                                 to={link.href} 
                                 className="relative py-1 text-foreground/80 hover:text-[hsl(var(--burnt-orange))] transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-[hsl(var(--burnt-orange))] after:transition-all after:duration-300 hover:after:w-full"
                               >
-                                {link.label}
+                                {link.emoji && <span className="mr-1">{link.emoji}</span>}{link.label}
                               </Link>
                             )}
                           </li>
