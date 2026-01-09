@@ -675,7 +675,20 @@
 }
 
 .ProseMirror .selectedCell {
-  background-color: hsl(var(--primary) / 0.1);
+  background-color: hsl(var(--primary) / 0.15) !important;
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+}
+
+.ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: hsl(var(--primary) / 0.05);
+  pointer-events: none;
 }
 
 .ProseMirror .column-resize-handle {
@@ -686,6 +699,25 @@
   top: 0;
   bottom: 0;
   cursor: col-resize;
+}
+
+/* Table hover state for better UX */
+.ProseMirror table:hover {
+  outline: 2px dashed hsl(var(--primary) / 0.3);
+  outline-offset: 2px;
+}
+
+/* Table cell cursor styling */
+.ProseMirror td,
+.ProseMirror th {
+  position: relative;
+  cursor: text;
+}
+
+/* Selected table indicator */
+.ProseMirror table.ProseMirror-selectednode {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
 }
 
 /* CTA Button Tables - preserve button styling in editor */
