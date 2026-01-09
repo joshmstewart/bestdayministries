@@ -24,11 +24,11 @@ export function RevenueChartDialog({ open, onOpenChange, transactions }: Revenue
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [chartView, setChartView] = useState<"monthly" | "daily" | "cumulative">("monthly");
 
-  // Get live transactions only
+  // Get live transactions only - now counting all individual successful payments
   const liveTransactions = useMemo(() => 
     transactions.filter(t => 
       t.stripe_mode === 'live' && 
-      ((t.frequency === 'monthly' && t.status === 'active') || t.frequency === 'one-time')
+      ['paid', 'completed', 'active', 'succeeded'].includes(t.status?.toLowerCase() || '')
     ),
     [transactions]
   );
