@@ -491,7 +491,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           </Button>
         </div>
       )}
-      <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center">
+      <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-1 items-center sticky top-0 z-10">
         {isImageSelected && (
           <>
             <Button
@@ -827,7 +827,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         </Button>
       </div>
 
-      <div className="bg-background">
+      <div className="bg-background overflow-y-auto max-h-[60vh]">
         <EditorContent editor={editor} />
       </div>
 
