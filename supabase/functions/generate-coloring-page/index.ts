@@ -73,13 +73,20 @@ serve(async (req) => {
             role: "user",
             content: `Create a BLACK AND WHITE LINE ART coloring page for children: "${prompt}"
 
-CRITICAL REQUIREMENTS - THIS IS A COLORING PAGE, NOT A COVER:
+CRITICAL REQUIREMENTS - THIS IS A COLORING PAGE FOR DIGITAL FILL TOOLS:
 - BLACK LINES ON WHITE BACKGROUND ONLY
 - NO COLOR whatsoever - pure black outlines on white
 - NO shading, NO gray tones, NO gradients
 - NO filled-in areas - everything should be outlined for coloring
 - Clean, crisp black outlines that are easy to color inside
 - THICK, bold outlines (suitable for children to color)
+
+ABSOLUTELY CRITICAL - CLOSED SHAPES FOR FILL TOOL:
+- ALL LINES MUST CONNECT - every shape must be fully closed
+- NO gaps or breaks in any outline - users will use bucket fill tool
+- If lines don't connect, the fill color will leak and fill the entire page
+- Every area that should be colorable must be a completely enclosed region
+- Double-check that all outlines form closed loops with no openings
 
 COMPOSITION:
 - Large, simple shapes that are easy to color
@@ -90,9 +97,9 @@ COMPOSITION:
 
 STYLE:
 - Simple cartoon/illustration style
-- Bold black outlines only
-- Empty white spaces inside shapes for coloring
-- Like a page from a real children's coloring book`
+- Bold black outlines only - ALL FULLY CONNECTED
+- Empty white spaces inside CLOSED shapes for coloring
+- Like a page from a real children's coloring book with perfect closed outlines`
           }
         ],
         modalities: ["image", "text"]
