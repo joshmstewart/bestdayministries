@@ -320,6 +320,15 @@ export default function WordleGame() {
                   {/* User stats */}
                   <WordleStats refreshKey={statsRefreshKey} />
                   
+                  {/* Today's theme */}
+                  {theme && (
+                    <Card className="p-3 mb-4 text-center bg-primary/5 border-primary/20">
+                      <p className="text-sm font-medium">
+                        {themeEmoji} Today's Theme: <span className="text-primary">{theme}</span>
+                      </p>
+                    </Card>
+                  )}
+                  
                   {/* Theme hint - hidden by default */}
                   {themeHint && (
                     <Card className="p-3 mb-4 bg-muted/50">
