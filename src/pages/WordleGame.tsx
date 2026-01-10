@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Lightbulb, RefreshCw, Eye, EyeOff, Gamepad2, Trophy, RotateCcw, Loader2 } from "lucide-react";
+import { ArrowLeft, Lightbulb, RefreshCw, Eye, EyeOff, Gamepad2, Trophy, RotateCcw, Loader2, HelpCircle } from "lucide-react";
+import { WordleHowToDialog, useWordleHowTo } from "@/components/wordle/WordleHowToDialog";
 import { toast } from "sonner";
 import { WordleGrid } from "@/components/wordle/WordleGrid";
 import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
@@ -31,6 +32,7 @@ export default function WordleGame() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated, isAdmin, loading: authLoading } = useAuth();
+  const { showHowTo, setShowHowTo } = useWordleHowTo();
   const activeTab = searchParams.get("tab") || "play";
   
   const [gameLoading, setGameLoading] = useState(true);
@@ -316,19 +318,28 @@ export default function WordleGame() {
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold">Wordle</h1>
             </div>
-            {isAdmin ? (
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setResetDialogOpen(true)}
-                title="Reset Game (Admin)"
+                onClick={() => setShowHowTo(true)}
+                title="How to Play"
                 className="text-muted-foreground"
               >
-                <RotateCcw className="h-4 w-4" />
+                <HelpCircle className="h-4 w-4" />
               </Button>
-            ) : (
-              <div className="w-8" /> 
-            )}
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setResetDialogOpen(true)}
+                  title="Reset Game (Admin)"
+                  className="text-muted-foreground"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Tabs */}
@@ -465,6 +476,9 @@ export default function WordleGame() {
             coinsEarned={coinsEarned}
             hintsUsed={hintsUsed}
           />
+
+          {/* How to Play Dialog */}
+          <WordleHowToDialog open={showHowTo} onOpenChange={setShowHowTo} />
 
           {/* Reset Game Dialog (Admin only) */}
           <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
