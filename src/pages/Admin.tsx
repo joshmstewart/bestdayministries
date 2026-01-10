@@ -250,7 +250,6 @@ const Admin = () => {
             <TabsTrigger value="albums">Albums</TabsTrigger>
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
-            <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
             <TabsTrigger value="games">Games</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
               Store
@@ -473,9 +472,6 @@ const Admin = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="featured-item">
-            <FeaturedItemManager />
-          </TabsContent>
 
           <TabsContent value="games">
             <Card>
@@ -598,6 +594,7 @@ const Admin = () => {
                 <Tabs defaultValue="homepage" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="homepage">Landing Page</TabsTrigger>
+                    <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
@@ -611,6 +608,10 @@ const Admin = () => {
 
                   <TabsContent value="homepage">
                     <LandingPageOrderManager />
+                  </TabsContent>
+
+                  <TabsContent value="featured-item">
+                    <FeaturedItemManager />
                   </TabsContent>
 
                   <TabsContent value="about">
