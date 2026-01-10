@@ -6,6 +6,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Shuffle letters consistently based on a seed (word id)
+function shuffleWord(word: string, seed: string): string[] {
+  const letters = word.split('');
+  // Simple seeded shuffle using the seed string
+  let seedNum = 0;
+  for (let i = 0; i < seed.length; i++) {
+    seedNum += seed.charCodeAt(i);
+  }
+  
+  // Fisher-Yates shuffle with seeded random
+  for (let i = letters.length - 1; i > 0; i--) {
+    seedNum = (seedNum * 1103515245 + 12345) & 0x7fffffff;
+    const j = seedNum % (i + 1);
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+  
+  return letters;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -31,13 +50,42 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    // Parse request body for optional date parameter
+    // Parse request body for optional date and easyMode parameters
     let requestedDate: string | null = null;
+    let requestedEasyMode: boolean | null = null;
     try {
       const body = await req.json();
       requestedDate = body?.date || null;
+      requestedEasyMode = body?.easyMode !== undefined ? body.easyMode : null;
     } catch {
-      // No body or invalid JSON, use today's date
+      // No body or invalid JSON, use defaults
+    }
+
+    // Get user's role to determine default easy mode
+    const { data: userRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+
+    // Get user's easy mode preference
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("wordle_easy_mode_enabled")
+      .eq("id", user.id)
+      .single();
+
+    // Determine if easy mode should be used
+    // Priority: 1) explicit request, 2) user preference, 3) role default (bestie = true)
+    const isBestie = userRole?.role === "bestie";
+    const userEasyModePref = profile?.wordle_easy_mode_enabled ?? null;
+    let useEasyMode: boolean;
+    if (requestedEasyMode !== null) {
+      useEasyMode = requestedEasyMode;
+    } else if (userEasyModePref !== null) {
+      useEasyMode = userEasyModePref;
+    } else {
+      useEasyMode = isBestie;
     }
 
     // Get today's date in MST
@@ -117,6 +165,10 @@ serve(async (req) => {
     const isAtRoundEnd = currentGuessCount >= maxGuesses && attempt?.status === "in_progress";
     const canContinue = isAtRoundEnd && extraRoundsUsed < maxExtraRounds;
 
+    // Generate scrambled letters for easy mode
+    // Shuffle the word's letters consistently but randomly per day
+    const scrambledLetters = useEasyMode ? shuffleWord(dailyWord.word, dailyWord.id) : null;
+
     return new Response(
       JSON.stringify({
         hasWord: true,
@@ -137,7 +189,12 @@ serve(async (req) => {
         extraRoundsUsed,
         maxGuesses,
         canContinue,
-        roundEnded: isAtRoundEnd
+        roundEnded: isAtRoundEnd,
+        // Easy mode info
+        easyMode: useEasyMode,
+        scrambledLetters,
+        easyModePreference: profile?.wordle_easy_mode_enabled,
+        isBestie
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

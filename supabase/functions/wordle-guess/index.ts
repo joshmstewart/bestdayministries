@@ -31,7 +31,7 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { guess, useHint, date: requestedDate } = await req.json();
+    const { guess, useHint, date: requestedDate, easyMode: requestedEasyMode } = await req.json();
 
     // Get today's date in MST
     const now = new Date();
@@ -42,6 +42,31 @@ serve(async (req) => {
     // Use requested date or default to today
     const targetDate = requestedDate || today;
     const isToday = targetDate === today;
+
+    // Get user's role and easy mode preference
+    const { data: userRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .single();
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("wordle_easy_mode_enabled")
+      .eq("id", user.id)
+      .single();
+
+    // Determine if easy mode should be used
+    const isBestie = userRole?.role === "bestie";
+    const userEasyModePref = profile?.wordle_easy_mode_enabled ?? null;
+    let useEasyMode: boolean;
+    if (requestedEasyMode !== undefined) {
+      useEasyMode = requestedEasyMode;
+    } else if (userEasyModePref !== null) {
+      useEasyMode = userEasyModePref;
+    } else {
+      useEasyMode = isBestie;
+    }
 
     // Get the word for the target date
     const { data: dailyWord, error: wordError } = await supabaseAdmin
@@ -66,14 +91,15 @@ serve(async (req) => {
       .single();
 
     if (!attempt) {
-      // Create new attempt
+      // Create new attempt - track easy mode on first guess
       const { data: newAttempt, error: createError } = await supabaseAdmin
         .from("wordle_attempts")
         .insert({
           user_id: user.id,
           daily_word_id: dailyWord.id,
           guesses: [],
-          status: "in_progress"
+          status: "in_progress",
+          is_easy_mode: useEasyMode
         })
         .select()
         .single();
