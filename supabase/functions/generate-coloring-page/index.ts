@@ -71,7 +71,11 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Create a COLORING BOOK COVER design for: "${prompt}"
+            content: `Create a SQUARE 1:1 aspect ratio COLORING BOOK COVER design for: "${prompt}"
+
+IMAGE FORMAT:
+- SQUARE image (1:1 aspect ratio) - same width and height
+- Fill the entire square canvas edge-to-edge
 
 COVER LAYOUT (like a real published children's coloring book):
 - Large, decorative TITLE at the top: "${prompt}"
