@@ -1,11 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Check } from "lucide-react";
+import { ShoppingCart, Check, Eye } from "lucide-react";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { useState } from "react";
 import { PurchaseDialog } from "./PurchaseDialog";
 import { CoinIcon } from "@/components/CoinIcon";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface StoreItemCardProps {
   id: string;
@@ -31,6 +37,7 @@ export const StoreItemCard = ({
   isPurchased,
 }: StoreItemCardProps) => {
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
 
   const canAfford = userCoins >= price;
@@ -62,14 +69,23 @@ export const StoreItemCard = ({
   return (
     <>
       <Card className="flex flex-col h-full hover:shadow-lg transition-shadow">
-        <CardHeader>
+        <CardHeader className="pb-3">
           {imageUrl && (
-            <div className="mb-4 rounded-lg overflow-hidden bg-muted">
+            <div className="relative mb-4 rounded-lg overflow-hidden bg-muted group">
               <OptimizedImage
                 src={imageUrl}
                 alt={name}
-                className="w-full h-48 object-contain"
+                className="w-full object-contain"
               />
+              {/* Preview overlay button */}
+              <button
+                onClick={() => setShowPreviewDialog(true)}
+                className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+              >
+                <div className="bg-white/90 rounded-full p-3 shadow-lg">
+                  <Eye className="h-5 w-5 text-foreground" />
+                </div>
+              </button>
             </div>
           )}
           <div className="flex items-start justify-between gap-2">
@@ -82,7 +98,7 @@ export const StoreItemCard = ({
             {description}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1">
+        <CardContent className="flex-1 pt-0">
           <div className="flex items-center gap-2 text-2xl font-bold text-primary">
             <CoinIcon size={24} />
             <span>{price.toLocaleString()}</span>
@@ -109,6 +125,51 @@ export const StoreItemCard = ({
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>{name}</DialogTitle>
+          </DialogHeader>
+          {imageUrl && (
+            <div className="rounded-lg overflow-hidden bg-muted">
+              <OptimizedImage
+                src={imageUrl}
+                alt={name}
+                className="w-full object-contain"
+              />
+            </div>
+          )}
+          <p className="text-muted-foreground">{description}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xl font-bold text-primary">
+              <CoinIcon size={20} />
+              <span>{price.toLocaleString()} coins</span>
+            </div>
+            <Button
+              onClick={() => {
+                setShowPreviewDialog(false);
+                setShowPurchaseDialog(true);
+              }}
+              disabled={!canAfford || isPurchased}
+              variant={isPurchased ? "secondary" : "default"}
+            >
+              {isPurchased ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Purchased
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {canAfford ? "Purchase" : "Insufficient Coins"}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <PurchaseDialog
         open={showPurchaseDialog}
