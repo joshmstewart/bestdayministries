@@ -396,21 +396,24 @@ OUTPUT: High quality, print-ready, no watermarks.`;
                   </div>
                 </div>
 
-                {/* Toggle for Full Prompt */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowFullCoverPrompt(!showFullCoverPrompt);
-                    if (!showFullCoverPrompt && !fullCoverPrompt) {
-                      setFullCoverPrompt(buildFullCoverPrompt(aiPrompt || "your theme"));
-                    }
-                  }}
-                  className="text-xs h-7 px-2"
-                >
-                  {showFullCoverPrompt ? "Hide Full Prompt" : "Show Full Prompt (Advanced)"}
-                </Button>
+                {/* Toggle for Full Prompt - Editable AI Prompt */}
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowFullCoverPrompt(!showFullCoverPrompt);
+                      if (!showFullCoverPrompt && !fullCoverPrompt) {
+                        setFullCoverPrompt(buildFullCoverPrompt(aiPrompt || "your theme"));
+                      }
+                    }}
+                    className="text-xs h-8 gap-1"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    {showFullCoverPrompt ? "Hide Full Prompt" : "Show Full Prompt (Advanced)"}
+                  </Button>
+                </div>
 
                 {/* Full Prompt Editor */}
                 {showFullCoverPrompt && (
