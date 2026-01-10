@@ -64,23 +64,23 @@ serve(async (req) => {
 
     console.log("Generating coloring book cover with prompt:", prompt);
 
-    const coverPrompt = `Create a FULL-COLOR children's coloring book cover illustration.
+    const coverPrompt = `Create a FULL-COLOR children's coloring book cover illustration for "${prompt}".
 
-TITLE TEXT:
-- Include big, readable title text on the cover: "${prompt}" (use simple, kid-friendly lettering)
-
-STYLE:
-- Bright, colorful, whimsical, inviting
-- Cute cartoon illustration; high contrast; clean shapes
-
-COMPOSITION:
+CRITICAL REQUIREMENTS:
 - SQUARE 1:1 aspect ratio
-- Fill the ENTIRE canvas edge-to-edge with NO margins, NO borders, NO frames
-- Art must extend all the way to every edge of the image
-- No black-and-white line art; this is NOT an interior coloring page
+- BLEED TO ALL EDGES: The artwork MUST extend completely to ALL FOUR EDGES of the image with ZERO white space, ZERO margins, ZERO borders, ZERO padding
+- NO frame, NO border, NO outline around the image
+- The colorful illustration must touch the top, bottom, left, and right edges directly
+- Think of it like a full-bleed print where ink goes all the way to the paper edge
 
-QUALITY:
-- Crisp, printable look
+CONTENT:
+- Include big, readable title text: "${prompt}" (kid-friendly bubble letters)
+- Bright, colorful, whimsical cartoon illustration
+- High contrast, clean shapes, inviting for children
+- NOT a coloring page - this is a FULL COLOR finished cover
+
+OUTPUT:
+- Crisp, high quality, print-ready
 - No watermarks or logos
 `;
 
