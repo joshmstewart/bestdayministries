@@ -54,6 +54,11 @@ export default function WordleGame() {
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [maxGuesses, setMaxGuesses] = useState(6);
+  const [extraRoundsUsed, setExtraRoundsUsed] = useState(0);
+  const [roundEnded, setRoundEnded] = useState(false);
+  const [canContinue, setCanContinue] = useState(false);
+  const [continuing, setContinuing] = useState(false);
 
   // Reset game function (admin only)
   const resetWordleGame = async (scope: 'self' | 'admins' | 'all') => {
@@ -78,6 +83,10 @@ export default function WordleGame() {
       setLetterHints([]);
       setShowResult(false);
       setCoinsEarned(0);
+      setMaxGuesses(6);
+      setExtraRoundsUsed(0);
+      setRoundEnded(false);
+      setCanContinue(false);
       
       // Reload game state
       await loadGameState();
@@ -140,6 +149,10 @@ export default function WordleGame() {
           setWon(newData.won);
           setCorrectWord(newData.word);
           setCoinsEarned(newData.coinsEarned || 0);
+          setMaxGuesses(newData.maxGuesses || 6);
+          setExtraRoundsUsed(newData.extraRoundsUsed || 0);
+          setRoundEnded(newData.roundEnded || false);
+          setCanContinue(newData.canContinue || false);
         }
       } else {
         setTheme(data.theme);
@@ -151,6 +164,10 @@ export default function WordleGame() {
         setWon(data.won);
         setCorrectWord(data.word);
         setCoinsEarned(data.coinsEarned || 0);
+        setMaxGuesses(data.maxGuesses || 6);
+        setExtraRoundsUsed(data.extraRoundsUsed || 0);
+        setRoundEnded(data.roundEnded || false);
+        setCanContinue(data.canContinue || false);
         
         if (data.gameOver) {
           setShowResult(true);
@@ -172,7 +189,7 @@ export default function WordleGame() {
 
   // Handle keyboard input
   const handleKeyPress = useCallback((key: string) => {
-    if (gameOver || submitting) return;
+    if (gameOver || submitting || roundEnded) return;
     
     if (key === "ENTER") {
       handleSubmitGuess();
@@ -240,12 +257,45 @@ export default function WordleGame() {
         }
         
         setTimeout(() => setShowResult(true), 500);
+      } else if (data.roundEnded && data.canContinue) {
+        // Round ended but can continue
+        setRoundEnded(true);
+        setCanContinue(true);
+        setMaxGuesses(data.maxGuesses);
+        setExtraRoundsUsed(data.extraRoundsUsed);
       }
     } catch (error) {
       console.error("Error submitting guess:", error);
       toast.error("Failed to submit guess");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleContinue = async () => {
+    setContinuing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("wordle-continue");
+      
+      if (error) throw error;
+      
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      // Update state with new max guesses
+      setMaxGuesses(data.maxGuesses);
+      setExtraRoundsUsed(data.extraRoundsUsed);
+      setRoundEnded(false);
+      setCanContinue(false);
+      
+      toast.success(`Got 5 more guesses! (${data.remainingExtraRounds} continue${data.remainingExtraRounds === 1 ? '' : 's'} left)`);
+    } catch (error) {
+      console.error("Error continuing game:", error);
+      toast.error("Failed to continue game");
+    } finally {
+      setContinuing(false);
     }
   };
 
@@ -449,13 +499,39 @@ export default function WordleGame() {
                     guessResults={guessResults}
                     currentGuess={currentGuess}
                     letterHints={letterHints}
+                    maxGuesses={maxGuesses}
+                    roundEnded={roundEnded}
                   />
+
+                  {/* Continue button when round ended but can continue */}
+                  {roundEnded && canContinue && (
+                    <div className="flex flex-col items-center gap-3 my-6 p-4 bg-muted/50 rounded-lg border border-border">
+                      <p className="text-center text-muted-foreground">
+                        Out of guesses! Want to keep trying?
+                      </p>
+                      <Button 
+                        onClick={handleContinue}
+                        disabled={continuing}
+                        className="gap-2"
+                      >
+                        {continuing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                        Continue (+5 guesses)
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        {2 - extraRoundsUsed} continue{2 - extraRoundsUsed === 1 ? '' : 's'} remaining
+                      </p>
+                    </div>
+                  )}
 
                   {/* Keyboard */}
                   <WordleKeyboard
                     onKeyPress={handleKeyPress}
                     keyboardStatus={keyboardStatus()}
-                    disabled={gameOver || submitting}
+                    disabled={gameOver || submitting || roundEnded}
                   />
                 </>
               )}

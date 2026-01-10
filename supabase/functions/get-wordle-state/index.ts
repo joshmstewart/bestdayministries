@@ -96,6 +96,14 @@ serve(async (req) => {
       }
     }
 
+    // Calculate extra rounds info
+    const extraRoundsUsed = attempt?.extra_rounds_used || 0;
+    const maxGuesses = 6 + (extraRoundsUsed * 5);
+    const maxExtraRounds = 2;
+    const currentGuessCount = attempt?.guesses?.length || 0;
+    const isAtRoundEnd = currentGuessCount >= maxGuesses && attempt?.status === "in_progress";
+    const canContinue = isAtRoundEnd && extraRoundsUsed < maxExtraRounds;
+
     return new Response(
       JSON.stringify({
         hasWord: true,
@@ -109,7 +117,12 @@ serve(async (req) => {
         gameOver: attempt?.status === "won" || attempt?.status === "lost",
         won: attempt?.status === "won",
         word: (attempt?.status === "won" || attempt?.status === "lost") ? dailyWord.word : undefined,
-        coinsEarned: attempt?.coins_earned || 0
+        coinsEarned: attempt?.coins_earned || 0,
+        // Extra rounds info
+        extraRoundsUsed,
+        maxGuesses,
+        canContinue,
+        roundEnded: isAtRoundEnd
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
