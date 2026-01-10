@@ -471,28 +471,6 @@ export default function WordleGame() {
                   {/* User stats */}
                   <WordleStats refreshKey={statsRefreshKey} />
                   
-                  {/* Date picker and Letter Reveal button on same line */}
-                  <div className="flex justify-center items-center gap-3 mb-4">
-                    <WordleDatePicker 
-                      selectedDate={selectedDate} 
-                      onDateSelect={handleDateSelect}
-                      externalOpen={showDatePicker}
-                      onExternalOpenChange={setShowDatePicker}
-                    />
-                    {!gameOver && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleUseHint}
-                        disabled={hintsUsed >= 3}
-                        title="Reveals a letter position"
-                      >
-                        <Lightbulb className="h-4 w-4 mr-2" />
-                        Reveal Letter ({3 - hintsUsed})
-                      </Button>
-                    )}
-                  </div>
-                  
                   {/* Past game notice */}
                   {!isToday && (
                     <div className="text-center mb-4 px-4 py-2 bg-muted rounded-lg">
@@ -539,6 +517,28 @@ export default function WordleGame() {
                       )}
                     </div>
                   )}
+                  
+                  {/* Date picker and Letter Reveal button */}
+                  <div className="flex justify-center items-center gap-3 mb-4">
+                    <WordleDatePicker 
+                      selectedDate={selectedDate} 
+                      onDateSelect={handleDateSelect}
+                      externalOpen={showDatePicker}
+                      onExternalOpenChange={setShowDatePicker}
+                    />
+                    {!gameOver && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUseHint}
+                        disabled={hintsUsed >= 3}
+                        title="Reveals a letter position"
+                      >
+                        <Lightbulb className="h-4 w-4 mr-2" />
+                        Reveal Letter ({3 - hintsUsed})
+                      </Button>
+                    )}
+                  </div>
 
                   {/* Letter hints display */}
                   {letterHints.length > 0 && (
