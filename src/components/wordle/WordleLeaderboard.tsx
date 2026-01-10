@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Medal, Award, Flame } from "lucide-react";
-
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 interface LeaderboardEntry {
   user_id: string;
   current_month_wins: number;
@@ -122,10 +122,10 @@ export function WordleLeaderboard() {
                 <div className="flex-shrink-0 w-6 flex justify-center">
                   {getRankIcon(index + 1)}
                 </div>
-                <img
-                  src={`/avatars/composite-${entry.avatar_number}.png`}
-                  alt="Avatar"
-                  className="w-8 h-8 rounded-full"
+                <AvatarDisplay
+                  avatarNumber={entry.avatar_number}
+                  displayName={entry.display_name}
+                  size="sm"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
