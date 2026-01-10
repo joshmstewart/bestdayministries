@@ -29,8 +29,8 @@ export function WordleResultDialog({
 }: WordleResultDialogProps) {
   const handleShare = async () => {
     const shareText = won
-      ? `🎮 Wordle - ${guessCount}/6\n${hintsUsed > 0 ? `(${hintsUsed} hint${hintsUsed > 1 ? 's' : ''} used)` : 'No hints!'}\n\n🎉 I solved it!`
-      : `🎮 Wordle - X/6\n\n😅 Better luck next time!`;
+      ? `🎮 Daily Five - ${guessCount}/6\n${hintsUsed > 0 ? `(${hintsUsed} hint${hintsUsed > 1 ? 's' : ''} used)` : 'No hints!'}\n\n🎉 I solved it!`
+      : `🎮 Daily Five - X/6\n\n😅 Better luck next time!`;
     
     try {
       if (navigator.share) {

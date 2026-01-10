@@ -15,7 +15,7 @@ interface WordleHowToDialogProps {
 
 const STEPS = [
   {
-    title: "Welcome to Wordle! 🎮",
+    title: "Welcome to Daily Five! 🎮",
     content: (
       <div className="space-y-3">
         <p>Guess the secret 5-letter word in 6 tries!</p>
@@ -79,7 +79,7 @@ const STEPS = [
   },
 ];
 
-const LOCALSTORAGE_KEY = "wordle_howto_seen";
+const LOCALSTORAGE_KEY = "daily_five_howto_seen";
 
 export function WordleHowToDialog({ open, onOpenChange }: WordleHowToDialogProps) {
   const [currentStep, setCurrentStep] = useState(0);
