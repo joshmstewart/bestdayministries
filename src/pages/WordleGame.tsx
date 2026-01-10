@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { WordleGrid } from "@/components/wordle/WordleGrid";
 import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
 import { WordleResultDialog } from "@/components/wordle/WordleResultDialog";
+import { WordleStats } from "@/components/wordle/WordleStats";
 import confetti from "canvas-confetti";
 
 interface GuessResult {
@@ -277,6 +278,8 @@ export default function WordleGame() {
           </Card>
         ) : (
           <>
+            {/* User stats */}
+            <WordleStats />
             {/* Theme hint */}
             {themeHint && (
               <Card className="p-3 mb-4 bg-muted/50">
