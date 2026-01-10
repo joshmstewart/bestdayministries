@@ -31,17 +31,30 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
+    // Parse request body for optional date parameter
+    let requestedDate: string | null = null;
+    try {
+      const body = await req.json();
+      requestedDate = body?.date || null;
+    } catch {
+      // No body or invalid JSON, use today's date
+    }
+
     // Get today's date in MST
     const now = new Date();
     const mstOffset = -7 * 60;
     const mstDate = new Date(now.getTime() + mstOffset * 60 * 1000);
     const today = mstDate.toISOString().split('T')[0];
+    
+    // Use requested date or default to today
+    const targetDate = requestedDate || today;
+    const isToday = targetDate === today;
 
-    // Get today's word
+    // Get the word for the target date
     const { data: dailyWord } = await supabaseAdmin
       .from("wordle_daily_words")
       .select("*, wordle_themes(*)")
-      .eq("word_date", today)
+      .eq("word_date", targetDate)
       .single();
 
     if (!dailyWord) {
@@ -107,6 +120,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         hasWord: true,
+        date: targetDate,
+        isToday,
         theme: dailyWord.wordle_themes?.name,
         themeEmoji: dailyWord.wordle_themes?.emoji,
         themeHint: dailyWord.hint,
