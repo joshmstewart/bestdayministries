@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as pdfLib from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,112 +34,134 @@ serve(async (req) => {
     const pdfBuffer = await pdfResponse.arrayBuffer();
     const pdfBytes = new Uint8Array(pdfBuffer);
 
-    // Use Lovable AI to extract/convert PDF pages to images
+    // Load the PDF document
+    const pdfDoc = await pdfLib.PDFDocument.load(pdfBytes);
+    const pageCount = pdfDoc.getPageCount();
+    
+    console.log(`PDF has ${pageCount} pages`);
+
+    if (pageCount === 0) {
+      throw new Error("PDF has no pages");
+    }
+
+    // Limit to 50 pages for safety
+    const maxPages = Math.min(pageCount, 50);
+
+    // Use Lovable AI to convert each PDF page to a clean coloring page image
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Convert PDF bytes to base64 for processing
-    const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Use the AI model to process the PDF and extract pages as images
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "This is a PDF containing coloring pages. Please extract each page as a separate black and white line art image. Return each page as a clean, high-contrast black and white image suitable for coloring. Preserve all the line work exactly as it appears."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${pdfBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        modalities: ["image", "text"]
-      }),
-    });
+    const extractedPages: string[] = [];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
+    // Process each page by creating a single-page PDF and converting it
+    for (let i = 0; i < maxPages; i++) {
+      console.log(`Processing page ${i + 1} of ${maxPages}`);
       
-      // Fallback: If the AI can't process PDF directly, we'll need a different approach
-      // For now, let's try to upload the first page as an image conversion
-      throw new Error("PDF processing not directly supported. Please upload image files instead.");
-    }
-
-    const data = await response.json();
-    console.log("AI response received");
-
-    // Extract images from the response
-    const images: string[] = [];
-    const message = data.choices?.[0]?.message;
-    
-    if (message?.images && Array.isArray(message.images)) {
-      // Upload each extracted image to storage
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      for (let i = 0; i < message.images.length; i++) {
-        const imageData = message.images[i];
-        const imageUrl = imageData.image_url?.url;
+      try {
+        // Create a new PDF with just this page
+        const singlePagePdf = await pdfLib.PDFDocument.create();
+        const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [i]);
+        singlePagePdf.addPage(copiedPage);
+        const singlePageBytes = await singlePagePdf.save();
         
-        if (imageUrl && imageUrl.startsWith("data:image")) {
-          // Extract base64 data
-          const base64Match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-          if (base64Match) {
-            const [, format, base64Data] = base64Match;
-            const binaryStr = atob(base64Data);
-            const bytes = new Uint8Array(binaryStr.length);
-            for (let j = 0; j < binaryStr.length; j++) {
-              bytes[j] = binaryStr.charCodeAt(j);
+        // Convert single page PDF to base64
+        const singlePageBase64 = btoa(String.fromCharCode(...singlePageBytes));
+
+        // Use AI to convert the PDF page to a clean black and white image
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image-preview",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Convert this PDF page to a high-quality black and white line art image. This is a coloring page. Keep all lines clean and crisp. The output should be a pure black and white image with clean outlines suitable for coloring. Do not add any shading or fill any areas. Just preserve the line art exactly as shown."
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:application/pdf;base64,${singlePageBase64}`
+                    }
+                  }
+                ]
+              }
+            ],
+            modalities: ["image", "text"]
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`AI API error for page ${i + 1}:`, response.status, errorText);
+          continue;
+        }
+
+        const data = await response.json();
+        const message = data.choices?.[0]?.message;
+        
+        if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
+          const imageData = message.images[0];
+          const imageUrl = imageData.image_url?.url;
+          
+          if (imageUrl && imageUrl.startsWith("data:image")) {
+            // Extract base64 data
+            const base64Match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+            if (base64Match) {
+              const [, format, base64Data] = base64Match;
+              const binaryStr = atob(base64Data);
+              const bytes = new Uint8Array(binaryStr.length);
+              for (let j = 0; j < binaryStr.length; j++) {
+                bytes[j] = binaryStr.charCodeAt(j);
+              }
+
+              const fileName = `coloring-pages/pdf-extract-${Date.now()}-page-${i + 1}.${format === "jpeg" ? "jpg" : format}`;
+              const { error: uploadError } = await supabase.storage
+                .from("app-assets")
+                .upload(fileName, bytes, {
+                  contentType: `image/${format}`,
+                });
+
+              if (uploadError) {
+                console.error("Upload error for page", i + 1, uploadError);
+                continue;
+              }
+
+              const { data: urlData } = supabase.storage
+                .from("app-assets")
+                .getPublicUrl(fileName);
+              
+              extractedPages.push(urlData.publicUrl);
+              console.log(`Successfully extracted page ${i + 1}`);
             }
-
-            const fileName = `coloring-pages/pdf-extract-${Date.now()}-${i + 1}.${format === "jpeg" ? "jpg" : format}`;
-            const { error: uploadError } = await supabase.storage
-              .from("app-assets")
-              .upload(fileName, bytes, {
-                contentType: `image/${format}`,
-              });
-
-            if (uploadError) {
-              console.error("Upload error for page", i + 1, uploadError);
-              continue;
-            }
-
-            const { data: urlData } = supabase.storage
-              .from("app-assets")
-              .getPublicUrl(fileName);
-            
-            images.push(urlData.publicUrl);
           }
         }
+      } catch (pageError) {
+        console.error(`Error processing page ${i + 1}:`, pageError);
+        // Continue to next page
       }
     }
 
-    if (images.length === 0) {
-      throw new Error("Could not extract any pages from the PDF. Please try uploading individual image files instead.");
+    if (extractedPages.length === 0) {
+      throw new Error("Could not extract any pages from the PDF. The AI model may not support this PDF format. Please try uploading individual image files instead.");
     }
 
-    console.log(`Successfully extracted ${images.length} pages`);
+    console.log(`Successfully extracted ${extractedPages.length} of ${maxPages} pages`);
 
     return new Response(
-      JSON.stringify({ pages: images }),
+      JSON.stringify({ pages: extractedPages }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
