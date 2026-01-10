@@ -471,7 +471,7 @@ export default function WordleGame() {
                   {/* User stats */}
                   <WordleStats refreshKey={statsRefreshKey} />
                   
-                  {/* Date picker and Hint button on same line */}
+                  {/* Date picker and Letter Reveal button on same line */}
                   <div className="flex justify-center items-center gap-3 mb-4">
                     <WordleDatePicker 
                       selectedDate={selectedDate} 
@@ -485,9 +485,10 @@ export default function WordleGame() {
                         size="sm"
                         onClick={handleUseHint}
                         disabled={hintsUsed >= 3}
+                        title="Reveals a letter position"
                       >
                         <Lightbulb className="h-4 w-4 mr-2" />
-                        Hint ({3 - hintsUsed})
+                        Reveal Letter ({3 - hintsUsed})
                       </Button>
                     )}
                   </div>
@@ -501,40 +502,40 @@ export default function WordleGame() {
                     </div>
                   )}
                   
-                  {/* Theme */}
+                  {/* Theme with inline clue toggle */}
                   {theme && (
-                    <p className="text-sm font-medium text-center mb-4">
-                      {themeEmoji} {isToday ? "Today's" : "This Day's"} Theme: <span className="text-primary">{theme}</span>
-                    </p>
-                  )}
-                  
-                  {/* Theme hint - hidden by default */}
-                  {themeHint && (
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      {showThemeHint ? (
-                        <>
-                          <p className="text-xs text-muted-foreground">
-                            <span className="font-medium">Hint:</span> {themeHint}
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0"
-                            onClick={() => setShowThemeHint(false)}
-                          >
-                            <EyeOff className="h-3 w-3" />
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowThemeHint(true)}
-                          className="text-muted-foreground h-6 text-xs px-2"
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Show Hint
-                        </Button>
+                    <div className="text-center mb-4">
+                      <p className="text-sm font-medium">
+                        {themeEmoji} {isToday ? "Today's" : "This Day's"} Theme: <span className="text-primary">{theme}</span>
+                      </p>
+                      {themeHint && (
+                        <div className="flex items-center justify-center gap-2 mt-1">
+                          {showThemeHint ? (
+                            <>
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-medium">Clue:</span> {themeHint}
+                              </p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0"
+                                onClick={() => setShowThemeHint(false)}
+                              >
+                                <EyeOff className="h-3 w-3" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowThemeHint(true)}
+                              className="text-muted-foreground h-6 text-xs px-2"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Show Clue
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
