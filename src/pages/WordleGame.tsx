@@ -21,6 +21,7 @@ import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
 import { WordleResultDialog } from "@/components/wordle/WordleResultDialog";
 import { WordleStats } from "@/components/wordle/WordleStats";
 import { WordleLeaderboard } from "@/components/wordle/WordleLeaderboard";
+import { WordleDatePicker } from "@/components/wordle/WordleDatePicker";
 import confetti from "canvas-confetti";
 
 interface GuessResult {
@@ -59,6 +60,8 @@ export default function WordleGame() {
   const [roundEnded, setRoundEnded] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
   const [continuing, setContinuing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [isToday, setIsToday] = useState(true);
 
   // Reset game function (admin only)
   const resetWordleGame = async (scope: 'self' | 'admins' | 'all') => {
@@ -123,38 +126,51 @@ export default function WordleGame() {
   }, [guessResults]);
 
   // Load game state
-  const loadGameState = useCallback(async () => {
+  const loadGameState = useCallback(async (dateOverride?: string) => {
     if (!user) return;
+    
+    const targetDate = dateOverride !== undefined ? dateOverride : selectedDate;
     
     setGameLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("get-wordle-state");
+      const { data, error } = await supabase.functions.invoke("get-wordle-state", {
+        body: targetDate ? { date: targetDate } : {}
+      });
       
       if (error) throw error;
       
       if (!data.hasWord) {
         setNoWordAvailable(true);
-        // Try to generate a word
-        await supabase.functions.invoke("generate-wordle-word");
-        // Reload state
-        const { data: newData } = await supabase.functions.invoke("get-wordle-state");
-        if (newData?.hasWord) {
-          setNoWordAvailable(false);
-          setTheme(newData.theme);
-          setThemeEmoji(newData.themeEmoji);
-          setThemeHint(newData.themeHint);
-          setGuessResults(newData.guessResults || []);
-          setHintsUsed(newData.hintsUsed || 0);
-          setGameOver(newData.gameOver);
-          setWon(newData.won);
-          setCorrectWord(newData.word);
-          setCoinsEarned(newData.coinsEarned || 0);
-          setMaxGuesses(newData.maxGuesses || 6);
-          setExtraRoundsUsed(newData.extraRoundsUsed || 0);
-          setRoundEnded(newData.roundEnded || false);
-          setCanContinue(newData.canContinue || false);
+        // Only try to generate for today
+        if (data.isToday !== false) {
+          await supabase.functions.invoke("generate-wordle-word");
+          // Reload state
+          const { data: newData } = await supabase.functions.invoke("get-wordle-state", {
+            body: targetDate ? { date: targetDate } : {}
+          });
+          if (newData?.hasWord) {
+            setNoWordAvailable(false);
+            setSelectedDate(newData.date);
+            setIsToday(newData.isToday);
+            setTheme(newData.theme);
+            setThemeEmoji(newData.themeEmoji);
+            setThemeHint(newData.themeHint);
+            setGuessResults(newData.guessResults || []);
+            setHintsUsed(newData.hintsUsed || 0);
+            setGameOver(newData.gameOver);
+            setWon(newData.won);
+            setCorrectWord(newData.word);
+            setCoinsEarned(newData.coinsEarned || 0);
+            setMaxGuesses(newData.maxGuesses || 6);
+            setExtraRoundsUsed(newData.extraRoundsUsed || 0);
+            setRoundEnded(newData.roundEnded || false);
+            setCanContinue(newData.canContinue || false);
+          }
         }
       } else {
+        setNoWordAvailable(false);
+        setSelectedDate(data.date);
+        setIsToday(data.isToday);
         setTheme(data.theme);
         setThemeEmoji(data.themeEmoji);
         setThemeHint(data.themeHint);
@@ -179,7 +195,28 @@ export default function WordleGame() {
     } finally {
       setGameLoading(false);
     }
-  }, [user]);
+  }, [user, selectedDate]);
+
+  // Handle date selection
+  const handleDateSelect = (date: string) => {
+    // Reset game state before loading new date
+    setGuessResults([]);
+    setCurrentGuess("");
+    setGameOver(false);
+    setWon(false);
+    setCorrectWord(null);
+    setHintsUsed(0);
+    setLetterHints([]);
+    setShowResult(false);
+    setCoinsEarned(0);
+    setMaxGuesses(6);
+    setExtraRoundsUsed(0);
+    setRoundEnded(false);
+    setCanContinue(false);
+    setShowThemeHint(false);
+    
+    loadGameState(date);
+  };
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -225,7 +262,7 @@ export default function WordleGame() {
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("wordle-guess", {
-        body: { guess: currentGuess }
+        body: { guess: currentGuess, date: selectedDate }
       });
       
       if (error) throw error;
@@ -307,7 +344,7 @@ export default function WordleGame() {
     
     try {
       const { data, error } = await supabase.functions.invoke("wordle-guess", {
-        body: { useHint: true }
+        body: { useHint: true, date: selectedDate }
       });
       
       if (error) throw error;
@@ -420,7 +457,7 @@ export default function WordleGame() {
                   <p className="text-muted-foreground mb-6">
                     Today's word is being generated. Please try again in a moment.
                   </p>
-                  <Button onClick={loadGameState}>
+                  <Button onClick={() => loadGameState()}>
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
@@ -430,10 +467,27 @@ export default function WordleGame() {
                   {/* User stats */}
                   <WordleStats refreshKey={statsRefreshKey} />
                   
-                  {/* Today's theme */}
+                  {/* Date picker */}
+                  <div className="flex justify-center mb-4">
+                    <WordleDatePicker 
+                      selectedDate={selectedDate} 
+                      onDateSelect={handleDateSelect}
+                    />
+                  </div>
+                  
+                  {/* Past game notice */}
+                  {!isToday && (
+                    <div className="text-center mb-4 px-4 py-2 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        📅 Playing a past puzzle — counts for stats, not streak
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Theme */}
                   {theme && (
                     <p className="text-sm font-medium text-center mb-4">
-                      {themeEmoji} Today's Theme: <span className="text-primary">{theme}</span>
+                      {themeEmoji} {isToday ? "Today's" : "This Day's"} Theme: <span className="text-primary">{theme}</span>
                     </p>
                   )}
                   

@@ -31,24 +31,28 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { guess, useHint } = await req.json();
+    const { guess, useHint, date: requestedDate } = await req.json();
 
     // Get today's date in MST
     const now = new Date();
     const mstOffset = -7 * 60;
     const mstDate = new Date(now.getTime() + mstOffset * 60 * 1000);
     const today = mstDate.toISOString().split('T')[0];
+    
+    // Use requested date or default to today
+    const targetDate = requestedDate || today;
+    const isToday = targetDate === today;
 
-    // Get today's word
+    // Get the word for the target date
     const { data: dailyWord, error: wordError } = await supabaseAdmin
       .from("wordle_daily_words")
       .select("*, wordle_themes(*)")
-      .eq("word_date", today)
+      .eq("word_date", targetDate)
       .single();
 
     if (wordError || !dailyWord) {
       return new Response(
-        JSON.stringify({ error: "No word available for today. Please try again later." }),
+        JSON.stringify({ error: `No word available for ${targetDate}. Please try another date.` }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -289,7 +293,8 @@ serve(async (req) => {
 
         if (!existingStats) {
           // Create new stats row
-          const newStreak = isWin ? 1 : 0;
+          // Only affect streak if playing today's puzzle
+          const newStreak = isToday ? (isWin ? 1 : 0) : 0;
           const currentMonthYear = new Date().toISOString().slice(0, 7); // YYYY-MM format
           const { error: insertError } = await supabaseAdmin
             .from("wordle_user_stats")
@@ -299,8 +304,8 @@ serve(async (req) => {
               total_wins: isWin ? 1 : 0,
               current_streak: newStreak,
               best_streak: newStreak,
-              last_played_date: today,
-              last_win_date: isWin ? today : null,
+              last_played_date: isToday ? today : existingStats?.last_played_date || null,
+              last_win_date: (isWin && isToday) ? today : null,
               current_month_wins: isWin ? 1 : 0,
               current_month_year: currentMonthYear
             });
@@ -311,19 +316,28 @@ serve(async (req) => {
         } else {
           // Update existing stats
           let newStreak = existingStats.current_streak;
-          if (isWin) {
-            // If last win was yesterday, continue streak; otherwise start new streak
-            if (existingStats.last_win_date === yesterdayStr) {
-              newStreak = existingStats.current_streak + 1;
-            } else if (existingStats.last_win_date !== today) {
-              newStreak = 1;
+          let newBestStreak = existingStats.best_streak;
+          let newLastPlayedDate = existingStats.last_played_date;
+          let newLastWinDate = existingStats.last_win_date;
+          
+          // Only update streak-related fields if playing today's puzzle
+          if (isToday) {
+            if (isWin) {
+              // If last win was yesterday, continue streak; otherwise start new streak
+              if (existingStats.last_win_date === yesterdayStr) {
+                newStreak = existingStats.current_streak + 1;
+              } else if (existingStats.last_win_date !== today) {
+                newStreak = 1;
+              }
+              newLastWinDate = today;
+            } else {
+              // Loss breaks the streak (only for today's game)
+              newStreak = 0;
             }
-          } else {
-            // Loss breaks the streak
-            newStreak = 0;
+            newBestStreak = Math.max(existingStats.best_streak, newStreak);
+            newLastPlayedDate = today;
           }
-
-          const newBestStreak = Math.max(existingStats.best_streak, newStreak);
+          // For past days: games played and win rate are updated, but NOT streak
 
           // Check if we need to reset monthly wins for a new month
           const currentMonthYear = new Date().toISOString().slice(0, 7);
@@ -339,8 +353,8 @@ serve(async (req) => {
               total_wins: isWin ? existingStats.total_wins + 1 : existingStats.total_wins,
               current_streak: newStreak,
               best_streak: newBestStreak,
-              last_played_date: today,
-              last_win_date: isWin ? today : existingStats.last_win_date,
+              last_played_date: newLastPlayedDate,
+              last_win_date: newLastWinDate,
               current_month_wins: newMonthlyWins,
               current_month_year: currentMonthYear,
               updated_at: new Date().toISOString()
