@@ -37,6 +37,7 @@ export default function WordleGame() {
   const [letterHints, setLetterHints] = useState<{ position: number; letter: string }[]>([]);
   const [noWordAvailable, setNoWordAvailable] = useState(false);
   const [showThemeHint, setShowThemeHint] = useState(false);
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0);
 
   // Build keyboard status from guesses
   const keyboardStatus = useCallback(() => {
@@ -177,6 +178,9 @@ export default function WordleGame() {
         setCorrectWord(data.word);
         setCoinsEarned(data.coinsEarned || 0);
         
+        // Trigger stats refresh
+        setStatsRefreshKey(prev => prev + 1);
+        
         if (data.won) {
           confetti({
             particleCount: 100,
@@ -280,7 +284,7 @@ export default function WordleGame() {
         ) : (
           <>
             {/* User stats */}
-            <WordleStats />
+            <WordleStats refreshKey={statsRefreshKey} />
             {/* Theme hint - hidden by default */}
             {themeHint && (
               <Card className="p-3 mb-4 bg-muted/50">

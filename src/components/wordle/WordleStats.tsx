@@ -11,7 +11,11 @@ interface UserStats {
   best_streak: number;
 }
 
-export function WordleStats() {
+interface WordleStatsProps {
+  refreshKey?: number;
+}
+
+export function WordleStats({ refreshKey = 0 }: WordleStatsProps) {
   const { user } = useAuth();
   const [stats, setStats] = useState<UserStats>({
     total_games_played: 0,
@@ -47,7 +51,7 @@ export function WordleStats() {
     };
 
     loadStats();
-  }, [user]);
+  }, [user, refreshKey]);
 
   if (loading) {
     return null;
