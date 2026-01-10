@@ -72,11 +72,11 @@ TITLE TEXT:
 STYLE:
 - Bright, colorful, whimsical, inviting
 - Cute cartoon illustration; high contrast; clean shapes
-- Add a decorative frame/border appropriate for kids
 
 COMPOSITION:
-- Portrait / book-cover layout
-- Fill the cover (no huge empty margins)
+- SQUARE 1:1 aspect ratio
+- Fill the ENTIRE canvas edge-to-edge with NO margins, NO borders, NO frames
+- Art must extend all the way to every edge of the image
 - No black-and-white line art; this is NOT an interior coloring page
 
 QUALITY:
