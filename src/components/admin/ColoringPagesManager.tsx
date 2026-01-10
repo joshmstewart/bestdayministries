@@ -30,6 +30,27 @@ export function ColoringPagesManager() {
   const [generatingImage, setGeneratingImage] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
+  const [fullPrompt, setFullPrompt] = useState("");
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
+
+  // Default template for coloring page prompts
+  const DEFAULT_PROMPT_TEMPLATE = "Black and white line art coloring page for children. Simple clean outlines, no shading, no filled areas, white background. Subject: {SUBJECT}. Style: Simple cartoon line drawing suitable for coloring, thick black outlines on pure white background.";
+
+  // Build the full prompt from subject and template
+  const buildFullPrompt = (subject: string, bookTheme?: string) => {
+    let subjectDescription = subject;
+    if (bookTheme) {
+      subjectDescription = `${subject}. Theme/context: ${bookTheme}`;
+    }
+    return DEFAULT_PROMPT_TEMPLATE.replace("{SUBJECT}", subjectDescription);
+  };
+
+  // Update full prompt when aiPrompt or book changes
+  const updateFullPrompt = (subject: string, bookId?: string) => {
+    const selectedBook = books?.find(b => b.id === bookId);
+    const bookTheme = selectedBook?.generation_prompt;
+    setFullPrompt(buildFullPrompt(subject, bookTheme));
+  };
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [processingPdf, setProcessingPdf] = useState(false);
@@ -65,21 +86,9 @@ export function ColoringPagesManager() {
     },
   });
 
-  const generateImage = async (prompt: string, bookId?: string): Promise<string> => {
-    // Get the book's generation prompt if a book is selected
-    const selectedBook = books?.find(b => b.id === bookId);
-    const bookTheme = selectedBook?.generation_prompt;
-    
-    // Combine the page prompt with the book theme
-    let subjectDescription = prompt;
-    if (bookTheme) {
-      subjectDescription = `${prompt}. Theme/context: ${bookTheme}`;
-    }
-    
-    const fullPrompt = `Black and white line art coloring page for children. Simple clean outlines, no shading, no filled areas, white background. Subject: ${subjectDescription}. Style: Simple cartoon line drawing suitable for coloring, thick black outlines on pure white background.`;
-    
+  const generateImage = async (promptToUse: string): Promise<string> => {
     const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
-      body: { prompt: fullPrompt },
+      body: { prompt: promptToUse },
     });
     
     if (error) throw error;
@@ -92,9 +101,15 @@ export function ColoringPagesManager() {
       return;
     }
     
+    // Use full prompt if it's been customized, otherwise build it
+    const promptToUse = showFullPrompt && fullPrompt.trim() ? fullPrompt : buildFullPrompt(
+      aiPrompt,
+      books?.find(b => b.id === formData.book_id)?.generation_prompt
+    );
+    
     setGeneratingImage(true);
     try {
-      const imageUrl = await generateImage(aiPrompt, formData.book_id);
+      const imageUrl = await generateImage(promptToUse);
       setGeneratedImageUrl(imageUrl);
       setImageFile(null);
       toast.success("Image generated!");
@@ -110,7 +125,12 @@ export function ColoringPagesManager() {
     setRegeneratingId(page.id);
     
     try {
-      const imageUrl = await generateImage(prompt, page.book_id);
+      // Build the full prompt for regeneration
+      const selectedBook = books?.find(b => b.id === page.book_id);
+      const bookTheme = selectedBook?.generation_prompt;
+      const fullPromptToUse = buildFullPrompt(prompt, bookTheme);
+      
+      const imageUrl = await generateImage(fullPromptToUse);
       
       const { error } = await supabase
         .from("coloring_pages")
@@ -211,6 +231,8 @@ export function ColoringPagesManager() {
     setImageFile(null);
     setGeneratedImageUrl(null);
     setAiPrompt("");
+    setFullPrompt("");
+    setShowFullPrompt(false);
     setPdfFile(null);
     setPdfPages([]);
   };
@@ -317,7 +339,13 @@ export function ColoringPagesManager() {
       display_order: page.display_order || 0,
       book_id: page.book_id || "",
     });
-    setAiPrompt(page.description || page.title);
+    const subject = page.description || page.title;
+    setAiPrompt(subject);
+    // Initialize the full prompt
+    const selectedBook = books?.find(b => b.id === page.book_id);
+    const bookTheme = selectedBook?.generation_prompt;
+    setFullPrompt(buildFullPrompt(subject, bookTheme));
+    setShowFullPrompt(false);
     setDialogOpen(true);
   };
 
@@ -435,26 +463,78 @@ export function ColoringPagesManager() {
                       </span>
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Input
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="e.g., a friendly dragon flying over mountains"
-                      className="flex-1"
-                    />
+                  <div className="space-y-2">
+                    <Label className="text-sm">Subject Description</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={aiPrompt}
+                        onChange={(e) => {
+                          setAiPrompt(e.target.value);
+                          // Auto-update full prompt when subject changes (if not in custom mode)
+                          if (!showFullPrompt) {
+                            updateFullPrompt(e.target.value, formData.book_id);
+                          }
+                        }}
+                        placeholder="e.g., a friendly dragon flying over mountains"
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleGenerateImage}
+                        disabled={generatingImage || !aiPrompt.trim()}
+                        variant="secondary"
+                      >
+                        {generatingImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Toggle to show/edit full prompt */}
+                  <div className="space-y-2">
                     <Button
                       type="button"
-                      onClick={handleGenerateImage}
-                      disabled={generatingImage || !aiPrompt.trim()}
-                      variant="secondary"
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        if (!showFullPrompt) {
+                          // Initialize full prompt when opening
+                          updateFullPrompt(aiPrompt, formData.book_id);
+                        }
+                        setShowFullPrompt(!showFullPrompt);
+                      }}
                     >
-                      {generatingImage ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
+                      {showFullPrompt ? "▼ Hide Full Prompt" : "► Show Full Prompt (Advanced)"}
                     </Button>
+                    
+                    {showFullPrompt && (
+                      <div className="space-y-2">
+                        <Textarea
+                          value={fullPrompt}
+                          onChange={(e) => setFullPrompt(e.target.value)}
+                          placeholder="Full prompt for image generation..."
+                          rows={5}
+                          className="text-xs font-mono"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Edit the full prompt above. Use {"{SUBJECT}"} as placeholder for subject description.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateFullPrompt(aiPrompt, formData.book_id)}
+                        >
+                          Reset to Default Template
+                        </Button>
+                      </div>
+                    )}
                   </div>
+                  
                   {generatedImageUrl && (
                     <div className="relative">
                       <img 
