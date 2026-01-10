@@ -6989,6 +6989,45 @@ export type Database = {
         }
         Relationships: []
       }
+      wordle_user_stats: {
+        Row: {
+          best_streak: number
+          created_at: string
+          current_streak: number
+          id: string
+          last_played_date: string | null
+          last_win_date: string | null
+          total_games_played: number
+          total_wins: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_played_date?: string | null
+          last_win_date?: string | null
+          total_games_played?: number
+          total_wins?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_streak?: number
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_played_date?: string | null
+          last_win_date?: string | null
+          total_games_played?: number
+          total_wins?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       year_end_summary_sent: {
         Row: {
           created_at: string

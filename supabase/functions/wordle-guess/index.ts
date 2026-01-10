@@ -257,6 +257,61 @@ serve(async (req) => {
       })
       .eq("id", attempt.id);
 
+    // Update user stats when game is complete
+    if (isWin || isLoss) {
+      // Get or create user stats
+      let { data: userStats } = await supabaseAdmin
+        .from("wordle_user_stats")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!userStats) {
+        const { data: newStats } = await supabaseAdmin
+          .from("wordle_user_stats")
+          .insert({ user_id: user.id })
+          .select()
+          .single();
+        userStats = newStats;
+      }
+
+      if (userStats) {
+        const yesterday = new Date(mstDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        // Calculate new streak
+        let newStreak = userStats.current_streak;
+        if (isWin) {
+          // If last win was yesterday, continue streak; otherwise start new streak
+          if (userStats.last_win_date === yesterdayStr) {
+            newStreak = userStats.current_streak + 1;
+          } else if (userStats.last_win_date !== today) {
+            // Only reset if it's not the same day (shouldn't happen but safety check)
+            newStreak = 1;
+          }
+        } else {
+          // Loss breaks the streak
+          newStreak = 0;
+        }
+
+        const newBestStreak = Math.max(userStats.best_streak, newStreak);
+
+        await supabaseAdmin
+          .from("wordle_user_stats")
+          .update({
+            total_games_played: userStats.total_games_played + 1,
+            total_wins: isWin ? userStats.total_wins + 1 : userStats.total_wins,
+            current_streak: newStreak,
+            best_streak: newBestStreak,
+            last_played_date: today,
+            last_win_date: isWin ? today : userStats.last_win_date,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", userStats.id);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         result,
