@@ -22,13 +22,30 @@ interface DateInfo {
 interface WordleDatePickerProps {
   selectedDate: string | null;
   onDateSelect: (date: string) => void;
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
-export function WordleDatePicker({ selectedDate, onDateSelect }: WordleDatePickerProps) {
-  const [open, setOpen] = useState(false);
+export function WordleDatePicker({ 
+  selectedDate, 
+  onDateSelect,
+  externalOpen,
+  onExternalOpenChange 
+}: WordleDatePickerProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dates, setDates] = useState<DateInfo[]>([]);
   const [today, setToday] = useState<string>("");
+
+  // Use external open state if provided, otherwise use internal
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (onExternalOpenChange) {
+      onExternalOpenChange(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
 
   useEffect(() => {
     const loadDates = async () => {
