@@ -87,7 +87,8 @@ export function ColoringBooksManager() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
-      let coverUrl = editingBook?.cover_image_url || generatedImageUrl;
+      // Priority: uploaded file > newly generated image > existing cover
+      let coverUrl = generatedImageUrl || editingBook?.cover_image_url;
 
       if (imageFile) {
         setUploading(true);
