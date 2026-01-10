@@ -76,6 +76,8 @@ export default function ColoringBook() {
           coloring_pages(count)
         `)
         .eq("is_active", true)
+        .order("is_free", { ascending: false })
+        .order("coin_price", { ascending: true })
         .order("display_order", { ascending: true });
       if (error) throw error;
       return data as (ColoringBook & { coloring_pages: { count: number }[] })[];
