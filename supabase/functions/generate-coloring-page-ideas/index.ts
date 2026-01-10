@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { bookTitle, bookDescription } = await req.json();
+    const { bookTitle, bookDescription, existingTitles } = await req.json();
     
     if (!bookTitle) {
       throw new Error("Book title is required");
@@ -22,11 +22,21 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Build exclusion list from existing active pages
+    const existingList = Array.isArray(existingTitles) && existingTitles.length > 0
+      ? existingTitles.map((t: string) => t.toLowerCase().trim())
+      : [];
+    
     console.log(`Generating coloring page ideas for: ${bookTitle}`);
+    console.log(`Excluding ${existingList.length} existing pages:`, existingList);
 
     const systemPrompt = "You are a creative designer for children's coloring books. You suggest simple, appealing subjects that work well as coloring pages with clear outlines. For character-based themes (superheroes, princesses, cartoon characters, etc.), prioritize the actual characters themselves, not just their accessories or items.";
     
-    const userPrompt = `Generate 15-20 coloring page ideas for a coloring book titled "${bookTitle}"${bookDescription ? `. The book is about: ${bookDescription}` : ''}.
+    const exclusionNote = existingList.length > 0 
+      ? `\n\nCRITICAL - DO NOT SUGGEST ANY OF THESE (they already exist as pages):\n${existingList.join(", ")}\n\nGenerate COMPLETELY NEW ideas that are NOT similar to the above existing pages.`
+      : '';
+    
+    const userPrompt = `Generate 15-20 coloring page ideas for a coloring book titled "${bookTitle}"${bookDescription ? `. The book is about: ${bookDescription}` : ''}.${exclusionNote}
 
 CRITICAL REQUIREMENTS:
 - For character-based themes (superheroes, princesses, cartoon characters, movies, TV shows), suggest THE ACTUAL CHARACTERS first, then some items/scenes
