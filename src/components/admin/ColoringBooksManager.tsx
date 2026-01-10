@@ -31,6 +31,39 @@ export function ColoringBooksManager() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [showFullCoverPrompt, setShowFullCoverPrompt] = useState(false);
+  const [fullCoverPrompt, setFullCoverPrompt] = useState("");
+
+  const DEFAULT_COVER_PROMPT_TEMPLATE = `Create a FULL-COLOR children's coloring book cover that looks like a REAL PUBLISHED COLORING BOOK for the theme: "{THEME}".
+
+STYLE REFERENCE - Make it look like professional children's coloring book covers you'd find in stores:
+- DECORATIVE THEMED BORDER around the edges (flowers, vines, stars, themed elements that match the topic)
+- BIG STYLIZED TITLE TEXT at the top: "{THEME}" in fun, whimsical, colorful bubble/fancy letters
+- SUBTITLE below the title like "A Magical Coloring Adventure!" or "Coloring Book!" in a banner or ribbon
+- CENTRAL ILLUSTRATION featuring cute cartoon characters/scenes related to the theme
+- SCATTERED THEMED ELEMENTS throughout (small icons, doodles, decorations related to the theme)
+
+CRITICAL LAYOUT:
+- Square 1:1 aspect ratio
+- Full-bleed artwork extending to ALL edges - no white margins
+- The decorative border elements should touch all four edges
+- Bright, cheerful, pastel-friendly color palette
+- Kawaii/chibi cute art style for characters
+- Whimsical, magical, child-friendly aesthetic
+
+THIS IS A FULL-COLOR COVER - NOT a coloring page. Make it look like a finished, polished, commercial coloring book cover that would attract children.
+
+OUTPUT: High quality, print-ready, no watermarks.`;
+
+  const buildFullCoverPrompt = (theme: string): string => {
+    return DEFAULT_COVER_PROMPT_TEMPLATE.replace(/\{THEME\}/g, theme);
+  };
+
+  const updateFullCoverPrompt = (theme: string) => {
+    if (!showFullCoverPrompt || !fullCoverPrompt) {
+      setFullCoverPrompt(buildFullCoverPrompt(theme));
+    }
+  };
 
   const { data: books, isLoading } = useQuery({
     queryKey: ["admin-coloring-books"],
@@ -67,14 +100,18 @@ export function ColoringBooksManager() {
   };
 
   const handleGenerateCover = async () => {
-    if (!aiPrompt.trim()) {
+    if (!aiPrompt.trim() && !fullCoverPrompt.trim()) {
       toast.error("Please enter a description for the cover");
       return;
     }
     
     setGeneratingImage(true);
     try {
-      const imageUrl = await generateCover(aiPrompt);
+      // Use the full prompt if customized, otherwise use the template with theme
+      const promptToUse = showFullCoverPrompt && fullCoverPrompt 
+        ? fullCoverPrompt 
+        : buildFullCoverPrompt(aiPrompt);
+      const imageUrl = await generateCover(promptToUse);
       setGeneratedImageUrl(imageUrl);
       setImageFile(null);
       toast.success("Cover generated!");
@@ -166,6 +203,8 @@ export function ColoringBooksManager() {
     setImageFile(null);
     setGeneratedImageUrl(null);
     setAiPrompt("");
+    setShowFullCoverPrompt(false);
+    setFullCoverPrompt("");
   };
 
   const handleEdit = (book: any) => {
@@ -181,6 +220,8 @@ export function ColoringBooksManager() {
     setAiPrompt(book.title);
     setImageFile(null);
     setGeneratedImageUrl(null);
+    setShowFullCoverPrompt(false);
+    setFullCoverPrompt(buildFullCoverPrompt(book.title));
     setDialogOpen(true);
   };
 
@@ -326,26 +367,78 @@ export function ColoringBooksManager() {
                   <Sparkles className="w-4 h-4 text-primary" />
                   Generate Cover with AI
                 </Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="e.g., cute animals playing together"
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleGenerateCover}
-                    disabled={generatingImage || !aiPrompt.trim()}
-                    variant="secondary"
-                  >
-                    {generatingImage ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                  </Button>
+                
+                {/* Theme/Subject Input */}
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1 block">Cover Theme</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={aiPrompt}
+                      onChange={(e) => {
+                        setAiPrompt(e.target.value);
+                        updateFullCoverPrompt(e.target.value);
+                      }}
+                      placeholder="e.g., cute animals playing together"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleGenerateCover}
+                      disabled={generatingImage || (!aiPrompt.trim() && !fullCoverPrompt.trim())}
+                      variant="secondary"
+                    >
+                      {generatingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Toggle for Full Prompt */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowFullCoverPrompt(!showFullCoverPrompt);
+                    if (!showFullCoverPrompt && !fullCoverPrompt) {
+                      setFullCoverPrompt(buildFullCoverPrompt(aiPrompt || "your theme"));
+                    }
+                  }}
+                  className="text-xs h-7 px-2"
+                >
+                  {showFullCoverPrompt ? "Hide Full Prompt" : "Show Full Prompt (Advanced)"}
+                </Button>
+
+                {/* Full Prompt Editor */}
+                {showFullCoverPrompt && (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={fullCoverPrompt}
+                      onChange={(e) => setFullCoverPrompt(e.target.value)}
+                      rows={12}
+                      className="text-xs font-mono"
+                      placeholder="Full prompt for cover generation..."
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFullCoverPrompt(buildFullCoverPrompt(aiPrompt || "your theme"))}
+                        className="text-xs h-7"
+                      >
+                        Reset to Default Template
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use {"{THEME}"} as a placeholder for the cover theme entered above.
+                    </p>
+                  </div>
+                )}
+
                 {generatedImageUrl && (
                   <div className="relative">
                     <img 
