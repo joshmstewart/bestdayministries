@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Lightbulb, RefreshCw, Coins } from "lucide-react";
+import { ArrowLeft, Lightbulb, RefreshCw, Coins, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { WordleGrid } from "@/components/wordle/WordleGrid";
 import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
@@ -36,6 +36,7 @@ export default function WordleGame() {
   const [showResult, setShowResult] = useState(false);
   const [letterHints, setLetterHints] = useState<{ position: number; letter: string }[]>([]);
   const [noWordAvailable, setNoWordAvailable] = useState(false);
+  const [showThemeHint, setShowThemeHint] = useState(false);
 
   // Build keyboard status from guesses
   const keyboardStatus = useCallback(() => {
@@ -280,12 +281,36 @@ export default function WordleGame() {
           <>
             {/* User stats */}
             <WordleStats />
-            {/* Theme hint */}
+            {/* Theme hint - hidden by default */}
             {themeHint && (
               <Card className="p-3 mb-4 bg-muted/50">
-                <p className="text-sm text-center">
-                  <span className="font-medium">Hint:</span> {themeHint}
-                </p>
+                <div className="flex items-center justify-center gap-2">
+                  {showThemeHint ? (
+                    <>
+                      <p className="text-sm text-center">
+                        <span className="font-medium">Hint:</span> {themeHint}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2"
+                        onClick={() => setShowThemeHint(false)}
+                      >
+                        <EyeOff className="h-3 w-3" />
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowThemeHint(true)}
+                      className="text-muted-foreground"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Show Theme Hint
+                    </Button>
+                  )}
+                </div>
               </Card>
             )}
 
