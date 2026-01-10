@@ -72,6 +72,7 @@ export function ColoringManager() {
   const [generatingCover, setGeneratingCover] = useState<string | null>(null);
   const [generatedCoverUrl, setGeneratedCoverUrl] = useState<string | null>(null);
   const [coverPrompt, setCoverPrompt] = useState("");
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   // Page state
   const [bookPages, setBookPages] = useState<Record<string, ColoringPage[]>>({});
@@ -122,6 +123,32 @@ export function ColoringManager() {
       });
     }
   }, [books]);
+
+  // Generate description from title
+  const handleGenerateDescription = async () => {
+    if (!bookFormData.title.trim()) {
+      toast.error("Please enter a title first");
+      return;
+    }
+    
+    setGeneratingDescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-coloring-book-description", {
+        body: { title: bookFormData.title },
+      });
+
+      if (error) throw error;
+      
+      if (data?.description) {
+        setBookFormData(prev => ({ ...prev, description: data.description }));
+        toast.success("Description generated!");
+      }
+    } catch (error: any) {
+      showErrorToastWithCopy("Failed to generate description", error);
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
 
   // Generate cover image (COVER logic is intentionally separate from page generation)
   const generateCover = async (prompt: string): Promise<string> => {
@@ -1124,7 +1151,24 @@ DRAWING REQUIREMENTS:
               />
             </div>
             <div>
-              <Label>Description</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Description</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription || !bookFormData.title.trim()}
+                  className="h-7 text-xs"
+                >
+                  {generatingDescription ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-3 h-3 mr-1" />
+                  )}
+                  Generate
+                </Button>
+              </div>
               <Textarea
                 value={bookFormData.description}
                 onChange={(e) => setBookFormData({ ...bookFormData, description: e.target.value })}
