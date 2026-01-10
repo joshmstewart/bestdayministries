@@ -161,8 +161,8 @@ serve(async (req) => {
       );
     }
 
-    // Check if max guesses reached
-    if (attempt.guesses.length >= 6) {
+    // Check if max guesses reached (unlimited but coins diminish after 8)
+    if (attempt.guesses.length >= 20) {
       return new Response(
         JSON.stringify({ error: "Maximum guesses reached" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -172,7 +172,7 @@ serve(async (req) => {
     // Add guess
     const newGuesses = [...attempt.guesses, normalizedGuess];
     const isWin = normalizedGuess === dailyWord.word;
-    const isLoss = !isWin && newGuesses.length >= 6;
+    const isLoss = !isWin && newGuesses.length >= 20;
 
     // Calculate letter results
     const correctWord = dailyWord.word;
@@ -208,7 +208,13 @@ serve(async (req) => {
     let coinsEarned = 0;
     if (isWin) {
       const guessCount = newGuesses.length;
-      const rewardKey = `wordle_win_${guessCount}_guess${guessCount > 1 ? 'es' : ''}`;
+      // Determine the reward key based on guess count
+      let rewardKey: string;
+      if (guessCount <= 7) {
+        rewardKey = `wordle_win_${guessCount}`;
+      } else {
+        rewardKey = 'wordle_win_8_plus';
+      }
       
       const { data: reward } = await supabaseAdmin
         .from("coin_rewards_settings")
