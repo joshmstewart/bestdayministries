@@ -2,6 +2,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { CoinsDisplay } from "@/components/CoinsDisplay";
 import { StoreItemGrid } from "@/components/store/StoreItemGrid";
+import { CoinTransactionLedger } from "@/components/store/CoinTransactionLedger";
 import { useStorePurchases } from "@/hooks/useStorePurchases";
 import { useCoins } from "@/hooks/useCoins";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,7 @@ const Store = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [hidePurchased, setHidePurchased] = useState(false);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
 
   const fetchItems = async () => {
     try {
@@ -156,8 +158,16 @@ const Store = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Community
             </Button>
-            <CoinsDisplay />
+            <div onClick={() => setLedgerOpen(true)} className="cursor-pointer">
+              <CoinsDisplay />
+            </div>
           </div>
+
+          <CoinTransactionLedger
+            open={ledgerOpen}
+            onOpenChange={setLedgerOpen}
+            currentBalance={coins}
+          />
 
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold">Coin Shop</h1>
