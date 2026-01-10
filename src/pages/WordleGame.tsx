@@ -18,6 +18,8 @@ import { WordleHowToDialog, useWordleHowTo } from "@/components/wordle/WordleHow
 import { toast } from "sonner";
 import { WordleGrid } from "@/components/wordle/WordleGrid";
 import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
+import { WordleEasyKeyboard } from "@/components/wordle/WordleEasyKeyboard";
+import { WordleEasyModeToggle } from "@/components/wordle/WordleEasyModeToggle";
 import { WordleResultDialog } from "@/components/wordle/WordleResultDialog";
 import { WordleStats } from "@/components/wordle/WordleStats";
 import { WordleLeaderboard } from "@/components/wordle/WordleLeaderboard";
@@ -63,6 +65,13 @@ export default function WordleGame() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isToday, setIsToday] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  // Easy mode state
+  const [easyMode, setEasyMode] = useState(false);
+  const [scrambledLetters, setScrambledLetters] = useState<string[] | null>(null);
+  const [isBestie, setIsBestie] = useState(false);
+  const [easyModePreference, setEasyModePreference] = useState<boolean | null>(null);
+  const [savingEasyMode, setSavingEasyMode] = useState(false);
 
   // Ref for date picker to scroll to it
   const datePickerRef = useRef<HTMLDivElement>(null);
@@ -169,6 +178,11 @@ export default function WordleGame() {
             setExtraRoundsUsed(newData.extraRoundsUsed || 0);
             setRoundEnded(newData.roundEnded || false);
             setCanContinue(newData.canContinue || false);
+            // Easy mode state
+            setEasyMode(newData.easyMode || false);
+            setScrambledLetters(newData.scrambledLetters || null);
+            setIsBestie(newData.isBestie || false);
+            setEasyModePreference(newData.easyModePreference ?? null);
           }
         }
       } else {
@@ -188,6 +202,11 @@ export default function WordleGame() {
         setExtraRoundsUsed(data.extraRoundsUsed || 0);
         setRoundEnded(data.roundEnded || false);
         setCanContinue(data.canContinue || false);
+        // Easy mode state
+        setEasyMode(data.easyMode || false);
+        setScrambledLetters(data.scrambledLetters || null);
+        setIsBestie(data.isBestie || false);
+        setEasyModePreference(data.easyModePreference ?? null);
         
         if (data.gameOver) {
           setShowResult(true);
@@ -228,6 +247,41 @@ export default function WordleGame() {
     }
   }, [authLoading, isAuthenticated, loadGameState]);
 
+  // Handle easy mode toggle
+  const handleEasyModeToggle = async (enabled: boolean) => {
+    setSavingEasyMode(true);
+    try {
+      // Save preference to profile
+      const { error } = await supabase
+        .from("profiles")
+        .update({ wordle_easy_mode_enabled: enabled })
+        .eq("id", user?.id);
+      
+      if (error) throw error;
+      
+      setEasyModePreference(enabled);
+      
+      // Reload game state with new mode
+      const { data, error: stateError } = await supabase.functions.invoke("get-wordle-state", {
+        body: { date: selectedDate, easyMode: enabled }
+      });
+      
+      if (stateError) throw stateError;
+      
+      if (data?.hasWord) {
+        setEasyMode(data.easyMode || false);
+        setScrambledLetters(data.scrambledLetters || null);
+      }
+      
+      toast.success(enabled ? "Letter Mode enabled" : "Letter Mode disabled");
+    } catch (error) {
+      console.error("Error toggling easy mode:", error);
+      toast.error("Failed to save preference");
+    } finally {
+      setSavingEasyMode(false);
+    }
+  };
+
   // Handle keyboard input
   const handleKeyPress = useCallback((key: string) => {
     if (gameOver || submitting || roundEnded) return;
@@ -237,9 +291,21 @@ export default function WordleGame() {
     } else if (key === "BACKSPACE") {
       setCurrentGuess(prev => prev.slice(0, -1));
     } else if (/^[A-Z]$/.test(key) && currentGuess.length < 5) {
+      // In easy mode, validate that the letter is available
+      if (easyMode && scrambledLetters) {
+        const usedCounts: Record<string, number> = {};
+        for (const l of currentGuess) {
+          usedCounts[l] = (usedCounts[l] || 0) + 1;
+        }
+        const availableCount = scrambledLetters.filter(l => l === key).length;
+        const usedCount = usedCounts[key] || 0;
+        if (usedCount >= availableCount) {
+          return; // Letter not available
+        }
+      }
       setCurrentGuess(prev => prev + key);
     }
-  }, [gameOver, submitting, currentGuess]);
+  }, [gameOver, submitting, currentGuess, easyMode, scrambledLetters]);
 
   // Physical keyboard support
   useEffect(() => {
@@ -584,12 +650,39 @@ export default function WordleGame() {
                     </div>
                   )}
 
-                  {/* Keyboard */}
-                  <WordleKeyboard
-                    onKeyPress={handleKeyPress}
-                    keyboardStatus={keyboardStatus()}
-                    disabled={gameOver || submitting || roundEnded}
-                  />
+                  {/* Easy mode toggle */}
+                  {!gameOver && (
+                    <div className="mb-4">
+                      <WordleEasyModeToggle
+                        enabled={easyMode}
+                        onToggle={handleEasyModeToggle}
+                        isBestie={isBestie}
+                        disabled={savingEasyMode || guessResults.length > 0}
+                      />
+                      {guessResults.length > 0 && !gameOver && (
+                        <p className="text-xs text-muted-foreground text-center mt-1">
+                          Mode locked after first guess
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Keyboard - Easy mode or regular */}
+                  {easyMode && scrambledLetters ? (
+                    <WordleEasyKeyboard
+                      availableLetters={scrambledLetters}
+                      onKeyPress={handleKeyPress}
+                      keyboardStatus={keyboardStatus()}
+                      disabled={gameOver || submitting || roundEnded}
+                      currentGuess={currentGuess}
+                    />
+                  ) : (
+                    <WordleKeyboard
+                      onKeyPress={handleKeyPress}
+                      keyboardStatus={keyboardStatus()}
+                      disabled={gameOver || submitting || roundEnded}
+                    />
+                  )}
 
                   {/* Play Other Days button */}
                   <div className="flex justify-center mt-6" ref={datePickerRef}>

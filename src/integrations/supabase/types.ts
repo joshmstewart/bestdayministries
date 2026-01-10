@@ -4537,6 +4537,7 @@ export type Database = {
           tts_enabled: boolean
           tts_voice: string | null
           updated_at: string
+          wordle_easy_mode_enabled: boolean | null
         }
         Insert: {
           audio_notifications_enabled?: boolean | null
@@ -4554,6 +4555,7 @@ export type Database = {
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
+          wordle_easy_mode_enabled?: boolean | null
         }
         Update: {
           audio_notifications_enabled?: boolean | null
@@ -4571,6 +4573,7 @@ export type Database = {
           tts_enabled?: boolean
           tts_voice?: string | null
           updated_at?: string
+          wordle_easy_mode_enabled?: boolean | null
         }
         Relationships: [
           {
@@ -6887,6 +6890,7 @@ export type Database = {
           guesses: string[]
           hints_used: number
           id: string
+          is_easy_mode: boolean
           status: string
           updated_at: string
           user_id: string
@@ -6900,6 +6904,7 @@ export type Database = {
           guesses?: string[]
           hints_used?: number
           id?: string
+          is_easy_mode?: boolean
           status?: string
           updated_at?: string
           user_id: string
@@ -6913,6 +6918,7 @@ export type Database = {
           guesses?: string[]
           hints_used?: number
           id?: string
+          is_easy_mode?: boolean
           status?: string
           updated_at?: string
           user_id?: string
