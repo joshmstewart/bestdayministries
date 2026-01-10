@@ -6877,6 +6877,118 @@ export type Database = {
         }
         Relationships: []
       }
+      wordle_attempts: {
+        Row: {
+          coins_earned: number
+          completed_at: string | null
+          created_at: string
+          daily_word_id: string
+          guesses: string[]
+          hints_used: number
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coins_earned?: number
+          completed_at?: string | null
+          created_at?: string
+          daily_word_id: string
+          guesses?: string[]
+          hints_used?: number
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coins_earned?: number
+          completed_at?: string | null
+          created_at?: string
+          daily_word_id?: string
+          guesses?: string[]
+          hints_used?: number
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordle_attempts_daily_word_id_fkey"
+            columns: ["daily_word_id"]
+            isOneToOne: false
+            referencedRelation: "wordle_daily_words"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wordle_daily_words: {
+        Row: {
+          created_at: string
+          hint: string | null
+          id: string
+          theme_id: string | null
+          word: string
+          word_date: string
+        }
+        Insert: {
+          created_at?: string
+          hint?: string | null
+          id?: string
+          theme_id?: string | null
+          word: string
+          word_date: string
+        }
+        Update: {
+          created_at?: string
+          hint?: string | null
+          id?: string
+          theme_id?: string | null
+          word?: string
+          word_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordle_daily_words_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "wordle_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wordle_themes: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          emoji: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       year_end_summary_sent: {
         Row: {
           created_at: string

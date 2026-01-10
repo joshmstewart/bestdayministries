@@ -68,6 +68,7 @@ import CheckoutSuccess from "./pages/CheckoutSuccess";
 import DrinkCreator from "./pages/DrinkCreator";
 import RecipeMaker from "./pages/RecipeMaker";
 import RecipeGallery from "./pages/RecipeGallery";
+import WordleGame from "./pages/WordleGame";
 import NotFound from "./pages/NotFound";
 import DonationHistoryPage from "./pages/DonationHistoryPage";
 import PictureLogin from "./pages/PictureLogin";
@@ -261,6 +262,7 @@ const App = () => {
           <Route path="/games/recipe-maker" element={<RecipeMaker />} />
           <Route path="/games/recipe-gallery" element={<RecipeGallery />} />
           <Route path="/games/coloring-book" element={<ColoringBook />} />
+          <Route path="/games/wordle" element={<WordleGame />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
           <Route path="/store/product/:productId" element={<ProductDetail />} />

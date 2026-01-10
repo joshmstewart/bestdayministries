@@ -1,0 +1,125 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Get user from auth header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Missing authorization header");
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !user) {
+      throw new Error("Unauthorized");
+    }
+
+    // Get today's date in MST
+    const now = new Date();
+    const mstOffset = -7 * 60;
+    const mstDate = new Date(now.getTime() + mstOffset * 60 * 1000);
+    const today = mstDate.toISOString().split('T')[0];
+
+    // Get today's word
+    const { data: dailyWord } = await supabaseAdmin
+      .from("wordle_daily_words")
+      .select("*, wordle_themes(*)")
+      .eq("word_date", today)
+      .single();
+
+    if (!dailyWord) {
+      return new Response(
+        JSON.stringify({ 
+          hasWord: false,
+          message: "No word available for today yet"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get user's attempt for today
+    const { data: attempt } = await supabaseAdmin
+      .from("wordle_attempts")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("daily_word_id", dailyWord.id)
+      .single();
+
+    // Calculate results for each guess
+    const guessResults = [];
+    if (attempt?.guesses) {
+      for (const guess of attempt.guesses) {
+        const result = [];
+        const letterCounts: Record<string, number> = {};
+        
+        for (const letter of dailyWord.word) {
+          letterCounts[letter] = (letterCounts[letter] || 0) + 1;
+        }
+
+        // First pass: correct positions
+        for (let i = 0; i < 5; i++) {
+          if (guess[i] === dailyWord.word[i]) {
+            result[i] = "correct";
+            letterCounts[guess[i]]--;
+          }
+        }
+
+        // Second pass: present/absent
+        for (let i = 0; i < 5; i++) {
+          if (result[i]) continue;
+          if (letterCounts[guess[i]] > 0) {
+            result[i] = "present";
+            letterCounts[guess[i]]--;
+          } else {
+            result[i] = "absent";
+          }
+        }
+
+        guessResults.push({ guess, result });
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        hasWord: true,
+        theme: dailyWord.wordle_themes?.name,
+        themeEmoji: dailyWord.wordle_themes?.emoji,
+        themeHint: dailyWord.hint,
+        guesses: attempt?.guesses || [],
+        guessResults,
+        hintsUsed: attempt?.hints_used || 0,
+        status: attempt?.status || "not_started",
+        gameOver: attempt?.status === "won" || attempt?.status === "lost",
+        won: attempt?.status === "won",
+        word: (attempt?.status === "won" || attempt?.status === "lost") ? dailyWord.word : undefined,
+        coinsEarned: attempt?.coins_earned || 0
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Error in get-wordle-state:", error);
+    const message = error instanceof Error ? error.message : "Failed to get game state";
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
