@@ -7,7 +7,13 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Lightbulb, RefreshCw, Eye, EyeOff, Gamepad2, Trophy } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Lightbulb, RefreshCw, Eye, EyeOff, Gamepad2, Trophy, RotateCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { WordleGrid } from "@/components/wordle/WordleGrid";
 import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
@@ -24,7 +30,7 @@ interface GuessResult {
 export default function WordleGame() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, loading: authLoading } = useAuth();
   const activeTab = searchParams.get("tab") || "play";
   
   const [gameLoading, setGameLoading] = useState(true);
@@ -44,6 +50,42 @@ export default function WordleGame() {
   const [noWordAvailable, setNoWordAvailable] = useState(false);
   const [showThemeHint, setShowThemeHint] = useState(false);
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  // Reset game function (admin only)
+  const resetWordleGame = async (scope: 'self' | 'admins' | 'all') => {
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-wordle-game', {
+        body: { scope }
+      });
+
+      if (error) throw error;
+
+      toast.success(data.message || "Game reset successfully");
+      setResetDialogOpen(false);
+      
+      // Reset local state
+      setGuessResults([]);
+      setCurrentGuess("");
+      setGameOver(false);
+      setWon(false);
+      setCorrectWord(null);
+      setHintsUsed(0);
+      setLetterHints([]);
+      setShowResult(false);
+      setCoinsEarned(0);
+      
+      // Reload game state
+      await loadGameState();
+    } catch (error: any) {
+      console.error('Error resetting game:', error);
+      toast.error(error.message || "Failed to reset game");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // Build keyboard status from guesses
   const keyboardStatus = useCallback(() => {
@@ -274,7 +316,19 @@ export default function WordleGame() {
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold">Wordle</h1>
             </div>
-            <div className="w-20" /> {/* Spacer for centering */}
+            {isAdmin ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setResetDialogOpen(true)}
+                title="Reset Game (Admin)"
+                className="text-muted-foreground"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            ) : (
+              <div className="w-8" /> 
+            )}
           </div>
 
           {/* Tabs */}
@@ -411,6 +465,70 @@ export default function WordleGame() {
             coinsEarned={coinsEarned}
             hintsUsed={hintsUsed}
           />
+
+          {/* Reset Game Dialog (Admin only) */}
+          <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reset Wordle Game</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Choose who should have their today's game reset:
+                </p>
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-4"
+                    onClick={() => resetWordleGame('self')}
+                    disabled={resetting}
+                  >
+                    {resetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <div className="space-y-1">
+                      <div className="font-semibold">Only Me</div>
+                      <div className="text-xs text-muted-foreground">
+                        Reset only your game. You'll be able to play again today.
+                      </div>
+                    </div>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-4"
+                    onClick={() => resetWordleGame('admins')}
+                    disabled={resetting}
+                  >
+                    {resetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <div className="space-y-1">
+                      <div className="font-semibold">All Admins & Owners</div>
+                      <div className="text-xs text-muted-foreground">
+                        Reset game for all admin and owner accounts. Useful for testing.
+                      </div>
+                    </div>
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-4 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => {
+                      if (confirm('⚠️ This will reset the game for ALL USERS. Everyone will be able to play again today. Are you sure?')) {
+                        resetWordleGame('all');
+                      }
+                    }}
+                    disabled={resetting}
+                  >
+                    {resetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <div className="space-y-1">
+                      <div className="font-semibold">All Users</div>
+                      <div className="text-xs">
+                        ⚠️ Reset game for everyone in the system. Use with caution!
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
       <Footer />
