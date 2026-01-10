@@ -59,7 +59,7 @@ serve(async (req) => {
 
     console.log("Generating coloring page with prompt:", prompt);
 
-    // Use Lovable AI gateway with the correct endpoint for image generation
+    // Use Lovable AI gateway for image generation
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -71,7 +71,28 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: prompt
+            content: `Create a BLACK AND WHITE LINE ART coloring page for children: "${prompt}"
+
+CRITICAL REQUIREMENTS - THIS IS A COLORING PAGE, NOT A COVER:
+- BLACK LINES ON WHITE BACKGROUND ONLY
+- NO COLOR whatsoever - pure black outlines on white
+- NO shading, NO gray tones, NO gradients
+- NO filled-in areas - everything should be outlined for coloring
+- Clean, crisp black outlines that are easy to color inside
+- THICK, bold outlines (suitable for children to color)
+
+COMPOSITION:
+- Large, simple shapes that are easy to color
+- Clear separation between different areas
+- Fun, engaging illustration of the subject
+- Fill the page with the illustration (no title text, no borders)
+- Age-appropriate for children
+
+STYLE:
+- Simple cartoon/illustration style
+- Bold black outlines only
+- Empty white spaces inside shapes for coloring
+- Like a page from a real children's coloring book`
           }
         ],
         modalities: ["image", "text"]
@@ -105,7 +126,7 @@ serve(async (req) => {
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
     const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     
-    const fileName = `coloring-covers/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+    const fileName = `coloring-pages/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
     
     const { data: uploadData, error: uploadError } = await uploadWithRetry(
       supabase,
