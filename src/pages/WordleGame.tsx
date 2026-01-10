@@ -697,7 +697,7 @@ export default function WordleGame() {
                       className="gap-2"
                     >
                       <Calendar className="h-4 w-4" />
-                      Play Other Days
+                      Play Previous Days
                     </Button>
                   </div>
                 </>
