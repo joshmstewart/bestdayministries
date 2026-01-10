@@ -273,11 +273,6 @@ export default function WordleGame() {
             </Button>
             <div className="flex-1 text-center">
               <h1 className="text-2xl font-bold">Wordle</h1>
-              {theme && activeTab === "play" && (
-                <p className="text-sm text-muted-foreground">
-                  {themeEmoji} Today's theme: {theme}
-                </p>
-              )}
             </div>
             <div className="w-20" /> {/* Spacer for centering */}
           </div>
