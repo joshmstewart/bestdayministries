@@ -89,6 +89,9 @@ export function ColoringManager() {
   const [pageIdeas, setPageIdeas] = useState<Record<string, string[]>>({});
   const [selectedIdeas, setSelectedIdeas] = useState<Record<string, Set<string>>>({});
   const [generatingFromIdeas, setGeneratingFromIdeas] = useState<string | null>(null);
+  
+  // Filter state - hide archived by default
+  const [showArchived, setShowArchived] = useState(false);
   const [ideaProgress, setIdeaProgress] = useState<{ current: number; total: number } | null>(null);
 
   // Fetch books
@@ -608,8 +611,10 @@ DRAWING REQUIREMENTS:
         ) : (
           <Accordion type="single" collapsible className="space-y-2">
             {books.map((book) => {
-              const pages = bookPages[book.id] || [];
-              const missingCount = pages.filter((p) => !p.image_url).length;
+              const allPages = bookPages[book.id] || [];
+              const archivedCount = allPages.filter(p => p.is_active === false).length;
+              const pages = showArchived ? allPages : allPages.filter(p => p.is_active !== false);
+              const missingCount = allPages.filter((p) => p.is_active !== false && !p.image_url).length;
               
               return (
                 <AccordionItem key={book.id} value={book.id} className="border rounded-lg overflow-hidden">
@@ -643,7 +648,10 @@ DRAWING REQUIREMENTS:
                             </Badge>
                           )}
                         </div>
-                        <span className="text-sm text-muted-foreground">{pages.length} pages</span>
+                        <span className="text-sm text-muted-foreground">
+                          {allPages.filter(p => p.is_active !== false).length} pages
+                          {archivedCount > 0 && <span className="text-muted-foreground/70"> (+{archivedCount} archived)</span>}
+                        </span>
                       </div>
                     </div>
                   </AccordionTrigger>
@@ -947,8 +955,39 @@ DRAWING REQUIREMENTS:
                       </div>
                     </div>
 
-                    {/* Pages Grid */}
-                    {pages.length === 0 ? (
+                    {/* Pages Filter & Grid */}
+                    {archivedCount > 0 && (
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-muted-foreground">
+                          {pages.length} {showArchived ? 'total' : 'active'} pages
+                          {!showArchived && archivedCount > 0 && ` (${archivedCount} archived)`}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id={`show-archived-${book.id}`}
+                            checked={showArchived}
+                            onCheckedChange={setShowArchived}
+                          />
+                          <Label htmlFor={`show-archived-${book.id}`} className="text-sm cursor-pointer">
+                            Show archived
+                          </Label>
+                        </div>
+                      </div>
+                    )}
+
+                    {pages.length === 0 && !showArchived && archivedCount > 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Archive className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>All {archivedCount} pages are archived.</p>
+                        <Button
+                          variant="link"
+                          onClick={() => setShowArchived(true)}
+                          className="mt-2"
+                        >
+                          Show archived pages
+                        </Button>
+                      </div>
+                    ) : pages.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         No pages yet. Add your first coloring page above.
                       </div>
