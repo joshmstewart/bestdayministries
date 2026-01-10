@@ -135,7 +135,7 @@ export function WordleHowToDialog({ open, onOpenChange }: WordleHowToDialogProps
             <div
               key={idx}
               className={`w-2 h-2 rounded-full transition-colors ${
-                idx === currentStep ? "bg-primary" : "bg-muted"
+                idx === currentStep ? "bg-primary" : "bg-primary/30 border border-primary/50"
               }`}
             />
           ))}
