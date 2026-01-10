@@ -210,8 +210,12 @@ serve(async (req) => {
       const guessCount = newGuesses.length;
       // Determine the reward key based on guess count
       let rewardKey: string;
-      if (guessCount <= 7) {
-        rewardKey = `wordle_win_${guessCount}`;
+      if (guessCount === 1) {
+        rewardKey = 'wordle_win_1_guess';
+      } else if (guessCount >= 2 && guessCount <= 6) {
+        rewardKey = `wordle_win_${guessCount}_guesses`;
+      } else if (guessCount === 7) {
+        rewardKey = 'wordle_win_7';
       } else {
         rewardKey = 'wordle_win_8_plus';
       }
