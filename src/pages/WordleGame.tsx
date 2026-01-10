@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Lightbulb, RefreshCw, Coins, Eye, EyeOff } from "lucide-react";
@@ -228,149 +230,161 @@ export default function WordleGame() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col">
+        <UnifiedHeader />
+        <main className="flex-1 flex items-center justify-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen pt-24 pb-8 px-4">
-        <div className="container max-w-md mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
-          <p className="text-muted-foreground mb-6">Please sign in to play Wordle</p>
-          <Button onClick={() => navigate("/auth")}>Sign In</Button>
-        </div>
-      </main>
+      <div className="min-h-screen flex flex-col">
+        <UnifiedHeader />
+        <main className="flex-1 pt-24 pb-8 px-4">
+          <div className="container max-w-md mx-auto text-center">
+            <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
+            <p className="text-muted-foreground mb-6">Please sign in to play Wordle</p>
+            <Button onClick={() => navigate("/auth")}>Sign In</Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen pt-24 pb-8 px-4">
-      <div className="container max-w-lg mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="outline" size="sm" onClick={() => navigate("/community")}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-          <div className="flex-1 text-center">
-            <h1 className="text-2xl font-bold">Wordle</h1>
-            {theme && (
-              <p className="text-sm text-muted-foreground">
-                {themeEmoji} Today's theme: {theme}
-              </p>
-            )}
-          </div>
-          <div className="w-20" /> {/* Spacer for centering */}
-        </div>
-
-        {gameLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : noWordAvailable ? (
-          <Card className="p-8 text-center">
-            <h2 className="text-xl font-semibold mb-4">No Word Available</h2>
-            <p className="text-muted-foreground mb-6">
-              Today's word is being generated. Please try again in a moment.
-            </p>
-            <Button onClick={loadGameState}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
+    <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      <main className="flex-1 pt-24 pb-8 px-4">
+        <div className="container max-w-lg mx-auto">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <Button variant="outline" size="sm" onClick={() => navigate("/community")}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
             </Button>
-          </Card>
-        ) : (
-          <>
-            {/* User stats */}
-            <WordleStats refreshKey={statsRefreshKey} />
-            {/* Theme hint - hidden by default */}
-            {themeHint && (
-              <Card className="p-3 mb-4 bg-muted/50">
-                <div className="flex items-center justify-center gap-2">
-                  {showThemeHint ? (
-                    <>
-                      <p className="text-sm text-center">
-                        <span className="font-medium">Hint:</span> {themeHint}
-                      </p>
+            <div className="flex-1 text-center">
+              <h1 className="text-2xl font-bold">Wordle</h1>
+              {theme && (
+                <p className="text-sm text-muted-foreground">
+                  {themeEmoji} Today's theme: {theme}
+                </p>
+              )}
+            </div>
+            <div className="w-20" /> {/* Spacer for centering */}
+          </div>
+
+          {gameLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : noWordAvailable ? (
+            <Card className="p-8 text-center">
+              <h2 className="text-xl font-semibold mb-4">No Word Available</h2>
+              <p className="text-muted-foreground mb-6">
+                Today's word is being generated. Please try again in a moment.
+              </p>
+              <Button onClick={loadGameState}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </Card>
+          ) : (
+            <>
+              {/* User stats */}
+              <WordleStats refreshKey={statsRefreshKey} />
+              {/* Theme hint - hidden by default */}
+              {themeHint && (
+                <Card className="p-3 mb-4 bg-muted/50">
+                  <div className="flex items-center justify-center gap-2">
+                    {showThemeHint ? (
+                      <>
+                        <p className="text-sm text-center">
+                          <span className="font-medium">Hint:</span> {themeHint}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2"
+                          onClick={() => setShowThemeHint(false)}
+                        >
+                          <EyeOff className="h-3 w-3" />
+                        </Button>
+                      </>
+                    ) : (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 px-2"
-                        onClick={() => setShowThemeHint(false)}
+                        onClick={() => setShowThemeHint(true)}
+                        className="text-muted-foreground"
                       >
-                        <EyeOff className="h-3 w-3" />
+                        <Eye className="h-4 w-4 mr-2" />
+                        Show Theme Hint
                       </Button>
-                    </>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowThemeHint(true)}
-                      className="text-muted-foreground"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Show Theme Hint
-                    </Button>
-                  )}
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Hint button */}
+              {!gameOver && (
+                <div className="flex justify-center mb-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleUseHint}
+                    disabled={hintsUsed >= 3}
+                  >
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    Use Hint ({3 - hintsUsed} left)
+                  </Button>
                 </div>
-              </Card>
-            )}
+              )}
 
-            {/* Hint button */}
-            {!gameOver && (
-              <div className="flex justify-center mb-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleUseHint}
-                  disabled={hintsUsed >= 3}
-                >
-                  <Lightbulb className="h-4 w-4 mr-2" />
-                  Use Hint ({3 - hintsUsed} left)
-                </Button>
-              </div>
-            )}
+              {/* Letter hints display */}
+              {letterHints.length > 0 && (
+                <div className="flex justify-center gap-2 mb-4">
+                  {letterHints.map((hint, idx) => (
+                    <span key={idx} className="px-2 py-1 bg-green-500/20 text-green-700 rounded text-sm font-mono">
+                      Position {hint.position + 1}: {hint.letter}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-            {/* Letter hints display */}
-            {letterHints.length > 0 && (
-              <div className="flex justify-center gap-2 mb-4">
-                {letterHints.map((hint, idx) => (
-                  <span key={idx} className="px-2 py-1 bg-green-500/20 text-green-700 rounded text-sm font-mono">
-                    Position {hint.position + 1}: {hint.letter}
-                  </span>
-                ))}
-              </div>
-            )}
+              {/* Game grid */}
+              <WordleGrid
+                guessResults={guessResults}
+                currentGuess={currentGuess}
+                letterHints={letterHints}
+              />
 
-            {/* Game grid */}
-            <WordleGrid
-              guessResults={guessResults}
-              currentGuess={currentGuess}
-              letterHints={letterHints}
-            />
+              {/* Keyboard */}
+              <WordleKeyboard
+                onKeyPress={handleKeyPress}
+                keyboardStatus={keyboardStatus()}
+                disabled={gameOver || submitting}
+              />
+            </>
+          )}
 
-            {/* Keyboard */}
-            <WordleKeyboard
-              onKeyPress={handleKeyPress}
-              keyboardStatus={keyboardStatus()}
-              disabled={gameOver || submitting}
-            />
-          </>
-        )}
-
-        {/* Result dialog */}
-        <WordleResultDialog
-          open={showResult}
-          onOpenChange={setShowResult}
-          won={won}
-          word={correctWord || ""}
-          guessCount={guessResults.length}
-          coinsEarned={coinsEarned}
-          hintsUsed={hintsUsed}
-        />
-      </div>
-    </main>
+          {/* Result dialog */}
+          <WordleResultDialog
+            open={showResult}
+            onOpenChange={setShowResult}
+            won={won}
+            word={correctWord || ""}
+            guessCount={guessResults.length}
+            coinsEarned={coinsEarned}
+            hintsUsed={hintsUsed}
+          />
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 }
