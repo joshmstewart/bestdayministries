@@ -3,15 +3,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Check, Eye } from "lucide-react";
 import { OptimizedImage } from "@/components/OptimizedImage";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PurchaseDialog } from "./PurchaseDialog";
 import { CoinIcon } from "@/components/CoinIcon";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StoreItemCardProps {
   id: string;
@@ -23,6 +26,12 @@ interface StoreItemCardProps {
   onPurchase: (itemId: string, price: number) => Promise<boolean>;
   userCoins: number;
   isPurchased: boolean;
+}
+
+interface ColoringPage {
+  id: string;
+  title: string;
+  image_url: string;
 }
 
 export const StoreItemCard = ({
@@ -39,8 +48,31 @@ export const StoreItemCard = ({
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [coloringPages, setColoringPages] = useState<ColoringPage[]>([]);
+  const [loadingPages, setLoadingPages] = useState(false);
 
   const canAfford = userCoins >= price;
+  const isColoringBook = id.startsWith("coloring_book_");
+  const bookId = isColoringBook ? id.replace("coloring_book_", "") : null;
+
+  // Fetch coloring book pages when preview opens
+  useEffect(() => {
+    if (showPreviewDialog && isColoringBook && bookId) {
+      setLoadingPages(true);
+      supabase
+        .from("coloring_pages")
+        .select("id, title, image_url")
+        .eq("book_id", bookId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .then(({ data, error }) => {
+          if (!error && data) {
+            setColoringPages(data);
+          }
+          setLoadingPages(false);
+        });
+    }
+  }, [showPreviewDialog, isColoringBook, bookId]);
 
   const handlePurchase = async () => {
     setPurchasing(true);
@@ -82,8 +114,11 @@ export const StoreItemCard = ({
                 onClick={() => setShowPreviewDialog(true)}
                 className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
               >
-                <div className="bg-white/90 rounded-full p-3 shadow-lg">
+                <div className="bg-white/90 rounded-full p-3 shadow-lg flex items-center gap-2">
                   <Eye className="h-5 w-5 text-foreground" />
+                  {isColoringBook && (
+                    <span className="text-sm font-medium text-foreground">Preview Pages</span>
+                  )}
                 </div>
               </button>
             </div>
@@ -128,45 +163,87 @@ export const StoreItemCard = ({
 
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh]">
           <DialogHeader>
-            <DialogTitle>{name}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Preview: {name}
+            </DialogTitle>
+            <DialogDescription>
+              {isColoringBook
+                ? "See what's inside this coloring book before you buy!"
+                : description}
+            </DialogDescription>
           </DialogHeader>
-          {imageUrl && (
-            <div className="rounded-lg overflow-hidden bg-muted">
-              <OptimizedImage
-                src={imageUrl}
-                alt={name}
-                className="w-full object-contain"
-              />
-            </div>
-          )}
-          <p className="text-muted-foreground">{description}</p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xl font-bold text-primary">
-              <CoinIcon size={20} />
-              <span>{price.toLocaleString()} coins</span>
-            </div>
-            <Button
-              onClick={() => {
-                setShowPreviewDialog(false);
-                setShowPurchaseDialog(true);
-              }}
-              disabled={!canAfford || isPurchased}
-              variant={isPurchased ? "secondary" : "default"}
-            >
-              {isPurchased ? (
-                <>
-                  <Check className="h-4 w-4 mr-2" />
-                  Purchased
-                </>
+
+          {isColoringBook ? (
+            <ScrollArea className="max-h-[50vh]">
+              {loadingPages ? (
+                <div className="text-center py-8 text-muted-foreground">Loading preview...</div>
+              ) : coloringPages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No pages to preview yet.</div>
               ) : (
-                <>
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {canAfford ? "Purchase" : "Insufficient Coins"}
-                </>
+                <div className="grid grid-cols-3 gap-3 p-1">
+                  {coloringPages.map((page) => (
+                    <div key={page.id} className="space-y-1">
+                      <div className="rounded-lg overflow-hidden border bg-white p-1">
+                        <img
+                          src={page.image_url}
+                          alt={page.title}
+                          className="w-full h-auto object-contain"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center truncate">{page.title}</p>
+                    </div>
+                  ))}
+                </div>
               )}
-            </Button>
+            </ScrollArea>
+          ) : (
+            imageUrl && (
+              <div className="rounded-lg overflow-hidden bg-muted">
+                <OptimizedImage
+                  src={imageUrl}
+                  alt={name}
+                  className="w-full object-contain"
+                />
+              </div>
+            )
+          )}
+
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex items-center gap-2 text-sm">
+              <span>Price:</span>
+              <span className="flex items-center gap-1 font-bold text-primary">
+                <CoinIcon size={14} />
+                {price.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowPreviewDialog(false);
+                  setShowPurchaseDialog(true);
+                }}
+                disabled={!canAfford || isPurchased}
+                variant={isPurchased ? "secondary" : "default"}
+              >
+                {isPurchased ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Purchased
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {canAfford ? "Purchase" : "Insufficient Coins"}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
