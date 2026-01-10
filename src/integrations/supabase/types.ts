@@ -6993,6 +6993,8 @@ export type Database = {
         Row: {
           best_streak: number
           created_at: string
+          current_month_wins: number | null
+          current_month_year: string | null
           current_streak: number
           id: string
           last_played_date: string | null
@@ -7005,6 +7007,8 @@ export type Database = {
         Insert: {
           best_streak?: number
           created_at?: string
+          current_month_wins?: number | null
+          current_month_year?: string | null
           current_streak?: number
           id?: string
           last_played_date?: string | null
@@ -7017,6 +7021,8 @@ export type Database = {
         Update: {
           best_streak?: number
           created_at?: string
+          current_month_wins?: number | null
+          current_month_year?: string | null
           current_streak?: number
           id?: string
           last_played_date?: string | null

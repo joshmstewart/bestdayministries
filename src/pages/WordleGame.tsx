@@ -12,6 +12,7 @@ import { WordleGrid } from "@/components/wordle/WordleGrid";
 import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
 import { WordleResultDialog } from "@/components/wordle/WordleResultDialog";
 import { WordleStats } from "@/components/wordle/WordleStats";
+import { WordleLeaderboard } from "@/components/wordle/WordleLeaderboard";
 import confetti from "canvas-confetti";
 
 interface GuessResult {
@@ -297,6 +298,10 @@ export default function WordleGame() {
             <>
               {/* User stats */}
               <WordleStats refreshKey={statsRefreshKey} />
+              
+              {/* Leaderboard */}
+              <WordleLeaderboard />
+              
               {/* Theme hint - hidden by default */}
               {themeHint && (
                 <Card className="p-3 mb-4 bg-muted/50">
