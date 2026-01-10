@@ -23,6 +23,7 @@ interface StoreItem {
   category: string;
   image_url: string | null;
   display_order: number;
+  pageCount?: number;
 }
 
 const Store = () => {
@@ -65,10 +66,11 @@ const Store = () => {
           .eq("is_purchasable", true),
         supabase
           .from("coloring_books")
-          .select("id, title, description, cover_image_url, coin_price, is_free, is_active, display_order")
+          .select("id, title, description, cover_image_url, coin_price, is_free, is_active, display_order, coloring_pages!inner(id)")
           .eq("is_active", true)
           .eq("is_free", false)
-          .gt("coin_price", 0),
+          .gt("coin_price", 0)
+          .eq("coloring_pages.is_active", true),
         user ? supabase
           .from("user_memory_match_packs")
           .select("pack_id")
@@ -99,8 +101,22 @@ const Store = () => {
         display_order: 1000 + index,
       }));
 
-      // Convert coloring books to store item format
-      const coloringBookItems: StoreItem[] = (coloringBooksResult.data || []).map((book, index) => ({
+      // Convert coloring books to store item format - aggregate by book id to count pages
+      const bookPageCounts = new Map<string, number>();
+      (coloringBooksResult.data || []).forEach((book: any) => {
+        const pageCount = Array.isArray(book.coloring_pages) ? book.coloring_pages.length : 0;
+        bookPageCounts.set(book.id, (bookPageCounts.get(book.id) || 0) + pageCount);
+      });
+      
+      // Deduplicate books (since inner join creates multiple rows)
+      const uniqueBooks = new Map<string, any>();
+      (coloringBooksResult.data || []).forEach((book: any) => {
+        if (!uniqueBooks.has(book.id)) {
+          uniqueBooks.set(book.id, book);
+        }
+      });
+      
+      const coloringBookItems: StoreItem[] = Array.from(uniqueBooks.values()).map((book, index) => ({
         id: `coloring_book_${book.id}`,
         name: `Coloring Book: ${book.title}`,
         description: book.description || `Unlock the ${book.title} coloring book`,
@@ -108,6 +124,7 @@ const Store = () => {
         category: "games",
         image_url: book.cover_image_url,
         display_order: 2000 + (book.display_order || index),
+        pageCount: bookPageCounts.get(book.id) || 0,
       }));
 
       // Combine and set items

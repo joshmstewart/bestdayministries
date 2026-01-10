@@ -7,6 +7,7 @@ interface StoreItem {
   price: number;
   category: string;
   image_url: string | null;
+  pageCount?: number;
 }
 
 interface Purchase {
@@ -62,6 +63,7 @@ export const StoreItemGrid = ({ items, onPurchase, userCoins, loading, purchases
             onPurchase={onPurchase}
             userCoins={userCoins}
             isPurchased={isPurchased}
+            pageCount={item.pageCount}
           />
         );
       })}
