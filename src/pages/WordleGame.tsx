@@ -650,8 +650,8 @@ export default function WordleGame() {
                     </div>
                   )}
 
-                  {/* Easy mode toggle */}
-                  {!gameOver && (
+                  {/* Easy mode toggle - only show to Besties */}
+                  {!gameOver && isBestie && (
                     <div className="mb-4">
                       <WordleEasyModeToggle
                         enabled={easyMode}
