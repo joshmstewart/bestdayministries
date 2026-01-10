@@ -251,7 +251,6 @@ const Admin = () => {
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
-            <TabsTrigger value="stickers">Stickers</TabsTrigger>
             <TabsTrigger value="games">Games</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
               Store
@@ -476,10 +475,6 @@ const Admin = () => {
 
           <TabsContent value="featured-item">
             <FeaturedItemManager />
-          </TabsContent>
-
-          <TabsContent value="stickers">
-            <StickerCollectionManager />
           </TabsContent>
 
           <TabsContent value="games">
