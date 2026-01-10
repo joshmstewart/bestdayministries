@@ -378,8 +378,18 @@ DRAWING REQUIREMENTS:
   const handleGenerateIdeas = async (book: ColoringBook) => {
     setGeneratingIdeas(book.id);
     try {
+      // Get existing active page titles to exclude from suggestions
+      const existingPages = bookPages[book.id] || [];
+      const existingTitles = existingPages
+        .filter(page => page.is_active !== false) // Only exclude active pages, archived can be suggested again
+        .map(page => page.title);
+      
       const { data, error } = await supabase.functions.invoke("generate-coloring-page-ideas", {
-        body: { bookTitle: book.title, bookDescription: book.description },
+        body: { 
+          bookTitle: book.title, 
+          bookDescription: book.description,
+          existingTitles: existingTitles,
+        },
       });
       
       if (error) throw error;
