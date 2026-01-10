@@ -134,7 +134,7 @@ export function ColoringManager() {
     setGeneratingDescription(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-coloring-book-description", {
-        body: { title: bookFormData.title },
+        body: { bookTitle: bookFormData.title },
       });
 
       if (error) throw error;
