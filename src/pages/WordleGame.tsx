@@ -324,35 +324,33 @@ export default function WordleGame() {
                   
                   {/* Theme hint - hidden by default */}
                   {themeHint && (
-                    <Card className="p-3 mb-4 bg-muted/50">
-                      <div className="flex items-center justify-center gap-2">
-                        {showThemeHint ? (
-                          <>
-                            <p className="text-sm text-center">
-                              <span className="font-medium">Hint:</span> {themeHint}
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2"
-                              onClick={() => setShowThemeHint(false)}
-                            >
-                              <EyeOff className="h-3 w-3" />
-                            </Button>
-                          </>
-                        ) : (
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      {showThemeHint ? (
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">Hint:</span> {themeHint}
+                          </p>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setShowThemeHint(true)}
-                            className="text-muted-foreground"
+                            className="h-5 w-5 p-0"
+                            onClick={() => setShowThemeHint(false)}
                           >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Show Theme Hint
+                            <EyeOff className="h-3 w-3" />
                           </Button>
-                        )}
-                      </div>
-                    </Card>
+                        </>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowThemeHint(true)}
+                          className="text-muted-foreground h-6 text-xs px-2"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Show Hint
+                        </Button>
+                      )}
+                    </div>
                   )}
 
                   {/* Hint button */}
