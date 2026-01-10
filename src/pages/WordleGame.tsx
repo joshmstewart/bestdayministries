@@ -471,14 +471,25 @@ export default function WordleGame() {
                   {/* User stats */}
                   <WordleStats refreshKey={statsRefreshKey} />
                   
-                  {/* Date picker */}
-                  <div className="flex justify-center mb-4">
+                  {/* Date picker and Hint button on same line */}
+                  <div className="flex justify-center items-center gap-3 mb-4">
                     <WordleDatePicker 
                       selectedDate={selectedDate} 
                       onDateSelect={handleDateSelect}
                       externalOpen={showDatePicker}
                       onExternalOpenChange={setShowDatePicker}
                     />
+                    {!gameOver && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUseHint}
+                        disabled={hintsUsed >= 3}
+                      >
+                        <Lightbulb className="h-4 w-4 mr-2" />
+                        Hint ({3 - hintsUsed})
+                      </Button>
+                    )}
                   </div>
                   
                   {/* Past game notice */}
@@ -525,21 +536,6 @@ export default function WordleGame() {
                           Show Hint
                         </Button>
                       )}
-                    </div>
-                  )}
-
-                  {/* Hint button */}
-                  {!gameOver && (
-                    <div className="flex justify-center mb-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleUseHint}
-                        disabled={hintsUsed >= 3}
-                      >
-                        <Lightbulb className="h-4 w-4 mr-2" />
-                        Use Hint ({3 - hintsUsed} left)
-                      </Button>
                     </div>
                   )}
 
