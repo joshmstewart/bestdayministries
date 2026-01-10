@@ -278,6 +278,7 @@ serve(async (req) => {
         if (!existingStats) {
           // Create new stats row
           const newStreak = isWin ? 1 : 0;
+          const currentMonthYear = new Date().toISOString().slice(0, 7); // YYYY-MM format
           const { error: insertError } = await supabaseAdmin
             .from("wordle_user_stats")
             .insert({
@@ -287,7 +288,9 @@ serve(async (req) => {
               current_streak: newStreak,
               best_streak: newStreak,
               last_played_date: today,
-              last_win_date: isWin ? today : null
+              last_win_date: isWin ? today : null,
+              current_month_wins: isWin ? 1 : 0,
+              current_month_year: currentMonthYear
             });
           
           if (insertError) {
@@ -310,6 +313,13 @@ serve(async (req) => {
 
           const newBestStreak = Math.max(existingStats.best_streak, newStreak);
 
+          // Check if we need to reset monthly wins for a new month
+          const currentMonthYear = new Date().toISOString().slice(0, 7);
+          const isNewMonth = existingStats.current_month_year !== currentMonthYear;
+          const newMonthlyWins = isNewMonth 
+            ? (isWin ? 1 : 0) 
+            : (existingStats.current_month_wins || 0) + (isWin ? 1 : 0);
+
           const { error: updateError } = await supabaseAdmin
             .from("wordle_user_stats")
             .update({
@@ -319,6 +329,8 @@ serve(async (req) => {
               best_streak: newBestStreak,
               last_played_date: today,
               last_win_date: isWin ? today : existingStats.last_win_date,
+              current_month_wins: newMonthlyWins,
+              current_month_year: currentMonthYear,
               updated_at: new Date().toISOString()
             })
             .eq("id", existingStats.id);
