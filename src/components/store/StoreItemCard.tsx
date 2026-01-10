@@ -26,6 +26,7 @@ interface StoreItemCardProps {
   onPurchase: (itemId: string, price: number) => Promise<boolean>;
   userCoins: number;
   isPurchased: boolean;
+  pageCount?: number;
 }
 
 interface ColoringPage {
@@ -44,6 +45,7 @@ export const StoreItemCard = ({
   onPurchase,
   userCoins,
   isPurchased,
+  pageCount,
 }: StoreItemCardProps) => {
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -132,6 +134,11 @@ export const StoreItemCard = ({
           <CardDescription className="line-clamp-2">
             {description}
           </CardDescription>
+          {isColoringBook && pageCount !== undefined && pageCount > 0 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {pageCount} {pageCount === 1 ? 'page' : 'pages'}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="flex-1 pt-0">
           <div className="flex items-center gap-2 text-2xl font-bold text-primary">
