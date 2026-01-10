@@ -79,6 +79,14 @@ export const CoinTransactionLedger = ({
     .filter((t) => t.amount < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
+  // Calculate running balance for each transaction (oldest to newest, then reverse for display)
+  const transactionsWithBalance = [...transactions].reverse().reduce((acc, transaction, index) => {
+    const previousBalance = index === 0 ? (currentBalance - totalEarned + totalSpent) : acc[index - 1].runningBalance;
+    const runningBalance = previousBalance + transaction.amount;
+    acc.push({ ...transaction, runningBalance });
+    return acc;
+  }, [] as (CoinTransaction & { runningBalance: number })[]).reverse();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh]">
@@ -122,55 +130,60 @@ export const CoinTransactionLedger = ({
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
-                <TableHead className="w-[140px]">Date</TableHead>
+                <TableHead className="w-[120px]">Date</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right w-[100px]">Amount</TableHead>
+                <TableHead className="text-right w-[90px]">Amount</TableHead>
+                <TableHead className="text-right w-[90px]">Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-14 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-14 ml-auto" /></TableCell>
                   </TableRow>
                 ))
-              ) : transactions.length === 0 ? (
+              ) : transactionsWithBalance.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     No transactions yet. Start earning coins!
                   </TableCell>
                 </TableRow>
               ) : (
-                transactions.map((transaction) => (
+                transactionsWithBalance.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(transaction.created_at), "MMM d, yyyy")}
+                      {format(new Date(transaction.created_at), "MMM d")}
                       <br />
                       <span className="text-xs">
                         {format(new Date(transaction.created_at), "h:mm a")}
                       </span>
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium text-sm">
                       {transaction.description}
                     </TableCell>
                     <TableCell className="text-right">
                       <span
-                        className={`inline-flex items-center gap-1 font-semibold ${
+                        className={`inline-flex items-center gap-1 font-semibold text-sm ${
                           transaction.amount > 0
                             ? "text-green-600 dark:text-green-400"
                             : "text-red-600 dark:text-red-400"
                         }`}
                       >
                         {transaction.amount > 0 ? (
-                          <ArrowUpCircle className="h-4 w-4" />
+                          <ArrowUpCircle className="h-3.5 w-3.5" />
                         ) : (
-                          <ArrowDownCircle className="h-4 w-4" />
+                          <ArrowDownCircle className="h-3.5 w-3.5" />
                         )}
                         {transaction.amount > 0 ? "+" : ""}
                         {transaction.amount.toLocaleString()}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-sm text-yellow-600 dark:text-yellow-400">
+                      {transaction.runningBalance.toLocaleString()}
                     </TableCell>
                   </TableRow>
                 ))
