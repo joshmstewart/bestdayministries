@@ -262,7 +262,7 @@ const App = () => {
           <Route path="/games/recipe-maker" element={<RecipeMaker />} />
           <Route path="/games/recipe-gallery" element={<RecipeGallery />} />
           <Route path="/games/coloring-book" element={<ColoringBook />} />
-          <Route path="/games/wordle" element={<WordleGame />} />
+          <Route path="/games/daily-five" element={<WordleGame />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
           <Route path="/store/product/:productId" element={<ProductDetail />} />

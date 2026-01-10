@@ -345,7 +345,7 @@ export default function WordleGame() {
         <main className="flex-1 pt-24 pb-8 px-4">
           <div className="container max-w-md mx-auto text-center">
             <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
-            <p className="text-muted-foreground mb-6">Please sign in to play Wordle</p>
+            <p className="text-muted-foreground mb-6">Please sign in to play Daily Five</p>
             <Button onClick={() => navigate("/auth")}>Sign In</Button>
           </div>
         </main>
@@ -366,7 +366,7 @@ export default function WordleGame() {
               Back
             </Button>
             <div className="flex-1 text-center">
-              <h1 className="text-2xl font-bold">Wordle</h1>
+              <h1 className="text-2xl font-bold">Daily Five</h1>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -560,7 +560,7 @@ export default function WordleGame() {
           <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Reset Wordle Game</DialogTitle>
+                <DialogTitle>Reset Daily Five Game</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <p className="text-sm text-muted-foreground">
