@@ -123,14 +123,12 @@ export function ColoringManager() {
     }
   }, [books]);
 
-  // Generate cover image
+  // Generate cover image (COVER logic is intentionally separate from page generation)
   const generateCover = async (prompt: string): Promise<string> => {
-    const fullPrompt = `Book cover illustration for a children's coloring book titled "${prompt}". Colorful, whimsical, inviting design that makes children want to open the book. Include decorative border elements.`;
-    
-    const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
-      body: { prompt: fullPrompt },
+    const { data, error } = await supabase.functions.invoke("generate-coloring-book-cover", {
+      body: { prompt },
     });
-    
+
     if (error) throw error;
     return data.imageUrl;
   };
