@@ -139,7 +139,7 @@ export function WordleResultDialog({
                 }}
               >
                 <Calendar className="h-4 w-4 mr-2" />
-                Play Other Days
+                Play Previous Days
               </Button>
             )}
           </div>
