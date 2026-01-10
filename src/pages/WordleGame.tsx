@@ -317,11 +317,9 @@ export default function WordleGame() {
                   
                   {/* Today's theme */}
                   {theme && (
-                    <Card className="p-3 mb-4 text-center bg-primary/5 border-primary/20">
-                      <p className="text-sm font-medium">
-                        {themeEmoji} Today's Theme: <span className="text-primary">{theme}</span>
-                      </p>
-                    </Card>
+                    <p className="text-sm font-medium text-center mb-4">
+                      {themeEmoji} Today's Theme: <span className="text-primary">{theme}</span>
+                    </p>
                   )}
                   
                   {/* Theme hint - hidden by default */}
