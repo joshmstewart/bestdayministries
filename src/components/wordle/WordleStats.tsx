@@ -13,23 +13,32 @@ interface UserStats {
 
 export function WordleStats() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<UserStats | null>(null);
+  const [stats, setStats] = useState<UserStats>({
+    total_games_played: 0,
+    total_wins: 0,
+    current_streak: 0,
+    best_streak: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadStats = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const { data, error } = await supabase
           .from("wordle_user_stats")
           .select("total_games_played, total_wins, current_streak, best_streak")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         if (!error && data) {
           setStats(data);
         }
+        // If no data, keep default 0s
       } catch (err) {
         console.error("Error loading stats:", err);
       } finally {
@@ -40,7 +49,7 @@ export function WordleStats() {
     loadStats();
   }, [user]);
 
-  if (loading || !stats) {
+  if (loading) {
     return null;
   }
 

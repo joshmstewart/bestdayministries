@@ -259,56 +259,77 @@ serve(async (req) => {
 
     // Update user stats when game is complete
     if (isWin || isLoss) {
-      // Get or create user stats
-      let { data: userStats } = await supabaseAdmin
-        .from("wordle_user_stats")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!userStats) {
-        const { data: newStats } = await supabaseAdmin
+      try {
+        // Get existing user stats (use maybeSingle to avoid error if not found)
+        const { data: existingStats, error: fetchError } = await supabaseAdmin
           .from("wordle_user_stats")
-          .insert({ user_id: user.id })
-          .select()
-          .single();
-        userStats = newStats;
-      }
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-      if (userStats) {
+        if (fetchError) {
+          console.error("Error fetching user stats:", fetchError);
+        }
+
         const yesterday = new Date(mstDate);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-        // Calculate new streak
-        let newStreak = userStats.current_streak;
-        if (isWin) {
-          // If last win was yesterday, continue streak; otherwise start new streak
-          if (userStats.last_win_date === yesterdayStr) {
-            newStreak = userStats.current_streak + 1;
-          } else if (userStats.last_win_date !== today) {
-            // Only reset if it's not the same day (shouldn't happen but safety check)
-            newStreak = 1;
+        if (!existingStats) {
+          // Create new stats row
+          const newStreak = isWin ? 1 : 0;
+          const { error: insertError } = await supabaseAdmin
+            .from("wordle_user_stats")
+            .insert({
+              user_id: user.id,
+              total_games_played: 1,
+              total_wins: isWin ? 1 : 0,
+              current_streak: newStreak,
+              best_streak: newStreak,
+              last_played_date: today,
+              last_win_date: isWin ? today : null
+            });
+          
+          if (insertError) {
+            console.error("Error creating user stats:", insertError);
           }
         } else {
-          // Loss breaks the streak
-          newStreak = 0;
+          // Update existing stats
+          let newStreak = existingStats.current_streak;
+          if (isWin) {
+            // If last win was yesterday, continue streak; otherwise start new streak
+            if (existingStats.last_win_date === yesterdayStr) {
+              newStreak = existingStats.current_streak + 1;
+            } else if (existingStats.last_win_date !== today) {
+              newStreak = 1;
+            }
+          } else {
+            // Loss breaks the streak
+            newStreak = 0;
+          }
+
+          const newBestStreak = Math.max(existingStats.best_streak, newStreak);
+
+          const { error: updateError } = await supabaseAdmin
+            .from("wordle_user_stats")
+            .update({
+              total_games_played: existingStats.total_games_played + 1,
+              total_wins: isWin ? existingStats.total_wins + 1 : existingStats.total_wins,
+              current_streak: newStreak,
+              best_streak: newBestStreak,
+              last_played_date: today,
+              last_win_date: isWin ? today : existingStats.last_win_date,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existingStats.id);
+
+          if (updateError) {
+            console.error("Error updating user stats:", updateError);
+          }
         }
-
-        const newBestStreak = Math.max(userStats.best_streak, newStreak);
-
-        await supabaseAdmin
-          .from("wordle_user_stats")
-          .update({
-            total_games_played: userStats.total_games_played + 1,
-            total_wins: isWin ? userStats.total_wins + 1 : userStats.total_wins,
-            current_streak: newStreak,
-            best_streak: newBestStreak,
-            last_played_date: today,
-            last_win_date: isWin ? today : userStats.last_win_date,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", userStats.id);
+      } catch (statsError) {
+        console.error("Error in stats update block:", statsError);
+        // Don't throw - let the game response still succeed
       }
     }
 
