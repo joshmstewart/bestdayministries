@@ -71,26 +71,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Create a SQUARE 1:1 aspect ratio COLORING BOOK COVER design for: "${prompt}"
-
-IMAGE FORMAT:
-- SQUARE image (1:1 aspect ratio) - same width and height
-- Fill the entire square canvas edge-to-edge
-
-COVER LAYOUT (like a real published children's coloring book):
-- Large, decorative TITLE at the top: "${prompt}"
-- Subtitle text: "Coloring Book" or "A Coloring Adventure"
-- Decorative border/frame around the entire cover
-- Central illustration featuring the subject in a fun, dynamic pose
-- Professional book cover composition
-
-STYLE REQUIREMENTS:
-- FULL COLOR, vibrant, cheerful illustration
-- Bright, saturated colors - colorful and eye-catching
-- Whimsical, child-friendly cartoon style
-- Fun, playful aesthetic like a real published coloring book cover
-- Decorative, stylized title text that matches the theme
-- The cover should look like it belongs on a bookstore shelf`
+            content: prompt
           }
         ],
         modalities: ["image", "text"]
