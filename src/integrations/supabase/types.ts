@@ -6883,6 +6883,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           daily_word_id: string
+          extra_rounds_used: number
           guesses: string[]
           hints_used: number
           id: string
@@ -6895,6 +6896,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           daily_word_id: string
+          extra_rounds_used?: number
           guesses?: string[]
           hints_used?: number
           id?: string
@@ -6907,6 +6909,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           daily_word_id?: string
+          extra_rounds_used?: number
           guesses?: string[]
           hints_used?: number
           id?: string

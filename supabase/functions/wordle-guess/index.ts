@@ -161,10 +161,14 @@ serve(async (req) => {
       );
     }
 
-    // Check if max guesses reached (unlimited but coins diminish after 8)
-    if (attempt.guesses.length >= 20) {
+    // Calculate max guesses based on extra rounds used
+    // Base: 6 guesses, +5 per extra round (max 2 extra rounds = 16 total)
+    const extraRoundsUsed = attempt.extra_rounds_used || 0;
+    const maxGuesses = 6 + (extraRoundsUsed * 5);
+    
+    if (attempt.guesses.length >= maxGuesses) {
       return new Response(
-        JSON.stringify({ error: "Maximum guesses reached" }),
+        JSON.stringify({ error: "Maximum guesses reached. Use continue to get more guesses." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -172,7 +176,11 @@ serve(async (req) => {
     // Add guess
     const newGuesses = [...attempt.guesses, normalizedGuess];
     const isWin = normalizedGuess === dailyWord.word;
-    const isLoss = !isWin && newGuesses.length >= 20;
+    // Loss only happens when max guesses reached AND no more extra rounds available
+    const maxExtraRounds = 2;
+    const isAtRoundEnd = newGuesses.length >= maxGuesses;
+    const canContinue = isAtRoundEnd && extraRoundsUsed < maxExtraRounds;
+    const isLoss = !isWin && isAtRoundEnd && !canContinue;
 
     // Calculate letter results
     const correctWord = dailyWord.word;
@@ -358,7 +366,12 @@ serve(async (req) => {
         word: (isWin || isLoss) ? dailyWord.word : undefined,
         coinsEarned: isWin ? coinsEarned : 0,
         theme: dailyWord.wordle_themes?.name,
-        themeEmoji: dailyWord.wordle_themes?.emoji
+        themeEmoji: dailyWord.wordle_themes?.emoji,
+        // Extra rounds info
+        canContinue,
+        extraRoundsUsed,
+        maxGuesses,
+        roundEnded: isAtRoundEnd && !isWin
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
