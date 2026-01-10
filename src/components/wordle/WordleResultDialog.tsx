@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Coins, Trophy, Frown, Share2 } from "lucide-react";
+import { Coins, Trophy, Frown, Share2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 interface WordleResultDialogProps {
@@ -16,6 +16,7 @@ interface WordleResultDialogProps {
   guessCount: number;
   coinsEarned: number;
   hintsUsed: number;
+  onPlayOtherDays?: () => void;
 }
 
 export function WordleResultDialog({
@@ -25,7 +26,8 @@ export function WordleResultDialog({
   word,
   guessCount,
   coinsEarned,
-  hintsUsed
+  hintsUsed,
+  onPlayOtherDays
 }: WordleResultDialogProps) {
   const handleShare = async () => {
     const shareText = won
@@ -117,14 +119,29 @@ export function WordleResultDialog({
           )}
 
           {/* Actions */}
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-            <Button className="flex-1" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={handleShare}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+              <Button className="flex-1" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+            </div>
+            {onPlayOtherDays && (
+              <Button 
+                variant="secondary" 
+                className="w-full" 
+                onClick={() => {
+                  onOpenChange(false);
+                  onPlayOtherDays();
+                }}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Play Other Days
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Lightbulb, RefreshCw, Eye, EyeOff, Gamepad2, Trophy, RotateCcw, Loader2, HelpCircle } from "lucide-react";
+import { ArrowLeft, Lightbulb, RefreshCw, Eye, EyeOff, Gamepad2, Trophy, RotateCcw, Loader2, HelpCircle, Calendar } from "lucide-react";
 import { WordleHowToDialog, useWordleHowTo } from "@/components/wordle/WordleHowToDialog";
 import { toast } from "sonner";
 import { WordleGrid } from "@/components/wordle/WordleGrid";
@@ -62,6 +62,10 @@ export default function WordleGame() {
   const [continuing, setContinuing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isToday, setIsToday] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Ref for date picker to scroll to it
+  const datePickerRef = useRef<HTMLDivElement>(null);
 
   // Reset game function (admin only)
   const resetWordleGame = async (scope: 'self' | 'admins' | 'all') => {
@@ -472,6 +476,8 @@ export default function WordleGame() {
                     <WordleDatePicker 
                       selectedDate={selectedDate} 
                       onDateSelect={handleDateSelect}
+                      externalOpen={showDatePicker}
+                      onExternalOpenChange={setShowDatePicker}
                     />
                   </div>
                   
@@ -587,6 +593,23 @@ export default function WordleGame() {
                     keyboardStatus={keyboardStatus()}
                     disabled={gameOver || submitting || roundEnded}
                   />
+
+                  {/* Play Other Days button */}
+                  <div className="flex justify-center mt-6" ref={datePickerRef}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        datePickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        // Small delay then trigger the date picker
+                        setTimeout(() => setShowDatePicker(prev => !prev), 100);
+                      }}
+                      className="gap-2"
+                    >
+                      <Calendar className="h-4 w-4" />
+                      Play Other Days
+                    </Button>
+                  </div>
                 </>
               )}
             </TabsContent>
@@ -605,6 +628,10 @@ export default function WordleGame() {
             guessCount={guessResults.length}
             coinsEarned={coinsEarned}
             hintsUsed={hintsUsed}
+            onPlayOtherDays={() => {
+              datePickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setTimeout(() => setShowDatePicker(true), 300);
+            }}
           />
 
           {/* How to Play Dialog */}
