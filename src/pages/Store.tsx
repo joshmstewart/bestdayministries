@@ -158,9 +158,7 @@ const Store = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Community
             </Button>
-            <div onClick={() => setLedgerOpen(true)} className="cursor-pointer">
-              <CoinsDisplay />
-            </div>
+            <CoinsDisplay onClick={() => setLedgerOpen(true)} />
           </div>
 
           <CoinTransactionLedger
