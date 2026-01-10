@@ -37,10 +37,23 @@ export function ColoringBooksManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("coloring_books")
-        .select("*, coloring_pages(count)")
+        .select("*, coloring_pages!inner(count)")
         .order("display_order", { ascending: true });
       if (error) throw error;
-      return data;
+      
+      // Fetch active page counts separately since we need to filter by is_active
+      const booksWithCounts = await Promise.all(
+        data.map(async (book: any) => {
+          const { count } = await supabase
+            .from("coloring_pages")
+            .select("*", { count: "exact", head: true })
+            .eq("book_id", book.id)
+            .eq("is_active", true);
+          return { ...book, active_page_count: count || 0 };
+        })
+      );
+      
+      return booksWithCounts;
     },
   });
 
@@ -417,7 +430,7 @@ export function ColoringBooksManager() {
                 <div className="p-2">
                   <p className="font-medium text-sm truncate">{book.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {book.coloring_pages?.[0]?.count || 0} pages
+                    {book.active_page_count} pages
                   </p>
                 </div>
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
