@@ -64,24 +64,26 @@ serve(async (req) => {
 
     console.log("Generating coloring book cover with prompt:", prompt);
 
-    const coverPrompt = `Create a FULL-COLOR children's coloring book cover illustration for "${prompt}".
+    const coverPrompt = `Create a FULL-COLOR children's coloring book cover that looks like a REAL PUBLISHED COLORING BOOK for the theme: "${prompt}".
 
-CRITICAL REQUIREMENTS:
-- SQUARE 1:1 aspect ratio
-- BLEED TO ALL EDGES: The artwork MUST extend completely to ALL FOUR EDGES of the image with ZERO white space, ZERO margins, ZERO borders, ZERO padding
-- NO frame, NO border, NO outline around the image
-- The colorful illustration must touch the top, bottom, left, and right edges directly
-- Think of it like a full-bleed print where ink goes all the way to the paper edge
+STYLE REFERENCE - Make it look like professional children's coloring book covers you'd find in stores:
+- DECORATIVE THEMED BORDER around the edges (flowers, vines, stars, themed elements that match the topic)
+- BIG STYLIZED TITLE TEXT at the top: "${prompt}" in fun, whimsical, colorful bubble/fancy letters
+- SUBTITLE below the title like "A Magical Coloring Adventure!" or "Coloring Book!" in a banner or ribbon
+- CENTRAL ILLUSTRATION featuring cute cartoon characters/scenes related to the theme
+- SCATTERED THEMED ELEMENTS throughout (small icons, doodles, decorations related to the theme)
 
-CONTENT:
-- Include big, readable title text: "${prompt}" (kid-friendly bubble letters)
-- Bright, colorful, whimsical cartoon illustration
-- High contrast, clean shapes, inviting for children
-- NOT a coloring page - this is a FULL COLOR finished cover
+CRITICAL LAYOUT:
+- Square 1:1 aspect ratio
+- Full-bleed artwork extending to ALL edges - no white margins
+- The decorative border elements should touch all four edges
+- Bright, cheerful, pastel-friendly color palette
+- Kawaii/chibi cute art style for characters
+- Whimsical, magical, child-friendly aesthetic
 
-OUTPUT:
-- Crisp, high quality, print-ready
-- No watermarks or logos
+THIS IS A FULL-COLOR COVER - NOT a coloring page. Make it look like a finished, polished, commercial coloring book cover that would attract children.
+
+OUTPUT: High quality, print-ready, no watermarks.
 `;
 
     const response = await fetch(
