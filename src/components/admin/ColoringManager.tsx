@@ -489,7 +489,8 @@ DRAWING REQUIREMENTS:
   };
   const saveBookMutation = useMutation({
     mutationFn: async (data: typeof bookFormData) => {
-      let coverUrl = editingBook?.cover_image_url || generatedCoverUrl;
+      // Priority: uploaded file > newly generated cover > existing cover
+      let coverUrl = generatedCoverUrl || editingBook?.cover_image_url;
 
       if (bookImageFile) {
         setBookUploading(true);
