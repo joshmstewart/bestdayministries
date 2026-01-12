@@ -26,6 +26,7 @@ interface Chore {
   is_active: boolean;
   display_order: number;
   bestie_id: string;
+  created_by: string;
 }
 
 interface ChoreCompletion {
@@ -398,18 +399,20 @@ export default function ChoreChart() {
             </p>
           </div>
           
-          {canManageChores && (
-            <div className="flex gap-2">
+          <div className="flex gap-2">
+            {/* Guardians can manage all chores; besties see manage only if they have chores they created */}
+            {(canManageChores || chores.some(c => c.created_by === user?.id)) && (
               <Button variant="outline" onClick={() => setManageOpen(true)}>
                 <Settings className="h-4 w-4 mr-2" />
                 Manage
               </Button>
-              <Button onClick={() => setFormOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Chore
-              </Button>
-            </div>
-          )}
+            )}
+            {/* Anyone can add chores */}
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Chore
+            </Button>
+          </div>
         </div>
 
         {/* Bestie selector for guardians */}
@@ -569,6 +572,8 @@ export default function ChoreChart() {
           chores={chores}
           onEdit={handleEditChore}
           onRefresh={loadData}
+          currentUserId={user?.id}
+          canManageAll={canManageChores}
         />
 
         {/* Pack Opening Dialog for chore reward */}
