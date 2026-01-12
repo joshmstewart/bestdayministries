@@ -436,14 +436,23 @@ export default function ChoreChart() {
                     <Trophy className="h-5 w-5" />
                     All done! {dailyRewardClaimed ? 'Reward claimed!' : 'Claiming reward...'}
                   </div>
-                  {dailyRewardClaimed && rewardCardId && (
-                    <Button 
-                      onClick={() => setShowPackDialog(true)}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse"
-                    >
-                      <Gift className="h-4 w-4 mr-2" />
-                      Open Your Sticker Pack!
-                    </Button>
+                  {dailyRewardClaimed && (
+                    rewardCardId ? (
+                      <Button 
+                        onClick={() => setShowPackDialog(true)}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse"
+                      >
+                        <Gift className="h-4 w-4 mr-2" />
+                        Open Your Sticker Pack!
+                      </Button>
+                    ) : (
+                      <Link to="/games/sticker-album">
+                        <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          View Sticker Album
+                        </Button>
+                      </Link>
+                    )
                   )}
                 </div>
               )}
