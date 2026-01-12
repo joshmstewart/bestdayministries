@@ -198,7 +198,7 @@ export function PageVisitsAnalytics() {
             <SelectTrigger>
               <SelectValue placeholder="Select a page" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px] overflow-y-auto">
               <SelectItem value="all">All Pages</SelectItem>
               {pages?.map(page => (
                 <SelectItem key={page} value={page}>{page}</SelectItem>
