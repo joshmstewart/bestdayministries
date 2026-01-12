@@ -77,7 +77,7 @@ export function ChoreWeeklyView({
 
   return (
     <div className="overflow-x-auto -mx-4 px-4 pb-4">
-      <div className="flex gap-3 min-w-max lg:grid lg:grid-cols-7 lg:min-w-0">
+      <div className="flex gap-3 min-w-max lg:grid lg:grid-cols-7 lg:min-w-max">
       {weekDays.map((date, index) => {
         const dayChores = getChoresForDay(index);
         const todayHighlight = isToday(date);
@@ -86,7 +86,7 @@ export function ChoreWeeklyView({
         return (
           <Card 
             key={index}
-            className={`min-w-[220px] flex-shrink-0 lg:min-w-0 lg:flex-shrink transition-all ${
+            className={`min-w-[220px] flex-shrink-0 transition-all ${
               todayHighlight 
                 ? 'ring-2 ring-primary bg-primary/5' 
                 : pastDay 
