@@ -2,15 +2,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
-
-interface BadgeDefinition {
-  type: string;
-  name: string;
-  description: string;
-  icon: string;
-  threshold: number;
-  category: string;
-}
+import { BadgeDefinition } from "@/lib/choreBadgeDefinitions";
 
 interface BadgeEarnedDialogProps {
   badge: BadgeDefinition | null;
@@ -78,16 +70,20 @@ export function BadgeEarnedDialog({ badge, open, onOpenChange }: BadgeEarnedDial
           {/* Glow effect behind icon */}
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-yellow-400/30 rounded-full blur-3xl animate-pulse" />
           
-          {/* Badge icon with animation */}
+          {/* Badge image with animation */}
           <div 
-            className={`relative z-10 text-8xl mb-6 transition-all duration-700 ${
+            className={`relative z-10 mb-6 transition-all duration-700 ${
               showContent 
                 ? 'scale-100 opacity-100 rotate-0' 
                 : 'scale-0 opacity-0 rotate-180'
             }`}
           >
             <div className="animate-bounce">
-              {badge.icon}
+              <img 
+                src={badge.imageUrl} 
+                alt={badge.name}
+                className="w-32 h-32 object-contain drop-shadow-2xl"
+              />
             </div>
           </div>
 

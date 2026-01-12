@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Flame, Trophy, Calendar, Star, ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BadgeCollectionDialog } from "./BadgeCollectionDialog";
+import { BadgeDefinition, getBadgeDefinition, BADGE_DEFINITIONS } from "@/lib/choreBadgeDefinitions";
 
 interface ChoreStreak {
   current_streak: number;
@@ -21,15 +22,6 @@ interface ChoreBadge {
   earned_at: string;
 }
 
-interface BadgeDefinition {
-  type: string;
-  name: string;
-  description: string;
-  icon: string;
-  threshold: number;
-  category: string;
-}
-
 interface ChoreStreakDisplayProps {
   streak: ChoreStreak | null;
   badges: ChoreBadge[];
@@ -37,7 +29,7 @@ interface ChoreStreakDisplayProps {
   badgeDefinitions?: BadgeDefinition[];
 }
 
-export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions = [] }: ChoreStreakDisplayProps) {
+export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions = BADGE_DEFINITIONS }: ChoreStreakDisplayProps) {
   const [showBadgeCollection, setShowBadgeCollection] = useState(false);
 
   if (loading) {
@@ -115,19 +107,26 @@ export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions =
             {badges.length > 0 ? (
               <TooltipProvider>
                 <div className="flex flex-wrap gap-2">
-                  {badges.slice(0, 4).map((badge) => (
-                    <Tooltip key={badge.id}>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 cursor-help hover:bg-primary/20 transition-colors">
-                          <span className="text-lg">{badge.badge_icon}</span>
-                          <span className="text-xs font-medium">{badge.badge_name}</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{badge.badge_description}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
+                  {badges.slice(0, 4).map((badge) => {
+                    const badgeDef = getBadgeDefinition(badge.badge_type);
+                    return (
+                      <Tooltip key={badge.id}>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 cursor-help hover:bg-primary/20 transition-colors">
+                            {badgeDef?.imageUrl ? (
+                              <img src={badgeDef.imageUrl} alt={badge.badge_name} className="w-6 h-6 object-contain" />
+                            ) : (
+                              <span className="text-lg">{badge.badge_icon}</span>
+                            )}
+                            <span className="text-xs font-medium">{badge.badge_name}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{badge.badge_description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
                   {badges.length > 4 && (
                     <Button
                       variant="outline"
