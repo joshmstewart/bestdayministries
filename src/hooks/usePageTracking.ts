@@ -3,14 +3,39 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Generate or retrieve session ID
+// Session timeout in milliseconds (30 minutes)
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
+// Generate or retrieve session ID with 30-minute inactivity timeout
 const getSessionId = (): string => {
-  let sessionId = sessionStorage.getItem("page_tracking_session");
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    sessionStorage.setItem("page_tracking_session", sessionId);
+  const now = Date.now();
+  const storedData = localStorage.getItem("page_tracking_session");
+  
+  if (storedData) {
+    try {
+      const { sessionId, lastActivity } = JSON.parse(storedData);
+      const timeSinceLastActivity = now - lastActivity;
+      
+      // If within timeout window, update last activity and return existing session
+      if (timeSinceLastActivity < SESSION_TIMEOUT_MS) {
+        localStorage.setItem("page_tracking_session", JSON.stringify({
+          sessionId,
+          lastActivity: now
+        }));
+        return sessionId;
+      }
+    } catch {
+      // Invalid stored data, will create new session
+    }
   }
-  return sessionId;
+  
+  // Create new session (first visit or session expired)
+  const newSessionId = crypto.randomUUID();
+  localStorage.setItem("page_tracking_session", JSON.stringify({
+    sessionId: newSessionId,
+    lastActivity: now
+  }));
+  return newSessionId;
 };
 
 export function usePageTracking() {
