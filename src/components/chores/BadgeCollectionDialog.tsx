@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/badge";
 import { Lock, Trophy, Flame, Calendar } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { BadgeDefinition } from "@/lib/choreBadgeDefinitions";
+import { BadgeDefinition, BADGE_RARITY_CONFIG } from "@/lib/choreBadgeDefinitions";
 import { BadgeImageWithZoom } from "./BadgeLightbox";
 
 interface ChoreBadge {
@@ -50,6 +50,7 @@ export function BadgeCollectionDialog({
     const isEarned = earnedTypes.has(badge.type);
     const earnedBadge = earnedBadges.find(b => b.badge_type === badge.type);
     const progress = getProgress(badge);
+    const rarityConfig = BADGE_RARITY_CONFIG[badge.rarity];
 
     return (
       <div
@@ -60,6 +61,11 @@ export function BadgeCollectionDialog({
             : 'bg-muted/30 border-muted-foreground/20 opacity-75'
         }`}
       >
+        {/* Rarity badge */}
+        <Badge className={`${rarityConfig.bgClass} text-white text-xs mb-2`}>
+          {rarityConfig.label}
+        </Badge>
+
         {/* Badge image with zoom */}
         <div className="flex items-start justify-between mb-3">
           <BadgeImageWithZoom
