@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { BadgeDefinition } from "@/lib/choreBadgeDefinitions";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface BadgeEarnedDialogProps {
   badge: BadgeDefinition | null;
@@ -96,9 +97,15 @@ export function BadgeEarnedDialog({ badge, open, onOpenChange }: BadgeEarnedDial
             <p className="text-sm font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">
               🎉 New Badge Earned! 🎉
             </p>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-3">
-              {badge.name}
-            </h2>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-500 bg-clip-text text-transparent">
+                {badge.name}
+              </h2>
+              <TextToSpeech 
+                text={`Congratulations! You earned the ${badge.name} badge! ${badge.description}`}
+                size="icon"
+              />
+            </div>
             <p className="text-muted-foreground text-lg max-w-xs mx-auto">
               {badge.description}
             </p>

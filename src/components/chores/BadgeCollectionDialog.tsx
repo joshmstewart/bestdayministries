@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { BadgeDefinition, BADGE_RARITY_CONFIG } from "@/lib/choreBadgeDefinitions";
 import { BadgeImageWithZoom } from "./BadgeLightbox";
 import { useCustomBadgeImages } from "@/hooks/useCustomBadgeImages";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface ChoreBadge {
   id: string;
@@ -84,9 +85,15 @@ export function BadgeCollectionDialog({
         </div>
 
         {/* Badge name and description */}
-        <h3 className={`font-semibold mb-1 ${isEarned ? 'text-foreground' : 'text-muted-foreground'}`}>
-          {badge.name}
-        </h3>
+        <div className="flex items-center gap-1 mb-1">
+          <h3 className={`font-semibold ${isEarned ? 'text-foreground' : 'text-muted-foreground'}`}>
+            {badge.name}
+          </h3>
+          <TextToSpeech 
+            text={`${badge.name}. ${badge.description}. ${isEarned ? `You earned this badge!` : `${getProgressText(badge)} completed.`}`}
+            size="icon"
+          />
+        </div>
         <p className="text-xs text-muted-foreground mb-3">
           {badge.description}
         </p>
