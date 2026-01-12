@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/badge";
 import { Lock, Trophy, Flame, Calendar } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { BadgeDefinition, getBadgeDefinition } from "@/lib/choreBadgeDefinitions";
 
 interface ChoreBadge {
   id: string;
@@ -10,15 +11,6 @@ interface ChoreBadge {
   badge_description: string | null;
   badge_icon: string;
   earned_at: string;
-}
-
-interface BadgeDefinition {
-  type: string;
-  name: string;
-  description: string;
-  icon: string;
-  threshold: number;
-  category: string;
 }
 
 interface BadgeCollectionDialogProps {
@@ -67,10 +59,14 @@ export function BadgeCollectionDialog({
             : 'bg-muted/30 border-muted-foreground/20 opacity-75'
         }`}
       >
-        {/* Badge icon */}
+        {/* Badge image */}
         <div className="flex items-start justify-between mb-3">
-          <div className={`text-4xl ${isEarned ? '' : 'grayscale opacity-50'}`}>
-            {badge.icon}
+          <div className={`${isEarned ? '' : 'grayscale opacity-50'}`}>
+            <img 
+              src={badge.imageUrl} 
+              alt={badge.name}
+              className="w-16 h-16 object-contain"
+            />
           </div>
           {isEarned ? (
             <Badge className="bg-green-500 text-white text-xs">Earned!</Badge>

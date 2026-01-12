@@ -77,7 +77,7 @@ export default function ChoreChart() {
   const [showPackDialog, setShowPackDialog] = useState(false);
   const [rewardCardId, setRewardCardId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'week'>('list');
-  const [earnedBadge, setEarnedBadge] = useState<{ type: string; name: string; description: string; icon: string; threshold: number; category: string } | null>(null);
+  const [earnedBadge, setEarnedBadge] = useState<import("@/lib/choreBadgeDefinitions").BadgeDefinition | null>(null);
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
 
   const { mstDate: today } = getMSTInfo();
