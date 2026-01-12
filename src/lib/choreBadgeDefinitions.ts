@@ -3,6 +3,7 @@ import streak3Badge from "@/assets/badges/streak-3.png";
 import streak7Badge from "@/assets/badges/streak-7.png";
 import streak14Badge from "@/assets/badges/streak-14.png";
 import streak30Badge from "@/assets/badges/streak-30.png";
+import total1Badge from "@/assets/badges/total-1.png";
 import total7Badge from "@/assets/badges/total-7.png";
 import total30Badge from "@/assets/badges/total-30.png";
 import total100Badge from "@/assets/badges/total-100.png";
@@ -70,6 +71,16 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     threshold: 30, 
     category: 'streak',
     rarity: 'legendary'
+  },
+  { 
+    type: 'total_1', 
+    name: 'First Day!', 
+    description: 'Complete all your chores for the first time!', 
+    icon: '🐣', 
+    imageUrl: total1Badge,
+    threshold: 1, 
+    category: 'total',
+    rarity: 'common'
   },
   { 
     type: 'total_7', 
