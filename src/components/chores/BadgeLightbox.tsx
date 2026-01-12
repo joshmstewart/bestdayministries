@@ -1,3 +1,4 @@
+import React from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ZoomIn } from "lucide-react";
@@ -123,5 +124,3 @@ export function BadgeImageWithZoom({
     </>
   );
 }
-
-import React from 'react';
