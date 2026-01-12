@@ -19,6 +19,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { BadgeEarnedDialog } from "@/components/chores/BadgeEarnedDialog";
+import { TextToSpeech } from "@/components/TextToSpeech";
 interface Chore {
   id: string;
   title: string;
@@ -619,6 +620,10 @@ export default function ChoreChart() {
                               <h3 className={`text-lg font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                                 {chore.title}
                               </h3>
+                              <TextToSpeech 
+                                text={`${chore.title}${chore.description ? `. ${chore.description}` : ''}`}
+                                size="icon"
+                              />
                               <Badge variant="outline" className="text-xs">
                                 {getRecurrenceLabel(chore)}
                               </Badge>
