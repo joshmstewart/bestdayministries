@@ -731,6 +731,36 @@ export type Database = {
         }
         Relationships: []
       }
+      chore_badges: {
+        Row: {
+          badge_description: string | null
+          badge_icon: string
+          badge_name: string
+          badge_type: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_description?: string | null
+          badge_icon?: string
+          badge_name: string
+          badge_type: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_description?: string | null
+          badge_icon?: string
+          badge_name?: string
+          badge_type?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chore_completions: {
         Row: {
           chore_id: string
@@ -815,6 +845,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chore_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_completion_date: string | null
+          longest_streak: number
+          total_completion_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_completion_date?: string | null
+          longest_streak?: number
+          total_completion_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_completion_date?: string | null
+          longest_streak?: number
+          total_completion_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       chores: {
         Row: {
