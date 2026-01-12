@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { BadgeEarnedDialog } from "@/components/chores/BadgeEarnedDialog";
+import { BadgeImageWithZoom } from "@/components/chores/BadgeLightbox";
 import { BADGE_DEFINITIONS, BadgeDefinition } from "@/lib/choreBadgeDefinitions";
 
 export function ChoreBadgeManager() {
@@ -44,11 +45,7 @@ export function ChoreBadgeManager() {
                 {streakBadges.map((badge) => (
                   <TableRow key={badge.type}>
                     <TableCell>
-                      <img 
-                        src={badge.imageUrl} 
-                        alt={badge.name}
-                        className="w-12 h-12 object-contain"
-                      />
+                      <BadgeImageWithZoom badge={badge} isEarned={true} size="sm" />
                     </TableCell>
                     <TableCell className="font-medium">{badge.name}</TableCell>
                     <TableCell className="text-muted-foreground">{badge.description}</TableCell>
@@ -93,11 +90,7 @@ export function ChoreBadgeManager() {
                 {totalBadges.map((badge) => (
                   <TableRow key={badge.type}>
                     <TableCell>
-                      <img 
-                        src={badge.imageUrl} 
-                        alt={badge.name}
-                        className="w-12 h-12 object-contain"
-                      />
+                      <BadgeImageWithZoom badge={badge} isEarned={true} size="sm" />
                     </TableCell>
                     <TableCell className="font-medium">{badge.name}</TableCell>
                     <TableCell className="text-muted-foreground">{badge.description}</TableCell>
