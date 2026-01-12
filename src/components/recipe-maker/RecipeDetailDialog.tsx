@@ -497,6 +497,10 @@ export const RecipeDetailDialog = ({
                 <div className="flex items-center gap-2 mb-3">
                   <ShoppingBasket className="h-5 w-5 text-primary" />
                   <h3 className="font-semibold">Ingredients</h3>
+                  <TextToSpeech 
+                    text={`Ingredients: ${recipe.ingredients.join(', ')}`}
+                    size="icon"
+                  />
                 </div>
                 <ul className="space-y-2">
                   {ingredientMatches.map(({ ingredient, hasIt }, index) => (
@@ -565,9 +569,13 @@ export const RecipeDetailDialog = ({
             {recipeTools.length > 0 && (
               <Card>
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center flex-wrap gap-2 mb-3">
                     <Wrench className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">Tools Needed</h3>
+                    <TextToSpeech 
+                      text={`Tools needed: ${recipeTools.join(', ')}`}
+                      size="icon"
+                    />
                     {userTools.length > 0 && (
                       <div className="flex gap-2 ml-auto">
                         <Badge variant="secondary" className="gap-1 text-xs">
@@ -617,14 +625,24 @@ export const RecipeDetailDialog = ({
 
             {/* Steps */}
             <div className="space-y-3">
-              <h3 className="font-semibold">Steps</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold">Steps</h3>
+                <TextToSpeech 
+                  text={`Steps: ${recipe.steps.map((step, i) => `Step ${i + 1}: ${step}`).join('. ')}`}
+                  size="icon"
+                />
+              </div>
               <ol className="space-y-3">
                 {recipe.steps.map((step, index) => (
                   <li key={index} className="flex gap-3">
                     <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold flex-shrink-0">
                       {index + 1}
                     </span>
-                    <p className="text-sm pt-0.5">{step}</p>
+                    <p className="text-sm pt-0.5 flex-1">{step}</p>
+                    <TextToSpeech 
+                      text={`Step ${index + 1}: ${step}`}
+                      size="icon"
+                    />
                   </li>
                 ))}
               </ol>
@@ -637,6 +655,10 @@ export const RecipeDetailDialog = ({
                   <div className="flex items-center gap-2 mb-3">
                     <Lightbulb className="h-5 w-5 text-amber-600" />
                     <h3 className="font-semibold text-amber-800 dark:text-amber-200">Tips</h3>
+                    <TextToSpeech 
+                      text={`Tips: ${recipe.tips.join('. ')}`}
+                      size="icon"
+                    />
                   </div>
                   <ul className="space-y-2">
                     {recipe.tips.map((tip, index) => (

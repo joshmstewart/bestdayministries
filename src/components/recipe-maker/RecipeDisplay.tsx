@@ -123,6 +123,10 @@ export const RecipeDisplay = ({ recipe, userId, onSaved }: RecipeDisplayProps) =
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
               <h3 className="font-semibold text-orange-800 dark:text-orange-200">Things That Might Need Help</h3>
+              <TextToSpeech 
+                text={`Things that might need help: ${recipe.safetyNotes.join('. ')}`}
+                size="icon"
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               {recipe.safetyNotes.map((note, index) => (
@@ -145,6 +149,10 @@ export const RecipeDisplay = ({ recipe, userId, onSaved }: RecipeDisplayProps) =
           <div className="flex items-center gap-2 mb-3">
             <ShoppingBasket className="h-5 w-5 text-primary" />
             <h3 className="font-semibold">What You'll Need</h3>
+            <TextToSpeech 
+              text={`What you'll need: ${recipe.ingredients.join(', ')}`}
+              size="icon"
+            />
           </div>
           <ul className="grid grid-cols-2 gap-2">
             {recipe.ingredients.map((ingredient, index) => (
@@ -162,6 +170,10 @@ export const RecipeDisplay = ({ recipe, userId, onSaved }: RecipeDisplayProps) =
         <h3 className="font-semibold flex items-center gap-2">
           <ChevronRight className="h-5 w-5 text-primary" />
           Steps to Follow
+          <TextToSpeech 
+            text={`Steps to follow: ${recipe.steps.map((step, i) => `Step ${i + 1}: ${step}`).join('. ')}`}
+            size="icon"
+          />
         </h3>
         
         <div className="space-y-3">
@@ -232,6 +244,10 @@ export const RecipeDisplay = ({ recipe, userId, onSaved }: RecipeDisplayProps) =
             <div className="flex items-center gap-2 mb-3">
               <Lightbulb className="h-5 w-5 text-amber-600" />
               <h3 className="font-semibold text-amber-800 dark:text-amber-200">Helpful Tips</h3>
+              <TextToSpeech 
+                text={`Helpful tips: ${recipe.tips.join('. ')}`}
+                size="icon"
+              />
             </div>
             <ul className="space-y-2">
               {recipe.tips.map((tip, index) => (
