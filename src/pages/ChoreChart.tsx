@@ -5,12 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft, Gift } from "lucide-react";
+import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft, Gift, List, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { ChoreFormDialog } from "@/components/chores/ChoreFormDialog";
 import { ChoreManageDialog } from "@/components/chores/ChoreManageDialog";
+import { ChoreWeeklyView } from "@/components/chores/ChoreWeeklyView";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -72,6 +73,7 @@ export default function ChoreChart() {
   const [rewardCreating, setRewardCreating] = useState(false);
   const [showPackDialog, setShowPackDialog] = useState(false);
   const [rewardCardId, setRewardCardId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'week'>('list');
 
   const { mstDate: today } = getMSTInfo();
   const dayOfWeek = new Date().getDay();
@@ -399,7 +401,29 @@ export default function ChoreChart() {
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* View toggle */}
+            <div className="flex border rounded-lg overflow-hidden">
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-none"
+              >
+                <List className="h-4 w-4 mr-1" />
+                List
+              </Button>
+              <Button 
+                variant={viewMode === 'week' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('week')}
+                className="rounded-none"
+              >
+                <CalendarDays className="h-4 w-4 mr-1" />
+                Week
+              </Button>
+            </div>
+
             {/* Guardians can manage all chores; besties see manage only if they have chores they created */}
             {(canManageChores || chores.some(c => c.created_by === user?.id)) && (
               <Button variant="outline" onClick={() => setManageOpen(true)}>
@@ -488,72 +512,84 @@ export default function ChoreChart() {
           </Card>
         )}
 
-        {/* Chores list */}
-        {applicableChores.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No chores for today!</h3>
-              <p className="text-muted-foreground">
-                {canManageChores 
-                  ? "Add some chores to get started." 
-                  : "Your guardian hasn't added any chores yet."}
-              </p>
-            </CardContent>
-          </Card>
+        {/* View content */}
+        {viewMode === 'week' ? (
+          <ChoreWeeklyView
+            chores={chores}
+            completions={completions}
+            onToggleCompletion={toggleChoreCompletion}
+            today={today}
+          />
         ) : (
-          <div className="space-y-3">
-            {applicableChores.map(chore => {
-              const isCompleted = completedChoreIds.has(chore.id);
-              
-              return (
-                <Card 
-                  key={chore.id}
-                  className={`transition-all duration-300 ${
-                    isCompleted 
-                      ? 'bg-primary/10 border-primary/30' 
-                      : 'hover:border-primary/50'
-                  }`}
-                >
-                  <CardContent className="py-4">
-                    <div className="flex items-center gap-4">
-                      {/* Large checkbox on the far left */}
-                      <Checkbox
-                        checked={isCompleted}
-                        onCheckedChange={() => toggleChoreCompletion(chore.id)}
-                        className="h-8 w-8 shrink-0"
-                      />
-                      
-                      {/* Large emoji */}
-                      <div className="flex items-center justify-center text-5xl shrink-0">
-                        {chore.icon}
-                      </div>
-                      
-                      {/* Content to the right */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className={`text-lg font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                            {chore.title}
-                          </h3>
-                          <Badge variant="outline" className="text-xs">
-                            {getRecurrenceLabel(chore)}
-                          </Badge>
-                          {isCompleted && (
-                            <span className="text-xl">✅</span>
-                          )}
+          <>
+            {/* Chores list */}
+            {applicableChores.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No chores for today!</h3>
+                  <p className="text-muted-foreground">
+                    {canManageChores 
+                      ? "Add some chores to get started." 
+                      : "Your guardian hasn't added any chores yet."}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {applicableChores.map(chore => {
+                  const isCompleted = completedChoreIds.has(chore.id);
+                  
+                  return (
+                    <Card 
+                      key={chore.id}
+                      className={`transition-all duration-300 ${
+                        isCompleted 
+                          ? 'bg-primary/10 border-primary/30' 
+                          : 'hover:border-primary/50'
+                      }`}
+                    >
+                      <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                          {/* Large checkbox on the far left */}
+                          <Checkbox
+                            checked={isCompleted}
+                            onCheckedChange={() => toggleChoreCompletion(chore.id)}
+                            className="h-8 w-8 shrink-0"
+                          />
+                          
+                          {/* Large emoji */}
+                          <div className="flex items-center justify-center text-5xl shrink-0">
+                            {chore.icon}
+                          </div>
+                          
+                          {/* Content to the right */}
+                          <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className={`text-lg font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                                {chore.title}
+                              </h3>
+                              <Badge variant="outline" className="text-xs">
+                                {getRecurrenceLabel(chore)}
+                              </Badge>
+                              {isCompleted && (
+                                <span className="text-xl">✅</span>
+                              )}
+                            </div>
+                            {chore.description && (
+                              <p className={`text-sm mt-1 ${isCompleted ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
+                                {chore.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        {chore.description && (
-                          <p className={`text-sm mt-1 ${isCompleted ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
-                            {chore.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* Form dialog */}
