@@ -45,18 +45,29 @@ export function PageVisitsAnalytics() {
   const [dateRange, setDateRange] = useState<number>(7); // days
   const [viewMode, setViewMode] = useState<"daily" | "hourly">("daily");
 
-  // Fetch unique pages
+  // Fetch unique pages (paginated to get all)
   const { data: pages } = useQuery({
     queryKey: ["page-visits-pages"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("page_visits")
-        .select("page_url")
-        .order("page_url");
-      if (error) throw error;
+      const pageSize = 1000;
+      const allPages: string[] = [];
       
-      // Get unique pages
-      const uniquePages = [...new Set(data.map(p => p.page_url))].sort();
+      for (let offset = 0; offset < 100000; offset += pageSize) {
+        const { data, error } = await supabase
+          .from("page_visits")
+          .select("page_url")
+          .order("page_url")
+          .range(offset, offset + pageSize - 1);
+        
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        
+        allPages.push(...data.map(p => p.page_url));
+        if (data.length < pageSize) break;
+      }
+      
+      // Get unique pages sorted
+      const uniquePages = [...new Set(allPages)].sort();
       return uniquePages;
     },
   });
