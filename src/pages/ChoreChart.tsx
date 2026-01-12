@@ -12,6 +12,8 @@ import confetti from "canvas-confetti";
 import { ChoreFormDialog } from "@/components/chores/ChoreFormDialog";
 import { ChoreManageDialog } from "@/components/chores/ChoreManageDialog";
 import { Link } from "react-router-dom";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 interface Chore {
   id: string;
   title: string;
@@ -301,35 +303,45 @@ export default function ChoreChart() {
 
   if (authLoading || loading) {
     return (
-      <main className="min-h-screen bg-background pt-24">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <>
+        <UnifiedHeader />
+        <main className="min-h-screen bg-background pt-24">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+        <Footer />
+      </>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-background pt-24">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <Button variant="outline" size="sm" className="mb-6" asChild>
-            <Link to="/community"><ArrowLeft className="h-4 w-4 mr-2" />Back to Community</Link>
-          </Button>
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">Please log in to view your chore chart.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+      <>
+        <UnifiedHeader />
+        <main className="min-h-screen bg-background pt-24">
+          <div className="container mx-auto px-4 max-w-4xl">
+            <Button variant="outline" size="sm" className="mb-6" asChild>
+              <Link to="/community"><ArrowLeft className="h-4 w-4 mr-2" />Back to Community</Link>
+            </Button>
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">Please log in to view your chore chart.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <Footer />
+      </>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background pt-24 pb-12">
+    <>
+      <UnifiedHeader />
+      <main className="min-h-screen bg-background pt-24 pb-12">
       <div className="container mx-auto px-4 max-w-4xl">
         <Button variant="outline" size="sm" className="mb-6" asChild>
           <Link to="/community"><ArrowLeft className="h-4 w-4 mr-2" />Back to Community</Link>
@@ -485,5 +497,7 @@ export default function ChoreChart() {
         />
       </div>
     </main>
+    <Footer />
+  </>
   );
 }
