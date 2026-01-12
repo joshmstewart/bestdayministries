@@ -267,45 +267,27 @@ export default function ChoreChart() {
 
   const claimDailyReward = async (userId: string) => {
     try {
-      // Record the reward
-      const { error: rewardError } = await supabase
-        .from('chore_daily_rewards')
-        .insert({
-          user_id: userId,
-          reward_date: today,
-          reward_type: 'sticker_pack'
-        });
+      // Use edge function to claim reward and create bonus card
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session for claiming reward');
+        return;
+      }
 
-      if (rewardError) throw rewardError;
+      const response = await supabase.functions.invoke('claim-chore-reward', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
-      // Grant a free bonus scratch card
-      const { data: collection } = await supabase
-        .from('sticker_collections')
-        .select('id')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      if (response.error) {
+        console.error('Error claiming reward:', response.error);
+        return;
+      }
 
-      if (collection) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const { data: newCard } = await supabase
-          .from('daily_scratch_cards')
-          .insert({
-            user_id: userId,
-            collection_id: collection.id,
-            date: today,
-            expires_at: tomorrow.toISOString(),
-            is_bonus_card: true
-          })
-          .select('id')
-          .single();
-
-        if (newCard) {
-          setRewardCardId(newCard.id);
-        }
+      const result = response.data;
+      if (result.success && result.cardId) {
+        setRewardCardId(result.cardId);
       }
 
       setDailyRewardClaimed(true);
