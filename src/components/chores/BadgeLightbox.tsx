@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, ZoomIn } from "lucide-react";
 import { BadgeDefinition, BADGE_RARITY_CONFIG } from "@/lib/choreBadgeDefinitions";
 import { useCustomBadgeImages } from "@/hooks/useCustomBadgeImages";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface BadgeLightboxProps {
   badge: BadgeDefinition | null;
@@ -55,9 +56,15 @@ export function BadgeLightbox({
           </div>
 
           {/* Badge info */}
-          <h2 className="text-2xl font-bold text-center mb-2 text-foreground">
-            {badge.name}
-          </h2>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h2 className="text-2xl font-bold text-center text-foreground">
+              {badge.name}
+            </h2>
+            <TextToSpeech 
+              text={`${badge.name}. ${badge.description}. ${isEarned ? `You earned this badge!` : `Complete ${badge.threshold} ${badge.category === 'streak' ? 'days in a row' : 'total days'} to unlock this badge.`}`}
+              size="icon"
+            />
+          </div>
           <p className="text-center text-muted-foreground mb-4 max-w-xs">
             {badge.description}
           </p>
