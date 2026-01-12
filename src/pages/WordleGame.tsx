@@ -241,11 +241,14 @@ export default function WordleGame() {
     loadGameState(date);
   };
 
+  // Initial load - only runs once when auth is ready
+  const initialLoadRef = useRef(false);
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && !initialLoadRef.current) {
+      initialLoadRef.current = true;
       loadGameState();
     }
-  }, [authLoading, isAuthenticated, loadGameState]);
+  }, [authLoading, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle easy mode toggle
   const handleEasyModeToggle = async (enabled: boolean) => {
