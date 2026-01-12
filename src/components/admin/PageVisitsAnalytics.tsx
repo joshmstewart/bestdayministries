@@ -32,8 +32,12 @@ interface PageVisit {
 
 interface ChartData {
   label: string;
+  // Raw rows (each row = one page view)
+  pageViews: number;
+  // Visits = unique sessions in the bucket
   visits: number;
-  uniqueUsers: number;
+  // Unique visitors = logged-in users + guest sessions in the bucket
+  uniqueVisitors: number;
 }
 
 export function PageVisitsAnalytics() {
@@ -62,43 +66,59 @@ export function PageVisitsAnalytics() {
     queryKey: ["page-visits", selectedPage, dateRange],
     queryFn: async () => {
       const startDate = startOfDay(subDays(new Date(), dateRange));
-      
-      let query = supabase
-        .from("page_visits")
-        .select(`
-          id,
-          page_url,
-          page_title,
-          user_id,
-          session_id,
-          visited_at
-        `)
-        .gte("visited_at", startDate.toISOString())
-        .order("visited_at", { ascending: false });
-      
-      if (selectedPage !== "all") {
-        query = query.eq("page_url", selectedPage);
+      const pageSize = 1000;
+
+      // IMPORTANT: PostgREST has a default per-request limit (commonly 1000).
+      // We must paginate, otherwise charts/stats can be wildly wrong (partial-day sampling).
+      const allRows: Array<
+        Omit<PageVisit, "profiles"> & { visited_at: string }
+      > = [];
+
+      for (let offset = 0; offset < 50000; offset += pageSize) {
+        let query = supabase
+          .from("page_visits")
+          .select(
+            `
+            id,
+            page_url,
+            page_title,
+            user_id,
+            session_id,
+            visited_at
+          `
+          )
+          .gte("visited_at", startDate.toISOString())
+          .order("visited_at", { ascending: false });
+
+        if (selectedPage !== "all") {
+          query = query.eq("page_url", selectedPage);
+        }
+
+        const { data, error } = await query.range(offset, offset + pageSize - 1);
+        if (error) throw error;
+
+        const rows = (data || []) as any[];
+        allRows.push(...rows);
+
+        if (rows.length < pageSize) break;
       }
-      
-      const { data, error } = await query.limit(1000);
-      if (error) throw error;
-      
+
       // Fetch user profiles separately
-      const userIds = [...new Set(data.filter(v => v.user_id).map(v => v.user_id))];
+      const userIds = [...new Set(allRows.filter(v => v.user_id).map(v => v.user_id))] as string[];
       let profilesMap: Record<string, string> = {};
-      
+
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, display_name")
           .in("id", userIds);
-        
+
         if (profiles) {
           profilesMap = Object.fromEntries(profiles.map(p => [p.id, p.display_name || "User"]));
         }
       }
-      
-      return data.map(v => ({
+
+      return allRows.map(v => ({
         ...v,
         profiles: v.user_id ? { display_name: profilesMap[v.user_id] || "User" } : null,
       })) as PageVisit[];
@@ -108,40 +128,66 @@ export function PageVisitsAnalytics() {
   // Process data for charts
   const chartData: ChartData[] = (() => {
     if (!visits) return [];
-    
-    const grouped = new Map<string, { visits: number; users: Set<string> }>();
-    
-    visits.forEach(visit => {
+
+    const grouped = new Map<
+      string,
+      { pageViews: number; sessions: Set<string>; visitors: Set<string> }
+    >();
+
+    visits.forEach((visit) => {
       const date = parseISO(visit.visited_at);
-      const key = viewMode === "daily" 
-        ? format(date, "MMM d")
-        : format(date, "MMM d HH:00");
-      
+      const key =
+        viewMode === "daily" ? format(date, "MMM d") : format(date, "MMM d HH:00");
+
       if (!grouped.has(key)) {
-        grouped.set(key, { visits: 0, users: new Set() });
+        grouped.set(key, { pageViews: 0, sessions: new Set(), visitors: new Set() });
       }
+
       const entry = grouped.get(key)!;
-      entry.visits++;
-      if (visit.user_id) entry.users.add(visit.user_id);
-      else if (visit.session_id) entry.users.add(`guest-${visit.session_id}`);
+      entry.pageViews += 1;
+
+      // Visits = unique sessions
+      if (visit.session_id) entry.sessions.add(visit.session_id);
+
+      // Unique visitors = logged-in users + guest sessions
+      if (visit.user_id) entry.visitors.add(`user-${visit.user_id}`);
+      else if (visit.session_id) entry.visitors.add(`guest-${visit.session_id}`);
     });
-    
+
     return Array.from(grouped.entries())
       .map(([label, data]) => ({
         label,
-        visits: data.visits,
-        uniqueUsers: data.users.size,
+        pageViews: data.pageViews,
+        visits: data.sessions.size,
+        uniqueVisitors: data.visitors.size,
       }))
       .reverse();
   })();
 
-  // Summary stats - Total Visits = unique sessions, Page Views = raw count
-  const stats = {
-    pageViews: visits?.length || 0,
-    totalVisits: new Set(visits?.map(v => v.session_id).filter(Boolean)).size,
-    uniqueUsers: new Set(visits?.map(v => v.user_id).filter(Boolean)).size,
-    guestSessions: new Set(visits?.filter(v => !v.user_id).map(v => v.session_id).filter(Boolean)).size,
-  };
+  // Summary stats
+  // - Total Visits = unique sessions in the selected period
+  // - Unique Visitors = (logged-in user IDs) + (guest session IDs) in the selected period
+  const stats = (() => {
+    const rows = visits || [];
+
+    const sessionIds = rows.map(v => v.session_id).filter(Boolean) as string[];
+    const userIds = rows.map(v => v.user_id).filter(Boolean) as string[];
+    const guestSessionIds = rows.filter(v => !v.user_id).map(v => v.session_id).filter(Boolean) as string[];
+
+    const uniqueVisitors = new Set(
+      rows
+        .map(v => (v.user_id ? `user-${v.user_id}` : v.session_id ? `guest-${v.session_id}` : null))
+        .filter(Boolean) as string[]
+    );
+
+    return {
+      pageViews: rows.length,
+      totalVisits: new Set(sessionIds).size,
+      uniqueVisitors: uniqueVisitors.size,
+      loggedInUsers: new Set(userIds).size,
+      guestSessions: new Set(guestSessionIds).size,
+    };
+  })();
 
   return (
     <div className="space-y-6">
@@ -201,24 +247,28 @@ export function PageVisitsAnalytics() {
             <p className="text-xs text-muted-foreground">{stats.pageViews.toLocaleString()} page views</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Unique Visitors</span>
+            </div>
+            <p className="text-2xl font-bold">{stats.uniqueVisitors.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">{stats.guestSessions.toLocaleString()} guest sessions</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Logged In Users</span>
             </div>
-            <p className="text-2xl font-bold">{stats.uniqueUsers.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{stats.loggedInUsers.toLocaleString()}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm text-muted-foreground">Guest Sessions</span>
-            </div>
-            <p className="text-2xl font-bold">{stats.guestSessions.toLocaleString()}</p>
-          </CardContent>
-        </Card>
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -266,8 +316,8 @@ export function PageVisitsAnalytics() {
                     borderRadius: '8px'
                   }}
                 />
-                <Bar dataKey="visits" name="Total Visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="uniqueUsers" name="Unique Visitors" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="visits" name="Visits (sessions)" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="uniqueVisitors" name="Unique Visitors" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
