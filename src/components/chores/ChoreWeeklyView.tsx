@@ -86,7 +86,7 @@ export function ChoreWeeklyView({
         return (
           <Card 
             key={index}
-            className={`min-w-[160px] flex-shrink-0 lg:min-w-0 lg:flex-shrink transition-all ${
+            className={`min-w-[220px] flex-shrink-0 lg:min-w-0 lg:flex-shrink transition-all ${
               todayHighlight 
                 ? 'ring-2 ring-primary bg-primary/5' 
                 : pastDay 
