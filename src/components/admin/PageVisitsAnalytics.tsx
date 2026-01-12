@@ -175,6 +175,35 @@ export function PageVisitsAnalytics() {
       .reverse();
   })();
 
+  // Page counts by page URL
+  const pageCounts = (() => {
+    if (!visits) return [];
+
+    const grouped = new Map<string, { pageViews: number; sessions: Set<string>; visitors: Set<string> }>();
+
+    visits.forEach((visit) => {
+      if (!grouped.has(visit.page_url)) {
+        grouped.set(visit.page_url, { pageViews: 0, sessions: new Set(), visitors: new Set() });
+      }
+
+      const entry = grouped.get(visit.page_url)!;
+      entry.pageViews += 1;
+
+      if (visit.session_id) entry.sessions.add(visit.session_id);
+      if (visit.user_id) entry.visitors.add(`user-${visit.user_id}`);
+      else if (visit.session_id) entry.visitors.add(`guest-${visit.session_id}`);
+    });
+
+    return Array.from(grouped.entries())
+      .map(([page, data]) => ({
+        page,
+        pageViews: data.pageViews,
+        visits: data.sessions.size,
+        uniqueVisitors: data.visitors.size,
+      }))
+      .sort((a, b) => b.pageViews - a.pageViews);
+  })();
+
   // Summary stats
   // - Total Visits = unique sessions in the selected period
   // - Unique Visitors = (logged-in user IDs) + (guest session IDs) in the selected period
@@ -331,6 +360,48 @@ export function PageVisitsAnalytics() {
                 <Bar dataKey="uniqueVisitors" name="Unique Visitors" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Page Counts Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            Page Counts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-muted-foreground">Loading...</p>
+          ) : !pageCounts?.length ? (
+            <p className="text-muted-foreground">No page data</p>
+          ) : (
+            <div className="max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-background border-b">
+                  <tr>
+                    <th className="text-left py-2 px-2">Page</th>
+                    <th className="text-right py-2 px-2">Page Views</th>
+                    <th className="text-right py-2 px-2">Visits</th>
+                    <th className="text-right py-2 px-2">Unique Visitors</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageCounts.map((row) => (
+                    <tr key={row.page} className="border-b hover:bg-muted/50">
+                      <td className="py-2 px-2">
+                        <span className="font-mono text-xs">{row.page}</span>
+                      </td>
+                      <td className="py-2 px-2 text-right font-medium">{row.pageViews.toLocaleString()}</td>
+                      <td className="py-2 px-2 text-right text-muted-foreground">{row.visits.toLocaleString()}</td>
+                      <td className="py-2 px-2 text-right text-muted-foreground">{row.uniqueVisitors.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
