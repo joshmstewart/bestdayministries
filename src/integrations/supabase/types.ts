@@ -731,6 +731,30 @@ export type Database = {
         }
         Relationships: []
       }
+      chore_badge_images: {
+        Row: {
+          badge_type: string
+          created_at: string
+          id: string
+          image_url: string
+          updated_at: string
+        }
+        Insert: {
+          badge_type: string
+          created_at?: string
+          id?: string
+          image_url: string
+          updated_at?: string
+        }
+        Update: {
+          badge_type?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chore_badges: {
         Row: {
           badge_description: string | null

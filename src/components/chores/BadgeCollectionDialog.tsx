@@ -4,6 +4,7 @@ import { Lock, Trophy, Flame, Calendar } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { BadgeDefinition, BADGE_RARITY_CONFIG } from "@/lib/choreBadgeDefinitions";
 import { BadgeImageWithZoom } from "./BadgeLightbox";
+import { useCustomBadgeImages } from "@/hooks/useCustomBadgeImages";
 
 interface ChoreBadge {
   id: string;
@@ -31,10 +32,11 @@ export function BadgeCollectionDialog({
   currentStreak,
   totalDays,
 }: BadgeCollectionDialogProps) {
+  const { getBadgeWithCustomImage } = useCustomBadgeImages();
   const earnedTypes = new Set(earnedBadges.map(b => b.badge_type));
   
-  const streakBadges = allBadges.filter(b => b.category === 'streak');
-  const totalBadges = allBadges.filter(b => b.category === 'total');
+  const streakBadges = allBadges.filter(b => b.category === 'streak').map(getBadgeWithCustomImage);
+  const totalBadges = allBadges.filter(b => b.category === 'total').map(getBadgeWithCustomImage);
 
   const getProgress = (badge: BadgeDefinition) => {
     const current = badge.category === 'streak' ? currentStreak : totalDays;
