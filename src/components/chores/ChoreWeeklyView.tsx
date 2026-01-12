@@ -122,7 +122,7 @@ export function ChoreWeeklyView({
                     return (
                       <div 
                         key={chore.id}
-                        className={`flex items-center gap-2 p-2 rounded-md transition-all ${
+                        className={`flex items-start gap-2 p-2 rounded-md transition-all ${
                           isCompleted 
                             ? 'bg-primary/10' 
                             : 'bg-muted/50'
@@ -132,16 +132,16 @@ export function ChoreWeeklyView({
                           <Checkbox
                             checked={isCompleted}
                             onCheckedChange={() => onToggleCompletion(chore.id)}
-                            className="h-5 w-5 shrink-0"
+                            className="h-5 w-5 shrink-0 mt-0.5"
                           />
                         )}
                         <span className="text-xl shrink-0">{chore.icon}</span>
-                        <span className={`text-xs font-medium truncate flex-1 ${
+                        <span className={`text-xs font-medium leading-tight flex-1 ${
                           isCompleted ? 'line-through text-muted-foreground' : ''
                         }`}>
                           {chore.title}
                         </span>
-                        {isCompleted && <span className="text-sm">✅</span>}
+                        {isCompleted && <span className="text-sm shrink-0">✅</span>}
                       </div>
                     );
                   })}
