@@ -8,6 +8,17 @@ import total30Badge from "@/assets/badges/total-30.png";
 import total100Badge from "@/assets/badges/total-100.png";
 import total365Badge from "@/assets/badges/total-365.png";
 
+// Rarity tiers matching sticker system colors
+export type BadgeRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+
+export const BADGE_RARITY_CONFIG: Record<BadgeRarity, { label: string; color: string; bgClass: string }> = {
+  common: { label: "Common", color: "#6B7280", bgClass: "bg-gray-500" },
+  uncommon: { label: "Uncommon", color: "#22C55E", bgClass: "bg-green-500" },
+  rare: { label: "Rare", color: "#3B82F6", bgClass: "bg-blue-500" },
+  epic: { label: "Epic", color: "#A855F7", bgClass: "bg-purple-500" },
+  legendary: { label: "Legendary", color: "#EAB308", bgClass: "bg-yellow-500" },
+};
+
 export interface BadgeDefinition {
   type: string;
   name: string;
@@ -16,6 +27,7 @@ export interface BadgeDefinition {
   imageUrl: string; // generated image
   threshold: number;
   category: 'streak' | 'total';
+  rarity: BadgeRarity;
 }
 
 export const BADGE_DEFINITIONS: BadgeDefinition[] = [
@@ -26,7 +38,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '🔥', 
     imageUrl: streak3Badge,
     threshold: 3, 
-    category: 'streak' 
+    category: 'streak',
+    rarity: 'common'
   },
   { 
     type: 'streak_7', 
@@ -35,7 +48,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '⭐', 
     imageUrl: streak7Badge,
     threshold: 7, 
-    category: 'streak' 
+    category: 'streak',
+    rarity: 'uncommon'
   },
   { 
     type: 'streak_14', 
@@ -44,7 +58,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '🌟', 
     imageUrl: streak14Badge,
     threshold: 14, 
-    category: 'streak' 
+    category: 'streak',
+    rarity: 'rare'
   },
   { 
     type: 'streak_30', 
@@ -53,7 +68,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '👑', 
     imageUrl: streak30Badge,
     threshold: 30, 
-    category: 'streak' 
+    category: 'streak',
+    rarity: 'legendary'
   },
   { 
     type: 'total_7', 
@@ -62,7 +78,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '🎯', 
     imageUrl: total7Badge,
     threshold: 7, 
-    category: 'total' 
+    category: 'total',
+    rarity: 'common'
   },
   { 
     type: 'total_30', 
@@ -71,7 +88,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '💪', 
     imageUrl: total30Badge,
     threshold: 30, 
-    category: 'total' 
+    category: 'total',
+    rarity: 'uncommon'
   },
   { 
     type: 'total_100', 
@@ -80,7 +98,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '🏆', 
     imageUrl: total100Badge,
     threshold: 100, 
-    category: 'total' 
+    category: 'total',
+    rarity: 'rare'
   },
   { 
     type: 'total_365', 
@@ -89,7 +108,8 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: '🎖️', 
     imageUrl: total365Badge,
     threshold: 365, 
-    category: 'total' 
+    category: 'total',
+    rarity: 'legendary'
   },
 ];
 

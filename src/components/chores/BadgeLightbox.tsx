@@ -1,8 +1,9 @@
 import React from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { X, ZoomIn } from "lucide-react";
-import { BadgeDefinition } from "@/lib/choreBadgeDefinitions";
+import { BadgeDefinition, BADGE_RARITY_CONFIG } from "@/lib/choreBadgeDefinitions";
 
 interface BadgeLightboxProps {
   badge: BadgeDefinition | null;
@@ -21,6 +22,8 @@ export function BadgeLightbox({
 }: BadgeLightboxProps) {
   if (!badge) return null;
 
+  const rarityConfig = BADGE_RARITY_CONFIG[badge.rarity];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none">
@@ -34,6 +37,11 @@ export function BadgeLightbox({
           >
             <X className="h-5 w-5" />
           </Button>
+
+          {/* Rarity badge */}
+          <Badge className={`${rarityConfig.bgClass} text-white mb-4`}>
+            {rarityConfig.label}
+          </Badge>
 
           {/* Large badge image */}
           <div className={`relative mb-6 ${!isEarned ? 'grayscale opacity-60' : ''}`}>
