@@ -513,23 +513,29 @@ export default function ChoreChart() {
                   }`}
                 >
                   <CardContent className="py-4">
-                    <div className="flex items-start gap-4">
-                      <div className="pt-1">
-                        <Checkbox
-                          checked={isCompleted}
-                          onCheckedChange={() => toggleChoreCompletion(chore.id)}
-                          className="h-6 w-6"
-                        />
+                    <div className="flex items-stretch gap-4">
+                      {/* Large emoji on the left, full height */}
+                      <div className="flex items-center justify-center text-5xl min-w-[3.5rem]">
+                        {chore.icon}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{chore.icon}</span>
+                      
+                      {/* Content to the right */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Checkbox
+                            checked={isCompleted}
+                            onCheckedChange={() => toggleChoreCompletion(chore.id)}
+                            className="h-6 w-6"
+                          />
                           <h3 className={`text-lg font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                             {chore.title}
                           </h3>
                           <Badge variant="outline" className="text-xs">
                             {getRecurrenceLabel(chore)}
                           </Badge>
+                          {isCompleted && (
+                            <span className="text-xl">✅</span>
+                          )}
                         </div>
                         {chore.description && (
                           <p className={`text-sm mt-1 ${isCompleted ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
@@ -537,9 +543,6 @@ export default function ChoreChart() {
                           </p>
                         )}
                       </div>
-                      {isCompleted && (
-                        <span className="text-2xl">✅</span>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
