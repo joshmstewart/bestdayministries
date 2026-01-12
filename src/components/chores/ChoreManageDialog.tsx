@@ -32,6 +32,7 @@ interface Chore {
   is_active: boolean;
   display_order: number;
   bestie_id: string;
+  created_by: string;
 }
 
 interface ChoreManageDialogProps {
@@ -40,9 +41,11 @@ interface ChoreManageDialogProps {
   chores: Chore[];
   onEdit: (chore: Chore) => void;
   onRefresh: () => void;
+  currentUserId?: string;
+  canManageAll?: boolean; // true for guardians/admins
 }
 
-export function ChoreManageDialog({ open, onOpenChange, chores, onEdit, onRefresh }: ChoreManageDialogProps) {
+export function ChoreManageDialog({ open, onOpenChange, chores, onEdit, onRefresh, currentUserId, canManageAll = false }: ChoreManageDialogProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -121,51 +124,60 @@ export function ChoreManageDialog({ open, onOpenChange, chores, onEdit, onRefres
             </p>
           ) : (
             <div className="space-y-2">
-              {sortedChores.map(chore => (
-                <div 
-                  key={chore.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border ${
-                    chore.is_active ? 'bg-background' : 'bg-muted/50 opacity-60'
-                  }`}
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                  
-                  <span className="text-xl">{chore.icon}</span>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{chore.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {getRecurrenceLabel(chore)}
+              {sortedChores.map(chore => {
+                const canEditThis = canManageAll || chore.created_by === currentUserId;
+                return (
+                  <div 
+                    key={chore.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border ${
+                      chore.is_active ? 'bg-background' : 'bg-muted/50 opacity-60'
+                    }`}
+                  >
+                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                    
+                    <span className="text-xl">{chore.icon}</span>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{chore.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {getRecurrenceLabel(chore)}
+                      </div>
                     </div>
+
+                    {canEditThis ? (
+                      <>
+                        <Switch
+                          checked={chore.is_active}
+                          onCheckedChange={() => handleToggleActive(chore)}
+                          disabled={updating === chore.id}
+                        />
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            onEdit(chore);
+                            onOpenChange(false);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteId(chore.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Added by guardian</span>
+                    )}
                   </div>
-
-                  <Switch
-                    checked={chore.is_active}
-                    onCheckedChange={() => handleToggleActive(chore)}
-                    disabled={updating === chore.id}
-                  />
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      onEdit(chore);
-                      onOpenChange(false);
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeleteId(chore.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </DialogContent>
