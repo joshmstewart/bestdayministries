@@ -194,11 +194,15 @@ export const RecipeDisplay = ({ recipe, userId, onSaved }: RecipeDisplayProps) =
                       {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
                     </div>
                     <p className={cn(
-                      "text-sm leading-relaxed pt-1",
+                      "text-sm leading-relaxed pt-1 flex-1",
                       isCompleted && "line-through text-muted-foreground"
                     )}>
                       {step}
                     </p>
+                    <TextToSpeech 
+                      text={`Step ${index + 1}: ${step}`}
+                      size="icon"
+                    />
                   </div>
                 </CardContent>
               </Card>
