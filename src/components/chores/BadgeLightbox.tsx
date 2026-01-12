@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, ZoomIn } from "lucide-react";
 import { BadgeDefinition, BADGE_RARITY_CONFIG } from "@/lib/choreBadgeDefinitions";
+import { useCustomBadgeImages } from "@/hooks/useCustomBadgeImages";
 
 interface BadgeLightboxProps {
   badge: BadgeDefinition | null;
@@ -98,6 +99,9 @@ export function BadgeImageWithZoom({
   size = 'md',
 }: BadgeImageWithZoomProps) {
   const [lightboxOpen, setLightboxOpen] = React.useState(false);
+  const { getBadgeWithCustomImage } = useCustomBadgeImages();
+
+  const effectiveBadge = getBadgeWithCustomImage(badge);
 
   const sizeClasses = {
     sm: 'w-12 h-12',
@@ -113,7 +117,7 @@ export function BadgeImageWithZoom({
         title="Click to view larger"
       >
         <img
-          src={badge.imageUrl}
+          src={effectiveBadge.imageUrl}
           alt={badge.name}
           className={`${sizeClasses[size]} object-contain ${!isEarned ? 'grayscale opacity-50' : ''}`}
         />
@@ -123,7 +127,7 @@ export function BadgeImageWithZoom({
       </button>
 
       <BadgeLightbox
-        badge={badge}
+        badge={effectiveBadge}
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
         isEarned={isEarned}
