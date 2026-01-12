@@ -83,6 +83,7 @@ import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 import { PicturePasswordImagesViewer } from "@/components/admin/PicturePasswordImagesViewer";
+import { ChoreBadgeManager } from "@/components/admin/ChoreBadgeManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -496,6 +497,7 @@ const Admin = () => {
                     <TabsTrigger value="drink">Drinks</TabsTrigger>
                     <TabsTrigger value="recipes">Recipes</TabsTrigger>
                     <TabsTrigger value="coloring">Coloring</TabsTrigger>
+                    <TabsTrigger value="chores">Chores</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="earn-coins">
@@ -551,6 +553,10 @@ const Admin = () => {
 
                   <TabsContent value="coloring">
                     <ColoringManager />
+                  </TabsContent>
+
+                  <TabsContent value="chores">
+                    <ChoreBadgeManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
