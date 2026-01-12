@@ -731,6 +731,168 @@ export type Database = {
         }
         Relationships: []
       }
+      chore_completions: {
+        Row: {
+          chore_id: string
+          completed_at: string
+          completed_date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          chore_id: string
+          completed_at?: string
+          completed_date?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          chore_id?: string
+          completed_at?: string
+          completed_date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_completions_chore_id_fkey"
+            columns: ["chore_id"]
+            isOneToOne: false
+            referencedRelation: "chores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_completions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_completions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_daily_rewards: {
+        Row: {
+          claimed_at: string
+          id: string
+          reward_date: string
+          reward_type: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          id?: string
+          reward_date?: string
+          reward_type?: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          id?: string
+          reward_date?: string
+          reward_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_daily_rewards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_daily_rewards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chores: {
+        Row: {
+          bestie_id: string
+          created_at: string
+          created_by: string
+          day_of_week: number | null
+          description: string | null
+          display_order: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          recurrence_type: Database["public"]["Enums"]["chore_recurrence_type"]
+          recurrence_value: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bestie_id: string
+          created_at?: string
+          created_by: string
+          day_of_week?: number | null
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          recurrence_type?: Database["public"]["Enums"]["chore_recurrence_type"]
+          recurrence_value?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bestie_id?: string
+          created_at?: string
+          created_by?: string
+          day_of_week?: number | null
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          recurrence_type?: Database["public"]["Enums"]["chore_recurrence_type"]
+          recurrence_value?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chores_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chores_bestie_id_fkey"
+            columns: ["bestie_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chores_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chores_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coffee_shop_menu_addons: {
         Row: {
           category_id: string | null
@@ -7454,6 +7616,11 @@ export type Database = {
     }
     Enums: {
       avatar_category: "humans" | "animals" | "monsters" | "shapes"
+      chore_recurrence_type:
+        | "daily"
+        | "weekly"
+        | "every_x_days"
+        | "every_x_weeks"
       fulfillment_status:
         | "pending"
         | "in_production"
@@ -7628,6 +7795,12 @@ export const Constants = {
   public: {
     Enums: {
       avatar_category: ["humans", "animals", "monsters", "shapes"],
+      chore_recurrence_type: [
+        "daily",
+        "weekly",
+        "every_x_days",
+        "every_x_weeks",
+      ],
       fulfillment_status: [
         "pending",
         "in_production",
