@@ -12,6 +12,8 @@ import confetti from "canvas-confetti";
 import { ChoreFormDialog } from "@/components/chores/ChoreFormDialog";
 import { ChoreManageDialog } from "@/components/chores/ChoreManageDialog";
 import { ChoreWeeklyView } from "@/components/chores/ChoreWeeklyView";
+import { ChoreStreakDisplay } from "@/components/chores/ChoreStreakDisplay";
+import { useChoreStreaks } from "@/hooks/useChoreStreaks";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -79,6 +81,10 @@ export default function ChoreChart() {
   const dayOfWeek = new Date().getDay();
 
   const canManageChores = isGuardian || isAdmin || isOwner;
+  
+  // Streak tracking - use the target user ID (bestie or self)
+  const targetUserId = canManageChores && selectedBestieId ? selectedBestieId : user?.id || null;
+  const { streak, badges, loading: streakLoading, updateStreakOnCompletion, refreshStreaks } = useChoreStreaks(targetUserId);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -250,13 +256,37 @@ export default function ChoreChart() {
           .single();
 
         if (error) throw error;
-        setCompletions(prev => [...prev, data]);
+        const newCompletions = [...completions, data];
+        setCompletions(newCompletions);
         
         fireConfetti();
         toast.success('Great job! 🎉');
 
-        // If all chores are completed, we show the reward button.
-        // IMPORTANT: we do NOT auto-claim the reward here; claiming happens only when the user clicks to open the pack.
+        // Check if all chores are now completed - update streak
+        const newCompletedIds = new Set(newCompletions.map(c => c.chore_id));
+        const allNowCompleted = applicableChores.length > 0 && 
+          applicableChores.every(c => newCompletedIds.has(c.id));
+        
+        if (allNowCompleted) {
+          // Update streak when all chores completed for the day
+          const result = await updateStreakOnCompletion(today);
+          if (result?.newBadges && result.newBadges.length > 0) {
+            // Show badge earned notification
+            result.newBadges.forEach(badge => {
+              toast.success(
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{badge.badge_icon}</span>
+                  <div>
+                    <p className="font-medium">Badge Earned!</p>
+                    <p className="text-sm">{badge.badge_name}</p>
+                  </div>
+                </div>,
+                { duration: 5000 }
+              );
+            });
+            fireBigCelebration();
+          }
+        }
       }
     } catch (error) {
       console.error('Error toggling completion:', error);
@@ -511,6 +541,13 @@ export default function ChoreChart() {
             </CardContent>
           </Card>
         )}
+
+        {/* Streak and Badges Display */}
+        <ChoreStreakDisplay 
+          streak={streak} 
+          badges={badges} 
+          loading={streakLoading} 
+        />
 
         {/* View content */}
         {viewMode === 'week' ? (
