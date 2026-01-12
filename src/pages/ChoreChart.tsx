@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft } from "lucide-react";
+import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft, Gift } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
@@ -14,6 +14,7 @@ import { ChoreManageDialog } from "@/components/chores/ChoreManageDialog";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
+import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 interface Chore {
   id: string;
   title: string;
@@ -44,6 +45,8 @@ export default function ChoreChart() {
   const [linkedBesties, setLinkedBesties] = useState<{ id: string; display_name: string }[]>([]);
   const [selectedBestieId, setSelectedBestieId] = useState<string | null>(null);
   const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
+  const [showPackDialog, setShowPackDialog] = useState(false);
+  const [rewardCardId, setRewardCardId] = useState<string | null>(null);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const dayOfWeek = new Date().getDay();
@@ -106,6 +109,22 @@ export default function ChoreChart() {
         .single();
 
       setDailyRewardClaimed(!!rewardData);
+
+      // Check for unscratched bonus card from chore rewards
+      if (rewardData) {
+        const { data: bonusCard } = await supabase
+          .from('daily_scratch_cards')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .eq('date', today)
+          .eq('is_bonus_card', true)
+          .eq('is_scratched', false)
+          .single();
+
+        if (bonusCard) {
+          setRewardCardId(bonusCard.id);
+        }
+      }
     } catch (error) {
       console.error('Error loading chore data:', error);
       toast.error('Failed to load chores');
@@ -249,7 +268,7 @@ export default function ChoreChart() {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         
-        await supabase
+        const { data: newCard } = await supabase
           .from('daily_scratch_cards')
           .insert({
             user_id: userId,
@@ -257,7 +276,13 @@ export default function ChoreChart() {
             date: today,
             expires_at: tomorrow.toISOString(),
             is_bonus_card: true
-          });
+          })
+          .select('id')
+          .single();
+
+        if (newCard) {
+          setRewardCardId(newCard.id);
+        }
       }
 
       setDailyRewardClaimed(true);
@@ -406,9 +431,20 @@ export default function ChoreChart() {
                 />
               </div>
               {allCompleted && (
-                <div className="mt-3 flex items-center gap-2 text-primary font-medium">
-                  <Trophy className="h-5 w-5" />
-                  All done! {dailyRewardClaimed ? 'Reward claimed!' : 'Claiming reward...'}
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-2 text-primary font-medium">
+                    <Trophy className="h-5 w-5" />
+                    All done! {dailyRewardClaimed ? 'Reward claimed!' : 'Claiming reward...'}
+                  </div>
+                  {dailyRewardClaimed && rewardCardId && (
+                    <Button 
+                      onClick={() => setShowPackDialog(true)}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse"
+                    >
+                      <Gift className="h-4 w-4 mr-2" />
+                      Open Your Sticker Pack!
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -495,6 +531,19 @@ export default function ChoreChart() {
           onEdit={handleEditChore}
           onRefresh={loadData}
         />
+
+        {/* Pack Opening Dialog for chore reward */}
+        {rewardCardId && (
+          <PackOpeningDialog
+            open={showPackDialog}
+            onOpenChange={setShowPackDialog}
+            cardId={rewardCardId}
+            onOpened={() => {
+              setRewardCardId(null);
+              loadData();
+            }}
+          />
+        )}
       </div>
     </main>
     <Footer />
