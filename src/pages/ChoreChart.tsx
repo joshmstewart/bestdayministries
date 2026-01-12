@@ -513,20 +513,22 @@ export default function ChoreChart() {
                   }`}
                 >
                   <CardContent className="py-4">
-                    <div className="flex items-stretch gap-4">
-                      {/* Large emoji on the left, full height */}
-                      <div className="flex items-center justify-center text-5xl min-w-[3.5rem]">
+                    <div className="flex items-center gap-4">
+                      {/* Large checkbox on the far left */}
+                      <Checkbox
+                        checked={isCompleted}
+                        onCheckedChange={() => toggleChoreCompletion(chore.id)}
+                        className="h-8 w-8 shrink-0"
+                      />
+                      
+                      {/* Large emoji */}
+                      <div className="flex items-center justify-center text-5xl shrink-0">
                         {chore.icon}
                       </div>
                       
                       {/* Content to the right */}
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Checkbox
-                            checked={isCompleted}
-                            onCheckedChange={() => toggleChoreCompletion(chore.id)}
-                            className="h-6 w-6"
-                          />
                           <h3 className={`text-lg font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                             {chore.title}
                           </h3>
