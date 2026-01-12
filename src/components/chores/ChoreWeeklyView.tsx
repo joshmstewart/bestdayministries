@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Chore {
   id: string;
@@ -119,7 +120,7 @@ export function ChoreWeeklyView({
                     const canCheck = todayHighlight;
                     const isCompleted = canCheck && completedChoreIds.has(chore.id);
 
-                    return (
+                      return (
                       <div 
                         key={chore.id}
                         className={`flex items-start gap-2 p-2 rounded-md transition-all ${
@@ -141,6 +142,10 @@ export function ChoreWeeklyView({
                         }`}>
                           {chore.title}
                         </span>
+                        <TextToSpeech 
+                          text={`${chore.title}${chore.description ? `. ${chore.description}` : ''}`}
+                          size="icon"
+                        />
                         {isCompleted && <span className="text-sm shrink-0">✅</span>}
                       </div>
                     );

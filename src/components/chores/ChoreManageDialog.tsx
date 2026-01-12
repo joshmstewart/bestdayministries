@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Chore {
   id: string;
@@ -138,7 +139,13 @@ export function ChoreManageDialog({ open, onOpenChange, chores, onEdit, onRefres
                     <span className="text-xl">{chore.icon}</span>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{chore.title}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">{chore.title}</span>
+                        <TextToSpeech 
+                          text={`${chore.title}${chore.description ? `. ${chore.description}` : ''}. ${getRecurrenceLabel(chore)}`}
+                          size="icon"
+                        />
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {getRecurrenceLabel(chore)}
                       </div>
