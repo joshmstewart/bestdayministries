@@ -34,6 +34,29 @@ interface ChoreCompletion {
   completed_date: string;
 }
 
+type MSTInfo = {
+  mstDate: string;
+  tomorrowUtcMidnightIso: string;
+};
+
+function getMSTInfo(): MSTInfo {
+  const now = new Date();
+  const mstOffsetMinutes = -7 * 60; // MST is UTC-7
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const mstTime = new Date(utc + mstOffsetMinutes * 60000);
+  const mstDate = mstTime.toISOString().split("T")[0];
+
+  const tomorrowMST = new Date(mstTime);
+  tomorrowMST.setDate(tomorrowMST.getDate() + 1);
+  tomorrowMST.setHours(0, 0, 0, 0);
+  const tomorrowUTC = new Date(tomorrowMST.getTime() - mstOffsetMinutes * 60000);
+
+  return {
+    mstDate,
+    tomorrowUtcMidnightIso: tomorrowUTC.toISOString(),
+  };
+}
+
 export default function ChoreChart() {
   const { user, isAuthenticated, loading: authLoading, isGuardian, isAdmin, isOwner } = useAuth();
   const [chores, setChores] = useState<Chore[]>([]);
