@@ -50,6 +50,7 @@ import ContactFormSettings from "@/components/admin/ContactFormSettings";
 import ContactSubmissions from "@/components/admin/ContactSubmissions";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { PageVisitsAnalytics } from "@/components/admin/PageVisitsAnalytics";
+import { UserActivityAnalytics } from "@/components/admin/UserActivityAnalytics";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
@@ -314,12 +315,16 @@ const Admin = () => {
                   <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="page-visits">Page Visits</TabsTrigger>
+                    <TabsTrigger value="user-activity">User Activity</TabsTrigger>
                   </TabsList>
                   <TabsContent value="overview">
                     <AnalyticsDashboard />
                   </TabsContent>
                   <TabsContent value="page-visits">
                     <PageVisitsAnalytics />
+                  </TabsContent>
+                  <TabsContent value="user-activity">
+                    <UserActivityAnalytics />
                   </TabsContent>
                 </Tabs>
               </CardContent>
