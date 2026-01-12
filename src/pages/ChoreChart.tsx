@@ -68,10 +68,11 @@ export default function ChoreChart() {
   const [linkedBesties, setLinkedBesties] = useState<{ id: string; display_name: string }[]>([]);
   const [selectedBestieId, setSelectedBestieId] = useState<string | null>(null);
   const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
+  const [rewardCreating, setRewardCreating] = useState(false);
   const [showPackDialog, setShowPackDialog] = useState(false);
   const [rewardCardId, setRewardCardId] = useState<string | null>(null);
 
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const { mstDate: today } = getMSTInfo();
   const dayOfWeek = new Date().getDay();
 
   const canManageChores = isGuardian || isAdmin || isOwner;
@@ -251,13 +252,8 @@ export default function ChoreChart() {
         fireConfetti();
         toast.success('Great job! 🎉');
 
-        // Check if all chores now completed
-        const newCompletedIds = new Set([...completedChoreIds, choreId]);
-        const nowAllCompleted = applicableChores.every(c => newCompletedIds.has(c.id));
-        
-        if (nowAllCompleted && !dailyRewardClaimed) {
-          await claimDailyReward(targetUserId);
-        }
+        // If all chores are completed, we show the reward button.
+        // IMPORTANT: we do NOT auto-claim the reward here; claiming happens only when the user clicks to open the pack.
       }
     } catch (error) {
       console.error('Error toggling completion:', error);
@@ -267,10 +263,12 @@ export default function ChoreChart() {
 
   const claimDailyReward = async (userId: string) => {
     try {
-      // Use edge function to claim reward and create bonus card
+      setRewardCreating(true);
+
+      // Use backend function to claim reward and create bonus card
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        console.error('No session for claiming reward');
+        toast.error('Please log in again to claim your reward');
         return;
       }
 
@@ -282,26 +280,37 @@ export default function ChoreChart() {
 
       if (response.error) {
         console.error('Error claiming reward:', response.error);
+        toast.error('Failed to create your sticker pack');
         return;
       }
 
-      const result = response.data;
-      if (result.success && result.cardId) {
-        setRewardCardId(result.cardId);
+      const result = response.data as
+        | { success: true; cardId: string; alreadyClaimed?: boolean }
+        | { success?: false; error?: string };
+
+      if (!result || (result as any).success !== true || !(result as any).cardId) {
+        console.error('Unexpected claim-chore-reward response:', result);
+        toast.error('Failed to create your sticker pack');
+        return;
       }
 
       setDailyRewardClaimed(true);
+      setRewardCardId((result as any).cardId);
+      setShowPackDialog(true);
+
       fireBigCelebration();
-      
       toast.success(
         <div className="flex items-center gap-2">
           <Trophy className="h-5 w-5 text-yellow-500" />
-          <span>All chores done! You earned a free sticker pack! 🎁</span>
+          <span>Sticker pack ready — open it now!</span>
         </div>,
-        { duration: 5000 }
+        { duration: 4000 }
       );
     } catch (error) {
       console.error('Error claiming reward:', error);
+      toast.error('Failed to create your sticker pack');
+    } finally {
+      setRewardCreating(false);
     }
   };
 
@@ -439,25 +448,36 @@ export default function ChoreChart() {
                 <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex items-center gap-2 text-primary font-medium">
                     <Trophy className="h-5 w-5" />
-                    All done! {dailyRewardClaimed ? 'Reward claimed!' : 'Claiming reward...'}
+                    {dailyRewardClaimed ? 'Reward claimed!' : 'All done! Your reward is ready.'}
                   </div>
-                  {dailyRewardClaimed && (
-                    rewardCardId ? (
-                      <Button 
-                        onClick={() => setShowPackDialog(true)}
-                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse"
-                      >
-                        <Gift className="h-4 w-4 mr-2" />
-                        Open Your Sticker Pack!
+
+                  {rewardCardId ? (
+                    <Button
+                      onClick={() => setShowPackDialog(true)}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse"
+                    >
+                      <Gift className="h-4 w-4 mr-2" />
+                      Open Your Sticker Pack!
+                    </Button>
+                  ) : dailyRewardClaimed ? (
+                    <Link to="/games/sticker-album">
+                      <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        View Sticker Album
                       </Button>
-                    ) : (
-                      <Link to="/games/sticker-album">
-                        <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          View Sticker Album
-                        </Button>
-                      </Link>
-                    )
+                    </Link>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        const targetUserId = canManageChores && selectedBestieId ? selectedBestieId : user?.id;
+                        if (targetUserId) claimDailyReward(targetUserId);
+                      }}
+                      disabled={rewardCreating}
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                    >
+                      <Gift className="h-4 w-4 mr-2" />
+                      {rewardCreating ? 'Creating pack…' : 'Get Sticker Pack'}
+                    </Button>
                   )}
                 </div>
               )}
