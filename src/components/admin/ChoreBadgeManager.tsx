@@ -1,6 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 // Badge definitions - same as in useChoreStreaks
 const BADGE_DEFINITIONS = [
@@ -17,6 +21,27 @@ const BADGE_DEFINITIONS = [
 export function ChoreBadgeManager() {
   const streakBadges = BADGE_DEFINITIONS.filter(b => b.category === 'streak');
   const totalBadges = BADGE_DEFINITIONS.filter(b => b.category === 'total');
+
+  const testBadge = (badge: typeof BADGE_DEFINITIONS[0]) => {
+    // Trigger confetti
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+
+    // Show toast notification
+    toast.success(
+      <div className="flex items-center gap-2">
+        <span className="text-2xl">{badge.icon}</span>
+        <div>
+          <div className="font-semibold">Badge Earned: {badge.name}!</div>
+          <div className="text-sm text-muted-foreground">{badge.description}</div>
+        </div>
+      </div>,
+      { duration: 5000 }
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -35,6 +60,7 @@ export function ChoreBadgeManager() {
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="w-32">Requirement</TableHead>
+                <TableHead className="w-24">Test</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -45,6 +71,15 @@ export function ChoreBadgeManager() {
                   <TableCell className="text-muted-foreground">{badge.description}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{badge.threshold} days</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => testBadge(badge)}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -68,6 +103,7 @@ export function ChoreBadgeManager() {
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="w-32">Requirement</TableHead>
+                <TableHead className="w-24">Test</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -78,6 +114,15 @@ export function ChoreBadgeManager() {
                   <TableCell className="text-muted-foreground">{badge.description}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{badge.threshold} days</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => testBadge(badge)}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
