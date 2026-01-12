@@ -135,12 +135,12 @@ export function PageVisitsAnalytics() {
       .reverse();
   })();
 
-  // Summary stats
+  // Summary stats - Total Visits = unique sessions, Page Views = raw count
   const stats = {
-    totalVisits: visits?.length || 0,
-    uniqueUsers: new Set(visits?.map(v => v.user_id || v.session_id)).size,
-    authenticatedVisits: visits?.filter(v => v.user_id).length || 0,
-    guestVisits: visits?.filter(v => !v.user_id).length || 0,
+    pageViews: visits?.length || 0,
+    totalVisits: new Set(visits?.map(v => v.session_id).filter(Boolean)).size,
+    uniqueUsers: new Set(visits?.map(v => v.user_id).filter(Boolean)).size,
+    guestSessions: new Set(visits?.filter(v => !v.user_id).map(v => v.session_id).filter(Boolean)).size,
   };
 
   return (
@@ -198,13 +198,14 @@ export function PageVisitsAnalytics() {
               <span className="text-sm text-muted-foreground">Total Visits</span>
             </div>
             <p className="text-2xl font-bold">{stats.totalVisits.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">{stats.pageViews.toLocaleString()} page views</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Unique Visitors</span>
+              <span className="text-sm text-muted-foreground">Logged In Users</span>
             </div>
             <p className="text-2xl font-bold">{stats.uniqueUsers.toLocaleString()}</p>
           </CardContent>
@@ -212,19 +213,19 @@ export function PageVisitsAnalytics() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-muted-foreground">Logged In</span>
+              <Users className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm text-muted-foreground">Guest Sessions</span>
             </div>
-            <p className="text-2xl font-bold">{stats.authenticatedVisits.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{stats.guestSessions.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm text-muted-foreground">Guests</span>
+              <BarChart3 className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Page Views</span>
             </div>
-            <p className="text-2xl font-bold">{stats.guestVisits.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{stats.pageViews.toLocaleString()}</p>
           </CardContent>
         </Card>
       </div>
