@@ -253,6 +253,7 @@ const Admin = () => {
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="games">Games</TabsTrigger>
+            <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
               Store
               {pendingVendorsCount > 0 && (
@@ -495,9 +496,7 @@ const Admin = () => {
                     <TabsTrigger value="memory-match">Memory Match</TabsTrigger>
                     <TabsTrigger value="stickers">Stickers</TabsTrigger>
                     <TabsTrigger value="drink">Drinks</TabsTrigger>
-                    <TabsTrigger value="recipes">Recipes</TabsTrigger>
                     <TabsTrigger value="coloring">Coloring</TabsTrigger>
-                    <TabsTrigger value="chores">Chores</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="earn-coins">
@@ -536,6 +535,27 @@ const Admin = () => {
                     </Tabs>
                   </TabsContent>
 
+                  <TabsContent value="coloring">
+                    <ColoringManager />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="resources">
+            <Card>
+              <CardHeader>
+                <CardTitle>Resources Management</CardTitle>
+                <CardDescription>Manage resources like recipes and chore tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="recipes" className="space-y-4">
+                  <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="recipes">Recipes</TabsTrigger>
+                    <TabsTrigger value="chores">Chores</TabsTrigger>
+                  </TabsList>
+
                   <TabsContent value="recipes">
                     <Tabs defaultValue="ingredients" className="space-y-4">
                       <TabsList>
@@ -549,10 +569,6 @@ const Admin = () => {
                         <RecipeToolsManager />
                       </TabsContent>
                     </Tabs>
-                  </TabsContent>
-
-                  <TabsContent value="coloring">
-                    <ColoringManager />
                   </TabsContent>
 
                   <TabsContent value="chores">
