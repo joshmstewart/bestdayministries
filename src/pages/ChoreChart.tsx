@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
+import { BadgeEarnedDialog } from "@/components/chores/BadgeEarnedDialog";
 interface Chore {
   id: string;
   title: string;
@@ -76,6 +77,8 @@ export default function ChoreChart() {
   const [showPackDialog, setShowPackDialog] = useState(false);
   const [rewardCardId, setRewardCardId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'week'>('list');
+  const [earnedBadge, setEarnedBadge] = useState<{ type: string; name: string; description: string; icon: string; threshold: number; category: string } | null>(null);
+  const [showBadgeDialog, setShowBadgeDialog] = useState(false);
 
   const { mstDate: today } = getMSTInfo();
   const dayOfWeek = new Date().getDay();
@@ -84,7 +87,7 @@ export default function ChoreChart() {
   
   // Streak tracking - use the target user ID (bestie or self)
   const targetUserId = canManageChores && selectedBestieId ? selectedBestieId : user?.id || null;
-  const { streak, badges, loading: streakLoading, updateStreakOnCompletion, refreshStreaks } = useChoreStreaks(targetUserId);
+  const { streak, badges, loading: streakLoading, updateStreakOnCompletion, refreshStreaks, badgeDefinitions } = useChoreStreaks(targetUserId);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -271,20 +274,29 @@ export default function ChoreChart() {
           // Update streak when all chores completed for the day
           const result = await updateStreakOnCompletion(today);
           if (result?.newBadges && result.newBadges.length > 0) {
-            // Show badge earned notification
-            result.newBadges.forEach(badge => {
-              toast.success(
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{badge.badge_icon}</span>
-                  <div>
-                    <p className="font-medium">Badge Earned!</p>
-                    <p className="text-sm">{badge.badge_name}</p>
-                  </div>
-                </div>,
-                { duration: 5000 }
-              );
-            });
-            fireBigCelebration();
+            // Show the first badge in the celebration dialog
+            const firstBadge = result.newBadges[0];
+            const badgeDef = badgeDefinitions.find(b => b.type === firstBadge.badge_type);
+            if (badgeDef) {
+              setEarnedBadge(badgeDef);
+              setShowBadgeDialog(true);
+            }
+            
+            // If there are more badges, show toasts for the rest
+            if (result.newBadges.length > 1) {
+              result.newBadges.slice(1).forEach(badge => {
+                toast.success(
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{badge.badge_icon}</span>
+                    <div>
+                      <p className="font-medium">Badge Earned!</p>
+                      <p className="text-sm">{badge.badge_name}</p>
+                    </div>
+                  </div>,
+                  { duration: 5000 }
+                );
+              });
+            }
           }
         }
       }
@@ -546,7 +558,8 @@ export default function ChoreChart() {
         <ChoreStreakDisplay 
           streak={streak} 
           badges={badges} 
-          loading={streakLoading} 
+          loading={streakLoading}
+          badgeDefinitions={badgeDefinitions}
         />
 
         {/* View content */}
@@ -661,6 +674,13 @@ export default function ChoreChart() {
             }}
           />
         )}
+
+        {/* Badge Earned Celebration Dialog */}
+        <BadgeEarnedDialog
+          badge={earnedBadge}
+          open={showBadgeDialog}
+          onOpenChange={setShowBadgeDialog}
+        />
       </div>
     </main>
     <Footer />

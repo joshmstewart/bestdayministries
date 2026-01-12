@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Flame, Trophy, Calendar, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Flame, Trophy, Calendar, Star, ChevronRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BadgeCollectionDialog } from "./BadgeCollectionDialog";
 
 interface ChoreStreak {
   current_streak: number;
@@ -18,13 +21,25 @@ interface ChoreBadge {
   earned_at: string;
 }
 
+interface BadgeDefinition {
+  type: string;
+  name: string;
+  description: string;
+  icon: string;
+  threshold: number;
+  category: string;
+}
+
 interface ChoreStreakDisplayProps {
   streak: ChoreStreak | null;
   badges: ChoreBadge[];
   loading?: boolean;
+  badgeDefinitions?: BadgeDefinition[];
 }
 
-export function ChoreStreakDisplay({ streak, badges, loading }: ChoreStreakDisplayProps) {
+export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions = [] }: ChoreStreakDisplayProps) {
+  const [showBadgeCollection, setShowBadgeCollection] = useState(false);
+
   if (loading) {
     return (
       <Card className="mb-6">
@@ -44,76 +59,104 @@ export function ChoreStreakDisplay({ streak, badges, loading }: ChoreStreakDispl
   const totalDays = streak?.total_completion_days || 0;
 
   return (
-    <Card className="mb-6 overflow-hidden">
-      <CardContent className="py-4">
-        {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          {/* Current Streak */}
-          <div className="text-center p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Flame className="h-5 w-5 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-600">{currentStreak}</span>
-            </div>
-            <p className="text-xs text-muted-foreground font-medium">Day Streak</p>
-          </div>
-
-          {/* Longest Streak */}
-          <div className="text-center p-3 rounded-lg bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/20">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Star className="h-5 w-5 text-yellow-500" />
-              <span className="text-2xl font-bold text-yellow-600">{longestStreak}</span>
-            </div>
-            <p className="text-xs text-muted-foreground font-medium">Best Streak</p>
-          </div>
-
-          {/* Total Days */}
-          <div className="text-center p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
-            <div className="flex items-center justify-center gap-1 mb-1">
-              <Calendar className="h-5 w-5 text-blue-500" />
-              <span className="text-2xl font-bold text-blue-600">{totalDays}</span>
-            </div>
-            <p className="text-xs text-muted-foreground font-medium">Total Days</p>
-          </div>
-        </div>
-
-        {/* Badges Row */}
-        {badges.length > 0 && (
-          <div className="border-t pt-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Badges Earned</span>
-              <Badge variant="secondary" className="text-xs">{badges.length}</Badge>
-            </div>
-            <TooltipProvider>
-              <div className="flex flex-wrap gap-2">
-                {badges.map((badge) => (
-                  <Tooltip key={badge.id}>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 cursor-help hover:bg-primary/20 transition-colors">
-                        <span className="text-lg">{badge.badge_icon}</span>
-                        <span className="text-xs font-medium">{badge.badge_name}</span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{badge.badge_description}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
+    <>
+      <Card className="mb-6 overflow-hidden">
+        <CardContent className="py-4">
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {/* Current Streak */}
+            <div className="text-center p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Flame className="h-5 w-5 text-orange-500" />
+                <span className="text-2xl font-bold text-orange-600">{currentStreak}</span>
               </div>
-            </TooltipProvider>
-          </div>
-        )}
+              <p className="text-xs text-muted-foreground font-medium">Day Streak</p>
+            </div>
 
-        {/* Empty badges state */}
-        {badges.length === 0 && (
-          <div className="border-t pt-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Trophy className="h-4 w-4" />
-              <span className="text-sm">Complete all your chores to earn badges!</span>
+            {/* Longest Streak */}
+            <div className="text-center p-3 rounded-lg bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/20">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Star className="h-5 w-5 text-yellow-500" />
+                <span className="text-2xl font-bold text-yellow-600">{longestStreak}</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">Best Streak</p>
+            </div>
+
+            {/* Total Days */}
+            <div className="text-center p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Calendar className="h-5 w-5 text-blue-500" />
+                <span className="text-2xl font-bold text-blue-600">{totalDays}</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">Total Days</p>
             </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* Badges Row */}
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Badges</span>
+                <Badge variant="secondary" className="text-xs">
+                  {badges.length}/{badgeDefinitions.length || 8}
+                </Badge>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowBadgeCollection(true)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                View All <ChevronRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+            
+            {badges.length > 0 ? (
+              <TooltipProvider>
+                <div className="flex flex-wrap gap-2">
+                  {badges.slice(0, 4).map((badge) => (
+                    <Tooltip key={badge.id}>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 cursor-help hover:bg-primary/20 transition-colors">
+                          <span className="text-lg">{badge.badge_icon}</span>
+                          <span className="text-xs font-medium">{badge.badge_name}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{badge.badge_description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                  {badges.length > 4 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setShowBadgeCollection(true)}
+                    >
+                      +{badges.length - 4} more
+                    </Button>
+                  )}
+                </div>
+              </TooltipProvider>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Complete all your chores to earn badges! 🎯
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <BadgeCollectionDialog
+        open={showBadgeCollection}
+        onOpenChange={setShowBadgeCollection}
+        earnedBadges={badges}
+        allBadges={badgeDefinitions}
+        currentStreak={currentStreak}
+        totalDays={totalDays}
+      />
+    </>
   );
 }
