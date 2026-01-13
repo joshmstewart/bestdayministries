@@ -23,39 +23,119 @@ const createEmptyPattern = (): Record<InstrumentType, boolean[]> => {
   return pattern as Record<InstrumentType, boolean[]>;
 };
 
-// Convert beat pattern to a descriptive music prompt
-const patternToPrompt = (pattern: Record<InstrumentType, boolean[]>, tempo: number): string => {
-  const activeInstruments: string[] = [];
-  let totalBeats = 0;
+// Convert step indices to musical beat notation (1-based, with "and" for off-beats)
+const stepToBeatNotation = (step: number): string => {
+  const beat = Math.floor(step / 4) + 1; // Which quarter note (1-4)
+  const subdivision = step % 4;
+  if (subdivision === 0) return `${beat}`;
+  if (subdivision === 2) return `${beat}-and`;
+  if (subdivision === 1) return `${beat}-e`;
+  return `${beat}-a`;
+};
 
+// Analyze rhythm pattern for a single instrument
+const analyzeRhythmPattern = (steps: boolean[]): string => {
+  const activeSteps = steps.map((active, i) => active ? i : -1).filter(i => i >= 0);
+  if (activeSteps.length === 0) return '';
+  
+  // Check for common patterns
+  const onDownbeats = [0, 4, 8, 12].filter(i => steps[i]);
+  const onOffbeats = [2, 6, 10, 14].filter(i => steps[i]);
+  const on16ths = activeSteps.filter(i => i % 2 === 1);
+  
+  // Four-on-the-floor check
+  if (onDownbeats.length === 4 && activeSteps.length === 4) {
+    return 'four-on-the-floor pattern (every quarter note)';
+  }
+  
+  // Backbeat check (2 and 4)
+  if (steps[4] && steps[12] && activeSteps.length === 2) {
+    return 'backbeat pattern (beats 2 and 4)';
+  }
+  
+  // Off-beat/syncopated check
+  if (onOffbeats.length > onDownbeats.length) {
+    return `syncopated pattern hitting on ${activeSteps.map(s => stepToBeatNotation(s)).join(', ')}`;
+  }
+  
+  // 16th note pattern
+  if (on16ths.length > 2) {
+    return `busy 16th note pattern on ${activeSteps.map(s => stepToBeatNotation(s)).join(', ')}`;
+  }
+  
+  // General description
+  return `hitting on ${activeSteps.map(s => stepToBeatNotation(s)).join(', ')}`;
+};
+
+// Get detailed sound description for each instrument
+const getInstrumentSoundDescription = (inst: InstrumentType): string => {
+  const descriptions: Record<InstrumentType, string> = {
+    kick: 'deep punchy kick drum with low-end thump',
+    snare: 'crisp snare drum with a sharp attack',
+    hihat: 'tight closed hi-hat with metallic shimmer',
+    clap: 'punchy handclap with room reverb',
+    bass: 'sub-bass synth with warm low frequencies',
+    synth1: 'bright lead synthesizer with saw wave tone',
+    synth2: 'warm pad synthesizer with soft attack',
+    bell: 'sparkling bell tones with long decay',
+  };
+  return descriptions[inst];
+};
+
+// Convert beat pattern to a super detailed music prompt
+const patternToPrompt = (pattern: Record<InstrumentType, boolean[]>, tempo: number): string => {
+  const instrumentDescriptions: string[] = [];
+  let totalActiveSteps = 0;
+  
   INSTRUMENTS.forEach(inst => {
     const activeCount = pattern[inst].filter(Boolean).length;
     if (activeCount > 0) {
-      activeInstruments.push(INSTRUMENT_LABELS[inst].name.toLowerCase());
-      totalBeats += activeCount;
+      totalActiveSteps += activeCount;
+      const rhythmPattern = analyzeRhythmPattern(pattern[inst]);
+      const soundDesc = getInstrumentSoundDescription(inst);
+      instrumentDescriptions.push(`${soundDesc} ${rhythmPattern}`);
     }
   });
 
-  if (activeInstruments.length === 0) {
+  if (instrumentDescriptions.length === 0) {
     return 'A simple electronic beat';
   }
 
-  // Determine the style based on instruments and density
-  const density = totalBeats / (INSTRUMENTS.length * STEPS);
-  const tempoDescription = tempo < 90 ? 'slow' : tempo < 120 ? 'medium tempo' : 'upbeat fast';
-  
-  let style = 'electronic';
-  if (pattern.kick.filter(Boolean).length > 4 && pattern.bass.filter(Boolean).length > 2) {
-    style = 'bass-heavy electronic';
-  } else if (pattern.hihat.filter(Boolean).length > 6) {
-    style = 'energetic dance';
-  } else if (pattern.bell.filter(Boolean).length > 2 || pattern.synth2.filter(Boolean).length > 2) {
-    style = 'melodic electronic';
+  // Tempo description
+  let tempoFeel = '';
+  if (tempo < 80) tempoFeel = 'slow and laid-back';
+  else if (tempo < 100) tempoFeel = 'mid-tempo groovy';
+  else if (tempo < 120) tempoFeel = 'medium energy';
+  else if (tempo < 140) tempoFeel = 'upbeat and driving';
+  else tempoFeel = 'fast and energetic';
+
+  // Time signature context
+  const timeSignature = '4/4 time signature with 16th note subdivisions';
+
+  // Genre hints based on pattern
+  let genreHints = 'electronic';
+  const hasKickOnDownbeats = [0, 4, 8, 12].filter(i => pattern.kick[i]).length >= 3;
+  const hasSnareBackbeat = pattern.snare[4] && pattern.snare[12];
+  const hasBusyHihats = pattern.hihat.filter(Boolean).length >= 8;
+  const hasMelodicElements = pattern.synth1.filter(Boolean).length > 0 || pattern.synth2.filter(Boolean).length > 0 || pattern.bell.filter(Boolean).length > 0;
+
+  if (hasKickOnDownbeats && hasSnareBackbeat && hasBusyHihats) {
+    genreHints = 'dance/house music style';
+  } else if (hasKickOnDownbeats && hasMelodicElements) {
+    genreHints = 'melodic electronic/synthwave style';
+  } else if (pattern.bass.filter(Boolean).length > 4) {
+    genreHints = 'bass-heavy electronic/dubstep influenced';
+  } else if (hasMelodicElements && !hasBusyHihats) {
+    genreHints = 'ambient electronic/chillwave style';
   }
 
-  const densityDesc = density > 0.3 ? 'complex' : density > 0.15 ? 'groovy' : 'minimal';
+  // Build the detailed prompt
+  const prompt = `Create a ${tempoFeel} ${genreHints} track at exactly ${tempo} BPM in ${timeSignature}. ` +
+    `The beat features: ${instrumentDescriptions.join('; ')}. ` +
+    `This is a ${totalActiveSteps > 20 ? 'densely layered' : totalActiveSteps > 10 ? 'moderately complex' : 'minimal and spacious'} arrangement. ` +
+    `Make it sound polished, punchy, and ready for the dancefloor.`;
 
-  return `A ${tempoDescription} ${densityDesc} ${style} beat featuring ${activeInstruments.slice(0, 3).join(', ')}${activeInstruments.length > 3 ? ' and more' : ''}, at ${tempo} BPM, perfect for dancing`;
+  return prompt;
 };
 
 const BeatPad: React.FC = () => {
