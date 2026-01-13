@@ -90,7 +90,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
       
       // Play sound IMMEDIATELY when dialog opens (don't wait for loading)
       if (!hasPlayedRevealSound.current && !soundsLoading) {
-        console.log('Dialog opened, playing pack reveal sound immediately');
         playSound('sticker_pack_reveal');
         hasPlayedRevealSound.current = true;
       }
@@ -197,7 +196,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
     
     // If not common rarity, play the special sound (will layer nicely over the optimistic sound)
     if (rarity !== 'common') {
-      console.log('Playing special rarity sound:', raritySound);
       playSound(raritySound);
     }
     
@@ -262,7 +260,6 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
         const stickers = data.stickers || (data.sticker ? [data.sticker] : []);
 
         if (stickers.length > 0) {
-          console.log(`${stickers.length} sticker(s) revealed successfully:`, stickers);
           setRevealedStickers(stickers);
 
           setOpened(true);
