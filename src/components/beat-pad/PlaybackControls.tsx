@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Square, Trash2, Save, Share2 } from 'lucide-react';
+import { Play, Pause, Square, Trash2, Save, Share2, Sparkles, Loader2 } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -12,8 +12,10 @@ interface PlaybackControlsProps {
   onClear: () => void;
   onSave: () => void;
   onShare: () => void;
+  onAIify: () => void;
   canSave: boolean;
   isSaving: boolean;
+  isAIifying: boolean;
 }
 
 export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
@@ -25,8 +27,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onClear,
   onSave,
   onShare,
+  onAIify,
   canSave,
   isSaving,
+  isAIifying,
 }) => {
   return (
     <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border border-border">
@@ -83,6 +87,25 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           <span>Fast</span>
         </div>
       </div>
+
+      {/* AI-ify button */}
+      <Button
+        onClick={onAIify}
+        disabled={!canSave || isAIifying}
+        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+      >
+        {isAIifying ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Creating AI Magic...
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4 mr-2" />
+            AI-ify My Beat! ✨
+          </>
+        )}
+      </Button>
 
       {/* Save and share buttons */}
       <div className="flex gap-2">

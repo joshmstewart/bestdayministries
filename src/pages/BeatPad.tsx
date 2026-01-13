@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Music, Users } from 'lucide-react';
+import { ArrowLeft, Music, Users, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import BeatGrid from '@/components/beat-pad/BeatGrid';
 import PlaybackControls from '@/components/beat-pad/PlaybackControls';
 import BeatPadGallery from '@/components/beat-pad/BeatPadGallery';
-import useBeatPadAudio, { InstrumentType } from '@/hooks/useBeatPadAudio';
+import useBeatPadAudio, { InstrumentType, INSTRUMENT_LABELS } from '@/hooks/useBeatPadAudio';
 
 const INSTRUMENTS: InstrumentType[] = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell'];
 const STEPS = 16;
@@ -21,6 +21,41 @@ const createEmptyPattern = (): Record<InstrumentType, boolean[]> => {
     pattern[inst] = Array(STEPS).fill(false);
   });
   return pattern as Record<InstrumentType, boolean[]>;
+};
+
+// Convert beat pattern to a descriptive music prompt
+const patternToPrompt = (pattern: Record<InstrumentType, boolean[]>, tempo: number): string => {
+  const activeInstruments: string[] = [];
+  let totalBeats = 0;
+
+  INSTRUMENTS.forEach(inst => {
+    const activeCount = pattern[inst].filter(Boolean).length;
+    if (activeCount > 0) {
+      activeInstruments.push(INSTRUMENT_LABELS[inst].name.toLowerCase());
+      totalBeats += activeCount;
+    }
+  });
+
+  if (activeInstruments.length === 0) {
+    return 'A simple electronic beat';
+  }
+
+  // Determine the style based on instruments and density
+  const density = totalBeats / (INSTRUMENTS.length * STEPS);
+  const tempoDescription = tempo < 90 ? 'slow' : tempo < 120 ? 'medium tempo' : 'upbeat fast';
+  
+  let style = 'electronic';
+  if (pattern.kick.filter(Boolean).length > 4 && pattern.bass.filter(Boolean).length > 2) {
+    style = 'bass-heavy electronic';
+  } else if (pattern.hihat.filter(Boolean).length > 6) {
+    style = 'energetic dance';
+  } else if (pattern.bell.filter(Boolean).length > 2 || pattern.synth2.filter(Boolean).length > 2) {
+    style = 'melodic electronic';
+  }
+
+  const densityDesc = density > 0.3 ? 'complex' : density > 0.15 ? 'groovy' : 'minimal';
+
+  return `A ${tempoDescription} ${densityDesc} ${style} beat featuring ${activeInstruments.slice(0, 3).join(', ')}${activeInstruments.length > 3 ? ' and more' : ''}, at ${tempo} BPM, perfect for dancing`;
 };
 
 const BeatPad: React.FC = () => {
@@ -35,6 +70,10 @@ const BeatPad: React.FC = () => {
   const [beatName, setBeatName] = useState('My Beat');
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('create');
+  const [isAIifying, setIsAIifying] = useState(false);
+  const [aiAudioUrl, setAiAudioUrl] = useState<string | null>(null);
+  const [isPlayingAI, setIsPlayingAI] = useState(false);
+  const aiAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -179,8 +218,102 @@ const BeatPad: React.FC = () => {
     setPattern(loadedPattern);
     setTempo(loadedTempo);
     setActiveTab('create');
+    // Clear AI audio when loading new beat
+    if (aiAudioUrl) {
+      URL.revokeObjectURL(aiAudioUrl);
+      setAiAudioUrl(null);
+    }
     toast.success('Beat loaded! Press play to listen.');
   };
+
+  const handleAIify = async () => {
+    if (!hasPattern) {
+      toast.error('Add some notes first!');
+      return;
+    }
+
+    handleStop(); // Stop the regular playback
+    setIsAIifying(true);
+
+    try {
+      const prompt = patternToPrompt(pattern, tempo);
+      console.log('AI Music prompt:', prompt);
+      
+      toast.info('Creating AI magic from your beat... ✨', { duration: 5000 });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-music`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ 
+            prompt,
+            duration: 15, // 15 seconds
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to generate music: ${response.status}`);
+      }
+
+      const audioBlob = await response.blob();
+      
+      // Revoke old URL if exists
+      if (aiAudioUrl) {
+        URL.revokeObjectURL(aiAudioUrl);
+      }
+
+      const newAudioUrl = URL.createObjectURL(audioBlob);
+      setAiAudioUrl(newAudioUrl);
+
+      toast.success('AI music created! 🎵');
+    } catch (error) {
+      console.error('Error generating AI music:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create AI music');
+    } finally {
+      setIsAIifying(false);
+    }
+  };
+
+  const handlePlayAIAudio = () => {
+    if (!aiAudioUrl) return;
+
+    if (aiAudioRef.current) {
+      if (isPlayingAI) {
+        aiAudioRef.current.pause();
+        setIsPlayingAI(false);
+      } else {
+        aiAudioRef.current.play();
+        setIsPlayingAI(true);
+      }
+    }
+  };
+
+  const handleCloseAIPlayer = () => {
+    if (aiAudioRef.current) {
+      aiAudioRef.current.pause();
+    }
+    if (aiAudioUrl) {
+      URL.revokeObjectURL(aiAudioUrl);
+    }
+    setAiAudioUrl(null);
+    setIsPlayingAI(false);
+  };
+
+  // Cleanup AI audio URL on unmount
+  useEffect(() => {
+    return () => {
+      if (aiAudioUrl) {
+        URL.revokeObjectURL(aiAudioUrl);
+      }
+    };
+  }, [aiAudioUrl]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -258,16 +391,50 @@ const BeatPad: React.FC = () => {
                   onClear={handleClear}
                   onSave={handleSave}
                   onShare={handleShare}
+                  onAIify={handleAIify}
                   canSave={hasPattern}
                   isSaving={isSaving}
+                  isAIifying={isAIifying}
                 />
               </div>
             </div>
 
+            {/* AI Generated Music Player */}
+            {aiAudioUrl && (
+              <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">✨</span>
+                    <h3 className="font-semibold">Your AI-Enhanced Beat!</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleCloseAIPlayer}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <audio
+                  ref={aiAudioRef}
+                  src={aiAudioUrl}
+                  controls
+                  className="w-full"
+                  onPlay={() => setIsPlayingAI(true)}
+                  onPause={() => setIsPlayingAI(false)}
+                  onEnded={() => setIsPlayingAI(false)}
+                />
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  🎵 AI transformed your beat into a full track!
+                </p>
+              </div>
+            )}
+
             {/* Instructions */}
             <div className="bg-muted/50 rounded-xl p-4 text-center">
               <h3 className="font-semibold mb-2">How to Play</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                 <div>
                   <span className="text-2xl">👆</span>
                   <p>Tap squares to add notes</p>
@@ -275,6 +442,10 @@ const BeatPad: React.FC = () => {
                 <div>
                   <span className="text-2xl">▶️</span>
                   <p>Press play to hear your beat</p>
+                </div>
+                <div>
+                  <span className="text-2xl">✨</span>
+                  <p>AI-ify to create magic!</p>
                 </div>
                 <div>
                   <span className="text-2xl">💾</span>
