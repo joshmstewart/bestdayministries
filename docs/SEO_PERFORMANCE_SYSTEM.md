@@ -103,10 +103,12 @@ getEventStructuredData(name, description, startDate, location, image?)
 ### OptimizedImage Component (`src/components/OptimizedImage.tsx`)
 
 **Features:**
+- **Memoized** with `React.memo()` to prevent re-renders
 - Lazy loading (except priority images)
-- Intersection Observer (loads 50px before viewport)
-- Blur placeholder during load
+- Intersection Observer (loads 100px before viewport)
+- Dynamic blur placeholder based on URL hash
 - Fade-in animation on load
+- Error state handling with fallback
 - Proper `loading` and `decoding` attributes
 
 **Props:**
@@ -117,9 +119,12 @@ interface OptimizedImageProps {
   className?: string;
   width?: number;
   height?: number;
-  priority?: boolean; // Skip lazy loading for above-fold images
+  priority?: boolean;        // Skip lazy loading for above-fold images
   objectFit?: "cover" | "contain" | "fill" | "none" | "scale-down";
   onLoad?: () => void;
+  sizes?: string;            // Responsive sizes hint
+  placeholder?: "blur" | "empty";
+  blurDataURL?: string;      // Custom placeholder color
 }
 ```
 
@@ -278,6 +283,15 @@ import { SEOHead, getArticleStructuredData } from "@/components/SEOHead";
 
 ---
 
+## RELATED DOCUMENTATION
+
+For comprehensive performance optimization beyond SEO:
+- `PERFORMANCE_OPTIMIZATION_COMPLETE.md` - Bundle splitting, code splitting, memoization
+- `HEADER_PERFORMANCE_OPTIMIZATION.md` - AuthContext centralization
+- `TEST_PERFORMANCE_OPTIMIZATION.md` - E2E test performance
+
+---
+
 ## FUTURE ENHANCEMENTS
 - [ ] Image CDN integration
 - [ ] Service worker for offline caching
@@ -289,4 +303,4 @@ import { SEOHead, getArticleStructuredData } from "@/components/SEOHead";
 
 ---
 
-**Last Updated:** After implementing comprehensive SEO and performance optimization system
+**Last Updated:** 2026-01-13 - Added memo, 100px rootMargin, enhanced props, related docs
