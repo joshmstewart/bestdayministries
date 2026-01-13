@@ -245,11 +245,67 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       // Check if this path was created while in eraser mode
       const path = opt.path;
       if (path && (canvas.freeDrawingBrush as any)?._isEraser) {
-        // Apply destination-out to erase underlying paths
-        path.set({
-          globalCompositeOperation: 'destination-out',
-          stroke: 'rgba(0,0,0,1)',
+        // Remove the visible path (we don't want black stroke)
+        canvas.remove(path);
+        
+        // Erase from fabric canvas (other brush strokes) using destination-out
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvasWidth;
+        tempCanvas.height = canvasHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (tempCtx && baseCanvasRef.current) {
+          // Draw the erase path on base canvas with white to erase fills
+          const baseCtx = baseCanvasRef.current.getContext('2d');
+          if (baseCtx) {
+            // Save history before erasing
+            const imageData = baseCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+            setHistory(prev => [...prev.slice(-MAX_HISTORY + 1), imageData]);
+            
+            // Draw white along the eraser path to erase fills
+            baseCtx.globalCompositeOperation = 'destination-out';
+            baseCtx.strokeStyle = 'rgba(255,255,255,1)';
+            baseCtx.lineWidth = (canvas.freeDrawingBrush?.width || 20);
+            baseCtx.lineCap = 'round';
+            baseCtx.lineJoin = 'round';
+            
+            // Convert fabric path to base canvas path
+            const pathData = path.path;
+            if (pathData && pathData.length > 0) {
+              baseCtx.beginPath();
+              pathData.forEach((segment: any[]) => {
+                if (segment[0] === 'M') {
+                  baseCtx.moveTo(segment[1], segment[2]);
+                } else if (segment[0] === 'Q') {
+                  baseCtx.quadraticCurveTo(segment[1], segment[2], segment[3], segment[4]);
+                } else if (segment[0] === 'L') {
+                  baseCtx.lineTo(segment[1], segment[2]);
+                }
+              });
+              baseCtx.stroke();
+            }
+            baseCtx.globalCompositeOperation = 'source-over';
+          }
+        }
+        
+        // Also remove any fabric brush strokes that intersect with eraser path
+        const eraserPath = path;
+        const eraserBounds = eraserPath.getBoundingRect();
+        const objectsToRemove: any[] = [];
+        
+        canvas.getObjects().forEach((obj: any) => {
+          if (obj.type === 'path' && obj !== eraserPath) {
+            const objBounds = obj.getBoundingRect();
+            // Check if bounds intersect
+            if (!(eraserBounds.left > objBounds.left + objBounds.width ||
+                  eraserBounds.left + eraserBounds.width < objBounds.left ||
+                  eraserBounds.top > objBounds.top + objBounds.height ||
+                  eraserBounds.top + eraserBounds.height < objBounds.top)) {
+              objectsToRemove.push(obj);
+            }
+          }
         });
+        
+        objectsToRemove.forEach(obj => canvas.remove(obj));
         canvas.renderAll();
       }
     });
@@ -312,10 +368,11 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       fabricCanvas.isDrawingMode = true;
       fabricCanvas.selection = false;
       if (fabricCanvas.freeDrawingBrush) {
-        // Set brush properties for eraser - path:created handler applies destination-out
-        fabricCanvas.freeDrawingBrush.color = "rgba(0,0,0,1)";
+        // Use a very light transparent stroke - it will be removed immediately after path:created
+        // This makes the eraser appear nearly invisible while drawing
+        fabricCanvas.freeDrawingBrush.color = "rgba(200,200,200,0.3)";
         fabricCanvas.freeDrawingBrush.width = brushSize * 2;
-        // Flag this brush as eraser so path:created knows to apply destination-out
+        // Flag this brush as eraser so path:created knows to handle it
         (fabricCanvas.freeDrawingBrush as any)._isEraser = true;
       }
     } else if (activeTool === "sticker") {
