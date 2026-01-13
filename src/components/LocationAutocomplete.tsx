@@ -66,7 +66,6 @@ export function LocationAutocomplete({
   useEffect(() => {
     const fetchApiKey = async () => {
       try {
-        console.log('Fetching Google Places API key...');
         const { data, error } = await supabase.functions.invoke('get-google-places-key');
         
         if (error) {
@@ -75,7 +74,6 @@ export function LocationAutocomplete({
         }
         
         if (data?.apiKey) {
-          console.log('API key fetched successfully:', data.apiKey.substring(0, 10) + '...');
           setApiKey(data.apiKey);
         } else {
           console.error('No API key in response:', data);
@@ -97,11 +95,8 @@ export function LocationAutocomplete({
 
   useEffect(() => {
     if (!isLoaded || !inputRef.current || !hasValidKey) {
-      console.log('Waiting for:', { isLoaded, hasInput: !!inputRef.current, hasValidKey });
       return;
     }
-
-    console.log('Initializing autocomplete with API key...');
 
     // Initialize autocomplete
     const autocompleteInstance = new google.maps.places.Autocomplete(inputRef.current, {
@@ -112,7 +107,6 @@ export function LocationAutocomplete({
     // Listen for place selection
     autocompleteInstance.addListener("place_changed", () => {
       const place = autocompleteInstance.getPlace();
-      console.log('Place selected:', place);
       
       if (place.formatted_address) {
         onChange(place.formatted_address);
@@ -122,7 +116,6 @@ export function LocationAutocomplete({
     });
 
     setAutocomplete(autocompleteInstance);
-    console.log('Autocomplete initialized successfully');
 
     return () => {
       if (autocomplete) {
@@ -173,16 +166,10 @@ export function LocationAutocomplete({
           <Select
             value={selectedLocationId}
             onValueChange={(locationId) => {
-              console.log("Saved location selected:", locationId);
               const location = savedLocations.find(l => l.id === locationId);
               if (location) {
-                console.log("Setting location address:", location.address);
                 setSelectedLocationId(locationId);
                 onChange(location.address);
-                // Small delay to ensure state updates properly
-                setTimeout(() => {
-                  console.log("Location should now be:", location.address);
-                }, 100);
               }
             }}
           >

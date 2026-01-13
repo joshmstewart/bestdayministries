@@ -65,9 +65,8 @@ export const ShareButtons = ({
           text: description,
           url: shareUrl,
         });
-      } catch (error) {
-        // User cancelled or error occurred
-        console.log("Share cancelled or failed:", error);
+      } catch {
+        // User cancelled or error occurred - silently ignore
       }
     } else {
       // Fallback to copy link if Web Share API not supported

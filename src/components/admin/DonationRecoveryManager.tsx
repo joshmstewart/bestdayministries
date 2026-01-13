@@ -328,8 +328,6 @@ export function DonationRecoveryManager() {
         return;
       }
 
-      console.log("Recovering donations for transactions:", transactions);
-
       const { data, error } = await supabase.functions.invoke(
         "recover-missing-donations",
         {

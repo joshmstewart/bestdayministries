@@ -64,14 +64,12 @@ export function VoiceInput({
   // Memoize handlers/options so `useScribe` doesn't recreate its internal client on every render.
   // A recreated client will drop the websocket and looks like "it stopped" after a couple seconds.
   const handleSessionStarted = useCallback(() => {
-    console.log('[VoiceInput] Session started');
     lastSpeechAtRef.current = Date.now();
     toast.success('Listening... Speak now!');
   }, []);
 
   const handlePartial = useCallback(
     (data: { text: string }) => {
-      console.log('[VoiceInput] Partial:', data.text);
       setPartialText(data.text);
       onPartialTranscript?.(data.text);
 
@@ -84,7 +82,6 @@ export function VoiceInput({
 
   const handleCommitted = useCallback(
     (data: { text: string }) => {
-      console.log('[VoiceInput] Committed:', data.text);
       const chunk = data.text?.trim();
       if (!chunk) return;
 
@@ -99,7 +96,6 @@ export function VoiceInput({
   );
 
   const handleDisconnect = useCallback(() => {
-    console.log('[VoiceInput] Disconnected');
     clearTimers();
   }, [clearTimers]);
 
@@ -159,7 +155,6 @@ export function VoiceInput({
     silenceCheckIntervalRef.current = setInterval(() => {
       const sinceSpeech = Date.now() - lastSpeechAtRef.current;
       if (sinceSpeech >= silenceMs) {
-        console.log('[VoiceInput] Auto-stopping after silence');
         handleStop(true);
         toast.info('Stopped after silence');
       }
@@ -180,7 +175,6 @@ export function VoiceInput({
     if (!maxDuration || maxDuration <= 0) return;
 
     maxDurationTimeoutRef.current = setTimeout(() => {
-      console.log('[VoiceInput] Max duration reached');
       handleStop(true);
       toast.info('Recording stopped - maximum duration reached');
     }, maxDuration * 1000);

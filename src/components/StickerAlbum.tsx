@@ -115,7 +115,6 @@ export const StickerAlbum = () => {
       .eq('setting_key', 'bonus_card_base_cost')
       .maybeSingle();
     
-    console.log('📊 BASE COST loaded from DB:', data?.setting_value);
     if (data?.setting_value) {
       setBaseCost(Number(data.setting_value));
     }
@@ -201,7 +200,6 @@ export const StickerAlbum = () => {
 
   // Recalculate cost when base cost changes
   useEffect(() => {
-    console.log('🔄 RECALC COST - Base cost:', baseCost, 'Bonus count:', bonusCardCount, 'Next cost:', baseCost * Math.pow(2, bonusCardCount));
     if (baseCost) {
       setNextCost(baseCost * Math.pow(2, bonusCardCount));
     }
@@ -225,8 +223,7 @@ export const StickerAlbum = () => {
             table: 'user_stickers',
             filter: `collection_id=eq.${selectedCollection}`
           },
-          (payload) => {
-            console.log('✨ Sticker update received:', payload);
+          () => {
             // Refresh stickers when any change occurs
             fetchStickers();
           }
@@ -247,15 +244,12 @@ export const StickerAlbum = () => {
   }, [selectedCollection]);
 
   const fetchCollections = async () => {
-    console.log('🎴 FETCH: fetchCollections starting...');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('🎴 FETCH: No user found, returning');
       setLoading(false);
       return;
     }
 
-    console.log('🎴 FETCH: Fetching active collections for user:', user.id);
     const { data, error } = await supabase
       .from('sticker_collections')
       .select('*')
@@ -263,9 +257,7 @@ export const StickerAlbum = () => {
       .order('created_at', { ascending: false }); // Latest first for pack display
 
     if (error) {
-      console.error('🎴 FETCH ERROR: Error fetching collections:', error);
-    } else {
-      console.log('🎴 FETCH: Collections fetched:', data?.length || 0, 'collections');
+      console.error('Error fetching collections:', error);
     }
 
     if (!error && data && data.length > 0) {
@@ -276,25 +268,18 @@ export const StickerAlbum = () => {
       const defaultCollection = featuredCollection || data[0];
       
       setSelectedCollection(defaultCollection.id);
-      console.log('🎴 FETCH: Selected collection:', defaultCollection.id, defaultCollection.name, featuredCollection ? '(featured)' : '(first by order)');
       // Rarity percentages will be loaded in the useEffect
-    } else {
-      console.log('🎴 FETCH: No active collections found');
     }
   };
 
   const fetchStickers = async () => {
     setLoading(true);
-    console.log('🎴 FETCH: fetchStickers starting...');
     
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('🎴 FETCH: No user found for stickers');
       setLoading(false);
       return;
     }
-
-    console.log('🎴 FETCH: Fetching stickers for user:', user.id);
 
     // Get coin balance and today's card count
     const { data: profile } = await supabase
@@ -303,7 +288,6 @@ export const StickerAlbum = () => {
       .eq('id', user.id)
       .single();
     
-    console.log('🎴 FETCH: Coin balance:', profile?.coins || 0);
     setCoinBalance(profile?.coins || 0);
 
     // Calculate MST date (same as edge function)
@@ -312,8 +296,6 @@ export const StickerAlbum = () => {
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const mstTime = new Date(utc + (mstOffset * 60000));
     const today = mstTime.toISOString().split('T')[0];
-    
-    console.log('📅 DATE CHECK - MST today:', today, 'UTC now:', new Date().toISOString());
     
     // Get all cards for today (unopened ones) with collection info for pack images
     const { data: cards } = await supabase
@@ -342,7 +324,6 @@ export const StickerAlbum = () => {
       .eq('is_bonus_card', true);
     
     const count = bonusCount || 0;
-    console.log('💰 FETCH STICKERS - Bonus count:', count, 'Base cost:', baseCost, 'Calculated next cost:', baseCost * Math.pow(2, count));
     setBonusCardCount(count);
     // Calculate next cost using base cost from settings
     setNextCost(baseCost * Math.pow(2, count));

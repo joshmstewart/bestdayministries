@@ -86,27 +86,17 @@ export function useSoundEffects() {
     const effect = soundEffects[eventType];
     
     if (!effect || !effect.is_enabled || !effect.file_url) {
-      console.log(`Sound ${eventType} not playing:`, { 
-        exists: !!effect, 
-        enabled: effect?.is_enabled, 
-        hasUrl: !!effect?.file_url 
-      });
       return;
     }
 
     try {
-      console.log(`Playing sound ${eventType}:`, effect.file_url, `volume: ${effect.volume}`);
       const audio = new Audio(effect.file_url);
       audio.volume = effect.volume;
-      audio.play()
-        .then(() => {
-          console.log(`✓ Sound ${eventType} started playing successfully`);
-        })
-        .catch((error) => {
-          console.error(`✗ Error playing sound ${eventType}:`, error);
-        });
-    } catch (error) {
-      console.error(`✗ Error creating audio for ${eventType}:`, error);
+      audio.play().catch(() => {
+        // Audio playback failed - user interaction may be required
+      });
+    } catch {
+      // Error creating audio - silently fail
     }
   };
 
