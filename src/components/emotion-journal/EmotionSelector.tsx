@@ -23,10 +23,11 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
   const negativeEmotions = emotions.filter(e => e.category === 'negative');
   const orderedEmotions = [...positiveEmotions, ...neutralEmotions, ...negativeEmotions];
 
-  // Calculate wave offset for each emotion
+  // Calculate wave offset - multiple oscillations for a real wave effect
   const getWaveOffset = (index: number, total: number) => {
     const progress = index / (total - 1);
-    const wave = Math.sin(progress * Math.PI) * 20;
+    // Use 3 full wave cycles for an actual up-down-up-down pattern
+    const wave = Math.sin(progress * Math.PI * 6) * 18;
     return wave;
   };
 
