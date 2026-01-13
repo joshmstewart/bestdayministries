@@ -76,6 +76,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/sticker-album", label: "Sticker Album" },
   { value: "/store", label: "Coin Shop" },
   { value: "/chore-challenge-gallery", label: "Chore Challenge Gallery" },
+  { value: "/games/beat-pad", label: "Beat Pad" },
   
   // Help & Support
   { value: "/help", label: "Help Center" },

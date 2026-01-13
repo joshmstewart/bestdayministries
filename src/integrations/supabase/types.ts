@@ -567,6 +567,71 @@ export type Database = {
         }
         Relationships: []
       }
+      beat_pad_creations: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          is_public: boolean
+          likes_count: number
+          name: string
+          pattern: Json
+          tempo: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          is_public?: boolean
+          likes_count?: number
+          name?: string
+          pattern?: Json
+          tempo?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          is_public?: boolean
+          likes_count?: number
+          name?: string
+          pattern?: Json
+          tempo?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      beat_pad_likes: {
+        Row: {
+          created_at: string
+          creation_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          creation_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          creation_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beat_pad_likes_creation_id_fkey"
+            columns: ["creation_id"]
+            isOneToOne: false
+            referencedRelation: "beat_pad_creations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_templates: {
         Row: {
           auto_send: boolean

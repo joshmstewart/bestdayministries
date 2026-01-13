@@ -79,6 +79,7 @@ const WordleGame = lazy(() => import("./pages/WordleGame"));
 const ChoreChart = lazy(() => import("./pages/ChoreChart"));
 const DonationHistoryPage = lazy(() => import("./pages/DonationHistoryPage"));
 const PictureLogin = lazy(() => import("./pages/PictureLogin"));
+const BeatPad = lazy(() => import("./pages/BeatPad"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -279,6 +280,7 @@ const App = () => {
             <Route path="/games/coloring-book" element={<ColoringBook />} />
             <Route path="/games/daily-five" element={<WordleGame />} />
             <Route path="/games/emotion-journal" element={<EmotionJournal />} />
+            <Route path="/games/beat-pad" element={<BeatPad />} />
             <Route path="/chore-chart" element={<ChoreChart />} />
             <Route path="/virtual-pet" element={<VirtualPetPage />} />
             <Route path="/store" element={<StorePage />} />
