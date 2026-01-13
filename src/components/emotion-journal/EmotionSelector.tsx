@@ -64,15 +64,25 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
         >
           {emotion.emoji}
         </span>
-        <span 
-          className={cn(
-            "text-[10px] font-medium mt-0.5 transition-colors",
-            isSelected ? "font-bold" : "text-gray-700"
+        <div className="flex items-center gap-0.5 mt-0.5">
+          <span 
+            className={cn(
+              "text-[10px] font-medium transition-colors",
+              isSelected ? "font-bold" : "text-gray-700"
+            )}
+            style={{ color: isSelected ? emotion.color : undefined }}
+          >
+            {emotion.name}
+          </span>
+          {isSelected && (
+            <div onClick={(e) => e.stopPropagation()} className="scale-75">
+              <TextToSpeech 
+                text={`I'm feeling ${emotion.name}`} 
+                size="icon"
+              />
+            </div>
           )}
-          style={{ color: isSelected ? emotion.color : undefined }}
-        >
-          {emotion.name}
-        </span>
+        </div>
       </button>
     );
   };
