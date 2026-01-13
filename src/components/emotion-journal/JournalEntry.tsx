@@ -46,11 +46,14 @@ export function JournalEntry({ value, onChange }: JournalEntryProps) {
         />
       </div>
 
-      {/* Listen to your text */}
+      {/* Listen to your text - shows when there's any content */}
       {value.trim() && (
-        <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/20">
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
           <TextToSpeech text={value} size="default" />
-          <p className="text-sm font-medium">🔊 Listen to your words</p>
+          <div className="flex-1">
+            <p className="text-sm font-medium">🔊 Listen to your words</p>
+            <p className="text-xs text-muted-foreground truncate max-w-[200px]">{value.slice(0, 50)}...</p>
+          </div>
         </div>
       )}
     </div>
