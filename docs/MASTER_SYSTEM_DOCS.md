@@ -1334,3 +1334,10 @@ AI-PROMPTS:
 FILES:src/pages/RecipeGallery.tsx|src/pages/RecipeMaker.tsx|src/components/recipe-maker/*[11-components]|src/components/admin/RecipeIngredientsManager.tsx|src/components/admin/RecipeToolsManager.tsx
 EDGE:supabase/functions/generate-recipe-*|supabase/functions/backfill-recipe-tools
 DOC:RECIPE_PAL_SYSTEM.md
+
+## BEAT_PAD|/games/beat-pad|game
+DB:beat_pad_sounds|beat_pad_creations|beat_pad_likes
+PATTERN:beat_pad_creations.pattern→keys=beat_pad_sounds.id(UUID) [preferred]; legacy keys=beat_pad_sounds.sound_type("kick"/"snare"/"bass") supported in loader
+LOADING:BeatPad.handleLoadBeat→detect-UUID-vs-sound_type→query-sounds→normalize-to-slot-indexed-pattern(0..19) for grid
+PLAYBACK:useBeatLoopPlayer→global-single-loop→starting-new-beat-stops-previous
+ERRORS:unsupported-pattern-format→showErrorToastWithCopy(persistent+copy)
