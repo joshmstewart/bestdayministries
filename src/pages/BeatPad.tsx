@@ -2,186 +2,54 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Music, Users, X, ShoppingBag, Save } from 'lucide-react';
+import { Music, Users, X, ShoppingBag, Save, Wand2, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import BeatGrid from '@/components/beat-pad/BeatGrid';
+import CustomizableBeatGrid from '@/components/beat-pad/CustomizableBeatGrid';
 import PlaybackControls from '@/components/beat-pad/PlaybackControls';
 import BeatPadGallery from '@/components/beat-pad/BeatPadGallery';
 import BeatPadSoundShop from '@/components/beat-pad/BeatPadSoundShop';
 import MyBeats from '@/components/beat-pad/MyBeats';
-import useBeatPadAudio, { InstrumentType, INSTRUMENT_LABELS } from '@/hooks/useBeatPadAudio';
+import SaveBeatDialog from '@/components/beat-pad/SaveBeatDialog';
+import useCustomBeatAudio from '@/hooks/useCustomBeatAudio';
+import { SoundConfig } from '@/components/beat-pad/InstrumentSlot';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
 import Footer from '@/components/Footer';
+import { InstrumentType } from '@/hooks/useBeatPadAudio';
 
-const INSTRUMENTS: InstrumentType[] = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell'];
 const STEPS = 16;
-
-const createEmptyPattern = (): Record<InstrumentType, boolean[]> => {
-  const pattern: Partial<Record<InstrumentType, boolean[]>> = {};
-  INSTRUMENTS.forEach(inst => {
-    pattern[inst] = Array(STEPS).fill(false);
-  });
-  return pattern as Record<InstrumentType, boolean[]>;
-};
-
-// Convert step indices to musical beat notation (1-based, with "and" for off-beats)
-const stepToBeatNotation = (step: number): string => {
-  const beat = Math.floor(step / 4) + 1; // Which quarter note (1-4)
-  const subdivision = step % 4;
-  if (subdivision === 0) return `${beat}`;
-  if (subdivision === 2) return `${beat}-and`;
-  if (subdivision === 1) return `${beat}-e`;
-  return `${beat}-a`;
-};
-
-// Analyze rhythm pattern for a single instrument
-const analyzeRhythmPattern = (steps: boolean[]): string => {
-  const activeSteps = steps.map((active, i) => active ? i : -1).filter(i => i >= 0);
-  if (activeSteps.length === 0) return '';
-  
-  // Check for common patterns
-  const onDownbeats = [0, 4, 8, 12].filter(i => steps[i]);
-  const onOffbeats = [2, 6, 10, 14].filter(i => steps[i]);
-  const on16ths = activeSteps.filter(i => i % 2 === 1);
-  
-  // Four-on-the-floor check
-  if (onDownbeats.length === 4 && activeSteps.length === 4) {
-    return 'four-on-the-floor pattern (every quarter note)';
-  }
-  
-  // Backbeat check (2 and 4)
-  if (steps[4] && steps[12] && activeSteps.length === 2) {
-    return 'backbeat pattern (beats 2 and 4)';
-  }
-  
-  // Off-beat/syncopated check
-  if (onOffbeats.length > onDownbeats.length) {
-    return `syncopated pattern hitting on ${activeSteps.map(s => stepToBeatNotation(s)).join(', ')}`;
-  }
-  
-  // 16th note pattern
-  if (on16ths.length > 2) {
-    return `busy 16th note pattern on ${activeSteps.map(s => stepToBeatNotation(s)).join(', ')}`;
-  }
-  
-  // General description
-  return `hitting on ${activeSteps.map(s => stepToBeatNotation(s)).join(', ')}`;
-};
-
-// Get detailed sound description for each instrument
-const getInstrumentSoundDescription = (inst: InstrumentType): string => {
-  const descriptions: Record<InstrumentType, string> = {
-    kick: 'deep punchy kick drum with low-end thump',
-    snare: 'crisp snare drum with a sharp attack',
-    hihat: 'tight closed hi-hat with metallic shimmer',
-    clap: 'punchy handclap with room reverb',
-    bass: 'sub-bass synth with warm low frequencies',
-    synth1: 'bright lead synthesizer with saw wave tone',
-    synth2: 'warm pad synthesizer with soft attack',
-    bell: 'sparkling bell tones with long decay',
-  };
-  return descriptions[inst];
-};
-
-// Convert beat pattern to a super detailed music prompt
-const patternToPrompt = (pattern: Record<InstrumentType, boolean[]>, tempo: number): string => {
-  const instrumentDescriptions: string[] = [];
-  let totalActiveSteps = 0;
-  
-  INSTRUMENTS.forEach(inst => {
-    const activeCount = pattern[inst].filter(Boolean).length;
-    if (activeCount > 0) {
-      totalActiveSteps += activeCount;
-      const rhythmPattern = analyzeRhythmPattern(pattern[inst]);
-      const soundDesc = getInstrumentSoundDescription(inst);
-      instrumentDescriptions.push(`${soundDesc} ${rhythmPattern}`);
-    }
-  });
-
-  if (instrumentDescriptions.length === 0) {
-    return 'A simple electronic beat';
-  }
-
-  // Tempo description
-  let tempoFeel = '';
-  if (tempo < 80) tempoFeel = 'slow and laid-back';
-  else if (tempo < 100) tempoFeel = 'mid-tempo groovy';
-  else if (tempo < 120) tempoFeel = 'medium energy';
-  else if (tempo < 140) tempoFeel = 'upbeat and driving';
-  else tempoFeel = 'fast and energetic';
-
-  // Time signature context
-  const timeSignature = '4/4 time signature with 16th note subdivisions';
-
-  // Genre hints based on pattern
-  let genreHints = 'electronic';
-  const hasKickOnDownbeats = [0, 4, 8, 12].filter(i => pattern.kick[i]).length >= 3;
-  const hasSnareBackbeat = pattern.snare[4] && pattern.snare[12];
-  const hasBusyHihats = pattern.hihat.filter(Boolean).length >= 8;
-  const hasMelodicElements = pattern.synth1.filter(Boolean).length > 0 || pattern.synth2.filter(Boolean).length > 0 || pattern.bell.filter(Boolean).length > 0;
-
-  if (hasKickOnDownbeats && hasSnareBackbeat && hasBusyHihats) {
-    genreHints = 'dance/house music style';
-  } else if (hasKickOnDownbeats && hasMelodicElements) {
-    genreHints = 'melodic electronic/synthwave style';
-  } else if (pattern.bass.filter(Boolean).length > 4) {
-    genreHints = 'bass-heavy electronic/dubstep influenced';
-  } else if (hasMelodicElements && !hasBusyHihats) {
-    genreHints = 'ambient electronic/chillwave style';
-  }
-
-  // Build the detailed prompt
-  const prompt = `Create a ${tempoFeel} ${genreHints} track at exactly ${tempo} BPM in ${timeSignature}. ` +
-    `The beat features: ${instrumentDescriptions.join('; ')}. ` +
-    `This is a ${totalActiveSteps > 20 ? 'densely layered' : totalActiveSteps > 10 ? 'moderately complex' : 'minimal and spacious'} arrangement. ` +
-    `Make it sound polished, punchy, and ready for the dancefloor.`;
-
-  return prompt;
-};
 
 const BeatPad: React.FC = () => {
   const { user } = useAuth();
-  const { playSound, getAudioContext } = useBeatPadAudio();
+  const { playSound, getAudioContext } = useCustomBeatAudio();
 
-  const [pattern, setPattern] = useState<Record<InstrumentType, boolean[]>>(createEmptyPattern);
+  const [pattern, setPattern] = useState<Record<string, boolean[]>>({});
+  const [instruments, setInstruments] = useState<(SoundConfig | null)[]>([]);
   const [tempo, setTempo] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(-1);
   const [beatName, setBeatName] = useState('My Beat');
-  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('create');
   const [isAIifying, setIsAIifying] = useState(false);
   const [aiAudioUrl, setAiAudioUrl] = useState<string | null>(null);
   const [isPlayingAI, setIsPlayingAI] = useState(false);
   const [soundShopOpen, setSoundShopOpen] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [isGeneratingBeat, setIsGeneratingBeat] = useState(false);
+  const [isGeneratingName, setIsGeneratingName] = useState(false);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
-
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if pattern has any active cells
   const hasPattern = Object.values(pattern).some(steps => steps.some(Boolean));
 
-  const toggleCell = useCallback((instrument: InstrumentType, step: number) => {
-    // Initialize audio context on first interaction
+  const handlePlaySound = useCallback((sound: SoundConfig) => {
     getAudioContext();
-    
-    setPattern(prev => {
-      const newPattern = { ...prev };
-      newPattern[instrument] = [...prev[instrument]];
-      newPattern[instrument][step] = !prev[instrument][step];
-      return newPattern;
-    });
-
-    // Play sound on toggle if turning on
-    if (!pattern[instrument][step]) {
-      playSound(instrument);
-    }
-  }, [pattern, playSound, getAudioContext]);
+    playSound(sound);
+  }, [playSound, getAudioContext]);
 
   const handlePlay = useCallback(() => {
-    // Initialize audio context
     getAudioContext();
     setIsPlaying(true);
     setCurrentStep(0);
@@ -198,7 +66,13 @@ const BeatPad: React.FC = () => {
 
   const handleClear = useCallback(() => {
     handleStop();
-    setPattern(createEmptyPattern());
+    setPattern(prev => {
+      const cleared: Record<string, boolean[]> = {};
+      Object.keys(prev).forEach(key => {
+        cleared[key] = Array(STEPS).fill(false);
+      });
+      return cleared;
+    });
     toast.success('Beat cleared!');
   }, [handleStop]);
 
@@ -213,9 +87,9 @@ const BeatPad: React.FC = () => {
         const nextStep = (prev + 1) % STEPS;
         
         // Play sounds for active cells
-        INSTRUMENTS.forEach(instrument => {
-          if (pattern[instrument][nextStep]) {
-            playSound(instrument);
+        instruments.forEach((sound, idx) => {
+          if (sound && pattern[idx.toString()]?.[nextStep]) {
+            playSound(sound);
           }
         });
 
@@ -228,85 +102,141 @@ const BeatPad: React.FC = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPlaying, tempo, pattern, playSound]);
+  }, [isPlaying, tempo, pattern, instruments, playSound]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!user) {
       toast.error('Sign in to save your beat!');
       return;
     }
-
     if (!hasPattern) {
       toast.error('Add some notes first!');
       return;
     }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('beat_pad_creations')
-        .insert({
-          creator_id: user.id,
-          name: beatName || 'My Beat',
-          pattern: pattern,
-          tempo,
-          is_public: false,
-        });
-
-      if (error) throw error;
-      toast.success('Beat saved!');
-    } catch (error) {
-      console.error('Error saving beat:', error);
-      toast.error('Failed to save beat');
-    } finally {
-      setIsSaving(false);
-    }
+    setSaveDialogOpen(true);
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!user) {
       toast.error('Sign in to share your beat!');
       return;
     }
-
     if (!hasPattern) {
       toast.error('Add some notes first!');
       return;
     }
-
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('beat_pad_creations')
-        .insert({
-          creator_id: user.id,
-          name: beatName || 'My Beat',
-          pattern: pattern,
-          tempo,
-          is_public: true,
-        });
-
-      if (error) throw error;
-      toast.success('Beat shared with the community! 🎉');
-    } catch (error) {
-      console.error('Error sharing beat:', error);
-      toast.error('Failed to share beat');
-    } finally {
-      setIsSaving(false);
-    }
+    setSaveDialogOpen(true);
   };
 
   const handleLoadBeat = (loadedPattern: Record<InstrumentType, boolean[]>, loadedTempo: number) => {
     handleStop();
-    setPattern(loadedPattern);
+    // Convert old format pattern to new format
+    // For now, just load into the first available slots
+    const newPattern: Record<string, boolean[]> = {};
+    const entries = Object.entries(loadedPattern);
+    entries.forEach((entry, idx) => {
+      newPattern[idx.toString()] = entry[1];
+    });
+    setPattern(newPattern);
     setTempo(loadedTempo);
     setActiveTab('create');
-    // Clear AI audio when loading new beat
     if (aiAudioUrl) {
       URL.revokeObjectURL(aiAudioUrl);
       setAiAudioUrl(null);
     }
     toast.success('Beat loaded! Press play to listen.');
+  };
+
+  // Generate a random beat pattern
+  const generateRandomBeat = useCallback(() => {
+    setIsGeneratingBeat(true);
+    
+    const activeInstruments = instruments.filter(Boolean);
+    if (activeInstruments.length === 0) {
+      toast.error('Add some instruments first!');
+      setIsGeneratingBeat(false);
+      return;
+    }
+
+    const newPattern: Record<string, boolean[]> = {};
+    
+    instruments.forEach((sound, idx) => {
+      if (!sound) {
+        newPattern[idx.toString()] = Array(STEPS).fill(false);
+        return;
+      }
+      
+      const steps = Array(STEPS).fill(false);
+      const soundType = sound.sound_type.toLowerCase();
+      
+      // Different patterns based on sound type
+      if (soundType.includes('kick') || soundType.includes('bass')) {
+        // Kick/bass: emphasize beats 1 and 3
+        [0, 8].forEach(i => steps[i] = Math.random() > 0.2);
+        [4, 12].forEach(i => steps[i] = Math.random() > 0.5);
+      } else if (soundType.includes('snare') || soundType.includes('clap')) {
+        // Snare/clap: emphasize beats 2 and 4
+        [4, 12].forEach(i => steps[i] = Math.random() > 0.2);
+      } else if (soundType.includes('hihat') || soundType.includes('hat')) {
+        // Hi-hat: 8th or 16th note patterns
+        const density = Math.random();
+        for (let i = 0; i < STEPS; i++) {
+          if (density > 0.5) {
+            steps[i] = i % 2 === 0 ? Math.random() > 0.2 : Math.random() > 0.6;
+          } else {
+            steps[i] = i % 4 === 0 || i % 4 === 2 ? Math.random() > 0.3 : false;
+          }
+        }
+      } else {
+        // Other sounds: sparse random placement
+        const notesToPlace = Math.floor(Math.random() * 4) + 1;
+        for (let n = 0; n < notesToPlace; n++) {
+          const pos = Math.floor(Math.random() * STEPS);
+          steps[pos] = true;
+        }
+      }
+      
+      newPattern[idx.toString()] = steps;
+    });
+    
+    setPattern(newPattern);
+    
+    // Brief delay to show animation
+    setTimeout(() => {
+      setIsGeneratingBeat(false);
+      toast.success('Beat generated! ✨');
+    }, 300);
+  }, [instruments]);
+
+  // Generate AI name for beat
+  const generateAIName = async () => {
+    setIsGeneratingName(true);
+    try {
+      const activeInstruments = instruments.filter(Boolean).map(i => i!.name);
+      const totalNotes = Object.values(pattern).reduce((sum, steps) => 
+        sum + steps.filter(Boolean).length, 0
+      );
+      
+      const prompt = `Generate a single creative, fun, catchy name (2-4 words max) for a beat that uses these instruments: ${activeInstruments.join(', ')}. The beat has ${totalNotes} notes at ${tempo} BPM. Make it playful and memorable. Just return the name, nothing else.`;
+
+      const response = await supabase.functions.invoke('lovable-ai', {
+        body: {
+          messages: [{ role: 'user', content: prompt }],
+          model: 'google/gemini-2.5-flash-lite',
+        },
+      });
+
+      if (response.error) throw response.error;
+      
+      const name = response.data?.content?.trim() || 'My Epic Beat';
+      setBeatName(name.replace(/["']/g, '').substring(0, 50));
+      toast.success('Name generated!');
+    } catch (error) {
+      console.error('Error generating name:', error);
+      toast.error('Could not generate name');
+    } finally {
+      setIsGeneratingName(false);
+    }
   };
 
   const handleAIify = async () => {
@@ -315,12 +245,17 @@ const BeatPad: React.FC = () => {
       return;
     }
 
-    handleStop(); // Stop the regular playback
+    handleStop();
     setIsAIifying(true);
 
     try {
-      const prompt = patternToPrompt(pattern, tempo);
-      console.log('AI Music prompt:', prompt);
+      const activeInstruments = instruments.filter(Boolean);
+      const instrumentDescriptions = activeInstruments.map(s => s!.name).join(', ');
+      const totalNotes = Object.values(pattern).reduce((sum, steps) => 
+        sum + steps.filter(Boolean).length, 0
+      );
+      
+      const prompt = `Create a ${tempo} BPM electronic beat featuring: ${instrumentDescriptions}. This is a ${totalNotes > 20 ? 'complex' : 'minimal'} arrangement. Make it punchy and dancefloor-ready.`;
       
       toast.info('Creating AI magic from your beat... ✨', { duration: 5000 });
 
@@ -335,7 +270,7 @@ const BeatPad: React.FC = () => {
           },
           body: JSON.stringify({ 
             prompt,
-            duration: 15, // 15 seconds
+            duration: 15,
           }),
         }
       );
@@ -347,7 +282,6 @@ const BeatPad: React.FC = () => {
 
       const audioBlob = await response.blob();
       
-      // Revoke old URL if exists
       if (aiAudioUrl) {
         URL.revokeObjectURL(aiAudioUrl);
       }
@@ -364,20 +298,6 @@ const BeatPad: React.FC = () => {
     }
   };
 
-  const handlePlayAIAudio = () => {
-    if (!aiAudioUrl) return;
-
-    if (aiAudioRef.current) {
-      if (isPlayingAI) {
-        aiAudioRef.current.pause();
-        setIsPlayingAI(false);
-      } else {
-        aiAudioRef.current.play();
-        setIsPlayingAI(true);
-      }
-    }
-  };
-
   const handleCloseAIPlayer = () => {
     if (aiAudioRef.current) {
       aiAudioRef.current.pause();
@@ -389,7 +309,6 @@ const BeatPad: React.FC = () => {
     setIsPlayingAI(false);
   };
 
-  // Cleanup AI audio URL on unmount
   useEffect(() => {
     return () => {
       if (aiAudioUrl) {
@@ -430,6 +349,16 @@ const BeatPad: React.FC = () => {
         onOpenChange={setSoundShopOpen}
       />
 
+      <SaveBeatDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        pattern={pattern}
+        tempo={tempo}
+        instruments={instruments}
+        userId={user?.id || ''}
+        onSaved={() => setActiveTab('my-beats')}
+      />
+
       {/* Main content */}
       <main className="flex-1 container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -449,26 +378,57 @@ const BeatPad: React.FC = () => {
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
-            {/* Beat name input */}
+            {/* Beat name input with magic wand */}
             <div className="max-w-md">
               <label className="text-sm font-medium mb-2 block">Beat Name</label>
-              <Input
-                value={beatName}
-                onChange={(e) => setBeatName(e.target.value)}
-                placeholder="Name your beat..."
-                maxLength={50}
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={beatName}
+                  onChange={(e) => setBeatName(e.target.value)}
+                  placeholder="Name your beat..."
+                  maxLength={50}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={generateAIName}
+                  disabled={isGeneratingName || !hasPattern}
+                  title="Generate AI name"
+                >
+                  {isGeneratingName ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={generateRandomBeat}
+                  disabled={isGeneratingBeat || instruments.filter(Boolean).length === 0}
+                  title="Generate random beat"
+                >
+                  {isGeneratingBeat ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-2" />
+                  )}
+                  Generate Beat
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Beat Grid */}
               <div className="lg:col-span-3">
-                <BeatGrid
+                <CustomizableBeatGrid
                   pattern={pattern}
+                  setPattern={setPattern}
+                  instruments={instruments}
+                  setInstruments={setInstruments}
                   currentStep={currentStep}
                   isPlaying={isPlaying}
-                  onToggleCell={toggleCell}
-                  onPlaySound={playSound}
+                  onPlaySound={handlePlaySound}
                 />
               </div>
 
@@ -485,7 +445,7 @@ const BeatPad: React.FC = () => {
                   onShare={handleShare}
                   onAIify={handleAIify}
                   canSave={hasPattern}
-                  isSaving={isSaving}
+                  isSaving={false}
                   isAIifying={isAIifying}
                 />
               </div>
@@ -526,22 +486,26 @@ const BeatPad: React.FC = () => {
             {/* Instructions */}
             <div className="bg-muted/50 rounded-xl p-4 text-center">
               <h3 className="font-semibold mb-2">How to Play</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm text-muted-foreground">
+                <div>
+                  <span className="text-2xl">🎵</span>
+                  <p>Add up to 20 instruments</p>
+                </div>
                 <div>
                   <span className="text-2xl">👆</span>
                   <p>Tap squares to add notes</p>
                 </div>
                 <div>
-                  <span className="text-2xl">▶️</span>
-                  <p>Press play to hear your beat</p>
+                  <span className="text-2xl">🪄</span>
+                  <p>Generate a random beat</p>
                 </div>
                 <div>
-                  <span className="text-2xl">✨</span>
-                  <p>AI-ify to create magic!</p>
+                  <span className="text-2xl">▶️</span>
+                  <p>Press play to hear it</p>
                 </div>
                 <div>
                   <span className="text-2xl">💾</span>
-                  <p>Save or share your creation</p>
+                  <p>Save or share!</p>
                 </div>
               </div>
             </div>
