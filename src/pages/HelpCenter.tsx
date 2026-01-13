@@ -15,10 +15,13 @@ import {
   Users,
   ChevronRight,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  LayoutDashboard
 } from "lucide-react";
 import { GuideViewer } from "@/components/help/GuideViewer";
 import { FAQSection } from "@/components/help/FAQSection";
+import { GettingStartedSection } from "@/components/help/GettingStartedSection";
+import { HelpProgressDashboard } from "@/components/help/HelpProgressDashboard";
 import { useToast } from "@/hooks/use-toast";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -170,7 +173,7 @@ export default function HelpCenter() {
       <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 pb-12">
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <h1 className="text-4xl font-bold mb-4">Help Center</h1>
             <p className="text-xl text-muted-foreground mb-8">
               Learn how to make the most of our platform
@@ -184,8 +187,15 @@ export default function HelpCenter() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 h-12 text-lg"
+                aria-label="Search help content"
               />
             </div>
+          </div>
+
+          {/* Quick Stats / Progress Dashboard */}
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
+            <GettingStartedSection />
+            <HelpProgressDashboard totalTours={tours.length} totalGuides={guides.length} />
           </div>
 
           {/* Tabs */}
