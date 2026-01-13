@@ -47,7 +47,6 @@ export const StripeModeSwitcher = () => {
           : String(rawValue);
         mode = (cleanValue === 'live' ? 'live' : 'test') as 'test' | 'live';
       }
-      console.log('Loaded Stripe mode:', mode, 'from raw:', data?.setting_value);
       setCurrentMode(mode);
     } catch (error) {
       console.error('Error loading Stripe mode:', error);
@@ -66,8 +65,6 @@ export const StripeModeSwitcher = () => {
   const confirmModeSwitch = async () => {
     setSwitching(true);
     try {
-      console.log('Switching Stripe mode from', currentMode, 'to', targetMode);
-      
       const { error } = await supabase
         .from('app_settings')
         .update({ setting_value: targetMode })
@@ -76,7 +73,6 @@ export const StripeModeSwitcher = () => {
       if (error) throw error;
 
       setCurrentMode(targetMode);
-      console.log('Successfully switched to', targetMode, 'mode');
       
       toast.success(`Switched to ${targetMode.toUpperCase()} mode`, {
         description: targetMode === 'live' 

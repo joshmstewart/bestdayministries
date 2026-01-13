@@ -185,8 +185,6 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
             console.error("Error loading all bestie sponsorships:", allSponsError);
           }
           
-          console.log("Loaded sponsorships for progress bars:", allBestieSponsorships?.length || 0, allBestieSponsorships);
-          
           // Query funding progress for LIVE mode only
           const { data: liveModeData } = await supabase
             .from('sponsor_bestie_funding_progress_by_mode')
@@ -225,9 +223,6 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
               }
             }
           });
-
-          console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode));
-          console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode));
 
           // Store ending amounts in state for rendering
           setEndingAmounts(endingAmountsByBestieAndMode);

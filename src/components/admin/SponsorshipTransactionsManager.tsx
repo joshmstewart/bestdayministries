@@ -103,35 +103,30 @@ export const SponsorshipTransactionsManager = () => {
   }, [searchTerm, transactions, filterBestie, filterStatus, filterFrequency, filterType]);
 
   const loadTransactions = async () => {
-    console.log('🔵 [TRANSACTIONS] Starting loadTransactions...');
     try {
       setLoading(true);
       
       // Load sponsorships (the original source with real statuses)
-      console.log('🔵 [TRANSACTIONS] Fetching sponsorships...');
       const { data: sponsorshipsData, error: sponsorshipsError } = await supabase
         .from('sponsorships')
         .select('*')
         .order('started_at', { ascending: false });
 
       if (sponsorshipsError) {
-        console.error('🔴 [TRANSACTIONS] Sponsorships query failed:', sponsorshipsError);
+        console.error('Error loading sponsorships:', sponsorshipsError);
         throw sponsorshipsError;
       }
-      console.log('✅ [TRANSACTIONS] Sponsorships loaded:', sponsorshipsData?.length || 0);
 
       // Load ALL donations (not just one)
-      console.log('🔵 [TRANSACTIONS] Fetching donations...');
       const { data: donationsData, error: donationsError } = await supabase
         .from('donations')
         .select('*')
         .order('started_at', { ascending: false });
 
       if (donationsError) {
-        console.error('🔴 [TRANSACTIONS] Donations query failed:', donationsError);
+        console.error('Error loading donations:', donationsError);
         throw donationsError;
       }
-      console.log('✅ [TRANSACTIONS] Donations loaded:', donationsData?.length || 0);
 
       // Load sponsor_besties for designation mapping
       const { data: sponsorBesties } = await supabase

@@ -65,7 +65,6 @@ export const useTermsCheck = (userId: string | undefined) => {
       // Retry with exponential backoff
       if (retryCount < maxRetries) {
         const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-        console.log(`Retrying terms acceptance in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
         return recordAcceptance(retryCount + 1);

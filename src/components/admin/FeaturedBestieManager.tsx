@@ -148,8 +148,6 @@ export const FeaturedBestieManager = () => {
   };
 
   const handleSubmit = async () => {
-    console.log("Submit clicked", { bestieName, description, startDate, endDate, imageFile, editingId });
-    
     if (!bestieName || !description) {
       toast({
         title: "Missing fields",
@@ -277,7 +275,6 @@ export const FeaturedBestieManager = () => {
       }
 
       if (editingId) {
-        console.log("Updating bestie with data:", data);
         const { error } = await supabase
           .from("featured_besties")
           .update(data)
@@ -287,7 +284,6 @@ export const FeaturedBestieManager = () => {
           console.error("Update error:", error);
           throw error;
         }
-        console.log("Update successful");
         toast({ title: "Featured bestie updated successfully" });
       } else {
         if (!imageFile) {

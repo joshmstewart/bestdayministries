@@ -26,7 +26,6 @@ export const useDailyLoginReward = () => {
           .single();
 
         if (rewardError || !rewardSetting?.is_active) {
-          console.log("Daily login reward not active or not found");
           return;
         }
 
@@ -55,7 +54,6 @@ export const useDailyLoginReward = () => {
           const lastRewardDateStr = lastRewardMST.toISOString().split("T")[0];
 
           if (lastRewardDateStr === todayMST) {
-            console.log("Daily login reward already claimed today");
             return;
           }
         }
@@ -86,7 +84,6 @@ export const useDailyLoginReward = () => {
 
         // Show notification
         showCoinNotification(rewardSetting.coins_amount, "Welcome back! Daily login bonus");
-        console.log(`Awarded ${rewardSetting.coins_amount} coins for daily login`);
       } catch (error) {
         console.error("Error checking daily login reward:", error);
       }

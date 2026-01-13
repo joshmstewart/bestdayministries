@@ -38,7 +38,6 @@ export function useGoogleMapsScript(apiKey: string) {
       script.onload = () => {
         isScriptLoaded = true;
         isScriptLoading = false;
-        console.log('Google Maps script loaded successfully');
         resolve();
       };
       
