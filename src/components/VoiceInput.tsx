@@ -5,6 +5,7 @@ import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { TextToSpeech } from '@/components/TextToSpeech';
 
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
@@ -261,6 +262,8 @@ export function VoiceInput({
     }
   }, [scribe.isConnected, handleStart, handleStop]);
 
+  // Combine committed + partial for display and TTS
+  const fullTranscript = [committedText, partialText].filter(Boolean).join(' ').trim();
   const displayText = partialText || committedText;
   const isActive = scribe.isConnected || isConnecting;
 
@@ -316,10 +319,16 @@ export function VoiceInput({
           )}
         >
           {displayText ? (
-            <p className="text-sm">
-              {committedText && <span>{committedText} </span>}
-              {partialText && <span className="text-muted-foreground italic">{partialText}</span>}
-            </p>
+            <div className="flex items-start gap-2">
+              <p className="text-sm flex-1">
+                {committedText && <span>{committedText} </span>}
+                {partialText && <span className="text-muted-foreground italic">{partialText}</span>}
+              </p>
+              {/* TTS button to listen to transcript */}
+              {fullTranscript && !isActive && (
+                <TextToSpeech text={fullTranscript} size="icon" />
+              )}
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">{isActive ? 'Listening...' : placeholder}</p>
           )}
