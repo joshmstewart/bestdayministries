@@ -291,13 +291,13 @@ export const usePinchZoom = (options?: {
   const initialScale = useRef(1);
   const [scale, setScale] = useState(1);
 
-  const getDistance = (t0: Touch, t1: Touch): number => {
+  const getDistance = (t0: { clientX: number; clientY: number }, t1: { clientX: number; clientY: number }): number => {
     const dx = t0.clientX - t1.clientX;
     const dy = t0.clientY - t1.clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const getCenter = (t0: Touch, t1: Touch): { x: number; y: number } => ({
+  const getCenter = (t0: { clientX: number; clientY: number }, t1: { clientX: number; clientY: number }): { x: number; y: number } => ({
     x: (t0.clientX + t1.clientX) / 2,
     y: (t0.clientY + t1.clientY) / 2,
   });
