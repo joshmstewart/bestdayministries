@@ -24,7 +24,7 @@ const STEPS = 16;
 
 const BeatPad: React.FC = () => {
   const { user } = useAuth();
-  const { playSound, getAudioContext } = useCustomBeatAudio();
+  const { playSound, getAudioContext, preloadSounds } = useCustomBeatAudio();
 
   const [pattern, setPattern] = useState<Record<string, boolean[]>>({});
   const [instruments, setInstruments] = useState<(SoundConfig | null)[]>([]);
@@ -39,12 +39,21 @@ const BeatPad: React.FC = () => {
   const [soundShopOpen, setSoundShopOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [isGeneratingName, setIsGeneratingName] = useState(false);
+  const [isGeneratingBeat, setIsGeneratingBeat] = useState(false);
   // Track saved beat info for cover image
   const [savedBeatId, setSavedBeatId] = useState<string | null>(null);
   const [savedBeatImageUrl, setSavedBeatImageUrl] = useState<string | null>(null);
   const [beatLoaded, setBeatLoaded] = useState(false);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Preload sounds for the current instruments
+  useEffect(() => {
+    const soundsToPreload = instruments.filter(Boolean) as SoundConfig[];
+    if (soundsToPreload.length > 0) {
+      preloadSounds(soundsToPreload);
+    }
+  }, [instruments, preloadSounds]);
 
   // Check if pattern has any active cells
   const hasPattern = Object.values(pattern).some(steps => steps.some(Boolean));
@@ -81,24 +90,30 @@ const BeatPad: React.FC = () => {
     toast.success('Beat cleared!');
   }, [handleStop]);
 
-  // Playback loop
+  // Playback loop - use synchronous sound triggering
   useEffect(() => {
     if (!isPlaying) return;
 
     const stepDuration = (60 / tempo) * 1000 / 4; // 16th notes
+    let currentStepLocal = 0;
+
+    // Play initial step
+    instruments.forEach((sound, idx) => {
+      if (sound && pattern[idx.toString()]?.[currentStepLocal]) {
+        playSound(sound);
+      }
+    });
+    setCurrentStep(currentStepLocal);
 
     intervalRef.current = setInterval(() => {
-      setCurrentStep(prev => {
-        const nextStep = (prev + 1) % STEPS;
-        
-        // Play sounds for active cells
-        instruments.forEach((sound, idx) => {
-          if (sound && pattern[idx.toString()]?.[nextStep]) {
-            playSound(sound);
-          }
-        });
-
-        return nextStep;
+      currentStepLocal = (currentStepLocal + 1) % STEPS;
+      setCurrentStep(currentStepLocal);
+      
+      // Play sounds for active cells
+      instruments.forEach((sound, idx) => {
+        if (sound && pattern[idx.toString()]?.[currentStepLocal]) {
+          playSound(sound);
+        }
       });
     }, stepDuration);
 
@@ -241,6 +256,92 @@ const BeatPad: React.FC = () => {
     }
 
     toast.success('Beat loaded! Press play to listen.');
+  };
+
+  // Reset to new beat when switching to create tab without a loaded beat
+  const handleNewBeat = useCallback(() => {
+    handleStop();
+    setBeatLoaded(false);
+    setPattern({});
+    setInstruments([]);
+    setBeatName('My Beat');
+    setSavedBeatId(null);
+    setSavedBeatImageUrl(null);
+    if (aiAudioUrl) {
+      URL.revokeObjectURL(aiAudioUrl);
+      setAiAudioUrl(null);
+    }
+  }, [handleStop, aiAudioUrl]);
+
+  // Generate AI beat pattern from current instruments
+  const generateAIBeat = async () => {
+    const activeInstruments = instruments.filter(Boolean) as SoundConfig[];
+    if (activeInstruments.length === 0) {
+      toast.error('Add some instruments first!');
+      return;
+    }
+
+    setIsGeneratingBeat(true);
+    try {
+      const instrumentNames = activeInstruments.map(i => i.name).join(', ');
+      
+      const prompt = `Generate a 16-step drum pattern for these instruments: ${instrumentNames}. 
+      
+Respond with ONLY a JSON object where keys are the instrument names and values are arrays of 16 booleans (true = play, false = silent).
+
+Example format:
+{"Kick": [true,false,false,false,true,false,false,false,true,false,false,false,true,false,false,false], "Snare": [false,false,true,false,false,false,true,false,false,false,true,false,false,false,true,false]}
+
+Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
+
+      const response = await supabase.functions.invoke('lovable-ai', {
+        body: {
+          messages: [{ role: 'user', content: prompt }],
+          model: 'google/gemini-2.5-flash-lite',
+        },
+      });
+
+      if (response.error) throw response.error;
+      
+      const content = response.data?.content?.trim() || '';
+      // Extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Invalid AI response');
+      
+      const generatedPattern = JSON.parse(jsonMatch[0]);
+      
+      // Map the generated pattern to our indexed pattern format
+      const newPattern: Record<string, boolean[]> = {};
+      instruments.forEach((sound, idx) => {
+        if (sound) {
+          // Try to find a matching pattern by instrument name
+          const matchingKey = Object.keys(generatedPattern).find(
+            key => key.toLowerCase() === sound.name.toLowerCase() ||
+                   sound.name.toLowerCase().includes(key.toLowerCase()) ||
+                   key.toLowerCase().includes(sound.name.toLowerCase())
+          );
+          if (matchingKey && Array.isArray(generatedPattern[matchingKey])) {
+            newPattern[idx.toString()] = generatedPattern[matchingKey].slice(0, 16).map(Boolean);
+            // Pad to 16 if needed
+            while (newPattern[idx.toString()].length < 16) {
+              newPattern[idx.toString()].push(false);
+            }
+          } else {
+            newPattern[idx.toString()] = Array(16).fill(false);
+          }
+        } else {
+          newPattern[idx.toString()] = Array(16).fill(false);
+        }
+      });
+      
+      setPattern(newPattern);
+      toast.success('Beat generated! Press play to hear it! 🎵');
+    } catch (error) {
+      console.error('Error generating beat:', error);
+      toast.error('Failed to generate beat. Try again!');
+    } finally {
+      setIsGeneratingBeat(false);
+    }
   };
 
   // Generate AI name for beat
@@ -417,31 +518,57 @@ const BeatPad: React.FC = () => {
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
-          {/* Beat name input with magic wand */}
-            <div className="max-w-md">
-              <label className="text-sm font-medium mb-2 block">Beat Name</label>
-              <div className="flex gap-2">
-                <Input
-                  value={beatName}
-                  onChange={(e) => setBeatName(e.target.value)}
-                  placeholder="Name your beat..."
-                  maxLength={50}
-                  className="flex-1"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={generateAIName}
-                  disabled={isGeneratingName || !hasPattern}
-                  title="Generate AI name"
-                >
-                  {isGeneratingName ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Wand2 className="h-4 w-4" />
-                  )}
-                </Button>
+          {/* Beat name input with magic wand for name, and generate beat button */}
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px] max-w-md">
+                <label className="text-sm font-medium mb-2 block">Beat Name</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={beatName}
+                    onChange={(e) => setBeatName(e.target.value)}
+                    placeholder="Name your beat..."
+                    maxLength={50}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={generateAIName}
+                    disabled={isGeneratingName || !hasPattern}
+                    title="Generate AI name"
+                  >
+                    {isGeneratingName ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
+              
+              {/* Generate Beat Button */}
+              <Button
+                variant="outline"
+                onClick={generateAIBeat}
+                disabled={isGeneratingBeat || instruments.filter(Boolean).length === 0}
+                className="gap-2"
+              >
+                {isGeneratingBeat ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                Generate Beat
+              </Button>
+              
+              {/* New Beat Button */}
+              <Button
+                variant="ghost"
+                onClick={handleNewBeat}
+                className="gap-2"
+              >
+                New Beat
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

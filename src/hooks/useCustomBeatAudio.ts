@@ -111,20 +111,32 @@ export const useCustomBeatAudio = () => {
     }
   }, [getAudioContext, createNoiseBuffer]);
 
-  const playSound = useCallback(async (sound: SoundConfig) => {
-    // Try to play from audio URL first
-    if (sound.audio_url) {
-      let buffer = audioBuffersRef.current.get(sound.id);
-      if (!buffer) {
-        buffer = await loadAudioBuffer(sound.audio_url, sound.id) || undefined;
+  // Preload sounds into buffer cache for instant playback
+  const preloadSounds = useCallback(async (sounds: SoundConfig[]) => {
+    for (const sound of sounds) {
+      if (sound.audio_url && !audioBuffersRef.current.has(sound.id)) {
+        await loadAudioBuffer(sound.audio_url, sound.id);
       }
+    }
+  }, [loadAudioBuffer]);
+
+  const playSound = useCallback((sound: SoundConfig) => {
+    // Try to play from cached audio buffer first (synchronous)
+    if (sound.audio_url) {
+      const buffer = audioBuffersRef.current.get(sound.id);
       if (buffer) {
         playAudioBuffer(buffer);
         return;
       }
+      // If not cached, load and play async (but also trigger synth immediately)
+      loadAudioBuffer(sound.audio_url, sound.id).then(buffer => {
+        if (buffer) {
+          // Buffer now cached for next time
+        }
+      });
     }
     
-    // Fallback to synthesized
+    // Fallback to synthesized (always works synchronously)
     playSynthesizedSound(sound);
   }, [loadAudioBuffer, playAudioBuffer, playSynthesizedSound]);
 
@@ -136,7 +148,7 @@ export const useCustomBeatAudio = () => {
     };
   }, []);
 
-  return { playSound, getAudioContext };
+  return { playSound, getAudioContext, preloadSounds };
 };
 
 export default useCustomBeatAudio;
