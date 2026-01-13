@@ -429,7 +429,6 @@ export default function MoneyCounting() {
                   onReturnMoney={returnMoney}
                 />
                 <CashDrawer
-                  contents={gameState.drawerContents}
                   onSelectMoney={giveMoney}
                   disabled={!gameState.cashCollected}
                 />
