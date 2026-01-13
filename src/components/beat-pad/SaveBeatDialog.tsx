@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Wand2, Loader2, Save, Share2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
 import { SoundConfig } from './InstrumentSlot';
 
 interface SaveBeatDialogProps {
@@ -61,7 +62,7 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
       setBeatName(name.replace(/["']/g, '').substring(0, 50));
     } catch (error) {
       console.error('Error generating name:', error);
-      toast.error('Could not generate name');
+      showErrorToastWithCopy('Generate Beat Name', error);
     } finally {
       setIsGeneratingName(false);
     }
@@ -69,7 +70,7 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
 
   const handleSave = async (isPublic: boolean) => {
     if (!beatName.trim()) {
-      toast.error('Please enter a name for your beat');
+      showErrorToastWithCopy('Save Beat', 'Please enter a name for your beat');
       return;
     }
 
@@ -123,7 +124,7 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
       setBeatName('');
     } catch (error) {
       console.error('Error saving beat:', error);
-      toast.error('Failed to save beat');
+      showErrorToastWithCopy('Save Beat', error);
     } finally {
       setIsSaving(false);
     }

@@ -6,6 +6,7 @@ import { Music, Users, X, ShoppingBag, Save, Wand2, Loader2 } from 'lucide-react
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
 import CustomizableBeatGrid from '@/components/beat-pad/CustomizableBeatGrid';
 import PlaybackControls from '@/components/beat-pad/PlaybackControls';
 import BeatPadGallery from '@/components/beat-pad/BeatPadGallery';
@@ -110,11 +111,11 @@ const BeatPad: React.FC = () => {
 
   const handleSave = () => {
     if (!user) {
-      toast.error('Sign in to save your beat!');
+      showErrorToastWithCopy('Save Beat', 'Sign in to save your beat!');
       return;
     }
     if (!hasPattern) {
-      toast.error('Add some notes first!');
+      showErrorToastWithCopy('Save Beat', 'Add some notes first!');
       return;
     }
     setSaveDialogOpen(true);
@@ -122,11 +123,11 @@ const BeatPad: React.FC = () => {
 
   const handleShare = () => {
     if (!user) {
-      toast.error('Sign in to share your beat!');
+      showErrorToastWithCopy('Share Beat', 'Sign in to share your beat!');
       return;
     }
     if (!hasPattern) {
-      toast.error('Add some notes first!');
+      showErrorToastWithCopy('Share Beat', 'Add some notes first!');
       return;
     }
     setSaveDialogOpen(true);
@@ -187,7 +188,7 @@ const BeatPad: React.FC = () => {
         }
       } catch (error) {
         console.error('Error loading beat sounds:', error);
-        toast.error('Could not load beat sounds');
+        showErrorToastWithCopy('Load Beat', error);
         return;
       }
     }
@@ -229,7 +230,7 @@ const BeatPad: React.FC = () => {
       toast.success('Name generated!');
     } catch (error) {
       console.error('Error generating name:', error);
-      toast.error('Could not generate name');
+      showErrorToastWithCopy('Generate Beat Name', error);
     } finally {
       setIsGeneratingName(false);
     }
@@ -237,7 +238,7 @@ const BeatPad: React.FC = () => {
 
   const handleAIify = async () => {
     if (!hasPattern) {
-      toast.error('Add some notes first!');
+      showErrorToastWithCopy('AI Music', 'Add some notes first!');
       return;
     }
 
@@ -288,7 +289,7 @@ const BeatPad: React.FC = () => {
       toast.success('AI music created! 🎵');
     } catch (error) {
       console.error('Error generating AI music:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create AI music');
+      showErrorToastWithCopy('AI Music Generation', error);
     } finally {
       setIsAIifying(false);
     }
