@@ -16,6 +16,7 @@ interface BeatCreation {
   likes_count: number;
   creator_id: string;
   created_at: string;
+  image_url?: string | null;
   profiles?: {
     display_name: string | null;
     avatar_number: number | null;
@@ -40,7 +41,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
     try {
       const { data, error } = await supabase
         .from('beat_pad_creations')
-        .select('id, name, pattern, tempo, likes_count, creator_id, created_at')
+        .select('id, name, pattern, tempo, likes_count, creator_id, created_at, image_url')
         .eq('is_public', true)
         .order('likes_count', { ascending: false })
         .limit(20);
@@ -145,22 +146,18 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {creations.map((creation) => (
         <Card key={creation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h4 className="font-semibold truncate">{creation.name}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {creation.profiles?.display_name || 'Anonymous'}
-                </p>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {creation.tempo} BPM
-              </div>
+          {/* Cover image or pattern preview */}
+          {creation.image_url ? (
+            <div className="aspect-square w-full overflow-hidden">
+              <img 
+                src={creation.image_url} 
+                alt={creation.name}
+                className="w-full h-full object-cover"
+              />
             </div>
-
-            {/* Visual pattern preview */}
-            <div className="bg-muted rounded-lg p-2 mb-3 h-20 flex flex-col gap-0.5 overflow-hidden">
-              {Object.entries(creation.pattern).slice(0, 4).map(([instrument, steps]) => (
+          ) : (
+            <div className="aspect-square w-full bg-muted p-3 flex flex-col gap-0.5 overflow-hidden">
+              {Object.entries(creation.pattern).slice(0, 6).map(([instrument, steps]) => (
                 <div key={instrument} className="flex gap-0.5 flex-1">
                   {(steps as boolean[]).map((active, i) => (
                     <div
@@ -173,6 +170,19 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
                   ))}
                 </div>
               ))}
+            </div>
+          )}
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <h4 className="font-semibold truncate">{creation.name}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {creation.profiles?.display_name || 'Anonymous'}
+                </p>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {creation.tempo} BPM
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">

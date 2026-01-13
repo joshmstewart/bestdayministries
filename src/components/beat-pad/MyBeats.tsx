@@ -15,6 +15,7 @@ interface BeatCreation {
   tempo: number;
   is_public: boolean;
   created_at: string;
+  image_url?: string | null;
 }
 
 interface MyBeatsProps {
@@ -133,26 +134,18 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {beats.map((beat) => (
         <Card key={beat.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-lg">{beat.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {beat.tempo} BPM • {countActiveSteps(beat.pattern)} notes
-                </p>
-              </div>
-              <div className="flex items-center gap-1">
-                {beat.is_public ? (
-                  <Share2 className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
+          {/* Cover image or pattern preview */}
+          {beat.image_url ? (
+            <div className="aspect-square w-full overflow-hidden">
+              <img 
+                src={beat.image_url} 
+                alt={beat.name}
+                className="w-full h-full object-cover"
+              />
             </div>
-
-            {/* Visual pattern preview - matches Community style */}
-            <div className="bg-muted rounded-lg p-2 mb-3 h-20 flex flex-col gap-0.5 overflow-hidden">
-              {Object.entries(beat.pattern).slice(0, 4).map(([instrument, steps]) => (
+          ) : (
+            <div className="aspect-square w-full bg-muted p-3 flex flex-col gap-0.5 overflow-hidden">
+              {Object.entries(beat.pattern).slice(0, 6).map(([instrument, steps]) => (
                 <div key={instrument} className="flex gap-0.5 flex-1">
                   {(steps as boolean[]).map((active, i) => (
                     <div
@@ -165,6 +158,23 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
                   ))}
                 </div>
               ))}
+            </div>
+          )}
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-lg truncate">{beat.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {beat.tempo} BPM • {countActiveSteps(beat.pattern)} notes
+                </p>
+              </div>
+              <div className="flex items-center gap-1 ml-2">
+                {beat.is_public ? (
+                  <Share2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
