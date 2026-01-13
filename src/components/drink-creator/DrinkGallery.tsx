@@ -71,12 +71,17 @@ const LazyImage = ({
 
 type SortOption = "newest" | "popular";
 
+interface IngredientWithCategory {
+  name: string;
+  category: string;
+}
+
 interface CustomDrink {
   id: string;
   name: string;
   description: string | null;
   ingredients: string[];
-  ingredientNames: string[];
+  ingredientDetails: IngredientWithCategory[];
   generated_image_url: string | null;
   likes_count: number;
   created_at: string;
@@ -136,15 +141,15 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
     // Collect all unique ingredient IDs from all drinks
     const allIngredientIds = [...new Set(data.flatMap((d) => d.ingredients || []))];
     
-    // Fetch ingredient names
-    let ingredientMap = new Map<string, string>();
+    // Fetch ingredient names and categories
+    let ingredientMap = new Map<string, IngredientWithCategory>();
     if (allIngredientIds.length > 0) {
       const { data: ingredientsData } = await supabase
         .from("drink_ingredients")
-        .select("id, name")
+        .select("id, name, category")
         .in("id", allIngredientIds);
       
-      ingredientMap = new Map(ingredientsData?.map((i) => [i.id, i.name]) || []);
+      ingredientMap = new Map(ingredientsData?.map((i) => [i.id, { name: i.name, category: i.category }]) || []);
     }
 
     // Fetch creator names separately
@@ -159,7 +164,9 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
     const drinksWithCreators = data.map((drink) => ({
       ...drink,
       creator_name: profileMap.get(drink.creator_id) || null,
-      ingredientNames: (drink.ingredients || []).map((id: string) => ingredientMap.get(id) || id),
+      ingredientDetails: (drink.ingredients || [])
+        .map((id: string) => ingredientMap.get(id))
+        .filter((ing): ing is IngredientWithCategory => !!ing),
     }));
 
     setDrinks(drinksWithCreators);
@@ -357,22 +364,45 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
                     </p>
                   )}
                   
-                  {/* Ingredients - Organized by category appearance */}
-                  {selectedDrink.ingredientNames && selectedDrink.ingredientNames.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Ingredients</h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedDrink.ingredientNames.map((ingredient, idx) => (
-                          <span 
-                            key={idx}
-                            className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
-                          >
-                            {ingredient}
-                          </span>
+                  {/* Ingredients - Organized by category */}
+                  {selectedDrink.ingredientDetails && selectedDrink.ingredientDetails.length > 0 && (() => {
+                    // Group ingredients by category
+                    const grouped = selectedDrink.ingredientDetails.reduce((acc, ing) => {
+                      const cat = ing.category || 'other';
+                      if (!acc[cat]) acc[cat] = [];
+                      acc[cat].push(ing.name);
+                      return acc;
+                    }, {} as Record<string, string[]>);
+
+                    const categoryLabels: Record<string, string> = {
+                      base: 'Base',
+                      milk: 'Milk',
+                      flavor: 'Flavors',
+                      topping: 'Toppings',
+                      other: 'Other',
+                    };
+
+                    return (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium">Ingredients</h3>
+                        {Object.entries(grouped).map(([category, items]) => (
+                          <div key={category}>
+                            <p className="text-xs text-muted-foreground mb-1.5">{categoryLabels[category] || category}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {items.map((name, idx) => (
+                                <span 
+                                  key={idx}
+                                  className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
+                                >
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                   
                   <div className="flex items-center gap-2 pt-2 border-t border-border">
                     <Button
