@@ -15,6 +15,7 @@ import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog
 import { CookingModeDialog } from "@/components/recipe-maker/CookingModeDialog";
 import { CollapsibleShoppingTips } from "@/components/recipe-maker/CollapsibleShoppingTips";
 import { RecipeMakerWizard } from "@/components/recipe-maker/RecipeMakerWizard";
+import { RecipeImporter } from "@/components/recipe-maker/RecipeImporter";
 import { ShoppingListTab } from "@/components/recipe-maker/ShoppingListTab";
 
 interface PublicRecipe {
@@ -341,32 +342,64 @@ const RecipeGallery = () => {
           </TabsList>
 
           {/* Recipe Maker Tab */}
-          <TabsContent value="maker" className="space-y-4">
+          <TabsContent value="maker" className="space-y-6">
             {!user ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground mb-4">Sign in to use the Recipe Maker</p>
                 <Button onClick={() => navigate("/auth")}>Sign In</Button>
               </div>
             ) : (
-              <RecipeMakerWizard 
-                userId={user.id} 
-                onSaved={() => {
-                  // Refresh cookbook data and switch to cookbook tab
-                  supabase
-                    .from("saved_recipes")
-                    .select("*")
-                    .eq("user_id", user.id)
-                    .order("created_at", { ascending: false })
-                    .then(({ data }) => {
-                      setSavedRecipes(data || []);
-                      const savedBySourceId = new Set(data?.map(r => r.source_recipe_id).filter(Boolean) || []);
-                      const titles = new Set(data?.map(r => r.title.toLowerCase()) || []);
-                      setSavedRecipeIds(savedBySourceId);
-                      setSavedTitles(titles);
-                    });
-                  handleTabChange("cookbook");
-                }}
-              />
+              <>
+                <RecipeMakerWizard 
+                  userId={user.id} 
+                  onSaved={() => {
+                    // Refresh cookbook data and switch to cookbook tab
+                    supabase
+                      .from("saved_recipes")
+                      .select("*")
+                      .eq("user_id", user.id)
+                      .order("created_at", { ascending: false })
+                      .then(({ data }) => {
+                        setSavedRecipes(data || []);
+                        const savedBySourceId = new Set(data?.map(r => r.source_recipe_id).filter(Boolean) || []);
+                        const titles = new Set(data?.map(r => r.title.toLowerCase()) || []);
+                        setSavedRecipeIds(savedBySourceId);
+                        setSavedTitles(titles);
+                      });
+                    handleTabChange("cookbook");
+                  }}
+                />
+                
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-background px-4 text-sm text-muted-foreground">
+                      Or import your own recipe
+                    </span>
+                  </div>
+                </div>
+
+                <RecipeImporter
+                  userId={user.id}
+                  onSaved={() => {
+                    supabase
+                      .from("saved_recipes")
+                      .select("*")
+                      .eq("user_id", user.id)
+                      .order("created_at", { ascending: false })
+                      .then(({ data }) => {
+                        setSavedRecipes(data || []);
+                        const savedBySourceId = new Set(data?.map(r => r.source_recipe_id).filter(Boolean) || []);
+                        const titles = new Set(data?.map(r => r.title.toLowerCase()) || []);
+                        setSavedRecipeIds(savedBySourceId);
+                        setSavedTitles(titles);
+                      });
+                    handleTabChange("cookbook");
+                  }}
+                />
+              </>
             )}
           </TabsContent>
 
