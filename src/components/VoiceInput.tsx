@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useScribe, CommitStrategy } from '@elevenlabs/react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
@@ -60,17 +60,16 @@ export function VoiceInput({
     }
   }, []);
 
-  // Use VAD (Voice Activity Detection) - the SDK handles commits automatically based on silence
-  const scribe = useScribe({
-    modelId: 'scribe_v2_realtime',
-    commitStrategy: CommitStrategy.VAD,
+  // Memoize handlers/options so `useScribe` doesn't recreate its internal client on every render.
+  // A recreated client will drop the websocket and looks like "it stopped" after a couple seconds.
+  const handleSessionStarted = useCallback(() => {
+    console.log('[VoiceInput] Session started');
+    lastSpeechAtRef.current = Date.now();
+    toast.success('Listening... Speak now!');
+  }, []);
 
-    onSessionStarted: () => {
-      console.log('[VoiceInput] Session started');
-      lastSpeechAtRef.current = Date.now();
-      toast.success('Listening... Speak now!');
-    },
-    onPartialTranscript: (data) => {
+  const handlePartial = useCallback(
+    (data: { text: string }) => {
       console.log('[VoiceInput] Partial:', data.text);
       setPartialText(data.text);
       onPartialTranscript?.(data.text);
@@ -79,7 +78,11 @@ export function VoiceInput({
         lastSpeechAtRef.current = Date.now();
       }
     },
-    onCommittedTranscript: (data) => {
+    [onPartialTranscript]
+  );
+
+  const handleCommitted = useCallback(
+    (data: { text: string }) => {
       console.log('[VoiceInput] Committed:', data.text);
       const chunk = data.text?.trim();
       if (!chunk) return;
@@ -91,21 +94,58 @@ export function VoiceInput({
       // Send the NEW chunk; the parent can decide how to append.
       onTranscript(chunk);
     },
-    onDisconnect: () => {
-      console.log('[VoiceInput] Disconnected');
-      clearTimers();
-    },
-    onError: (error) => {
-      console.error('[VoiceInput] Scribe error:', error);
-      // Don't show toast for every error - some are recoverable
-    },
-    onAuthError: () => {
-      toast.error('Voice input authentication failed. Please try again.');
-    },
-    onQuotaExceededError: () => {
-      toast.error('Voice input quota exceeded. Please try again later.');
-    },
-  });
+    [onTranscript]
+  );
+
+  const handleDisconnect = useCallback(() => {
+    console.log('[VoiceInput] Disconnected');
+    clearTimers();
+  }, [clearTimers]);
+
+  const handleError = useCallback((error: unknown) => {
+    console.error('[VoiceInput] Scribe error:', error);
+    // Don't show toast for every error - some are recoverable
+  }, []);
+
+  const handleAuthError = useCallback(() => {
+    toast.error('Voice input authentication failed. Please try again.');
+  }, []);
+
+  const handleQuotaError = useCallback(() => {
+    toast.error('Voice input quota exceeded. Please try again later.');
+  }, []);
+
+  const scribeOptions = useMemo(
+    () => ({
+      modelId: 'scribe_v2_realtime',
+      commitStrategy: CommitStrategy.VAD,
+      onSessionStarted: handleSessionStarted,
+      onPartialTranscript: handlePartial,
+      onCommittedTranscript: handleCommitted,
+      onDisconnect: handleDisconnect,
+      onError: handleError,
+      onAuthError: handleAuthError,
+      onQuotaExceededError: handleQuotaError,
+    }),
+    [
+      handleSessionStarted,
+      handlePartial,
+      handleCommitted,
+      handleDisconnect,
+      handleError,
+      handleAuthError,
+      handleQuotaError,
+    ]
+  );
+
+  // Use VAD (Voice Activity Detection) - the SDK handles commits automatically based on silence
+  const scribe = useScribe(scribeOptions);
+
+  // Keep a ref to the latest scribe instance for unmount cleanup.
+  const scribeRef = useRef(scribe);
+  useEffect(() => {
+    scribeRef.current = scribe;
+  }, [scribe]);
 
   // Auto-stop after long silence (30s by default)
   useEffect(() => {
@@ -153,15 +193,15 @@ export function VoiceInput({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scribe.isConnected, maxDuration]);
 
-  // Cleanup on unmount
+  // Cleanup ONLY on unmount (do not depend on `scribe`, otherwise some renders recreate the client and this cleanup runs)
   useEffect(() => {
     return () => {
       clearTimers();
-      if (scribe.isConnected) {
-        scribe.disconnect();
+      if (scribeRef.current?.isConnected) {
+        scribeRef.current.disconnect();
       }
     };
-  }, [clearTimers, scribe]);
+  }, [clearTimers]);
 
   const handleStart = useCallback(async () => {
     setIsConnecting(true);
