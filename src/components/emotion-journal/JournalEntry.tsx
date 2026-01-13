@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { VoiceInput } from '@/components/VoiceInput';
 import { Pencil } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
 interface EmotionType {
   name: string;
@@ -16,18 +17,22 @@ interface JournalEntryProps {
 }
 
 export function JournalEntry({ value, onChange, emotion }: JournalEntryProps) {
+  // Generate a stable random prompt on mount (not on every render)
+  const randomPrompt = useMemo(() => {
+    const prompts = [
+      `What made you feel ${emotion.name.toLowerCase()}?`,
+      'What happened today?',
+      'Who were you with?',
+      'What would help you feel better?',
+    ];
+    return prompts[Math.floor(Math.random() * prompts.length)];
+  }, [emotion.name]);
+
   const handleVoiceTranscript = (text: string) => {
-    onChange(text);
+    // Append transcribed text to existing value
+    const newValue = value ? `${value} ${text}` : text;
+    onChange(newValue);
   };
-
-  const prompts = [
-    `What made you feel ${emotion.name.toLowerCase()}?`,
-    'What happened today?',
-    'Who were you with?',
-    'What would help you feel better?',
-  ];
-
-  const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
 
   return (
     <Card>
@@ -43,13 +48,13 @@ export function JournalEntry({ value, onChange, emotion }: JournalEntryProps) {
           💭 {randomPrompt}
         </p>
 
-        {/* Voice Input */}
+        {/* Voice Input - shows transcript and populates textarea */}
         <div className="p-4 rounded-lg bg-muted/50 border">
           <p className="text-sm font-medium mb-3">🎤 Speak your thoughts:</p>
           <VoiceInput
             onTranscript={handleVoiceTranscript}
-            placeholder="Tap the microphone to speak..."
-            showTranscript={false}
+            placeholder="Tap the microphone to speak... Your words will appear here and be added to the text below."
+            showTranscript={true}
             maxDuration={120}
           />
         </div>
