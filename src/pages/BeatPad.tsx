@@ -41,6 +41,7 @@ const BeatPad: React.FC = () => {
   // Track saved beat info for cover image
   const [savedBeatId, setSavedBeatId] = useState<string | null>(null);
   const [savedBeatImageUrl, setSavedBeatImageUrl] = useState<string | null>(null);
+  const [beatLoaded, setBeatLoaded] = useState(false);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -134,6 +135,9 @@ const BeatPad: React.FC = () => {
   const handleLoadBeat = async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null }) => {
     handleStop();
     
+    // Mark that we're loading a beat to skip default sound loading
+    setBeatLoaded(true);
+    
     // Pattern is stored with sound IDs as keys - we need to fetch those sounds
     const soundIds = Object.keys(beat.pattern);
     
@@ -151,22 +155,31 @@ const BeatPad: React.FC = () => {
           // Create a map of sound ID to sound config
           const soundMap = new Map(sounds.map(s => [s.id, s as SoundConfig]));
           
-          // Build the instruments array and pattern in correct order
+          // Build the instruments array and pattern - only include sounds that exist
           const loadedInstruments: (SoundConfig | null)[] = [];
           const newPattern: Record<string, boolean[]> = {};
           
-          soundIds.forEach((soundId, idx) => {
+          // Filter to only IDs that have actual sounds and patterns
+          const validSoundIds = soundIds.filter(id => {
+            const hasSound = soundMap.has(id);
+            const hasActivePattern = beat.pattern[id]?.some(Boolean);
+            return hasSound && hasActivePattern;
+          });
+          
+          validSoundIds.forEach((soundId, idx) => {
             const sound = soundMap.get(soundId);
             if (sound) {
               loadedInstruments.push(sound);
+              // Use sequential index for both instruments and pattern
               newPattern[idx.toString()] = beat.pattern[soundId];
             }
           });
           
           // Fill remaining slots with nulls
           while (loadedInstruments.length < 20) {
+            const idx = loadedInstruments.length;
             loadedInstruments.push(null);
-            newPattern[loadedInstruments.length - 1] = Array(16).fill(false);
+            newPattern[idx.toString()] = Array(16).fill(false);
           }
           
           setInstruments(loadedInstruments);
@@ -403,6 +416,7 @@ const BeatPad: React.FC = () => {
                   currentStep={currentStep}
                   isPlaying={isPlaying}
                   onPlaySound={handlePlaySound}
+                  skipDefaultLoad={beatLoaded}
                 />
               </div>
 

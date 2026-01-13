@@ -19,6 +19,7 @@ interface CustomizableBeatGridProps {
   currentStep: number;
   isPlaying: boolean;
   onPlaySound: (sound: SoundConfig) => void;
+  skipDefaultLoad?: boolean;
 }
 
 export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
@@ -29,14 +30,22 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
   currentStep,
   isPlaying,
   onPlaySound,
+  skipDefaultLoad = false,
 }) => {
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [initialized, setInitialized] = useState(false);
+  const [initialized, setInitialized] = useState(skipDefaultLoad);
+
+  // Update initialized when skipDefaultLoad changes (e.g., when loading a beat)
+  useEffect(() => {
+    if (skipDefaultLoad) {
+      setInitialized(true);
+    }
+  }, [skipDefaultLoad]);
 
   // Load default sounds on mount
   useEffect(() => {
-    if (initialized) return;
+    if (initialized || skipDefaultLoad) return;
     
     const loadDefaultSounds = async () => {
       try {
@@ -76,7 +85,7 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
     };
 
     loadDefaultSounds();
-  }, [initialized, setInstruments, setPattern]);
+  }, [initialized, skipDefaultLoad, setInstruments, setPattern]);
 
   const handleOpenSoundPicker = (slotIndex: number) => {
     setSelectedSlot(slotIndex);
