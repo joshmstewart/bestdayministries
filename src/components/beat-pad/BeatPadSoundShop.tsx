@@ -3,14 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCoins } from '@/hooks/useCoins';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Play, Lock, Check, ShoppingCart, Music } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Play, Lock, Check, ShoppingCart, Music, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CoinsDisplay } from '@/components/CoinsDisplay';
+import AIGenerateSoundSection from './AIGenerateSoundSection';
 
 interface BeatPadSound {
   id: string;
@@ -220,106 +222,127 @@ export const BeatPadSoundShop: React.FC<BeatPadSoundShopProps> = ({
                 Sound Shop
               </DialogTitle>
               <DialogDescription>
-                Unlock new sounds for your beats ({purchasedCount}/{sounds.length} owned)
+                Unlock new sounds or create your own with AI
               </DialogDescription>
             </div>
             <CoinsDisplay />
           </div>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[60vh] pr-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : sounds.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No sounds available for purchase
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedSounds).map(([category, categorySounds]) => (
-                <div key={category}>
-                  <h3 className="font-semibold text-sm text-muted-foreground mb-3">{category}</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {categorySounds.map((sound) => {
-                      const isPurchased = purchasedIds.has(sound.id);
-                      const canAfford = coins >= sound.price_coins;
-                      
-                      return (
-                        <Card 
-                          key={sound.id}
-                          className={cn(
-                            "transition-all",
-                            isPurchased && "border-green-500/50 bg-green-50/50 dark:bg-green-950/20"
-                          )}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <div 
-                                className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl shrink-0"
-                                style={{ backgroundColor: sound.color }}
-                              >
-                                {sound.emoji}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-medium truncate">{sound.name}</h4>
-                                  {isPurchased && (
-                                    <Badge variant="secondary" className="shrink-0">
-                                      <Check className="h-3 w-3 mr-1" />
-                                      Owned
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {sound.oscillator_type} · {sound.frequency}Hz
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => previewSound(sound)}
-                                    className="h-7 px-2"
-                                  >
-                                    <Play className="h-3 w-3 mr-1" />
-                                    Preview
-                                  </Button>
-                                  {!isPurchased && (
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handlePurchase(sound)}
-                                      disabled={!canAfford || purchasing === sound.id}
-                                      className="h-7 px-2"
-                                    >
-                                      {purchasing === sound.id ? (
-                                        <span className="animate-spin">⏳</span>
-                                      ) : canAfford ? (
-                                        <>
-                                          <ShoppingCart className="h-3 w-3 mr-1" />
-                                          {sound.price_coins} 🪙
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Lock className="h-3 w-3 mr-1" />
-                                          {sound.price_coins} 🪙
-                                        </>
-                                      )}
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
+        <Tabs defaultValue="shop" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="shop" className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Shop ({purchasedCount}/{sounds.length})
+            </TabsTrigger>
+            <TabsTrigger value="ai-create" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Create
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="shop">
+            <ScrollArea className="max-h-[50vh] pr-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
+              ) : sounds.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No sounds available for purchase
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(groupedSounds).map(([category, categorySounds]) => (
+                    <div key={category}>
+                      <h3 className="font-semibold text-sm text-muted-foreground mb-3">{category}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {categorySounds.map((sound) => {
+                          const isPurchased = purchasedIds.has(sound.id);
+                          const canAfford = coins >= sound.price_coins;
+                          
+                          return (
+                            <Card 
+                              key={sound.id}
+                              className={cn(
+                                "transition-all",
+                                isPurchased && "border-green-500/50 bg-green-50/50 dark:bg-green-950/20"
+                              )}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  <div 
+                                    className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl shrink-0"
+                                    style={{ backgroundColor: sound.color }}
+                                  >
+                                    {sound.emoji}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium truncate">{sound.name}</h4>
+                                      {isPurchased && (
+                                        <Badge variant="secondary" className="shrink-0">
+                                          <Check className="h-3 w-3 mr-1" />
+                                          Owned
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {sound.oscillator_type} · {sound.frequency}Hz
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => previewSound(sound)}
+                                        className="h-7 px-2"
+                                      >
+                                        <Play className="h-3 w-3 mr-1" />
+                                        Preview
+                                      </Button>
+                                      {!isPurchased && (
+                                        <Button
+                                          size="sm"
+                                          onClick={() => handlePurchase(sound)}
+                                          disabled={!canAfford || purchasing === sound.id}
+                                          className="h-7 px-2"
+                                        >
+                                          {purchasing === sound.id ? (
+                                            <span className="animate-spin">⏳</span>
+                                          ) : canAfford ? (
+                                            <>
+                                              <ShoppingCart className="h-3 w-3 mr-1" />
+                                              {sound.price_coins} 🪙
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Lock className="h-3 w-3 mr-1" />
+                                              {sound.price_coins} 🪙
+                                            </>
+                                          )}
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="ai-create">
+            <ScrollArea className="max-h-[50vh] pr-4">
+              <AIGenerateSoundSection />
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
