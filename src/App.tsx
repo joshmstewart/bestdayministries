@@ -22,6 +22,7 @@ import { initializeSentry } from "@/lib/sentry";
 import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
 import Index from "./pages/Index";
 import ColoringBook from "./pages/ColoringBook";
+import EmotionJournal from "./pages/EmotionJournal";
 import CoffeeShopHome from "./pages/CoffeeShopHome";
 import Auth from "./pages/Auth";
 import Community from "./pages/Community";
@@ -264,6 +265,7 @@ const App = () => {
           <Route path="/games/recipe-gallery" element={<RecipeGallery />} />
           <Route path="/games/coloring-book" element={<ColoringBook />} />
           <Route path="/games/daily-five" element={<WordleGame />} />
+          <Route path="/games/emotion-journal" element={<EmotionJournal />} />
           <Route path="/chore-chart" element={<ChoreChart />} />
           <Route path="/virtual-pet" element={<VirtualPetPage />} />
           <Route path="/store" element={<StorePage />} />
