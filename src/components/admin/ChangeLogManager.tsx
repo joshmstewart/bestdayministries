@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { ClipboardList, Plus, Search } from "lucide-react";
 import { format } from "date-fns";
+import { SectionLoadingState, CompactEmptyState } from "@/components/common";
 
 interface ChangeLog {
   id: string;
@@ -298,13 +299,9 @@ export const ChangeLogManager = () => {
 
           <ScrollArea className="h-[600px] pr-4">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Loading logs...
-              </div>
+              <SectionLoadingState message="Loading logs..." />
             ) : filteredLogs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No change logs found
-              </div>
+              <CompactEmptyState message="No change logs found" />
             ) : (
               <div className="space-y-4">
                 {filteredLogs.map((log) => (

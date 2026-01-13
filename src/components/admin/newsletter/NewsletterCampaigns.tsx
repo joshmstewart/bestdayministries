@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
@@ -12,8 +12,8 @@ import { CampaignStatsDialog } from "./CampaignStatsDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 import { SaveAsTemplateDialog } from "./SaveAsTemplateDialog";
 import { format } from "date-fns";
-import { Copy } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SectionLoadingState } from "@/components/common";
 
 export const NewsletterCampaigns = () => {
   const queryClient = useQueryClient();
@@ -119,7 +119,7 @@ export const NewsletterCampaigns = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading campaigns...</div>
+        <SectionLoadingState message="Loading campaigns..." />
       ) : campaigns?.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground mb-4">No campaigns yet</p>

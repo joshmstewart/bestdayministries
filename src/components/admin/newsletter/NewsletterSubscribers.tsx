@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { SectionLoadingState } from "@/components/common";
 
 export const NewsletterSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -403,7 +404,7 @@ export const NewsletterSubscribers = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading subscribers...</div>
+        <SectionLoadingState message="Loading subscribers..." />
       ) : filteredSubscribers?.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           No subscribers found

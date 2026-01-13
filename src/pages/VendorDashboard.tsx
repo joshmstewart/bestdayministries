@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus } from "lucide-react";
+import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus } from "lucide-react";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
 import { VendorOrderList } from "@/components/vendor/VendorOrderList";
@@ -19,6 +19,7 @@ import { VendorBestieLinkRequest } from "@/components/vendor/VendorBestieLinkReq
 import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 import { VendorTeamManager } from "@/components/vendor/VendorTeamManager";
 import { CartInsights } from "@/components/vendor/CartInsights";
+import { PageLoadingState } from "@/components/common";
 
 interface Vendor {
   id: string;
@@ -203,11 +204,7 @@ const VendorDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoadingState message="Loading vendor dashboard..." />;
   }
 
   // No vendors at all - redirect to vendor auth
