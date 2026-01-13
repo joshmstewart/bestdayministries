@@ -41,13 +41,20 @@ export function JournalEntry({ value, onChange, emotion }: JournalEntryProps) {
         <CardTitle className="text-lg flex items-center gap-2">
           <Pencil className="h-5 w-5" />
           Want to say more? (Optional)
+          <TextToSpeech 
+            text="Want to say more? This is optional. You can speak your thoughts or type them." 
+            size="icon" 
+          />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Writing Prompt */}
-        <p className="text-sm text-muted-foreground italic">
-          💭 {randomPrompt}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-muted-foreground italic">
+            💭 {randomPrompt}
+          </p>
+          <TextToSpeech text={randomPrompt} size="icon" />
+        </div>
 
         {/* Voice Input - shows transcript and populates textarea */}
         <div className="p-4 rounded-lg bg-muted/50 border">

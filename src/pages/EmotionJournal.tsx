@@ -12,6 +12,7 @@ import { JournalEntry } from '@/components/emotion-journal/JournalEntry';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
 import { CopingSuggestions } from '@/components/emotion-journal/CopingSuggestions';
+import { TextToSpeech } from '@/components/TextToSpeech';
 
 interface EmotionType {
   id: string;
@@ -126,10 +127,14 @@ export default function EmotionJournal() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3">
             <Heart className="h-8 w-8 text-primary" />
-            Emotion Journal
-          </h1>
+            <h1 className="text-3xl font-bold">Emotion Journal</h1>
+            <TextToSpeech 
+              text="Emotion Journal. How are you feeling today? It's okay to feel any way!" 
+              size="default" 
+            />
+          </div>
           <p className="text-muted-foreground mt-2">
             How are you feeling today? It's okay to feel any way!
           </p>
@@ -157,7 +162,13 @@ export default function EmotionJournal() {
             {/* Emotion Selector */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">How are you feeling?</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  How are you feeling?
+                  <TextToSpeech 
+                    text="How are you feeling? Choose an emotion from the options below." 
+                    size="icon" 
+                  />
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <EmotionSelector
@@ -183,8 +194,12 @@ export default function EmotionJournal() {
                 {/* Intensity Selector */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-lg flex items-center gap-2">
                       How strong is this feeling?
+                      <TextToSpeech 
+                        text="How strong is this feeling? Choose from 1 to 5. 1 is just a little bit, 5 is very strong." 
+                        size="icon" 
+                      />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

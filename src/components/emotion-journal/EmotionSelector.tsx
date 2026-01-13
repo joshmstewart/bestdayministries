@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { TextToSpeech } from '@/components/TextToSpeech';
 
 interface EmotionType {
   id: string;
@@ -52,6 +53,10 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
           <h3 className="text-sm font-medium text-green-600 mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500" />
             Positive Feelings
+            <TextToSpeech 
+              text={`Positive feelings: ${positiveEmotions.map(e => e.name).join(', ')}`} 
+              size="icon" 
+            />
           </h3>
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
             {positiveEmotions.map(emotion => (
@@ -67,6 +72,10 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
           <h3 className="text-sm font-medium text-gray-600 mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-gray-400" />
             Neutral Feelings
+            <TextToSpeech 
+              text={`Neutral feelings: ${neutralEmotions.map(e => e.name).join(', ')}`} 
+              size="icon" 
+            />
           </h3>
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
             {neutralEmotions.map(emotion => (
@@ -82,6 +91,10 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
           <h3 className="text-sm font-medium text-red-600 mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500" />
             Challenging Feelings
+            <TextToSpeech 
+              text={`Challenging feelings: ${negativeEmotions.map(e => e.name).join(', ')}`} 
+              size="icon" 
+            />
           </h3>
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2">
             {negativeEmotions.map(emotion => (
