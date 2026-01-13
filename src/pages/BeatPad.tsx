@@ -17,7 +17,7 @@ import useCustomBeatAudio from '@/hooks/useCustomBeatAudio';
 import { SoundConfig } from '@/components/beat-pad/InstrumentSlot';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
 import Footer from '@/components/Footer';
-import { InstrumentType } from '@/hooks/useBeatPadAudio';
+
 
 const STEPS = 16;
 
@@ -131,16 +131,54 @@ const BeatPad: React.FC = () => {
     setSaveDialogOpen(true);
   };
 
-  const handleLoadBeat = (beat: { id: string; name: string; pattern: Record<InstrumentType, boolean[]>; tempo: number; image_url?: string | null }) => {
+  const handleLoadBeat = async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null }) => {
     handleStop();
-    // Convert old format pattern to new format
-    // For now, just load into the first available slots
-    const newPattern: Record<string, boolean[]> = {};
-    const entries = Object.entries(beat.pattern);
-    entries.forEach((entry, idx) => {
-      newPattern[idx.toString()] = entry[1];
-    });
-    setPattern(newPattern);
+    
+    // Pattern is stored with sound IDs as keys - we need to fetch those sounds
+    const soundIds = Object.keys(beat.pattern);
+    
+    if (soundIds.length > 0) {
+      try {
+        // Fetch the sounds used in this beat
+        const { data: sounds, error } = await supabase
+          .from('beat_pad_sounds')
+          .select('id, name, emoji, color, sound_type, frequency, decay, oscillator_type, has_noise, audio_url')
+          .in('id', soundIds);
+        
+        if (error) throw error;
+        
+        if (sounds && sounds.length > 0) {
+          // Create a map of sound ID to sound config
+          const soundMap = new Map(sounds.map(s => [s.id, s as SoundConfig]));
+          
+          // Build the instruments array and pattern in correct order
+          const loadedInstruments: (SoundConfig | null)[] = [];
+          const newPattern: Record<string, boolean[]> = {};
+          
+          soundIds.forEach((soundId, idx) => {
+            const sound = soundMap.get(soundId);
+            if (sound) {
+              loadedInstruments.push(sound);
+              newPattern[idx.toString()] = beat.pattern[soundId];
+            }
+          });
+          
+          // Fill remaining slots with nulls
+          while (loadedInstruments.length < 20) {
+            loadedInstruments.push(null);
+            newPattern[loadedInstruments.length - 1] = Array(16).fill(false);
+          }
+          
+          setInstruments(loadedInstruments);
+          setPattern(newPattern);
+        }
+      } catch (error) {
+        console.error('Error loading beat sounds:', error);
+        toast.error('Could not load beat sounds');
+        return;
+      }
+    }
+    
     setTempo(beat.tempo);
     setBeatName(beat.name);
     setSavedBeatId(beat.id);
