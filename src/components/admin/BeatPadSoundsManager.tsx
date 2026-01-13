@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Music, Plus, Edit, Eye, EyeOff, Trash2, Play, Sparkles, Loader2, Upload, Download } from "lucide-react";
+import { Music, Plus, Edit, Eye, EyeOff, Trash2, Play, Sparkles, Loader2, Upload, Download, Copy, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database['public']['Enums']['user_role'];
@@ -27,6 +28,22 @@ const USER_ROLES = [
 ];
 
 const OSCILLATOR_TYPES = ['sine', 'square', 'triangle', 'sawtooth'];
+
+const SOUND_CATEGORIES = [
+  { value: 'drums', label: '🥁 Drums' },
+  { value: 'brass', label: '🎺 Brass' },
+  { value: 'wind', label: '🪈 Wind' },
+  { value: 'strings', label: '🎻 Strings' },
+  { value: 'voice', label: '🎤 Voice' },
+  { value: 'animal', label: '🐾 Animals' },
+  { value: 'vehicle', label: '🚗 Vehicles' },
+  { value: 'silly', label: '🤪 Silly' },
+  { value: 'nature', label: '🌿 Nature' },
+  { value: 'retro', label: '👾 Retro' },
+  { value: 'melodic', label: '🎹 Melodic' },
+  { value: 'effects', label: '✨ Effects' },
+  { value: 'oscillator', label: '🔊 Synth' },
+];
 
 // Default sound prompts for AI generation
 const DEFAULT_SOUND_PROMPTS: Record<string, string> = {
@@ -59,18 +76,49 @@ interface BeatPadSound {
   audio_url: string | null;
 }
 
+interface BulkSoundEntry {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  color: string;
+  sound_type: string;
+  oscillator_type: string;
+  frequency: string;
+  decay: string;
+  has_noise: boolean;
+  price_coins: string;
+}
+
+const createEmptyBulkEntry = (): BulkSoundEntry => ({
+  id: crypto.randomUUID(),
+  name: "",
+  emoji: "🎵",
+  description: "",
+  color: "#FF6B6B",
+  sound_type: "effects",
+  oscillator_type: "sine",
+  frequency: "440",
+  decay: "0.3",
+  has_noise: false,
+  price_coins: "100",
+});
+
 export const BeatPadSoundsManager = () => {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [editingSound, setEditingSound] = useState<BeatPadSound | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [generatingSound, setGeneratingSound] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
+  const [bulkSounds, setBulkSounds] = useState<BulkSoundEntry[]>([createEmptyBulkEntry()]);
   const [formData, setFormData] = useState({
     name: "",
     emoji: "🎵",
     description: "",
-    color: "hsl(var(--primary))",
+    color: "#FF6B6B",
+    sound_type: "effects",
     oscillator_type: "sine",
     frequency: "440",
     decay: "0.2",
@@ -305,7 +353,7 @@ export const BeatPadSoundsManager = () => {
         emoji: formData.emoji,
         description: formData.description || null,
         color: formData.color,
-        sound_type: 'oscillator',
+        sound_type: formData.sound_type,
         oscillator_type: formData.oscillator_type,
         frequency: parseFloat(formData.frequency),
         decay: parseFloat(formData.decay),
@@ -344,12 +392,79 @@ export const BeatPadSoundsManager = () => {
     }
   };
 
+  const handleBulkSubmit = async () => {
+    const validSounds = bulkSounds.filter(s => s.name.trim() !== "");
+    
+    if (validSounds.length === 0) {
+      toast({ title: "No sounds to add", description: "Please fill in at least one sound", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const soundsToInsert = validSounds.map(sound => ({
+        name: sound.name,
+        emoji: sound.emoji,
+        description: sound.description || null,
+        color: sound.color,
+        sound_type: sound.sound_type,
+        oscillator_type: sound.oscillator_type,
+        frequency: parseFloat(sound.frequency),
+        decay: parseFloat(sound.decay),
+        has_noise: sound.has_noise,
+        price_coins: parseInt(sound.price_coins),
+        is_default: false,
+        is_active: true,
+        visible_to_roles: ["supporter", "bestie", "caregiver", "admin", "owner"] as UserRole[],
+      }));
+
+      const { error } = await supabase
+        .from('beat_pad_sounds')
+        .insert(soundsToInsert);
+
+      if (error) throw error;
+      
+      toast({ title: "Sounds added!", description: `${validSounds.length} sound(s) created successfully` });
+      setBulkSounds([createEmptyBulkEntry()]);
+      setIsBulkDialogOpen(false);
+      refetch();
+    } catch (error) {
+      console.error('Error bulk adding sounds:', error);
+      toast({ title: "Error", description: "Failed to add sounds", variant: "destructive" });
+    }
+  };
+
+  const addBulkEntry = () => {
+    if (bulkSounds.length >= 20) {
+      toast({ title: "Maximum reached", description: "You can add up to 20 sounds at a time", variant: "destructive" });
+      return;
+    }
+    setBulkSounds([...bulkSounds, createEmptyBulkEntry()]);
+  };
+
+  const removeBulkEntry = (id: string) => {
+    if (bulkSounds.length === 1) return;
+    setBulkSounds(bulkSounds.filter(s => s.id !== id));
+  };
+
+  const updateBulkEntry = (id: string, field: keyof BulkSoundEntry, value: any) => {
+    setBulkSounds(bulkSounds.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const duplicateBulkEntry = (entry: BulkSoundEntry) => {
+    if (bulkSounds.length >= 20) {
+      toast({ title: "Maximum reached", description: "You can add up to 20 sounds at a time", variant: "destructive" });
+      return;
+    }
+    setBulkSounds([...bulkSounds, { ...entry, id: crypto.randomUUID(), name: `${entry.name} (copy)` }]);
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
       emoji: "🎵",
       description: "",
-      color: "hsl(var(--primary))",
+      color: "#FF6B6B",
+      sound_type: "effects",
       oscillator_type: "sine",
       frequency: "440",
       decay: "0.2",
@@ -409,6 +524,7 @@ export const BeatPadSoundsManager = () => {
       emoji: sound.emoji,
       description: sound.description || "",
       color: sound.color,
+      sound_type: sound.sound_type || "effects",
       oscillator_type: sound.oscillator_type || "sine",
       frequency: String(sound.frequency || 440),
       decay: String(sound.decay || 0.2),
@@ -435,7 +551,7 @@ export const BeatPadSoundsManager = () => {
               Manage sounds available in the Beat Pad game
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button 
               variant="outline" 
               onClick={generateAllAISounds}
@@ -444,6 +560,149 @@ export const BeatPadSoundsManager = () => {
               <Sparkles className="h-4 w-4 mr-2" />
               Generate All AI Sounds
             </Button>
+            
+            {/* Bulk Add Dialog */}
+            <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" onClick={() => setBulkSounds([createEmptyBulkEntry()])}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Bulk Add (up to 20)
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh]">
+                <DialogHeader>
+                  <DialogTitle>Bulk Add Sounds</DialogTitle>
+                  <DialogDescription>
+                    Add up to 20 sounds at once. Fill in the details and click "Add All".
+                  </DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="h-[60vh] pr-4">
+                  <div className="space-y-4">
+                    {bulkSounds.map((entry, index) => (
+                      <div key={entry.id} className="p-4 border rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-medium text-sm">Sound #{index + 1}</span>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => duplicateBulkEntry(entry)}
+                              title="Duplicate"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            {bulkSounds.length > 1 && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeBulkEntry(entry.id)}
+                                title="Remove"
+                              >
+                                <X className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-6 gap-2">
+                          <Input
+                            placeholder="Name *"
+                            value={entry.name}
+                            onChange={(e) => updateBulkEntry(entry.id, 'name', e.target.value)}
+                            className="col-span-2"
+                          />
+                          <Input
+                            placeholder="Emoji"
+                            value={entry.emoji}
+                            onChange={(e) => updateBulkEntry(entry.id, 'emoji', e.target.value)}
+                            maxLength={4}
+                            className="col-span-1"
+                          />
+                          <Select 
+                            value={entry.sound_type} 
+                            onValueChange={(v) => updateBulkEntry(entry.id, 'sound_type', v)}
+                          >
+                            <SelectTrigger className="col-span-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SOUND_CATEGORIES.map(cat => (
+                                <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="color"
+                            value={entry.color}
+                            onChange={(e) => updateBulkEntry(entry.id, 'color', e.target.value)}
+                            className="col-span-1 p-1 h-9"
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Coins"
+                            value={entry.price_coins}
+                            onChange={(e) => updateBulkEntry(entry.id, 'price_coins', e.target.value)}
+                            min="0"
+                            className="col-span-1"
+                          />
+                        </div>
+                        <div className="grid grid-cols-5 gap-2 mt-2">
+                          <Input
+                            placeholder="Description"
+                            value={entry.description}
+                            onChange={(e) => updateBulkEntry(entry.id, 'description', e.target.value)}
+                            className="col-span-2"
+                          />
+                          <Select 
+                            value={entry.oscillator_type} 
+                            onValueChange={(v) => updateBulkEntry(entry.id, 'oscillator_type', v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {OSCILLATOR_TYPES.map(type => (
+                                <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            placeholder="Freq (Hz)"
+                            value={entry.frequency}
+                            onChange={(e) => updateBulkEntry(entry.id, 'frequency', e.target.value)}
+                            min="20"
+                            max="2000"
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Decay (s)"
+                            value={entry.decay}
+                            onChange={(e) => updateBulkEntry(entry.id, 'decay', e.target.value)}
+                            min="0.01"
+                            max="2"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={addBulkEntry} disabled={bulkSounds.length >= 20}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Row
+                    </Button>
+                    <span className="text-sm text-muted-foreground">{bulkSounds.length}/20</span>
+                  </div>
+                  <Button onClick={handleBulkSubmit}>
+                    Add {bulkSounds.filter(s => s.name.trim()).length} Sound(s)
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            {/* Single Add/Edit Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={resetForm}>
@@ -455,7 +714,7 @@ export const BeatPadSoundsManager = () => {
                 <DialogHeader>
                   <DialogTitle>{editingSound ? 'Edit' : 'Add'} Beat Pad Sound</DialogTitle>
                   <DialogDescription>
-                    Configure a sound for the Beat Pad
+                    Configure a sound for the Beat Pad {editingSound?.is_default && <Badge variant="secondary" className="ml-2">Default Sound</Badge>}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -492,12 +751,17 @@ export const BeatPadSoundsManager = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="color">Color (HSL)</Label>
-                      <Input
-                        id="color"
-                        value={formData.color}
-                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      />
+                      <Label htmlFor="sound_type">Category</Label>
+                      <Select value={formData.sound_type} onValueChange={(value) => setFormData({ ...formData, sound_type: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SOUND_CATEGORIES.map(cat => (
+                            <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="price">Price (Coins)</Label>
@@ -514,6 +778,23 @@ export const BeatPadSoundsManager = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
+                      <Label htmlFor="color">Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="color"
+                          value={formData.color.startsWith('#') ? formData.color : '#FF6B6B'}
+                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          className="w-12 p-1 h-9"
+                        />
+                        <Input
+                          id="color"
+                          value={formData.color}
+                          onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div>
                       <Label htmlFor="oscillator">Oscillator Type</Label>
                       <Select value={formData.oscillator_type} onValueChange={(value) => setFormData({ ...formData, oscillator_type: value })}>
                         <SelectTrigger>
@@ -526,6 +807,9 @@ export const BeatPadSoundsManager = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="frequency">Frequency (Hz)</Label>
                       <Input
@@ -537,9 +821,6 @@ export const BeatPadSoundsManager = () => {
                         onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
                       />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="decay">Decay (seconds)</Label>
                       <Input
@@ -552,14 +833,15 @@ export const BeatPadSoundsManager = () => {
                         onChange={(e) => setFormData({ ...formData, decay: e.target.value })}
                       />
                     </div>
-                    <div className="flex items-center space-x-2 pt-6">
-                      <Checkbox
-                        id="has_noise"
-                        checked={formData.has_noise}
-                        onCheckedChange={(checked) => setFormData({ ...formData, has_noise: checked === true })}
-                      />
-                      <label htmlFor="has_noise" className="text-sm font-medium">Add Noise Layer</label>
-                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="has_noise"
+                      checked={formData.has_noise}
+                      onCheckedChange={(checked) => setFormData({ ...formData, has_noise: checked === true })}
+                    />
+                    <label htmlFor="has_noise" className="text-sm font-medium">Add Noise Layer</label>
                   </div>
 
                   <div>
