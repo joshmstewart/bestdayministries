@@ -4,12 +4,11 @@ import { cn } from "@/lib/utils";
 import { DENOMINATIONS, getDenominationLabel } from "@/lib/moneyCountingUtils";
 
 interface CashDrawerProps {
-  contents: { [key: string]: number };
   onSelectMoney: (denomination: string) => void;
   disabled: boolean;
 }
 
-export function CashDrawer({ contents, onSelectMoney, disabled }: CashDrawerProps) {
+export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
   const bills = DENOMINATIONS.filter((d) => d.type === "bill");
   const coins = DENOMINATIONS.filter((d) => d.type === "coin");
 
@@ -31,30 +30,23 @@ export function CashDrawer({ contents, onSelectMoney, disabled }: CashDrawerProp
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Bills</h3>
           <div className="grid grid-cols-3 gap-2">
-            {bills.map((denom) => {
-              const count = contents[denom.value.toString()] || 0;
-              return (
-                <Button
-                  key={denom.value}
-                  variant="outline"
-                  className={cn(
-                    "h-16 flex flex-col items-center justify-center relative",
-                    "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900",
-                    "border-green-300 dark:border-green-700 hover:border-green-500",
-                    count === 0 && "opacity-40"
-                  )}
-                  onClick={() => onSelectMoney(denom.value.toString())}
-                  disabled={disabled || count === 0}
-                >
-                  <span className="text-lg font-bold text-green-700 dark:text-green-300">
-                    {denom.label}
-                  </span>
-                  <span className="text-xs text-green-600 dark:text-green-400">
-                    ×{count}
-                  </span>
-                </Button>
-              );
-            })}
+            {bills.map((denom) => (
+              <Button
+                key={denom.value}
+                variant="outline"
+                className={cn(
+                  "h-16 flex items-center justify-center",
+                  "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900",
+                  "border-green-300 dark:border-green-700 hover:border-green-500"
+                )}
+                onClick={() => onSelectMoney(denom.value.toString())}
+                disabled={disabled}
+              >
+                <span className="text-lg font-bold text-green-700 dark:text-green-300">
+                  {denom.label}
+                </span>
+              </Button>
+            ))}
           </div>
         </div>
 
@@ -63,7 +55,6 @@ export function CashDrawer({ contents, onSelectMoney, disabled }: CashDrawerProp
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Coins</h3>
           <div className="grid grid-cols-4 gap-2">
             {coins.map((denom) => {
-              const count = contents[denom.value.toString()] || 0;
               const coinColors: { [key: string]: string } = {
                 "0.25": "from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 border-gray-400",
                 "0.10": "from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500 border-gray-500",
@@ -75,16 +66,14 @@ export function CashDrawer({ contents, onSelectMoney, disabled }: CashDrawerProp
                   key={denom.value}
                   variant="outline"
                   className={cn(
-                    "h-14 flex flex-col items-center justify-center rounded-full aspect-square",
+                    "h-14 flex items-center justify-center rounded-full aspect-square",
                     "bg-gradient-to-br",
-                    coinColors[denom.value.toString()] || "from-gray-200 to-gray-300",
-                    count === 0 && "opacity-40"
+                    coinColors[denom.value.toString()] || "from-gray-200 to-gray-300"
                   )}
                   onClick={() => onSelectMoney(denom.value.toString())}
-                  disabled={disabled || count === 0}
+                  disabled={disabled}
                 >
                   <span className="text-sm font-bold">{denom.label}</span>
-                  <span className="text-xs">×{count}</span>
                 </Button>
               );
             })}
