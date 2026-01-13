@@ -238,15 +238,6 @@ export default function MoneyCounting() {
       return;
     }
 
-    // Check if we have this in the drawer
-    if ((gameState.drawerContents[denomination] || 0) <= 0) {
-      toast.error("None left in drawer!");
-      return;
-    }
-
-    const newDrawer = { ...gameState.drawerContents };
-    newDrawer[denomination] = (newDrawer[denomination] || 0) - 1;
-
     const newChangeGiven = { ...gameState.changeGiven };
     newChangeGiven[denomination] = (newChangeGiven[denomination] || 0) + 1;
 
@@ -257,7 +248,6 @@ export default function MoneyCounting() {
 
     setGameState({
       ...gameState,
-      drawerContents: newDrawer,
       changeGiven: newChangeGiven,
     });
 
