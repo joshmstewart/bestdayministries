@@ -74,6 +74,7 @@ type SortOption = "newest" | "popular";
 interface CustomDrink {
   id: string;
   name: string;
+  ingredients: string[];
   generated_image_url: string | null;
   likes_count: number;
   created_at: string;
@@ -323,12 +324,32 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
                 </div>
               )}
               
-              <div className="p-4 bg-background">
-                <h2 className="text-xl font-semibold">{selectedDrink.name}</h2>
-                {selectedDrink.creator_name && (
-                  <p className="text-sm text-muted-foreground">by {selectedDrink.creator_name}</p>
+              <div className="p-4 bg-background space-y-3">
+                <div>
+                  <h2 className="text-xl font-semibold">{selectedDrink.name}</h2>
+                  {selectedDrink.creator_name && (
+                    <p className="text-sm text-muted-foreground">by {selectedDrink.creator_name}</p>
+                  )}
+                </div>
+                
+                {/* Ingredients */}
+                {selectedDrink.ingredients && selectedDrink.ingredients.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Ingredients</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedDrink.ingredients.map((ingredient, idx) => (
+                        <span 
+                          key={idx}
+                          className="px-2 py-1 bg-primary/10 text-primary rounded-full text-sm"
+                        >
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
-                <div className="flex items-center gap-2 mt-2">
+                
+                <div className="flex items-center gap-2 pt-1">
                   <Button
                     variant="outline"
                     size="sm"
