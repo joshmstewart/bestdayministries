@@ -74,11 +74,18 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
 
       if (response.error) throw response.error;
 
-      const newImageUrl = response.data?.imageUrl;
+      const newImageUrl =
+        response.data?.imageUrl ||
+        response.data?.image_url ||
+        response.data?.url;
+
       if (newImageUrl) {
         setCurrentImageUrl(newImageUrl);
         onImageGenerated?.(newImageUrl);
         toast.success('Cover art generated! 🎨');
+      } else {
+        console.warn('generate-beat-image returned no image URL', response.data);
+        toast.error('Cover art generated but no URL was returned');
       }
     } catch (error) {
       console.error('Error generating image:', error);
