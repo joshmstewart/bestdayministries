@@ -40,9 +40,7 @@ const SponsorshipSuccess = () => {
   };
 
   const verifyPayment = async () => {
-    // Prevent duplicate calls (React Strict Mode in dev causes double invocations)
     if (verificationInProgress.current) {
-      console.log('Verification already in progress, skipping duplicate call');
       return;
     }
     

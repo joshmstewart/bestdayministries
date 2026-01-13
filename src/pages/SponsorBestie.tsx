@@ -175,7 +175,6 @@ const SponsorBestie = () => {
     }
 
     if (!data || data.length === 0) {
-      console.log("No besties found matching criteria");
       setBesties([]);
       return;
     }

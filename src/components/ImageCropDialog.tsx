@@ -81,11 +81,9 @@ export function ImageCropDialog({
   const createCroppedImage = async () => {
     if (!croppedAreaPixels) return;
 
-    console.log("Starting crop with croppedAreaPixels:", croppedAreaPixels);
     setProcessing(true);
     try {
       const image = new Image();
-      // Set crossOrigin to avoid CORS issues when cropping images from external sources
       image.crossOrigin = "anonymous";
       image.src = imageUrl;
       
@@ -94,16 +92,12 @@ export function ImageCropDialog({
         image.onerror = reject;
       });
 
-      console.log("Image loaded, dimensions:", image.width, image.height);
-
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("No 2d context");
 
       canvas.width = croppedAreaPixels.width;
       canvas.height = croppedAreaPixels.height;
-
-      console.log("Canvas created, drawing image...");
 
       ctx.drawImage(
         image,
@@ -117,12 +111,8 @@ export function ImageCropDialog({
         croppedAreaPixels.height
       );
 
-      console.log("Image drawn, converting to blob...");
-
       canvas.toBlob((blob) => {
-        console.log("Blob created:", blob);
         if (blob) {
-          console.log("Calling onCropComplete with blob");
           onCropComplete(blob);
           onOpenChange(false);
         } else {

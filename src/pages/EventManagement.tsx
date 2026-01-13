@@ -146,14 +146,12 @@ export default function EventManagement() {
       toast.error("Failed to load events");
       console.error(eventsResult.error);
     } else {
-      console.log("All events loaded:", eventsResult.data?.map(e => ({ title: e.title, location: e.location })));
       setEvents(eventsResult.data || []);
     }
 
     if (locationsResult.error) {
       console.error("Failed to load saved locations:", locationsResult.error);
     } else {
-      console.log("All saved locations loaded:", locationsResult.data?.map(l => ({ name: l.name, address: l.address })));
       setSavedLocations(locationsResult.data || []);
     }
     
@@ -178,16 +176,11 @@ export default function EventManagement() {
   };
 
   const handleCroppedImage = (blob: Blob) => {
-    console.log("handleCroppedImage called with blob:", blob);
-    // Convert blob to File
     const file = new File([blob], "cropped-image.jpg", { type: "image/jpeg" });
-    console.log("Created file:", file);
     setSelectedImage(file);
     
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
-      console.log("Preview created");
       setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(blob);
@@ -330,8 +323,6 @@ export default function EventManagement() {
         created_by: user.id,
         is_active: hasFutureDates ? true : (editingEvent?.is_active ?? true),
       };
-      
-      console.log("Event data being saved:", eventData);
 
       let eventId = editingEvent?.id;
 
@@ -1174,11 +1165,6 @@ export default function EventManagement() {
                               const matchingLocation = savedLocations.find(
                                 loc => normalizeAddress(loc.address) === normalizeAddress(event.location || '')
                               );
-                              
-                              console.log('Event:', event.title);
-                              console.log('Event location:', event.location);
-                              console.log('Saved locations:', savedLocations.map(l => ({ name: l.name, address: l.address })));
-                              console.log('Matching location found:', matchingLocation);
                               
                               if (matchingLocation) {
                                 return (

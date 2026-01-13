@@ -165,10 +165,6 @@ export const PrintifyPreviewDialog = ({
   // Calculate markup from final price for the import callback
   const priceMarkup = Math.max(0, finalPrice - basePrice);
 
-  // Debug: log product options and variants
-  console.log('Product options from API:', product.options);
-  console.log('Enabled variants:', enabledVariants.map(v => v.title));
-
   const isColorOptionName = (name: string): boolean => {
     const n = name.toLowerCase().trim();
     // Printify sometimes uses "Color" vs "Colors" (and "Colour/Colours")
@@ -253,8 +249,6 @@ export const PrintifyPreviewDialog = ({
     return 0;
   });
 
-  console.log('Computed options:', options);
-
   // Find the "Color" option index (usually first, but check by name)
   const colorOptionIndex = options.findIndex(opt => isColorOptionName(opt.name));
 
@@ -336,8 +330,6 @@ export const PrintifyPreviewDialog = ({
       }
     });
   }
-
-  console.log('Color to image mapping:', colorToImageIndex);
 
   // Handle option selection and auto-select matching image
   const handleOptionSelect = (optionName: string, value: string) => {

@@ -68,10 +68,8 @@ const Community = () => {
   // Update effective role whenever profile or impersonation changes
   useEffect(() => {
     if (profile && profile.role) {
-      // Cast to UserRole for impersonation (excludes moderator which isn't impersonatable)
       const impersonatableRole = profile.role as UserRole;
       const effectiveRoleResult = getEffectiveRole(impersonatableRole);
-      console.log('Community - Setting effectiveRole:', effectiveRoleResult);
       setEffectiveRole(effectiveRoleResult);
     }
   }, [profile, isImpersonating, getEffectiveRole]);
@@ -94,17 +92,8 @@ const Community = () => {
   // Track if content has been loaded to prevent duplicate fetches
   const [contentLoaded, setContentLoaded] = useState(false);
 
-  // Reload content when impersonation changes or when user/profile/effectiveRole are set
   useEffect(() => {
-    console.log('Community - Content loading useEffect triggered', { 
-      hasUser: !!user, 
-      hasProfile: !!profile, 
-      effectiveRole,
-      contentLoaded
-    });
-    // Only load once, or reload if impersonation changes
     if (user && profile && effectiveRole !== null && !contentLoaded) {
-      console.log('Community - Calling loadLatestContent');
       loadLatestContent();
       setContentLoaded(true);
     }

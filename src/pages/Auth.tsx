@@ -140,7 +140,6 @@ const Auth = () => {
         setRecoveryTokenHash(tokenToUse);
       }
     } else if (recoveryMode) {
-      console.log("🔍 AUTH PAGE: Recovery mode detected, showing password update form");
       setIsPasswordRecovery(true);
 
       // If we have a PKCE code, exchange it for a session so updateUser() works.
@@ -169,16 +168,8 @@ const Auth = () => {
       }
     };
 
-    // Check if user is already logged in (but never redirect during recovery)
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log(
-        "🔍 AUTH PAGE: getSession result:",
-        session ? "HAS SESSION" : "NO SESSION",
-        session?.user?.email
-      );
-
       if (session?.user && !recoveryMode && !isPasswordRecovery && !recoveryTokenHash) {
-        console.log("🔍 AUTH PAGE: Redirecting authenticated user:", session.user.id);
         checkAndRedirect(session.user.id);
       }
     });
@@ -213,13 +204,9 @@ const Auth = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔍 AUTH PAGE: onAuthStateChange event:", event);
-
       // Supabase may emit either PASSWORD_RECOVERY or SIGNED_IN for recovery links,
       // depending on auth flow (implicit vs PKCE). Treat both as recovery when the URL indicates it.
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && recoveryMode)) {
-        console.log("🔍 AUTH PAGE: Password recovery detected, showing update form");
-
         // If a session has already been established from the recovery link,
         // strip token_hash so we don't keep re-rendering the "Verify Reset Link" screen.
         stripTokenHashFromUrl();
@@ -242,15 +229,6 @@ const Auth = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    // 🔍 DEBUG: Log state values before submission
-    console.log('🚀 FORM SUBMIT - State values:', {
-      displayName,
-      role,
-      selectedAvatar,
-      email,
-      isSignUp
-    });
 
     try {
       if (isSignUp) {
@@ -291,14 +269,10 @@ const Auth = () => {
             });
             
             if (termsResult.error) {
-              console.error("⚠️  Terms recording failed:", termsResult.error);
-              // Don't block signup, but log for monitoring
-            } else {
-              console.log('✅ Terms recorded successfully after signup');
+              console.error("Terms recording failed:", termsResult.error);
             }
           } catch (termsError) {
-            console.error("⚠️  Error recording terms:", termsError);
-            // Don't block signup, but log for monitoring
+            console.error("Error recording terms:", termsError);
           }
         }
 
@@ -411,7 +385,6 @@ const Auth = () => {
   };
 
   const handleVerifyRecoveryLink = async () => {
-    console.log("🔍 AUTH PAGE: Continue clicked (verify recovery link)");
     if (!recoveryTokenHash) return;
 
     setLoading(true);
