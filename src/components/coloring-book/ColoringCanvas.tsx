@@ -245,67 +245,103 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       // Check if this path was created while in eraser mode
       const path = opt.path;
       if (path && (canvas.freeDrawingBrush as any)?._isEraser) {
-        // Remove the visible path (we don't want black stroke)
-        canvas.remove(path);
+        // Convert eraser path to clip mask for existing brush strokes
+        const eraserWidth = canvas.freeDrawingBrush?.width || 20;
+        const pathData = path.path;
         
-        // Erase from fabric canvas (other brush strokes) using destination-out
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = canvasWidth;
-        tempCanvas.height = canvasHeight;
-        const tempCtx = tempCanvas.getContext('2d');
-        if (tempCtx && baseCanvasRef.current) {
-          // Draw the erase path on base canvas with white to erase fills
+        // Save history before erasing
+        if (baseCanvasRef.current) {
           const baseCtx = baseCanvasRef.current.getContext('2d');
           if (baseCtx) {
-            // Save history before erasing
             const imageData = baseCtx.getImageData(0, 0, canvasWidth, canvasHeight);
             setHistory(prev => [...prev.slice(-MAX_HISTORY + 1), imageData]);
-            
-            // Draw white along the eraser path to erase fills
-            baseCtx.globalCompositeOperation = 'destination-out';
-            baseCtx.strokeStyle = 'rgba(255,255,255,1)';
-            baseCtx.lineWidth = (canvas.freeDrawingBrush?.width || 20);
-            baseCtx.lineCap = 'round';
-            baseCtx.lineJoin = 'round';
-            
-            // Convert fabric path to base canvas path
-            const pathData = path.path;
-            if (pathData && pathData.length > 0) {
-              baseCtx.beginPath();
-              pathData.forEach((segment: any[]) => {
-                if (segment[0] === 'M') {
-                  baseCtx.moveTo(segment[1], segment[2]);
-                } else if (segment[0] === 'Q') {
-                  baseCtx.quadraticCurveTo(segment[1], segment[2], segment[3], segment[4]);
-                } else if (segment[0] === 'L') {
-                  baseCtx.lineTo(segment[1], segment[2]);
-                }
-              });
-              baseCtx.stroke();
-            }
-            baseCtx.globalCompositeOperation = 'source-over';
           }
         }
         
-        // Also remove any fabric brush strokes that intersect with eraser path
-        const eraserPath = path;
-        const eraserBounds = eraserPath.getBoundingRect();
-        const objectsToRemove: any[] = [];
+        // For each brush stroke path, apply destination-out to erase only the touched parts
+        // We render all paths to a temp canvas and use the eraser to cut through them
+        const existingPaths = canvas.getObjects().filter((obj: any) => obj.type === 'path' && obj !== path);
         
-        canvas.getObjects().forEach((obj: any) => {
-          if (obj.type === 'path' && obj !== eraserPath) {
-            const objBounds = obj.getBoundingRect();
-            // Check if bounds intersect
-            if (!(eraserBounds.left > objBounds.left + objBounds.width ||
-                  eraserBounds.left + eraserBounds.width < objBounds.left ||
-                  eraserBounds.top > objBounds.top + objBounds.height ||
-                  eraserBounds.top + eraserBounds.height < objBounds.top)) {
-              objectsToRemove.push(obj);
-            }
+        if (existingPaths.length > 0) {
+          // Create a temp canvas to composite the eraser effect
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = canvasWidth;
+          tempCanvas.height = canvasHeight;
+          const tempCtx = tempCanvas.getContext('2d');
+          
+          if (tempCtx) {
+            // For each existing path, render it, apply eraser, then update it
+            existingPaths.forEach((existingPath: any) => {
+              // Clear temp canvas
+              tempCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+              
+              // Render the existing path to temp canvas
+              const pathClone = existingPath.toObject();
+              tempCtx.save();
+              tempCtx.strokeStyle = existingPath.stroke || '#000';
+              tempCtx.lineWidth = existingPath.strokeWidth || 1;
+              tempCtx.lineCap = 'round';
+              tempCtx.lineJoin = 'round';
+              tempCtx.globalAlpha = existingPath.opacity || 1;
+              
+              // Draw the existing path
+              if (pathClone.path) {
+                tempCtx.beginPath();
+                pathClone.path.forEach((segment: any[]) => {
+                  if (segment[0] === 'M') tempCtx.moveTo(segment[1], segment[2]);
+                  else if (segment[0] === 'Q') tempCtx.quadraticCurveTo(segment[1], segment[2], segment[3], segment[4]);
+                  else if (segment[0] === 'L') tempCtx.lineTo(segment[1], segment[2]);
+                });
+                tempCtx.stroke();
+              }
+              
+              // Apply eraser (destination-out) along the eraser path
+              tempCtx.globalCompositeOperation = 'destination-out';
+              tempCtx.strokeStyle = 'rgba(255,255,255,1)';
+              tempCtx.lineWidth = eraserWidth;
+              tempCtx.lineCap = 'round';
+              tempCtx.lineJoin = 'round';
+              
+              if (pathData && pathData.length > 0) {
+                tempCtx.beginPath();
+                pathData.forEach((segment: any[]) => {
+                  if (segment[0] === 'M') tempCtx.moveTo(segment[1], segment[2]);
+                  else if (segment[0] === 'Q') tempCtx.quadraticCurveTo(segment[1], segment[2], segment[3], segment[4]);
+                  else if (segment[0] === 'L') tempCtx.lineTo(segment[1], segment[2]);
+                });
+                tempCtx.stroke();
+              }
+              tempCtx.restore();
+              
+              // Mark the path with eraser clip data for re-rendering
+              // We'll use clipPath approach - add eraser as inverted clip
+              if (!existingPath._eraserPaths) {
+                existingPath._eraserPaths = [];
+              }
+              existingPath._eraserPaths.push({
+                path: pathData,
+                width: eraserWidth
+              });
+              
+              // Apply destination-out composite to this path
+              existingPath.set({
+                globalCompositeOperation: 'source-over',
+                dirty: true
+              });
+            });
           }
+        }
+        
+        // Add the eraser path as a "cutter" with destination-out composite
+        // This will visually cut through all paths below it
+        path.set({
+          stroke: 'rgba(255,255,255,1)',
+          globalCompositeOperation: 'destination-out',
+          selectable: false,
+          evented: false
         });
         
-        objectsToRemove.forEach(obj => canvas.remove(obj));
+        // Keep the eraser path in canvas as a destination-out layer
         canvas.renderAll();
       }
     });
@@ -368,9 +404,8 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       fabricCanvas.isDrawingMode = true;
       fabricCanvas.selection = false;
       if (fabricCanvas.freeDrawingBrush) {
-        // Use a very light transparent stroke - it will be removed immediately after path:created
-        // This makes the eraser appear nearly invisible while drawing
-        fabricCanvas.freeDrawingBrush.color = "rgba(200,200,200,0.3)";
+        // Use white color - eraser paths will be converted to destination-out
+        fabricCanvas.freeDrawingBrush.color = "rgba(255,255,255,1)";
         fabricCanvas.freeDrawingBrush.width = brushSize * 2;
         // Flag this brush as eraser so path:created knows to handle it
         (fabricCanvas.freeDrawingBrush as any)._isEraser = true;
