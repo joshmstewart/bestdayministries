@@ -135,77 +135,111 @@ const BeatPad: React.FC = () => {
 
   const handleLoadBeat = async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null }) => {
     handleStop();
-    
-    // Mark that we're loading a beat to skip default sound loading
-    setBeatLoaded(true);
-    
-    // Pattern is stored with sound IDs as keys - we need to fetch those sounds
-    const allKeys = Object.keys(beat.pattern);
-    
-    // Filter out non-UUID keys (legacy patterns may have sound type names like "bass" instead of UUIDs)
+
+    const allKeys = Object.keys(beat.pattern || {});
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const soundIds = allKeys.filter(key => uuidRegex.test(key));
-    
-    if (soundIds.length > 0) {
-      try {
-        // Fetch the sounds used in this beat
+    const numericRegex = /^\d+$/;
+
+    const soundIdKeys = allKeys.filter((k) => uuidRegex.test(k));
+    const soundTypeKeys = allKeys.filter((k) => !uuidRegex.test(k) && !numericRegex.test(k));
+
+    const loadIntoGrid = (orderedKeys: string[], soundLookup: Map<string, SoundConfig>, getSteps: (key: string) => boolean[] | undefined) => {
+      const loadedInstruments: (SoundConfig | null)[] = [];
+      const newPattern: Record<string, boolean[]> = {};
+
+      const validKeys = orderedKeys.filter((key) => {
+        const hasSound = soundLookup.has(key);
+        const steps = getSteps(key);
+        const hasActivePattern = steps?.some(Boolean);
+        return hasSound && !!hasActivePattern;
+      });
+
+      if (validKeys.length === 0) {
+        showErrorToastWithCopy(
+          'Load Beat',
+          `This beat ("${beat.name}") has no playable notes, or its instruments are no longer available.`
+        );
+        return false;
+      }
+
+      validKeys.forEach((key, idx) => {
+        const sound = soundLookup.get(key);
+        const steps = getSteps(key);
+        if (sound && steps) {
+          loadedInstruments.push(sound);
+          newPattern[idx.toString()] = steps;
+        }
+      });
+
+      while (loadedInstruments.length < 20) {
+        const idx = loadedInstruments.length;
+        loadedInstruments.push(null);
+        newPattern[idx.toString()] = Array(16).fill(false);
+      }
+
+      setBeatLoaded(true);
+      setInstruments(loadedInstruments);
+      setPattern(newPattern);
+      return true;
+    };
+
+    try {
+      let loaded = false;
+
+      if (soundIdKeys.length > 0) {
+        // New format: pattern keys are sound UUIDs
         const { data: sounds, error } = await supabase
           .from('beat_pad_sounds')
           .select('id, name, emoji, color, sound_type, frequency, decay, oscillator_type, has_noise, audio_url')
-          .in('id', soundIds);
-        
+          .in('id', soundIdKeys);
+
         if (error) throw error;
-        
-        if (sounds && sounds.length > 0) {
-          // Create a map of sound ID to sound config
-          const soundMap = new Map(sounds.map(s => [s.id, s as SoundConfig]));
-          
-          // Build the instruments array and pattern - only include sounds that exist
-          const loadedInstruments: (SoundConfig | null)[] = [];
-          const newPattern: Record<string, boolean[]> = {};
-          
-          // Filter to only IDs that have actual sounds and patterns
-          const validSoundIds = soundIds.filter(id => {
-            const hasSound = soundMap.has(id);
-            const hasActivePattern = beat.pattern[id]?.some(Boolean);
-            return hasSound && hasActivePattern;
-          });
-          
-          validSoundIds.forEach((soundId, idx) => {
-            const sound = soundMap.get(soundId);
-            if (sound) {
-              loadedInstruments.push(sound);
-              // Use sequential index for both instruments and pattern
-              newPattern[idx.toString()] = beat.pattern[soundId];
-            }
-          });
-          
-          // Fill remaining slots with nulls
-          while (loadedInstruments.length < 20) {
-            const idx = loadedInstruments.length;
-            loadedInstruments.push(null);
-            newPattern[idx.toString()] = Array(16).fill(false);
+
+        const soundMap = new Map((sounds || []).map((s) => [s.id, s as SoundConfig]));
+        loaded = loadIntoGrid(soundIdKeys, soundMap, (k) => beat.pattern[k]);
+      } else if (soundTypeKeys.length > 0) {
+        // Legacy format: pattern keys are sound_type strings (e.g., "kick", "snare", "bass")
+        const { data: sounds, error } = await supabase
+          .from('beat_pad_sounds')
+          .select('id, name, emoji, color, sound_type, frequency, decay, oscillator_type, has_noise, audio_url')
+          .eq('is_active', true)
+          .in('sound_type', soundTypeKeys);
+
+        if (error) throw error;
+
+        const soundMap = new Map((sounds || []).map((s) => [s.sound_type, s as SoundConfig]));
+        loaded = loadIntoGrid(soundTypeKeys, soundMap, (k) => (beat.pattern as any)[k]);
+      } else {
+        showErrorToastWithCopy(
+          'Load Beat',
+          {
+            message: 'Unsupported beat format: pattern keys were neither UUIDs nor sound types.',
+            keys: allKeys,
+            beatId: beat.id,
+            beatName: beat.name,
           }
-          
-          setInstruments(loadedInstruments);
-          setPattern(newPattern);
-        }
-      } catch (error) {
-        console.error('Error loading beat sounds:', error);
-        showErrorToastWithCopy('Load Beat', error);
+        );
         return;
       }
+
+      if (!loaded) return;
+    } catch (error) {
+      console.error('Error loading beat sounds:', error);
+      showErrorToastWithCopy('Load Beat', error);
+      return;
     }
-    
+
     setTempo(beat.tempo);
     setBeatName(beat.name);
     setSavedBeatId(beat.id);
     setSavedBeatImageUrl(beat.image_url || null);
     setActiveTab('create');
+
     if (aiAudioUrl) {
       URL.revokeObjectURL(aiAudioUrl);
       setAiAudioUrl(null);
     }
+
     toast.success('Beat loaded! Press play to listen.');
   };
 
