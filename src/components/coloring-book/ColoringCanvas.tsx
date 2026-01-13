@@ -252,38 +252,96 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
         const eraserBounds = path.getBoundingRect();
         
         // === ERASE FILLS ON BASE CANVAS ===
-        // Save history before erasing fills
-        if (baseCanvasRef.current) {
+        // Use flood fill algorithm to erase entire contiguous fill regions
+        if (baseCanvasRef.current && originalImageRef.current) {
           const baseCtx = baseCanvasRef.current.getContext("2d");
-          if (baseCtx && originalImageRef.current) {
+          if (baseCtx) {
+            const baseWidth = baseCanvasRef.current.width;
+            const baseHeight = baseCanvasRef.current.height;
+            
             // Save current state to history
-            const currentImageData = baseCtx.getImageData(0, 0, baseCanvasRef.current.width, baseCanvasRef.current.height);
+            const currentImageData = baseCtx.getImageData(0, 0, baseWidth, baseHeight);
             setHistory(prev => [...prev.slice(-MAX_HISTORY + 1), currentImageData]);
             
-            // Get the eraser bounds (clamp to canvas dimensions)
-            const x = Math.max(0, Math.floor(eraserBounds.left));
-            const y = Math.max(0, Math.floor(eraserBounds.top));
-            const w = Math.min(baseCanvasRef.current.width - x, Math.ceil(eraserBounds.width));
-            const h = Math.min(baseCanvasRef.current.height - y, Math.ceil(eraserBounds.height));
+            // Get the center point of the eraser path as the starting point
+            const startX = Math.floor(eraserBounds.left + eraserBounds.width / 2);
+            const startY = Math.floor(eraserBounds.top + eraserBounds.height / 2);
             
-            if (w > 0 && h > 0) {
-              // Create a temp canvas with the original image section
-              const tempCanvas = document.createElement('canvas');
-              tempCanvas.width = w;
-              tempCanvas.height = h;
-              const tempCtx = tempCanvas.getContext('2d');
-              if (tempCtx) {
-                // Draw the original template section (restores to unfilled state)
-                tempCtx.drawImage(
-                  originalImageRef.current,
-                  x * (originalImageRef.current.width / baseCanvasRef.current.width),
-                  y * (originalImageRef.current.height / baseCanvasRef.current.height),
-                  w * (originalImageRef.current.width / baseCanvasRef.current.width),
-                  h * (originalImageRef.current.height / baseCanvasRef.current.height),
-                  0, 0, w, h
-                );
-                // Put the original template back in that area (erasing the fill)
-                baseCtx.drawImage(tempCanvas, x, y);
+            if (startX >= 0 && startX < baseWidth && startY >= 0 && startY < baseHeight) {
+              // Create a temp canvas with the original template at the same scale
+              const origCanvas = document.createElement('canvas');
+              origCanvas.width = baseWidth;
+              origCanvas.height = baseHeight;
+              const origCtx = origCanvas.getContext('2d');
+              if (origCtx) {
+                origCtx.drawImage(originalImageRef.current, 0, 0, baseWidth, baseHeight);
+                const origData = origCtx.getImageData(0, 0, baseWidth, baseHeight).data;
+                
+                // Get current canvas data
+                const imageData = baseCtx.getImageData(0, 0, baseWidth, baseHeight);
+                const data = imageData.data;
+                
+                // Get starting color
+                const getPixelColor = (x: number, y: number) => {
+                  const pos = (y * baseWidth + x) * 4;
+                  return { r: data[pos], g: data[pos + 1], b: data[pos + 2] };
+                };
+                
+                const startColor = getPixelColor(startX, startY);
+                
+                // Don't erase very dark pixels (the outlines)
+                const isDark = (r: number, g: number, b: number) => r < 60 && g < 60 && b < 60;
+                if (!isDark(startColor.r, startColor.g, startColor.b)) {
+                  const tolerance = 40;
+                  
+                  const colorMatch = (x: number, y: number): boolean => {
+                    if (x < 0 || x >= baseWidth || y < 0 || y >= baseHeight) return false;
+                    const pixel = getPixelColor(x, y);
+                    if (isDark(pixel.r, pixel.g, pixel.b)) return false;
+                    return (
+                      Math.abs(pixel.r - startColor.r) <= tolerance &&
+                      Math.abs(pixel.g - startColor.g) <= tolerance &&
+                      Math.abs(pixel.b - startColor.b) <= tolerance
+                    );
+                  };
+                  
+                  // Flood fill algorithm - restore original pixels
+                  const visited = new Uint8Array(baseWidth * baseHeight);
+                  const stack: [number, number][] = [[startX, startY]];
+                  
+                  while (stack.length > 0) {
+                    const [x, y] = stack.pop()!;
+                    const idx = y * baseWidth + x;
+                    
+                    if (visited[idx]) continue;
+                    if (!colorMatch(x, y)) continue;
+                    
+                    let left = x;
+                    let right = x;
+                    
+                    while (left > 0 && colorMatch(left - 1, y) && !visited[y * baseWidth + left - 1]) left--;
+                    while (right < baseWidth - 1 && colorMatch(right + 1, y) && !visited[y * baseWidth + right + 1]) right++;
+                    
+                    for (let i = left; i <= right; i++) {
+                      const pos = (y * baseWidth + i) * 4;
+                      // Restore from original template
+                      data[pos] = origData[pos];
+                      data[pos + 1] = origData[pos + 1];
+                      data[pos + 2] = origData[pos + 2];
+                      data[pos + 3] = origData[pos + 3];
+                      visited[y * baseWidth + i] = 1;
+                      
+                      if (y > 0 && !visited[(y - 1) * baseWidth + i] && colorMatch(i, y - 1)) {
+                        stack.push([i, y - 1]);
+                      }
+                      if (y < baseHeight - 1 && !visited[(y + 1) * baseWidth + i] && colorMatch(i, y + 1)) {
+                        stack.push([i, y + 1]);
+                      }
+                    }
+                  }
+                  
+                  baseCtx.putImageData(imageData, 0, 0);
+                }
               }
             }
           }
