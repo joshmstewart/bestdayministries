@@ -80,6 +80,7 @@ const ChoreChart = lazy(() => import("./pages/ChoreChart"));
 const DonationHistoryPage = lazy(() => import("./pages/DonationHistoryPage"));
 const PictureLogin = lazy(() => import("./pages/PictureLogin"));
 const BeatPad = lazy(() => import("./pages/BeatPad"));
+const MoneyCounting = lazy(() => import("./pages/MoneyCounting"));
 
 // Loading fallback component
 const PageLoader = () => (

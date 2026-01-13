@@ -1,0 +1,96 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { DENOMINATIONS, getDenominationLabel } from "@/lib/moneyCountingUtils";
+
+interface CashDrawerProps {
+  contents: { [key: string]: number };
+  onSelectMoney: (denomination: string) => void;
+  disabled: boolean;
+}
+
+export function CashDrawer({ contents, onSelectMoney, disabled }: CashDrawerProps) {
+  const bills = DENOMINATIONS.filter((d) => d.type === "bill");
+  const coins = DENOMINATIONS.filter((d) => d.type === "coin");
+
+  return (
+    <Card className={cn("transition-opacity", disabled && "opacity-50")}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <span className="text-2xl">🗃️</span>
+          Cash Drawer
+        </CardTitle>
+        {disabled && (
+          <p className="text-sm text-muted-foreground">
+            Collect the customer's cash first!
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Bills Section */}
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Bills</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {bills.map((denom) => {
+              const count = contents[denom.value.toString()] || 0;
+              return (
+                <Button
+                  key={denom.value}
+                  variant="outline"
+                  className={cn(
+                    "h-16 flex flex-col items-center justify-center relative",
+                    "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900",
+                    "border-green-300 dark:border-green-700 hover:border-green-500",
+                    count === 0 && "opacity-40"
+                  )}
+                  onClick={() => onSelectMoney(denom.value.toString())}
+                  disabled={disabled || count === 0}
+                >
+                  <span className="text-lg font-bold text-green-700 dark:text-green-300">
+                    {denom.label}
+                  </span>
+                  <span className="text-xs text-green-600 dark:text-green-400">
+                    ×{count}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Coins Section */}
+        <div>
+          <h3 className="text-sm font-medium text-muted-foreground mb-2">Coins</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {coins.map((denom) => {
+              const count = contents[denom.value.toString()] || 0;
+              const coinColors: { [key: string]: string } = {
+                "0.25": "from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 border-gray-400",
+                "0.10": "from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500 border-gray-500",
+                "0.05": "from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 border-gray-400",
+                "0.01": "from-amber-200 to-amber-300 dark:from-amber-800 dark:to-amber-700 border-amber-500",
+              };
+              return (
+                <Button
+                  key={denom.value}
+                  variant="outline"
+                  className={cn(
+                    "h-14 flex flex-col items-center justify-center rounded-full aspect-square",
+                    "bg-gradient-to-br",
+                    coinColors[denom.value.toString()] || "from-gray-200 to-gray-300",
+                    count === 0 && "opacity-40"
+                  )}
+                  onClick={() => onSelectMoney(denom.value.toString())}
+                  disabled={disabled || count === 0}
+                >
+                  <span className="text-sm font-bold">{denom.label}</span>
+                  <span className="text-xs">×{count}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
