@@ -147,6 +147,7 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
               size="icon"
               onClick={togglePlay}
               className="text-white hover:bg-white/20"
+              aria-label={isPlaying ? "Pause video" : "Play video"}
             >
               {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </Button>
@@ -158,6 +159,7 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
                 size="icon"
                 onClick={toggleMute}
                 className="text-white hover:bg-white/20"
+                aria-label={isMuted || volume === 0 ? "Unmute" : "Mute"}
               >
                 {isMuted || volume === 0 ? (
                   <VolumeX className="h-5 w-5" />
@@ -171,6 +173,7 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
                 step={0.01}
                 onValueChange={handleVolumeChange}
                 className="w-20"
+                aria-label="Volume"
               />
             </div>
 
@@ -186,6 +189,7 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
             size="icon"
             onClick={toggleFullscreen}
             className="text-white hover:bg-white/20"
+            aria-label="Toggle fullscreen"
           >
             <Maximize className="h-5 w-5" />
           </Button>

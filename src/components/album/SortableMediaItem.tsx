@@ -135,6 +135,7 @@ export function SortableMediaItem({
             {...attributes}
             {...listeners}
             title="Drag to reorder"
+            aria-label="Drag to reorder"
           >
             <GripVertical className="w-4 h-4 text-white" />
           </Button>
@@ -150,6 +151,7 @@ export function SortableMediaItem({
               className="h-7 w-7"
               onClick={() => onSetCover(media.image_url!)}
               title="Set as cover"
+              aria-label="Set as cover image"
             >
               <Images className="w-3 h-3" />
             </Button>
@@ -161,6 +163,7 @@ export function SortableMediaItem({
             className="h-7 w-7"
             onClick={() => onEditCaption(media)}
             title="Edit caption"
+            aria-label="Edit caption"
           >
             <MessageSquare className="w-3 h-3" />
           </Button>
@@ -173,6 +176,7 @@ export function SortableMediaItem({
               className="h-7 w-7"
               onClick={() => onCrop(media)}
               title="Recrop image"
+              aria-label="Recrop image"
             >
               <Edit className="w-3 h-3" />
             </Button>
@@ -183,6 +187,7 @@ export function SortableMediaItem({
             size="icon"
             className="h-7 w-7"
             onClick={() => onDelete(media.id)}
+            aria-label="Delete media"
           >
             <X className="w-3 h-3" />
           </Button>

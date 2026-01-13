@@ -232,6 +232,33 @@ All colors MUST be HSL.
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold tracking-tight;
   }
+  
+  /* Accessibility: Enhanced focus states for keyboard navigation */
+  /* WCAG 2.1 Success Criterion 2.4.7 - Focus Visible */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  /* WCAG 2.1 Success Criterion 2.3.3 - Animation from Interactions */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --border: 20 14% 30%;
+      --ring: 24 100% 45%;
+    }
+  }
 }
 
 @layer utilities {
