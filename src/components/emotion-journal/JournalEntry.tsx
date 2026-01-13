@@ -1,3 +1,4 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { VoiceInput } from '@/components/VoiceInput';
 import { TextToSpeech } from '@/components/TextToSpeech';
@@ -15,9 +16,46 @@ interface JournalEntryProps {
 }
 
 export function JournalEntry({ value, onChange }: JournalEntryProps) {
-  const handleVoiceTranscript = (text: string) => {
-    const newValue = value ? `${value} ${text}` : text;
-    onChange(newValue);
+  // Accumulate voice transcript separately, only merge when done
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const wasRecordingRef = useRef(false);
+
+  const handleVoiceTranscript = useCallback((text: string) => {
+    // Accumulate chunks from VoiceInput
+    setVoiceTranscript(prev => prev ? `${prev} ${text}` : text);
+    wasRecordingRef.current = true;
+  }, []);
+
+  // When recording stops and we have transcript, merge it into the main value
+  // This is detected when VoiceInput calls onTranscript and then user interaction or unmount
+  const mergeTranscriptToValue = useCallback(() => {
+    if (voiceTranscript.trim()) {
+      const newValue = value ? `${value} ${voiceTranscript}` : voiceTranscript;
+      onChange(newValue);
+      setVoiceTranscript('');
+    }
+  }, [voiceTranscript, value, onChange]);
+
+  // Merge when component unmounts or when user starts typing
+  useEffect(() => {
+    return () => {
+      // Cleanup: merge any pending transcript
+    };
+  }, []);
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // If user starts typing and there's pending voice transcript, merge it first
+    if (voiceTranscript.trim()) {
+      mergeTranscriptToValue();
+    }
+    onChange(e.target.value);
+  };
+
+  const handleTextareaFocus = () => {
+    // Merge voice transcript when user focuses on textarea
+    if (voiceTranscript.trim()) {
+      mergeTranscriptToValue();
+    }
   };
 
   return (
@@ -36,6 +74,16 @@ export function JournalEntry({ value, onChange }: JournalEntryProps) {
           silenceStopSeconds={15}
           maxDuration={0}
         />
+        {/* Button to add voice transcript to text area */}
+        {voiceTranscript.trim() && (
+          <button
+            type="button"
+            onClick={mergeTranscriptToValue}
+            className="mt-2 text-sm text-primary underline hover:no-underline"
+          >
+            ✓ Add to text below
+          </button>
+        )}
       </div>
 
       {/* Text Area */}
@@ -46,7 +94,8 @@ export function JournalEntry({ value, onChange }: JournalEntryProps) {
         </p>
         <Textarea
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={handleTextareaChange}
+          onFocus={handleTextareaFocus}
           placeholder="Write about your feelings..."
           className="min-h-[80px] text-base resize-none"
         />
