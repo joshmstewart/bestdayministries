@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 interface CustomerPaymentProps {
   customerCash: { [key: string]: number };
   totalPayment: number;
+  orderTotal: number;
   cashCollected: boolean;
   onCollect: () => void;
 }
@@ -15,9 +16,11 @@ interface CustomerPaymentProps {
 export function CustomerPayment({
   customerCash,
   totalPayment,
+  orderTotal,
   cashCollected,
   onCollect,
 }: CustomerPaymentProps) {
+  const changeNeeded = Math.round((totalPayment - orderTotal) * 100) / 100;
   // Sort by denomination value descending
   const sortedCash = Object.entries(customerCash)
     .filter(([_, count]) => count > 0)
@@ -26,14 +29,24 @@ export function CustomerPayment({
   return (
     <Card className={cn(cashCollected && "border-green-500 bg-green-50/50 dark:bg-green-950/20")}>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🧑‍💼</span>
-            Customer Pays
+        <CardTitle className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🧑‍💼</span>
+              Customer Pays
+            </div>
+            <Badge variant="secondary" className="text-lg">
+              {formatMoney(totalPayment)}
+            </Badge>
           </div>
-          <Badge variant="secondary" className="text-lg">
-            {formatMoney(totalPayment)}
-          </Badge>
+          <div className="flex items-center justify-between text-base font-normal">
+            <span className="text-muted-foreground">Order Total:</span>
+            <span>{formatMoney(orderTotal)}</span>
+          </div>
+          <div className="flex items-center justify-between text-base font-normal">
+            <span className="text-muted-foreground">Change Due:</span>
+            <span className="text-primary font-semibold">{formatMoney(changeNeeded)}</span>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
