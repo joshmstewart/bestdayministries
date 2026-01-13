@@ -3,6 +3,11 @@
 ## OVERVIEW
 Comprehensive help center with interactive product tours, searchable guides, and FAQs. Fully database-driven with admin management interface.
 
+**Current Content (as of 2026-01-13):**
+- **12 Tours**: Getting started, discussions, guardian dashboard, vendor dashboard, sponsorship, games, marketplace, events, albums, notifications, recipe pal, sticker collecting
+- **11 Guides**: Welcome, profile, guardian linking, content approval, sponsorship, marketplace, games, events, discussions, vendor guide, account settings
+- **60 FAQs**: Covering general, bestie, guardian, supporter, vendor, games, events, technical, account, and marketplace categories
+
 ---
 
 ## DATABASE SCHEMA
