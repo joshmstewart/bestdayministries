@@ -143,34 +143,60 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {beats.map((beat) => (
         <Card key={beat.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          {/* Cover image or pattern preview */}
-          {beat.image_url ? (
-            <div className="aspect-square w-full overflow-hidden">
-              <img 
-                src={beat.image_url} 
-                alt={beat.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="aspect-square w-full bg-muted p-3 flex flex-col gap-0.5 overflow-hidden">
-              {Object.entries(beat.pattern).slice(0, 6).map(([instrument, steps]) => (
-                <div key={instrument} className="flex gap-0.5 flex-1">
-                  {(steps as boolean[]).map((active, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "flex-1 rounded-sm",
-                        active ? "bg-primary" : "bg-background/50"
-                      )}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Clickable cover image or pattern preview */}
+          <div 
+            className="cursor-pointer"
+            onClick={() => {
+              stopBeat();
+              onLoadBeat({
+                id: beat.id,
+                name: beat.name,
+                pattern: beat.pattern,
+                tempo: beat.tempo,
+                image_url: beat.image_url,
+              });
+            }}
+          >
+            {beat.image_url ? (
+              <div className="aspect-square w-full overflow-hidden">
+                <img 
+                  src={beat.image_url} 
+                  alt={beat.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="aspect-square w-full bg-muted p-3 flex flex-col gap-0.5 overflow-hidden">
+                {Object.entries(beat.pattern).slice(0, 6).map(([instrument, steps]) => (
+                  <div key={instrument} className="flex gap-0.5 flex-1">
+                    {(steps as boolean[]).map((active, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex-1 rounded-sm",
+                          active ? "bg-primary" : "bg-background/50"
+                        )}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-2">
+            <div 
+              className="flex items-start justify-between mb-2 cursor-pointer"
+              onClick={() => {
+                stopBeat();
+                onLoadBeat({
+                  id: beat.id,
+                  name: beat.name,
+                  pattern: beat.pattern,
+                  tempo: beat.tempo,
+                  image_url: beat.image_url,
+                });
+              }}
+            >
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-lg truncate">{beat.name}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -188,19 +214,20 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
 
             <div className="flex gap-2">
               <Button
-                size="sm"
+                size="icon"
                 variant={isPlaying(beat.id) ? "default" : "outline"}
                 onClick={() => playBeat(beat.id, beat.pattern, beat.tempo)}
-                className="flex-shrink-0"
+                className="h-10 w-10 flex-shrink-0"
               >
                 {isPlaying(beat.id) ? (
-                  <Square className="h-4 w-4" />
+                  <Square className="h-5 w-5" />
                 ) : (
-                  <Play className="h-4 w-4" />
+                  <Play className="h-5 w-5" />
                 )}
               </Button>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => {
                   stopBeat();
                   onLoadBeat({
@@ -211,7 +238,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
                     image_url: beat.image_url,
                   });
                 }}
-                className="flex-1"
+                className="flex-shrink-0"
               >
                 Load
               </Button>

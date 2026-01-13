@@ -156,34 +156,60 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {creations.map((creation) => (
         <Card key={creation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          {/* Cover image or pattern preview */}
-          {creation.image_url ? (
-            <div className="aspect-square w-full overflow-hidden">
-              <img 
-                src={creation.image_url} 
-                alt={creation.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="aspect-square w-full bg-muted p-3 flex flex-col gap-0.5 overflow-hidden">
-              {Object.entries(creation.pattern).slice(0, 6).map(([instrument, steps]) => (
-                <div key={instrument} className="flex gap-0.5 flex-1">
-                  {(steps as boolean[]).map((active, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "flex-1 rounded-sm",
-                        active ? "bg-primary" : "bg-background/50"
-                      )}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Clickable cover image or pattern preview */}
+          <div 
+            className="cursor-pointer"
+            onClick={() => {
+              stopBeat();
+              onLoadBeat({
+                id: creation.id,
+                name: creation.name,
+                pattern: creation.pattern,
+                tempo: creation.tempo,
+                image_url: creation.image_url,
+              });
+            }}
+          >
+            {creation.image_url ? (
+              <div className="aspect-square w-full overflow-hidden">
+                <img 
+                  src={creation.image_url} 
+                  alt={creation.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="aspect-square w-full bg-muted p-3 flex flex-col gap-0.5 overflow-hidden">
+                {Object.entries(creation.pattern).slice(0, 6).map(([instrument, steps]) => (
+                  <div key={instrument} className="flex gap-0.5 flex-1">
+                    {(steps as boolean[]).map((active, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex-1 rounded-sm",
+                          active ? "bg-primary" : "bg-background/50"
+                        )}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-2">
+            <div 
+              className="flex items-start justify-between mb-2 cursor-pointer"
+              onClick={() => {
+                stopBeat();
+                onLoadBeat({
+                  id: creation.id,
+                  name: creation.name,
+                  pattern: creation.pattern,
+                  tempo: creation.tempo,
+                  image_url: creation.image_url,
+                });
+              }}
+            >
               <div>
                 <h4 className="font-semibold truncate">{creation.name}</h4>
                 <p className="text-sm text-muted-foreground">
@@ -202,20 +228,20 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
             <div className="flex gap-2">
               <Button
                 variant={isPlaying(creation.id) ? "default" : "outline"}
-                size="sm"
+                size="icon"
                 onClick={() => playBeat(creation.id, creation.pattern, creation.tempo)}
-                className="flex-shrink-0"
+                className="h-10 w-10 flex-shrink-0"
               >
                 {isPlaying(creation.id) ? (
-                  <Square className="h-4 w-4" />
+                  <Square className="h-5 w-5" />
                 ) : (
-                  <Play className="h-4 w-4" />
+                  <Play className="h-5 w-5" />
                 )}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1"
+                className="flex-shrink-0"
                 onClick={() => {
                   stopBeat();
                   onLoadBeat({
