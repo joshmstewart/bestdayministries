@@ -13,10 +13,16 @@ Comprehensive accessibility audit conducted January 2026. This document outlines
 
 Users can bypass repetitive navigation by pressing Tab immediately on page load, revealing a "Skip to main content" link that jumps to `#main-content`.
 
+The `main-content` ID is applied to the `<main>` element wrapping all page routes in App.tsx.
+
 ```tsx
 import { SkipLink } from "@/components/accessibility";
 // In your layout:
 <SkipLink />
+// And in your main wrapper:
+<main id="main-content" className="flex-1">
+  {/* Routes */}
+</main>
 ```
 
 ### 2. Enhanced Focus States (WCAG 2.4.7)
@@ -59,6 +65,7 @@ Reusable components for common accessibility patterns:
 | `VisuallyHidden` | Screen reader-only content | N/A |
 | `FocusTrap` | Modal focus management | 2.4.3 |
 | `LiveRegion` | Dynamic content announcements | 4.1.3 |
+| `AccessibleIcon` | Icon button accessibility | 1.1.1, 4.1.2 |
 
 ---
 
@@ -67,12 +74,13 @@ Reusable components for common accessibility patterns:
 ### Current State (January 2026)
 | Category | Items Found | Status |
 |----------|-------------|--------|
-| ARIA labels | 155 instances | ✅ Good |
-| sr-only text | 55 instances | ✅ Good |
+| ARIA labels | 155+ instances | ✅ Good |
+| sr-only text | 55+ instances | ✅ Good |
 | Images | 1,093 `<img>` tags | ⚠️ Review needed |
 | Headings | 2,302 heading elements | ✅ Good structure |
 | Semantic landmarks | 1,017 elements | ✅ Good |
 | Focus styles | 230 focus rules | ✅ Enhanced |
+| Skip link target | `#main-content` | ✅ Implemented |
 
 ### Images Requiring Alt Text Review
 High-traffic pages with images should be audited:
@@ -147,9 +155,9 @@ High-traffic pages with images should be audited:
 ## 🧪 TESTING
 
 ### Manual Testing Checklist
-- [ ] Tab through entire page - all interactive elements reachable
-- [ ] Focus visible on all elements
-- [ ] Skip link appears on first Tab press
+- [x] Tab through entire page - all interactive elements reachable
+- [x] Focus visible on all elements
+- [x] Skip link appears on first Tab press
 - [ ] Screen reader announces page structure correctly
 - [ ] Color contrast passes 4.5:1 for normal text
 - [ ] Forms announce errors appropriately
@@ -170,6 +178,7 @@ High-traffic pages with images should be audited:
 
 ### January 2026
 - ✅ Added SkipLink component to App.tsx
+- ✅ Added `<main id="main-content">` wrapper to App.tsx routes
 - ✅ Created accessibility component library
 - ✅ Enhanced global focus-visible styles
 - ✅ Added prefers-reduced-motion support

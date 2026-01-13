@@ -13,6 +13,7 @@ import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
 import { compressImage } from "@/lib/imageUtils";
 import CoffeeShopMenuManager from "./CoffeeShopMenuManager";
+import { SectionLoadingState } from "@/components/common";
 
 const CoffeeShopManager = () => {
   const [loading, setLoading] = useState(true);
@@ -144,11 +145,7 @@ const CoffeeShopManager = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SectionLoadingState className="py-12" />;
   }
 
   return (

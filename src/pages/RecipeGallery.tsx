@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, ChefHat, Loader2, BookmarkPlus, Check, Sparkles, ShoppingCart } from "lucide-react";
+import { ArrowLeft, BookOpen, ChefHat, BookmarkPlus, Check, Sparkles, ShoppingCart } from "lucide-react";
+import { PageLoadingState } from "@/components/common";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { toast } from "sonner";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
@@ -289,11 +290,7 @@ const RecipeGallery = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoadingState />;
   }
 
   return (

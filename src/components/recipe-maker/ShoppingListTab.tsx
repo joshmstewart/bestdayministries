@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Trash2, ShoppingCart, Package, Wrench, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { SectionLoadingState } from "@/components/common";
 
 interface ShoppingItem {
   id: string;
@@ -192,11 +193,7 @@ export const ShoppingListTab = ({ userId, onAddToInventory }: ShoppingListTabPro
   const purchasedItems = items.filter((i) => i.is_purchased);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SectionLoadingState className="py-12" />;
   }
 
   if (items.length === 0) {

@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Save, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SectionLoadingState } from "@/components/common";
 
 export const DefaultRaritySettings = () => {
   const { toast } = useToast();
@@ -104,8 +105,8 @@ export const DefaultRaritySettings = () => {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <CardContent className="py-8">
+          <SectionLoadingState />
         </CardContent>
       </Card>
     );

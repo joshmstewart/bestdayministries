@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { SectionLoadingState } from "@/components/common";
 
 export interface Vibe {
   id: string;
@@ -41,11 +41,7 @@ export const VibeSelector = ({ selected, onSelect }: VibeSelectorProps) => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
+    return <SectionLoadingState />;
   }
 
   const selectedVibe = vibes.find((v) => v.id === selected);
