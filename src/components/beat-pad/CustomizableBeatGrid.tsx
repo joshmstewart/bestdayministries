@@ -1,0 +1,229 @@
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import InstrumentSlot, { SoundConfig } from './InstrumentSlot';
+import SoundPickerDialog from './SoundPickerDialog';
+
+const STEPS = 16;
+const MAX_INSTRUMENTS = 20;
+
+// Default instrument sound types to load initially
+const DEFAULT_SOUND_TYPES = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell'];
+
+interface CustomizableBeatGridProps {
+  pattern: Record<string, boolean[]>;
+  setPattern: React.Dispatch<React.SetStateAction<Record<string, boolean[]>>>;
+  instruments: (SoundConfig | null)[];
+  setInstruments: React.Dispatch<React.SetStateAction<(SoundConfig | null)[]>>;
+  currentStep: number;
+  isPlaying: boolean;
+  onPlaySound: (sound: SoundConfig) => void;
+}
+
+export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
+  pattern,
+  setPattern,
+  instruments,
+  setInstruments,
+  currentStep,
+  isPlaying,
+  onPlaySound,
+}) => {
+  const [soundPickerOpen, setSoundPickerOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [initialized, setInitialized] = useState(false);
+
+  // Load default sounds on mount
+  useEffect(() => {
+    if (initialized) return;
+    
+    const loadDefaultSounds = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('beat_pad_sounds')
+          .select('id, name, emoji, color, sound_type, frequency, decay, oscillator_type, has_noise, audio_url')
+          .eq('is_active', true)
+          .eq('is_default', true)
+          .in('sound_type', DEFAULT_SOUND_TYPES)
+          .order('display_order')
+          .limit(8);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          // Map to unique sound types, taking the first of each type
+          const soundsByType = new Map<string, SoundConfig>();
+          data.forEach(sound => {
+            if (!soundsByType.has(sound.sound_type) && DEFAULT_SOUND_TYPES.includes(sound.sound_type)) {
+              soundsByType.set(sound.sound_type, sound);
+            }
+          });
+          
+          // Build initial instruments array in the order of DEFAULT_SOUND_TYPES
+          const initialInstruments: (SoundConfig | null)[] = [];
+          DEFAULT_SOUND_TYPES.forEach(type => {
+            const sound = soundsByType.get(type);
+            if (sound) {
+              initialInstruments.push(sound);
+            }
+          });
+          
+          // Fill remaining slots with nulls
+          while (initialInstruments.length < MAX_INSTRUMENTS) {
+            initialInstruments.push(null);
+          }
+          
+          setInstruments(initialInstruments);
+          
+          // Initialize pattern for each slot
+          const initialPattern: Record<string, boolean[]> = {};
+          initialInstruments.forEach((_, idx) => {
+            initialPattern[idx.toString()] = Array(STEPS).fill(false);
+          });
+          setPattern(initialPattern);
+        }
+      } catch (error) {
+        console.error('Error loading default sounds:', error);
+      } finally {
+        setInitialized(true);
+      }
+    };
+
+    loadDefaultSounds();
+  }, [initialized, setInstruments, setPattern]);
+
+  const handleOpenSoundPicker = (slotIndex: number) => {
+    setSelectedSlot(slotIndex);
+    setSoundPickerOpen(true);
+  };
+
+  const handleSelectSound = (sound: SoundConfig) => {
+    if (selectedSlot === null) return;
+    
+    setInstruments(prev => {
+      const newInstruments = [...prev];
+      newInstruments[selectedSlot] = sound;
+      return newInstruments;
+    });
+    
+    // Ensure pattern exists for this slot
+    setPattern(prev => {
+      if (!prev[selectedSlot.toString()]) {
+        return {
+          ...prev,
+          [selectedSlot.toString()]: Array(STEPS).fill(false),
+        };
+      }
+      return prev;
+    });
+  };
+
+  const handleRemoveSound = (slotIndex: number) => {
+    setInstruments(prev => {
+      const newInstruments = [...prev];
+      newInstruments[slotIndex] = null;
+      return newInstruments;
+    });
+    
+    // Clear the pattern for this slot
+    setPattern(prev => ({
+      ...prev,
+      [slotIndex.toString()]: Array(STEPS).fill(false),
+    }));
+  };
+
+  const handleToggleCell = (slotIndex: number, step: number) => {
+    const sound = instruments[slotIndex];
+    if (!sound) return;
+    
+    setPattern(prev => {
+      const key = slotIndex.toString();
+      const newPattern = { ...prev };
+      newPattern[key] = [...(prev[key] || Array(STEPS).fill(false))];
+      newPattern[key][step] = !newPattern[key][step];
+      return newPattern;
+    });
+    
+    // Play sound when turning on
+    if (sound && !pattern[slotIndex.toString()]?.[step]) {
+      onPlaySound(sound);
+    }
+  };
+
+  const excludeSoundIds = instruments.filter(Boolean).map(s => s!.id);
+  const activeSlots = instruments.filter(Boolean).length;
+  const canAddMore = activeSlots < MAX_INSTRUMENTS;
+
+  // Find the first empty slot index after all filled ones
+  const firstEmptySlotAfterFilled = instruments.findIndex((s, idx) => {
+    // Find first null that comes after we've seen at least one filled slot
+    return s === null && instruments.slice(0, idx).some(Boolean);
+  });
+  
+  // Determine how many slots to show
+  const slotsToShow = Math.min(
+    MAX_INSTRUMENTS,
+    Math.max(activeSlots + 1, 8) // Show at least 8 slots, or one more than active
+  );
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <div className="min-w-[700px] space-y-2">
+        {/* Step indicators */}
+        <div className="flex items-center gap-1 pl-24 md:pl-32">
+          {Array.from({ length: STEPS }).map((_, step) => (
+            <div
+              key={step}
+              className={cn(
+                "flex-1 h-6 flex items-center justify-center text-xs font-medium rounded",
+                step % 4 === 0 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground",
+                isPlaying && currentStep === step && "ring-2 ring-primary"
+              )}
+            >
+              {step + 1}
+            </div>
+          ))}
+        </div>
+
+        {/* Instrument rows */}
+        {instruments.slice(0, slotsToShow).map((sound, idx) => (
+          <InstrumentSlot
+            key={idx}
+            slotIndex={idx}
+            sound={sound}
+            stepPattern={pattern[idx.toString()] || Array(STEPS).fill(false)}
+            currentStep={currentStep}
+            isPlaying={isPlaying}
+            onToggleCell={(step) => handleToggleCell(idx, step)}
+            onPlaySound={() => sound && onPlaySound(sound)}
+            onRemove={() => handleRemoveSound(idx)}
+            onSelectSound={() => handleOpenSoundPicker(idx)}
+          />
+        ))}
+
+        {/* Add more button */}
+        {canAddMore && slotsToShow < MAX_INSTRUMENTS && (
+          <Button
+            variant="outline"
+            onClick={() => handleOpenSoundPicker(slotsToShow)}
+            className="w-full border-dashed"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Sound ({activeSlots}/{MAX_INSTRUMENTS})
+          </Button>
+        )}
+      </div>
+
+      <SoundPickerDialog
+        open={soundPickerOpen}
+        onOpenChange={setSoundPickerOpen}
+        onSelectSound={handleSelectSound}
+        excludeSoundIds={excludeSoundIds}
+      />
+    </div>
+  );
+};
+
+export default CustomizableBeatGrid;
