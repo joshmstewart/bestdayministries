@@ -785,6 +785,228 @@ export type Database = {
         }
         Relationships: []
       }
+      chore_challenge_daily_completions: {
+        Row: {
+          completion_date: string
+          created_at: string
+          id: string
+          sticker_earned: boolean
+          sticker_placed: boolean
+          theme_id: string
+          user_id: string
+        }
+        Insert: {
+          completion_date: string
+          created_at?: string
+          id?: string
+          sticker_earned?: boolean
+          sticker_placed?: boolean
+          theme_id: string
+          user_id: string
+        }
+        Update: {
+          completion_date?: string
+          created_at?: string
+          id?: string
+          sticker_earned?: boolean
+          sticker_placed?: boolean
+          theme_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_challenge_daily_completions_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "chore_challenge_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_challenge_gallery: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          likes_count: number
+          progress_id: string
+          theme_id: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          likes_count?: number
+          progress_id: string
+          theme_id: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          likes_count?: number
+          progress_id?: string
+          theme_id?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_challenge_gallery_progress_id_fkey"
+            columns: ["progress_id"]
+            isOneToOne: false
+            referencedRelation: "chore_challenge_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_challenge_gallery_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "chore_challenge_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_challenge_gallery_likes: {
+        Row: {
+          created_at: string
+          gallery_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gallery_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gallery_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_challenge_gallery_likes_gallery_id_fkey"
+            columns: ["gallery_id"]
+            isOneToOne: false
+            referencedRelation: "chore_challenge_gallery"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_challenge_progress: {
+        Row: {
+          completed_at: string | null
+          completion_days: number
+          created_at: string
+          id: string
+          is_completed: boolean
+          placed_stickers: Json
+          selected_background: string | null
+          shared_at: string | null
+          shared_image_url: string | null
+          theme_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completion_days?: number
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          placed_stickers?: Json
+          selected_background?: string | null
+          shared_at?: string | null
+          shared_image_url?: string | null
+          theme_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completion_days?: number
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          placed_stickers?: Json
+          selected_background?: string | null
+          shared_at?: string | null
+          shared_image_url?: string | null
+          theme_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_challenge_progress_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "chore_challenge_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chore_challenge_themes: {
+        Row: {
+          background_options: Json
+          badge_description: string | null
+          badge_icon: string
+          badge_name: string
+          coin_reward: number
+          created_at: string
+          days_required: number
+          description: string | null
+          id: string
+          is_active: boolean
+          month: number
+          name: string
+          sticker_elements: Json
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          background_options?: Json
+          badge_description?: string | null
+          badge_icon: string
+          badge_name: string
+          coin_reward?: number
+          created_at?: string
+          days_required?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          month: number
+          name: string
+          sticker_elements?: Json
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          background_options?: Json
+          badge_description?: string | null
+          badge_icon?: string
+          badge_name?: string
+          coin_reward?: number
+          created_at?: string
+          days_required?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          month?: number
+          name?: string
+          sticker_elements?: Json
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       chore_completions: {
         Row: {
           chore_id: string
@@ -7647,6 +7869,10 @@ export type Database = {
       }
       check_collection_completion: {
         Args: { _collection_id: string; _user_id: string }
+        Returns: boolean
+      }
+      check_daily_chore_completion: {
+        Args: { p_date: string; p_user_id: string }
         Returns: boolean
       }
       check_rate_limit: {
