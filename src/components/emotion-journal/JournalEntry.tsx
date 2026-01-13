@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { VoiceInput } from '@/components/VoiceInput';
+import { TextToSpeech } from '@/components/TextToSpeech';
 import { Pencil } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 
 interface EmotionType {
   name: string;
@@ -70,6 +71,19 @@ export function JournalEntry({ value, onChange, emotion }: JournalEntryProps) {
             className="min-h-[120px] text-base resize-none"
           />
         </div>
+
+        {/* Listen to your text */}
+        {value.trim() && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <TextToSpeech text={value} size="default" />
+            <div>
+              <p className="text-sm font-medium">🔊 Listen to your words</p>
+              <p className="text-xs text-muted-foreground">
+                Tap to hear what you wrote and check if it sounds right
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Character count */}
         <p className="text-xs text-muted-foreground text-right">
