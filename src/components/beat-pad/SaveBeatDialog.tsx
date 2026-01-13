@@ -83,7 +83,7 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
         }
       });
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('beat_pad_creations')
         .insert({
           creator_id: userId,
@@ -91,11 +91,33 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
           pattern: patternWithIds,
           tempo,
           is_public: isPublic,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
       
       toast.success(isPublic ? 'Beat shared with community! 🎉' : 'Beat saved!');
+      toast.info('Generating cover art...', { duration: 3000 });
+      
+      // Generate AI image in background
+      const instrumentNames = instruments.filter(Boolean).map(i => i!.name);
+      supabase.functions.invoke('generate-beat-image', {
+        body: {
+          beatId: data.id,
+          beatName: beatName.trim(),
+          instruments: instrumentNames,
+          tempo,
+          pattern: patternWithIds,
+        },
+      }).then((res) => {
+        if (res.error) {
+          console.error('Image generation failed:', res.error);
+        } else {
+          toast.success('Cover art generated! 🎨');
+        }
+      }).catch(console.error);
+      
       onSaved();
       onOpenChange(false);
       setBeatName('');
