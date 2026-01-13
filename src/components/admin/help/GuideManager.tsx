@@ -228,6 +228,13 @@ export function GuideManager() {
                       <SelectItem value="getting-started">Getting Started</SelectItem>
                       <SelectItem value="features">Features</SelectItem>
                       <SelectItem value="advanced">Advanced</SelectItem>
+                      <SelectItem value="games">Games</SelectItem>
+                      <SelectItem value="community">Community</SelectItem>
+                      <SelectItem value="marketplace">Marketplace</SelectItem>
+                      <SelectItem value="guardian">Guardian</SelectItem>
+                      <SelectItem value="supporter">Supporter</SelectItem>
+                      <SelectItem value="vendor">Vendor</SelectItem>
+                      <SelectItem value="account">Account</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

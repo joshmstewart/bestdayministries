@@ -140,7 +140,7 @@ Question and answer pairs grouped by category.
 ```
 
 **Categories:**
-- general, feature, role-specific, getting-started
+- general, feature, role-specific, getting-started, games, bestie, vendor
 
 **Target Audiences:**
 - all, bestie, caregiver, supporter, vendor, admin
@@ -162,7 +162,7 @@ Question and answer pairs grouped by category.
 - Estimate 200 words per minute for reading time
 
 **Categories:**
-- general, getting-started, features, advanced
+- general, getting-started, features, advanced, games, community, marketplace, guardian, supporter, vendor, account
 
 ### 3. MANAGE FAQS
 **Location:** Admin → Help Center → FAQs
@@ -174,7 +174,7 @@ Question and answer pairs grouped by category.
 - Toggle visibility
 
 **Categories:**
-- general, account, sponsorship, technical, billing
+- general, account, sponsorship, technical, billing, admin, games, events, marketplace, bestie, guardian, supporter, vendor
 
 **Best Practices:**
 - Keep answers concise (under 200 words)
