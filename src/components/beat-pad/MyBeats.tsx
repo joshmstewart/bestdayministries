@@ -18,8 +18,16 @@ interface BeatCreation {
   image_url?: string | null;
 }
 
+interface Beat {
+  id: string;
+  name: string;
+  pattern: Record<InstrumentType, boolean[]>;
+  tempo: number;
+  image_url?: string | null;
+}
+
 interface MyBeatsProps {
-  onLoadBeat: (pattern: Record<InstrumentType, boolean[]>, tempo: number) => void;
+  onLoadBeat: (beat: Beat) => void;
 }
 
 const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
@@ -180,7 +188,13 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
             <div className="flex gap-2">
               <Button
                 size="sm"
-                onClick={() => onLoadBeat(beat.pattern, beat.tempo)}
+                onClick={() => onLoadBeat({
+                  id: beat.id,
+                  name: beat.name,
+                  pattern: beat.pattern,
+                  tempo: beat.tempo,
+                  image_url: beat.image_url,
+                })}
                 className="flex-1"
               >
                 <Play className="h-4 w-4 mr-1" />

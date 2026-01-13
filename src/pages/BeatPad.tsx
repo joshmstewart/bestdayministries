@@ -12,6 +12,7 @@ import BeatPadGallery from '@/components/beat-pad/BeatPadGallery';
 import BeatPadSoundShop from '@/components/beat-pad/BeatPadSoundShop';
 import MyBeats from '@/components/beat-pad/MyBeats';
 import SaveBeatDialog from '@/components/beat-pad/SaveBeatDialog';
+import BeatCoverImage from '@/components/beat-pad/BeatCoverImage';
 import useCustomBeatAudio from '@/hooks/useCustomBeatAudio';
 import { SoundConfig } from '@/components/beat-pad/InstrumentSlot';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
@@ -37,6 +38,9 @@ const BeatPad: React.FC = () => {
   const [soundShopOpen, setSoundShopOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [isGeneratingName, setIsGeneratingName] = useState(false);
+  // Track saved beat info for cover image
+  const [savedBeatId, setSavedBeatId] = useState<string | null>(null);
+  const [savedBeatImageUrl, setSavedBeatImageUrl] = useState<string | null>(null);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -127,17 +131,20 @@ const BeatPad: React.FC = () => {
     setSaveDialogOpen(true);
   };
 
-  const handleLoadBeat = (loadedPattern: Record<InstrumentType, boolean[]>, loadedTempo: number) => {
+  const handleLoadBeat = (beat: { id: string; name: string; pattern: Record<InstrumentType, boolean[]>; tempo: number; image_url?: string | null }) => {
     handleStop();
     // Convert old format pattern to new format
     // For now, just load into the first available slots
     const newPattern: Record<string, boolean[]> = {};
-    const entries = Object.entries(loadedPattern);
+    const entries = Object.entries(beat.pattern);
     entries.forEach((entry, idx) => {
       newPattern[idx.toString()] = entry[1];
     });
     setPattern(newPattern);
-    setTempo(loadedTempo);
+    setTempo(beat.tempo);
+    setBeatName(beat.name);
+    setSavedBeatId(beat.id);
+    setSavedBeatImageUrl(beat.image_url || null);
     setActiveTab('create');
     if (aiAudioUrl) {
       URL.revokeObjectURL(aiAudioUrl);
@@ -294,7 +301,11 @@ const BeatPad: React.FC = () => {
         tempo={tempo}
         instruments={instruments}
         userId={user?.id || ''}
-        onSaved={() => setActiveTab('my-beats')}
+        onSaved={(beatId, imageUrl) => {
+          setSavedBeatId(beatId);
+          if (imageUrl) setSavedBeatImageUrl(imageUrl);
+          setActiveTab('my-beats');
+        }}
       />
 
       {/* Main content */}
@@ -358,7 +369,18 @@ const BeatPad: React.FC = () => {
               </div>
 
               {/* Controls */}
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-1 space-y-4">
+                {/* Cover image section */}
+                <BeatCoverImage
+                  beatId={savedBeatId || undefined}
+                  beatName={beatName}
+                  imageUrl={savedBeatImageUrl}
+                  pattern={pattern}
+                  tempo={tempo}
+                  instruments={instruments}
+                  onImageGenerated={(url) => setSavedBeatImageUrl(url)}
+                />
+                
                 <PlaybackControls
                   isPlaying={isPlaying}
                   tempo={tempo}

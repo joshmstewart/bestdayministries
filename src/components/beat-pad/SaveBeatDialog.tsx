@@ -21,7 +21,7 @@ interface SaveBeatDialogProps {
   tempo: number;
   instruments: (SoundConfig | null)[];
   userId: string;
-  onSaved: () => void;
+  onSaved: (beatId: string, imageUrl?: string) => void;
 }
 
 export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
@@ -118,7 +118,7 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
         }
       }).catch(console.error);
       
-      onSaved();
+      onSaved(data.id);
       onOpenChange(false);
       setBeatName('');
     } catch (error) {
