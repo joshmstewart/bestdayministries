@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Music, Users, X } from 'lucide-react';
+import { ArrowLeft, Music, Users, X, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import BeatGrid from '@/components/beat-pad/BeatGrid';
 import PlaybackControls from '@/components/beat-pad/PlaybackControls';
 import BeatPadGallery from '@/components/beat-pad/BeatPadGallery';
+import BeatPadSoundShop from '@/components/beat-pad/BeatPadSoundShop';
 import useBeatPadAudio, { InstrumentType, INSTRUMENT_LABELS } from '@/hooks/useBeatPadAudio';
 
 const INSTRUMENTS: InstrumentType[] = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell'];
@@ -153,6 +154,7 @@ const BeatPad: React.FC = () => {
   const [isAIifying, setIsAIifying] = useState(false);
   const [aiAudioUrl, setAiAudioUrl] = useState<string | null>(null);
   const [isPlayingAI, setIsPlayingAI] = useState(false);
+  const [soundShopOpen, setSoundShopOpen] = useState(false);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -418,9 +420,22 @@ const BeatPad: React.FC = () => {
               <h1 className="text-2xl md:text-3xl font-bold">Beat Pad</h1>
               <p className="text-muted-foreground">Make your own music!</p>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => setSoundShopOpen(true)}
+              className="ml-auto"
+            >
+              <ShoppingBag className="h-4 w-4 mr-2" />
+              Sound Shop
+            </Button>
           </div>
         </div>
       </div>
+
+      <BeatPadSoundShop 
+        open={soundShopOpen} 
+        onOpenChange={setSoundShopOpen}
+      />
 
       {/* Main content */}
       <div className="container mx-auto px-4 py-6">

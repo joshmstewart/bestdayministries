@@ -106,10 +106,60 @@ export const useCoins = () => {
     }
   };
 
+  const deductCoins = async (amount: number, description: string, relatedItemId?: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    try {
+      // Check current balance
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', user.id)
+        .single();
+
+      if (!currentProfile) throw new Error('User not found');
+
+      const currentCoins = currentProfile.coins || 0;
+      if (currentCoins < amount) {
+        toast.error('Not enough coins!');
+        return false;
+      }
+
+      const newBalance = currentCoins - amount;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ coins: newBalance })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      const { error: txError } = await supabase
+        .from('coin_transactions')
+        .insert({
+          user_id: user.id,
+          amount: -amount,
+          transaction_type: 'spent',
+          description,
+          related_item_id: relatedItemId || null,
+        });
+
+      if (txError) throw txError;
+
+      setCoins(newBalance);
+      return true;
+    } catch (error) {
+      console.error('Error deducting coins:', error);
+      toast.error("Failed to deduct coins");
+      return false;
+    }
+  };
+
   return {
     coins,
     loading: loading || authLoading,
     refetch: fetchCoins,
     awardCoins,
+    deductCoins,
   };
 };

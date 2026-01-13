@@ -632,6 +632,66 @@ export type Database = {
           },
         ]
       }
+      beat_pad_sounds: {
+        Row: {
+          color: string
+          created_at: string
+          decay: number | null
+          description: string | null
+          display_order: number | null
+          emoji: string
+          frequency: number | null
+          has_noise: boolean | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          oscillator_type: string | null
+          price_coins: number
+          sound_type: string
+          updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          decay?: number | null
+          description?: string | null
+          display_order?: number | null
+          emoji?: string
+          frequency?: number | null
+          has_noise?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          oscillator_type?: string | null
+          price_coins?: number
+          sound_type: string
+          updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          decay?: number | null
+          description?: string | null
+          display_order?: number | null
+          emoji?: string
+          frequency?: number | null
+          has_noise?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          oscillator_type?: string | null
+          price_coins?: number
+          sound_type?: string
+          updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Relationships: []
+      }
       campaign_templates: {
         Row: {
           auto_send: boolean
@@ -6716,6 +6776,35 @@ export type Database = {
             columns: ["badge_id"]
             isOneToOne: false
             referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_beat_pad_sounds: {
+        Row: {
+          id: string
+          purchased_at: string
+          sound_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          purchased_at?: string
+          sound_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          purchased_at?: string
+          sound_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_beat_pad_sounds_sound_id_fkey"
+            columns: ["sound_id"]
+            isOneToOne: false
+            referencedRelation: "beat_pad_sounds"
             referencedColumns: ["id"]
           },
         ]
