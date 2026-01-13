@@ -107,7 +107,6 @@ export const MessagesManager = () => {
           table: 'contact_form_submissions'
         },
         () => {
-          console.log('Contact form submission changed, reloading...');
           loadSubmissions();
         }
       )
@@ -124,7 +123,6 @@ export const MessagesManager = () => {
           table: 'contact_form_replies'
         },
         () => {
-          console.log('Contact form reply changed, reloading...');
           loadSubmissions(); // Reload to update counts
         }
       )

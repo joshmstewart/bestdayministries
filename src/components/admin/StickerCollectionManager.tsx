@@ -471,7 +471,6 @@ export const StickerCollectionManager = () => {
   };
 
   const fetchStickers = async (collectionId: string) => {
-    console.log('Fetching stickers for collection:', collectionId);
     const { data, error } = await supabase
       .from('stickers')
       .select('*')
@@ -499,7 +498,6 @@ export const StickerCollectionManager = () => {
       return;
     }
 
-    console.log('Fetched stickers:', sortedData.length, 'stickers');
     setStickers(sortedData);
   };
 

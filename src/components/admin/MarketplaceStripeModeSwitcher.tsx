@@ -50,9 +50,8 @@ export const MarketplaceStripeModeSwitcher = () => {
         const cleanValue = typeof rawValue === 'string' 
           ? rawValue.replace(/^"(.*)"$/, '$1')
           : String(rawValue);
-        mode = (cleanValue === 'live' ? 'live' : 'test') as 'test' | 'live';
+      mode = (cleanValue === 'live' ? 'live' : 'test') as 'test' | 'live';
       }
-      console.log('Loaded Marketplace Stripe mode:', mode);
       setCurrentMode(mode);
     } catch (error) {
       console.error('Error loading Marketplace Stripe mode:', error);
@@ -71,8 +70,6 @@ export const MarketplaceStripeModeSwitcher = () => {
   const confirmModeSwitch = async () => {
     setSwitching(true);
     try {
-      console.log('Switching Marketplace Stripe mode from', currentMode, 'to', targetMode);
-      
       const { error } = await supabase
         .from('app_settings')
         .update({ setting_value: targetMode })
@@ -81,7 +78,6 @@ export const MarketplaceStripeModeSwitcher = () => {
       if (error) throw error;
 
       setCurrentMode(targetMode);
-      console.log('Successfully switched Marketplace to', targetMode, 'mode');
       
       toast.success(`Marketplace switched to ${targetMode.toUpperCase()} mode`, {
         description: targetMode === 'live' 
