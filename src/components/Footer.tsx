@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ContactForm } from "@/components/ContactForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -23,60 +24,31 @@ interface FooterLink {
   is_active: boolean;
 }
 
-const Footer = () => {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [footerSections, setFooterSections] = useState<FooterSection[]>([]);
-  const [footerLinks, setFooterLinks] = useState<FooterLink[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+// Cache for footer data to avoid refetching on every page
+let footerDataCache: { sections: FooterSection[]; links: FooterLink[]; logoUrl: string | null } | null = null;
+
+const Footer = memo(() => {
+  const [logoUrl, setLogoUrl] = useState<string | null>(footerDataCache?.logoUrl ?? null);
+  const [footerSections, setFooterSections] = useState<FooterSection[]>(footerDataCache?.sections ?? []);
+  const [footerLinks, setFooterLinks] = useState<FooterLink[]>(footerDataCache?.links ?? []);
+  
+  // Use AuthContext instead of separate auth check
+  const { isAdmin: authIsAdmin, isOwner } = useAuth();
+  const isAdmin = authIsAdmin || isOwner;
 
   useEffect(() => {
-    loadLogo();
-    loadFooterData();
-    checkAdminStatus();
+    // Only fetch if cache is empty
+    if (!footerDataCache) {
+      loadData();
+    }
   }, []);
 
-  const loadLogo = async () => {
+  const loadData = async () => {
     try {
-      const { data, error } = await supabase
-        .rpc("get_public_app_settings")
-        .returns<Array<{ setting_key: string; setting_value: any }>>();
-
-      if (error) throw error;
-
-      const logoSetting = data?.find((s) => s.setting_key === "logo_url");
-      
-      if (logoSetting?.setting_value) {
-        let url: string = '';
-        
-        // Handle different possible types
-        if (typeof logoSetting.setting_value === 'string') {
-          // If it's a string that looks like JSON, parse it
-          if (logoSetting.setting_value.startsWith('"')) {
-            try {
-              url = JSON.parse(logoSetting.setting_value);
-            } catch (e) {
-              url = logoSetting.setting_value;
-            }
-          } else {
-            url = logoSetting.setting_value;
-          }
-        } else if (typeof logoSetting.setting_value === 'object' && logoSetting.setting_value !== null) {
-          // If it's an object, stringify and check
-          url = JSON.stringify(logoSetting.setting_value);
-        }
-        
-        if (url) {
-          setLogoUrl(url);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading logo:', error);
-    }
-  };
-
-  const loadFooterData = async () => {
-    try {
-      const [sectionsResult, linksResult] = await Promise.all([
+      const [logoResult, sectionsResult, linksResult] = await Promise.all([
+        supabase
+          .rpc("get_public_app_settings")
+          .returns<Array<{ setting_key: string; setting_value: any }>>(),
         supabase
           .from("footer_sections")
           .select("*")
@@ -89,30 +61,34 @@ const Footer = () => {
           .order("display_order", { ascending: true }),
       ]);
 
-      console.log('Footer sections loaded:', sectionsResult.data);
-      console.log('Footer links loaded:', linksResult.data);
+      // Process logo
+      let url: string | null = null;
+      const logoSetting = logoResult.data?.find((s) => s.setting_key === "logo_url");
+      if (logoSetting?.setting_value) {
+        if (typeof logoSetting.setting_value === 'string') {
+          if (logoSetting.setting_value.startsWith('"')) {
+            try {
+              url = JSON.parse(logoSetting.setting_value);
+            } catch (e) {
+              url = logoSetting.setting_value;
+            }
+          } else {
+            url = logoSetting.setting_value;
+          }
+        }
+      }
 
-      if (sectionsResult.data) setFooterSections(sectionsResult.data);
-      if (linksResult.data) setFooterLinks(linksResult.data);
+      const sections = sectionsResult.data || [];
+      const links = linksResult.data || [];
+
+      // Cache the data
+      footerDataCache = { sections, links, logoUrl: url };
+
+      setLogoUrl(url);
+      setFooterSections(sections);
+      setFooterLinks(links);
     } catch (error) {
       console.error('Error loading footer data:', error);
-    }
-  };
-
-  const checkAdminStatus = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-
-      setIsAdmin(roleData?.role === 'admin' || roleData?.role === 'owner');
-    } catch (error) {
-      console.error('Error checking admin status:', error);
     }
   };
 
@@ -158,6 +134,7 @@ const Footer = () => {
                 src={logoUrl} 
                 alt="Best Day Ministries" 
                 className="h-24 w-auto"
+                loading="lazy"
               />
             ) : (
               <div className="text-3xl font-bold">
@@ -209,7 +186,6 @@ const Footer = () => {
                       {link.href.startsWith('/') ? (
                         <Link
                           to={link.href}
-                          onClick={() => console.log('Newsletter Link clicked, navigating to:', link.href)}
                           className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
                         >
                           {link.label}
@@ -217,7 +193,6 @@ const Footer = () => {
                       ) : (
                         <a
                           href={link.href}
-                          onClick={() => console.log('Newsletter anchor clicked:', link.href)}
                           className="text-muted-foreground hover:text-primary transition-colors inline-block min-h-[28px] flex items-center"
                         >
                           {link.label}
@@ -252,6 +227,8 @@ const Footer = () => {
       </footer>
     </>
   );
-};
+});
+
+Footer.displayName = "Footer";
 
 export default Footer;

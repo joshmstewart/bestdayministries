@@ -16,64 +16,78 @@ import { usePageTracking } from "@/hooks/usePageTracking";
 import { PicturePasswordNotificationManager } from "@/components/auth/PicturePasswordNotificationManager";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DailyLoginRewardManager } from "@/components/DailyLoginRewardManager";
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
 import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
+
+// Eagerly loaded pages (critical path)
 import Index from "./pages/Index";
-import ColoringBook from "./pages/ColoringBook";
-import EmotionJournal from "./pages/EmotionJournal";
 import CoffeeShopHome from "./pages/CoffeeShopHome";
 import Auth from "./pages/Auth";
-import Community from "./pages/Community";
-import Admin from "./pages/Admin";
-import AvatarManagement from "./pages/AvatarManagement";
-import EventManagement from "./pages/EventManagement";
-import AlbumManagement from "./pages/AlbumManagement";
-import HelpCenter from "./pages/HelpCenter";
-import EventsPage from "./pages/EventsPage";
-import AboutPage from "./pages/AboutPage";
-import AmbassadorPage from "./pages/AmbassadorPage";
-import JoyRocksPage from "./pages/JoyRocksPage";
-import Partners from "./pages/Partners";
-import GalleryPage from "./pages/GalleryPage";
-import VideosPage from "./pages/VideosPage";
-import SupportUs from "./pages/SupportUs";
-import SponsorBestie from "./pages/SponsorBestie";
-import SponsorshipSuccess from "./pages/SponsorshipSuccess";
-import Discussions from "./pages/Discussions";
-import ModerationQueue from "./pages/ModerationQueue";
-import ProfileSettings from "./pages/ProfileSettings";
-import GuardianLinks from "./pages/GuardianLinks";
-import GuardianApprovals from "./pages/GuardianApprovals";
-import BestieMessages from "./pages/BestieMessages";
-import Marketplace from "./pages/Marketplace";
-import VendorDashboard from "./pages/VendorDashboard";
-import VendorAuth from "./pages/VendorAuth";
-import VendorProfile from "./pages/VendorProfile";
-import OrderHistory from "./pages/OrderHistory";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Newsletter from "./pages/Newsletter";
-import Notifications from "./pages/Notifications";
-import MemoryMatchPage from "./pages/MemoryMatchPage";
-import Match3Page from "./pages/Match3Page";
-import UnsubscribeSuccess from "./pages/UnsubscribeSuccess";
-import UnsubscribeError from "./pages/UnsubscribeError";
-import VirtualPetPage from "./pages/VirtualPetPage";
-import StorePage from "./pages/Store";
-import ProductDetail from "./pages/ProductDetail";
-import StickerAlbumPage from "./pages/StickerAlbumPage";
-import InstallApp from "./pages/InstallApp";
-import CheckoutSuccess from "./pages/CheckoutSuccess";
-import DrinkCreator from "./pages/DrinkCreator";
-import RecipeMaker from "./pages/RecipeMaker";
-import RecipeGallery from "./pages/RecipeGallery";
-import WordleGame from "./pages/WordleGame";
-import ChoreChart from "./pages/ChoreChart";
 import NotFound from "./pages/NotFound";
-import DonationHistoryPage from "./pages/DonationHistoryPage";
-import PictureLogin from "./pages/PictureLogin";
+
+// Lazy loaded pages - grouped by feature area for better chunking
+const ColoringBook = lazy(() => import("./pages/ColoringBook"));
+const EmotionJournal = lazy(() => import("./pages/EmotionJournal"));
+const Community = lazy(() => import("./pages/Community"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AvatarManagement = lazy(() => import("./pages/AvatarManagement"));
+const EventManagement = lazy(() => import("./pages/EventManagement"));
+const AlbumManagement = lazy(() => import("./pages/AlbumManagement"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const EventsPage = lazy(() => import("./pages/EventsPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const AmbassadorPage = lazy(() => import("./pages/AmbassadorPage"));
+const JoyRocksPage = lazy(() => import("./pages/JoyRocksPage"));
+const Partners = lazy(() => import("./pages/Partners"));
+const GalleryPage = lazy(() => import("./pages/GalleryPage"));
+const VideosPage = lazy(() => import("./pages/VideosPage"));
+const SupportUs = lazy(() => import("./pages/SupportUs"));
+const SponsorBestie = lazy(() => import("./pages/SponsorBestie"));
+const SponsorshipSuccess = lazy(() => import("./pages/SponsorshipSuccess"));
+const Discussions = lazy(() => import("./pages/Discussions"));
+const ModerationQueue = lazy(() => import("./pages/ModerationQueue"));
+const ProfileSettings = lazy(() => import("./pages/ProfileSettings"));
+const GuardianLinks = lazy(() => import("./pages/GuardianLinks"));
+const GuardianApprovals = lazy(() => import("./pages/GuardianApprovals"));
+const BestieMessages = lazy(() => import("./pages/BestieMessages"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
+const VendorAuth = lazy(() => import("./pages/VendorAuth"));
+const VendorProfile = lazy(() => import("./pages/VendorProfile"));
+const OrderHistory = lazy(() => import("./pages/OrderHistory"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Newsletter = lazy(() => import("./pages/Newsletter"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const MemoryMatchPage = lazy(() => import("./pages/MemoryMatchPage"));
+const Match3Page = lazy(() => import("./pages/Match3Page"));
+const UnsubscribeSuccess = lazy(() => import("./pages/UnsubscribeSuccess"));
+const UnsubscribeError = lazy(() => import("./pages/UnsubscribeError"));
+const VirtualPetPage = lazy(() => import("./pages/VirtualPetPage"));
+const StorePage = lazy(() => import("./pages/Store"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const StickerAlbumPage = lazy(() => import("./pages/StickerAlbumPage"));
+const InstallApp = lazy(() => import("./pages/InstallApp"));
+const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const DrinkCreator = lazy(() => import("./pages/DrinkCreator"));
+const RecipeMaker = lazy(() => import("./pages/RecipeMaker"));
+const RecipeGallery = lazy(() => import("./pages/RecipeGallery"));
+const WordleGame = lazy(() => import("./pages/WordleGame"));
+const ChoreChart = lazy(() => import("./pages/ChoreChart"));
+const DonationHistoryPage = lazy(() => import("./pages/DonationHistoryPage"));
+const PictureLogin = lazy(() => import("./pages/PictureLogin"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -218,64 +232,66 @@ const App = () => {
           <DailyLoginRewardManager />
           <PageTracker />
           <TermsAcceptanceGuard>
-            <Routes>
-            <Route path="/" element={<DomainRouter />} />
-            <Route path="/coffee-shop" element={<CoffeeShopHome />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/picture" element={<PictureLogin />} />
-            <Route path="/auth/vendor" element={<VendorAuth />} />
-            <Route path="/vendor-auth" element={<VendorAuth />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/avatars" element={<AvatarManagement />} />
-            <Route path="/admin/events" element={<EventManagement />} />
-            <Route path="/admin/albums" element={<AlbumManagement />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/ambassador" element={<AmbassadorPage />} />
-            <Route path="/joy-rocks" element={<JoyRocksPage />} />
-            <Route path="/partners" element={<Partners />} />
-            <Route path="/gallery" element={<GalleryPage />} />
-            <Route path="/videos" element={<VideosPage />} />
-            <Route path="/support" element={<SupportUs />} />
-            <Route path="/sponsor-bestie" element={<SponsorBestie />} />
-            <Route path="/sponsorship-success" element={<SponsorshipSuccess />} />
-            <Route path="/discussions" element={<Discussions />} />
-            <Route path="/moderation" element={<ModerationQueue />} />
-            <Route path="/profile" element={<ProfileSettings />} />
-            <Route path="/guardian-links" element={<GuardianLinks />} />
-            <Route path="/guardian-approvals" element={<GuardianApprovals />} />
-            <Route path="/bestie-messages" element={<BestieMessages />} />
-            <Route path="/joyhousestore" element={<Marketplace />} />
-            <Route path="/vendors/:id" element={<VendorProfile />} />
-            <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-            <Route path="/orders" element={<OrderHistory />} />
-            <Route path="/donation-history" element={<DonationHistoryPage />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/newsletter" element={<Newsletter />} />
-            <Route path="/unsubscribe-success" element={<UnsubscribeSuccess />} />
-            <Route path="/unsubscribe-error" element={<UnsubscribeError />} />
-            <Route path="/help" element={<HelpCenter />} />
-            <Route path="/notifications" element={<Notifications />} />
-          <Route path="/games/memory-match" element={<MemoryMatchPage />} />
-          <Route path="/games/match3" element={<Match3Page />} />
-          <Route path="/games/drink-creator" element={<DrinkCreator />} />
-          <Route path="/games/recipe-maker" element={<RecipeMaker />} />
-          <Route path="/games/recipe-gallery" element={<RecipeGallery />} />
-          <Route path="/games/coloring-book" element={<ColoringBook />} />
-          <Route path="/games/daily-five" element={<WordleGame />} />
-          <Route path="/games/emotion-journal" element={<EmotionJournal />} />
-          <Route path="/chore-chart" element={<ChoreChart />} />
-          <Route path="/virtual-pet" element={<VirtualPetPage />} />
-          <Route path="/store" element={<StorePage />} />
-          <Route path="/store/product/:productId" element={<ProductDetail />} />
-          <Route path="/sticker-album" element={<StickerAlbumPage />} />
-          <Route path="/install" element={<InstallApp />} />
-          <Route path="/checkout-success" element={<CheckoutSuccess />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+              <Route path="/" element={<DomainRouter />} />
+              <Route path="/coffee-shop" element={<CoffeeShopHome />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/picture" element={<PictureLogin />} />
+              <Route path="/auth/vendor" element={<VendorAuth />} />
+              <Route path="/vendor-auth" element={<VendorAuth />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/avatars" element={<AvatarManagement />} />
+              <Route path="/admin/events" element={<EventManagement />} />
+              <Route path="/admin/albums" element={<AlbumManagement />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/ambassador" element={<AmbassadorPage />} />
+              <Route path="/joy-rocks" element={<JoyRocksPage />} />
+              <Route path="/partners" element={<Partners />} />
+              <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/videos" element={<VideosPage />} />
+              <Route path="/support" element={<SupportUs />} />
+              <Route path="/sponsor-bestie" element={<SponsorBestie />} />
+              <Route path="/sponsorship-success" element={<SponsorshipSuccess />} />
+              <Route path="/discussions" element={<Discussions />} />
+              <Route path="/moderation" element={<ModerationQueue />} />
+              <Route path="/profile" element={<ProfileSettings />} />
+              <Route path="/guardian-links" element={<GuardianLinks />} />
+              <Route path="/guardian-approvals" element={<GuardianApprovals />} />
+              <Route path="/bestie-messages" element={<BestieMessages />} />
+              <Route path="/joyhousestore" element={<Marketplace />} />
+              <Route path="/vendors/:id" element={<VendorProfile />} />
+              <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+              <Route path="/orders" element={<OrderHistory />} />
+              <Route path="/donation-history" element={<DonationHistoryPage />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/newsletter" element={<Newsletter />} />
+              <Route path="/unsubscribe-success" element={<UnsubscribeSuccess />} />
+              <Route path="/unsubscribe-error" element={<UnsubscribeError />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/notifications" element={<Notifications />} />
+            <Route path="/games/memory-match" element={<MemoryMatchPage />} />
+            <Route path="/games/match3" element={<Match3Page />} />
+            <Route path="/games/drink-creator" element={<DrinkCreator />} />
+            <Route path="/games/recipe-maker" element={<RecipeMaker />} />
+            <Route path="/games/recipe-gallery" element={<RecipeGallery />} />
+            <Route path="/games/coloring-book" element={<ColoringBook />} />
+            <Route path="/games/daily-five" element={<WordleGame />} />
+            <Route path="/games/emotion-journal" element={<EmotionJournal />} />
+            <Route path="/chore-chart" element={<ChoreChart />} />
+            <Route path="/virtual-pet" element={<VirtualPetPage />} />
+            <Route path="/store" element={<StorePage />} />
+            <Route path="/store/product/:productId" element={<ProductDetail />} />
+            <Route path="/sticker-album" element={<StickerAlbumPage />} />
+            <Route path="/install" element={<InstallApp />} />
+            <Route path="/checkout-success" element={<CheckoutSuccess />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            </Suspense>
           </TermsAcceptanceGuard>
         </BrowserRouter>
       </TooltipProvider>
