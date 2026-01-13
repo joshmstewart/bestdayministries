@@ -75,6 +75,7 @@ interface CustomDrink {
   id: string;
   name: string;
   ingredients: string[];
+  ingredientNames: string[];
   generated_image_url: string | null;
   likes_count: number;
   created_at: string;
@@ -131,6 +132,20 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
       return;
     }
 
+    // Collect all unique ingredient IDs from all drinks
+    const allIngredientIds = [...new Set(data.flatMap((d) => d.ingredients || []))];
+    
+    // Fetch ingredient names
+    let ingredientMap = new Map<string, string>();
+    if (allIngredientIds.length > 0) {
+      const { data: ingredientsData } = await supabase
+        .from("drink_ingredients")
+        .select("id, name")
+        .in("id", allIngredientIds);
+      
+      ingredientMap = new Map(ingredientsData?.map((i) => [i.id, i.name]) || []);
+    }
+
     // Fetch creator names separately
     const creatorIds = [...new Set(data.map((d) => d.creator_id))];
     const { data: profiles } = await supabase
@@ -143,6 +158,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
     const drinksWithCreators = data.map((drink) => ({
       ...drink,
       creator_name: profileMap.get(drink.creator_id) || null,
+      ingredientNames: (drink.ingredients || []).map((id: string) => ingredientMap.get(id) || id),
     }));
 
     setDrinks(drinksWithCreators);
@@ -333,11 +349,11 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
                 </div>
                 
                 {/* Ingredients */}
-                {selectedDrink.ingredients && selectedDrink.ingredients.length > 0 && (
+                {selectedDrink.ingredientNames && selectedDrink.ingredientNames.length > 0 && (
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-2">Ingredients</h3>
                     <div className="flex flex-wrap gap-2">
-                      {selectedDrink.ingredients.map((ingredient, idx) => (
+                      {selectedDrink.ingredientNames.map((ingredient, idx) => (
                         <span 
                           key={idx}
                           className="px-2 py-1 bg-primary/10 text-primary rounded-full text-sm"
