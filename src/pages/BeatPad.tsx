@@ -36,7 +36,6 @@ const BeatPad: React.FC = () => {
   const [isPlayingAI, setIsPlayingAI] = useState(false);
   const [soundShopOpen, setSoundShopOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [isGeneratingBeat, setIsGeneratingBeat] = useState(false);
   const [isGeneratingName, setIsGeneratingName] = useState(false);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -146,67 +145,6 @@ const BeatPad: React.FC = () => {
     }
     toast.success('Beat loaded! Press play to listen.');
   };
-
-  // Generate a random beat pattern
-  const generateRandomBeat = useCallback(() => {
-    setIsGeneratingBeat(true);
-    
-    const activeInstruments = instruments.filter(Boolean);
-    if (activeInstruments.length === 0) {
-      toast.error('Add some instruments first!');
-      setIsGeneratingBeat(false);
-      return;
-    }
-
-    const newPattern: Record<string, boolean[]> = {};
-    
-    instruments.forEach((sound, idx) => {
-      if (!sound) {
-        newPattern[idx.toString()] = Array(STEPS).fill(false);
-        return;
-      }
-      
-      const steps = Array(STEPS).fill(false);
-      const soundType = sound.sound_type.toLowerCase();
-      
-      // Different patterns based on sound type
-      if (soundType.includes('kick') || soundType.includes('bass')) {
-        // Kick/bass: emphasize beats 1 and 3
-        [0, 8].forEach(i => steps[i] = Math.random() > 0.2);
-        [4, 12].forEach(i => steps[i] = Math.random() > 0.5);
-      } else if (soundType.includes('snare') || soundType.includes('clap')) {
-        // Snare/clap: emphasize beats 2 and 4
-        [4, 12].forEach(i => steps[i] = Math.random() > 0.2);
-      } else if (soundType.includes('hihat') || soundType.includes('hat')) {
-        // Hi-hat: 8th or 16th note patterns
-        const density = Math.random();
-        for (let i = 0; i < STEPS; i++) {
-          if (density > 0.5) {
-            steps[i] = i % 2 === 0 ? Math.random() > 0.2 : Math.random() > 0.6;
-          } else {
-            steps[i] = i % 4 === 0 || i % 4 === 2 ? Math.random() > 0.3 : false;
-          }
-        }
-      } else {
-        // Other sounds: sparse random placement
-        const notesToPlace = Math.floor(Math.random() * 4) + 1;
-        for (let n = 0; n < notesToPlace; n++) {
-          const pos = Math.floor(Math.random() * STEPS);
-          steps[pos] = true;
-        }
-      }
-      
-      newPattern[idx.toString()] = steps;
-    });
-    
-    setPattern(newPattern);
-    
-    // Brief delay to show animation
-    setTimeout(() => {
-      setIsGeneratingBeat(false);
-      toast.success('Beat generated! ✨');
-    }, 300);
-  }, [instruments]);
 
   // Generate AI name for beat
   const generateAIName = async () => {
@@ -378,7 +316,7 @@ const BeatPad: React.FC = () => {
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
-            {/* Beat name input with magic wand */}
+          {/* Beat name input with magic wand */}
             <div className="max-w-md">
               <label className="text-sm font-medium mb-2 block">Beat Name</label>
               <div className="flex gap-2">
@@ -401,19 +339,6 @@ const BeatPad: React.FC = () => {
                   ) : (
                     <Wand2 className="h-4 w-4" />
                   )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={generateRandomBeat}
-                  disabled={isGeneratingBeat || instruments.filter(Boolean).length === 0}
-                  title="Generate random beat"
-                >
-                  {isGeneratingBeat ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Wand2 className="h-4 w-4 mr-2" />
-                  )}
-                  Generate Beat
                 </Button>
               </div>
             </div>
@@ -483,10 +408,9 @@ const BeatPad: React.FC = () => {
               </div>
             )}
 
-            {/* Instructions */}
             <div className="bg-muted/50 rounded-xl p-4 text-center">
               <h3 className="font-semibold mb-2">How to Play</h3>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm text-muted-foreground">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                 <div>
                   <span className="text-2xl">🎵</span>
                   <p>Add up to 20 instruments</p>
@@ -494,10 +418,6 @@ const BeatPad: React.FC = () => {
                 <div>
                   <span className="text-2xl">👆</span>
                   <p>Tap squares to add notes</p>
-                </div>
-                <div>
-                  <span className="text-2xl">🪄</span>
-                  <p>Generate a random beat</p>
                 </div>
                 <div>
                   <span className="text-2xl">▶️</span>

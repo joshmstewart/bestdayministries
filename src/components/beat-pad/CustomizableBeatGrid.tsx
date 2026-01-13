@@ -9,8 +9,8 @@ import SoundPickerDialog from './SoundPickerDialog';
 const STEPS = 16;
 const MAX_INSTRUMENTS = 20;
 
-// Default instrument sound types to load initially
-const DEFAULT_SOUND_TYPES = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell'];
+// Default instrument sound types to load initially (10 defaults)
+const DEFAULT_SOUND_TYPES = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell', 'tom', 'crash'];
 
 interface CustomizableBeatGridProps {
   pattern: Record<string, boolean[]>;
@@ -156,16 +156,14 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
   const activeSlots = instruments.filter(Boolean).length;
   const canAddMore = activeSlots < MAX_INSTRUMENTS;
 
-  // Find the first empty slot index after all filled ones
-  const firstEmptySlotAfterFilled = instruments.findIndex((s, idx) => {
-    // Find first null that comes after we've seen at least one filled slot
-    return s === null && instruments.slice(0, idx).some(Boolean);
-  });
-  
-  // Determine how many slots to show
+  // Determine how many slots to show - show all slots that have sounds,
+  // plus one empty slot for adding new sounds (up to max)
+  const lastFilledIndex = instruments.reduce((last, sound, idx) => 
+    sound ? idx : last, -1
+  );
   const slotsToShow = Math.min(
     MAX_INSTRUMENTS,
-    Math.max(activeSlots + 1, 8) // Show at least 8 slots, or one more than active
+    Math.max(lastFilledIndex + 2, 10) // Show at least 10 slots (defaults), or last filled + 1
   );
 
   return (
