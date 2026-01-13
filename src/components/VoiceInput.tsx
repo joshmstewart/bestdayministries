@@ -25,13 +25,10 @@ interface VoiceInputProps {
 
   /**
    * Seconds of no speech activity before auto-stopping (only used when `autoStop=true`).
-   * Defaults to 15.
+   * Defaults to 30.
    */
   silenceStopSeconds?: number;
 }
-
-const COMMIT_AFTER_SILENCE_MS = 1200;
-const MIN_MS_BETWEEN_COMMITS = 1200;
 
 export function VoiceInput({
   onTranscript,
@@ -41,44 +38,40 @@ export function VoiceInput({
   buttonSize = 'default',
   showTranscript = true,
   autoStop = true,
-  maxDuration = 60,
-  silenceStopSeconds = 15,
+  maxDuration = 120,
+  silenceStopSeconds = 30,
 }: VoiceInputProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [partialText, setPartialText] = useState('');
   const [committedText, setCommittedText] = useState('');
 
   const maxDurationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const commitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const lastSpeechAtRef = useRef<number>(Date.now());
-  const lastCommitAtRef = useRef<number>(0);
-  const disconnectAfterNextCommitRef = useRef(false);
-  const [pendingDisconnect, setPendingDisconnect] = useState(false);
+  const silenceCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clearTimers = useCallback(() => {
     if (maxDurationTimeoutRef.current) {
       clearTimeout(maxDurationTimeoutRef.current);
       maxDurationTimeoutRef.current = null;
     }
-    if (commitTimeoutRef.current) {
-      clearTimeout(commitTimeoutRef.current);
-      commitTimeoutRef.current = null;
+    if (silenceCheckIntervalRef.current) {
+      clearInterval(silenceCheckIntervalRef.current);
+      silenceCheckIntervalRef.current = null;
     }
   }, []);
 
+  // Use VAD (Voice Activity Detection) - the SDK handles commits automatically based on silence
   const scribe = useScribe({
     modelId: 'scribe_v2_realtime',
-
-    // We keep this MANUAL and do our own committing, so the mic keeps recording
-    // until the user stops it (or we hit the longer silence auto-stop).
-    commitStrategy: CommitStrategy.MANUAL,
+    commitStrategy: CommitStrategy.VAD,
 
     onSessionStarted: () => {
+      console.log('[VoiceInput] Session started');
       lastSpeechAtRef.current = Date.now();
       toast.success('Listening... Speak now!');
     },
     onPartialTranscript: (data) => {
+      console.log('[VoiceInput] Partial:', data.text);
       setPartialText(data.text);
       onPartialTranscript?.(data.text);
 
@@ -87,26 +80,24 @@ export function VoiceInput({
       }
     },
     onCommittedTranscript: (data) => {
+      console.log('[VoiceInput] Committed:', data.text);
       const chunk = data.text?.trim();
       if (!chunk) return;
 
+      lastSpeechAtRef.current = Date.now();
       setCommittedText((prev) => (prev ? `${prev} ${chunk}` : chunk));
       setPartialText('');
 
-      // IMPORTANT: send only the NEW chunk; the parent can decide how to append.
+      // Send the NEW chunk; the parent can decide how to append.
       onTranscript(chunk);
-
-      if (disconnectAfterNextCommitRef.current) {
-        disconnectAfterNextCommitRef.current = false;
-        setPendingDisconnect(true);
-      }
     },
     onDisconnect: () => {
+      console.log('[VoiceInput] Disconnected');
       clearTimers();
     },
     onError: (error) => {
-      console.error('Scribe error:', error);
-      toast.error('Voice input error — please try again.');
+      console.error('[VoiceInput] Scribe error:', error);
+      // Don't show toast for every error - some are recoverable
     },
     onAuthError: () => {
       toast.error('Voice input authentication failed. Please try again.');
@@ -116,38 +107,7 @@ export function VoiceInput({
     },
   });
 
-  // Keep a steady stream of committed transcripts while speaking by committing
-  // after a short pause in partial transcript updates.
-  useEffect(() => {
-    if (!scribe.isConnected) return;
-
-    if (commitTimeoutRef.current) {
-      clearTimeout(commitTimeoutRef.current);
-      commitTimeoutRef.current = null;
-    }
-
-    if (!partialText?.trim()) return;
-
-    commitTimeoutRef.current = setTimeout(() => {
-      if (!scribe.isConnected) return;
-      if (!partialText?.trim()) return;
-
-      const now = Date.now();
-      if (now - lastCommitAtRef.current < MIN_MS_BETWEEN_COMMITS) return;
-
-      lastCommitAtRef.current = now;
-      scribe.commit();
-    }, COMMIT_AFTER_SILENCE_MS);
-
-    return () => {
-      if (commitTimeoutRef.current) {
-        clearTimeout(commitTimeoutRef.current);
-        commitTimeoutRef.current = null;
-      }
-    };
-  }, [partialText, scribe]);
-
-  // Auto-stop after long silence (15s by default)
+  // Auto-stop after long silence (30s by default)
   useEffect(() => {
     if (!scribe.isConnected) return;
     if (!autoStop) return;
@@ -155,16 +115,21 @@ export function VoiceInput({
     const silenceMs = Math.max(0, (silenceStopSeconds || 0) * 1000);
     if (silenceMs <= 0) return;
 
-    const interval = setInterval(() => {
+    silenceCheckIntervalRef.current = setInterval(() => {
       const sinceSpeech = Date.now() - lastSpeechAtRef.current;
       if (sinceSpeech >= silenceMs) {
-        // Stop and tell the user why.
+        console.log('[VoiceInput] Auto-stopping after silence');
         handleStop(true);
         toast.info('Stopped after silence');
       }
-    }, 500);
+    }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (silenceCheckIntervalRef.current) {
+        clearInterval(silenceCheckIntervalRef.current);
+        silenceCheckIntervalRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scribe.isConnected, autoStop, silenceStopSeconds]);
 
@@ -174,6 +139,7 @@ export function VoiceInput({
     if (!maxDuration || maxDuration <= 0) return;
 
     maxDurationTimeoutRef.current = setTimeout(() => {
+      console.log('[VoiceInput] Max duration reached');
       handleStop(true);
       toast.info('Recording stopped - maximum duration reached');
     }, maxDuration * 1000);
@@ -186,18 +152,6 @@ export function VoiceInput({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scribe.isConnected, maxDuration]);
-
-  // Disconnect after final commit when stopping
-  useEffect(() => {
-    if (!pendingDisconnect) return;
-    if (!scribe.isConnected) {
-      setPendingDisconnect(false);
-      return;
-    }
-
-    scribe.disconnect();
-    setPendingDisconnect(false);
-  }, [pendingDisconnect, scribe]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -250,34 +204,13 @@ export function VoiceInput({
 
       if (!scribe.isConnected) return;
 
-      // If we have uncommitted partial text, commit it first, then disconnect.
-      if (partialText?.trim()) {
-        disconnectAfterNextCommitRef.current = true;
-
-        const now = Date.now();
-        if (now - lastCommitAtRef.current >= MIN_MS_BETWEEN_COMMITS) {
-          lastCommitAtRef.current = now;
-          scribe.commit();
-        }
-
-        // Safety net: if commit callback never fires, disconnect anyway.
-        setTimeout(() => {
-          if (scribe.isConnected && disconnectAfterNextCommitRef.current) {
-            disconnectAfterNextCommitRef.current = false;
-            scribe.disconnect();
-          }
-        }, 1200);
-
-        return;
-      }
-
       scribe.disconnect();
 
       if (!fromAutoStop) {
         toast.success('Stopped');
       }
     },
-    [clearTimers, partialText, scribe]
+    [clearTimers, scribe]
   );
 
   const handleToggle = useCallback(() => {
