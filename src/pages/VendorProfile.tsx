@@ -135,7 +135,6 @@ const VendorProfile = () => {
           })
         );
         
-        console.log("Enriched assets:", enrichedAssets);
         setBestieAssets(enrichedAssets);
       }
 

@@ -51,11 +51,9 @@ const Index = () => {
   }, []);
 
   const checkAuthAndRedirect = async () => {
-    // Check if user is logged in
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session?.user) {
-      console.log('User is logged in, redirecting to community page');
       navigate('/community', { replace: true });
     }
   };
