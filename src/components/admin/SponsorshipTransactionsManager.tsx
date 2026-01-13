@@ -176,7 +176,6 @@ export const SponsorshipTransactionsManager = () => {
       });
 
       // Transform sponsorships to transactions
-      console.log('🔵 [TRANSACTIONS] Transforming sponsorships to transactions...');
       const sponsorshipTransactions: Transaction[] = (sponsorshipsData || []).map(s => {
         const sponsorBestie = s.sponsor_bestie_id ? sponsorBestieMap.get(s.sponsor_bestie_id) : null;
         const receipt = receiptsMap.get(s.id);
@@ -205,7 +204,6 @@ export const SponsorshipTransactionsManager = () => {
       });
 
       // Transform donations to transactions
-      console.log('🔵 [TRANSACTIONS] Transforming donations to transactions...');
       const donationTransactions: Transaction[] = (donationsData || []).map(d => {
         const receipt = receiptsMap.get(d.id);
         
@@ -236,12 +234,6 @@ export const SponsorshipTransactionsManager = () => {
       const allTransactions = [...sponsorshipTransactions, ...donationTransactions]
         .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
 
-      console.log('✅ [TRANSACTIONS] Transformation complete:', {
-        sponsorships: sponsorshipTransactions.length,
-        donations: donationTransactions.length,
-        total: allTransactions.length,
-      });
-
       setTransactions(allTransactions);
     } catch (error: any) {
       console.error('🔴 [TRANSACTIONS] Fatal error:', error);
@@ -252,7 +244,6 @@ export const SponsorshipTransactionsManager = () => {
       });
     } finally {
       setLoading(false);
-      console.log('🔵 [TRANSACTIONS] loadTransactions completed');
     }
   };
 

@@ -21,7 +21,6 @@ export const RecalculateAmountsTest = () => {
 
     try {
       // Get the "before" state for Spetty sponsorship
-      console.log("📊 Fetching Spetty sponsorship before recalculation...");
       const { data: beforeData } = await supabase
         .from('sponsorships')
         .select('id, amount, stripe_subscription_id')
@@ -30,25 +29,21 @@ export const RecalculateAmountsTest = () => {
 
       if (beforeData) {
         setBeforeAmount(beforeData.amount);
-        console.log("✅ Before amount:", beforeData.amount);
       }
 
       // Call the recalculation function
-      console.log("🔄 Calling recalculate-sponsorship-amounts...");
       const { data, error } = await supabase.functions.invoke('recalculate-sponsorship-amounts');
       
       if (error) {
         throw error;
       }
 
-      console.log("✅ Recalculation complete:", data);
       setResults(data);
 
       // Wait a moment for the update to propagate
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Get the "after" state
-      console.log("📊 Fetching Spetty sponsorship after recalculation...");
       const { data: afterData } = await supabase
         .from('sponsorships')
         .select('id, amount, stripe_subscription_id')
@@ -57,7 +52,6 @@ export const RecalculateAmountsTest = () => {
 
       if (afterData) {
         setAfterAmount(afterData.amount);
-        console.log("✅ After amount:", afterData.amount);
       }
 
       toast({

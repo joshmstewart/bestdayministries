@@ -305,9 +305,6 @@ export const PrintifyProductImporter = () => {
 
   const syncMutation = useMutation({
     mutationFn: async ({ product }: { product: PrintifyProduct }) => {
-      console.log('Syncing product:', product.id, product.title);
-      console.log('Product images:', product.images);
-      
       // Update the existing product in our database
       const { data: existingProducts, error: fetchError } = await supabase
         .from('products')
@@ -316,7 +313,6 @@ export const PrintifyProductImporter = () => {
         .single();
 
       if (fetchError || !existingProducts) {
-        console.error('Failed to find product:', fetchError);
         throw new Error('Could not find existing product to update');
       }
 
@@ -327,8 +323,6 @@ export const PrintifyProductImporter = () => {
       const imageUrls = (product.images || []).map(img => 
         typeof img === 'string' ? img : img?.src
       ).filter(Boolean);
-
-      console.log('Updating with:', { name: product.title, price: basePrice, imageCount: imageUrls.length });
 
       const { error: updateError } = await supabase
         .from('products')
@@ -345,7 +339,6 @@ export const PrintifyProductImporter = () => {
         .eq('id', existingProducts.id);
 
       if (updateError) {
-        console.error('Update error:', updateError);
         throw updateError;
       }
       return { message: `Successfully synced "${product.title}"` };
