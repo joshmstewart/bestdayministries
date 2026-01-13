@@ -5,13 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Heart, Calendar, TrendingUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ArrowLeft, Heart, Calendar, TrendingUp, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmotionSelector } from '@/components/emotion-journal/EmotionSelector';
 import { JournalEntry } from '@/components/emotion-journal/JournalEntry';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
-import { CopingSuggestions } from '@/components/emotion-journal/CopingSuggestions';
 import { TextToSpeech } from '@/components/TextToSpeech';
 
 interface EmotionType {
@@ -28,11 +28,18 @@ export default function EmotionJournal() {
   const { user, loading: authLoading } = useAuth();
   const [emotionTypes, setEmotionTypes] = useState<EmotionType[]>([]);
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
-  const [intensity, setIntensity] = useState(3);
+  const [intensity, setIntensity] = useState<number | null>(null);
   const [journalText, setJournalText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [showCopingSuggestions, setShowCopingSuggestions] = useState(false);
   const [activeTab, setActiveTab] = useState('log');
+  
+  // AI response state
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+
+  // Collapsible states
+  const [intensityOpen, setIntensityOpen] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -64,7 +71,35 @@ export default function EmotionJournal() {
 
   const handleEmotionSelect = (emotion: EmotionType) => {
     setSelectedEmotion(emotion);
-    setShowCopingSuggestions(emotion.category === 'negative');
+    setAiResponse(null); // Reset AI response when emotion changes
+  };
+
+  const generateAiResponse = async () => {
+    if (!selectedEmotion) return;
+    
+    setIsGeneratingResponse(true);
+    setAiResponse(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('emotion-journal-response', {
+        body: {
+          emotion: selectedEmotion.name,
+          emoji: selectedEmotion.emoji,
+          intensity,
+          journalText: journalText.trim() || null,
+        },
+      });
+
+      if (error) throw error;
+      
+      setAiResponse(data.response);
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      // Fallback response
+      setAiResponse(`${selectedEmotion.emoji} Thank you for sharing that you feel ${selectedEmotion.name.toLowerCase()}. It's good to check in with your feelings!`);
+    } finally {
+      setIsGeneratingResponse(false);
+    }
   };
 
   const handleSaveEntry = async () => {
@@ -78,7 +113,7 @@ export default function EmotionJournal() {
           user_id: user.id,
           emotion: selectedEmotion.name,
           emotion_emoji: selectedEmotion.emoji,
-          intensity,
+          intensity: intensity || 3, // Default to 3 if not set
           journal_text: journalText || null,
         });
 
@@ -90,9 +125,11 @@ export default function EmotionJournal() {
 
       // Reset form
       setSelectedEmotion(null);
-      setIntensity(3);
+      setIntensity(null);
       setJournalText('');
-      setShowCopingSuggestions(false);
+      setAiResponse(null);
+      setIntensityOpen(false);
+      setJournalOpen(false);
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');
@@ -158,10 +195,10 @@ export default function EmotionJournal() {
           </TabsList>
 
           {/* Log Feeling Tab */}
-          <TabsContent value="log" className="space-y-6">
+          <TabsContent value="log" className="space-y-4">
             {/* Emotion Selector */}
             <Card>
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   How are you feeling?
                   <TextToSpeech 
@@ -179,65 +216,131 @@ export default function EmotionJournal() {
               </CardContent>
             </Card>
 
-            {/* Show more options after selecting emotion */}
+            {/* Show options after selecting emotion */}
             {selectedEmotion && (
               <>
-                {/* Coping Suggestions for negative emotions */}
-                {showCopingSuggestions && selectedEmotion.coping_suggestions && (
-                  <CopingSuggestions 
-                    emotion={selectedEmotion.name}
-                    emoji={selectedEmotion.emoji}
-                    suggestions={selectedEmotion.coping_suggestions}
-                  />
+                {/* Optional Intensity - Collapsible */}
+                <Collapsible open={intensityOpen} onOpenChange={setIntensityOpen}>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="pb-3 cursor-pointer hover:bg-accent/50 rounded-t-lg transition-colors">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="text-muted-foreground">(Optional)</span>
+                            How strong is this feeling?
+                            {intensity !== null && (
+                              <span className="text-sm font-normal bg-primary/10 px-2 py-0.5 rounded">
+                                {intensity}/5
+                              </span>
+                            )}
+                          </CardTitle>
+                          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${intensityOpen ? 'rotate-180' : ''}`} />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0">
+                        <div className="flex justify-center gap-2">
+                          {[1, 2, 3, 4, 5].map((level) => (
+                            <button
+                              key={level}
+                              onClick={() => setIntensity(level)}
+                              className={`w-12 h-12 rounded-full text-xl transition-all ${
+                                intensity !== null && intensity >= level
+                                  ? 'scale-110'
+                                  : 'opacity-40 grayscale'
+                              }`}
+                              style={{
+                                backgroundColor: intensity !== null && intensity >= level ? selectedEmotion.color : 'transparent',
+                                border: `2px solid ${selectedEmotion.color}`,
+                              }}
+                            >
+                              {level <= 2 ? '😊' : level === 3 ? '😐' : level === 4 ? '😣' : '🔥'}
+                            </button>
+                          ))}
+                        </div>
+                        {intensity !== null && (
+                          <p className="text-center text-sm text-muted-foreground mt-2">
+                            {intensity === 1 && "Just a little bit"}
+                            {intensity === 2 && "A small amount"}
+                            {intensity === 3 && "Medium feeling"}
+                            {intensity === 4 && "Pretty strong"}
+                            {intensity === 5 && "Very strong!"}
+                          </p>
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+
+                {/* Optional Journal Entry - Collapsible */}
+                <Collapsible open={journalOpen} onOpenChange={setJournalOpen}>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="pb-3 cursor-pointer hover:bg-accent/50 rounded-t-lg transition-colors">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="text-muted-foreground">(Optional)</span>
+                            Want to say more?
+                            {journalText.trim() && (
+                              <span className="text-sm font-normal bg-primary/10 px-2 py-0.5 rounded">
+                                ✓ Added
+                              </span>
+                            )}
+                          </CardTitle>
+                          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${journalOpen ? 'rotate-180' : ''}`} />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0">
+                        <JournalEntry
+                          value={journalText}
+                          onChange={setJournalText}
+                          emotion={selectedEmotion}
+                        />
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+
+                {/* Generate AI Response Button */}
+                <Button
+                  onClick={generateAiResponse}
+                  disabled={isGeneratingResponse}
+                  variant="secondary"
+                  className="w-full h-12"
+                >
+                  {isGeneratingResponse ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Thinking...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5 mr-2" />
+                      Get a Friendly Response ✨
+                    </>
+                  )}
+                </Button>
+
+                {/* AI Response */}
+                {aiResponse && (
+                  <Card className="border-primary/30 bg-primary/5">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-primary">A message for you:</span>
+                            <TextToSpeech text={aiResponse} size="icon" />
+                          </div>
+                          <p className="text-base leading-relaxed">{aiResponse}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-
-                {/* Intensity Selector */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      How strong is this feeling?
-                      <TextToSpeech 
-                        text="How strong is this feeling? Choose from 1 to 5. 1 is just a little bit, 5 is very strong." 
-                        size="icon" 
-                      />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-center gap-2">
-                      {[1, 2, 3, 4, 5].map((level) => (
-                        <button
-                          key={level}
-                          onClick={() => setIntensity(level)}
-                          className={`w-14 h-14 rounded-full text-2xl transition-all ${
-                            intensity >= level
-                              ? 'scale-110'
-                              : 'opacity-40 grayscale'
-                          }`}
-                          style={{
-                            backgroundColor: intensity >= level ? selectedEmotion.color : 'transparent',
-                            border: `2px solid ${selectedEmotion.color}`,
-                          }}
-                        >
-                          {level <= 2 ? '😊' : level === 3 ? '😐' : level === 4 ? '😣' : '🔥'}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-center text-sm text-muted-foreground mt-3">
-                      {intensity === 1 && "Just a little bit"}
-                      {intensity === 2 && "A small amount"}
-                      {intensity === 3 && "Medium feeling"}
-                      {intensity === 4 && "Pretty strong"}
-                      {intensity === 5 && "Very strong!"}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Journal Entry with Voice Input */}
-                <JournalEntry
-                  value={journalText}
-                  onChange={setJournalText}
-                  emotion={selectedEmotion}
-                />
 
                 {/* Save Button */}
                 <Button

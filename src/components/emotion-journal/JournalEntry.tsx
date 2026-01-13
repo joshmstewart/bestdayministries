@@ -1,9 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { VoiceInput } from '@/components/VoiceInput';
 import { TextToSpeech } from '@/components/TextToSpeech';
-import { Pencil } from 'lucide-react';
-import { useMemo } from 'react';
 
 interface EmotionType {
   name: string;
@@ -17,82 +14,45 @@ interface JournalEntryProps {
   emotion: EmotionType;
 }
 
-export function JournalEntry({ value, onChange, emotion }: JournalEntryProps) {
-  // Generate a stable random prompt on mount (not on every render)
-  const randomPrompt = useMemo(() => {
-    const prompts = [
-      `What made you feel ${emotion.name.toLowerCase()}?`,
-      'What happened today?',
-      'Who were you with?',
-      'What would help you feel better?',
-    ];
-    return prompts[Math.floor(Math.random() * prompts.length)];
-  }, [emotion.name]);
-
+export function JournalEntry({ value, onChange }: JournalEntryProps) {
   const handleVoiceTranscript = (text: string) => {
-    // Append transcribed text to existing value
     const newValue = value ? `${value} ${text}` : text;
     onChange(newValue);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Pencil className="h-5 w-5" />
-          Want to say more? (Optional)
-          <TextToSpeech 
-            text="Want to say more? This is optional. You can speak your thoughts or type them." 
-            size="icon" 
-          />
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Writing Prompt */}
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-muted-foreground italic">
-            💭 {randomPrompt}
-          </p>
-          <TextToSpeech text={randomPrompt} size="icon" />
+    <div className="space-y-4">
+      {/* Voice Input */}
+      <div className="p-3 rounded-lg bg-muted/50 border">
+        <p className="text-sm font-medium mb-2">🎤 Speak your thoughts:</p>
+        <VoiceInput
+          onTranscript={handleVoiceTranscript}
+          placeholder="Tap the microphone to speak..."
+          showTranscript={true}
+          autoStop={true}
+          silenceStopSeconds={15}
+          maxDuration={0}
+        />
+      </div>
+
+      {/* Text Area */}
+      <div>
+        <p className="text-sm font-medium mb-2">✍️ Or type here:</p>
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Write about your feelings..."
+          className="min-h-[80px] text-base resize-none"
+        />
+      </div>
+
+      {/* Listen to your text */}
+      {value.trim() && (
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/10 border border-primary/20">
+          <TextToSpeech text={value} size="default" />
+          <p className="text-sm font-medium">🔊 Listen to your words</p>
         </div>
-
-        {/* Voice Input - shows transcript and populates textarea */}
-        <div className="p-4 rounded-lg bg-muted/50 border">
-          <p className="text-sm font-medium mb-3">🎤 Speak your thoughts:</p>
-          <VoiceInput
-            onTranscript={handleVoiceTranscript}
-            placeholder="Tap the microphone to speak... Your words will appear here and be added to the text below."
-            showTranscript={true}
-            autoStop={true}
-            silenceStopSeconds={15}
-            maxDuration={0}
-          />
-        </div>
-
-        {/* Text Area */}
-        <div>
-          <p className="text-sm font-medium mb-2">✍️ Or type here:</p>
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Write about your feelings..."
-            className="min-h-[120px] text-base resize-none"
-          />
-        </div>
-
-        {/* Listen to your text - always show for verification */}
-        {value.trim() && (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
-            <TextToSpeech text={value} size="default" />
-            <p className="text-sm font-medium">🔊 Listen to your words</p>
-          </div>
-        )}
-
-        {/* Character count */}
-        <p className="text-xs text-muted-foreground text-right">
-          {value.length} characters
-        </p>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
