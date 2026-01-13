@@ -21,8 +21,6 @@ interface VendorBestieAssetDisplayProps {
 export const VendorBestieAssetDisplay = ({ assets }: VendorBestieAssetDisplayProps) => {
   if (assets.length === 0) return null;
 
-  console.log('VendorBestieAssetDisplay - Assets:', assets);
-
   return (
     <div className="pb-8 space-y-6">
       <h2 className="font-heading text-2xl font-bold">Featured Content</h2>

@@ -136,7 +136,6 @@ const Community = () => {
   };
 
   const markSectionLoaded = (sectionKey: string) => {
-    console.log('Community - Marking section as loaded:', sectionKey);
     setLoadedSections(prev => new Set([...prev, sectionKey]));
   };
 
@@ -176,11 +175,8 @@ const Community = () => {
   const loadLatestContent = async () => {
     // Don't load if we don't have an effective role yet
     if (!effectiveRole) {
-      console.log('Community - loadLatestContent returning early, no effectiveRole');
       return;
     }
-    
-    console.log('Community - loadLatestContent running with role:', effectiveRole);
     try {
       // Fetch latest discussions (up to 3)
       const { data: discussions } = await supabase
@@ -210,14 +206,9 @@ const Community = () => {
         .order("event_date", { ascending: true });
 
       if (events) {
-        console.log('Community - User role:', effectiveRole);
-        console.log('Community - Total events fetched:', events.length);
-        
         // Filter events based on effective user role
         const filteredEvents = events.filter(event => {
-          const isVisible = event.visible_to_roles?.includes(effectiveRole);
-          console.log(`Community - Event "${event.title}" - Visible to roles:`, event.visible_to_roles, 'User role:', effectiveRole, 'Is visible:', isVisible);
-          return isVisible;
+          return event.visible_to_roles?.includes(effectiveRole);
         });
 
         // Collect all upcoming dates from filtered events
@@ -253,7 +244,6 @@ const Community = () => {
         upcomingEventCards.sort((a, b) => a.displayDate.getTime() - b.displayDate.getTime());
         const topThree = upcomingEventCards.slice(0, 3);
         
-        console.log('Community - Upcoming events count:', topThree.length);
         setUpcomingEvents(topThree);
       }
 
@@ -519,8 +509,6 @@ const Community = () => {
                         `Scheduled for ${eventDate}`,
                         event.location ? `At ${event.location}` : ''
                       ].filter(Boolean).join('. ');
-                      
-                      console.log('Event TTS text:', ttsText);
                       
                       return (
                         <div 

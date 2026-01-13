@@ -533,8 +533,6 @@ export default function AlbumManagement() {
           if (updateError) {
             console.error("Error updating discussion post:", updateError);
             toast.error("Album saved but failed to update discussion post: " + updateError.message);
-          } else {
-            console.log("Discussion post updated successfully for album:", albumId);
           }
         } else {
           // Create new post
@@ -545,8 +543,6 @@ export default function AlbumManagement() {
           if (insertError) {
             console.error("Error creating discussion post:", insertError);
             toast.error("Album saved but failed to create discussion post: " + insertError.message);
-          } else {
-            console.log("Discussion post created successfully for album:", albumId);
           }
         }
       } else if (!isPost && albumId) {
@@ -573,7 +569,6 @@ export default function AlbumManagement() {
   };
 
   const handleEdit = (album: Album) => {
-    console.log("Editing album:", album);
     setEditingAlbum(album);
     setTitle(album.title);
     setDescription(album.description || "");
