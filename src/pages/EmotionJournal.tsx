@@ -148,15 +148,55 @@ export default function EmotionJournal() {
 
   if (!user) return null;
 
+  // Get theme colors based on selected emotion
+  const getThemeStyles = () => {
+    if (!selectedEmotion) {
+      return {
+        background: 'from-purple-50 via-pink-50 to-blue-50',
+        headerGradient: 'from-purple-500 to-pink-500',
+        cardBorder: 'border-purple-200',
+        cardBg: 'bg-white/80',
+      };
+    }
+    
+    // Map emotion categories to vibrant color themes
+    const categoryThemes: Record<string, { background: string; headerGradient: string; cardBorder: string; cardBg: string }> = {
+      positive: {
+        background: 'from-green-50 via-emerald-50 to-teal-50',
+        headerGradient: 'from-green-500 to-emerald-500',
+        cardBorder: 'border-green-300',
+        cardBg: 'bg-green-50/50',
+      },
+      neutral: {
+        background: 'from-slate-50 via-gray-50 to-zinc-50',
+        headerGradient: 'from-slate-500 to-gray-500',
+        cardBorder: 'border-slate-300',
+        cardBg: 'bg-slate-50/50',
+      },
+      negative: {
+        background: 'from-rose-50 via-red-50 to-orange-50',
+        headerGradient: 'from-rose-500 to-red-500',
+        cardBorder: 'border-rose-300',
+        cardBg: 'bg-rose-50/50',
+      },
+    };
+    
+    return categoryThemes[selectedEmotion.category] || categoryThemes.neutral;
+  };
+
+  const theme = getThemeStyles();
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-muted/30 pt-24 pb-12">
+    <main 
+      className={`min-h-screen bg-gradient-to-br ${theme.background} pt-24 pb-12 transition-all duration-500`}
+    >
       <div className="container max-w-4xl mx-auto px-4">
         {/* Back Button */}
         <Button
           variant="outline"
           size="sm"
           onClick={() => navigate('/community')}
-          className="mb-6"
+          className="mb-6 bg-white/80 backdrop-blur-sm hover:bg-white/90"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Community
@@ -165,15 +205,27 @@ export default function EmotionJournal() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3">
-            <Heart className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Emotion Journal</h1>
+            {selectedEmotion ? (
+              <span className="text-5xl animate-bounce">{selectedEmotion.emoji}</span>
+            ) : (
+              <Heart className={`h-10 w-10 bg-gradient-to-br ${theme.headerGradient} text-white p-2 rounded-full`} />
+            )}
+            <h1 className={`text-3xl font-bold bg-gradient-to-r ${theme.headerGradient} bg-clip-text text-transparent`}>
+              {selectedEmotion ? `Feeling ${selectedEmotion.name}` : 'Emotion Journal'}
+            </h1>
             <TextToSpeech 
-              text="Emotion Journal. How are you feeling today? It's okay to feel any way!" 
+              text={selectedEmotion 
+                ? `You're feeling ${selectedEmotion.name}. That's okay!` 
+                : "Emotion Journal. How are you feeling today? It's okay to feel any way!"
+              } 
               size="default" 
             />
           </div>
-          <p className="text-muted-foreground mt-2">
-            How are you feeling today? It's okay to feel any way!
+          <p className="text-muted-foreground mt-2 text-lg">
+            {selectedEmotion 
+              ? `It's okay to feel ${selectedEmotion.name.toLowerCase()}. Let's explore this feeling together.`
+              : "How are you feeling today? It's okay to feel any way!"
+            }
           </p>
         </div>
 
@@ -197,9 +249,10 @@ export default function EmotionJournal() {
           {/* Log Feeling Tab */}
           <TabsContent value="log" className="space-y-4">
             {/* Emotion Selector */}
-            <Card>
+            <Card className={`${theme.cardBg} ${theme.cardBorder} backdrop-blur-sm shadow-lg transition-all duration-500`}>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <span className="text-2xl">🎭</span>
                   How are you feeling?
                   <TextToSpeech 
                     text="How are you feeling? Choose an emotion from the options below." 
