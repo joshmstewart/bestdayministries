@@ -216,6 +216,13 @@ export function FAQManager() {
                     <SelectItem value="technical">Technical</SelectItem>
                     <SelectItem value="billing">Billing</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="games">Games</SelectItem>
+                    <SelectItem value="events">Events</SelectItem>
+                    <SelectItem value="marketplace">Marketplace</SelectItem>
+                    <SelectItem value="bestie">Bestie</SelectItem>
+                    <SelectItem value="guardian">Guardian</SelectItem>
+                    <SelectItem value="supporter">Supporter</SelectItem>
+                    <SelectItem value="vendor">Vendor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -235,6 +235,9 @@ export function TourManager() {
                       <SelectItem value="feature">Feature</SelectItem>
                       <SelectItem value="role-specific">Role Specific</SelectItem>
                       <SelectItem value="getting-started">Getting Started</SelectItem>
+                      <SelectItem value="games">Games</SelectItem>
+                      <SelectItem value="bestie">Bestie</SelectItem>
+                      <SelectItem value="vendor">Vendor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
