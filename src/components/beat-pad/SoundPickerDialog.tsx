@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Volume2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { SoundConfig } from './InstrumentSlot';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,71 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
+
+  const getAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+    return audioContextRef.current;
+  };
+
+  const playSound = async (sound: SoundConfig, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPlayingId(sound.id);
+    
+    const ctx = getAudioContext();
+    
+    // Try to play audio URL first
+    if (sound.audio_url) {
+      try {
+        let buffer = audioBuffersRef.current.get(sound.id);
+        if (!buffer) {
+          const response = await fetch(sound.audio_url);
+          const arrayBuffer = await response.arrayBuffer();
+          buffer = await ctx.decodeAudioData(arrayBuffer);
+          audioBuffersRef.current.set(sound.id, buffer);
+        }
+        
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = 0.7;
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.start();
+        
+        setTimeout(() => setPlayingId(null), 300);
+        return;
+      } catch (err) {
+        console.warn('Failed to play audio URL, falling back to synthesized:', err);
+      }
+    }
+    
+    // Fallback to synthesized sound
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.type = (sound.oscillator_type as OscillatorType) || 'sine';
+    oscillator.frequency.value = sound.frequency || 440;
+    
+    gainNode.gain.setValueAtTime(0.7, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (sound.decay || 0.3));
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + (sound.decay || 0.3));
+    
+    setTimeout(() => setPlayingId(null), 300);
+  };
 
   useEffect(() => {
     if (open) {
@@ -119,15 +184,28 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
             <ScrollArea className="h-[400px]">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-1">
                 {filteredSounds.map(sound => (
-                  <button
+                  <div
                     key={sound.id}
-                    onClick={() => handleSelect(sound)}
                     className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border",
-                      "hover:border-primary hover:bg-accent transition-all",
+                      "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border",
+                      "hover:border-primary hover:bg-accent transition-all cursor-pointer",
                       "active:scale-95"
                     )}
+                    onClick={() => handleSelect(sound)}
                   >
+                    {/* Preview button */}
+                    <button
+                      onClick={(e) => playSound(sound, e)}
+                      className={cn(
+                        "absolute top-2 right-2 p-1.5 rounded-full transition-all",
+                        "bg-primary/10 hover:bg-primary/20",
+                        playingId === sound.id && "bg-primary text-primary-foreground animate-pulse"
+                      )}
+                      title="Preview sound"
+                    >
+                      <Volume2 className="h-3.5 w-3.5" />
+                    </button>
+                    
                     <span className="text-3xl">{sound.emoji}</span>
                     <span className="text-sm font-medium text-center truncate w-full">
                       {sound.name}
@@ -136,7 +214,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                       className="h-2 w-full rounded-full"
                       style={{ backgroundColor: sound.color }}
                     />
-                  </button>
+                  </div>
                 ))}
               </div>
               {filteredSounds.length === 0 && (
