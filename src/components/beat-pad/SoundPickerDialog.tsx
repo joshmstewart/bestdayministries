@@ -81,7 +81,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
-    oscillator.type = (sound.oscillator_type as OscillatorType) || 'sine';
+    oscillator.type = (sound.oscillator_type || 'sine') as OscillatorType;
     oscillator.frequency.value = sound.frequency || 440;
     
     gainNode.gain.setValueAtTime(0.7, ctx.currentTime);
