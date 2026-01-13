@@ -2396,6 +2396,84 @@ export type Database = {
         }
         Relationships: []
       }
+      emotion_journal_entries: {
+        Row: {
+          audio_url: string | null
+          coping_strategies: string[] | null
+          created_at: string
+          emotion: string
+          emotion_emoji: string
+          id: string
+          intensity: number
+          journal_text: string | null
+          triggers: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          coping_strategies?: string[] | null
+          created_at?: string
+          emotion: string
+          emotion_emoji: string
+          id?: string
+          intensity: number
+          journal_text?: string | null
+          triggers?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          coping_strategies?: string[] | null
+          created_at?: string
+          emotion?: string
+          emotion_emoji?: string
+          id?: string
+          intensity?: number
+          journal_text?: string | null
+          triggers?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emotion_types: {
+        Row: {
+          category: string
+          color: string
+          coping_suggestions: string[] | null
+          created_at: string
+          display_order: number
+          emoji: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          category?: string
+          color?: string
+          coping_suggestions?: string[] | null
+          created_at?: string
+          display_order?: number
+          emoji: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          category?: string
+          color?: string
+          coping_suggestions?: string[] | null
+          created_at?: string
+          display_order?: number
+          emoji?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           browser_info: Json | null
