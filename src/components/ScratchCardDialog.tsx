@@ -195,8 +195,6 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       return;
     }
 
-    console.log('Initializing scratch card canvas...');
-
     // Smaller canvas size
     canvas.width = 300;
     canvas.height = 300;
@@ -237,8 +235,6 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
     ctx.shadowColor = 'transparent';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fillText('Scratch Here!', 149, 149);
-    
-    console.log('Canvas initialized successfully');
   };
 
   const scratch = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -319,10 +315,7 @@ export const ScratchCardDialog = ({ open, onOpenChange, cardId, onScratched }: S
       const totalPixels = 300 * 300;
       const percentScratched = (transparent / totalPixels) * 100;
 
-      console.log('Scratched:', percentScratched.toFixed(1) + '%');
-
       if (percentScratched > 50 && !scratched) {
-        console.log('🎉 Scratch threshold reached:', percentScratched.toFixed(2) + '%');
         setRevealing(true);
         triggerBigSparkle();
       }

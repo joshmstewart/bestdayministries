@@ -22,7 +22,6 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
 
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => {
-      console.log("Duration update:", audio.duration);
       // For streaming audio or audio without metadata, duration might be Infinity
       if (audio.duration && !isNaN(audio.duration) && audio.duration !== Infinity) {
         setDuration(audio.duration);
@@ -32,16 +31,13 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
       }
     };
     const handleEnded = () => {
-      console.log("Audio ended naturally");
       setIsPlaying(false);
       setCurrentTime(0);
     };
     const handlePlay = () => {
-      console.log("Audio started playing");
       setIsPlaying(true);
     };
     const handlePause = () => {
-      console.log("Audio paused");
       setIsPlaying(false);
     };
     const handleError = (e: Event) => {
@@ -55,10 +51,9 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
       console.warn("Audio suspended");
     };
     const handleWaiting = () => {
-      console.log("Audio waiting for data");
+      // Audio waiting for data
     };
     const handleCanPlay = () => {
-      console.log("Audio can play, duration:", audio.duration);
       if (audio.duration && !isNaN(audio.duration) && audio.duration !== Infinity) {
         setDuration(audio.duration);
       } else if (audio.duration === Infinity) {

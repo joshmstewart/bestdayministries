@@ -98,7 +98,6 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     
     // Prevent re-initialization if we've already loaded saved data
     if (hasInitializedRef.current) {
-      console.log("[ColoringCanvas] Skipping re-initialization - already loaded");
       return;
     }
 
@@ -108,13 +107,6 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
 
     // Use the ref to get saved data (persists across re-renders)
     const savedCanvasData = initialSavedDataRef.current;
-    
-    console.log("[ColoringCanvas] Initializing canvas", {
-      hasSavedData: !!savedCanvasData,
-      savedDataLength: savedCanvasData?.length,
-      pageId: page.id,
-      imageUrl: page.image_url?.substring(0, 50)
-    });
 
     // Check if we have saved canvas data to restore
     if (savedCanvasData) {
@@ -122,10 +114,6 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
         const savedData = JSON.parse(savedCanvasData);
         // Support both new format (with dimensions) and old format (baseCanvas only)
         if (savedData.baseCanvas) {
-          console.log("[ColoringCanvas] Restoring saved canvas data", {
-            hasWidth: !!savedData.canvasWidth,
-            hasHeight: !!savedData.canvasHeight
-          });
           hasInitializedRef.current = true;
           
           const savedImg = new Image();
@@ -140,10 +128,6 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
             baseCanvas.height = restoreHeight;
             
             ctx.drawImage(savedImg, 0, 0);
-            console.log("[ColoringCanvas] Saved canvas image loaded successfully", {
-              width: restoreWidth,
-              height: restoreHeight
-            });
             
             // Still need to store original image for clear function
             const origImg = new Image();
@@ -241,7 +225,6 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       try {
         const savedData = JSON.parse(savedCanvasData);
         if (savedData.fabricObjects) {
-          console.log("[ColoringCanvas] Restoring fabric objects");
           canvas.loadFromJSON(savedData.fabricObjects, () => {
             canvas.renderAll();
           });

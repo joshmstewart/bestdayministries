@@ -464,7 +464,6 @@ export default function GuardianLinks() {
         }
         
         allBestieSponsorships = allBestieSponsData || [];
-        console.log("Loaded sponsorships for progress bars:", allBestieSponsorships.length, allBestieSponsorships);
       }
 
       // Combine the data
@@ -562,9 +561,6 @@ export default function GuardianLinks() {
         }
       });
 
-      console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode));
-      console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode));
-
       // Attach amounts to transformed data using LIVE mode only
       const finalData = transformedData.map(s => {
         const bestieKey = s.sponsor_bestie_id || s.bestie_id;
@@ -608,7 +604,6 @@ export default function GuardianLinks() {
 
     try {
       const friendCode = `${emoji1}${emoji2}${emoji3}`;
-      console.log("🔍 Searching for friend code:", friendCode, "Length:", friendCode.length);
       
       // Search for profile by friend code
       const { data: profile, error: profileError } = await supabase
@@ -616,8 +611,6 @@ export default function GuardianLinks() {
         .select("id, display_name, avatar_number, friend_code, bio")
         .eq("friend_code", friendCode)
         .maybeSingle();
-      
-      console.log("🔍 Search result:", { profile, error: profileError });
 
       if (profileError) throw profileError;
       if (!profile) {
@@ -668,12 +661,6 @@ export default function GuardianLinks() {
         return;
       }
 
-      console.log("🔗 Creating link:", {
-        caregiver_id: currentUserId,
-        bestie_id: bestie.id,
-        relationship: relationship.trim(),
-      });
-
       const { error: insertError } = await supabase
         .from("caregiver_bestie_links")
         .insert({
@@ -681,8 +668,6 @@ export default function GuardianLinks() {
           bestie_id: bestie.id,
           relationship: relationship.trim(),
         });
-
-      console.log("🔗 Insert result:", { error: insertError });
 
       if (insertError) throw insertError;
 
