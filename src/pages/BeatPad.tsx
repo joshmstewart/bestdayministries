@@ -140,7 +140,11 @@ const BeatPad: React.FC = () => {
     setBeatLoaded(true);
     
     // Pattern is stored with sound IDs as keys - we need to fetch those sounds
-    const soundIds = Object.keys(beat.pattern);
+    const allKeys = Object.keys(beat.pattern);
+    
+    // Filter out non-UUID keys (legacy patterns may have sound type names like "bass" instead of UUIDs)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const soundIds = allKeys.filter(key => uuidRegex.test(key));
     
     if (soundIds.length > 0) {
       try {
