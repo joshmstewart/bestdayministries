@@ -63,8 +63,9 @@ export function JournalEntry({ value, onChange, emotion }: JournalEntryProps) {
             onTranscript={handleVoiceTranscript}
             placeholder="Tap the microphone to speak... Your words will appear here and be added to the text below."
             showTranscript={true}
-            autoStop={false}
-            maxDuration={120}
+            autoStop={true}
+            silenceStopSeconds={15}
+            maxDuration={0}
           />
         </div>
 
