@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft, Gift, List, CalendarDays } from "lucide-react";
+import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft, Gift, List, CalendarDays, ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
@@ -13,6 +13,8 @@ import { ChoreFormDialog } from "@/components/chores/ChoreFormDialog";
 import { ChoreManageDialog } from "@/components/chores/ChoreManageDialog";
 import { ChoreWeeklyView } from "@/components/chores/ChoreWeeklyView";
 import { ChoreStreakDisplay } from "@/components/chores/ChoreStreakDisplay";
+import { MonthlyChallengeCard } from "@/components/chores/MonthlyChallengeCard";
+import { ChallengeGallery } from "@/components/chores/ChallengeGallery";
 import { useChoreStreaks } from "@/hooks/useChoreStreaks";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -80,6 +82,7 @@ export default function ChoreChart() {
   const [viewMode, setViewMode] = useState<'list' | 'week'>('list');
   const [earnedBadge, setEarnedBadge] = useState<import("@/lib/choreBadgeDefinitions").BadgeDefinition | null>(null);
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
 
   const { mstDate: today } = getMSTInfo();
   const dayOfWeek = new Date().getDay();
@@ -555,6 +558,17 @@ export default function ChoreChart() {
           </Card>
         )}
 
+        {/* Monthly Challenge Card */}
+        <MonthlyChallengeCard userId={targetUserId || undefined} />
+
+        {/* Gallery Button */}
+        <div className="flex justify-end mb-4">
+          <Button variant="outline" onClick={() => setShowGallery(true)}>
+            <ImageIcon className="h-4 w-4 mr-2" />
+            Community Creations
+          </Button>
+        </div>
+
         {/* Streak and Badges Display */}
         <ChoreStreakDisplay 
           streak={streak} 
@@ -685,6 +699,12 @@ export default function ChoreChart() {
           badge={earnedBadge}
           open={showBadgeDialog}
           onOpenChange={setShowBadgeDialog}
+        />
+
+        {/* Challenge Gallery */}
+        <ChallengeGallery
+          open={showGallery}
+          onOpenChange={setShowGallery}
         />
       </div>
     </main>
