@@ -251,6 +251,45 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
         // Get the eraser path's bounding box for intersection testing
         const eraserBounds = path.getBoundingRect();
         
+        // === ERASE FILLS ON BASE CANVAS ===
+        // Save history before erasing fills
+        if (baseCanvasRef.current) {
+          const baseCtx = baseCanvasRef.current.getContext("2d");
+          if (baseCtx && originalImageRef.current) {
+            // Save current state to history
+            const currentImageData = baseCtx.getImageData(0, 0, baseCanvasRef.current.width, baseCanvasRef.current.height);
+            setHistory(prev => [...prev.slice(-MAX_HISTORY + 1), currentImageData]);
+            
+            // Get the eraser bounds (clamp to canvas dimensions)
+            const x = Math.max(0, Math.floor(eraserBounds.left));
+            const y = Math.max(0, Math.floor(eraserBounds.top));
+            const w = Math.min(baseCanvasRef.current.width - x, Math.ceil(eraserBounds.width));
+            const h = Math.min(baseCanvasRef.current.height - y, Math.ceil(eraserBounds.height));
+            
+            if (w > 0 && h > 0) {
+              // Create a temp canvas with the original image section
+              const tempCanvas = document.createElement('canvas');
+              tempCanvas.width = w;
+              tempCanvas.height = h;
+              const tempCtx = tempCanvas.getContext('2d');
+              if (tempCtx) {
+                // Draw the original template section (restores to unfilled state)
+                tempCtx.drawImage(
+                  originalImageRef.current,
+                  x * (originalImageRef.current.width / baseCanvasRef.current.width),
+                  y * (originalImageRef.current.height / baseCanvasRef.current.height),
+                  w * (originalImageRef.current.width / baseCanvasRef.current.width),
+                  h * (originalImageRef.current.height / baseCanvasRef.current.height),
+                  0, 0, w, h
+                );
+                // Put the original template back in that area (erasing the fill)
+                baseCtx.drawImage(tempCanvas, x, y);
+              }
+            }
+          }
+        }
+        
+        // === ERASE BRUSH STROKES ON FABRIC CANVAS ===
         // Find all objects that intersect with the eraser path and remove them
         const objectsToRemove: any[] = [];
         canvas.getObjects().forEach((obj: any) => {
@@ -271,10 +310,15 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
         });
         
         // Remove intersecting objects
-        if (objectsToRemove.length > 0) {
+        const removedCount = objectsToRemove.length;
+        if (removedCount > 0) {
           objectsToRemove.forEach(obj => canvas.remove(obj));
-          toast.success(`Removed ${objectsToRemove.length} stroke${objectsToRemove.length > 1 ? 's' : ''}`);
         }
+        
+        // Always show feedback (fills are always erased in the area)
+        toast.success(removedCount > 0 
+          ? `Erased area (removed ${removedCount} stroke${removedCount > 1 ? 's' : ''})` 
+          : "Erased area");
         
         canvas.renderAll();
       }
