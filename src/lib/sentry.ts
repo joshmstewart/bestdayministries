@@ -46,7 +46,6 @@ export const initializeSentry = async () => {
     });
 
     sentryInitialized = true;
-    console.log('Sentry initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Sentry:', error);
   }
@@ -65,8 +64,6 @@ export const captureException = (error: Error, context?: Record<string, any>) =>
 export const captureMessage = (message: string, level: Sentry.SeverityLevel = 'info') => {
   if (sentryInitialized) {
     Sentry.captureMessage(message, level);
-  } else {
-    console.log(`Sentry not initialized, logging message [${level}]:`, message);
   }
 };
 

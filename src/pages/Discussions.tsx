@@ -147,16 +147,13 @@ const Discussions = () => {
   }, [searchParams, posts]);
 
   const checkUser = async () => {
-    console.log('👤 checkUser called');
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      console.log('❌ No session, redirecting to auth');
       navigate("/auth");
       return;
     }
 
-    console.log('✅ Session found:', session.user.id);
     setUser(session.user);
     const userProfile = await fetchProfile(session.user.id);
     await loadPosts(userProfile);
@@ -164,7 +161,6 @@ const Discussions = () => {
   };
 
   const fetchProfile = async (userId: string) => {
-    console.log('👤 fetchProfile called for:', userId);
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -186,12 +182,6 @@ const Discussions = () => {
       ...profileData,
       role: roleData?.role || "supporter"
     };
-
-    console.log('✅ Profile loaded:', { 
-      id: profile.id, 
-      role: profile.role,
-      display_name: profile.display_name 
-    });
 
     setProfile(profile);
     setCanCreatePosts(['caregiver', 'admin', 'owner'].includes(profile.role));
@@ -226,7 +216,6 @@ const Discussions = () => {
   };
 
   const loadPosts = async (userProfile?: any) => {
-      console.log('📚 loadPosts called', { hasUserProfile: !!userProfile });
       const { data: postsData, error: postsError } = await supabase
       .from("discussion_posts")
       .select(`
@@ -311,20 +300,12 @@ const Discussions = () => {
       })
     );
 
-    console.log('📚 Posts loaded:', postsWithComments.length);
     setPosts(postsWithComments);
     
     const profileToUse = userProfile || profile;
-    console.log('🔐 Checking profile before loadEditablePostIds:', { 
-      hasProfile: !!profileToUse, 
-      profileId: profileToUse?.id,
-      profileRole: profileToUse?.role 
-    });
     
     if (profileToUse) {
       await loadEditablePostIds(postsWithComments, profileToUse);
-    } else {
-      console.warn('⚠️ Profile is null, skipping loadEditablePostIds');
     }
   };
 
@@ -333,29 +314,12 @@ const Discussions = () => {
     
     if (!profileToUse || !user) return;
     
-    console.log('🔍 Loading editable post IDs', { 
-      profileRole: profileToUse.role, 
-      profileId: profileToUse.id,
-      totalPosts: postsToCheck.length 
-    });
-    
     const editable = new Set<string>();
     
     for (const post of postsToCheck) {
-      console.log('📝 Checking post:', {
-        postId: post.id,
-        postTitle: post.title,
-        authorId: post.author_id,
-        isOwn: profileToUse.id === post.author_id,
-        allowAdminEdit: (post as any).allow_admin_edit,
-        allowOwnerEdit: (post as any).allow_owner_edit,
-        userRole: profileToUse.role
-      });
-      
       // Can edit if it's their own post
       if (profileToUse.id === post.author_id) {
         editable.add(post.id);
-        console.log('✅ Added to editable (own post)');
         continue;
       }
       
@@ -370,7 +334,6 @@ const Discussions = () => {
         
         if (authorRole?.role !== 'owner') {
           editable.add(post.id);
-          console.log('✅ Added to editable (admin with permission)');
           continue;
         }
       }
@@ -378,7 +341,6 @@ const Discussions = () => {
       // Can edit if owner and allow_owner_edit is true
       if (profileToUse.role === 'owner' && (post as any).allow_owner_edit) {
         editable.add(post.id);
-        console.log('✅ Added to editable (owner with permission)');
         continue;
       }
       
@@ -393,7 +355,6 @@ const Discussions = () => {
         
         if (guardianLinks) {
           editable.add(post.id);
-          console.log('✅ Added to editable (guardian)');
         }
       }
     }
