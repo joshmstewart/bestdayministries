@@ -24,7 +24,10 @@ export function JournalEntry({ value, onChange }: JournalEntryProps) {
     <div className="space-y-4">
       {/* Voice Input */}
       <div className="p-3 rounded-lg bg-muted/50 border">
-        <p className="text-sm font-medium mb-2">🎤 Speak your thoughts:</p>
+        <p className="text-sm font-medium mb-2 flex items-center gap-2">
+          🎤 Speak your thoughts:
+          <TextToSpeech text="Speak your thoughts. Tap the microphone button to start recording." size="icon" />
+        </p>
         <VoiceInput
           onTranscript={handleVoiceTranscript}
           placeholder="Tap the microphone to speak..."
@@ -37,7 +40,10 @@ export function JournalEntry({ value, onChange }: JournalEntryProps) {
 
       {/* Text Area */}
       <div>
-        <p className="text-sm font-medium mb-2">✍️ Or type here:</p>
+        <p className="text-sm font-medium mb-2 flex items-center gap-2">
+          ✍️ Or type here:
+          <TextToSpeech text="Or type here. Write about your feelings in the text box." size="icon" />
+        </p>
         <Textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
