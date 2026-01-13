@@ -282,6 +282,7 @@ const App = () => {
             <Route path="/games/daily-five" element={<WordleGame />} />
             <Route path="/games/emotion-journal" element={<EmotionJournal />} />
             <Route path="/games/beat-pad" element={<BeatPad />} />
+            <Route path="/games/cash-register" element={<MoneyCounting />} />
             <Route path="/chore-chart" element={<ChoreChart />} />
             <Route path="/virtual-pet" element={<VirtualPetPage />} />
             <Route path="/store" element={<StorePage />} />

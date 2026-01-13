@@ -1979,6 +1979,7 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string
+          description: string | null
           generated_image_url: string | null
           id: string
           ingredients: string[]
@@ -1990,6 +1991,7 @@ export type Database = {
         Insert: {
           created_at?: string
           creator_id: string
+          description?: string | null
           generated_image_url?: string | null
           id?: string
           ingredients: string[]
@@ -2001,6 +2003,7 @@ export type Database = {
         Update: {
           created_at?: string
           creator_id?: string
+          description?: string | null
           generated_image_url?: string | null
           id?: string
           ingredients?: string[]
