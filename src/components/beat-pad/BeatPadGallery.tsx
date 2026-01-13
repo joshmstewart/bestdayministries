@@ -6,12 +6,12 @@ import { Heart, Play, Loader2, Music } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { InstrumentType } from '@/hooks/useBeatPadAudio';
+
 
 interface BeatCreation {
   id: string;
   name: string;
-  pattern: Record<InstrumentType, boolean[]>;
+  pattern: Record<string, boolean[]>;
   tempo: number;
   likes_count: number;
   creator_id: string;
@@ -26,7 +26,7 @@ interface BeatCreation {
 interface Beat {
   id: string;
   name: string;
-  pattern: Record<InstrumentType, boolean[]>;
+  pattern: Record<string, boolean[]>;
   tempo: number;
   image_url?: string | null;
 }
@@ -68,7 +68,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
       // Cast the pattern from Json to the correct type
       const typedCreations = (data || []).map(creation => ({
         ...creation,
-        pattern: creation.pattern as Record<InstrumentType, boolean[]>,
+        pattern: creation.pattern as Record<string, boolean[]>,
         profiles: profileMap.get(creation.creator_id) as { display_name: string | null; avatar_number: number | null } | undefined
       }));
       
@@ -126,7 +126,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
     }
   };
 
-  const countActiveSteps = (pattern: Record<InstrumentType, boolean[]>): number => {
+  const countActiveSteps = (pattern: Record<string, boolean[]>): number => {
     return Object.values(pattern).reduce((total, steps) => {
       return total + steps.filter(Boolean).length;
     }, 0);

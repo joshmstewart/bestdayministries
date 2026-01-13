@@ -5,13 +5,12 @@ import { Loader2, Play, Trash2, Share2, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { InstrumentType } from '@/hooks/useBeatPadAudio';
 import { cn } from '@/lib/utils';
 
 interface BeatCreation {
   id: string;
   name: string;
-  pattern: Record<InstrumentType, boolean[]>;
+  pattern: Record<string, boolean[]>;
   tempo: number;
   is_public: boolean;
   created_at: string;
@@ -21,7 +20,7 @@ interface BeatCreation {
 interface Beat {
   id: string;
   name: string;
-  pattern: Record<InstrumentType, boolean[]>;
+  pattern: Record<string, boolean[]>;
   tempo: number;
   image_url?: string | null;
 }
@@ -59,7 +58,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
         ...beat,
         pattern: typeof beat.pattern === 'string' 
           ? JSON.parse(beat.pattern) 
-          : beat.pattern as Record<InstrumentType, boolean[]>,
+          : beat.pattern as Record<string, boolean[]>,
       }));
 
       setBeats(parsed);
@@ -107,7 +106,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
     }
   };
 
-  const countActiveSteps = (pattern: Record<InstrumentType, boolean[]>): number => {
+  const countActiveSteps = (pattern: Record<string, boolean[]>): number => {
     return Object.values(pattern).reduce((total, steps) => {
       return total + steps.filter(Boolean).length;
     }, 0);
