@@ -103,29 +103,19 @@ export const TextToSpeech = ({
 
       console.log('TTS - Received audio content, length:', data.audioContent.length);
 
-      // Create audio element from base64
-      const audioBlob = new Blob(
-        [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
-        { type: 'audio/mpeg' }
-      );
-      console.log('TTS - Created audio blob, size:', audioBlob.size);
-      
-      const audioUrl = URL.createObjectURL(audioBlob);
-      console.log('TTS - Created audio URL:', audioUrl);
-      
+      // Create audio element from base64 using a data URI (avoids binary corruption issues)
+      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
       const newAudio = new Audio(audioUrl);
 
       newAudio.onended = () => {
         console.log('TTS - Audio ended');
         setIsPlaying(false);
         onPlayingChange?.(false);
-        URL.revokeObjectURL(audioUrl);
       };
 
       newAudio.onerror = (e) => {
         console.error('TTS - Audio error:', e);
         setIsPlaying(false);
-        URL.revokeObjectURL(audioUrl);
         toast({
           title: "Playback Error",
           description: "Failed to play audio",
@@ -170,6 +160,7 @@ export const TextToSpeech = ({
 
   return (
     <Button
+      type="button"
       size={size}
       onClick={handlePlay}
       disabled={isLoading}
