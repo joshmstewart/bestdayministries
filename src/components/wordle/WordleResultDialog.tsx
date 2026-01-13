@@ -119,29 +119,14 @@ export function WordleResultDialog({
           )}
 
           {/* Actions */}
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={handleShare}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button className="flex-1" onClick={() => onOpenChange(false)}>
-                Close
-              </Button>
-            </div>
-            {onPlayOtherDays && (
-              <Button 
-                variant="secondary" 
-                className="w-full" 
-                onClick={() => {
-                  onOpenChange(false);
-                  onPlayOtherDays();
-                }}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Play Previous Days
-              </Button>
-            )}
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={handleShare}>
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button className="flex-1" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
           </div>
         </div>
       </DialogContent>
