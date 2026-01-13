@@ -23,8 +23,16 @@ interface BeatCreation {
   };
 }
 
+interface Beat {
+  id: string;
+  name: string;
+  pattern: Record<InstrumentType, boolean[]>;
+  tempo: number;
+  image_url?: string | null;
+}
+
 interface BeatPadGalleryProps {
-  onLoadBeat: (pattern: Record<InstrumentType, boolean[]>, tempo: number) => void;
+  onLoadBeat: (beat: Beat) => void;
 }
 
 export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) => {
@@ -194,7 +202,13 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => onLoadBeat(creation.pattern, creation.tempo)}
+                onClick={() => onLoadBeat({
+                  id: creation.id,
+                  name: creation.name,
+                  pattern: creation.pattern,
+                  tempo: creation.tempo,
+                  image_url: creation.image_url,
+                })}
               >
                 <Play className="h-4 w-4 mr-1" />
                 Load
