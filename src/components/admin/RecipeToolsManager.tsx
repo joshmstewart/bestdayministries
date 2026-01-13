@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2 } from "lucide-react";
+import { SectionLoadingState } from "@/components/common";
 
 // Tool suggestions by category - comprehensive list
 const TOOL_SUGGESTIONS: Record<string, string[]> = {
@@ -401,11 +402,7 @@ export const RecipeToolsManager = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <SectionLoadingState className="py-12" />;
   }
 
   return (

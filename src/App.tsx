@@ -229,6 +229,7 @@ const App = () => {
           <DailyLoginRewardManager />
           <PageTracker />
           <TermsAcceptanceGuard>
+            <main id="main-content" className="flex-1">
             <Suspense fallback={<PageLoader />}>
               <Routes>
               <Route path="/" element={<DomainRouter />} />
@@ -289,6 +290,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
+            </main>
           </TermsAcceptanceGuard>
         </BrowserRouter>
       </TooltipProvider>
