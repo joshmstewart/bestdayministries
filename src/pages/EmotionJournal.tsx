@@ -228,6 +228,10 @@ export default function EmotionJournal() {
                           <CardTitle className="text-base flex items-center gap-2">
                             <span className="text-muted-foreground">(Optional)</span>
                             How strong is this feeling?
+                            <TextToSpeech 
+                              text="Optional. How strong is this feeling? Choose from 1 to 5." 
+                              size="icon" 
+                            />
                             {intensity !== null && (
                               <span className="text-sm font-normal bg-primary/10 px-2 py-0.5 rounded">
                                 {intensity}/5
@@ -282,6 +286,10 @@ export default function EmotionJournal() {
                           <CardTitle className="text-base flex items-center gap-2">
                             <span className="text-muted-foreground">(Optional)</span>
                             Want to say more?
+                            <TextToSpeech 
+                              text="Optional. Want to say more? You can speak or type about your feelings." 
+                              size="icon" 
+                            />
                             {journalText.trim() && (
                               <span className="text-sm font-normal bg-primary/10 px-2 py-0.5 rounded">
                                 ✓ Added
