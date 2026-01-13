@@ -359,7 +359,6 @@ const Discussions = () => {
       }
     }
     
-    console.log('📋 Final editable post IDs:', Array.from(editable));
     setEditablePostIds(editable);
   };
 
@@ -1112,15 +1111,7 @@ const Discussions = () => {
       {/* Discussion Detail Dialog */}
       <DiscussionDetailDialog
         open={detailDialogOpen}
-        onOpenChange={(open) => {
-          console.log('🔧 Dialog state change:', { 
-            open, 
-            selectedPostId: selectedPost?.id,
-            isEditable: selectedPost ? editablePostIds.has(selectedPost.id) : false,
-            editableIds: Array.from(editablePostIds)
-          });
-          setDetailDialogOpen(open);
-        }}
+        onOpenChange={setDetailDialogOpen}
         post={selectedPost}
         onComment={async (postId, content, audioBlob) => {
           // Handle comment submission

@@ -945,7 +945,6 @@ export const FeaturedBestieManager = () => {
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    console.log("Cancel clicked");
                     resetForm();
                     setDialogOpen(false);
                   }}
@@ -956,10 +955,7 @@ export const FeaturedBestieManager = () => {
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => {
-                    console.log("Update button clicked!");
-                    handleSubmit();
-                  }}
+                  onClick={handleSubmit}
                   disabled={uploading}
                   className="flex-1 pointer-events-auto z-50"
                 >

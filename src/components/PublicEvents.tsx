@@ -85,23 +85,17 @@ export function PublicEvents() {
     if (error) {
       console.error("Error loading events:", error);
     } else {
-      console.log('PublicEvents - User:', user?.id, 'UserRole:', userRole);
-      
       // Filter events based on effective user role
       const filteredEvents = (data || []).filter(event => {
         // If not logged in, show all public events
         if (!user || !userRole) {
-          console.log(`Event "${event.title}" - Not logged in or no role, showing`);
           return true;
         }
         
         // Check if user's role is in visible_to_roles
-        const isVisible = event.visible_to_roles?.includes(userRole);
-        console.log(`Event "${event.title}" - Visible to roles:`, event.visible_to_roles, 'User role:', userRole, 'Is visible:', isVisible);
-        return isVisible;
+        return event.visible_to_roles?.includes(userRole);
       });
       
-      console.log('PublicEvents - Filtered events count:', filteredEvents.length);
       setEvents(filteredEvents as Event[]);
     }
     setLoading(false);

@@ -270,8 +270,6 @@ const VendorAuth = () => {
           
           if (termsResult.error) {
             console.error("⚠️ Terms recording failed:", termsResult.error);
-          } else {
-            console.log('✅ Terms recorded successfully after vendor signup');
           }
         } catch (termsError) {
           console.error("⚠️ Error recording terms:", termsError);
