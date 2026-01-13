@@ -74,6 +74,7 @@ type SortOption = "newest" | "popular";
 interface CustomDrink {
   id: string;
   name: string;
+  description: string | null;
   ingredients: string[];
   ingredientNames: string[];
   generated_image_url: string | null;
@@ -316,9 +317,9 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
 
       {/* Lightbox Dialog */}
       <Dialog open={!!selectedDrink} onOpenChange={() => setSelectedDrink(null)}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden mt-8">
+        <DialogContent className="max-w-2xl p-0 overflow-hidden max-h-[90vh]">
           {selectedDrink && (
-            <div className="relative pt-6">
+            <div className="relative">
               <Button
                 variant="ghost"
                 size="icon"
@@ -328,58 +329,67 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
                 <X className="h-4 w-4" />
               </Button>
               
-              {selectedDrink.generated_image_url ? (
-                <img
-                  src={selectedDrink.generated_image_url}
-                  alt={selectedDrink.name}
-                  className="w-full h-auto max-h-[70vh] object-contain"
-                />
-              ) : (
-                <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                  <span className="text-8xl">☕</span>
-                </div>
-              )}
-              
-              <div className="p-4 bg-background space-y-3">
-                <div>
-                  <h2 className="text-xl font-semibold">{selectedDrink.name}</h2>
-                  {selectedDrink.creator_name && (
-                    <p className="text-sm text-muted-foreground">by {selectedDrink.creator_name}</p>
-                  )}
-                </div>
-                
-                {/* Ingredients */}
-                {selectedDrink.ingredientNames && selectedDrink.ingredientNames.length > 0 && (
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Ingredients</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedDrink.ingredientNames.map((ingredient, idx) => (
-                        <span 
-                          key={idx}
-                          className="px-2 py-1 bg-primary/10 text-primary rounded-full text-sm"
-                        >
-                          {ingredient}
-                        </span>
-                      ))}
-                    </div>
+              <div className="overflow-y-auto max-h-[90vh]">
+                {selectedDrink.generated_image_url ? (
+                  <img
+                    src={selectedDrink.generated_image_url}
+                    alt={selectedDrink.name}
+                    className="w-full h-auto max-h-[50vh] object-contain"
+                  />
+                ) : (
+                  <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                    <span className="text-8xl">☕</span>
                   </div>
                 )}
                 
-                <div className="flex items-center gap-2 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleLike(selectedDrink.id)}
-                    disabled={likingDrink === selectedDrink.id}
-                  >
-                    <Heart
-                      className={cn(
-                        "h-4 w-4 mr-1",
-                        userLikes.has(selectedDrink.id) && "fill-red-500 text-red-500"
-                      )}
-                    />
-                    {selectedDrink.likes_count}
-                  </Button>
+                <div className="p-4 bg-background space-y-4">
+                  <div>
+                    <h2 className="text-xl font-semibold">{selectedDrink.name}</h2>
+                    {selectedDrink.creator_name && (
+                      <p className="text-sm text-muted-foreground">by {selectedDrink.creator_name}</p>
+                    )}
+                  </div>
+                  
+                  {/* Description */}
+                  {selectedDrink.description && (
+                    <p className="text-muted-foreground italic">
+                      {selectedDrink.description}
+                    </p>
+                  )}
+                  
+                  {/* Ingredients - Organized by category appearance */}
+                  {selectedDrink.ingredientNames && selectedDrink.ingredientNames.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium mb-2">Ingredients</h3>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedDrink.ingredientNames.map((ingredient, idx) => (
+                          <span 
+                            key={idx}
+                            className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
+                          >
+                            {ingredient}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 pt-2 border-t border-border">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleLike(selectedDrink.id)}
+                      disabled={likingDrink === selectedDrink.id}
+                    >
+                      <Heart
+                        className={cn(
+                          "h-4 w-4 mr-1",
+                          userLikes.has(selectedDrink.id) && "fill-red-500 text-red-500"
+                        )}
+                      />
+                      {selectedDrink.likes_count}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

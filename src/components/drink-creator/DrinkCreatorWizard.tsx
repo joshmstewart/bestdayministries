@@ -182,6 +182,27 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
     }
   };
 
+  const generateDescription = async (): Promise<string | null> => {
+    const selected = getSelectedIngredientNames();
+    const vibe = await fetchSelectedVibe();
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-drink-description", {
+        body: {
+          drinkName,
+          ingredients: selected,
+          vibe: vibe ? { name: vibe.name, description: vibe.description } : null,
+        },
+      });
+
+      if (error) throw error;
+      return data?.description || null;
+    } catch (error) {
+      console.error("Error generating description:", error);
+      return null;
+    }
+  };
+
   const saveDrink = async () => {
     if (!drinkName.trim()) {
       toast({
@@ -205,11 +226,15 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
     try {
       const allIngredientIds = Object.values(selectedIngredients).flat();
 
+      // Generate description before saving
+      const description = await generateDescription();
+
       const { data, error } = await supabase
         .from("custom_drinks")
         .insert({
           creator_id: userId,
           name: drinkName,
+          description,
           ingredients: allIngredientIds,
           generated_image_url: generatedImage,
           is_public: true,
