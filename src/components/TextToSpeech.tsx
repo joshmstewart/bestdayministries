@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,7 @@ interface TextToSpeechProps {
 // Cache TTS settings per user to avoid repeated fetches
 const ttsSettingsCache = new Map<string, { voice: string; enabled: boolean }>();
 
-export const TextToSpeech = ({ 
+export const TextToSpeech = memo(({ 
   text, 
   voice,
   size = 'icon',
@@ -25,7 +25,7 @@ export const TextToSpeech = ({
   const { user } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [userVoice, setUserVoice] = useState<string>('Sarah');
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -68,15 +68,25 @@ export const TextToSpeech = ({
     loadUserVoice();
   }, [user?.id]);
 
-  const handlePlay = async (e: React.MouseEvent) => {
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const handlePlay = useCallback(async (e: React.MouseEvent) => {
     // Prevent the click from bubbling up to parent elements
     e.stopPropagation();
     
     try {
-      if (isPlaying && audio) {
+      if (isPlaying && audioRef.current) {
         // Stop current playback
-        audio.pause();
-        audio.currentTime = 0;
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
         setIsPlaying(false);
         onPlayingChange?.(false);
         return;
@@ -86,10 +96,6 @@ export const TextToSpeech = ({
 
       // Use passed voice prop or user's preferred voice
       const selectedVoice = voice || userVoice;
-      
-      console.log('TTS - Sending text to API:', text);
-      console.log('TTS - Text length:', text.length);
-      console.log('TTS - Voice:', selectedVoice);
 
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { text, voice: selectedVoice }
@@ -101,20 +107,16 @@ export const TextToSpeech = ({
         throw new Error('No audio content received');
       }
 
-      console.log('TTS - Received audio content, length:', data.audioContent.length);
-
-      // Create audio element from base64 using a data URI (avoids binary corruption issues)
+      // Create audio element from base64 using a data URI
       const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
       const newAudio = new Audio(audioUrl);
 
       newAudio.onended = () => {
-        console.log('TTS - Audio ended');
         setIsPlaying(false);
         onPlayingChange?.(false);
       };
 
-      newAudio.onerror = (e) => {
-        console.error('TTS - Audio error:', e);
+      newAudio.onerror = () => {
         setIsPlaying(false);
         toast({
           title: "Playback Error",
@@ -123,13 +125,11 @@ export const TextToSpeech = ({
         });
       };
 
-      setAudio(newAudio);
+      audioRef.current = newAudio;
       
       // Start playback immediately
       try {
-        console.log('TTS - Starting playback...');
         await newAudio.play();
-        console.log('TTS - Playback started successfully, currentTime after play:', newAudio.currentTime);
         setIsPlaying(true);
         onPlayingChange?.(true);
       } catch (playError) {
@@ -151,7 +151,7 @@ export const TextToSpeech = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isPlaying, voice, userVoice, text, onPlayingChange, toast]);
 
   // Don't render if TTS is disabled or settings not loaded yet
   if (!settingsLoaded || !ttsEnabled) {
@@ -176,4 +176,6 @@ export const TextToSpeech = ({
       )}
     </Button>
   );
-};
+});
+
+TextToSpeech.displayName = "TextToSpeech";
