@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SectionLoadingState } from "@/components/common";
 
 export const CampaignTemplates = () => {
   const { toast } = useToast();
@@ -182,7 +183,7 @@ export const CampaignTemplates = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8">Loading templates...</div>
+        <SectionLoadingState message="Loading templates..." />
       ) : !templates || templates.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center">

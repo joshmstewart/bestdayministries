@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, RefreshCw, Eye, AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
+import { RefreshCw, Eye, AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Database } from "@/integrations/supabase/types";
+import { SectionLoadingState } from "@/components/common";
 
 type WebhookLog = Database['public']['Tables']['stripe_webhook_logs']['Row'];
 
@@ -160,9 +161,7 @@ export function WebhookLogsViewer() {
           </div>
 
           {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            <SectionLoadingState message="Loading webhook logs..." />
           ) : (
             <div className="rounded-md border">
               <Table>

@@ -8,6 +8,7 @@ import { Plus, Edit, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterTemplateDialog } from "./NewsletterTemplateDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
+import { SectionLoadingState } from "@/components/common";
 
 export const NewsletterTemplates = () => {
   const queryClient = useQueryClient();
@@ -65,7 +66,7 @@ export const NewsletterTemplates = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">Loading templates...</div>
+        <SectionLoadingState message="Loading templates..." />
       ) : templates?.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground mb-4">No templates yet</p>

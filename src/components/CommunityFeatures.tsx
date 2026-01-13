@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Calendar, MessageSquare, Users, Gift, Link2, Volume2, Shield, Star, Award, BookOpen, Camera, Coffee, Compass, Smile, Sparkles, Target, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { SectionLoadingState, CompactEmptyState } from "@/components/common";
 import type { LucideIcon } from "lucide-react";
-
 interface CommunityFeaturesContent {
   badge_text?: string;
   title?: string;
@@ -88,13 +88,9 @@ const CommunityFeatures = ({ content = {} }: CommunityFeaturesProps) => {
         </div>
 
         {loading ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Loading features...</p>
-          </div>
+          <SectionLoadingState message="Loading features..." />
         ) : features.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No features available</p>
-          </div>
+          <CompactEmptyState message="No features available" />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => {

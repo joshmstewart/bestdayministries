@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SectionLoadingState } from "@/components/common";
 
 export const NewsletterEmailsLog = () => {
   const [searchEmail, setSearchEmail] = useState("");
@@ -127,9 +128,7 @@ export const NewsletterEmailsLog = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-8 text-muted-foreground">
-          Loading email logs...
-        </div>
+        <SectionLoadingState message="Loading email logs..." />
       ) : emailLogs?.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">No email logs found</p>

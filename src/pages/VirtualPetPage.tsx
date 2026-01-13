@@ -3,10 +3,10 @@ import Footer from "@/components/Footer";
 import { VirtualPet } from "@/components/VirtualPet";
 import { PetAdoption } from "@/components/PetAdoption";
 import { usePet } from "@/hooks/usePet";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SectionLoadingState } from "@/components/common";
 
 export default function VirtualPetPage() {
   const { pet, petTypes, loading, adoptPet } = usePet();
@@ -29,11 +29,7 @@ export default function VirtualPetPage() {
           </Button>
 
           {loading ? (
-            <div className="max-w-md mx-auto space-y-4">
-              <Skeleton className="h-48 w-full" />
-              <Skeleton className="h-32 w-full" />
-              <Skeleton className="h-20 w-full" />
-            </div>
+            <SectionLoadingState message="Loading your pet..." />
           ) : pet ? (
             <VirtualPet />
           ) : (
