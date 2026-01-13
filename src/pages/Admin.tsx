@@ -84,6 +84,7 @@ import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 import { PicturePasswordImagesViewer } from "@/components/admin/PicturePasswordImagesViewer";
 import { ChoreBadgeManager } from "@/components/admin/ChoreBadgeManager";
+import { ChoreChallengeManager } from "@/components/admin/ChoreChallengeManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -572,7 +573,18 @@ const Admin = () => {
                   </TabsContent>
 
                   <TabsContent value="chores">
-                    <ChoreBadgeManager />
+                    <Tabs defaultValue="badges" className="space-y-4">
+                      <TabsList>
+                        <TabsTrigger value="badges">Badges</TabsTrigger>
+                        <TabsTrigger value="challenges">Monthly Challenges</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="badges">
+                        <ChoreBadgeManager />
+                      </TabsContent>
+                      <TabsContent value="challenges">
+                        <ChoreChallengeManager />
+                      </TabsContent>
+                    </Tabs>
                   </TabsContent>
                 </Tabs>
               </CardContent>
