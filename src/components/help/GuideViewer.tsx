@@ -1,8 +1,12 @@
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Clock, Users, X } from "lucide-react";
+import { GuideFeedback } from "./GuideFeedback";
+import { VideoEmbed } from "./VideoEmbed";
 
 interface Guide {
   id: string;
@@ -20,6 +24,14 @@ interface GuideViewerProps {
 }
 
 export function GuideViewer({ guide, onClose }: GuideViewerProps) {
+  // Track guide as read in localStorage
+  useEffect(() => {
+    const readGuides = JSON.parse(localStorage.getItem("read_guides") || "[]");
+    if (!readGuides.includes(guide.id)) {
+      readGuides.push(guide.id);
+      localStorage.setItem("read_guides", JSON.stringify(readGuides));
+    }
+  }, [guide.id]);
   // Parse inline markdown formatting
   const parseInlineMarkdown = (text: string) => {
     const parts: (string | JSX.Element)[] = [];
@@ -223,11 +235,16 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
           </div>
         </DialogHeader>
 
-        <ScrollArea className="h-[60vh] pr-4">
+        <ScrollArea className="h-[55vh] pr-4">
           <div className="prose prose-sm max-w-none space-y-1">
             {renderContent(guide.content)}
           </div>
         </ScrollArea>
+
+        <Separator className="my-4" />
+        <div className="flex justify-center">
+          <GuideFeedback guideId={guide.id} guideName={guide.title} />
+        </div>
       </DialogContent>
     </Dialog>
   );
