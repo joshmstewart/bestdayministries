@@ -31,6 +31,12 @@ export const useBeatLoopPlayer = () => {
   const [playingBeatId, setPlayingBeatId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [soundConfigs, setSoundConfigs] = useState<Record<string, SoundConfig>>(DEFAULT_SOUNDS);
+  const soundConfigsRef = useRef<Record<string, SoundConfig>>(DEFAULT_SOUNDS);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    soundConfigsRef.current = soundConfigs;
+  }, [soundConfigs]);
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
@@ -60,7 +66,7 @@ export const useBeatLoopPlayer = () => {
     }
   }, [getAudioContext]);
 
-  // Load sound configs once
+  // Load default sound configs once
   useEffect(() => {
     const loadConfigs = async () => {
       try {
@@ -109,28 +115,55 @@ export const useBeatLoopPlayer = () => {
     return buffer;
   }, []);
 
-  // Resolve instrument key to sound_type for legacy patterns
-  const resolveSoundType = useCallback((key: string): string => {
-    // Check if it's already a known sound type
-    if (DEFAULT_SOUNDS[key]) {
-      return key;
+  // Load sounds by UUID from database
+  const loadSoundsByUUID = useCallback(async (uuids: string[]): Promise<void> => {
+    // Filter out UUIDs we already have configs for
+    const missingUUIDs = uuids.filter(uuid => 
+      !soundConfigsRef.current[uuid] && !DEFAULT_SOUNDS[uuid]
+    );
+    
+    if (missingUUIDs.length === 0) return;
+
+    try {
+      const { data: sounds } = await supabase
+        .from('beat_pad_sounds')
+        .select('*')
+        .in('id', missingUUIDs);
+
+      if (!sounds?.length) return;
+
+      const newConfigs: Record<string, SoundConfig> = {};
+      const loadPromises: Promise<void>[] = [];
+
+      for (const sound of sounds) {
+        newConfigs[sound.id] = {
+          type: (sound.oscillator_type as OscillatorType) || 'sine',
+          freq: sound.frequency || 440,
+          decay: sound.decay || 0.2,
+          noise: sound.has_noise || false,
+          audioUrl: sound.audio_url || undefined,
+        };
+        
+        if (sound.audio_url) {
+          loadPromises.push(loadAudioBuffer(sound.audio_url, sound.id).then(() => {}));
+        }
+      }
+
+      await Promise.all(loadPromises);
+      
+      setSoundConfigs(prev => ({ ...prev, ...newConfigs }));
+      soundConfigsRef.current = { ...soundConfigsRef.current, ...newConfigs };
+    } catch (error) {
+      console.error('Error loading sounds by UUID:', error);
     }
-    // Check if we have this key in soundConfigs (from DB load)
-    if (soundConfigs[key]) {
-      return key;
-    }
-    // It might be a UUID - we need to look it up or default to a sound type
-    // For UUIDs, we'll use the key as-is and let the sound system handle it
-    return key;
-  }, [soundConfigs]);
+  }, [loadAudioBuffer]);
 
   const playSound = useCallback((instrument: string) => {
     const ctx = getAudioContext();
-    const soundType = resolveSoundType(instrument);
-    const config = soundConfigs[soundType] || DEFAULT_SOUNDS[soundType] || DEFAULT_SOUNDS['kick'];
+    const config = soundConfigsRef.current[instrument] || DEFAULT_SOUNDS[instrument] || DEFAULT_SOUNDS['kick'];
     if (!config) return;
 
-    const buffer = audioBuffersRef.current.get(instrument) || audioBuffersRef.current.get(soundType);
+    const buffer = audioBuffersRef.current.get(instrument);
     if (buffer) {
       const source = ctx.createBufferSource();
       const gainNode = ctx.createGain();
@@ -150,7 +183,7 @@ export const useBeatLoopPlayer = () => {
     osc.type = config.type;
     osc.frequency.setValueAtTime(config.freq, now);
     
-    if (soundType === 'kick' || instrument.includes('kick')) {
+    if (instrument === 'kick' || instrument.includes('kick')) {
       osc.frequency.exponentialRampToValueAtTime(30, now + config.decay);
     }
     
@@ -180,7 +213,7 @@ export const useBeatLoopPlayer = () => {
       noise.start(now);
       noise.stop(now + config.decay);
     }
-  }, [getAudioContext, soundConfigs, createNoiseBuffer, resolveSoundType]);
+  }, [getAudioContext, createNoiseBuffer]);
 
   const stopBeat = useCallback(() => {
     if (intervalRef.current) {
@@ -193,7 +226,7 @@ export const useBeatLoopPlayer = () => {
     globalStopCallback = null;
   }, []);
 
-  const playBeat = useCallback((
+  const playBeat = useCallback(async (
     beatId: string,
     pattern: Record<string, boolean[]>,
     tempo: number
@@ -208,6 +241,12 @@ export const useBeatLoopPlayer = () => {
       stopBeat();
       return;
     }
+
+    // Get all instrument keys from the pattern
+    const instrumentKeys = Object.keys(pattern);
+    
+    // Load any missing sound configs by UUID before starting playback
+    await loadSoundsByUUID(instrumentKeys);
 
     // Start new beat
     setPlayingBeatId(beatId);
@@ -229,7 +268,7 @@ export const useBeatLoopPlayer = () => {
 
     tick(); // Play immediately
     intervalRef.current = window.setInterval(tick, intervalMs);
-  }, [playingBeatId, playSound, stopBeat]);
+  }, [playingBeatId, playSound, stopBeat, loadSoundsByUUID]);
 
   // Cleanup on unmount
   useEffect(() => {
