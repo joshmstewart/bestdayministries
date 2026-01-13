@@ -634,6 +634,7 @@ export type Database = {
       }
       beat_pad_sounds: {
         Row: {
+          audio_url: string | null
           color: string
           created_at: string
           decay: number | null
@@ -653,6 +654,7 @@ export type Database = {
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
+          audio_url?: string | null
           color?: string
           created_at?: string
           decay?: number | null
@@ -672,6 +674,7 @@ export type Database = {
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
+          audio_url?: string | null
           color?: string
           created_at?: string
           decay?: number | null

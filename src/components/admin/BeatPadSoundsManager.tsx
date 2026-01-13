@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Music, Plus, Edit, Eye, EyeOff, Trash2, Play } from "lucide-react";
+import { Music, Plus, Edit, Eye, EyeOff, Trash2, Play, Sparkles, Loader2, Upload, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database['public']['Enums']['user_role'];
@@ -26,6 +27,18 @@ const USER_ROLES = [
 ];
 
 const OSCILLATOR_TYPES = ['sine', 'square', 'triangle', 'sawtooth'];
+
+// Default sound prompts for AI generation
+const DEFAULT_SOUND_PROMPTS: Record<string, string> = {
+  kick: "Deep punchy kick drum hit, electronic music, 808 style bass drum",
+  snare: "Crisp snare drum hit with tight snap, electronic music production",
+  hihat: "Closed hi-hat cymbal hit, crisp and short, electronic music",
+  bass: "Deep bass synth hit, short punchy low frequency tone",
+  synth1: "Short synth stab, electronic lead sound, bright and punchy",
+  synth2: "Warm pad synth hit, melodic tone, electronic music",
+  bell: "Bell chime sound, clear metallic tone, musical percussion",
+  clap: "Hand clap sound, tight and punchy, electronic music style",
+};
 
 interface BeatPadSound {
   id: string;
@@ -43,6 +56,7 @@ interface BeatPadSound {
   is_default: boolean | null;
   display_order: number | null;
   visible_to_roles: UserRole[] | null;
+  audio_url: string | null;
 }
 
 export const BeatPadSoundsManager = () => {
@@ -50,6 +64,8 @@ export const BeatPadSoundsManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSound, setEditingSound] = useState<BeatPadSound | null>(null);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [generatingSound, setGeneratingSound] = useState<string | null>(null);
+  const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     emoji: "🎵",
@@ -88,7 +104,27 @@ export const BeatPadSoundsManager = () => {
     return audioContext;
   };
 
-  const previewSound = (sound: BeatPadSound) => {
+  const previewSound = async (sound: BeatPadSound) => {
+    // Stop any existing preview
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+    }
+
+    // If there's an audio URL, play that
+    if (sound.audio_url) {
+      try {
+        const audio = new Audio(sound.audio_url);
+        audio.volume = 0.7;
+        setPreviewAudio(audio);
+        await audio.play();
+        return;
+      } catch (error) {
+        console.warn('Failed to play audio URL, falling back to synthesis:', error);
+      }
+    }
+
+    // Fallback to synthesized preview
     const ctx = getAudioContext();
     const now = ctx.currentTime;
     
@@ -138,6 +174,123 @@ export const BeatPadSoundsManager = () => {
       
       noise.start(now);
       noise.stop(now + (sound.decay || 0.1));
+    }
+  };
+
+  const generateAISound = async (sound: BeatPadSound) => {
+    setGeneratingSound(sound.id);
+    
+    try {
+      // Get the appropriate prompt for this sound type
+      const prompt = DEFAULT_SOUND_PROMPTS[sound.sound_type] || 
+        `${sound.name} sound effect, short percussive hit, electronic music production`;
+      
+      toast({ title: "Generating AI sound...", description: `Creating ${sound.name} with ElevenLabs` });
+      
+      // Call the ElevenLabs SFX edge function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-sfx`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            prompt,
+            duration: 1, // Short duration for beat pad sounds
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to generate sound: ${response.status}`);
+      }
+
+      // Get the audio blob
+      const audioBlob = await response.blob();
+      
+      // Upload to Supabase storage
+      const fileName = `beat-pad-sounds/${sound.sound_type}-${Date.now()}.mp3`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('audio-clips')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/mpeg',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('audio-clips')
+        .getPublicUrl(fileName);
+
+      // Update the sound record with the audio URL
+      const { error: updateError } = await supabase
+        .from('beat_pad_sounds')
+        .update({ audio_url: publicUrl })
+        .eq('id', sound.id);
+
+      if (updateError) throw updateError;
+
+      toast({ title: "Sound generated!", description: `${sound.name} now uses AI-generated audio` });
+      refetch();
+      
+      // Preview the new sound
+      const audio = new Audio(publicUrl);
+      audio.volume = 0.7;
+      await audio.play();
+    } catch (error) {
+      console.error('Error generating AI sound:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate sound",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingSound(null);
+    }
+  };
+
+  const generateAllAISounds = async () => {
+    const defaultSounds = sounds?.filter(s => s.is_default) || [];
+    
+    if (defaultSounds.length === 0) {
+      toast({ title: "No default sounds to generate", variant: "destructive" });
+      return;
+    }
+
+    toast({ 
+      title: "Generating all default sounds...", 
+      description: `This will generate ${defaultSounds.length} sounds with AI` 
+    });
+
+    for (const sound of defaultSounds) {
+      await generateAISound(sound);
+      // Small delay between generations to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    toast({ title: "All sounds generated!", description: "Default sounds now use AI audio" });
+  };
+
+  const clearAudioUrl = async (sound: BeatPadSound) => {
+    try {
+      const { error } = await supabase
+        .from('beat_pad_sounds')
+        .update({ audio_url: null })
+        .eq('id', sound.id);
+
+      if (error) throw error;
+      
+      toast({ title: "Audio cleared", description: `${sound.name} will use synthesized sound` });
+      refetch();
+    } catch (error) {
+      console.error('Error clearing audio:', error);
+      toast({ title: "Error", description: "Failed to clear audio", variant: "destructive" });
     }
   };
 
@@ -264,6 +417,9 @@ export const BeatPadSoundsManager = () => {
     setIsDialogOpen(true);
   };
 
+  const defaultSoundsWithAI = sounds?.filter(s => s.is_default && s.audio_url).length || 0;
+  const totalDefaultSounds = sounds?.filter(s => s.is_default).length || 0;
+
   return (
     <Card>
       <CardHeader>
@@ -277,154 +433,182 @@ export const BeatPadSoundsManager = () => {
               Manage sounds available in the Beat Pad game
             </CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Sound
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingSound ? 'Edit' : 'Add'} Beat Pad Sound</DialogTitle>
-                <DialogDescription>
-                  Configure a sound for the Beat Pad
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="emoji">Emoji *</Label>
-                    <Input
-                      id="emoji"
-                      value={formData.emoji}
-                      onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
-                      required
-                      maxLength={4}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="color">Color (HSL)</Label>
-                    <Input
-                      id="color"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="price">Price (Coins)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      value={formData.price_coins}
-                      onChange={(e) => setFormData({ ...formData, price_coins: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="oscillator">Oscillator Type</Label>
-                    <Select value={formData.oscillator_type} onValueChange={(value) => setFormData({ ...formData, oscillator_type: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {OSCILLATOR_TYPES.map(type => (
-                          <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="frequency">Frequency (Hz)</Label>
-                    <Input
-                      id="frequency"
-                      type="number"
-                      min="20"
-                      max="2000"
-                      value={formData.frequency}
-                      onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="decay">Decay (seconds)</Label>
-                    <Input
-                      id="decay"
-                      type="number"
-                      min="0.01"
-                      max="2"
-                      step="0.01"
-                      value={formData.decay}
-                      onChange={(e) => setFormData({ ...formData, decay: e.target.value })}
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2 pt-6">
-                    <Checkbox
-                      id="has_noise"
-                      checked={formData.has_noise}
-                      onCheckedChange={(checked) => setFormData({ ...formData, has_noise: checked === true })}
-                    />
-                    <label htmlFor="has_noise" className="text-sm font-medium">Add Noise Layer</label>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Visible to Roles</Label>
-                  <div className="grid grid-cols-3 gap-3 mt-2">
-                    {USER_ROLES.map((role) => (
-                      <div key={role.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`role-${role.value}`}
-                          checked={formData.visible_to_roles?.includes(role.value)}
-                          onCheckedChange={(checked) => {
-                            const currentRoles = formData.visible_to_roles || [];
-                            const newRoles = checked
-                              ? [...currentRoles, role.value]
-                              : currentRoles.filter(r => r !== role.value);
-                            setFormData({ ...formData, visible_to_roles: newRoles });
-                          }}
-                        />
-                        <label htmlFor={`role-${role.value}`} className="text-sm capitalize">
-                          {role.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full">
-                  {editingSound ? 'Update' : 'Create'} Sound
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={generateAllAISounds}
+              disabled={generatingSound !== null}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate All AI Sounds
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Sound
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingSound ? 'Edit' : 'Add'} Beat Pad Sound</DialogTitle>
+                  <DialogDescription>
+                    Configure a sound for the Beat Pad
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="emoji">Emoji *</Label>
+                      <Input
+                        id="emoji"
+                        value={formData.emoji}
+                        onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
+                        required
+                        maxLength={4}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="color">Color (HSL)</Label>
+                      <Input
+                        id="color"
+                        value={formData.color}
+                        onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price">Price (Coins)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        min="0"
+                        value={formData.price_coins}
+                        onChange={(e) => setFormData({ ...formData, price_coins: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="oscillator">Oscillator Type</Label>
+                      <Select value={formData.oscillator_type} onValueChange={(value) => setFormData({ ...formData, oscillator_type: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {OSCILLATOR_TYPES.map(type => (
+                            <SelectItem key={type} value={type} className="capitalize">{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="frequency">Frequency (Hz)</Label>
+                      <Input
+                        id="frequency"
+                        type="number"
+                        min="20"
+                        max="2000"
+                        value={formData.frequency}
+                        onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="decay">Decay (seconds)</Label>
+                      <Input
+                        id="decay"
+                        type="number"
+                        min="0.01"
+                        max="2"
+                        step="0.01"
+                        value={formData.decay}
+                        onChange={(e) => setFormData({ ...formData, decay: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2 pt-6">
+                      <Checkbox
+                        id="has_noise"
+                        checked={formData.has_noise}
+                        onCheckedChange={(checked) => setFormData({ ...formData, has_noise: checked === true })}
+                      />
+                      <label htmlFor="has_noise" className="text-sm font-medium">Add Noise Layer</label>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label>Visible to Roles</Label>
+                    <div className="grid grid-cols-3 gap-3 mt-2">
+                      {USER_ROLES.map((role) => (
+                        <div key={role.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`role-${role.value}`}
+                            checked={formData.visible_to_roles?.includes(role.value)}
+                            onCheckedChange={(checked) => {
+                              const currentRoles = formData.visible_to_roles || [];
+                              const newRoles = checked
+                                ? [...currentRoles, role.value]
+                                : currentRoles.filter(r => r !== role.value);
+                              setFormData({ ...formData, visible_to_roles: newRoles });
+                            }}
+                          />
+                          <label htmlFor={`role-${role.value}`} className="text-sm capitalize">
+                            {role.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button type="submit" className="w-full">
+                    {editingSound ? 'Update' : 'Create'} Sound
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+        
+        {/* AI Generation Status */}
+        <div className="mt-4 p-4 rounded-lg bg-muted/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                AI-Generated Sounds
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                {defaultSoundsWithAI}/{totalDefaultSounds} default sounds using AI audio
+              </p>
+            </div>
+            <Badge variant={defaultSoundsWithAI === totalDefaultSounds ? "default" : "secondary"}>
+              {defaultSoundsWithAI === totalDefaultSounds ? "All AI" : "Mixed"}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -433,6 +617,7 @@ export const BeatPadSoundsManager = () => {
             <TableRow>
               <TableHead>Sound</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Audio</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -454,6 +639,16 @@ export const BeatPadSoundsManager = () => {
                 </TableCell>
                 <TableCell className="capitalize">
                   {sound.oscillator_type} · {sound.frequency}Hz
+                </TableCell>
+                <TableCell>
+                  {sound.audio_url ? (
+                    <Badge variant="default" className="gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      AI
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Synth</Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   {sound.price_coins === 0 ? (
@@ -479,6 +674,29 @@ export const BeatPadSoundsManager = () => {
                   <Button
                     variant="ghost"
                     size="icon"
+                    onClick={() => generateAISound(sound)}
+                    disabled={generatingSound === sound.id}
+                    title="Generate AI sound"
+                  >
+                    {generatingSound === sound.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                  </Button>
+                  {sound.audio_url && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => clearAudioUrl(sound)}
+                      title="Clear AI audio (use synth)"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => openEditDialog(sound)}
                   >
                     <Edit className="h-4 w-4" />
@@ -487,10 +705,8 @@ export const BeatPadSoundsManager = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => toggleActive(sound.id, sound.is_active ?? true)}
-                    className={sound.is_active ? "text-green-700" : "text-red-700"}
-                    title={sound.is_active ? "Hide sound" : "Show sound"}
                   >
-                    {sound.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    {sound.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                   {!sound.is_default && (
                     <Button
