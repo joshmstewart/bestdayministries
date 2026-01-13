@@ -39,24 +39,24 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
       <button
         onClick={() => onSelect(emotion)}
         className={cn(
-          "flex flex-col items-center p-2 rounded-xl transition-all duration-300",
-          "hover:scale-110 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2",
-          "bg-white/80 backdrop-blur-sm border-2",
+          "flex flex-col items-center p-1 rounded-lg transition-all duration-300",
+          "hover:scale-110 hover:shadow-md focus:outline-none focus:ring-1 focus:ring-offset-1",
+          "bg-white/80 backdrop-blur-sm border",
           isSelected
-            ? "scale-110 shadow-xl animate-pulse"
+            ? "scale-105 shadow-lg"
             : "border-transparent hover:border-white/50"
         )}
         style={{
-          transform: `translateY(${isSelected ? waveOffset - 5 : waveOffset}px) ${isSelected ? 'scale(1.1)' : ''}`,
+          transform: `translateY(${isSelected ? waveOffset - 3 : waveOffset}px) ${isSelected ? 'scale(1.05)' : ''}`,
           backgroundColor: isSelected ? `${emotion.color}40` : undefined,
           borderColor: isSelected ? emotion.color : undefined,
-          boxShadow: isSelected ? `0 4px 20px ${emotion.color}50` : undefined,
+          boxShadow: isSelected ? `0 2px 12px ${emotion.color}50` : undefined,
           ['--tw-ring-color' as string]: emotion.color,
         }}
       >
         <span 
           className={cn(
-            "text-3xl transition-transform duration-300",
+            "text-xl transition-transform duration-300",
             isSelected && "animate-bounce"
           )} 
           role="img" 
@@ -66,7 +66,7 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
         </span>
         <span 
           className={cn(
-            "text-xs font-medium mt-1 transition-colors",
+            "text-[10px] font-medium mt-0.5 transition-colors",
             isSelected ? "font-bold" : "text-gray-700"
           )}
           style={{ color: isSelected ? emotion.color : undefined }}
@@ -121,7 +121,7 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
         </div>
 
         {/* Emotion wave */}
-        <div className="flex flex-wrap justify-center items-center gap-2 relative py-4">
+        <div className="flex justify-center items-center gap-1 relative py-4 overflow-x-auto">
           {orderedEmotions.map((emotion, index) => (
             <EmotionButton 
               key={emotion.id} 
