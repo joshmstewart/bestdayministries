@@ -239,9 +239,11 @@ export const BeatPadSoundsManager = () => {
       toast({ title: "Sound generated!", description: `${sound.name} now uses AI-generated audio` });
       refetch();
       
-      // Preview the new sound
-      const audio = new Audio(publicUrl);
+      // Preview the new sound - create blob URL for immediate playback
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
       audio.volume = 0.7;
+      audio.onended = () => URL.revokeObjectURL(audioUrl);
       await audio.play();
     } catch (error) {
       console.error('Error generating AI sound:', error);
