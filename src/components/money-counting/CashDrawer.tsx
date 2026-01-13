@@ -9,9 +9,25 @@ interface CashDrawerProps {
   disabled: boolean;
 }
 
+// Real coin diameter ratios (relative to quarter = 1.0)
+// Quarter: 24.26mm, Nickel: 21.21mm, Penny: 19.05mm, Dime: 17.91mm
+const COIN_SIZE_RATIOS: { [key: string]: number } = {
+  "0.25": 1.0,      // Quarter - largest
+  "0.10": 0.738,    // Dime - smallest
+  "0.05": 0.874,    // Nickel
+  "0.01": 0.785,    // Penny
+};
+
+const BASE_COIN_SIZE = 64; // Base size in pixels for quarter
+
 export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
   const bills = DENOMINATIONS.filter((d) => d.type === "bill");
   const coins = DENOMINATIONS.filter((d) => d.type === "coin");
+
+  const getCoinSize = (value: number) => {
+    const ratio = COIN_SIZE_RATIOS[value.toString()] || 1;
+    return Math.round(BASE_COIN_SIZE * ratio);
+  };
 
   return (
     <Card className={cn("transition-opacity", disabled && "opacity-50")}>
@@ -26,10 +42,10 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
           </p>
         )}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         {/* Bills Section */}
         <div>
-          <h3 className="text-xs font-medium text-muted-foreground mb-1">Bills</h3>
+          <h3 className="text-xs font-medium text-muted-foreground mb-2">Bills</h3>
           <div className="grid grid-cols-3 gap-2">
             {bills.map((denom) => {
               const image = getCurrencyImage(denom.value.toString());
@@ -38,9 +54,9 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
                   key={denom.value}
                   variant="ghost"
                   className={cn(
-                    "h-auto p-1 flex flex-col items-center justify-center",
+                    "h-auto p-1.5 flex flex-col items-center justify-center",
                     "hover:bg-accent/50 hover:scale-105 transition-transform",
-                    "border border-transparent hover:border-primary/30 rounded-lg"
+                    "border border-border/50 hover:border-primary/50 rounded-lg bg-card/50"
                   )}
                   onClick={() => onSelectMoney(denom.value.toString())}
                   disabled={disabled}
@@ -49,14 +65,14 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
                     <img
                       src={image}
                       alt={denom.label}
-                      className="w-full h-auto max-h-12 object-contain rounded shadow-sm"
+                      className="w-full h-auto object-contain rounded shadow-sm"
                     />
                   ) : (
                     <span className="text-sm font-bold text-green-700 dark:text-green-300">
                       {denom.label}
                     </span>
                   )}
-                  <span className="text-[10px] font-semibold mt-0.5 text-muted-foreground">
+                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
                     {denom.label}
                   </span>
                 </Button>
@@ -67,18 +83,19 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
 
         {/* Coins Section */}
         <div>
-          <h3 className="text-xs font-medium text-muted-foreground mb-1">Coins</h3>
-          <div className="grid grid-cols-4 gap-1">
+          <h3 className="text-xs font-medium text-muted-foreground mb-2">Coins</h3>
+          <div className="flex items-end justify-center gap-3">
             {coins.map((denom) => {
               const image = getCurrencyImage(denom.value.toString());
+              const coinSize = getCoinSize(denom.value);
               return (
                 <Button
                   key={denom.value}
                   variant="ghost"
                   className={cn(
-                    "h-auto p-1 flex flex-col items-center justify-center",
-                    "hover:bg-accent/50 hover:scale-105 transition-transform",
-                    "border border-transparent hover:border-primary/30 rounded-lg"
+                    "h-auto p-1.5 flex flex-col items-center justify-center",
+                    "hover:bg-accent/50 hover:scale-110 transition-transform",
+                    "border border-border/50 hover:border-primary/50 rounded-lg bg-card/50"
                   )}
                   onClick={() => onSelectMoney(denom.value.toString())}
                   disabled={disabled}
@@ -87,12 +104,13 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
                     <img
                       src={image}
                       alt={denom.label}
-                      className="w-10 h-10 object-contain rounded-full shadow-sm"
+                      style={{ width: coinSize, height: coinSize }}
+                      className="object-contain rounded-full shadow-sm"
                     />
                   ) : (
                     <span className="text-xs font-bold">{denom.label}</span>
                   )}
-                  <span className="text-[10px] font-semibold mt-0.5 text-muted-foreground">
+                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
                     {denom.label}
                   </span>
                 </Button>
