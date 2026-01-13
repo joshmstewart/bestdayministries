@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play, Trash2, Share2, Lock } from 'lucide-react';
+import { Loader2, Play, Square, Trash2, Share2, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useBeatLoopPlayer } from '@/hooks/useBeatLoopPlayer';
 
 interface BeatCreation {
   id: string;
@@ -33,6 +34,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
   const { user } = useAuth();
   const [beats, setBeats] = useState<BeatCreation[]>([]);
   const [loading, setLoading] = useState(true);
+  const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
   useEffect(() => {
     if (user) {
@@ -187,16 +189,30 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
             <div className="flex gap-2">
               <Button
                 size="sm"
-                onClick={() => onLoadBeat({
-                  id: beat.id,
-                  name: beat.name,
-                  pattern: beat.pattern,
-                  tempo: beat.tempo,
-                  image_url: beat.image_url,
-                })}
+                variant={isPlaying(beat.id) ? "default" : "outline"}
+                onClick={() => playBeat(beat.id, beat.pattern, beat.tempo)}
+                className="flex-shrink-0"
+              >
+                {isPlaying(beat.id) ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  stopBeat();
+                  onLoadBeat({
+                    id: beat.id,
+                    name: beat.name,
+                    pattern: beat.pattern,
+                    tempo: beat.tempo,
+                    image_url: beat.image_url,
+                  });
+                }}
                 className="flex-1"
               >
-                <Play className="h-4 w-4 mr-1" />
                 Load
               </Button>
               <Button
