@@ -260,13 +260,13 @@ export const PackOpeningDialog = ({ open, onOpenChange, cardId, collectionId, on
         const stickers = data.stickers || (data.sticker ? [data.sticker] : []);
 
         if (stickers.length > 0) {
+          // Play sound FIRST before showing sticker so they sync perfectly
+          triggerCelebration(stickers[0].rarity);
+          
+          // Then update state to show the sticker
           setRevealedStickers(stickers);
-
           setOpened(true);
           setShowConfetti(true);
-
-          // Trigger celebration for first sticker
-          triggerCelebration(stickers[0].rarity);
           
           // Show coin notification if coins were awarded
           if (data.coinsAwarded && data.coinsAwarded > 0) {
