@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Play, Loader2, Music } from 'lucide-react';
+import { Heart, Play, Square, Loader2, Music } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useBeatLoopPlayer } from '@/hooks/useBeatLoopPlayer';
 
 
 interface BeatCreation {
@@ -40,6 +41,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
   const [creations, setCreations] = useState<BeatCreation[]>([]);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
   useEffect(() => {
     loadCreations();
@@ -199,18 +201,32 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
 
             <div className="flex gap-2">
               <Button
+                variant={isPlaying(creation.id) ? "default" : "outline"}
+                size="sm"
+                onClick={() => playBeat(creation.id, creation.pattern, creation.tempo)}
+                className="flex-shrink-0"
+              >
+                {isPlaying(creation.id) ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => onLoadBeat({
-                  id: creation.id,
-                  name: creation.name,
-                  pattern: creation.pattern,
-                  tempo: creation.tempo,
-                  image_url: creation.image_url,
-                })}
+                onClick={() => {
+                  stopBeat();
+                  onLoadBeat({
+                    id: creation.id,
+                    name: creation.name,
+                    pattern: creation.pattern,
+                    tempo: creation.tempo,
+                    image_url: creation.image_url,
+                  });
+                }}
               >
-                <Play className="h-4 w-4 mr-1" />
                 Load
               </Button>
               <Button
