@@ -72,16 +72,11 @@ export function JournalEntry({ value, onChange, emotion }: JournalEntryProps) {
           />
         </div>
 
-        {/* Listen to your text */}
+        {/* Listen to your text - always show for verification */}
         {value.trim() && (
           <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
             <TextToSpeech text={value} size="default" />
-            <div>
-              <p className="text-sm font-medium">🔊 Listen to your words</p>
-              <p className="text-xs text-muted-foreground">
-                Tap to hear what you wrote and check if it sounds right
-              </p>
-            </div>
+            <p className="text-sm font-medium">🔊 Listen to your words</p>
           </div>
         )}
 
