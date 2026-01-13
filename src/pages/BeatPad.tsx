@@ -1,9 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Music, Users, X, ShoppingBag } from 'lucide-react';
+import { Music, Users, X, ShoppingBag, Save } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,7 +10,10 @@ import BeatGrid from '@/components/beat-pad/BeatGrid';
 import PlaybackControls from '@/components/beat-pad/PlaybackControls';
 import BeatPadGallery from '@/components/beat-pad/BeatPadGallery';
 import BeatPadSoundShop from '@/components/beat-pad/BeatPadSoundShop';
+import MyBeats from '@/components/beat-pad/MyBeats';
 import useBeatPadAudio, { InstrumentType, INSTRUMENT_LABELS } from '@/hooks/useBeatPadAudio';
+import { UnifiedHeader } from '@/components/UnifiedHeader';
+import Footer from '@/components/Footer';
 
 const INSTRUMENTS: InstrumentType[] = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell'];
 const STEPS = 16;
@@ -140,7 +142,6 @@ const patternToPrompt = (pattern: Record<InstrumentType, boolean[]>, tempo: numb
 };
 
 const BeatPad: React.FC = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { playSound, getAudioContext } = useBeatPadAudio();
 
@@ -398,20 +399,12 @@ const BeatPad: React.FC = () => {
   }, [aiAudioUrl]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border-b border-border">
+    <div className="min-h-screen bg-background flex flex-col">
+      <UnifiedHeader />
+      
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border-b border-border pt-24">
         <div className="container mx-auto px-4 py-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/games')}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Games
-          </Button>
-
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <Music className="h-8 w-8 text-primary-foreground" />
@@ -438,12 +431,16 @@ const BeatPad: React.FC = () => {
       />
 
       {/* Main content */}
-      <div className="container mx-auto px-4 py-6">
+      <main className="flex-1 container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">
             <TabsTrigger value="create" className="flex items-center gap-2">
               <Music className="h-4 w-4" />
               Create
+            </TabsTrigger>
+            <TabsTrigger value="my-beats" className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              My Beats
             </TabsTrigger>
             <TabsTrigger value="community" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -550,11 +547,17 @@ const BeatPad: React.FC = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="my-beats">
+            <MyBeats onLoadBeat={handleLoadBeat} />
+          </TabsContent>
+
           <TabsContent value="community">
             <BeatPadGallery onLoadBeat={handleLoadBeat} />
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
+      
+      <Footer />
     </div>
   );
 };
