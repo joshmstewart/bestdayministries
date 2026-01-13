@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DENOMINATIONS, getDenominationLabel } from "@/lib/moneyCountingUtils";
+import { getCurrencyImage } from "@/lib/currencyImages";
 
 interface CashDrawerProps {
   onSelectMoney: (denomination: string) => void;
@@ -29,24 +30,38 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
         {/* Bills Section */}
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Bills</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {bills.map((denom) => (
-              <Button
-                key={denom.value}
-                variant="outline"
-                className={cn(
-                  "h-16 flex items-center justify-center",
-                  "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900",
-                  "border-green-300 dark:border-green-700 hover:border-green-500"
-                )}
-                onClick={() => onSelectMoney(denom.value.toString())}
-                disabled={disabled}
-              >
-                <span className="text-lg font-bold text-green-700 dark:text-green-300">
-                  {denom.label}
-                </span>
-              </Button>
-            ))}
+          <div className="grid grid-cols-2 gap-3">
+            {bills.map((denom) => {
+              const image = getCurrencyImage(denom.value.toString());
+              return (
+                <Button
+                  key={denom.value}
+                  variant="ghost"
+                  className={cn(
+                    "h-auto p-1 flex flex-col items-center justify-center",
+                    "hover:bg-accent/50 hover:scale-105 transition-transform",
+                    "border-2 border-transparent hover:border-primary/30 rounded-lg"
+                  )}
+                  onClick={() => onSelectMoney(denom.value.toString())}
+                  disabled={disabled}
+                >
+                  {image ? (
+                    <img
+                      src={image}
+                      alt={denom.label}
+                      className="w-full h-auto max-h-20 object-contain rounded shadow-md"
+                    />
+                  ) : (
+                    <span className="text-lg font-bold text-green-700 dark:text-green-300">
+                      {denom.label}
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
+                    {denom.label}
+                  </span>
+                </Button>
+              );
+            })}
           </div>
         </div>
 
@@ -55,25 +70,31 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
           <h3 className="text-sm font-medium text-muted-foreground mb-2">Coins</h3>
           <div className="grid grid-cols-4 gap-2">
             {coins.map((denom) => {
-              const coinColors: { [key: string]: string } = {
-                "0.25": "from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 border-gray-400",
-                "0.10": "from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500 border-gray-500",
-                "0.05": "from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 border-gray-400",
-                "0.01": "from-amber-200 to-amber-300 dark:from-amber-800 dark:to-amber-700 border-amber-500",
-              };
+              const image = getCurrencyImage(denom.value.toString());
               return (
                 <Button
                   key={denom.value}
-                  variant="outline"
+                  variant="ghost"
                   className={cn(
-                    "h-14 flex items-center justify-center rounded-full aspect-square",
-                    "bg-gradient-to-br",
-                    coinColors[denom.value.toString()] || "from-gray-200 to-gray-300"
+                    "h-auto p-1 flex flex-col items-center justify-center",
+                    "hover:bg-accent/50 hover:scale-105 transition-transform",
+                    "border-2 border-transparent hover:border-primary/30 rounded-lg"
                   )}
                   onClick={() => onSelectMoney(denom.value.toString())}
                   disabled={disabled}
                 >
-                  <span className="text-sm font-bold">{denom.label}</span>
+                  {image ? (
+                    <img
+                      src={image}
+                      alt={denom.label}
+                      className="w-14 h-14 object-contain rounded-full shadow-md"
+                    />
+                  ) : (
+                    <span className="text-sm font-bold">{denom.label}</span>
+                  )}
+                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
+                    {denom.label}
+                  </span>
                 </Button>
               );
             })}

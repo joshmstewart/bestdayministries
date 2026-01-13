@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { X, ArrowDown } from "lucide-react";
 import { formatMoney, getDenominationLabel } from "@/lib/moneyCountingUtils";
+import { getCurrencyImage } from "@/lib/currencyImages";
 import { cn } from "@/lib/utils";
 
 interface ChangeTrackerProps {
@@ -73,23 +73,39 @@ export function ChangeTracker({
               {sortedChange.map(([denom, count]) => {
                 const numValue = parseFloat(denom);
                 const isBill = numValue >= 1;
+                const image = getCurrencyImage(denom);
                 
                 return Array.from({ length: count }).map((_, i) => (
                   <Button
                     key={`${denom}-${i}`}
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     className={cn(
-                      "relative group",
-                      isBill
-                        ? "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-300"
-                        : "rounded-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700",
-                      numValue === 0.01 && "from-amber-100 to-amber-200 dark:from-amber-900 dark:to-amber-800 border-amber-400"
+                      "relative group p-1 h-auto",
+                      "hover:bg-destructive/10 transition-colors"
                     )}
                     onClick={() => onReturnMoney(denom)}
                     title="Click to return to drawer"
                   >
-                    {getDenominationLabel(denom)}
+                    {image ? (
+                      <img
+                        src={image}
+                        alt={getDenominationLabel(denom)}
+                        className={cn(
+                          "object-contain shadow-sm",
+                          isBill ? "w-16 h-auto" : "w-10 h-10 rounded-full"
+                        )}
+                      />
+                    ) : (
+                      <span className={cn(
+                        "px-2 py-1 rounded",
+                        isBill
+                          ? "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border border-green-300"
+                          : "rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700"
+                      )}>
+                        {getDenominationLabel(denom)}
+                      </span>
+                    )}
                     <span className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center">
                       <X className="h-3 w-3" />
                     </span>
