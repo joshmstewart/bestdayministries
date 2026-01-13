@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { InstrumentType } from '@/hooks/useBeatPadAudio';
+import { cn } from '@/lib/utils';
 
 interface BeatCreation {
   id: string;
@@ -149,23 +150,21 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
               </div>
             </div>
 
-            {/* Mini pattern preview */}
-            <div className="bg-muted/50 rounded-lg p-2 mb-3">
-              <div className="grid grid-cols-16 gap-px">
-                {Array.from({ length: 16 }).map((_, stepIdx) => {
-                  const hasNote = Object.values(beat.pattern).some(
-                    (steps) => steps[stepIdx]
-                  );
-                  return (
+            {/* Visual pattern preview - matches Community style */}
+            <div className="bg-muted rounded-lg p-2 mb-3 h-20 flex flex-col gap-0.5 overflow-hidden">
+              {Object.entries(beat.pattern).slice(0, 4).map(([instrument, steps]) => (
+                <div key={instrument} className="flex gap-0.5 flex-1">
+                  {(steps as boolean[]).map((active, i) => (
                     <div
-                      key={stepIdx}
-                      className={`h-4 rounded-sm ${
-                        hasNote ? 'bg-primary' : 'bg-muted'
-                      }`}
+                      key={i}
+                      className={cn(
+                        "flex-1 rounded-sm",
+                        active ? "bg-primary" : "bg-background/50"
+                      )}
                     />
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-2">
