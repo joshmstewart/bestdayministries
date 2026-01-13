@@ -9,8 +9,7 @@ import SoundPickerDialog from './SoundPickerDialog';
 const STEPS = 16;
 const MAX_INSTRUMENTS = 20;
 
-// Default instrument sound types to load initially (10 defaults)
-const DEFAULT_SOUND_TYPES = ['kick', 'snare', 'hihat', 'clap', 'bass', 'synth1', 'synth2', 'bell', 'tom', 'crash'];
+const DEFAULT_INSTRUMENT_COUNT = 10;
 
 interface CustomizableBeatGridProps {
   pattern: Record<string, boolean[]>;
@@ -46,31 +45,16 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
           .select('id, name, emoji, color, sound_type, frequency, decay, oscillator_type, has_noise, audio_url')
           .eq('is_active', true)
           .eq('is_default', true)
-          .in('sound_type', DEFAULT_SOUND_TYPES)
           .order('display_order')
-          .limit(8);
+          .limit(DEFAULT_INSTRUMENT_COUNT);
 
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // Map to unique sound types, taking the first of each type
-          const soundsByType = new Map<string, SoundConfig>();
-          data.forEach(sound => {
-            if (!soundsByType.has(sound.sound_type) && DEFAULT_SOUND_TYPES.includes(sound.sound_type)) {
-              soundsByType.set(sound.sound_type, sound);
-            }
-          });
+          // Use the first 10 default sounds in display_order
+          const initialInstruments: (SoundConfig | null)[] = [...data];
           
-          // Build initial instruments array in the order of DEFAULT_SOUND_TYPES
-          const initialInstruments: (SoundConfig | null)[] = [];
-          DEFAULT_SOUND_TYPES.forEach(type => {
-            const sound = soundsByType.get(type);
-            if (sound) {
-              initialInstruments.push(sound);
-            }
-          });
-          
-          // Fill remaining slots with nulls
+          // Fill remaining slots with nulls up to MAX_INSTRUMENTS
           while (initialInstruments.length < MAX_INSTRUMENTS) {
             initialInstruments.push(null);
           }
