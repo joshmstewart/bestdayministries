@@ -61,6 +61,7 @@ import { TestEnvironmentManager } from "@/components/admin/TestEnvironmentManage
 import { TTSVoiceManager } from "@/components/admin/TTSVoiceManager";
 import { CoinsManager } from "@/components/admin/CoinsManager";
 import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
+import { BeatPadSoundsManager } from "@/components/admin/BeatPadSoundsManager";
 
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
@@ -494,6 +495,7 @@ const Admin = () => {
                     <TabsTrigger value="coins">Manage Coins</TabsTrigger>
                     <TabsTrigger value="store-items">Store Items</TabsTrigger>
                     
+                    <TabsTrigger value="beat-pad">Beat Pad</TabsTrigger>
                     <TabsTrigger value="memory-match">Memory Match</TabsTrigger>
                     <TabsTrigger value="stickers">Stickers</TabsTrigger>
                     <TabsTrigger value="drink">Drinks</TabsTrigger>
@@ -512,6 +514,10 @@ const Admin = () => {
                     <StoreItemsManager />
                   </TabsContent>
                   
+
+                  <TabsContent value="beat-pad">
+                    <BeatPadSoundsManager />
+                  </TabsContent>
 
                   <TabsContent value="memory-match">
                     <MemoryMatchPackManager />
