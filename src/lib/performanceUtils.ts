@@ -255,3 +255,157 @@ export function batchUpdates(updates: (() => void)[]): void {
     updates.forEach(update => update());
   });
 }
+
+/**
+ * Detect slow network connection
+ */
+export function isSlowConnection(): boolean {
+  if ('connection' in navigator) {
+    const conn = (navigator as any).connection;
+    return conn?.saveData || conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g';
+  }
+  return false;
+}
+
+/**
+ * Get connection type for adaptive loading
+ */
+export function getConnectionType(): 'slow' | 'medium' | 'fast' | 'unknown' {
+  if ('connection' in navigator) {
+    const conn = (navigator as any).connection;
+    if (conn?.saveData) return 'slow';
+    switch (conn?.effectiveType) {
+      case 'slow-2g':
+      case '2g':
+        return 'slow';
+      case '3g':
+        return 'medium';
+      case '4g':
+        return 'fast';
+    }
+  }
+  return 'unknown';
+}
+
+/**
+ * Schedule work during idle time
+ */
+export function scheduleIdleWork(callback: () => void, timeout: number = 2000): void {
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(callback, { timeout });
+  } else {
+    setTimeout(callback, 100);
+  }
+}
+
+/**
+ * Measure function execution time
+ */
+export async function measureAsync<T>(
+  name: string,
+  fn: () => Promise<T>,
+  logThreshold: number = 100
+): Promise<T> {
+  const start = performance.now();
+  const result = await fn();
+  const duration = performance.now() - start;
+  
+  if (duration > logThreshold) {
+    console.warn(`[Performance] ${name} took ${duration.toFixed(2)}ms`);
+  }
+  
+  return result;
+}
+
+/**
+ * Check if device has reduced motion preference
+ */
+export function shouldReduceMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * Chunked array processing to avoid blocking main thread
+ */
+export async function processInChunks<T, R>(
+  items: T[],
+  processFn: (item: T) => R,
+  chunkSize: number = 100,
+  delayBetweenChunks: number = 0
+): Promise<R[]> {
+  const results: R[] = [];
+  
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    const chunkResults = chunk.map(processFn);
+    results.push(...chunkResults);
+    
+    if (i + chunkSize < items.length && delayBetweenChunks > 0) {
+      await new Promise(resolve => setTimeout(resolve, delayBetweenChunks));
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Create a memoized selector for derived state
+ */
+export function createSelector<TState, TResult>(
+  selector: (state: TState) => TResult
+): (state: TState) => TResult {
+  let lastState: TState | undefined;
+  let lastResult: TResult | undefined;
+  
+  return (state: TState): TResult => {
+    if (state === lastState && lastResult !== undefined) {
+      return lastResult;
+    }
+    
+    lastState = state;
+    lastResult = selector(state);
+    return lastResult;
+  };
+}
+
+/**
+ * Timeout promise wrapper
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string = 'Operation timed out'
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+    ),
+  ]);
+}
+
+/**
+ * Retry with exponential backoff
+ */
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      if (attempt < maxRetries - 1) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError;
+}
