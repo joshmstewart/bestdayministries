@@ -25,8 +25,6 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   const [filteredSteps, setFilteredSteps] = useState<Step[]>([]);
   const { toast } = useToast();
 
-  console.log('ProductTourRunner - Received tour:', tour?.title, 'Steps:', tour?.steps?.length);
-
   const handleJoyrideCallback = async (data: CallBackProps) => {
     const { status, action, index, type } = data;
 
@@ -96,8 +94,6 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
   };
 
   useEffect(() => {
-    console.log('ProductTourRunner - Starting element detection');
-    
     // Filter steps based on element existence
     const detectElements = () => {
       const availableSteps = tour.steps.filter(step => {
@@ -105,20 +101,17 @@ export function ProductTourRunner({ tour, onClose }: ProductTourRunnerProps) {
         
         const element = document.querySelector(step.target as string);
         if (!element) {
-          console.log('ProductTourRunner - Skipping step, element not found:', step.target);
           return false;
         }
         return true;
       });
 
-      console.log(`ProductTourRunner - Filtered ${tour.steps.length} steps to ${availableSteps.length} available steps`);
       setFilteredSteps(availableSteps);
 
       // Start tour if we have at least one step
       if (availableSteps.length > 0) {
         setRun(true);
       } else {
-        console.log('ProductTourRunner - No elements found, closing tour');
         onClose();
       }
     };

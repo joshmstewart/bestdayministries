@@ -124,9 +124,10 @@ export function useRenderCount(componentName?: string): number {
   const renderCount = useRef(0);
   renderCount.current++;
 
-  if (process.env.NODE_ENV === 'development' && componentName) {
-    console.log(`[Render] ${componentName}: ${renderCount.current}`);
-  }
+  // Debug logging disabled in production - enable locally if needed
+  // if (process.env.NODE_ENV === 'development' && componentName) {
+  //   console.log(`[Render] ${componentName}: ${renderCount.current}`);
+  // }
 
   return renderCount.current;
 }
@@ -157,9 +158,10 @@ export function useWhyDidYouUpdate<T extends Record<string, any>>(
         }
       });
 
-      if (Object.keys(changedProps).length > 0) {
-        console.log(`[WhyDidYouUpdate] ${componentName}:`, changedProps);
-      }
+      // Debug logging disabled in production - enable locally if needed
+      // if (Object.keys(changedProps).length > 0) {
+      //   console.log(`[WhyDidYouUpdate] ${componentName}:`, changedProps);
+      // }
     }
 
     previousPropsRef.current = props;

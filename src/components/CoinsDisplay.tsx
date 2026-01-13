@@ -10,10 +10,7 @@ interface CoinsDisplayProps {
 export const CoinsDisplay = ({ onClick }: CoinsDisplayProps) => {
   const { coins, loading } = useCoins();
 
-  console.log('💰 COMPONENT: CoinsDisplay render - coins:', coins, 'loading:', loading);
-
   if (loading) {
-    console.log('💰 COMPONENT: CoinsDisplay showing skeleton');
     return <Skeleton className="h-10 w-36" />;
   }
 
