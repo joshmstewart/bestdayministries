@@ -109,12 +109,28 @@ export const useBeatLoopPlayer = () => {
     return buffer;
   }, []);
 
+  // Resolve instrument key to sound_type for legacy patterns
+  const resolveSoundType = useCallback((key: string): string => {
+    // Check if it's already a known sound type
+    if (DEFAULT_SOUNDS[key]) {
+      return key;
+    }
+    // Check if we have this key in soundConfigs (from DB load)
+    if (soundConfigs[key]) {
+      return key;
+    }
+    // It might be a UUID - we need to look it up or default to a sound type
+    // For UUIDs, we'll use the key as-is and let the sound system handle it
+    return key;
+  }, [soundConfigs]);
+
   const playSound = useCallback((instrument: string) => {
     const ctx = getAudioContext();
-    const config = soundConfigs[instrument] || DEFAULT_SOUNDS[instrument];
+    const soundType = resolveSoundType(instrument);
+    const config = soundConfigs[soundType] || DEFAULT_SOUNDS[soundType] || DEFAULT_SOUNDS['kick'];
     if (!config) return;
 
-    const buffer = audioBuffersRef.current.get(instrument);
+    const buffer = audioBuffersRef.current.get(instrument) || audioBuffersRef.current.get(soundType);
     if (buffer) {
       const source = ctx.createBufferSource();
       const gainNode = ctx.createGain();
@@ -134,7 +150,7 @@ export const useBeatLoopPlayer = () => {
     osc.type = config.type;
     osc.frequency.setValueAtTime(config.freq, now);
     
-    if (instrument === 'kick') {
+    if (soundType === 'kick' || instrument.includes('kick')) {
       osc.frequency.exponentialRampToValueAtTime(30, now + config.decay);
     }
     
@@ -164,7 +180,7 @@ export const useBeatLoopPlayer = () => {
       noise.start(now);
       noise.stop(now + config.decay);
     }
-  }, [getAudioContext, soundConfigs, createNoiseBuffer]);
+  }, [getAudioContext, soundConfigs, createNoiseBuffer, resolveSoundType]);
 
   const stopBeat = useCallback(() => {
     if (intervalRef.current) {
