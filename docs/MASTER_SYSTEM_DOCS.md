@@ -1049,11 +1049,17 @@ EVENT-DETAILS:event:uuid→fetch-event+saved_locations→display[Calendar-Clock-
 ## SEO_PERF
 SEO:SEOHead[title|desc|image|type|noindex|canonical|structuredData]|structured[Org|Article|Event-Schema.org]
 SITEMAP:edge-generate-sitemap[static+posts+events+albums+vendors-XML-1k-limit]
-IMAGE-OPT:OptimizedImage[lazy-except-priority+Intersection-50px-before+blur-placeholder+fade]
+IMAGE-OPT:OptimizedImage[memo+lazy-except-priority+Intersection-100px-before+blur-placeholder+fade+error-handling+sizes-prop]
+BUNDLE-OPT:vite.config.ts[terser-minification+manual-chunk-splitting+optimizeDeps]
+CHUNKS:react-vendor|ui-vendor|data-vendor|supabase-vendor|form-vendor|editor-vendor|date-vendor|icons-vendor
+CODE-SPLIT:React.lazy()→all-50+-pages+Suspense-fallback
+MEMOIZATION:Footer[memo+5min-cache]|TextToSpeech[memo+useCallback+settings-cache]|OptimizedImage[memo]
+PERF-UTILS:src/lib/performanceUtils.ts[useDebounce|useThrottle|useIntersectionObserver|useRenderTime|preloadImage|createLRUCache|batchDOMReads|batchDOMUpdates]
 PERF:preconnect-fonts|preload-favicon|theme-color|compress-5MB-1920px|code-split-lazy
 BEST-PRACTICES:meta[<60-title|<160-desc|keywords-natural|unique]|structured[schema.org|required-props|test]|image[descriptive-names|alt-always|lazy-below-fold]
-MONITORING:Search-Console|PageSpeed|Lighthouse|Schema-Validator|Rich-Results-Test
+MONITORING:Search-Console|PageSpeed|Lighthouse|Schema-Validator|Rich-Results-Test|vite-bundle-analyzer
 METRICS:LCP<2.5s|FID<100ms|CLS<0.1|TTI<3.5s
+DOC:PERFORMANCE_OPTIMIZATION_COMPLETE.md|SEO_PERFORMANCE_SYSTEM.md|HEADER_PERFORMANCE_OPTIMIZATION.md
 
 SOCIAL-SHARING-ISSUE:
 PROBLEM:SEOHead-updates-client-side[JS]→crawlers-NO-execute-JS→see-only-index.html-static-tags
