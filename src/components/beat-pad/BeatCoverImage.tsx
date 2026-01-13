@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Wand2, Music } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
 import { SoundConfig } from './InstrumentSlot';
 import { cn } from '@/lib/utils';
 
@@ -39,12 +40,12 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
 
   const handleGenerateImage = async () => {
     if (!beatId) {
-      toast.error('Save your beat first to generate cover art!');
+      showErrorToastWithCopy('Generate Cover Art', 'Save your beat first to generate cover art!');
       return;
     }
 
     if (!hasPattern) {
-      toast.error('Add some notes to your beat first!');
+      showErrorToastWithCopy('Generate Cover Art', 'Add some notes to your beat first!');
       return;
     }
 
@@ -85,11 +86,11 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
         toast.success('Cover art generated! 🎨');
       } else {
         console.warn('generate-beat-image returned no image URL', response.data);
-        toast.error('Cover art generated but no URL was returned');
+        showErrorToastWithCopy('Generate Cover Art', 'Cover art generated but no URL was returned');
       }
     } catch (error) {
       console.error('Error generating image:', error);
-      toast.error('Failed to generate cover art');
+      showErrorToastWithCopy('Generate Cover Art', error);
     } finally {
       setIsGenerating(false);
     }
