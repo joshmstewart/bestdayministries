@@ -31,6 +31,7 @@ export interface GameState {
   cashCollected: boolean;
   level: number;
   score: number;
+  step: "receipt" | "payment" | "change"; // Sequential flow
 }
 
 const INITIAL_DRAWER: { [key: string]: number } = {
@@ -81,6 +82,7 @@ export default function MoneyCounting() {
       cashCollected: false,
       level: 1,
       score: 0,
+      step: "receipt",
     });
     setShowComplete(false);
     setLevelResult(null);
@@ -110,9 +112,31 @@ export default function MoneyCounting() {
       customerCash: cash,
       cashCollected: false,
       level: newLevel,
+      step: "receipt",
     });
     setShowComplete(false);
     setLevelResult(null);
+  }, [gameState]);
+
+  const goToNextStep = useCallback(() => {
+    if (!gameState) return;
+    
+    if (gameState.step === "receipt") {
+      setGameState({ ...gameState, step: "payment" });
+    } else if (gameState.step === "payment") {
+      // Collect cash and move to change step
+      const newDrawer = { ...gameState.drawerContents };
+      Object.entries(gameState.customerCash).forEach(([denom, count]) => {
+        newDrawer[denom] = (newDrawer[denom] || 0) + count;
+      });
+      setGameState({
+        ...gameState,
+        drawerContents: newDrawer,
+        cashCollected: true,
+        step: "change",
+      });
+      toast.success("Cash collected! Now make change.");
+    }
   }, [gameState]);
 
   const generateCustomerPayment = (total: number): { payment: number; cash: { [key: string]: number } } => {
@@ -198,24 +222,6 @@ export default function MoneyCounting() {
 
     return { payment: Math.round(payment * 100) / 100, cash };
   };
-
-  const collectCash = useCallback(() => {
-    if (!gameState || gameState.cashCollected) return;
-
-    // Add customer's cash to drawer
-    const newDrawer = { ...gameState.drawerContents };
-    Object.entries(gameState.customerCash).forEach(([denom, count]) => {
-      newDrawer[denom] = (newDrawer[denom] || 0) + count;
-    });
-
-    setGameState({
-      ...gameState,
-      drawerContents: newDrawer,
-      cashCollected: true,
-    });
-    
-    toast.success("Cash collected! Now make change.");
-  }, [gameState]);
 
   const giveMoney = useCallback((denomination: string) => {
     if (!gameState || !gameState.cashCollected) return;
@@ -369,41 +375,66 @@ export default function MoneyCounting() {
             onNewGame={startNewGame}
           />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Receipt & Customer Payment */}
-            <div className="space-y-4">
-              <ReceiptDisplay
-                items={gameState.items}
-                subtotal={gameState.subtotal}
-                tax={gameState.tax}
-                total={gameState.total}
-              />
-              <CustomerPayment
-                customerCash={gameState.customerCash}
-                totalPayment={gameState.customerPayment}
-                cashCollected={gameState.cashCollected}
-                onCollect={collectCash}
-              />
-            </div>
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Step 1: Receipt */}
+            {gameState.step === "receipt" && (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <Badge variant="outline" className="text-lg px-4 py-2">
+                    Step 1: Review the Order
+                  </Badge>
+                </div>
+                <ReceiptDisplay
+                  items={gameState.items}
+                  subtotal={gameState.subtotal}
+                  tax={gameState.tax}
+                  total={gameState.total}
+                />
+                <Button onClick={goToNextStep} size="lg" className="w-full">
+                  Next: See Customer Payment →
+                </Button>
+              </div>
+            )}
 
-            {/* Center Column: Change Tracker */}
-            <div>
-              <ChangeTracker
-                changeNeeded={gameState.changeNeeded}
-                changeGiven={gameState.changeGiven}
-                cashCollected={gameState.cashCollected}
-                onReturnMoney={returnMoney}
-              />
-            </div>
+            {/* Step 2: Customer Payment */}
+            {gameState.step === "payment" && (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <Badge variant="outline" className="text-lg px-4 py-2">
+                    Step 2: Collect Payment
+                  </Badge>
+                </div>
+                <CustomerPayment
+                  customerCash={gameState.customerCash}
+                  totalPayment={gameState.customerPayment}
+                  orderTotal={gameState.total}
+                  cashCollected={gameState.cashCollected}
+                  onCollect={goToNextStep}
+                />
+              </div>
+            )}
 
-            {/* Right Column: Cash Drawer */}
-            <div>
-              <CashDrawer
-                contents={gameState.drawerContents}
-                onSelectMoney={giveMoney}
-                disabled={!gameState.cashCollected}
-              />
-            </div>
+            {/* Step 3: Make Change */}
+            {gameState.step === "change" && (
+              <div className="space-y-6">
+                <div className="text-center mb-4">
+                  <Badge variant="outline" className="text-lg px-4 py-2">
+                    Step 3: Give Change
+                  </Badge>
+                </div>
+                <ChangeTracker
+                  changeNeeded={gameState.changeNeeded}
+                  changeGiven={gameState.changeGiven}
+                  cashCollected={gameState.cashCollected}
+                  onReturnMoney={returnMoney}
+                />
+                <CashDrawer
+                  contents={gameState.drawerContents}
+                  onSelectMoney={giveMoney}
+                  disabled={!gameState.cashCollected}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
