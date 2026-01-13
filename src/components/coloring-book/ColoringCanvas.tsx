@@ -239,8 +239,20 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     canvas.on('selection:updated', () => setHasSelection(true));
     canvas.on('selection:cleared', () => setHasSelection(false));
     
-    // Track changes for brush strokes
-    canvas.on('path:created', () => setHasChanges(true));
+    // Track changes for brush strokes and handle eraser paths
+    canvas.on('path:created', (opt: any) => {
+      setHasChanges(true);
+      // Check if this path was created while in eraser mode
+      const path = opt.path;
+      if (path && (canvas.freeDrawingBrush as any)?._isEraser) {
+        // Apply destination-out to erase underlying paths
+        path.set({
+          globalCompositeOperation: 'destination-out',
+          stroke: 'rgba(0,0,0,1)',
+        });
+        canvas.renderAll();
+      }
+    });
     canvas.on('object:modified', () => setHasChanges(true));
 
     setFabricCanvas(canvas);
@@ -293,18 +305,18 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       if (fabricCanvas.freeDrawingBrush) {
         fabricCanvas.freeDrawingBrush.color = activeColor;
         fabricCanvas.freeDrawingBrush.width = brushSize;
-        // Reset to normal drawing mode
-        (fabricCanvas.freeDrawingBrush as any).globalCompositeOperation = "source-over";
+        // Reset eraser flag
+        (fabricCanvas.freeDrawingBrush as any)._isEraser = false;
       }
     } else if (activeTool === "eraser") {
       fabricCanvas.isDrawingMode = true;
       fabricCanvas.selection = false;
       if (fabricCanvas.freeDrawingBrush) {
-        // Use destination-out composite to erase user strokes without affecting template
+        // Set brush properties for eraser - path:created handler applies destination-out
         fabricCanvas.freeDrawingBrush.color = "rgba(0,0,0,1)";
         fabricCanvas.freeDrawingBrush.width = brushSize * 2;
-        // Set global composite operation for erasing
-        (fabricCanvas.freeDrawingBrush as any).globalCompositeOperation = "destination-out";
+        // Flag this brush as eraser so path:created knows to apply destination-out
+        (fabricCanvas.freeDrawingBrush as any)._isEraser = true;
       }
     } else if (activeTool === "sticker") {
       fabricCanvas.isDrawingMode = false;
