@@ -36,11 +36,27 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [unsharing, setUnsharing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categoryEmojis, setCategoryEmojis] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    loadCategoryEmojis();
     loadJokes();
     loadUserLikes();
   }, [userId, sortBy]);
+
+  const loadCategoryEmojis = async () => {
+    const { data } = await supabase
+      .from("joke_categories")
+      .select("name, emoji");
+    
+    if (data) {
+      const emojiMap: Record<string, string> = {};
+      data.forEach((cat) => {
+        emojiMap[cat.name] = cat.emoji || "🎲";
+      });
+      setCategoryEmojis(emojiMap);
+    }
+  };
 
   const loadJokes = async () => {
     setLoading(true);
@@ -173,15 +189,7 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
   };
 
   const getCategoryEmoji = (category: string) => {
-    const map: Record<string, string> = {
-      random: '🎲',
-      food: '🍕',
-      animals: '🐶',
-      school: '📚',
-      sports: '⚽',
-      music: '🎵',
-    };
-    return map[category] || '🎲';
+    return categoryEmojis[category] || "🎲";
   };
 
   if (loading) {

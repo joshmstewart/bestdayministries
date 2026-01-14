@@ -10,16 +10,15 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Eye, EyeOff, Coins, Smile, Loader2, Sparkles, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Coins, Smile, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
-import { compressImage } from "@/lib/imageUtils";
 
 interface JokeCategory {
   id: string;
   name: string;
   description: string | null;
-  icon_url: string | null;
+  emoji: string | null;
   coin_price: number;
   is_free: boolean;
   is_active: boolean;
@@ -34,15 +33,11 @@ export function JokeCategoriesManager() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    emoji: "🎲",
     coin_price: 50,
     is_free: true,
     display_order: 0,
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [generatingIcon, setGeneratingIcon] = useState(false);
-  const [generatingAllIcons, setGeneratingAllIcons] = useState(false);
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ["admin-joke-categories"],
@@ -68,94 +63,12 @@ export function JokeCategoriesManager() {
     },
   });
 
-  const handleGenerateIcon = async () => {
-    if (!formData.name.trim()) {
-      toast.error("Please enter a category name first");
-      return;
-    }
-
-    setGeneratingIcon(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-joke-category-icon", {
-        body: { categoryName: formData.name },
-      });
-
-      if (error) throw error;
-      setGeneratedImageUrl(data.imageUrl);
-      setImageFile(null);
-      toast.success("Icon generated!");
-    } catch (error) {
-      showErrorToastWithCopy("Generating icon", error);
-    } finally {
-      setGeneratingIcon(false);
-    }
-  };
-
-  const handleGenerateAllIcons = async () => {
-    const categoriesWithoutIcons = categories?.filter(cat => !cat.icon_url) || [];
-    if (categoriesWithoutIcons.length === 0) {
-      toast.info("All categories already have icons!");
-      return;
-    }
-
-    setGeneratingAllIcons(true);
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const category of categoriesWithoutIcons) {
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-joke-category-icon", {
-          body: { categoryName: category.name },
-        });
-
-        if (error) throw error;
-
-        const { error: updateError } = await supabase
-          .from("joke_categories")
-          .update({ icon_url: data.imageUrl })
-          .eq("id", category.id);
-
-        if (updateError) throw updateError;
-        successCount++;
-      } catch (error) {
-        console.error(`Failed to generate icon for ${category.name}:`, error);
-        failCount++;
-      }
-    }
-
-    setGeneratingAllIcons(false);
-    queryClient.invalidateQueries({ queryKey: ["admin-joke-categories"] });
-
-    if (failCount === 0) {
-      toast.success(`Generated ${successCount} icons!`);
-    } else {
-      toast.warning(`Generated ${successCount} icons, ${failCount} failed`);
-    }
-  };
-
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      let iconUrl = generatedImageUrl || editingCategory?.icon_url;
-
-      if (imageFile) {
-        setUploading(true);
-        const compressed = await compressImage(imageFile);
-        const fileName = `${Date.now()}-${imageFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("app-assets")
-          .upload(`joke-categories/${fileName}`, compressed);
-        if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage
-          .from("app-assets")
-          .getPublicUrl(`joke-categories/${fileName}`);
-        iconUrl = urlData.publicUrl;
-        setUploading(false);
-      }
-
       const payload = {
         name: data.name.toLowerCase().trim(),
         description: data.description || null,
-        icon_url: iconUrl,
+        emoji: data.emoji || "🎲",
         coin_price: data.is_free ? 0 : data.coin_price,
         is_free: data.is_free,
         display_order: data.display_order,
@@ -179,7 +92,6 @@ export function JokeCategoriesManager() {
     },
     onError: (error) => {
       showErrorToastWithCopy("Saving category", error);
-      setUploading(false);
     },
   });
 
@@ -211,9 +123,7 @@ export function JokeCategoriesManager() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingCategory(null);
-    setFormData({ name: "", description: "", coin_price: 50, is_free: true, display_order: 0 });
-    setImageFile(null);
-    setGeneratedImageUrl(null);
+    setFormData({ name: "", description: "", emoji: "🎲", coin_price: 50, is_free: true, display_order: 0 });
   };
 
   const handleEdit = (category: JokeCategory) => {
@@ -221,12 +131,11 @@ export function JokeCategoriesManager() {
     setFormData({
       name: category.name,
       description: category.description || "",
+      emoji: category.emoji || "🎲",
       coin_price: category.coin_price || 50,
       is_free: category.is_free,
       display_order: category.display_order || 0,
     });
-    setImageFile(null);
-    setGeneratedImageUrl(null);
     setDialogOpen(true);
   };
 
@@ -235,8 +144,6 @@ export function JokeCategoriesManager() {
     saveMutation.mutate(formData);
   };
 
-  const currentIconUrl = generatedImageUrl || editingCategory?.icon_url;
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -244,28 +151,12 @@ export function JokeCategoriesManager() {
           <Smile className="w-5 h-5" />
           Joke Categories
         </CardTitle>
-        <div className="flex gap-2">
-          {categories && categories.some(c => !c.icon_url) && (
-            <Button
-              variant="outline"
-              onClick={handleGenerateAllIcons}
-              disabled={generatingAllIcons}
-              className="gap-2"
-            >
-              {generatingAllIcons ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              Generate All Icons
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" /> Add Category
             </Button>
-          )}
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" /> Add Category
-              </Button>
-            </DialogTrigger>
+          </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCategory ? "Edit" : "Add"} Joke Category</DialogTitle>
@@ -289,6 +180,19 @@ export function JokeCategoriesManager() {
                   placeholder="Short description for the store"
                   rows={2}
                 />
+              </div>
+
+              <div>
+                <Label>Emoji</Label>
+                <Input
+                  value={formData.emoji}
+                  onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
+                  placeholder="🎲"
+                  className="text-2xl"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter an emoji to represent this category
+                </p>
               </div>
 
               {/* Pricing */}
@@ -325,70 +229,18 @@ export function JokeCategoriesManager() {
                 />
               </div>
 
-              {/* Icon */}
-              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                <Label className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  Category Icon
-                </Label>
-
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleGenerateIcon}
-                    disabled={generatingIcon || !formData.name.trim()}
-                    className="flex-1"
-                  >
-                    {generatingIcon ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Generate Icon
-                  </Button>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) {
-                          setImageFile(e.target.files[0]);
-                          setGeneratedImageUrl(null);
-                        }
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                    />
-                    <Button type="button" variant="outline">
-                      <Upload className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {(currentIconUrl || imageFile) && (
-                  <div className="flex justify-center">
-                    <img
-                      src={imageFile ? URL.createObjectURL(imageFile) : currentIconUrl!}
-                      alt="Category icon"
-                      className="w-24 h-24 object-cover rounded-lg border"
-                    />
-                  </div>
-                )}
-              </div>
-
               <div className="flex gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={handleCloseDialog} className="flex-1">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saveMutation.isPending || uploading} className="flex-1">
-                  {(saveMutation.isPending || uploading) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                <Button type="submit" disabled={saveMutation.isPending} className="flex-1">
+                  {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                   {editingCategory ? "Update" : "Create"}
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
-        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -399,7 +251,7 @@ export function JokeCategoriesManager() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Icon</TableHead>
+                <TableHead>Emoji</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Jokes</TableHead>
@@ -412,13 +264,7 @@ export function JokeCategoriesManager() {
               {categories?.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell>
-                    {category.icon_url ? (
-                      <img src={category.icon_url} alt={category.name} className="w-10 h-10 object-cover rounded" />
-                    ) : (
-                      <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                        <Smile className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                    )}
+                    <span className="text-2xl">{category.emoji || "🎲"}</span>
                   </TableCell>
                   <TableCell className="font-medium capitalize">{category.name}</TableCell>
                   <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
