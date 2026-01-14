@@ -58,25 +58,22 @@ serve(async (req) => {
     }
 
     // Generate the image using Lovable AI
-    const prompt = `POV first person perspective from behind a ${storeName.toLowerCase()} checkout counter, looking out at the store interior. ${storeDescription || ""}. Realistic photography style, wide angle lens, professional lighting. Ultra high resolution, 16:9 aspect ratio.`;
+    const prompt = `POV first person perspective from behind a ${storeName.toLowerCase()} checkout counter, looking out at the store interior. ${storeDescription || ""}. Realistic photography style, wide angle lens, professional lighting. Ultra high resolution, 16:9 aspect ratio hero image.`;
 
     console.log("Generating image with prompt:", prompt);
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        modalities: ["image", "text"],
+        model: "flux2.dev",
+        prompt: prompt,
+        n: 1,
+        size: "1920x1080",
+        response_format: "b64_json",
       }),
     });
 
@@ -87,15 +84,15 @@ serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const imageBase64 = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const imageBase64 = aiData.data?.[0]?.b64_json;
 
     if (!imageBase64) {
+      console.error("AI response:", JSON.stringify(aiData));
       throw new Error("No image generated");
     }
 
-    // Extract base64 data
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
-    const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    // Convert base64 to buffer
+    const imageBuffer = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
 
     // Upload to storage
     const fileName = `store-${storeId}-${Date.now()}.jpg`;

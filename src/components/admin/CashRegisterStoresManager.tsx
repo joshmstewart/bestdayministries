@@ -5,11 +5,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+// Import local fallback images
+import coffeeShopBg from "@/assets/games/stores/coffee-shop-pov.jpg";
+import groceryBg from "@/assets/games/stores/grocery-store-pov.jpg";
+import clothingBg from "@/assets/games/stores/clothing-store-pov.jpg";
+import convenienceBg from "@/assets/games/stores/convenience-store-pov.jpg";
+import bakeryBg from "@/assets/games/stores/bakery-pov.jpg";
+
+const FALLBACK_IMAGES: Record<string, string> = {
+  "Coffee Shop": coffeeShopBg,
+  "Grocery Store": groceryBg,
+  "Clothing Store": clothingBg,
+  "Convenience Store": convenienceBg,
+  "Bakery": bakeryBg,
+};
 
 interface StoreType {
   id: string;
@@ -262,9 +276,9 @@ export const CashRegisterStoresManager = () => {
                 className="flex items-start gap-4 p-4 rounded-lg border bg-card"
               >
                 <div className="relative w-32 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                  {store.image_url ? (
+                  {store.image_url || FALLBACK_IMAGES[store.name] ? (
                     <img
-                      src={`${store.image_url}?v=${Date.now()}`}
+                      src={store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name]}
                       alt={store.name}
                       className="w-full h-full object-cover"
                     />
