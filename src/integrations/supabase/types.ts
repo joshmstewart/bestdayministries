@@ -839,6 +839,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          is_pack_only: boolean
           name: string
           updated_at: string
         }
@@ -851,6 +852,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_pack_only?: boolean
           name: string
           updated_at?: string
         }
@@ -863,7 +865,93 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_pack_only?: boolean
           name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cash_register_pack_items: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          id: string
+          pack_id: string
+          store_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          pack_id: string
+          store_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          pack_id?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_register_pack_items_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "cash_register_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_register_pack_items_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "cash_register_packs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_register_pack_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "cash_register_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_register_packs: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          pack_type: string
+          price_coins: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          pack_type?: string
+          price_coins?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          pack_type?: string
+          price_coins?: number
           updated_at?: string
         }
         Relationships: []
@@ -877,6 +965,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           is_default: boolean | null
+          is_pack_only: boolean
           menu_items: Json | null
           name: string
           updated_at: string
@@ -889,6 +978,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          is_pack_only?: boolean
           menu_items?: Json | null
           name: string
           updated_at?: string
@@ -901,6 +991,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          is_pack_only?: boolean
           menu_items?: Json | null
           name?: string
           updated_at?: string
@@ -6928,6 +7019,38 @@ export type Database = {
             columns: ["sound_id"]
             isOneToOne: false
             referencedRelation: "beat_pad_sounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_cash_register_packs: {
+        Row: {
+          coins_spent: number
+          id: string
+          pack_id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          coins_spent?: number
+          id?: string
+          pack_id: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          coins_spent?: number
+          id?: string
+          pack_id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cash_register_packs_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "cash_register_packs"
             referencedColumns: ["id"]
           },
         ]
