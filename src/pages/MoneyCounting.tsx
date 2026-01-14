@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RotateCcw, Trophy, Store, ChevronDown } from "lucide-react";
+import { RotateCcw, Trophy, Store, ChevronDown, BarChart3 } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
@@ -11,10 +11,15 @@ import { CustomerPayment } from "@/components/money-counting/CustomerPayment";
 import { ChangeTracker } from "@/components/money-counting/ChangeTracker";
 import { ReceiptDisplay } from "@/components/money-counting/ReceiptDisplay";
 import { LevelComplete } from "@/components/money-counting/LevelComplete";
+import { CashRegisterStats } from "@/components/cash-register/CashRegisterStats";
+import { CashRegisterLeaderboard } from "@/components/cash-register/CashRegisterLeaderboard";
 import { generateOrder, calculateOptimalChange, MenuItem } from "@/lib/moneyCountingUtils";
 import { loadCustomCurrencyImages } from "@/lib/currencyImages";
 import { supabase } from "@/integrations/supabase/client";
+import { useCashRegisterStats } from "@/hooks/useCashRegisterStats";
+import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Json } from "@/integrations/supabase/types";
 
 // Fallback images for stores without DB images
@@ -100,6 +105,11 @@ export default function MoneyCounting() {
     optimalPieces: number;
     optimalBreakdown: { [key: string]: number };
   } | null>(null);
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0);
+  const [showStatsDialog, setShowStatsDialog] = useState(false);
+
+  const { user } = useAuth();
+  const { saveGameResult } = useCashRegisterStats();
 
   // Load stores and customers from database (including purchased pack items)
   useEffect(() => {
@@ -467,6 +477,12 @@ export default function MoneyCounting() {
       spread: 70,
       origin: { y: 0.6 },
     });
+
+    // Save stats when game ends (player completes a level)
+    if (user) {
+      saveGameResult(newScore, gameState.level);
+      setStatsRefreshKey(prev => prev + 1);
+    }
   };
 
   useEffect(() => {
@@ -557,6 +573,24 @@ export default function MoneyCounting() {
                 <Trophy className="h-4 w-4 mr-1" />
                 {gameState.score}
               </Badge>
+              
+              {/* Stats & Leaderboard Dialog */}
+              <Dialog open={showStatsDialog} onOpenChange={setShowStatsDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Stats
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Cash Register Stats</DialogTitle>
+                  </DialogHeader>
+                  <CashRegisterStats refreshKey={statsRefreshKey} currentScore={gameState.score} />
+                  <CashRegisterLeaderboard />
+                </DialogContent>
+              </Dialog>
+              
               <Button variant="outline" size="sm" onClick={startNewGame}>
                 <RotateCcw className="h-4 w-4 mr-2" />
                 New Game
