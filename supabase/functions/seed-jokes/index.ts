@@ -24,14 +24,20 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get existing jokes to avoid duplicates
+    // Get existing jokes to avoid duplicates (including answers for semantic matching)
     const { data: existingJokes } = await supabase
       .from('joke_library')
-      .select('question');
+      .select('question, answer');
     
     const existingQuestions = new Set(
       (existingJokes || []).map(j => j.question.toLowerCase().trim())
     );
+
+    // Create a sample of existing jokes to help AI avoid similar concepts
+    const sampleExisting = (existingJokes || [])
+      .slice(0, 100) // Sample first 100 for context
+      .map(j => `Q: ${j.question} A: ${j.answer}`)
+      .join('\n');
 
     const categoryPrompt = category && category !== 'random' 
       ? `All jokes should be about: ${category}.` 
@@ -72,7 +78,14 @@ BAD EXAMPLES (DO NOT USE):
 
 ${categoryPrompt}
 
-Generate EXACTLY ${count} unique, SIMPLE jokes. Each joke must be easy for everyone to understand!
+CRITICAL - AVOID DUPLICATES:
+These jokes ALREADY EXIST in the library. Do NOT generate anything similar to these (same concept, same punchline pattern, or slight rewording):
+${sampleExisting}
+
+Generate EXACTLY ${count} COMPLETELY UNIQUE jokes that:
+1. Have different subjects than the existing jokes
+2. Use different punchlines/wordplay than the existing jokes
+3. Are NOT slight rewordings of existing jokes
 
 IMPORTANT: Respond ONLY with a valid JSON array in this exact format:
 [
@@ -84,7 +97,7 @@ No other text, just the JSON array.`
           },
           {
             role: 'user',
-            content: `Generate ${count} unique corny jokes!`
+            content: `Generate ${count} COMPLETELY NEW and unique corny jokes that are DIFFERENT from all existing jokes!`
           }
         ],
       }),
