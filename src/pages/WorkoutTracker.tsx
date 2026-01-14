@@ -8,11 +8,9 @@ import { WeeklyGoalCard } from "@/components/workout/WeeklyGoalCard";
 import { QuickLogGrid } from "@/components/workout/QuickLogGrid";
 import { FeaturedVideo } from "@/components/workout/FeaturedVideo";
 import { Dumbbell } from "lucide-react";
-import { useState } from "react";
 
 const WorkoutTracker = () => {
   const { user } = useAuth();
-  const [showVideos, setShowVideos] = useState(false);
 
   return (
     <>
@@ -37,9 +35,9 @@ const WorkoutTracker = () => {
           {user ? (
             <div className="space-y-4">
               {/* Streak & Goal Row */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <StreakDisplay userId={user.id} onShowVideos={() => setShowVideos(true)} />
-                <WeeklyGoalCard userId={user.id} className="h-full" />
+              <div className="grid gap-4 grid-cols-2">
+                <StreakDisplay userId={user.id} />
+                <WeeklyGoalCard userId={user.id} />
               </div>
 
               {/* Quick Log Grid */}
