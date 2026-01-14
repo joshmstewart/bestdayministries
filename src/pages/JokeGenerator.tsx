@@ -4,21 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { JokeGallery } from '@/components/joke-generator/JokeGallery';
 import { JokeCommunityGallery } from '@/components/joke-generator/JokeCommunityGallery';
+import { JokeCategorySelector } from '@/components/joke-generator/JokeCategorySelector';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
 import Footer from '@/components/Footer';
-
-interface JokeCategory {
-  id: string;
-  name: string;
-  emoji: string;
-}
 
 interface Joke {
   question: string;
@@ -33,38 +27,28 @@ const JokeGenerator: React.FC = () => {
   const [guess, setGuess] = useState('');
   const [hasGuessed, setHasGuessed] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('random');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [activeTab, setActiveTab] = useState('create');
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isShared, setIsShared] = useState(false);
-  const [categories, setCategories] = useState<JokeCategory[]>([]);
 
-  // Fetch categories from database
+  // Initialize with all free categories on mount
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchInitialCategories = async () => {
       const { data, error } = await supabase
         .from('joke_categories')
-        .select('id, name, emoji')
+        .select('id')
         .eq('is_active', true)
-        .order('display_order');
+        .eq('is_free', true)
+        .neq('name', 'random');
       
       if (!error && data) {
-        // Filter out 'random' from database since we add it manually
-        const filteredData = data.filter(cat => cat.name.toLowerCase() !== 'random');
-        // Add random option at the beginning
-        setCategories([
-          { id: 'random', name: 'Random', emoji: '🎲' },
-          ...filteredData.map(cat => ({
-            id: cat.name.toLowerCase(),
-            name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
-            emoji: cat.emoji || '🎲'
-          }))
-        ]);
+        setSelectedCategories(data.map(c => c.id));
       }
     };
-    fetchCategories();
+    fetchInitialCategories();
   }, []);
 
   // These functions are now handled server-side in the get-joke edge function
@@ -79,9 +63,14 @@ const JokeGenerator: React.FC = () => {
     setIsShared(false);
 
     try {
+      // Pick a random category from selected ones, or use 'random' behavior
+      const categoryToUse = selectedCategories.length > 0 
+        ? selectedCategories[Math.floor(Math.random() * selectedCategories.length)]
+        : 'random';
+      
       // Try to get from library first
       const { data, error } = await supabase.functions.invoke('get-joke', {
-        body: { category: selectedCategory, userId: user?.id },
+        body: { categoryIds: selectedCategories, userId: user?.id },
       });
 
       if (error) throw error;
@@ -162,7 +151,7 @@ const JokeGenerator: React.FC = () => {
           user_id: user.id,
           question: joke.question,
           answer: joke.answer,
-          category: selectedCategory,
+          category: 'mixed', // Multi-select doesn't track individual category
           is_public: shareWithCommunity,
         });
 
@@ -234,27 +223,13 @@ const JokeGenerator: React.FC = () => {
                 </div>
               )}
 
-              {/* Soft Ribbon Container with Category & Generate Button */}
+              {/* Soft Ribbon Container with Generate Button & Categories */}
               <div className="bg-soft-ribbon rounded-2xl p-6 shadow-lg">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  {/* Category Dropdown */}
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-full sm:w-[200px] bg-background/80 backdrop-blur-sm">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.emoji} {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {/* Generate Button */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* Generate Button - Left */}
                   <Button
                     onClick={generateJoke}
-                    disabled={isLoading}
+                    disabled={isLoading || selectedCategories.length === 0}
                     size="lg"
                     className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white gap-2 w-full sm:w-auto"
                   >
@@ -270,6 +245,12 @@ const JokeGenerator: React.FC = () => {
                       </>
                     )}
                   </Button>
+
+                  {/* Categories Button - Right */}
+                  <JokeCategorySelector
+                    selectedCategories={selectedCategories}
+                    onCategoriesChange={setSelectedCategories}
+                  />
                 </div>
               </div>
 
