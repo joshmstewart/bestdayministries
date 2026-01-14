@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Music, Users, X, ShoppingBag, Save, Wand2, Loader2 } from 'lucide-react';
+import { Music, Users, X, ShoppingBag, Save, Wand2, Loader2, Shuffle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -581,6 +581,28 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                 )}
                 Generate Beat
               </Button>
+              
+              {/* Remix Button - shows when a saved beat is loaded */}
+              {savedBeatId && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Create a remix copy
+                    if (!beatName.includes('(Remix)')) {
+                      setBeatName(`${beatName} (Remix)`);
+                    }
+                    setSavedBeatId(null);
+                    setSavedBeatImageUrl(null);
+                    toast.success('Remixing! Edit and save as your own! 🎵');
+                  }}
+                  className="gap-2"
+                  disabled={!user}
+                  title={!user ? 'Sign in to remix' : 'Create your own version'}
+                >
+                  <Shuffle className="h-4 w-4" />
+                  Remix
+                </Button>
+              )}
               
               {/* New Beat Button */}
               <Button
