@@ -30,26 +30,40 @@ serve(async (req) => {
 
     // New multi-category approach using categoryIds (array of UUIDs)
     if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
-      // Get jokes from selected categories that user hasn't seen
+      // First, get the user's seen jokes
+      let seenQuestions: string[] = [];
+      if (userId) {
+        const { data: seenData } = await supabase
+          .from('user_joke_history')
+          .select('joke_question')
+          .eq('user_id', userId);
+        
+        seenQuestions = (seenData || []).map(row => row.joke_question);
+      }
+
+      // Get all active jokes from selected categories
       const { data, error } = await supabase
         .from('joke_library')
         .select('id, question, answer, category, is_reviewed')
         .eq('is_active', true)
-        .in('category_id', categoryIds)
-        .not('question', 'in', `(SELECT joke_question FROM user_joke_history WHERE user_id = '${userId}')`)
-        .limit(100);
+        .in('category_id', categoryIds);
 
       if (error) {
         console.error('Error fetching jokes by category IDs:', error);
         throw new Error('Failed to fetch joke from library');
       }
 
-      // Pick a random joke from the results
-      if (data && data.length > 0) {
-        joke = data[Math.floor(Math.random() * data.length)] as JokeResult;
+      // Filter out seen jokes in memory
+      const unseenJokes = (data || []).filter(
+        j => !seenQuestions.includes(j.question)
+      );
+
+      // Pick a random joke from the unseen results
+      if (unseenJokes.length > 0) {
+        joke = unseenJokes[Math.floor(Math.random() * unseenJokes.length)] as JokeResult;
       }
     } else {
-      // Legacy single category approach
+      // Legacy single category approach using the database function
       const { data, error } = await supabase
         .rpc('get_random_unseen_joke', {
           _user_id: userId,
