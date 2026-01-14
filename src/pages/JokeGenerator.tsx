@@ -42,6 +42,48 @@ const JokeGenerator: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isShared, setIsShared] = useState(false);
 
+  // Check if a joke is a duplicate (user has seen it or it's already shared by someone)
+  const isDuplicateJoke = async (question: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    // Check user's personal history
+    const { data: historyData } = await supabase
+      .from('user_joke_history')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('joke_question', question)
+      .maybeSingle();
+    
+    if (historyData) return true;
+    
+    // Check community shared jokes (any public joke with same question)
+    const { data: sharedData } = await supabase
+      .from('saved_jokes')
+      .select('id')
+      .eq('question', question)
+      .eq('is_public', true)
+      .limit(1);
+    
+    if (sharedData && sharedData.length > 0) return true;
+    
+    return false;
+  };
+
+  // Record that user has seen a joke
+  const recordJokeHistory = async (question: string) => {
+    if (!user) return;
+    
+    await supabase
+      .from('user_joke_history')
+      .upsert({ 
+        user_id: user.id, 
+        joke_question: question 
+      }, { 
+        onConflict: 'user_id,joke_question',
+        ignoreDuplicates: true 
+      });
+  };
+
   const generateJoke = async () => {
     setIsLoading(true);
     setShowAnswer(false);
@@ -51,15 +93,42 @@ const JokeGenerator: React.FC = () => {
     setIsSaved(false);
     setIsShared(false);
 
+    const maxRetries = 5;
+    let attempts = 0;
+
     try {
-      const { data, error } = await supabase.functions.invoke('generate-joke', {
+      while (attempts < maxRetries) {
+        attempts++;
+        
+        const { data, error } = await supabase.functions.invoke('generate-joke', {
+          body: { category: selectedCategory },
+        });
+
+        if (error) throw error;
+        if (data.error) throw new Error(data.error);
+
+        // Check if this joke is a duplicate
+        const isDuplicate = await isDuplicateJoke(data.question);
+        
+        if (!isDuplicate) {
+          // Record this joke in history and use it
+          await recordJokeHistory(data.question);
+          setJoke(data);
+          return;
+        }
+        
+        console.log(`Duplicate joke detected (attempt ${attempts}), retrying...`);
+      }
+      
+      // If we exhausted retries, use the last joke anyway but warn
+      toast.info('You might have seen this one before!');
+      const { data } = await supabase.functions.invoke('generate-joke', {
         body: { category: selectedCategory },
       });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-
-      setJoke(data);
+      if (data && !data.error) {
+        await recordJokeHistory(data.question);
+        setJoke(data);
+      }
     } catch (error) {
       console.error('Error generating joke:', error);
       toast.error('Failed to generate joke. Try again!');

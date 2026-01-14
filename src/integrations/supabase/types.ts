@@ -7244,6 +7244,27 @@ export type Database = {
           },
         ]
       }
+      user_joke_history: {
+        Row: {
+          created_at: string
+          id: string
+          joke_question: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          joke_question: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          joke_question?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_memory_match_packs: {
         Row: {
           id: string
