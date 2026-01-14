@@ -998,6 +998,45 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_register_user_stats: {
+        Row: {
+          best_level: number
+          created_at: string
+          current_month_score: number | null
+          current_month_year: string | null
+          high_score: number
+          id: string
+          total_games_played: number
+          total_levels_completed: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          best_level?: number
+          created_at?: string
+          current_month_score?: number | null
+          current_month_year?: string | null
+          high_score?: number
+          id?: string
+          total_games_played?: number
+          total_levels_completed?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          best_level?: number
+          created_at?: string
+          current_month_score?: number | null
+          current_month_year?: string | null
+          high_score?: number
+          id?: string
+          total_games_played?: number
+          total_levels_completed?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       change_logs: {
         Row: {
           affected_record_id: string | null
