@@ -3938,6 +3938,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean | null
+          is_reviewed: boolean
           question: string
           times_served: number | null
         }
@@ -3948,6 +3949,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          is_reviewed?: boolean
           question: string
           times_served?: number | null
         }
@@ -3958,6 +3960,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean | null
+          is_reviewed?: boolean
           question?: string
           times_served?: number | null
         }
