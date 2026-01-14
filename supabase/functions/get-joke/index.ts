@@ -11,6 +11,7 @@ interface JokeResult {
   question: string;
   answer: string;
   category: string;
+  is_reviewed: boolean;
 }
 
 serve(async (req) => {
@@ -32,7 +33,7 @@ serve(async (req) => {
       // Get jokes from selected categories that user hasn't seen
       const { data, error } = await supabase
         .from('joke_library')
-        .select('id, question, answer, category')
+        .select('id, question, answer, category, is_reviewed')
         .eq('is_active', true)
         .in('category_id', categoryIds)
         .not('question', 'in', `(SELECT joke_question FROM user_joke_history WHERE user_id = '${userId}')`)
@@ -81,6 +82,7 @@ serve(async (req) => {
         id: joke.id,
         question: joke.question,
         answer: joke.answer,
+        is_reviewed: joke.is_reviewed ?? false,
         fromLibrary: true,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
