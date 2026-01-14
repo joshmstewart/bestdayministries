@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2, Trash2 } from 'lucide-react';
+import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2, Trash2, CheckCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,6 +48,7 @@ const JokeGenerator: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkingReviewed, setIsMarkingReviewed] = useState(false);
 
   // Initialize with all free categories on mount
   useEffect(() => {
@@ -111,26 +112,36 @@ const JokeGenerator: React.FC = () => {
   const checkGuess = () => {
     if (!joke || !guess.trim()) return;
 
-    // Simple fuzzy match - check if key words match
+    // Enhanced fuzzy matching for better partial credit
     const guessLower = guess.toLowerCase().trim();
     const answerLower = joke.answer.toLowerCase();
     
     // Remove punctuation and common words for comparison
-    const cleanString = (s: string) => s.replace(/[^\w\s]/g, '').replace(/\b(the|a|an|it|was|is|because)\b/g, '').trim();
+    const cleanString = (s: string) => s.replace(/[^\w\s]/g, '').replace(/\b(the|a|an|it|was|is|because|they|its|im|i)\b/gi, '').trim();
     const cleanGuess = cleanString(guessLower);
     const cleanAnswer = cleanString(answerLower);
     
-    // Check if they share significant words
-    const guessWords = cleanGuess.split(/\s+/).filter(w => w.length > 2);
-    const answerWords = cleanAnswer.split(/\s+/).filter(w => w.length > 2);
+    // Extract meaningful words (2+ chars for short words like "no", "go")
+    const guessWords = cleanGuess.split(/\s+/).filter(w => w.length >= 2);
+    const answerWords = cleanAnswer.split(/\s+/).filter(w => w.length >= 2);
     
-    const matchingWords = guessWords.filter(word => 
-      answerWords.some(aw => aw.includes(word) || word.includes(aw))
+    // Check for any significant word match (partial match counts)
+    const hasKeywordMatch = guessWords.some(gWord => 
+      answerWords.some(aWord => {
+        // Exact match or one contains the other (for "rock" matching "rock music")
+        return gWord === aWord || 
+               aWord.includes(gWord) || 
+               gWord.includes(aWord) ||
+               // Handle plurals and common variations
+               gWord + 's' === aWord ||
+               aWord + 's' === gWord;
+      })
     );
     
-    const correct = matchingWords.length >= Math.min(2, guessWords.length) || 
-                   cleanAnswer.includes(cleanGuess) || 
-                   cleanGuess.includes(cleanAnswer);
+    // Also check if entire guess is contained in answer or vice versa
+    const containsMatch = cleanAnswer.includes(cleanGuess) || cleanGuess.includes(cleanAnswer);
+    
+    const correct = hasKeywordMatch || containsMatch;
 
     setIsCorrect(correct);
     setHasGuessed(true);
@@ -167,15 +178,37 @@ const JokeGenerator: React.FC = () => {
       if (error) throw error;
 
       toast.success('Joke deleted from library');
-      setJoke(null);
-      setShowAnswer(false);
-      setGuess('');
-      setHasGuessed(false);
+      // Immediately load a new joke after deleting
+      generateJoke();
     } catch (error) {
       console.error('Error deleting joke:', error);
       toast.error('Failed to delete joke');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const markJokeAsReviewed = async () => {
+    if (!joke?.id) {
+      toast.error('Cannot mark this joke');
+      return;
+    }
+
+    setIsMarkingReviewed(true);
+    try {
+      const { error } = await supabase
+        .from('joke_library')
+        .update({ is_reviewed: true })
+        .eq('id', joke.id);
+
+      if (error) throw error;
+
+      toast.success('Joke marked as reviewed');
+    } catch (error) {
+      console.error('Error marking joke as reviewed:', error);
+      toast.error('Failed to mark joke as reviewed');
+    } finally {
+      setIsMarkingReviewed(false);
     }
   };
 
@@ -412,41 +445,61 @@ const JokeGenerator: React.FC = () => {
                             Another One!
                           </Button>
 
-                          {/* Admin Delete Button */}
+                          {/* Admin Actions */}
                           {isAdminOrOwner && joke?.id && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                  disabled={isDeleting}
-                                >
-                                  {isDeleting ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete this joke?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently remove this joke from the library. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={deleteJokeFromLibrary}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            <>
+                              {/* Mark as Reviewed Button */}
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="text-green-600 hover:bg-green-100 hover:text-green-700"
+                                onClick={markJokeAsReviewed}
+                                disabled={isMarkingReviewed}
+                                title="Mark as reviewed"
+                              >
+                                {isMarkingReviewed ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-4 h-4" />
+                                )}
+                              </Button>
+
+                              {/* Delete Button */}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                    disabled={isDeleting}
+                                    title="Delete from library"
                                   >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                    {isDeleting ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete this joke?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently remove this joke from the library. This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={deleteJokeFromLibrary}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
                           )}
                         </div>
                       </div>
