@@ -74,11 +74,18 @@ const BeatPad: React.FC = () => {
     playSound(sound);
   }, [playSound, getAudioContext]);
 
-  const handlePlay = useCallback(() => {
+  const handlePlay = useCallback(async () => {
     getAudioContext();
+    
+    // Ensure sounds are preloaded before starting playback
+    const soundsToPreload = instruments.filter(Boolean) as SoundConfig[];
+    if (soundsToPreload.length > 0) {
+      await preloadSounds(soundsToPreload);
+    }
+    
     setIsPlaying(true);
     setCurrentStep(0);
-  }, [getAudioContext]);
+  }, [getAudioContext, instruments, preloadSounds]);
 
   const handleStop = useCallback(() => {
     setIsPlaying(false);
