@@ -33,8 +33,8 @@ interface Joke {
 }
 
 const JokeGenerator: React.FC = () => {
-  const { user, isAuthenticated, loading, role } = useAuth();
-  const isAdminOrOwner = role === 'admin' || role === 'owner';
+  const { user, isAuthenticated, loading, isAdmin, isOwner } = useAuth();
+  const isAdminOrOwner = isAdmin || isOwner;
   const [joke, setJoke] = useState<Joke | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -160,10 +160,9 @@ const JokeGenerator: React.FC = () => {
 
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('joke_library')
-        .delete()
-        .eq('id', joke.id);
+      const { error } = await supabase.functions.invoke('delete-joke-library', {
+        body: { jokeId: joke.id },
+      });
 
       if (error) throw error;
 
