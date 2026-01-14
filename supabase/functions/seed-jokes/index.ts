@@ -49,18 +49,35 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a joke generator creating family-friendly, corny jokes like those found on Laffy Taffy wrappers, bubble gum wrappers, or popsicle sticks.
+            content: `You are creating VERY SIMPLE jokes for adults with intellectual disabilities and their families.
 
-These are simple Q&A format jokes with a question and a punny answer. Keep them SHORT and SILLY.
+CRITICAL RULES:
+- Use ONLY simple, everyday words (no technical terms, no abstract concepts)
+- Answers should be obvious and easy to understand
+- Use concrete, visual things people can picture (animals, food, everyday objects)
+- NO complex wordplay or puns that require spelling knowledge
+- Keep sentences SHORT (under 10 words each)
+- The humor should come from silly, obvious connections
+
+GOOD EXAMPLES:
+- "Why did the banana go to the doctor?" → "Because it wasn't peeling well!" (simple, visual)
+- "What do you call a sleeping dinosaur?" → "A dino-snore!" (easy sound connection)
+- "Why are fish so smart?" → "Because they live in schools!" (concrete concept)
+
+BAD EXAMPLES (DO NOT USE):
+- Jokes requiring spelling backward (like "Edam = made")
+- Jokes about technology, apps, or computers
+- Jokes with multiple meanings that are hard to get
+- Anything requiring specialized knowledge
 
 ${categoryPrompt}
 
-Generate EXACTLY ${count} unique jokes. Make sure each joke is different!
+Generate EXACTLY ${count} unique, SIMPLE jokes. Each joke must be easy for everyone to understand!
 
 IMPORTANT: Respond ONLY with a valid JSON array in this exact format:
 [
-  {"question": "Why did the cookie go to the doctor?", "answer": "Because it was feeling crummy!", "category": "food"},
-  {"question": "What do you call a fish without eyes?", "answer": "A fsh!", "category": "animals"}
+  {"question": "Why did the chicken cross the playground?", "answer": "To get to the other slide!", "category": "animals"},
+  {"question": "What do cows read in the morning?", "answer": "The moos-paper!", "category": "animals"}
 ]
 
 No other text, just the JSON array.`
