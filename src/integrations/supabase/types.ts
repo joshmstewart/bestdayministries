@@ -7708,6 +7708,81 @@ export type Database = {
           },
         ]
       }
+      user_workout_goals: {
+        Row: {
+          coin_reward: number | null
+          created_at: string
+          id: string
+          set_by: string | null
+          updated_at: string
+          user_id: string
+          weekly_activity_goal: number | null
+        }
+        Insert: {
+          coin_reward?: number | null
+          created_at?: string
+          id?: string
+          set_by?: string | null
+          updated_at?: string
+          user_id: string
+          weekly_activity_goal?: number | null
+        }
+        Update: {
+          coin_reward?: number | null
+          created_at?: string
+          id?: string
+          set_by?: string | null
+          updated_at?: string
+          user_id?: string
+          weekly_activity_goal?: number | null
+        }
+        Relationships: []
+      }
+      user_workout_logs: {
+        Row: {
+          activity_id: string | null
+          completed_at: string
+          id: string
+          notes: string | null
+          user_id: string
+          video_id: string | null
+          workout_type: string
+        }
+        Insert: {
+          activity_id?: string | null
+          completed_at?: string
+          id?: string
+          notes?: string | null
+          user_id: string
+          video_id?: string | null
+          workout_type: string
+        }
+        Update: {
+          activity_id?: string | null
+          completed_at?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+          video_id?: string | null
+          workout_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_workout_logs_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "workout_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_workout_logs_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "workout_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_bestie_assets: {
         Row: {
           approval_status: string
@@ -8252,6 +8327,137 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workout_activities: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          points: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          points?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          points?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workout_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workout_videos: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          difficulty: string | null
+          display_order: number | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean | null
+          points: number | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          youtube_url: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          display_order?: number | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          points?: number | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          youtube_url: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          difficulty?: string | null
+          display_order?: number | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          points?: number | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          youtube_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_videos_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "workout_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       year_end_summary_sent: {
         Row: {

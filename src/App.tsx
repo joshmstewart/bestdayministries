@@ -48,6 +48,7 @@ const SupportUs = lazy(() => import("./pages/SupportUs"));
 const SponsorBestie = lazy(() => import("./pages/SponsorBestie"));
 const SponsorshipSuccess = lazy(() => import("./pages/SponsorshipSuccess"));
 const Discussions = lazy(() => import("./pages/Discussions"));
+const WorkoutTracker = lazy(() => import("./pages/WorkoutTracker"));
 const ModerationQueue = lazy(() => import("./pages/ModerationQueue"));
 const ProfileSettings = lazy(() => import("./pages/ProfileSettings"));
 const GuardianLinks = lazy(() => import("./pages/GuardianLinks"));
@@ -305,6 +306,7 @@ const App = () => {
             <Route path="/store/product/:productId" element={<ProductDetail />} />
             <Route path="/sticker-album" element={<StickerAlbumPage />} />
             <Route path="/install" element={<InstallApp />} />
+            <Route path="/workout-tracker" element={<WorkoutTracker />} />
             <Route path="/checkout-success" element={<CheckoutSuccess />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
