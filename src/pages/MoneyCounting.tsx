@@ -531,21 +531,33 @@ export default function MoneyCounting() {
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-background flex flex-col">
       <UnifiedHeader />
       
-      <main className="pt-24 pb-8 px-4 min-h-screen">
-        <div className="container mx-auto max-w-6xl">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">💵 Cash Register</h1>
-            <p className="text-muted-foreground text-sm">Make correct change for customers!</p>
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border-b border-border pt-24">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+              <span className="text-3xl">💵</span>
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">Cash Register</h1>
+              <p className="text-muted-foreground">Make correct change for customers!</p>
+            </div>
           </div>
+        </div>
+      </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      {/* Tabs - Centered like other games */}
+      <div className="container mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex justify-center mb-6">
             <TabsList>
               <TabsTrigger value="play">Play</TabsTrigger>
               <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
             </TabsList>
+          </div>
 
             {/* Play Tab */}
             <TabsContent value="play" className="space-y-4">
@@ -728,10 +740,10 @@ export default function MoneyCounting() {
               <CashRegisterStats refreshKey={statsRefreshKey} currentScore={gameState.score} />
               <CashRegisterLeaderboard />
             </TabsContent>
-          </Tabs>
-        </div>
-      </main>
+        </Tabs>
+      </div>
+
       <Footer />
-    </>
+    </div>
   );
 }
