@@ -131,12 +131,20 @@ export default function MoneyCounting() {
   }, []);
 
   // Pick a random customer when customers load or level changes
-  const pickRandomCustomer = useCallback(() => {
-    if (customers.length > 0) {
-      const randomIndex = Math.floor(Math.random() * customers.length);
-      setCurrentCustomer(customers[randomIndex]);
+  const pickRandomCustomer = useCallback((customerList?: CustomerType[]) => {
+    const list = customerList || customers;
+    if (list.length > 0) {
+      const randomIndex = Math.floor(Math.random() * list.length);
+      setCurrentCustomer(list[randomIndex]);
     }
   }, [customers]);
+
+  // Pick first customer once customers are loaded
+  useEffect(() => {
+    if (customers.length > 0 && !currentCustomer) {
+      pickRandomCustomer();
+    }
+  }, [customers, currentCustomer, pickRandomCustomer]);
 
   const getStoreBackground = () => {
     if (selectedStore?.image_url) {
@@ -484,9 +492,9 @@ export default function MoneyCounting() {
             onNewGame={startNewGame}
           />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
             {/* Left Column - Interactive Modules */}
-            <div className="space-y-6 bg-background/90 backdrop-blur-sm rounded-lg p-6 shadow-lg order-2 lg:order-1">
+            <div className="space-y-6 bg-background/90 backdrop-blur-sm rounded-lg p-6 shadow-lg">
               {/* Step 1: Receipt */}
               {gameState.step === "receipt" && (
                 <div className="space-y-4">
@@ -547,36 +555,30 @@ export default function MoneyCounting() {
               )}
             </div>
 
-            {/* Right Column - Customer Display */}
-            <div className="bg-background/90 backdrop-blur-sm rounded-lg p-6 shadow-lg order-1 lg:order-2">
-              <div className="text-center space-y-4">
-                <h2 className="text-xl font-semibold text-foreground">Your Customer</h2>
-                {currentCustomer ? (
-                  <div className="space-y-3">
-                    {currentCustomer.image_url ? (
-                      <div className="relative mx-auto w-48 h-48 lg:w-64 lg:h-64">
-                        <img
-                          src={currentCustomer.image_url}
-                          alt={currentCustomer.name}
-                          className="w-full h-full object-contain rounded-lg"
-                        />
-                      </div>
-                    ) : (
-                      <div className="mx-auto w-48 h-48 lg:w-64 lg:h-64 bg-muted rounded-lg flex items-center justify-center">
-                        <span className="text-6xl">👤</span>
-                      </div>
-                    )}
+            {/* Right Column - Customer Display (no background, overlaid on store) */}
+            <div className="flex flex-col items-center justify-end">
+              {currentCustomer ? (
+                <div className="text-center">
+                  {currentCustomer.image_url ? (
+                    <img
+                      src={currentCustomer.image_url}
+                      alt={currentCustomer.name}
+                      className="w-64 h-auto lg:w-80 xl:w-96 max-h-[70vh] object-contain drop-shadow-2xl"
+                    />
+                  ) : (
+                    <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
+                      <span className="text-9xl drop-shadow-lg">👤</span>
+                    </div>
+                  )}
+                  <div className="mt-2 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
                     <h3 className="text-lg font-medium text-foreground">{currentCustomer.name}</h3>
-                    {currentCustomer.description && (
-                      <p className="text-sm text-muted-foreground">{currentCustomer.description}</p>
-                    )}
                   </div>
-                ) : (
-                  <div className="mx-auto w-48 h-48 lg:w-64 lg:h-64 bg-muted rounded-lg flex items-center justify-center">
-                    <span className="text-6xl">👤</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
+                  <span className="text-9xl drop-shadow-lg">👤</span>
+                </div>
+              )}
             </div>
           </div>
         )}
