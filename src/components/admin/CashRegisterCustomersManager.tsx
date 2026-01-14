@@ -67,7 +67,19 @@ export const CashRegisterCustomersManager = () => {
 
   const randomizeCharacter = () => {
     const randomType = characterTypes[Math.floor(Math.random() * characterTypes.length)];
-    const randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
+    
+    // Filter out names already used by active customers
+    const activeCustomerNames = customers
+      .filter(c => c.is_active)
+      .map(c => c.name.toLowerCase());
+    const availableNames = randomNames.filter(
+      name => !activeCustomerNames.includes(name.toLowerCase())
+    );
+    
+    // Use available names, or fall back to all names if all are taken
+    const namePool = availableNames.length > 0 ? availableNames : randomNames;
+    const randomName = namePool[Math.floor(Math.random() * namePool.length)];
+    
     setFormCharacterType(randomType);
     setFormName(randomName);
     setFormDescription("");
