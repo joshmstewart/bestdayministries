@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Eye, EyeOff, Loader2, RefreshCw, Shuffle, User } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, RefreshCw, Shuffle, User, Eraser } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -88,6 +88,7 @@ export const CashRegisterCustomersManager = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [removingBgId, setRemovingBgId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -226,6 +227,54 @@ export const CashRegisterCustomersManager = () => {
       });
     } finally {
       setGeneratingId(null);
+    }
+  };
+
+  const handleRemoveBackground = async (customer: Customer) => {
+    if (!customer.image_url) {
+      toast({
+        title: "Error",
+        description: "No image to process",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRemovingBgId(customer.id);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("remove-customer-background", {
+        body: { imageUrl: customer.image_url },
+      });
+
+      if (error) throw error;
+
+      if (!data?.imageUrl) {
+        throw new Error("Failed to remove background");
+      }
+
+      const { error: updateError } = await supabase
+        .from("cash_register_customers")
+        .update({ image_url: data.imageUrl })
+        .eq("id", customer.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: "Background removed!",
+      });
+
+      fetchCustomers();
+    } catch (error) {
+      console.error("Error removing background:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove background",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingBgId(null);
     }
   };
 
@@ -427,13 +476,26 @@ export const CashRegisterCustomersManager = () => {
                       size="icon"
                       variant="outline"
                       onClick={() => handleRegenerateImage(customer)}
-                      disabled={generatingId === customer.id}
+                      disabled={generatingId === customer.id || removingBgId === customer.id}
                       title="Regenerate image"
                     >
                       {generatingId === customer.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => handleRemoveBackground(customer)}
+                      disabled={!customer.image_url || removingBgId === customer.id || generatingId === customer.id}
+                      title="Remove background"
+                    >
+                      {removingBgId === customer.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eraser className="h-4 w-4" />
                       )}
                     </Button>
                     <Button
