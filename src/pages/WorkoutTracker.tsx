@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { StreakDisplay } from "@/components/workout/StreakDisplay";
 import { WeeklyGoalCard } from "@/components/workout/WeeklyGoalCard";
 import { QuickLogGrid } from "@/components/workout/QuickLogGrid";
 import { FeaturedVideo } from "@/components/workout/FeaturedVideo";
-import { Dumbbell } from "lucide-react";
+import { Dumbbell, Video } from "lucide-react";
 
 const WorkoutTracker = () => {
   const { user } = useAuth();
@@ -40,11 +42,26 @@ const WorkoutTracker = () => {
                 <WeeklyGoalCard userId={user.id} />
               </div>
 
+              {/* Videos Button */}
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => {
+                  const videoSection = document.getElementById('video-section');
+                  videoSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                <Video className="h-5 w-5" />
+                Browse Workout Videos
+              </Button>
+
               {/* Quick Log Grid */}
               <QuickLogGrid userId={user.id} />
 
               {/* Featured Video Section */}
-              <FeaturedVideo userId={user.id} />
+              <div id="video-section">
+                <FeaturedVideo userId={user.id} />
+              </div>
             </div>
           ) : (
             <Card>
