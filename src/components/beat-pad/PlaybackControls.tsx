@@ -153,17 +153,17 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
       </Button>
 
       {/* Save and Save & Share buttons - matching Coloring pattern */}
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           variant="outline"
-          className="flex-1"
           onClick={onSave}
           disabled={!canSave || isSaving}
+          className="text-sm"
         >
           {isSaving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
           ) : (
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="h-4 w-4 mr-1" />
           )}
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
@@ -171,30 +171,30 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         {isShared ? (
           <Button
             variant="secondary"
-            className="flex-1"
             onClick={onUnshare}
             disabled={!canSave || isUnsharing || isSaving}
+            className="text-sm"
           >
             {isUnsharing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
-              <EyeOff className="h-4 w-4 mr-2" />
+              <EyeOff className="h-4 w-4 mr-1" />
             )}
             {isUnsharing ? 'Unsharing...' : 'Unshare'}
           </Button>
         ) : (
           <Button
             variant="secondary"
-            className="flex-1"
             onClick={onSaveAndShare}
             disabled={!canSave || isSharing || isSaving}
+            className="text-sm"
           >
             {isSharing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
             ) : (
-              <Share2 className="h-4 w-4 mr-2" />
+              <Share2 className="h-4 w-4 mr-1" />
             )}
-            {isSharing ? 'Sharing...' : 'Save & Share'}
+            {isSharing ? 'Sharing...' : 'Share'}
           </Button>
         )}
       </div>
