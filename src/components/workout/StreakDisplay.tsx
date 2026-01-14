@@ -1,26 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Flame, Trophy, Calendar } from "lucide-react";
-import { startOfWeek, endOfWeek, subDays, format, isSameDay } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Flame, Trophy, Play } from "lucide-react";
+import { startOfWeek, endOfWeek, subWeeks, subDays, format, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface StreakDisplayProps {
   userId: string;
   className?: string;
+  onShowVideos?: () => void;
 }
 
-export const StreakDisplay = ({ userId, className }: StreakDisplayProps) => {
-  // Fetch last 7 days of logs to calculate streak
-  const { data: recentLogs = [] } = useQuery({
-    queryKey: ["workout-streak-logs", userId],
+export const StreakDisplay = ({ userId, className, onShowVideos }: StreakDisplayProps) => {
+  // Fetch logs from the current week
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 }); // Sunday
+  
+  const { data: thisWeekLogs = [] } = useQuery({
+    queryKey: ["workout-week-logs", userId, format(weekStart, "yyyy-MM-dd")],
     queryFn: async () => {
-      const sevenDaysAgo = subDays(new Date(), 7);
       const { data, error } = await supabase
         .from("user_workout_logs")
         .select("completed_at")
         .eq("user_id", userId)
-        .gte("completed_at", sevenDaysAgo.toISOString())
+        .gte("completed_at", weekStart.toISOString())
         .order("completed_at", { ascending: false });
       
       if (error) throw error;
@@ -28,49 +31,98 @@ export const StreakDisplay = ({ userId, className }: StreakDisplayProps) => {
     },
   });
 
-  // Calculate streak
-  const calculateStreak = () => {
-    const uniqueDays = new Set<string>();
-    recentLogs.forEach(log => {
-      const day = format(new Date(log.completed_at), "yyyy-MM-dd");
-      uniqueDays.add(day);
+  // Fetch weekly goal completions for streak calculation
+  const { data: weeklyGoalCompletions = [] } = useQuery({
+    queryKey: ["workout-weekly-streak", userId],
+    queryFn: async () => {
+      // Get logs from the past 12 weeks to calculate streak
+      const twelveWeeksAgo = subWeeks(new Date(), 12);
+      const { data, error } = await supabase
+        .from("user_workout_logs")
+        .select("completed_at")
+        .eq("user_id", userId)
+        .gte("completed_at", twelveWeeksAgo.toISOString())
+        .order("completed_at", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch user's weekly goal
+  const { data: goalData } = useQuery({
+    queryKey: ["workout-goal", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_workout_goals")
+        .select("weekly_activity_goal")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const weeklyGoal = goalData?.weekly_activity_goal ?? 5;
+
+  // Calculate week streak (consecutive weeks meeting goal)
+  const calculateWeekStreak = () => {
+    const weeksData = new Map<string, Set<string>>();
+    
+    // Group logs by week
+    weeklyGoalCompletions.forEach(log => {
+      const logDate = new Date(log.completed_at);
+      const logWeekStart = startOfWeek(logDate, { weekStartsOn: 0 });
+      const weekKey = format(logWeekStart, "yyyy-MM-dd");
+      const dayKey = format(logDate, "yyyy-MM-dd");
+      
+      if (!weeksData.has(weekKey)) {
+        weeksData.set(weekKey, new Set());
+      }
+      weeksData.get(weekKey)!.add(dayKey);
     });
 
     let streak = 0;
-    let checkDate = new Date();
+    let checkWeek = subWeeks(weekStart, 1); // Start from last week (current week is in progress)
     
-    // Check if today has activity
-    const todayStr = format(checkDate, "yyyy-MM-dd");
-    if (!uniqueDays.has(todayStr)) {
-      // Check yesterday
-      checkDate = subDays(checkDate, 1);
-    }
-    
-    while (uniqueDays.has(format(checkDate, "yyyy-MM-dd"))) {
-      streak++;
-      checkDate = subDays(checkDate, 1);
+    while (true) {
+      const weekKey = format(checkWeek, "yyyy-MM-dd");
+      const weekDays = weeksData.get(weekKey);
+      
+      if (weekDays && weekDays.size >= weeklyGoal) {
+        streak++;
+        checkWeek = subWeeks(checkWeek, 1);
+      } else {
+        break;
+      }
     }
     
     return streak;
   };
 
-  const streak = calculateStreak();
-  const hasActivityToday = recentLogs.some(log => 
-    isSameDay(new Date(log.completed_at), new Date())
-  );
+  const weekStreak = calculateWeekStreak();
+  
+  // Get unique days this week with activity
+  const thisWeekDays = new Set<string>();
+  thisWeekLogs.forEach(log => {
+    thisWeekDays.add(format(new Date(log.completed_at), "yyyy-MM-dd"));
+  });
 
-  // Generate last 7 days for the mini calendar
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = subDays(new Date(), 6 - i);
+  // Generate days of the current week for the mini calendar
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
     const dateStr = format(date, "yyyy-MM-dd");
-    const hasActivity = recentLogs.some(log => 
-      format(new Date(log.completed_at), "yyyy-MM-dd") === dateStr
-    );
+    const hasActivity = thisWeekDays.has(dateStr);
+    const today = new Date();
+    
     return {
       date,
       dayLabel: format(date, "EEE")[0],
       hasActivity,
-      isToday: isSameDay(date, new Date()),
+      isToday: isSameDay(date, today),
+      isPast: date < today && !isSameDay(date, today),
     };
   });
 
@@ -83,28 +135,29 @@ export const StreakDisplay = ({ userId, className }: StreakDisplayProps) => {
               <div className="relative">
                 <Flame className={cn(
                   "h-12 w-12 transition-all",
-                  streak > 0 ? "animate-pulse" : "opacity-50"
+                  weekStreak > 0 ? "animate-pulse" : "opacity-50"
                 )} />
-                {streak >= 7 && (
+                {weekStreak >= 4 && (
                   <Trophy className="h-5 w-5 absolute -top-1 -right-1 text-yellow-300" />
                 )}
               </div>
               <div>
-                <div className="text-4xl font-bold">{streak}</div>
-                <div className="text-sm opacity-90">day streak</div>
+                <div className="text-4xl font-bold">{weekStreak}</div>
+                <div className="text-sm opacity-90">week streak</div>
               </div>
             </div>
             
             <div className="text-right">
-              {hasActivityToday ? (
-                <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
-                  <span className="text-lg">✓</span>
-                  <span className="text-sm font-medium">Done today!</span>
-                </div>
-              ) : (
-                <div className="text-sm opacity-75">
-                  Keep going!
-                </div>
+              {onShowVideos && (
+                <Button 
+                  size="sm" 
+                  variant="secondary"
+                  className="bg-white/20 hover:bg-white/30 text-white border-0"
+                  onClick={onShowVideos}
+                >
+                  <Play className="h-4 w-4 mr-1" />
+                  Videos
+                </Button>
               )}
             </div>
           </div>
@@ -112,7 +165,7 @@ export const StreakDisplay = ({ userId, className }: StreakDisplayProps) => {
         
         {/* Mini week calendar */}
         <div className="p-3 bg-muted/50 flex justify-between">
-          {last7Days.map((day, i) => (
+          {weekDays.map((day, i) => (
             <div 
               key={i}
               className={cn(
