@@ -3897,6 +3897,7 @@ export type Database = {
           is_active: boolean
           is_free: boolean
           name: string
+          show_in_selector: boolean | null
           updated_at: string
         }
         Insert: {
@@ -3910,6 +3911,7 @@ export type Database = {
           is_active?: boolean
           is_free?: boolean
           name: string
+          show_in_selector?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -3923,6 +3925,7 @@ export type Database = {
           is_active?: boolean
           is_free?: boolean
           name?: string
+          show_in_selector?: boolean | null
           updated_at?: string
         }
         Relationships: []
