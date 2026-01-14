@@ -40,13 +40,14 @@ The icon should immediately make someone think of "${categoryName}" jokes and ma
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
+        model: 'google/gemini-2.5-flash-image-preview',
         messages: [
           {
             role: 'user',
             content: prompt
           }
         ],
+        modalities: ['image', 'text'],
       }),
     });
 
@@ -58,18 +59,16 @@ The icon should immediately make someone think of "${categoryName}" jokes and ma
 
     const data = await response.json();
     
-    // Extract image URL from response
-    const content = data.choices?.[0]?.message?.content;
+    // Extract image URL from response - images are in message.images array
+    const images = data.choices?.[0]?.message?.images;
     let imageUrl = null;
     
-    if (Array.isArray(content)) {
-      const imageContent = content.find((c: any) => c.type === 'image_url');
-      if (imageContent) {
-        imageUrl = imageContent.image_url?.url;
-      }
+    if (Array.isArray(images) && images.length > 0) {
+      imageUrl = images[0]?.image_url?.url;
     }
 
     if (!imageUrl) {
+      console.error('Response structure:', JSON.stringify(data, null, 2));
       throw new Error('No image generated');
     }
 
