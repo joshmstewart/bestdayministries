@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
@@ -21,6 +21,7 @@ interface Joke {
   category_id: string | null;
   times_served: number;
   created_at: string;
+  is_reviewed: boolean;
 }
 
 interface JokeCategory {
@@ -46,6 +47,7 @@ export const JokeLibraryManager = () => {
   const [generateCategory, setGenerateCategory] = useState<string>("random");
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [filterReviewed, setFilterReviewed] = useState<string>("all");
   const { toast } = useToast();
 
   const loadJokes = useCallback(async () => {
@@ -57,6 +59,12 @@ export const JokeLibraryManager = () => {
 
       if (filterCategory && filterCategory !== "all") {
         query = query.eq("category", filterCategory);
+      }
+
+      if (filterReviewed === "reviewed") {
+        query = query.eq("is_reviewed", true);
+      } else if (filterReviewed === "unreviewed") {
+        query = query.eq("is_reviewed", false);
       }
 
       if (searchQuery) {
@@ -75,7 +83,7 @@ export const JokeLibraryManager = () => {
         variant: "destructive",
       });
     }
-  }, [filterCategory, searchQuery, sortOrder, toast]);
+  }, [filterCategory, filterReviewed, searchQuery, sortOrder, toast]);
 
   const loadCategoryStats = useCallback(async () => {
     try {
@@ -143,6 +151,31 @@ export const JokeLibraryManager = () => {
       toast({
         title: "Error",
         description: "Failed to delete joke",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleReviewed = async (id: string, currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("joke_library")
+        .update({ is_reviewed: !currentValue })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setJokes(prev => prev.map(j => j.id === id ? { ...j, is_reviewed: !currentValue } : j));
+      
+      toast({
+        title: !currentValue ? "Marked as reviewed" : "Marked as unreviewed",
+        description: "Joke status updated",
+      });
+    } catch (error) {
+      console.error("Error updating joke:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update joke",
         variant: "destructive",
       });
     }
@@ -349,6 +382,16 @@ export const JokeLibraryManager = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filterReviewed} onValueChange={setFilterReviewed}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Jokes</SelectItem>
+                <SelectItem value="reviewed">Reviewed</SelectItem>
+                <SelectItem value="unreviewed">Unreviewed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Jokes Table */}
@@ -361,7 +404,7 @@ export const JokeLibraryManager = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">ID</TableHead>
+                    <TableHead className="w-[50px] text-center">✓</TableHead>
                     <TableHead className="w-[30%]">Question</TableHead>
                     <TableHead className="w-[25%]">Answer</TableHead>
                     <TableHead>Category</TableHead>
@@ -385,7 +428,20 @@ export const JokeLibraryManager = () => {
                 <TableBody>
                   {filteredJokes.map((joke) => (
                     <TableRow key={joke.id}>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{joke.id.slice(0, 8)}</TableCell>
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleReviewed(joke.id, joke.is_reviewed)}
+                          title={joke.is_reviewed ? "Reviewed - click to unmark" : "Click to mark as reviewed"}
+                        >
+                          {joke.is_reviewed ? (
+                            <CheckCircle className="h-5 w-5 text-green-500" />
+                          ) : (
+                            <Circle className="h-5 w-5 text-muted-foreground/40" />
+                          )}
+                        </Button>
+                      </TableCell>
                       <TableCell className="font-medium">{joke.question}</TableCell>
                       <TableCell>{joke.answer}</TableCell>
                       <TableCell>

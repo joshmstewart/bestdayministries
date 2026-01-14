@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, Eye, EyeOff, Coins, Smile, Loader2, Gamepad2 } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Coins, Smile, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 
@@ -170,18 +170,6 @@ export function JokeCategoriesManager() {
     },
   });
 
-  const toggleSelectorMutation = useMutation({
-    mutationFn: async ({ id, show_in_selector }: { id: string; show_in_selector: boolean }) => {
-      const { error } = await supabase
-        .from("joke_categories")
-        .update({ show_in_selector })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-joke-categories"] });
-    },
-  });
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -319,7 +307,6 @@ export function JokeCategoriesManager() {
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Jokes</TableHead>
                 <TableHead className="text-center">Price</TableHead>
-                <TableHead className="text-center">In Game</TableHead>
                 <TableHead className="text-center">Active</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
@@ -350,21 +337,8 @@ export function JokeCategoriesManager() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => toggleSelectorMutation.mutate({ id: category.id, show_in_selector: !category.show_in_selector })}
-                      title={category.show_in_selector ? "Showing in game selector" : "Hidden from game selector"}
-                    >
-                      {category.show_in_selector ? (
-                        <Gamepad2 className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <Gamepad2 className="w-4 h-4 text-muted-foreground/40" />
-                      )}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="icon"
                       onClick={() => toggleActiveMutation.mutate({ id: category.id, is_active: !category.is_active })}
+                      title={category.is_active ? "Active in game" : "Hidden from game"}
                     >
                       {category.is_active ? (
                         <Eye className="w-4 h-4 text-green-500" />
@@ -394,7 +368,7 @@ export function JokeCategoriesManager() {
               ))}
               {categories?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No categories yet
                   </TableCell>
                 </TableRow>
