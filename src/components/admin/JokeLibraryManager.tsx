@@ -455,8 +455,7 @@ export const JokeLibraryManager = () => {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead className="w-[50px]">AI</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[90px] text-center">AI</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -497,52 +496,62 @@ export const JokeLibraryManager = () => {
                       </TableCell>
                       <TableCell>
                         <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleCheckQuality(joke)}
-                                disabled={checkingJokeId === joke.id}
-                              >
-                                {checkingJokeId === joke.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : jokeQuality[joke.id] ? (
-                                  jokeQuality[joke.id].quality === "good" ? (
-                                    <ThumbsUp className="h-4 w-4 text-green-500" />
+                          <div className="flex items-center justify-center gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleCheckQuality(joke)}
+                                  disabled={checkingJokeId === joke.id}
+                                  title="Check joke quality with AI"
+                                >
+                                  {checkingJokeId === joke.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : jokeQuality[joke.id] ? (
+                                    jokeQuality[joke.id].quality === "good" ? (
+                                      <ThumbsUp className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <ThumbsDown className="h-4 w-4 text-destructive" />
+                                    )
                                   ) : (
-                                    <ThumbsDown className="h-4 w-4 text-destructive" />
-                                  )
+                                    <Brain className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" className="max-w-[300px]">
+                                {jokeQuality[joke.id] ? (
+                                  <p>{jokeQuality[joke.id].reason}</p>
                                 ) : (
-                                  <Brain className="h-4 w-4 text-muted-foreground" />
+                                  <p>Check joke quality with AI</p>
                                 )}
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" className="max-w-[300px]">
-                              {jokeQuality[joke.id] ? (
-                                <p>{jokeQuality[joke.id].reason}</p>
-                              ) : (
-                                <p>Check joke quality with AI</p>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteJoke(joke.id)}
+                                  title="Delete joke"
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="left">
+                                <p>Delete joke</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
                         </TooltipProvider>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteJoke(joke.id)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                   {filteredJokes.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No jokes found
                       </TableCell>
                     </TableRow>
