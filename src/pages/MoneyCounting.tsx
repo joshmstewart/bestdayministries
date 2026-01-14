@@ -551,8 +551,8 @@ export default function MoneyCounting() {
 
             {/* Play Tab */}
             <TabsContent value="play" className="space-y-4">
-              {/* Game Settings Bar - with gradient background */}
-              <div className="flex items-center justify-between bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-lg p-4 shadow-lg flex-wrap gap-4 border border-primary/30">
+              {/* Game Settings Bar - uses bg-gradient-settings-bar utility class */}
+              <div className="flex items-center justify-between bg-gradient-settings-bar rounded-lg p-4 shadow-lg flex-wrap gap-4 border border-primary/30">
                 <div className="flex items-center gap-3 flex-wrap">
                   {/* Store Selector */}
                   {stores.length > 0 && (
