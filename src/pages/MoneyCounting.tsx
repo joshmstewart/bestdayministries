@@ -145,16 +145,24 @@ export default function MoneyCounting() {
     loadData();
   }, []);
 
-  // Pick a random customer when customers load or level changes
+  // Pick a different customer for each level (excludes current customer)
   const pickRandomCustomer = useCallback((customerList?: CustomerType[]) => {
     const list = customerList || customers;
-    if (list.length > 0) {
-      const randomIndex = Math.floor(Math.random() * list.length);
-      const selectedCustomer = list[randomIndex];
-      console.log("Picked customer:", selectedCustomer.name, "has image:", !!selectedCustomer.image_url);
-      setCurrentCustomer(selectedCustomer);
-    }
-  }, [customers]);
+    if (list.length === 0) return;
+    
+    // Filter out the current customer to ensure we get a different one each level
+    const availableCustomers = currentCustomer 
+      ? list.filter(c => c.id !== currentCustomer.id)
+      : list;
+    
+    // If only one customer exists (or all filtered out), use the full list
+    const pickFrom = availableCustomers.length > 0 ? availableCustomers : list;
+    
+    const randomIndex = Math.floor(Math.random() * pickFrom.length);
+    const selectedCustomer = pickFrom[randomIndex];
+    console.log("Picked customer:", selectedCustomer.name, "has image:", !!selectedCustomer.image_url);
+    setCurrentCustomer(selectedCustomer);
+  }, [customers, currentCustomer]);
 
   // Pick first customer once customers are loaded
   useEffect(() => {
