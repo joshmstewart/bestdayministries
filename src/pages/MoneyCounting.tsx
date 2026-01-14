@@ -440,6 +440,39 @@ export default function MoneyCounting() {
     startNewGame();
   }, []);
 
+  // Regenerate order when store changes (after initial load)
+  useEffect(() => {
+    if (!dataLoaded || !selectedStore || !gameState) return;
+    
+    // Regenerate order with new store's menu items
+    const storeMenuItems = selectedStore.menu_items as unknown as MenuItem[] | undefined;
+    const order = generateOrder(gameState.level, storeMenuItems);
+    const subtotal = order.reduce((sum, item) => sum + item.price, 0);
+    const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+    const total = Math.round((subtotal + tax) * 100) / 100;
+    
+    // Regenerate customer payment for new total
+    const { payment, cash } = generateCustomerPayment(total);
+    const changeNeeded = Math.round((payment - total) * 100) / 100;
+
+    setGameState(prev => prev ? {
+      ...prev,
+      items: order,
+      subtotal,
+      tax,
+      total,
+      customerPayment: payment,
+      changeNeeded,
+      changeGiven: {},
+      customerCash: cash,
+      cashCollected: false,
+      step: "receipt",
+    } : null);
+    
+    setShowComplete(false);
+    setLevelResult(null);
+  }, [selectedStore?.id]);
+
   if (!gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -502,18 +535,18 @@ export default function MoneyCounting() {
 
       {/* Main Game Area with Store Background */}
       <main 
-        className="min-h-[calc(100vh-200px)] pb-8 px-4 relative"
+        className="min-h-[calc(100vh-120px)] pb-8 px-4 relative"
         style={{
           backgroundImage: `url(${getStoreBackground()})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundPosition: 'top center',
           backgroundAttachment: 'fixed',
         }}
       >
         {/* Dark overlay for readability */}
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/30" />
         
-        <div className="container mx-auto max-w-6xl relative z-10 pt-6">
+        <div className="container mx-auto max-w-6xl relative z-10 pt-8">
         {showComplete && levelResult ? (
           <LevelComplete
             result={levelResult}
