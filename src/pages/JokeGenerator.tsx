@@ -13,6 +13,7 @@ import { JokeCommunityGallery } from '@/components/joke-generator/JokeCommunityG
 import { JokeCategorySelector } from '@/components/joke-generator/JokeCategorySelector';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
 import Footer from '@/components/Footer';
+import { TextToSpeech } from '@/components/TextToSpeech';
 
 interface Joke {
   question: string;
@@ -260,7 +261,10 @@ const JokeGenerator: React.FC = () => {
                   <CardContent className="p-6 space-y-6">
                     {/* Question */}
                     <div className="text-center">
-                      <p className="text-xl font-medium">{joke.question}</p>
+                      <div className="flex items-center justify-center gap-2">
+                        <p className="text-xl font-medium">{joke.question}</p>
+                        <TextToSpeech text={joke.question} size="icon" />
+                      </div>
                     </div>
 
                     {/* Guess Input */}
@@ -313,7 +317,10 @@ const JokeGenerator: React.FC = () => {
                           </div>
                         )}
                         <div className="bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg p-4 text-center">
-                          <p className="text-lg font-semibold text-foreground">{joke.answer}</p>
+                          <div className="flex items-center justify-center gap-2">
+                            <p className="text-lg font-semibold text-foreground">{joke.answer}</p>
+                            <TextToSpeech text={joke.answer} size="icon" />
+                          </div>
                         </div>
 
                         {/* Save/Share Buttons */}
