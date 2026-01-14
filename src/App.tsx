@@ -168,11 +168,25 @@ function PageTracker() {
   return null;
 }
 
+// Coffee shop domains that should NOT be redirected to primary domain
+const COFFEE_SHOP_DOMAINS = [
+  'bestdayevercoffeeandcrepes.com',
+  'www.bestdayevercoffeeandcrepes.com'
+];
+
 // In production, enforce the primary public domain for all traffic.
 // This ensures email links that land on the .lovable.app domain immediately redirect to the custom domain.
+// EXCEPTION: Coffee shop domain should serve coffee shop page directly, not redirect.
 function PrimaryDomainEnforcer() {
   useEffect(() => {
     if (!import.meta.env.PROD) return;
+
+    const hostname = window.location.hostname;
+    
+    // Don't redirect if on coffee shop domain - let it serve the coffee shop page
+    if (COFFEE_SHOP_DOMAINS.includes(hostname)) {
+      return;
+    }
 
     const targetOrigin = getPublicSiteUrl();
     if (targetOrigin !== window.location.origin) {
