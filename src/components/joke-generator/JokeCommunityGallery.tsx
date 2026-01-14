@@ -1,11 +1,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Heart, Loader2, X, Eye, EyeOff, Candy, Save } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Heart, Loader2, X, Eye, EyeOff, Candy, Save, Trash2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -27,6 +38,7 @@ interface JokeCommunityGalleryProps {
 }
 
 export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
+  const { isAdmin } = useAuth();
   const [jokes, setJokes] = useState<PublicJoke[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
@@ -37,6 +49,8 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
   const [unsharing, setUnsharing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [categoryEmojis, setCategoryEmojis] = useState<Record<string, string>>({});
+  const [jokeToDelete, setJokeToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadCategoryEmojis();
@@ -371,11 +385,67 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
                     Unshare
                   </Button>
                 )}
+
+                {/* Admin delete button */}
+                {isAdmin && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setJokeToDelete(selectedJoke.id)}
+                  >
+                    <ShieldAlert className="h-4 w-4 mr-1" />
+                    Admin Delete
+                  </Button>
+                )}
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Admin Delete Confirmation Dialog */}
+      <AlertDialog open={!!jokeToDelete} onOpenChange={(open) => !open && setJokeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-destructive" />
+              Admin: Delete this joke?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this joke from the system. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!jokeToDelete) return;
+                setDeleting(true);
+                try {
+                  const { error } = await supabase
+                    .from("saved_jokes")
+                    .delete()
+                    .eq("id", jokeToDelete);
+                  if (error) throw error;
+                  setJokes(prev => prev.filter(j => j.id !== jokeToDelete));
+                  setSelectedJoke(null);
+                  toast.success("Joke deleted by admin");
+                } catch (error: any) {
+                  toast.error("Failed to delete joke");
+                } finally {
+                  setDeleting(false);
+                  setJokeToDelete(null);
+                }
+              }}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
