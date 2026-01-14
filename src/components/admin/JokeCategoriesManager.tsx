@@ -43,24 +43,73 @@ export function JokeCategoriesManager() {
   const { data: categories, isLoading } = useQuery({
     queryKey: ["admin-joke-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all existing categories
+      const { data: existingCategories, error } = await supabase
         .from("joke_categories")
-        .select("*")
-        .order("display_order", { ascending: true });
+        .select("*");
       if (error) throw error;
 
-      // Get joke counts for each category
-      const categoriesWithCounts = await Promise.all(
-        (data || []).map(async (cat) => {
-          const { count } = await supabase
-            .from("joke_library")
-            .select("*", { count: "exact", head: true })
-            .eq("category_id", cat.id);
-          return { ...cat, joke_count: count || 0 };
-        })
-      );
+      // Get all distinct categories from joke_library
+      const { data: jokeCategories, error: jokeError } = await supabase
+        .from("joke_library")
+        .select("category");
+      if (jokeError) throw jokeError;
 
-      return categoriesWithCounts as JokeCategory[];
+      // Count jokes per category name
+      const categoryCountsByName: Record<string, number> = {};
+      (jokeCategories || []).forEach((joke) => {
+        const cat = joke.category || "uncategorized";
+        categoryCountsByName[cat] = (categoryCountsByName[cat] || 0) + 1;
+      });
+
+      // Get unique category names from joke_library
+      const usedCategoryNames = new Set(Object.keys(categoryCountsByName));
+      const existingCategoryNames = new Set((existingCategories || []).map(c => c.name.toLowerCase()));
+
+      // Find missing categories (in joke_library but not in joke_categories)
+      const missingCategories: string[] = [];
+      usedCategoryNames.forEach(name => {
+        if (!existingCategoryNames.has(name.toLowerCase())) {
+          missingCategories.push(name);
+        }
+      });
+
+      // Insert missing categories as inactive
+      if (missingCategories.length > 0) {
+        const newCategories = missingCategories.map((name, idx) => ({
+          name: name.toLowerCase(),
+          is_active: false,
+          show_in_selector: false,
+          is_free: true,
+          coin_price: 0,
+          emoji: "🎲",
+          display_order: 999 + idx,
+        }));
+
+        await supabase.from("joke_categories").insert(newCategories);
+
+        // Re-fetch categories after insert
+        const { data: updatedCategories, error: refetchError } = await supabase
+          .from("joke_categories")
+          .select("*");
+        if (refetchError) throw refetchError;
+        
+        // Add counts and sort
+        const categoriesWithCounts = (updatedCategories || []).map((cat) => ({
+          ...cat,
+          joke_count: categoryCountsByName[cat.name] || 0,
+        }));
+
+        return categoriesWithCounts.sort((a, b) => b.joke_count - a.joke_count) as JokeCategory[];
+      }
+
+      // Add counts to existing categories and sort by count descending
+      const categoriesWithCounts = (existingCategories || []).map((cat) => ({
+        ...cat,
+        joke_count: categoryCountsByName[cat.name] || 0,
+      }));
+
+      return categoriesWithCounts.sort((a, b) => b.joke_count - a.joke_count) as JokeCategory[];
     },
   });
 

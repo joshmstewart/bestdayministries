@@ -531,10 +531,18 @@ const Admin = () => {
                   </TabsContent>
 
                   <TabsContent value="jokes">
-                    <div className="space-y-6">
-                      <JokeCategoriesManager />
-                      <JokeLibraryManager />
-                    </div>
+                    <Tabs defaultValue="library" className="space-y-4">
+                      <TabsList>
+                        <TabsTrigger value="library">Jokes</TabsTrigger>
+                        <TabsTrigger value="categories">Categories</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="library">
+                        <JokeLibraryManager />
+                      </TabsContent>
+                      <TabsContent value="categories">
+                        <JokeCategoriesManager />
+                      </TabsContent>
+                    </Tabs>
                   </TabsContent>
                   
                   <TabsContent value="stickers">
