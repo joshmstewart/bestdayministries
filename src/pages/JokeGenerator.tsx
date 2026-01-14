@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,14 +14,11 @@ import { JokeCommunityGallery } from '@/components/joke-generator/JokeCommunityG
 import { UnifiedHeader } from '@/components/UnifiedHeader';
 import Footer from '@/components/Footer';
 
-const CATEGORIES = [
-  { id: 'random', label: '🎲 Random', color: 'from-purple-500 to-pink-500' },
-  { id: 'food', label: '🍕 Food', color: 'from-orange-500 to-yellow-500' },
-  { id: 'animals', label: '🐶 Animals', color: 'from-green-500 to-teal-500' },
-  { id: 'school', label: '📚 School', color: 'from-blue-500 to-indigo-500' },
-  { id: 'sports', label: '⚽ Sports', color: 'from-red-500 to-orange-500' },
-  { id: 'music', label: '🎵 Music', color: 'from-pink-500 to-purple-500' },
-];
+interface JokeCategory {
+  id: string;
+  name: string;
+  emoji: string;
+}
 
 interface Joke {
   question: string;
@@ -41,6 +39,31 @@ const JokeGenerator: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isShared, setIsShared] = useState(false);
+  const [categories, setCategories] = useState<JokeCategory[]>([]);
+
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('joke_categories')
+        .select('id, name, emoji')
+        .eq('is_active', true)
+        .order('display_order');
+      
+      if (!error && data) {
+        // Add random option at the beginning
+        setCategories([
+          { id: 'random', name: 'Random', emoji: '🎲' },
+          ...data.map(cat => ({
+            id: cat.name.toLowerCase(),
+            name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
+            emoji: cat.emoji || '🎲'
+          }))
+        ]);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // These functions are now handled server-side in the get-joke edge function
 
@@ -209,41 +232,43 @@ const JokeGenerator: React.FC = () => {
                 </div>
               )}
 
-              {/* Categories */}
-              <div className="flex flex-wrap justify-center gap-2">
-                {CATEGORIES.map((cat) => (
-                  <Button
-                    key={cat.id}
-                    variant={selectedCategory === cat.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={selectedCategory === cat.id ? `bg-gradient-to-r ${cat.color} border-0` : ''}
-                  >
-                    {cat.label}
-                  </Button>
-                ))}
-              </div>
+              {/* Soft Ribbon Container with Category & Generate Button */}
+              <div className="bg-soft-ribbon rounded-2xl p-6 shadow-lg">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  {/* Category Dropdown */}
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full sm:w-[200px] bg-background/80 backdrop-blur-sm">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.emoji} {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-              {/* Generate Button */}
-              <div className="flex justify-center">
-                <Button
-                  onClick={generateJoke}
-                  disabled={isLoading}
-                  size="lg"
-                  className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      Unwrapping...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      {joke ? 'New Joke!' : 'Get a Joke!'}
-                    </>
-                  )}
-                </Button>
+                  {/* Generate Button */}
+                  <Button
+                    onClick={generateJoke}
+                    disabled={isLoading}
+                    size="lg"
+                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white gap-2 w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        Unwrapping...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        {joke ? 'New Joke!' : 'Get a Joke!'}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {/* Joke Card */}
