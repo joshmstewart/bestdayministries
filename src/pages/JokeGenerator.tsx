@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2, Trash2, CheckCircle } from 'lucide-react';
+import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2, Trash2, CheckCircle, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -49,6 +58,10 @@ const JokeGenerator: React.FC = () => {
   const [isShared, setIsShared] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingReviewed, setIsMarkingReviewed] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editQuestion, setEditQuestion] = useState('');
+  const [editAnswer, setEditAnswer] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Initialize with all free categories on mount
   useEffect(() => {
@@ -209,6 +222,48 @@ const JokeGenerator: React.FC = () => {
       toast.error('Failed to mark joke as reviewed');
     } finally {
       setIsMarkingReviewed(false);
+    }
+  };
+
+  const openEditDialog = () => {
+    if (!joke) return;
+    setEditQuestion(joke.question);
+    setEditAnswer(joke.answer);
+    setIsEditDialogOpen(true);
+  };
+
+  const updateJoke = async () => {
+    if (!joke?.id) {
+      toast.error('Cannot update this joke');
+      return;
+    }
+
+    if (!editQuestion.trim() || !editAnswer.trim()) {
+      toast.error('Question and answer are required');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('joke_library')
+        .update({ 
+          question: editQuestion.trim(), 
+          answer: editAnswer.trim() 
+        })
+        .eq('id', joke.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setJoke({ ...joke, question: editQuestion.trim(), answer: editAnswer.trim() });
+      setIsEditDialogOpen(false);
+      toast.success('Joke updated successfully');
+    } catch (error) {
+      console.error('Error updating joke:', error);
+      toast.error('Failed to update joke');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -448,6 +503,16 @@ const JokeGenerator: React.FC = () => {
                           {/* Admin Actions */}
                           {isAdminOrOwner && joke?.id && (
                             <>
+                              {/* Edit Button */}
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={openEditDialog}
+                                title="Edit joke"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+
                               {/* Mark as Reviewed Button */}
                               <Button
                                 variant="outline"
@@ -537,6 +602,53 @@ const JokeGenerator: React.FC = () => {
         <div className="h-24" />
       </main>
       <Footer />
+
+      {/* Edit Joke Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Joke</DialogTitle>
+            <DialogDescription>
+              Update the question and answer for this joke.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-question">Question</Label>
+              <Input
+                id="edit-question"
+                value={editQuestion}
+                onChange={(e) => setEditQuestion(e.target.value)}
+                placeholder="Enter the joke question..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-answer">Answer</Label>
+              <Input
+                id="edit-answer"
+                value={editAnswer}
+                onChange={(e) => setEditAnswer(e.target.value)}
+                placeholder="Enter the punchline..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={updateJoke} disabled={isUpdating}>
+              {isUpdating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
