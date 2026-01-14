@@ -7,7 +7,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useBeatLoopPlayer } from '@/hooks/useBeatLoopPlayer';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+type SortOption = 'newest' | 'popular';
 
 interface BeatCreation {
   id: string;
@@ -41,20 +49,27 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
   const [creations, setCreations] = useState<BeatCreation[]>([]);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
   useEffect(() => {
     loadCreations();
-  }, [user]);
+  }, [user, sortBy]);
 
   const loadCreations = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('beat_pad_creations')
         .select('id, name, pattern, tempo, likes_count, creator_id, created_at, image_url')
-        .eq('is_public', true)
-        .order('likes_count', { ascending: false })
-        .limit(20);
+        .eq('is_public', true);
+
+      if (sortBy === 'newest') {
+        query = query.order('created_at', { ascending: false });
+      } else {
+        query = query.order('likes_count', { ascending: false });
+      }
+
+      const { data, error } = await query.limit(20);
 
       if (error) throw error;
       
@@ -153,12 +168,26 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {creations.map((creation) => (
-        <Card key={creation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          {/* Clickable cover image or pattern preview */}
-          <div 
-            className="cursor-pointer"
+    <div className="space-y-4">
+      {/* Sort Controls */}
+      <div className="flex justify-end">
+        <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="popular">Most Popular</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {creations.map((creation) => (
+          <Card key={creation.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+            {/* Clickable cover image or pattern preview */}
+            <div 
+              className="cursor-pointer"
             onClick={() => {
               stopBeat();
               onLoadBeat({
@@ -267,6 +296,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
           </CardContent>
         </Card>
       ))}
+      </div>
     </div>
   );
 };
