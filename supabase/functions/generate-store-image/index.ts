@@ -57,49 +57,62 @@ serve(async (req) => {
       });
     }
 
-    // Generate the image using Lovable AI
-    const prompt = `POV first person perspective from behind a ${storeName.toLowerCase()} checkout counter, looking out at the store interior. ${storeDescription || ""}. Realistic photography style, wide angle lens, professional lighting. Ultra high resolution, 16:9 aspect ratio hero image.`;
+    // Generate the image using Lovable AI chat completions with image model
+    const prompt = `Generate a POV first person perspective from behind a ${storeName.toLowerCase()} checkout counter, looking out at the store interior. ${storeDescription || ""}. Realistic photography style, wide angle lens, professional lighting. Ultra high resolution, 16:9 aspect ratio hero image.`;
 
     console.log("Generating image with prompt:", prompt);
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "flux2.dev",
-        prompt: prompt,
-        n: 1,
-        size: "1920x1080",
-        response_format: "b64_json",
+        model: "google/gemini-2.5-flash-image-preview",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        modalities: ["image", "text"],
       }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("AI API error:", errorText);
+      console.error("AI API error:", aiResponse.status, errorText);
       throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    const imageBase64 = aiData.data?.[0]?.b64_json;
-
-    if (!imageBase64) {
-      console.error("AI response:", JSON.stringify(aiData));
+    console.log("AI response structure:", JSON.stringify(aiData, null, 2).substring(0, 500));
+    
+    // Extract base64 image from chat completions response
+    const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    if (!imageUrl || !imageUrl.startsWith("data:image")) {
+      console.error("No image in AI response:", JSON.stringify(aiData));
       throw new Error("No image generated");
     }
+
+    // Extract base64 data from data URL
+    const base64Match = imageUrl.match(/^data:image\/\w+;base64,(.+)$/);
+    if (!base64Match) {
+      throw new Error("Invalid image data format");
+    }
+    const imageBase64 = base64Match[1];
 
     // Convert base64 to buffer
     const imageBuffer = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
 
     // Upload to storage
-    const fileName = `store-${storeId}-${Date.now()}.jpg`;
+    const fileName = `store-${storeId}-${Date.now()}.png`;
     const { error: uploadError } = await supabase.storage
       .from("app-assets")
       .upload(`cash-register-stores/${fileName}`, imageBuffer, {
-        contentType: "image/jpeg",
+        contentType: "image/png",
         upsert: true,
       });
 
