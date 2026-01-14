@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Play, Square, Loader2, Music } from 'lucide-react';
+import { Heart, Play, Square, Loader2, Music, Copy } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -42,9 +42,10 @@ interface Beat {
 
 interface BeatPadGalleryProps {
   onLoadBeat: (beat: Beat) => void;
+  onRemixBeat?: (beat: Beat) => void;
 }
 
-export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) => {
+export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRemixBeat }) => {
   const { user } = useAuth();
   const [creations, setCreations] = useState<BeatCreation[]>([]);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
@@ -263,6 +264,27 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat }) =>
                       }}
                     >
                       Load
+                    </Button>
+                  )}
+                  {onRemixBeat && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-shrink-0"
+                      onClick={() => {
+                        stopBeat();
+                        onRemixBeat({
+                          id: creation.id,
+                          name: creation.name,
+                          pattern: creation.pattern,
+                          tempo: creation.tempo,
+                          image_url: null, // Don't copy image for remixes
+                        });
+                      }}
+                      title="Remix this beat"
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Remix
                     </Button>
                   )}
                   <Button
