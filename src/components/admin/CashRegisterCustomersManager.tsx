@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Eye, EyeOff, Loader2, RefreshCw, Shuffle, User, Eraser } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, RefreshCw, Shuffle, User, Eraser, Edit } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -87,17 +87,25 @@ export const CashRegisterCustomersManager = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [removingBgId, setRemovingBgId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const { toast } = useToast();
 
-  // Form state
+  // Form state for create
   const [formName, setFormName] = useState("");
   const [formCharacterType, setFormCharacterType] = useState("");
   const [formDescription, setFormDescription] = useState("");
+
+  // Form state for edit
+  const [editName, setEditName] = useState("");
+  const [editCharacterType, setEditCharacterType] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const fetchCustomers = async () => {
     try {
@@ -330,6 +338,60 @@ export const CashRegisterCustomersManager = () => {
     }
   };
 
+  const handleOpenEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setEditName(customer.name);
+    setEditCharacterType(customer.character_type);
+    setEditDescription(customer.description || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCustomer) return;
+
+    if (!editName.trim() || !editCharacterType.trim()) {
+      toast({
+        title: "Error",
+        description: "Name and character type are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from("cash_register_customers")
+        .update({
+          name: editName.trim(),
+          character_type: editCharacterType.trim(),
+          description: editDescription.trim() || null,
+        })
+        .eq("id", editingCustomer.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Customer updated!",
+      });
+
+      setEditDialogOpen(false);
+      setEditingCustomer(null);
+      fetchCustomers();
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update customer",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
     setLightboxOpen(true);
@@ -475,6 +537,14 @@ export const CashRegisterCustomersManager = () => {
                     <Button
                       size="icon"
                       variant="outline"
+                      onClick={() => handleOpenEdit(customer)}
+                      title="Edit customer"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
                       onClick={() => handleRegenerateImage(customer)}
                       disabled={generatingId === customer.id || removingBgId === customer.id}
                       title="Regenerate image"
@@ -534,6 +604,67 @@ export const CashRegisterCustomersManager = () => {
         onPrevious={() => setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length)}
         onNext={() => setLightboxIndex((prev) => (prev + 1) % lightboxImages.length)}
       />
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="e.g., Grandma Rose"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Character Type</Label>
+              <Input
+                value={editCharacterType}
+                onChange={(e) => setEditCharacterType(e.target.value)}
+                placeholder="e.g., grandma, soccer player, astronaut"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Input
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Additional details for image generation"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveEdit}
+                disabled={isSaving}
+                className="flex-1"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
