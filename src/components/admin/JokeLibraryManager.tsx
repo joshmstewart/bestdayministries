@@ -359,8 +359,9 @@ export const JokeLibraryManager = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40%]">Question</TableHead>
-                    <TableHead className="w-[35%]">Answer</TableHead>
+                    <TableHead className="w-[80px]">ID</TableHead>
+                    <TableHead className="w-[35%]">Question</TableHead>
+                    <TableHead className="w-[30%]">Answer</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-center">Served</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
@@ -369,6 +370,7 @@ export const JokeLibraryManager = () => {
                 <TableBody>
                   {filteredJokes.map((joke) => (
                     <TableRow key={joke.id}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">{joke.id.slice(0, 8)}</TableCell>
                       <TableCell className="font-medium">{joke.question}</TableCell>
                       <TableCell>{joke.answer}</TableCell>
                       <TableCell>
@@ -389,7 +391,7 @@ export const JokeLibraryManager = () => {
                   ))}
                   {filteredJokes.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         No jokes found
                       </TableCell>
                     </TableRow>
