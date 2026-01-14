@@ -42,6 +42,7 @@ export function JokeCategoriesManager() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [generatingIcon, setGeneratingIcon] = useState(false);
+  const [generatingAllIcons, setGeneratingAllIcons] = useState(false);
 
   const { data: categories, isLoading } = useQuery({
     queryKey: ["admin-joke-categories"],
@@ -87,6 +88,48 @@ export function JokeCategoriesManager() {
       showErrorToastWithCopy("Generating icon", error);
     } finally {
       setGeneratingIcon(false);
+    }
+  };
+
+  const handleGenerateAllIcons = async () => {
+    const categoriesWithoutIcons = categories?.filter(cat => !cat.icon_url) || [];
+    if (categoriesWithoutIcons.length === 0) {
+      toast.info("All categories already have icons!");
+      return;
+    }
+
+    setGeneratingAllIcons(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const category of categoriesWithoutIcons) {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-joke-category-icon", {
+          body: { categoryName: category.name },
+        });
+
+        if (error) throw error;
+
+        const { error: updateError } = await supabase
+          .from("joke_categories")
+          .update({ icon_url: data.imageUrl })
+          .eq("id", category.id);
+
+        if (updateError) throw updateError;
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to generate icon for ${category.name}:`, error);
+        failCount++;
+      }
+    }
+
+    setGeneratingAllIcons(false);
+    queryClient.invalidateQueries({ queryKey: ["admin-joke-categories"] });
+
+    if (failCount === 0) {
+      toast.success(`Generated ${successCount} icons!`);
+    } else {
+      toast.warning(`Generated ${successCount} icons, ${failCount} failed`);
     }
   };
 
@@ -201,12 +244,28 @@ export function JokeCategoriesManager() {
           <Smile className="w-5 h-5" />
           Joke Categories
         </CardTitle>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" /> Add Category
+        <div className="flex gap-2">
+          {categories && categories.some(c => !c.icon_url) && (
+            <Button
+              variant="outline"
+              onClick={handleGenerateAllIcons}
+              disabled={generatingAllIcons}
+              className="gap-2"
+            >
+              {generatingAllIcons ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              Generate All Icons
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" /> Add Category
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCategory ? "Edit" : "Add"} Joke Category</DialogTitle>
@@ -329,6 +388,7 @@ export function JokeCategoriesManager() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
