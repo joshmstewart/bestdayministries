@@ -50,38 +50,74 @@ export const CashRegisterCustomersManager = () => {
   const [editCharacterType, setEditCharacterType] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
-  const characterTypes = [
-    "grandma", "grandpa", "mom", "dad", "teenager", "child",
-    "soccer player", "astronaut", "chef", "doctor", "nurse", "teacher",
-    "firefighter", "police officer", "construction worker", "artist",
-    "musician", "scientist", "farmer", "mailman", "superhero", "princess",
-    "knight", "pirate", "cowboy", "ninja", "robot", "alien"
-  ];
-
-  const randomNames = [
-    "Rose", "Betty", "Martha", "Earl", "Harold", "Walter",
-    "Timmy", "Sally", "Bobby", "Max", "Luna", "Zoe",
-    "Chef Marco", "Dr. Smith", "Officer Jones", "Captain Blaze",
-    "Princess Lily", "Sir Lancelot", "Sparky", "Buzz"
+  // Character type and name pairs that match
+  const characterPairs = [
+    { type: "grandma", name: "Grandma Rose" },
+    { type: "grandpa", name: "Grandpa Earl" },
+    { type: "soccer player", name: "Soccer Star Sam" },
+    { type: "astronaut", name: "Astronaut Alex" },
+    { type: "chef", name: "Chef Marco" },
+    { type: "doctor", name: "Dr. Smith" },
+    { type: "nurse", name: "Nurse Nancy" },
+    { type: "teacher", name: "Teacher Taylor" },
+    { type: "firefighter", name: "Firefighter Flynn" },
+    { type: "police officer", name: "Officer Jones" },
+    { type: "construction worker", name: "Builder Bob" },
+    { type: "artist", name: "Artist Andy" },
+    { type: "musician", name: "Musician Melody" },
+    { type: "scientist", name: "Scientist Sara" },
+    { type: "farmer", name: "Farmer Frank" },
+    { type: "mail carrier", name: "Mail Carrier Mike" },
+    { type: "superhero", name: "Super Sam" },
+    { type: "princess", name: "Princess Lily" },
+    { type: "knight", name: "Sir Lancelot" },
+    { type: "pirate", name: "Captain Blackbeard" },
+    { type: "cowboy", name: "Cowboy Jake" },
+    { type: "ninja", name: "Ninja Niko" },
+    { type: "robot enthusiast", name: "Robot Ricky" },
+    { type: "alien visitor", name: "Zorp from Mars" },
+    { type: "ballet dancer", name: "Ballerina Bella" },
+    { type: "skateboarder", name: "Skater Skyler" },
+    { type: "surfer", name: "Surfer Sunny" },
+    { type: "rock climber", name: "Climber Cleo" },
+    { type: "magician", name: "Magician Max" },
+    { type: "baker", name: "Baker Betty" },
+    { type: "librarian", name: "Librarian Luna" },
+    { type: "zookeeper", name: "Zookeeper Zoe" },
+    { type: "pilot", name: "Pilot Pete" },
+    { type: "race car driver", name: "Racer Riley" },
+    { type: "yoga instructor", name: "Yogi Yara" },
+    { type: "basketball player", name: "Baller Blake" },
+    { type: "ice cream vendor", name: "Ice Cream Ivan" },
+    { type: "park ranger", name: "Ranger Rex" },
+    { type: "lifeguard", name: "Lifeguard Leo" },
+    { type: "DJ", name: "DJ Dizzy" },
+    { type: "photographer", name: "Photo Phil" },
+    { type: "veterinarian", name: "Vet Vicky" },
+    { type: "clown", name: "Clown Chuckles" },
+    { type: "mime", name: "Mime Marcel" },
+    { type: "explorer", name: "Explorer Eddie" },
+    { type: "archaeologist", name: "Dr. Indiana" },
+    { type: "weather reporter", name: "Weatherman Wendy" },
+    { type: "game show host", name: "Host Happy Harry" },
   ];
 
   const randomizeCharacter = () => {
-    const randomType = characterTypes[Math.floor(Math.random() * characterTypes.length)];
-    
-    // Filter out names already used by active customers
+    // Filter out pairs where the name is already used by active customers
     const activeCustomerNames = customers
       .filter(c => c.is_active)
       .map(c => c.name.toLowerCase());
-    const availableNames = randomNames.filter(
-      name => !activeCustomerNames.includes(name.toLowerCase())
+    
+    const availablePairs = characterPairs.filter(
+      pair => !activeCustomerNames.includes(pair.name.toLowerCase())
     );
     
-    // Use available names, or fall back to all names if all are taken
-    const namePool = availableNames.length > 0 ? availableNames : randomNames;
-    const randomName = namePool[Math.floor(Math.random() * namePool.length)];
+    // Use available pairs, or fall back to all pairs if all are taken
+    const pairPool = availablePairs.length > 0 ? availablePairs : characterPairs;
+    const randomPair = pairPool[Math.floor(Math.random() * pairPool.length)];
     
-    setFormCharacterType(randomType);
-    setFormName(randomName);
+    setFormCharacterType(randomPair.type);
+    setFormName(randomPair.name);
     setFormDescription("");
   };
 
