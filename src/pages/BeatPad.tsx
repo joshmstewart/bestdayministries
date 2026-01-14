@@ -314,7 +314,7 @@ const BeatPad: React.FC = () => {
   }, [handleStop, aiAudioUrl]);
 
   // Generate AI beat pattern from current instruments
-  const generateAIBeat = async (skipConfirm = false) => {
+  const generateAIBeat = useCallback(async (skipConfirm = false) => {
     const activeInstruments = instruments.filter(Boolean) as SoundConfig[];
     if (activeInstruments.length === 0) {
       toast.error('Add some instruments first!');
@@ -325,6 +325,8 @@ const BeatPad: React.FC = () => {
     const patternHasCheckedCells = Object.values(pattern).some(steps => 
       steps && steps.some(Boolean)
     );
+
+    
 
     // If there's an existing pattern and we haven't confirmed, show dialog
     if (patternHasCheckedCells && !skipConfirm) {
@@ -393,7 +395,7 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
     } finally {
       setIsGeneratingBeat(false);
     }
-  };
+  }, [instruments, pattern, tempo]);
 
   // Generate AI name for beat
   const generateAIName = async () => {
@@ -651,7 +653,7 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                   onSave={handleSave}
                   onShare={handleShare}
                   onAIify={handleAIify}
-                  onGenerateBeat={generateAIBeat}
+                  onGenerateBeat={() => generateAIBeat(false)}
                   onRemix={() => {
                     if (!beatName.includes('(Remix)')) {
                       setBeatName(`${beatName} (Remix)`);
