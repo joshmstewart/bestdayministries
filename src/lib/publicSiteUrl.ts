@@ -14,6 +14,14 @@ export const getPublicSiteUrl = () => {
     return `https://${PRIMARY_DOMAIN}`;
   }
 
+  // Coffee shop domains should still use primary domain for email links
+  if (
+    hostname === "bestdayevercoffeeandcrepes.com" ||
+    hostname === "www.bestdayevercoffeeandcrepes.com"
+  ) {
+    return `https://${PRIMARY_DOMAIN}`;
+  }
+
   // In preview/staging (or local dev), force the primary domain in email links.
   if (
     hostname.endsWith(".lovable.app") ||

@@ -36,11 +36,16 @@ export const useDomainRouting = () => {
   useEffect(() => {
     const hostname = window.location.hostname;
     
-    // Coffee shop domains should redirect to the main site's coffee shop page
-    // This ensures users always see the latest content and prevents stale caching issues
+    // Coffee shop domain serves coffee-shop page directly
+    // All other navigation from this domain should go to primary domain
     if (COFFEE_SHOP_DOMAINS.includes(hostname)) {
-      // Redirect to the unified site's coffee shop page
-      window.location.href = `https://${PRIMARY_DOMAIN}/coffee-shop`;
+      setIsCoffeeShopDomain(true);
+      // If user tries to navigate to a non-coffee-shop page, redirect to primary domain
+      const path = window.location.pathname;
+      if (path !== '/' && path !== '/coffee-shop') {
+        window.location.href = `https://${PRIMARY_DOMAIN}${path}`;
+        return;
+      }
       return;
     }
     
