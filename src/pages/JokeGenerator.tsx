@@ -39,6 +39,7 @@ interface Joke {
   question: string;
   answer: string;
   id?: string; // Library joke ID for deletion
+  is_reviewed?: boolean;
 }
 
 const JokeGenerator: React.FC = () => {
@@ -216,6 +217,8 @@ const JokeGenerator: React.FC = () => {
 
       if (error) throw error;
 
+      // Update local state to show reviewed status immediately
+      setJoke({ ...joke, is_reviewed: true });
       toast.success('Joke marked as reviewed');
     } catch (error) {
       console.error('Error marking joke as reviewed:', error);
@@ -517,15 +520,18 @@ const JokeGenerator: React.FC = () => {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="text-green-600 hover:bg-green-100 hover:text-green-700"
-                                onClick={markJokeAsReviewed}
-                                disabled={isMarkingReviewed}
-                                title="Mark as reviewed"
+                                className={joke.is_reviewed 
+                                  ? "bg-green-100 text-green-600 cursor-default" 
+                                  : "text-green-600 hover:bg-green-100 hover:text-green-700"
+                                }
+                                onClick={joke.is_reviewed ? undefined : markJokeAsReviewed}
+                                disabled={isMarkingReviewed || joke.is_reviewed}
+                                title={joke.is_reviewed ? "Already reviewed" : "Mark as reviewed"}
                               >
                                 {isMarkingReviewed ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <CheckCircle className="w-4 h-4" />
+                                  <CheckCircle className={`w-4 h-4 ${joke.is_reviewed ? "fill-green-600" : ""}`} />
                                 )}
                               </Button>
 
