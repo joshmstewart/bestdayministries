@@ -81,6 +81,7 @@ const DonationHistoryPage = lazy(() => import("./pages/DonationHistoryPage"));
 const PictureLogin = lazy(() => import("./pages/PictureLogin"));
 const BeatPad = lazy(() => import("./pages/BeatPad"));
 const MoneyCounting = lazy(() => import("./pages/MoneyCounting"));
+const JokeGenerator = lazy(() => import("./pages/JokeGenerator"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -283,6 +284,7 @@ const App = () => {
             <Route path="/games/emotion-journal" element={<EmotionJournal />} />
             <Route path="/games/beat-pad" element={<BeatPad />} />
             <Route path="/games/cash-register" element={<MoneyCounting />} />
+            <Route path="/games/jokes" element={<JokeGenerator />} />
             <Route path="/chore-chart" element={<ChoreChart />} />
             <Route path="/virtual-pet" element={<VirtualPetPage />} />
             <Route path="/store" element={<StorePage />} />
