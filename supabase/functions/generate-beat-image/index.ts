@@ -42,7 +42,40 @@ serve(async (req) => {
     const intensity = totalNotes > 20 ? "intense and energetic" : totalNotes > 10 ? "rhythmic and flowing" : "minimal and calm";
     const tempoDescription = tempo > 140 ? "fast and exciting" : tempo > 100 ? "upbeat and groovy" : "slow and relaxed";
 
-    const prompt = `Create an abstract, artistic album cover for a beat called "${beatName}". The music uses ${instrumentList} at ${tempo} BPM. The vibe is ${intensity} and ${tempoDescription}. Style: vibrant colors, geometric patterns, music visualization, sound waves, abstract art. No text or words in the image. Ultra high resolution.`;
+    // Diverse album art styles spanning different eras and aesthetics
+    const artStyles = [
+      "minimalist design with bold typography shapes, negative space, Swiss design influence",
+      "vintage 1970s psychedelic rock poster style, swirling patterns, warm earthy tones",
+      "stark black and white photography with high contrast, moody shadows",
+      "Japanese ukiyo-e woodblock print aesthetic, flowing lines, muted traditional colors",
+      "90s grunge aesthetic, distressed textures, muted colors, raw and gritty",
+      "vaporwave aesthetic, pink and cyan gradients, Greek statues, palm trees, retro computer graphics",
+      "art deco geometric patterns, gold and black, 1920s glamour",
+      "watercolor painting style, soft bleeding edges, pastel dreamlike quality",
+      "brutalist design, raw concrete textures, stark angular shapes, industrial",
+      "pop art style like Warhol, bold primary colors, comic dots, repetition",
+      "surrealist dreamscape like Dalí, melting forms, impossible architecture",
+      "street art and graffiti style, spray paint textures, urban grit",
+      "vintage jazz album cover, smoky atmosphere, silhouettes, blue tones",
+      "80s synthwave, neon grids, chrome text effects, sunset gradients",
+      "impressionist painting style, visible brushstrokes, light and color focus",
+      "collage art, cut paper textures, mixed media, vintage magazine clippings",
+      "pixel art retro gaming aesthetic, 8-bit style, limited color palette",
+      "gothic dark romantic, ornate frames, roses, deep reds and blacks",
+      "nature photography macro shot, extreme detail, organic textures",
+      "glitch art, digital corruption, RGB splits, distorted imagery",
+      "flat vector illustration, bold shapes, limited color palette, modern",
+      "oil painting classical style, rich textures, dramatic lighting",
+      "sci-fi concept art, futuristic landscapes, cosmic themes",
+      "folk art naive style, simple shapes, handmade quality, warm colors",
+      "bauhaus design, primary colors, geometric shapes, functional aesthetic"
+    ];
+    
+    // Pick a random style based on beat characteristics for variety
+    const styleIndex = Math.abs(beatName.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) + totalNotes + tempo) % artStyles.length;
+    const selectedStyle = artStyles[styleIndex];
+
+    const prompt = `Create album cover art for a beat called "${beatName}". The music uses ${instrumentList} at ${tempo} BPM, feeling ${intensity} and ${tempoDescription}. Art style: ${selectedStyle}. Create a cohesive artistic composition that evokes the music's mood. No text, words, or letters in the image. Ultra high resolution.`;
 
     console.log("Generating image with prompt:", prompt);
 
