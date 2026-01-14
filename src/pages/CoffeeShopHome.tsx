@@ -36,17 +36,12 @@ const CoffeeShopHome = () => {
 
   const loadContent = async () => {
     try {
-      // Add cache-busting timestamp to ensure fresh data on every load
-      const { data } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "coffee_shop_content")
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("get-coffee-shop-content");
+      if (error) throw error;
 
-      if (data?.setting_value) {
-        setContent(typeof data.setting_value === 'string' 
-          ? JSON.parse(data.setting_value) 
-          : data.setting_value);
+      const raw = (data as any)?.content;
+      if (raw) {
+        setContent(typeof raw === "string" ? JSON.parse(raw) : raw);
       }
     } catch (error) {
       console.error("Error loading coffee shop content:", error);
