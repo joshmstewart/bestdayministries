@@ -55,6 +55,8 @@ const BeatPad: React.FC = () => {
   const [savedBeatId, setSavedBeatId] = useState<string | null>(null);
   const [savedBeatImageUrl, setSavedBeatImageUrl] = useState<string | null>(null);
   const [beatLoaded, setBeatLoaded] = useState(false);
+  // Key to force CustomizableBeatGrid remount when creating new beat
+  const [gridKey, setGridKey] = useState(0);
   const aiAudioRef = useRef<HTMLAudioElement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -307,6 +309,8 @@ const BeatPad: React.FC = () => {
     setBeatName('My Beat');
     setSavedBeatId(null);
     setSavedBeatImageUrl(null);
+    // Increment key to force CustomizableBeatGrid to remount and reload defaults
+    setGridKey(prev => prev + 1);
     if (aiAudioUrl) {
       URL.revokeObjectURL(aiAudioUrl);
       setAiAudioUrl(null);
@@ -617,7 +621,8 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Beat Grid */}
               <div className="lg:col-span-3">
-                <CustomizableBeatGrid
+              <CustomizableBeatGrid
+                  key={gridKey}
                   pattern={pattern}
                   setPattern={setPattern}
                   instruments={instruments}
