@@ -23,23 +23,24 @@ serve(async (req) => {
     }
 
     // Build a detailed prompt for diverse customer generation
-    const prompt = `Create a hyper-realistic photograph of a customer at a store checkout counter.
+    const prompt = `Create a hyper-realistic photograph of a person on a PURE WHITE background (#FFFFFF).
 
 Character type: ${characterType}
 ${description ? `Additional details: ${description}` : ''}
 
-Requirements:
-- Upper body view from waist up, as if standing at a checkout counter
+CRITICAL REQUIREMENTS:
+- PURE WHITE BACKGROUND - completely solid white (#FFFFFF), no shadows, no gradients, no floor shadows
+- Upper body view from waist up
 - Natural, friendly expression with a warm smile
-- Hyper-realistic photography style with natural lighting
-- Simple, blurred store background (bokeh effect)
+- Hyper-realistic photography style with soft, even studio lighting
 - The person should look like a real customer ready to make a purchase
 - Diverse and inclusive representation
 - Authentic, approachable appearance
 - No text or logos in the image
-- Professional photography quality with sharp focus on the subject
+- Professional product photography style with sharp focus on the subject
+- Clean cutout-ready image with no background elements whatsoever
 
-Style: Hyper-realistic photograph, like a candid shot in a retail store, with natural skin textures and authentic clothing.`;
+Style: Professional studio photograph on pure white seamless backdrop, like a stock photo or product catalog image. The background must be completely blank white for easy compositing.`;
 
     console.log("Generating customer image with prompt:", prompt);
 
