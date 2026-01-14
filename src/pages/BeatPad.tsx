@@ -539,7 +539,7 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
           </TabsList>
 
           <TabsContent value="create" className="space-y-6">
-          {/* Beat name input with magic wand for name, and generate beat button */}
+            {/* Beat name input with magic wand for name */}
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 min-w-[200px] max-w-md">
                 <label className="text-sm font-medium mb-2 block">Beat Name</label>
@@ -566,43 +566,6 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                   </Button>
                 </div>
               </div>
-              
-              {/* Generate Beat Button */}
-              <Button
-                variant="outline"
-                onClick={generateAIBeat}
-                disabled={isGeneratingBeat || instruments.filter(Boolean).length === 0}
-                className="gap-2"
-              >
-                {isGeneratingBeat ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Wand2 className="h-4 w-4" />
-                )}
-                Generate Beat
-              </Button>
-              
-              {/* Remix Button - shows when a saved beat is loaded */}
-              {savedBeatId && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // Create a remix copy
-                    if (!beatName.includes('(Remix)')) {
-                      setBeatName(`${beatName} (Remix)`);
-                    }
-                    setSavedBeatId(null);
-                    setSavedBeatImageUrl(null);
-                    toast.success('Remixing! Edit and save as your own! 🎵');
-                  }}
-                  className="gap-2"
-                  disabled={!user}
-                  title={!user ? 'Sign in to remix' : 'Create your own version'}
-                >
-                  <Shuffle className="h-4 w-4" />
-                  Remix
-                </Button>
-              )}
               
               {/* New Beat Button */}
               <Button
@@ -652,9 +615,21 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                   onSave={handleSave}
                   onShare={handleShare}
                   onAIify={handleAIify}
+                  onGenerateBeat={generateAIBeat}
+                  onRemix={() => {
+                    if (!beatName.includes('(Remix)')) {
+                      setBeatName(`${beatName} (Remix)`);
+                    }
+                    setSavedBeatId(null);
+                    setSavedBeatImageUrl(null);
+                    toast.success('Remixing! Edit and save as your own! 🎵');
+                  }}
                   canSave={hasPattern}
+                  canGenerateBeat={instruments.filter(Boolean).length > 0}
+                  showRemix={!!savedBeatId && !!user}
                   isSaving={false}
                   isAIifying={isAIifying}
+                  isGeneratingBeat={isGeneratingBeat}
                 />
               </div>
             </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Square, Trash2, Save, Share2, Sparkles, Loader2 } from 'lucide-react';
+import { Play, Pause, Square, Trash2, Save, Share2, Sparkles, Loader2, Wand2, Shuffle } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -13,9 +13,14 @@ interface PlaybackControlsProps {
   onSave: () => void;
   onShare: () => void;
   onAIify: () => void;
+  onGenerateBeat: () => void;
+  onRemix: () => void;
   canSave: boolean;
+  canGenerateBeat: boolean;
+  showRemix: boolean;
   isSaving: boolean;
   isAIifying: boolean;
+  isGeneratingBeat: boolean;
 }
 
 export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
@@ -28,9 +33,14 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onSave,
   onShare,
   onAIify,
+  onGenerateBeat,
+  onRemix,
   canSave,
+  canGenerateBeat,
+  showRemix,
   isSaving,
   isAIifying,
+  isGeneratingBeat,
 }) => {
   return (
     <div className="flex flex-col gap-4 p-4 bg-card rounded-xl border border-border">
@@ -87,6 +97,33 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           <span>Fast</span>
         </div>
       </div>
+
+      {/* Generate Beat button */}
+      <Button
+        variant="outline"
+        onClick={onGenerateBeat}
+        disabled={isGeneratingBeat || !canGenerateBeat}
+        className="w-full"
+      >
+        {isGeneratingBeat ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Wand2 className="h-4 w-4 mr-2" />
+        )}
+        Generate Beat
+      </Button>
+
+      {/* Remix button - only shows when a saved beat is loaded */}
+      {showRemix && (
+        <Button
+          variant="outline"
+          onClick={onRemix}
+          className="w-full"
+        >
+          <Shuffle className="h-4 w-4 mr-2" />
+          Remix
+        </Button>
+      )}
 
       {/* AI-ify button */}
       <Button
