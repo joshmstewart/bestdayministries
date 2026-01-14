@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Loader2, Trash2, RefreshCw, AlertTriangle, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -32,14 +33,14 @@ interface DuplicateGroup {
 export const JokeDuplicatesManager: React.FC = () => {
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedJokes, setSelectedJokes] = useState<Set<string>>(new Set());
+  // Track which joke to KEEP per group (by answer key)
+  const [keepSelections, setKeepSelections] = useState<Record<string, string>>({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const fetchDuplicates = async () => {
     setIsLoading(true);
     try {
-      // First get all jokes
       const { data: jokes, error } = await supabase
         .from('joke_library')
         .select('id, question, answer, is_reviewed')
@@ -69,6 +70,14 @@ export const JokeDuplicatesManager: React.FC = () => {
         .sort((a, b) => b.count - a.count);
 
       setDuplicateGroups(duplicates);
+      
+      // Initialize keep selections - default to reviewed joke or first joke
+      const initialSelections: Record<string, string> = {};
+      duplicates.forEach(group => {
+        const reviewedJoke = group.jokes.find(j => j.is_reviewed);
+        initialSelections[group.answer] = reviewedJoke?.id || group.jokes[0].id;
+      });
+      setKeepSelections(initialSelections);
     } catch (error) {
       console.error('Error fetching duplicates:', error);
       toast.error('Failed to load duplicates');
@@ -81,44 +90,41 @@ export const JokeDuplicatesManager: React.FC = () => {
     fetchDuplicates();
   }, []);
 
-  const toggleJokeSelection = (jokeId: string) => {
-    const newSelected = new Set(selectedJokes);
-    if (newSelected.has(jokeId)) {
-      newSelected.delete(jokeId);
-    } else {
-      newSelected.add(jokeId);
-    }
-    setSelectedJokes(newSelected);
+  const handleKeepSelection = (groupAnswer: string, jokeId: string) => {
+    setKeepSelections(prev => ({
+      ...prev,
+      [groupAnswer]: jokeId
+    }));
   };
 
-  const selectAllDuplicatesInGroup = (group: DuplicateGroup) => {
-    const newSelected = new Set(selectedJokes);
-    // Keep the first joke (or the reviewed one), select rest for deletion
-    const reviewedJoke = group.jokes.find(j => j.is_reviewed);
-    const jokeToKeep = reviewedJoke || group.jokes[0];
-    
-    group.jokes.forEach(joke => {
-      if (joke.id !== jokeToKeep.id) {
-        newSelected.add(joke.id);
-      }
+  // Get all jokes that will be deleted (not selected to keep)
+  const getJokesToDelete = (): string[] => {
+    const toDelete: string[] = [];
+    duplicateGroups.forEach(group => {
+      const keepId = keepSelections[group.answer];
+      group.jokes.forEach(joke => {
+        if (joke.id !== keepId) {
+          toDelete.push(joke.id);
+        }
+      });
     });
-    setSelectedJokes(newSelected);
+    return toDelete;
   };
 
-  const deleteSelectedJokes = async () => {
-    if (selectedJokes.size === 0) return;
+  const deleteAllDuplicates = async () => {
+    const jokesToDelete = getJokesToDelete();
+    if (jokesToDelete.length === 0) return;
     
     setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('joke_library')
         .update({ is_active: false })
-        .in('id', Array.from(selectedJokes));
+        .in('id', jokesToDelete);
 
       if (error) throw error;
 
-      toast.success(`Deactivated ${selectedJokes.size} duplicate jokes`);
-      setSelectedJokes(new Set());
+      toast.success(`Deactivated ${jokesToDelete.length} duplicate jokes`);
       setShowDeleteDialog(false);
       fetchDuplicates();
     } catch (error) {
@@ -126,6 +132,28 @@ export const JokeDuplicatesManager: React.FC = () => {
       toast.error('Failed to delete jokes');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const deleteGroupDuplicates = async (group: DuplicateGroup) => {
+    const keepId = keepSelections[group.answer];
+    const toDelete = group.jokes.filter(j => j.id !== keepId).map(j => j.id);
+    
+    if (toDelete.length === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('joke_library')
+        .update({ is_active: false })
+        .in('id', toDelete);
+
+      if (error) throw error;
+
+      toast.success(`Removed ${toDelete.length} duplicates, kept your selection`);
+      fetchDuplicates();
+    } catch (error) {
+      console.error('Error deleting jokes:', error);
+      toast.error('Failed to delete jokes');
     }
   };
 
@@ -153,18 +181,22 @@ export const JokeDuplicatesManager: React.FC = () => {
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          {selectedJokes.size > 0 && (
+          {totalDuplicates > 0 && (
             <Button 
               variant="destructive" 
               size="sm"
               onClick={() => setShowDeleteDialog(true)}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete {selectedJokes.size} Selected
+              Delete All Duplicates ({totalDuplicates})
             </Button>
           )}
         </div>
       </div>
+
+      <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+        💡 Select which joke to <strong>keep</strong> in each group, then delete the duplicates.
+      </p>
 
       {duplicateGroups.length === 0 ? (
         <Card>
@@ -175,8 +207,8 @@ export const JokeDuplicatesManager: React.FC = () => {
       ) : (
         <ScrollArea className="h-[600px]">
           <div className="space-y-4 pr-4">
-            {duplicateGroups.map((group, groupIndex) => (
-              <Card key={groupIndex} className="border-yellow-500/50">
+            {duplicateGroups.map((group) => (
+              <Card key={group.answer} className="border-yellow-500/50">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -188,45 +220,54 @@ export const JokeDuplicatesManager: React.FC = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => selectAllDuplicatesInGroup(group)}
+                        onClick={() => deleteGroupDuplicates(group)}
                       >
-                        Select Duplicates
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Remove Duplicates
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="space-y-2">
-                    {group.jokes.map((joke, jokeIndex) => (
-                      <div 
-                        key={joke.id}
-                        className={`flex items-start gap-3 p-2 rounded-md ${
-                          selectedJokes.has(joke.id) 
-                            ? 'bg-destructive/10 border border-destructive/30' 
-                            : 'bg-muted/50'
-                        }`}
-                      >
-                        <Checkbox
-                          checked={selectedJokes.has(joke.id)}
-                          onCheckedChange={() => toggleJokeSelection(joke.id)}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm">{joke.question}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            ID: {joke.id.slice(0, 8)}...
-                          </p>
+                  <RadioGroup 
+                    value={keepSelections[group.answer] || ''} 
+                    onValueChange={(value) => handleKeepSelection(group.answer, value)}
+                    className="space-y-2"
+                  >
+                    {group.jokes.map((joke) => {
+                      const isSelected = keepSelections[group.answer] === joke.id;
+                      return (
+                        <div 
+                          key={joke.id}
+                          className={`flex items-start gap-3 p-3 rounded-md cursor-pointer transition-colors ${
+                            isSelected 
+                              ? 'bg-green-500/10 border border-green-500/30' 
+                              : 'bg-muted/50 hover:bg-muted'
+                          }`}
+                          onClick={() => handleKeepSelection(group.answer, joke.id)}
+                        >
+                          <RadioGroupItem value={joke.id} id={joke.id} className="mt-0.5" />
+                          <Label htmlFor={joke.id} className="flex-1 min-w-0 cursor-pointer">
+                            <p className="text-sm font-medium">{joke.question}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              ID: {joke.id.slice(0, 8)}...
+                            </p>
+                          </Label>
+                          <div className="flex items-center gap-1">
+                            {isSelected && (
+                              <Badge variant="outline" className="text-xs bg-green-500/20 border-green-500/50">
+                                <Check className="w-3 h-3 mr-1" />
+                                Keep
+                              </Badge>
+                            )}
+                            {joke.is_reviewed && (
+                              <Badge className="text-xs bg-green-600">Reviewed</Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          {jokeIndex === 0 && !group.jokes.some(j => j.is_reviewed) && (
-                            <Badge variant="outline" className="text-xs">Keep</Badge>
-                          )}
-                          {joke.is_reviewed && (
-                            <Badge className="text-xs bg-green-600">Reviewed</Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      );
+                    })}
+                  </RadioGroup>
                 </CardContent>
               </Card>
             ))}
@@ -237,15 +278,16 @@ export const JokeDuplicatesManager: React.FC = () => {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedJokes.size} jokes?</AlertDialogTitle>
+            <AlertDialogTitle>Delete all {totalDuplicates} duplicates?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will deactivate the selected duplicate jokes. They can be restored later if needed.
+              This will keep your selected joke in each group and deactivate all other duplicates. 
+              They can be restored later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={deleteSelectedJokes}
+              onClick={deleteAllDuplicates}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -255,7 +297,7 @@ export const JokeDuplicatesManager: React.FC = () => {
                   Deleting...
                 </>
               ) : (
-                'Delete Selected'
+                'Delete All Duplicates'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
