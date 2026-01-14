@@ -247,7 +247,8 @@ const BeatPad: React.FC = () => {
     setTempo(beat.tempo);
     setBeatName(beat.name);
     setSavedBeatId(beat.id);
-    setSavedBeatImageUrl(beat.image_url || null);
+    // Add cache-busting to ensure latest image is shown
+    setSavedBeatImageUrl(beat.image_url ? `${beat.image_url}?t=${Date.now()}` : null);
     setActiveTab('create');
 
     if (aiAudioUrl) {
