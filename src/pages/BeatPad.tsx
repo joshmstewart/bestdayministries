@@ -114,12 +114,19 @@ const BeatPad: React.FC = () => {
   useEffect(() => {
     if (!isPlaying) return;
 
+    console.log('[BeatPad] Playback started', {
+      instrumentCount: instruments.filter(Boolean).length,
+      patternKeys: Object.keys(pattern),
+      patternWithActiveCells: Object.entries(pattern).filter(([_, steps]) => steps.some(Boolean))
+    });
+
     const stepDuration = (60 / tempo) * 1000 / 4; // 16th notes
     let currentStepLocal = 0;
 
     // Play initial step
     instruments.forEach((sound, idx) => {
       if (sound && pattern[idx.toString()]?.[currentStepLocal]) {
+        console.log('[BeatPad] Playing sound at step', currentStepLocal, 'instrument', idx, sound.name);
         playSound(sound);
       }
     });
