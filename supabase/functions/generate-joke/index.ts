@@ -65,8 +65,12 @@ No other text, just the JSON object.`
       throw new Error('No content in response');
     }
 
-    // Parse the JSON from the response
-    const joke = JSON.parse(content.trim());
+    // Parse the JSON from the response - strip markdown code blocks if present
+    let jsonContent = content.trim();
+    if (jsonContent.startsWith('```')) {
+      jsonContent = jsonContent.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+    const joke = JSON.parse(jsonContent.trim());
 
     return new Response(JSON.stringify(joke), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
