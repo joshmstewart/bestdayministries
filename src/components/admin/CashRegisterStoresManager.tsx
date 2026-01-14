@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Import local fallback images
 import coffeeShopBg from "@/assets/games/stores/coffee-shop-pov.jpg";
@@ -268,29 +269,26 @@ export const CashRegisterStoresManager = () => {
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[500px]">
-          <div className="grid gap-4">
-            {stores.map((store) => (
-              <div
-                key={store.id}
-                className="flex items-start gap-4 p-4 rounded-lg border bg-card"
-              >
-                <div className="relative w-32 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                  {store.image_url || FALLBACK_IMAGES[store.name] ? (
-                    <img
-                      src={store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name]}
-                      alt={store.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Store className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
+        <Accordion type="single" collapsible className="w-full">
+          {stores.map((store) => (
+            <AccordionItem key={store.id} value={store.id} className="border rounded-lg mb-2 px-4">
+              <AccordionTrigger className="hover:no-underline py-3">
+                <div className="flex items-center gap-3 text-left">
+                  <div className="relative w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    {store.image_url || FALLBACK_IMAGES[store.name] ? (
+                      <img
+                        src={store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name]}
+                        alt={store.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Store className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium">{store.name}</h4>
+                    <span className="font-medium">{store.name}</span>
                     {store.is_default && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                         Default
@@ -302,67 +300,89 @@ export const CashRegisterStoresManager = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="pt-2 pb-4 space-y-4">
+                  <div className="relative w-full aspect-video rounded-md overflow-hidden bg-muted">
+                    {store.image_url || FALLBACK_IMAGES[store.name] ? (
+                      <img
+                        src={store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name]}
+                        alt={store.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Store className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
                     {store.description || "No description"}
                   </p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => regenerateImage(store)}
-                    disabled={regenerating === store.id}
-                    title="Regenerate image"
-                  >
-                    {regenerating === store.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => toggleActive(store)}
-                    title={store.is_active ? "Hide" : "Show"}
-                  >
-                    {store.is_active ? (
-                      <Eye className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <EyeOff className="h-4 w-4 text-red-500" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => openEditDialog(store)}
-                    title="Edit"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  {!store.is_default && (
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setDefault(store)}
+                      onClick={() => regenerateImage(store)}
+                      disabled={regenerating === store.id}
                     >
-                      Set Default
+                      {regenerating === store.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                      )}
+                      Regenerate Image
                     </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deleteStore(store)}
-                    className="text-destructive hover:text-destructive"
-                    title="Delete"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleActive(store)}
+                    >
+                      {store.is_active ? (
+                        <>
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Hide
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Show
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(store)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    {!store.is_default && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDefault(store)}
+                      >
+                        Set Default
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteStore(store)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </CardContent>
     </Card>
   );
