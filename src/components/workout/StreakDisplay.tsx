@@ -117,26 +117,28 @@ export const StreakDisplay = ({ userId, className }: StreakDisplayProps) => {
 
   return (
     <Card className={cn("overflow-hidden", className)}>
-      <CardContent className="p-4 flex flex-col h-full">
-        {/* Streak Section */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative bg-gradient-to-br from-orange-500 to-red-500 rounded-full p-2">
-            <Flame className={cn(
-              "h-8 w-8 text-white transition-all",
-              weekStreak > 0 ? "animate-pulse" : "opacity-70"
-            )} />
-            {weekStreak >= 4 && (
-              <Trophy className="h-4 w-4 absolute -top-1 -right-1 text-yellow-400" />
-            )}
-          </div>
-          <div>
-            <div className="text-3xl font-bold">{weekStreak}</div>
-            <div className="text-sm text-muted-foreground">week streak</div>
+      <CardContent className="p-0 flex flex-col h-full">
+        {/* Streak Section - Sunburst */}
+        <div className="p-4 bg-gradient-sunburst text-white">
+          <div className="flex items-center gap-3">
+            <div className="relative bg-white/20 rounded-full p-2">
+              <Flame className={cn(
+                "h-8 w-8 text-white transition-all",
+                weekStreak > 0 ? "animate-pulse" : "opacity-70"
+              )} />
+              {weekStreak >= 4 && (
+                <Trophy className="h-4 w-4 absolute -top-1 -right-1 text-yellow-300" />
+              )}
+            </div>
+            <div>
+              <div className="text-3xl font-bold">{weekStreak}</div>
+              <div className="text-sm text-white/80">week streak</div>
+            </div>
           </div>
         </div>
         
-        {/* Mini week calendar */}
-        <div className="flex justify-between mt-auto pt-2 border-t">
+        {/* Mini week calendar - White */}
+        <div className="flex justify-between p-3 bg-white mt-auto">
           {weekDays.map((day, i) => (
             <div 
               key={i}
@@ -147,7 +149,7 @@ export const StreakDisplay = ({ userId, className }: StreakDisplayProps) => {
             >
               <span className="text-xs text-muted-foreground">{day.dayLabel}</span>
               <div className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center text-xs",
+                "w-6 h-6 rounded-full flex items-center justify-center text-xs",
                 day.hasActivity 
                   ? "bg-primary text-primary-foreground" 
                   : day.isToday 
