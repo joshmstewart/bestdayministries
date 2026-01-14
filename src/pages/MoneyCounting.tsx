@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RotateCcw, Trophy, Store, ChevronDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { RotateCcw, Trophy, Store, ChevronDown } from "lucide-react";
+import { UnifiedHeader } from "@/components/UnifiedHeader";
+import Footer from "@/components/Footer";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { CashDrawer } from "@/components/money-counting/CashDrawer";
@@ -387,70 +388,64 @@ export default function MoneyCounting() {
   }
 
   return (
-    <main 
-      className="min-h-screen pt-24 pb-8 px-4 relative"
-      style={{
-        backgroundImage: `url(${getStoreBackground()})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-      }}
-    >
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/40" />
-      
-      <div className="container mx-auto max-w-6xl relative z-10">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 bg-background/90 backdrop-blur-sm rounded-lg p-4 shadow-lg flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/community">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Link>
-            </Button>
+    <>
+      <UnifiedHeader />
+      <main 
+        className="min-h-screen pt-24 pb-8 px-4 relative"
+        style={{
+          backgroundImage: `url(${getStoreBackground()})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/40" />
+        
+        <div className="container mx-auto max-w-6xl relative z-10">
+          {/* Game Header */}
+          <div className="flex items-center justify-between mb-6 bg-background/90 backdrop-blur-sm rounded-lg p-4 shadow-lg flex-wrap gap-4">
             <div>
               <h1 className="text-2xl font-bold">💵 Cash Register</h1>
               <p className="text-muted-foreground text-sm">Make correct change for customers!</p>
             </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Store Selector */}
+              {stores.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Store className="h-4 w-4 mr-2" />
+                      {selectedStore?.name || "Select Store"}
+                      <ChevronDown className="h-4 w-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {stores.map((store) => (
+                      <DropdownMenuItem
+                        key={store.id}
+                        onClick={() => setSelectedStore(store)}
+                        className={selectedStore?.id === store.id ? "bg-accent" : ""}
+                      >
+                        {store.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <Badge variant="secondary" className="text-lg px-3 py-1">
+                Level {gameState.level}
+              </Badge>
+              <Badge variant="default" className="text-lg px-3 py-1">
+                <Trophy className="h-4 w-4 mr-1" />
+                {gameState.score}
+              </Badge>
+              <Button variant="outline" size="sm" onClick={startNewGame}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                New Game
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Store Selector */}
-            {stores.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Store className="h-4 w-4 mr-2" />
-                    {selectedStore?.name || "Select Store"}
-                    <ChevronDown className="h-4 w-4 ml-2" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {stores.map((store) => (
-                    <DropdownMenuItem
-                      key={store.id}
-                      onClick={() => setSelectedStore(store)}
-                      className={selectedStore?.id === store.id ? "bg-accent" : ""}
-                    >
-                      {store.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <Badge variant="secondary" className="text-lg px-3 py-1">
-              Level {gameState.level}
-            </Badge>
-            <Badge variant="default" className="text-lg px-3 py-1">
-              <Trophy className="h-4 w-4 mr-1" />
-              {gameState.score}
-            </Badge>
-            <Button variant="outline" size="sm" onClick={startNewGame}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              New Game
-            </Button>
-          </div>
-        </div>
 
         {showComplete && levelResult ? (
           <LevelComplete
@@ -524,5 +519,7 @@ export default function MoneyCounting() {
         )}
       </div>
     </main>
+    <Footer />
+    </>
   );
 }
