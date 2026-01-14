@@ -350,33 +350,35 @@ const JokeGenerator: React.FC = () => {
               {/* Soft Ribbon Container with Score, Generate Button & Categories */}
               <div className="bg-soft-ribbon rounded-2xl p-6 shadow-lg">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  {/* Score - inline on left */}
-                  {score.total > 0 && (
-                    <div className="flex items-center gap-1.5 text-base whitespace-nowrap">
-                      <Trophy className="w-4 h-4 text-yellow-500" />
-                      <span className="font-semibold">{score.correct}</span>
-                      <span className="text-muted-foreground">/ {score.total}</span>
-                    </div>
-                  )}
-                  {/* Generate Button - Left */}
-                  <Button
-                    onClick={generateJoke}
-                    disabled={isLoading || selectedCategories.length === 0}
-                    size="lg"
-                    className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white gap-2 w-full sm:w-auto"
-                  >
-                    {isLoading ? (
-                      <>
-                        <RefreshCw className="w-5 h-5 animate-spin" />
-                        Unwrapping...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5" />
-                        {joke ? 'New Joke!' : 'Get a Joke!'}
-                      </>
+                  {/* Generate Button + Score - Left side */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={generateJoke}
+                      disabled={isLoading || selectedCategories.length === 0}
+                      size="lg"
+                      className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <RefreshCw className="w-5 h-5 animate-spin" />
+                          Unwrapping...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5" />
+                          {joke ? 'New Joke!' : 'Get a Joke!'}
+                        </>
+                      )}
+                    </Button>
+                    {/* Score - to the right of button */}
+                    {score.total > 0 && (
+                      <div className="flex items-center gap-1.5 text-base whitespace-nowrap">
+                        <Trophy className="w-4 h-4 text-yellow-500" />
+                        <span className="font-semibold">{score.correct}</span>
+                        <span className="text-muted-foreground">/ {score.total}</span>
+                      </div>
                     )}
-                  </Button>
+                  </div>
 
                   {/* Categories Button - Right */}
                   <JokeCategorySelector
