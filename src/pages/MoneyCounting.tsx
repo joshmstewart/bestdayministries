@@ -593,11 +593,11 @@ export default function MoneyCounting() {
 
               {/* Main Game Area with Store Background */}
               <div 
-                className="min-h-[calc(100vh-320px)] rounded-lg relative overflow-hidden"
+                className="min-h-[calc(100vh-320px)] rounded-lg relative overflow-hidden bg-muted"
                 style={{
                   backgroundImage: `url(${getStoreBackground()})`,
                   backgroundSize: 'cover',
-                  backgroundPosition: 'top center',
+                  backgroundPosition: 'center center',
                 }}
               >
                 {/* Dark overlay for readability */}
