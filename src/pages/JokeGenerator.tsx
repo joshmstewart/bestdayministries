@@ -348,17 +348,16 @@ const JokeGenerator: React.FC = () => {
 
             <TabsContent value="create" className="space-y-6">
               {/* Soft Ribbon Container with Score, Generate Button & Categories */}
-              <div className="bg-soft-ribbon rounded-2xl p-6 shadow-lg space-y-4">
-                {/* Score - centered at top of ribbon */}
-                {score.total > 0 && (
-                  <div className="flex items-center justify-center gap-2 text-lg">
-                    <Trophy className="w-5 h-5 text-yellow-500" />
-                    <span className="font-semibold">{score.correct}</span>
-                    <span className="text-muted-foreground">/ {score.total} correct</span>
-                  </div>
-                )}
-
+              <div className="bg-soft-ribbon rounded-2xl p-6 shadow-lg">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  {/* Score - inline on left */}
+                  {score.total > 0 && (
+                    <div className="flex items-center gap-1.5 text-base whitespace-nowrap">
+                      <Trophy className="w-4 h-4 text-yellow-500" />
+                      <span className="font-semibold">{score.correct}</span>
+                      <span className="text-muted-foreground">/ {score.total}</span>
+                    </div>
+                  )}
                   {/* Generate Button - Left */}
                   <Button
                     onClick={generateJoke}
