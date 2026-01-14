@@ -30,8 +30,8 @@ ${description ? `Additional details: ${description}` : ''}
 
 CRITICAL REQUIREMENTS:
 - PURE WHITE BACKGROUND - completely solid white (#FFFFFF), no shadows, no gradients, no floor shadows
-- Upper body view from waist up
-- Natural, friendly expression with a warm smile
+- Upper body view from waist up, FACING DIRECTLY TOWARD THE CAMERA (frontal view, not angled)
+- Looking straight at the camera with natural, friendly expression and a warm smile
 - Hyper-realistic photography style with soft, even studio lighting
 - The person should look like a real customer ready to make a purchase
 - Diverse and inclusive representation
