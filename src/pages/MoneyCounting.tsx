@@ -88,6 +88,7 @@ export default function MoneyCounting() {
   const [customers, setCustomers] = useState<CustomerType[]>([]);
   const [currentCustomer, setCurrentCustomer] = useState<CustomerType | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [levelResult, setLevelResult] = useState<{
     success: boolean;
     piecesUsed: number;
@@ -98,6 +99,7 @@ export default function MoneyCounting() {
   // Load stores and customers from database
   useEffect(() => {
     const loadData = async () => {
+      console.log("Loading cash register data...");
       const [storesRes, customersRes] = await Promise.all([
         supabase
           .from("cash_register_stores")
@@ -113,9 +115,11 @@ export default function MoneyCounting() {
       if (storesRes.error) {
         console.error("Error loading stores:", storesRes.error);
       } else {
+        console.log("Loaded stores:", storesRes.data?.length, storesRes.data?.map(s => s.name));
         setStores(storesRes.data || []);
         const defaultStore = storesRes.data?.find((s) => s.is_default) || storesRes.data?.[0];
         if (defaultStore) {
+          console.log("Default store:", defaultStore.name, "has image:", !!defaultStore.image_url);
           setSelectedStore(defaultStore);
         }
       }
@@ -123,8 +127,11 @@ export default function MoneyCounting() {
       if (customersRes.error) {
         console.error("Error loading customers:", customersRes.error);
       } else {
+        console.log("Loaded customers:", customersRes.data?.length, customersRes.data?.map(c => ({ name: c.name, hasImage: !!c.image_url })));
         setCustomers(customersRes.data || []);
       }
+      
+      setDataLoaded(true);
     };
 
     loadData();
@@ -135,13 +142,16 @@ export default function MoneyCounting() {
     const list = customerList || customers;
     if (list.length > 0) {
       const randomIndex = Math.floor(Math.random() * list.length);
-      setCurrentCustomer(list[randomIndex]);
+      const selectedCustomer = list[randomIndex];
+      console.log("Picked customer:", selectedCustomer.name, "has image:", !!selectedCustomer.image_url);
+      setCurrentCustomer(selectedCustomer);
     }
   }, [customers]);
 
   // Pick first customer once customers are loaded
   useEffect(() => {
     if (customers.length > 0 && !currentCustomer) {
+      console.log("Customers loaded, picking random customer from", customers.length, "customers");
       pickRandomCustomer();
     }
   }, [customers, currentCustomer, pickRandomCustomer]);
@@ -556,23 +566,37 @@ export default function MoneyCounting() {
             </div>
 
             {/* Right Column - Customer Display (no background, overlaid on store) */}
-            <div className="flex flex-col items-center justify-end">
-              {currentCustomer ? (
+            <div className="flex flex-col items-center justify-end min-h-[300px]">
+              {currentCustomer && currentCustomer.image_url ? (
                 <div className="text-center">
-                  {currentCustomer.image_url ? (
-                    <img
-                      src={currentCustomer.image_url}
-                      alt={currentCustomer.name}
-                      className="w-64 h-auto lg:w-80 xl:w-96 max-h-[70vh] object-contain drop-shadow-2xl"
-                    />
-                  ) : (
-                    <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
-                      <span className="text-9xl drop-shadow-lg">👤</span>
-                    </div>
-                  )}
+                  <img
+                    src={currentCustomer.image_url}
+                    alt={currentCustomer.name}
+                    className="w-64 h-auto lg:w-80 xl:w-96 max-h-[70vh] object-contain drop-shadow-2xl"
+                    onError={(e) => {
+                      console.error("Customer image failed to load:", currentCustomer.name);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
                   <div className="mt-2 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
                     <h3 className="text-lg font-medium text-foreground">{currentCustomer.name}</h3>
                   </div>
+                </div>
+              ) : currentCustomer ? (
+                <div className="text-center">
+                  <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
+                    <span className="text-9xl drop-shadow-lg">👤</span>
+                  </div>
+                  <div className="mt-2 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
+                    <h3 className="text-lg font-medium text-foreground">{currentCustomer.name}</h3>
+                  </div>
+                </div>
+              ) : customers.length === 0 ? (
+                <div className="text-center">
+                  <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
+                    <span className="text-6xl drop-shadow-lg animate-pulse">⏳</span>
+                  </div>
+                  <p className="mt-2 text-white/80">Loading customers...</p>
                 </div>
               ) : (
                 <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">

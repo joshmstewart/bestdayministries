@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,15 +12,51 @@ serve(async (req) => {
   }
 
   try {
-    const { characterType, description } = await req.json();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No auth header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check admin access
+    const { data: adminCheck, error: adminError } = await supabase.rpc("has_admin_access", {
+      _user_id: userData.user.id,
+    });
+
+    if (adminError) {
+      console.error("Admin check error:", adminError);
+      throw adminError;
+    }
+
+    if (!adminCheck) {
+      return new Response(JSON.stringify({ error: "Admin access required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { characterType, description, customerId } = await req.json();
 
     if (!characterType) {
       throw new Error("Character type is required");
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     // Build a detailed prompt for diverse customer generation
@@ -47,7 +84,7 @@ Style: Professional studio photograph on pure white seamless backdrop, like a st
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -76,8 +113,46 @@ Style: Professional studio photograph on pure white seamless backdrop, like a st
       throw new Error("No image generated");
     }
 
+    // Check if it's a base64 data URL
+    if (!imageData.startsWith("data:image")) {
+      console.error("Unexpected image format:", imageData.substring(0, 100));
+      throw new Error("Invalid image data format");
+    }
+
+    const base64Match = imageData.match(/^data:image\/\w+;base64,(.+)$/);
+    if (!base64Match) {
+      throw new Error("Invalid base64 image format");
+    }
+
+    const imageBase64 = base64Match[1];
+
+    // Convert base64 to buffer
+    const imageBuffer = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+
+    // Upload to storage
+    const fileId = customerId || `temp-${Date.now()}`;
+    const fileName = `customer-${fileId}-${Date.now()}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from("app-assets")
+      .upload(`cash-register-customers/${fileName}`, imageBuffer, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      throw uploadError;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from("app-assets")
+      .getPublicUrl(`cash-register-customers/${fileName}`);
+
+    console.log("Image uploaded successfully:", urlData.publicUrl);
+
     return new Response(
-      JSON.stringify({ imageUrl: imageData }),
+      JSON.stringify({ imageUrl: urlData.publicUrl }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
