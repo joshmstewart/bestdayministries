@@ -34,30 +34,27 @@ export function ChangeTracker({
 
   return (
     <Card className="h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">💰</span>
-          Change Due
+      <CardHeader className="pb-2 pt-3">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">💰</span>
+            <span>Change Due</span>
+          </div>
+          <span className="text-3xl font-bold text-primary">
+            {formatMoney(remaining)}
+          </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Main display */}
-        <div className="text-center space-y-2">
-          <div className="text-5xl font-bold text-primary">
-            {formatMoney(remaining)}
-          </div>
-          <p className="text-muted-foreground">remaining to give</p>
-        </div>
-
+      <CardContent className="space-y-3 pt-2">
         {/* Progress bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Progress</span>
             <span className="font-medium">
               {formatMoney(totalGiven)} / {formatMoney(changeNeeded)}
             </span>
           </div>
-          <Progress value={Math.min(progress, 100)} className="h-3" />
+          <Progress value={Math.min(progress, 100)} className="h-2" />
         </div>
 
         {/* Change given so far */}
@@ -121,16 +118,16 @@ export function ChangeTracker({
 
         {/* Status message */}
         {!cashCollected && (
-          <div className="text-center p-4 bg-muted rounded-lg">
-            <p className="text-muted-foreground">
+          <div className="text-center p-3 bg-muted rounded-lg">
+            <p className="text-sm text-muted-foreground">
               Collect the customer's cash to start making change!
             </p>
           </div>
         )}
 
         {cashCollected && sortedChange.length === 0 && remaining > 0 && (
-          <div className="text-center p-4 bg-primary/10 rounded-lg">
-            <p className="text-primary font-medium">
+          <div className="text-center p-3 bg-primary/10 rounded-lg">
+            <p className="text-sm text-primary font-medium">
               Select bills and coins from the drawer to make {formatMoney(changeNeeded)} in change!
             </p>
           </div>
