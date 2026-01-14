@@ -78,9 +78,10 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({
+        id: joke.id,
         question: joke.question,
         answer: joke.answer,
-        fromLibrary: true
+        fromLibrary: true,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
