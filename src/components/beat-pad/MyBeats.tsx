@@ -161,7 +161,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
             {beat.image_url ? (
               <div className="aspect-square w-full overflow-hidden">
                 <img 
-                  src={beat.image_url} 
+                  src={`${beat.image_url}?t=${Date.now()}`} 
                   alt={beat.name}
                   className="w-full h-full object-cover"
                 />
