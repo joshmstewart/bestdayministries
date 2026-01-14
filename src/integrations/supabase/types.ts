@@ -3885,6 +3885,36 @@ export type Database = {
         }
         Relationships: []
       }
+      joke_library: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          question: string
+          times_served: number | null
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          question: string
+          times_served?: number | null
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          question?: string
+          times_served?: number | null
+        }
+        Relationships: []
+      }
       joke_likes: {
         Row: {
           created_at: string
@@ -8474,6 +8504,15 @@ export type Database = {
           setting_key: string
           setting_value: Json
           updated_at: string
+        }[]
+      }
+      get_random_unseen_joke: {
+        Args: { _category?: string; _user_id: string }
+        Returns: {
+          answer: string
+          category: string
+          id: string
+          question: string
         }[]
       }
       get_sponsor_bestie_funding_progress: {
