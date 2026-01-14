@@ -394,6 +394,9 @@ const JokeGenerator: React.FC = () => {
             </TabsContent>
           </Tabs>
         </div>
+        
+        {/* Spacer to separate content from footer */}
+        <div className="h-24" />
       </main>
       <Footer />
     </div>
