@@ -9,8 +9,7 @@ import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import ImageLightbox from "@/components/ImageLightbox";
 
 // Import local fallback images
 import coffeeShopBg from "@/assets/games/stores/coffee-shop-pov.jpg";
@@ -47,6 +46,8 @@ export const CashRegisterStoresManager = () => {
     name: "",
     description: "",
   });
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     loadStores();
@@ -190,6 +191,20 @@ export const CashRegisterStoresManager = () => {
     setDialogOpen(true);
   };
 
+  const getStoreImageUrl = (store: StoreType) => {
+    return store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name] || "";
+  };
+
+  const lightboxImages = stores.map((store) => ({
+    image_url: getStoreImageUrl(store),
+    caption: store.name,
+  }));
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -201,190 +216,186 @@ export const CashRegisterStoresManager = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Cash Register Stores
-            </CardTitle>
-            <CardDescription>
-              Manage store types for the cash register game
-            </CardDescription>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingStore(null);
-                  setFormData({ name: "", description: "" });
-                }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Store
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingStore ? "Edit Store" : "Add New Store"}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingStore
-                    ? "Update the store details"
-                    : "Create a new store type for the cash register game"}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Store Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="e.g., Coffee Shop"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Describe the store for image generation..."
-                    rows={3}
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  {editingStore ? "Update Store" : "Create Store"}
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Store className="h-5 w-5" />
+                Cash Register Stores
+              </CardTitle>
+              <CardDescription>
+                Manage store types for the cash register game
+              </CardDescription>
+            </div>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    setEditingStore(null);
+                    setFormData({ name: "", description: "" });
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Store
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {stores.map((store) => (
-            <AccordionItem key={store.id} value={store.id} className="border rounded-lg mb-2 px-4">
-              <AccordionTrigger className="hover:no-underline py-3">
-                <div className="flex items-center gap-3 text-left">
-                  <div className="relative w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                    {store.image_url || FALLBACK_IMAGES[store.name] ? (
-                      <img
-                        src={store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name]}
-                        alt={store.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Store className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    )}
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingStore ? "Edit Store" : "Add New Store"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingStore
+                      ? "Update the store details"
+                      : "Create a new store type for the cash register game"}
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Store Name</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      placeholder="e.g., Coffee Shop"
+                      required
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{store.name}</span>
-                    {store.is_default && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        Default
-                      </span>
-                    )}
-                    {!store.is_active && (
-                      <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
-                        Hidden
-                      </span>
-                    )}
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({ ...formData, description: e.target.value })
+                      }
+                      placeholder="Describe the store for image generation..."
+                      rows={3}
+                    />
                   </div>
+                  <Button type="submit" className="w-full">
+                    {editingStore ? "Update Store" : "Create Store"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {stores.map((store, index) => (
+            <div
+              key={store.id}
+              className="flex items-center gap-4 p-3 border rounded-lg"
+            >
+              {/* Clickable thumbnail */}
+              <button
+                onClick={() => openLightbox(index)}
+                className="relative w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0 hover:ring-2 hover:ring-primary transition-all cursor-pointer"
+              >
+                {getStoreImageUrl(store) ? (
+                  <img
+                    src={getStoreImageUrl(store)}
+                    alt={store.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Store className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+              </button>
+
+              {/* Store info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium">{store.name}</span>
+                  {store.is_default && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                      Default
+                    </span>
+                  )}
+                  {!store.is_active && (
+                    <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
+                      Hidden
+                    </span>
+                  )}
                 </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="pt-2 pb-4 space-y-4">
-                  <div className="relative w-full aspect-video rounded-md overflow-hidden bg-muted">
-                    {store.image_url || FALLBACK_IMAGES[store.name] ? (
-                      <img
-                        src={store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name]}
-                        alt={store.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Store className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {store.description || "No description"}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => regenerateImage(store)}
-                      disabled={regenerating === store.id}
-                    >
-                      {regenerating === store.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                      )}
-                      Regenerate Image
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleActive(store)}
-                    >
-                      {store.is_active ? (
-                        <>
-                          <EyeOff className="h-4 w-4 mr-2" />
-                          Hide
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Show
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(store)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
-                    {!store.is_default && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDefault(store)}
-                      >
-                        Set Default
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteStore(store)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+                <p className="text-sm text-muted-foreground truncate">
+                  {store.description || "No description"}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => regenerateImage(store)}
+                  disabled={regenerating === store.id}
+                  title="Regenerate Image"
+                >
+                  {regenerating === store.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => toggleActive(store)}
+                  title={store.is_active ? "Hide" : "Show"}
+                >
+                  {store.is_active ? (
+                    <Eye className="h-4 w-4" />
+                  ) : (
+                    <EyeOff className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => openEditDialog(store)}
+                  title="Edit"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                {!store.is_default && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDefault(store)}
+                  >
+                    Set Default
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => deleteStore(store)}
+                  className="text-destructive hover:text-destructive"
+                  title="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           ))}
-        </Accordion>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrevious={() => setLightboxIndex((prev) => (prev - 1 + stores.length) % stores.length)}
+        onNext={() => setLightboxIndex((prev) => (prev + 1) % stores.length)}
+      />
+    </>
   );
 };
