@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle } from "lucide-react";
+import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle, Brain, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,6 +50,8 @@ export const JokeLibraryManager = () => {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterReviewed, setFilterReviewed] = useState<string>("all");
+  const [checkingJokeId, setCheckingJokeId] = useState<string | null>(null);
+  const [jokeQuality, setJokeQuality] = useState<Record<string, { quality: "good" | "bad"; reason: string }>>({});
   const { toast } = useToast();
 
   const loadJokes = useCallback(async () => {
@@ -210,6 +213,35 @@ export const JokeLibraryManager = () => {
       });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleCheckQuality = async (joke: Joke) => {
+    setCheckingJokeId(joke.id);
+    try {
+      const response = await supabase.functions.invoke("review-joke-quality", {
+        body: { question: joke.question, answer: joke.answer },
+      });
+
+      if (response.error) throw response.error;
+
+      const result = response.data;
+      setJokeQuality(prev => ({ ...prev, [joke.id]: result }));
+      
+      toast({
+        title: result.quality === "good" ? "✓ Joke looks good!" : "✗ Joke has issues",
+        description: result.reason,
+        variant: result.quality === "good" ? "default" : "destructive",
+      });
+    } catch (error) {
+      console.error("Error checking joke quality:", error);
+      toast({
+        title: "Error",
+        description: "Failed to check joke quality",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckingJokeId(null);
     }
   };
 
@@ -423,6 +455,7 @@ export const JokeLibraryManager = () => {
                         )}
                       </div>
                     </TableHead>
+                    <TableHead className="w-[50px]">AI</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -463,6 +496,39 @@ export const JokeLibraryManager = () => {
                         {format(new Date(joke.created_at), "M/d/yy h:mm a")}
                       </TableCell>
                       <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleCheckQuality(joke)}
+                                disabled={checkingJokeId === joke.id}
+                              >
+                                {checkingJokeId === joke.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : jokeQuality[joke.id] ? (
+                                  jokeQuality[joke.id].quality === "good" ? (
+                                    <ThumbsUp className="h-4 w-4 text-green-500" />
+                                  ) : (
+                                    <ThumbsDown className="h-4 w-4 text-destructive" />
+                                  )
+                                ) : (
+                                  <Brain className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="max-w-[300px]">
+                              {jokeQuality[joke.id] ? (
+                                <p>{jokeQuality[joke.id].reason}</p>
+                              ) : (
+                                <p>Check joke quality with AI</p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -476,7 +542,7 @@ export const JokeLibraryManager = () => {
                   ))}
                   {filteredJokes.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                         No jokes found
                       </TableCell>
                     </TableRow>
