@@ -65,25 +65,32 @@ serve(async (req) => {
     const randomGender = genders[Math.floor(Math.random() * genders.length)];
     const randomEthnicity = ethnicities[Math.floor(Math.random() * ethnicities.length)];
 
-    // Build a detailed prompt for diverse customer generation
-    const prompt = `Create a hyper-realistic photograph of a ${randomGender} ${randomEthnicity} person on a PURE WHITE background (#FFFFFF).
+    // Build a detailed prompt for diverse customer generation with pure white background
+    const prompt = `Create a hyper-realistic photograph of a ${randomGender} ${randomEthnicity} person standing against a PURE SOLID WHITE background.
 
 Character type: ${characterType}
 ${description ? `Additional details: ${description}` : ''}
 
-CRITICAL REQUIREMENTS:
+CRITICAL BACKGROUND REQUIREMENTS (MOST IMPORTANT):
+- Background MUST be 100% pure solid white (#FFFFFF) - NO exceptions
+- NO shadows on the background whatsoever
+- NO gradients or variations in the background
+- NO floor shadows, NO ambient occlusion, NO soft shadows
+- The background should look like a perfectly white seamless backdrop
+- Think: passport photo or product catalog on pure white
+
+SUBJECT REQUIREMENTS:
 - The person MUST be ${randomGender} and ${randomEthnicity} - this is essential for diversity
-- PURE WHITE BACKGROUND - completely solid white (#FFFFFF), no shadows, no gradients, no floor shadows
-- Upper body view from waist up, FACING DIRECTLY TOWARD THE CAMERA (frontal view, not angled)
+- Upper body view from waist up, FACING DIRECTLY TOWARD THE CAMERA (frontal view)
 - Looking straight at the camera with natural, friendly expression and a warm smile
-- Hyper-realistic photography style with soft, even studio lighting
+- Soft, even studio lighting that does NOT cast shadows on the white background
 - The person should look like a real customer ready to make a purchase
 - Authentic, approachable appearance
 - No text or logos in the image
-- Professional product photography style with sharp focus on the subject
-- Clean cutout-ready image with no background elements whatsoever
+- Sharp focus on the subject
+- Professional product photography style
 
-Style: Professional studio photograph on pure white seamless backdrop, like a stock photo or product catalog image. The background must be completely blank white for easy compositing.`;
+Style: Professional studio photograph on PURE WHITE seamless backdrop, like a stock photo with completely blank white background for easy compositing.`;
 
     console.log("Generating customer image with prompt:", prompt);
 

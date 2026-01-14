@@ -11,9 +11,10 @@ import { CustomerPayment } from "@/components/money-counting/CustomerPayment";
 import { ChangeTracker } from "@/components/money-counting/ChangeTracker";
 import { ReceiptDisplay } from "@/components/money-counting/ReceiptDisplay";
 import { LevelComplete } from "@/components/money-counting/LevelComplete";
-import { generateOrder, calculateOptimalChange } from "@/lib/moneyCountingUtils";
+import { generateOrder, calculateOptimalChange, MenuItem } from "@/lib/moneyCountingUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Json } from "@/integrations/supabase/types";
 
 // Fallback images for stores without DB images
 import coffeeShopBg from "@/assets/games/stores/coffee-shop-pov.jpg";
@@ -28,6 +29,7 @@ interface StoreType {
   description: string | null;
   image_url: string | null;
   is_default: boolean;
+  menu_items: Json | null;
 }
 
 interface CustomerType {
@@ -104,7 +106,7 @@ export default function MoneyCounting() {
       const [storesRes, customersRes] = await Promise.all([
         supabase
           .from("cash_register_stores")
-          .select("id, name, description, image_url, is_default")
+          .select("id, name, description, image_url, is_default, menu_items")
           .eq("is_active", true)
           .order("display_order"),
         supabase
@@ -176,7 +178,9 @@ export default function MoneyCounting() {
   };
 
   const startNewGame = useCallback(() => {
-    const order = generateOrder(1);
+    // Get menu items from selected store
+    const storeMenuItems = selectedStore?.menu_items as unknown as MenuItem[] | undefined;
+    const order = generateOrder(1, storeMenuItems);
     const subtotal = order.reduce((sum, item) => sum + item.price, 0);
     const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
     const total = Math.round((subtotal + tax) * 100) / 100;
@@ -203,13 +207,15 @@ export default function MoneyCounting() {
     setShowComplete(false);
     setLevelResult(null);
     pickRandomCustomer();
-  }, [pickRandomCustomer]);
+  }, [pickRandomCustomer, selectedStore]);
 
   const startNextLevel = useCallback(() => {
     if (!gameState) return;
     
     const newLevel = gameState.level + 1;
-    const order = generateOrder(newLevel);
+    // Get menu items from selected store
+    const storeMenuItems = selectedStore?.menu_items as unknown as MenuItem[] | undefined;
+    const order = generateOrder(newLevel, storeMenuItems);
     const subtotal = order.reduce((sum, item) => sum + item.price, 0);
     const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
     const total = Math.round((subtotal + tax) * 100) / 100;
@@ -234,7 +240,7 @@ export default function MoneyCounting() {
     setShowComplete(false);
     setLevelResult(null);
     pickRandomCustomer();
-  }, [gameState, pickRandomCustomer]);
+  }, [gameState, pickRandomCustomer, selectedStore]);
 
   const goToNextStep = useCallback(() => {
     if (!gameState) return;
@@ -445,21 +451,11 @@ export default function MoneyCounting() {
   return (
     <>
       <UnifiedHeader />
-      <main 
-        className="min-h-screen pt-24 pb-8 px-4 relative"
-        style={{
-          backgroundImage: `url(${getStoreBackground()})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed',
-        }}
-      >
-        {/* Dark overlay for readability */}
-        <div className="absolute inset-0 bg-black/40" />
-        
-        <div className="container mx-auto max-w-6xl relative z-10">
-          {/* Game Header */}
-          <div className="flex items-center justify-between mb-6 bg-background/90 backdrop-blur-sm rounded-lg p-4 shadow-lg flex-wrap gap-4">
+      
+      {/* Game Settings Bar - Above the store background */}
+      <div className="pt-24 pb-4 px-4 bg-background">
+        <div className="container mx-auto max-w-6xl">
+          <div className="flex items-center justify-between bg-card rounded-lg p-4 shadow-lg flex-wrap gap-4 border">
             <div>
               <h1 className="text-2xl font-bold">💵 Cash Register</h1>
               <p className="text-muted-foreground text-sm">Make correct change for customers!</p>
@@ -501,7 +497,23 @@ export default function MoneyCounting() {
               </Button>
             </div>
           </div>
+        </div>
+      </div>
 
+      {/* Main Game Area with Store Background */}
+      <main 
+        className="min-h-[calc(100vh-200px)] pb-8 px-4 relative"
+        style={{
+          backgroundImage: `url(${getStoreBackground()})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-black/40" />
+        
+        <div className="container mx-auto max-w-6xl relative z-10 pt-6">
         {showComplete && levelResult ? (
           <LevelComplete
             result={levelResult}
@@ -527,6 +539,7 @@ export default function MoneyCounting() {
                     subtotal={gameState.subtotal}
                     tax={gameState.tax}
                     total={gameState.total}
+                    storeName={selectedStore?.name}
                   />
                   <Button onClick={goToNextStep} size="lg" className="w-full">
                     Next: See Customer Payment →
