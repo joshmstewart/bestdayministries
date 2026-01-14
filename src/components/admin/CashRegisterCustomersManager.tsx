@@ -217,10 +217,16 @@ export const CashRegisterCustomersManager = () => {
     setRegeneratingId(customer.id);
 
     try {
+      // Build description including disability if present
+      let fullDescription = customer.description || "";
+      if (customer.disability && customer.disability !== "None") {
+        fullDescription = `${customer.character_type} with ${customer.disability}${fullDescription ? `. ${fullDescription}` : ""}`;
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-customer-image", {
         body: {
           characterType: customer.character_type,
-          description: customer.description || "",
+          description: fullDescription,
           customerId: customer.id,
         },
       });
