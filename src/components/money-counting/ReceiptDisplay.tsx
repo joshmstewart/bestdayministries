@@ -8,9 +8,43 @@ interface ReceiptDisplayProps {
   subtotal: number;
   tax: number;
   total: number;
+  storeName?: string;
 }
 
-export function ReceiptDisplay({ items, subtotal, tax, total }: ReceiptDisplayProps) {
+// Store-specific details
+const STORE_DETAILS: Record<string, { name: string; address: string; tagline: string }> = {
+  "Coffee Shop": {
+    name: "JOY CAFÉ",
+    address: "123 Main Street",
+    tagline: "Thank you for your order!",
+  },
+  "Grocery Store": {
+    name: "FRESH MARKET",
+    address: "456 Oak Avenue",
+    tagline: "Fresh foods, great prices!",
+  },
+  "Clothing Store": {
+    name: "STYLE BOUTIQUE",
+    address: "789 Fashion Blvd",
+    tagline: "Look good, feel great!",
+  },
+  "Convenience Store": {
+    name: "QUICK STOP",
+    address: "321 Corner Street",
+    tagline: "Fast & friendly service!",
+  },
+  "Bakery": {
+    name: "SWEET DELIGHTS BAKERY",
+    address: "555 Baker Lane",
+    tagline: "Fresh baked daily!",
+  },
+};
+
+export function ReceiptDisplay({ items, subtotal, tax, total, storeName }: ReceiptDisplayProps) {
+  const storeDetails = storeName && STORE_DETAILS[storeName] 
+    ? STORE_DETAILS[storeName] 
+    : STORE_DETAILS["Coffee Shop"];
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -23,9 +57,9 @@ export function ReceiptDisplay({ items, subtotal, tax, total }: ReceiptDisplayPr
         <div className="bg-white dark:bg-gray-900 rounded-lg p-4 font-mono text-sm border-2 border-dashed border-muted">
           {/* Store header */}
           <div className="text-center mb-4">
-            <p className="font-bold text-lg">JOY CAFÉ</p>
-            <p className="text-xs text-muted-foreground">123 Main Street</p>
-            <p className="text-xs text-muted-foreground">Thank you for your order!</p>
+            <p className="font-bold text-lg">{storeDetails.name}</p>
+            <p className="text-xs text-muted-foreground">{storeDetails.address}</p>
+            <p className="text-xs text-muted-foreground">{storeDetails.tagline}</p>
           </div>
 
           <Separator className="my-2 border-dashed" />

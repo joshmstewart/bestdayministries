@@ -13,60 +13,46 @@ export const DENOMINATIONS = [
   { value: 0.01, label: "1¢", type: "coin" },
 ];
 
-const MENU_ITEMS = [
-  // Drinks
-  { name: "Coffee", priceRange: [2.50, 4.99] },
-  { name: "Latte", priceRange: [4.50, 6.99] },
-  { name: "Hot Chocolate", priceRange: [3.50, 5.49] },
-  { name: "Tea", priceRange: [2.25, 3.99] },
-  { name: "Smoothie", priceRange: [5.50, 7.99] },
-  { name: "Juice", priceRange: [3.25, 5.49] },
-  { name: "Soda", priceRange: [1.99, 2.99] },
-  { name: "Water", priceRange: [1.50, 2.50] },
-  
-  // Food
-  { name: "Sandwich", priceRange: [6.99, 12.99] },
-  { name: "Salad", priceRange: [8.99, 14.99] },
-  { name: "Soup", priceRange: [4.99, 7.99] },
-  { name: "Muffin", priceRange: [2.99, 4.49] },
-  { name: "Cookie", priceRange: [1.99, 3.49] },
-  { name: "Croissant", priceRange: [3.49, 5.49] },
-  { name: "Bagel", priceRange: [2.99, 4.99] },
-  { name: "Donut", priceRange: [1.50, 2.99] },
-  { name: "Cake Slice", priceRange: [4.99, 7.99] },
-  { name: "Pizza Slice", priceRange: [3.99, 5.99] },
-  { name: "Burger", priceRange: [8.99, 14.99] },
-  { name: "Fries", priceRange: [2.99, 4.99] },
-  { name: "Nachos", priceRange: [7.99, 11.99] },
-  { name: "Wrap", priceRange: [7.49, 10.99] },
-  { name: "Quesadilla", priceRange: [6.99, 9.99] },
-  { name: "Ice Cream", priceRange: [3.99, 6.99] },
+// Default menu items fallback
+const DEFAULT_MENU_ITEMS = [
+  { name: "Coffee", priceRange: [2.50, 4.99] as [number, number] },
+  { name: "Latte", priceRange: [4.50, 6.99] as [number, number] },
+  { name: "Sandwich", priceRange: [6.99, 12.99] as [number, number] },
+  { name: "Muffin", priceRange: [2.99, 4.49] as [number, number] },
+  { name: "Cookie", priceRange: [1.99, 3.49] as [number, number] },
 ];
 
-export function generateOrder(level: number): OrderItem[] {
+export interface MenuItem {
+  name: string;
+  priceRange: [number, number];
+}
+
+export function generateOrder(level: number, menuItems?: MenuItem[]): OrderItem[] {
+  const menu = menuItems && menuItems.length > 0 ? menuItems : DEFAULT_MENU_ITEMS;
+  
   // More items at higher levels
   const itemCount = Math.min(1 + Math.floor(level / 2), 5);
-  const items: OrderItem[] = [];
+  const orderItems: OrderItem[] = [];
   const usedIndices = new Set<number>();
 
   for (let i = 0; i < itemCount; i++) {
     let idx: number;
     do {
-      idx = Math.floor(Math.random() * MENU_ITEMS.length);
-    } while (usedIndices.has(idx) && usedIndices.size < MENU_ITEMS.length);
+      idx = Math.floor(Math.random() * menu.length);
+    } while (usedIndices.has(idx) && usedIndices.size < menu.length);
     
     usedIndices.add(idx);
-    const menuItem = MENU_ITEMS[idx];
+    const menuItem = menu[idx];
     const [min, max] = menuItem.priceRange;
     const price = Math.round((min + Math.random() * (max - min)) * 100) / 100;
     
-    items.push({
+    orderItems.push({
       name: menuItem.name,
       price,
     });
   }
 
-  return items;
+  return orderItems;
 }
 
 export function calculateOptimalChange(amount: number): { [key: string]: number } {
