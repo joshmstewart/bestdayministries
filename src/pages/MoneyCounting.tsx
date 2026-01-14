@@ -534,9 +534,9 @@ export default function MoneyCounting() {
     <div className="min-h-screen bg-background flex flex-col">
       <UnifiedHeader />
       
-      <main className="pt-24 pb-8 px-4 flex-1">
+      <main className="pt-20 pb-8 px-4 flex-1">
         <div className="container mx-auto max-w-6xl">
-          <div className="mb-6">
+          <div className="mb-4">
             <h1 className="text-2xl font-bold">💵 Cash Register</h1>
             <p className="text-muted-foreground text-sm">Make correct change for customers!</p>
           </div>
