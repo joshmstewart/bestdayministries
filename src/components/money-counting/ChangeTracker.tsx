@@ -11,6 +11,7 @@ interface ChangeTrackerProps {
   changeGiven: { [key: string]: number };
   cashCollected: boolean;
   onReturnMoney: (denomination: string) => void;
+  customCurrencyImages?: { [key: string]: string };
 }
 
 export function ChangeTracker({
@@ -18,6 +19,7 @@ export function ChangeTracker({
   changeGiven,
   cashCollected,
   onReturnMoney,
+  customCurrencyImages,
 }: ChangeTrackerProps) {
   const totalGiven = Object.entries(changeGiven).reduce(
     (sum, [denom, count]) => sum + parseFloat(denom) * count,
@@ -70,7 +72,7 @@ export function ChangeTracker({
               {sortedChange.map(([denom, count]) => {
                 const numValue = parseFloat(denom);
                 const isBill = numValue >= 1;
-                const image = getCurrencyImage(denom);
+                const image = getCurrencyImage(denom, customCurrencyImages);
                 
                 return Array.from({ length: count }).map((_, i) => (
                   <Button

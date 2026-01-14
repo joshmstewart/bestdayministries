@@ -80,6 +80,7 @@ import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
 import { RecipeIngredientsManager } from "@/components/admin/RecipeIngredientsManager";
 import { RecipeToolsManager } from "@/components/admin/RecipeToolsManager";
 import { CashRegisterStoresManager } from "@/components/admin/CashRegisterStoresManager";
+import { CurrencyImagesManager } from "@/components/admin/CurrencyImagesManager";
 import { CashRegisterCustomersManager } from "@/components/admin/CashRegisterCustomersManager";
 import { MemoryMatchPackManager } from "@/components/admin/MemoryMatchPackManager";
 import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
@@ -571,12 +572,16 @@ const Admin = () => {
                       <TabsList>
                         <TabsTrigger value="stores">Stores</TabsTrigger>
                         <TabsTrigger value="customers">Customers</TabsTrigger>
+                        <TabsTrigger value="currency">Currency</TabsTrigger>
                       </TabsList>
                       <TabsContent value="stores">
                         <CashRegisterStoresManager />
                       </TabsContent>
                       <TabsContent value="customers">
                         <CashRegisterCustomersManager />
+                      </TabsContent>
+                      <TabsContent value="currency">
+                        <CurrencyImagesManager />
                       </TabsContent>
                     </Tabs>
                   </TabsContent>

@@ -12,6 +12,7 @@ import { ChangeTracker } from "@/components/money-counting/ChangeTracker";
 import { ReceiptDisplay } from "@/components/money-counting/ReceiptDisplay";
 import { LevelComplete } from "@/components/money-counting/LevelComplete";
 import { generateOrder, calculateOptimalChange, MenuItem } from "@/lib/moneyCountingUtils";
+import { loadCustomCurrencyImages } from "@/lib/currencyImages";
 import { supabase } from "@/integrations/supabase/client";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Json } from "@/integrations/supabase/types";
@@ -91,6 +92,7 @@ export default function MoneyCounting() {
   const [currentCustomer, setCurrentCustomer] = useState<CustomerType | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [customCurrencyImages, setCustomCurrencyImages] = useState<{ [key: string]: string }>({});
 
   const [levelResult, setLevelResult] = useState<{
     success: boolean;
@@ -103,7 +105,7 @@ export default function MoneyCounting() {
   useEffect(() => {
     const loadData = async () => {
       console.log("Loading cash register data...");
-      const [storesRes, customersRes] = await Promise.all([
+      const [storesRes, customersRes, currencyImages] = await Promise.all([
         supabase
           .from("cash_register_stores")
           .select("id, name, description, image_url, is_default, menu_items")
@@ -113,7 +115,10 @@ export default function MoneyCounting() {
           .from("cash_register_customers")
           .select("id, name, description, image_url")
           .eq("is_active", true),
+        loadCustomCurrencyImages(),
       ]);
+
+      setCustomCurrencyImages(currencyImages);
 
       if (storesRes.error) {
         console.error("Error loading stores:", storesRes.error);
@@ -611,10 +616,12 @@ export default function MoneyCounting() {
                     changeGiven={gameState.changeGiven}
                     cashCollected={gameState.cashCollected}
                     onReturnMoney={returnMoney}
+                    customCurrencyImages={customCurrencyImages}
                   />
                   <CashDrawer
                     onSelectMoney={giveMoney}
                     disabled={!gameState.cashCollected}
+                    customCurrencyImages={customCurrencyImages}
                   />
                 </div>
               )}

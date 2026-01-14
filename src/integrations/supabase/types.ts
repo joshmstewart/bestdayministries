@@ -2024,6 +2024,42 @@ export type Database = {
         }
         Relationships: []
       }
+      currency_images: {
+        Row: {
+          created_at: string
+          denomination: string
+          denomination_type: string
+          display_name: string
+          display_order: number
+          id: string
+          image_url: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          denomination: string
+          denomination_type: string
+          display_name: string
+          display_order?: number
+          id?: string
+          image_url: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          denomination?: string
+          denomination_type?: string
+          display_name?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       custom_drink_likes: {
         Row: {
           created_at: string
