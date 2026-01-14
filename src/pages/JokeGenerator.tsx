@@ -4,7 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2 } from 'lucide-react';
+import { Sparkles, Eye, Check, X, RefreshCw, Candy, Trophy, ArrowLeft, Save, Share2, Users, BookOpen, Loader2, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -18,10 +29,12 @@ import { TextToSpeech } from '@/components/TextToSpeech';
 interface Joke {
   question: string;
   answer: string;
+  id?: string; // Library joke ID for deletion
 }
 
 const JokeGenerator: React.FC = () => {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading, role } = useAuth();
+  const isAdminOrOwner = role === 'admin' || role === 'owner';
   const [joke, setJoke] = useState<Joke | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -34,6 +47,7 @@ const JokeGenerator: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isShared, setIsShared] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Initialize with all free categories on mount
   useEffect(() => {
@@ -135,6 +149,34 @@ const JokeGenerator: React.FC = () => {
     setShowAnswer(true);
     if (!hasGuessed) {
       setScore(prev => ({ ...prev, total: prev.total + 1 }));
+    }
+  };
+
+  const deleteJokeFromLibrary = async () => {
+    if (!joke?.id) {
+      toast.error('Cannot delete this joke');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('joke_library')
+        .delete()
+        .eq('id', joke.id);
+
+      if (error) throw error;
+
+      toast.success('Joke deleted from library');
+      setJoke(null);
+      setShowAnswer(false);
+      setGuess('');
+      setHasGuessed(false);
+    } catch (error) {
+      console.error('Error deleting joke:', error);
+      toast.error('Failed to delete joke');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -361,7 +403,7 @@ const JokeGenerator: React.FC = () => {
                           </div>
                         )}
 
-                        <div className="flex justify-center">
+                        <div className="flex justify-center gap-2">
                           <Button
                             onClick={generateJoke}
                             variant="outline"
@@ -370,6 +412,43 @@ const JokeGenerator: React.FC = () => {
                             <RefreshCw className="w-4 h-4" />
                             Another One!
                           </Button>
+
+                          {/* Admin Delete Button */}
+                          {isAdminOrOwner && joke?.id && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  disabled={isDeleting}
+                                >
+                                  {isDeleting ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete this joke?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently remove this joke from the library. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={deleteJokeFromLibrary}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </div>
                     )}
