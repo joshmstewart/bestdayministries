@@ -16,6 +16,8 @@ interface BeatCoverImageProps {
   instruments: (SoundConfig | null)[];
   onImageGenerated?: (url: string) => void;
   className?: string;
+  /** If true, warn user that regenerating will update the loaded beat's image */
+  isLoadedBeat?: boolean;
 }
 
 export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
@@ -27,6 +29,7 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
   instruments,
   onImageGenerated,
   className,
+  isLoadedBeat = false,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
@@ -47,6 +50,14 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
     if (!hasPattern) {
       showErrorToastWithCopy('Generate Cover Art', 'Add some notes to your beat first!');
       return;
+    }
+
+    // Warn if this will update a loaded beat's image
+    if (isLoadedBeat) {
+      const confirmed = window.confirm(
+        'This will update the cover art for the loaded beat. If you want to create new cover art for your remix, click "Remix" first to save as a new beat. Continue anyway?'
+      );
+      if (!confirmed) return;
     }
 
     setIsGenerating(true);
