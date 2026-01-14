@@ -50,7 +50,7 @@ export const CashRegisterCustomersManager = () => {
   const [editCharacterType, setEditCharacterType] = useState("");
   const [editDescription, setEditDescription] = useState("");
 
-  // Character types for randomization
+  // Character types for randomization - includes diverse abilities representation
   const characterTypes = [
     "grandma", "grandpa", "soccer player", "astronaut", "chef", "doctor", 
     "nurse", "teacher", "firefighter", "police officer", "construction worker", 
@@ -62,7 +62,13 @@ export const CashRegisterCustomersManager = () => {
     "lifeguard", "DJ", "photographer", "veterinarian", "clown", "mime", 
     "explorer", "archaeologist", "weather reporter", "game show host",
     "disco dancer", "punk rocker", "hippie", "goth", "cheerleader", "wrestler",
-    "ballerina", "opera singer", "mime artist", "circus performer", "fortune teller"
+    "ballerina", "opera singer", "mime artist", "circus performer", "fortune teller",
+    // Characters with disabilities - inclusive representation
+    "wheelchair user", "person with Down syndrome", "blind person with guide dog",
+    "deaf person", "person with autism", "Paralympic athlete", "person with cerebral palsy",
+    "little person", "person with prosthetic leg", "person with hearing aids",
+    "person using a walker", "person with service dog", "person with arm prosthetic",
+    "wheelchair basketball player", "Special Olympics athlete", "sign language user"
   ];
 
   // Capitalize first letter of each word
