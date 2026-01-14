@@ -11,12 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const { question, answer } = await req.json();
+    const body = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
+
+    // Support both single joke and bulk jokes
+    const jokes = body.jokes || [{ id: body.id, question: body.question, answer: body.answer }];
+    
+    // Format jokes for review
+    const jokesText = jokes.map((j: any, i: number) => 
+      `${i + 1}. Q: ${j.question}\n   A: ${j.answer}`
+    ).join('\n\n');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -29,25 +37,35 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a joke quality reviewer. Analyze if a Q&A joke actually makes sense as a joke/pun.
+            content: `You are a joke quality reviewer for jokes intended for adults with intellectual disabilities. 
+
+Analyze each joke and determine if it's GOOD or BAD.
 
 A GOOD joke has:
-- A punchline that is a real pun, wordplay, or logical twist related to the question
+- Simple, everyday words that are easy to understand
+- A punchline that is a real pun, wordplay, or logical twist
 - The answer connects meaningfully to the question's setup
+- Concrete, visual concepts (animals, food, everyday objects)
 
 A BAD joke has:
 - A punchline that doesn't connect to the question
 - Made-up words or nonsensical wordplay (e.g., "loan of bread" instead of "loaf of bread")
+- Complex wordplay requiring spelling knowledge
+- Abstract concepts or technical terms
 - No actual pun or humor logic
+- Too similar to common/overused jokes
 
-Respond ONLY with valid JSON:
-{"quality": "good" | "bad", "reason": "Brief explanation of why"}
+You will receive numbered jokes. Respond ONLY with a valid JSON array in this exact format:
+[
+  {"index": 1, "quality": "good", "reason": "Brief explanation"},
+  {"index": 2, "quality": "bad", "reason": "Brief explanation"}
+]
 
-Be strict - if the pun doesn't work, mark it bad.`
+Be strict - if the pun doesn't work or is too complex, mark it bad.`
           },
           {
             role: 'user',
-            content: `Question: ${question}\nAnswer: ${answer}`
+            content: `Review these ${jokes.length} jokes:\n\n${jokesText}`
           }
         ],
       }),
@@ -71,15 +89,22 @@ Be strict - if the pun doesn't work, mark it bad.`
     if (jsonContent.startsWith('```')) {
       jsonContent = jsonContent.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
     }
-    const review = JSON.parse(jsonContent.trim());
+    const reviews = JSON.parse(jsonContent.trim());
 
-    return new Response(JSON.stringify(review), {
+    // Map reviews back to joke IDs
+    const results = reviews.map((review: any) => ({
+      id: jokes[review.index - 1]?.id,
+      quality: review.quality,
+      reason: review.reason
+    }));
+
+    return new Response(JSON.stringify({ reviews: results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error reviewing joke:', error);
+    console.error('Error reviewing jokes:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to review joke' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to review jokes' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
