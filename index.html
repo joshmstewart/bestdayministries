@@ -4,10 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Reduce the chance of Safari serving a stale HTML shell after deploys -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <!-- CRITICAL: Prevent ALL browser caching to ensure fresh content on every load -->
+    <!-- This is especially important for the coffee shop page where users were seeing old hours -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/mobile-app-icon.png" />

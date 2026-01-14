@@ -24,6 +24,9 @@ const JOY_HOUSE_STORE_DOMAINS = [
 /**
  * Hook to detect which domain the user is on and route accordingly
  * Also handles iframe breakout and legacy domain detection
+ * 
+ * CRITICAL: Coffee shop domains should redirect to bestdayministries.org/coffee-shop
+ * to ensure users always see the latest content from our unified site.
  */
 export const useDomainRouting = () => {
   const [isCoffeeShopDomain, setIsCoffeeShopDomain] = useState(false);
@@ -33,10 +36,11 @@ export const useDomainRouting = () => {
   useEffect(() => {
     const hostname = window.location.hostname;
     
-    // First, check if we're on a known valid domain (coffee shop, joy house, etc.)
-    // These should NOT trigger iframe breakout or legacy redirects
+    // Coffee shop domains should redirect to the main site's coffee shop page
+    // This ensures users always see the latest content and prevents stale caching issues
     if (COFFEE_SHOP_DOMAINS.includes(hostname)) {
-      setIsCoffeeShopDomain(true);
+      // Redirect to the unified site's coffee shop page
+      window.location.href = `https://${PRIMARY_DOMAIN}/coffee-shop`;
       return;
     }
     
