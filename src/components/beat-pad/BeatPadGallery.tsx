@@ -194,7 +194,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                 {creation.image_url ? (
                   <div className="aspect-square w-full overflow-hidden">
                     <img 
-                      src={creation.image_url} 
+                      src={`${creation.image_url}?t=${Date.now()}`} 
                       alt={creation.name}
                       className="w-full h-full object-cover"
                     />
