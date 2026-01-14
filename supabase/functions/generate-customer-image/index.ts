@@ -59,29 +59,39 @@ serve(async (req) => {
       throw new Error("Character type is required");
     }
 
-    // Randomly select gender and age range for variety
+    // Randomly select gender and ethnicity for balanced representation
     const genders = ['male', 'female'];
-    const ageRanges = ['young adult', 'middle-aged', 'older adult'];
+    const ethnicities = ['White/Caucasian', 'Black/African American', 'Hispanic/Latino', 'Asian', 'South Asian', 'Middle Eastern'];
     const randomGender = genders[Math.floor(Math.random() * genders.length)];
-    const randomAge = ageRanges[Math.floor(Math.random() * ageRanges.length)];
+    const randomEthnicity = ethnicities[Math.floor(Math.random() * ethnicities.length)];
 
-    // Build a simple, safe prompt for customer generation
-    // Avoid mentioning disabilities or sensitive attributes that may trigger content filters
-    const safeCharacterType = characterType.replace(/with\s+(down\s+syndrome|disability|disabilities|special\s+needs)/gi, '').trim();
-    
-    const prompt = `Create a friendly cartoon-style illustration of a ${randomGender} ${randomAge} ${safeCharacterType || 'customer'} character on a pure white background.
+    // Build a detailed prompt for diverse customer generation with pure white background
+    // Keep all character types including those with disabilities - this is essential for representation
+    const prompt = `Create a hyper-realistic photograph of a ${randomGender} ${randomEthnicity} person standing against a PURE SOLID WHITE background.
 
-Style requirements:
-- Clean, simple cartoon illustration style (like a mascot or avatar)
-- Friendly, approachable expression with a warm smile
-- Upper body portrait from chest up
-- Pure solid white background (#FFFFFF)
-- No shadows, gradients, or background elements
-- Bright, cheerful colors
-- Simple, clean lines
-- Professional quality illustration suitable for a game
+Character type: ${characterType}
+${description ? `Additional details: ${description}` : ''}
 
-The character should look like a friendly customer at a store, ready to make a purchase.`;
+CRITICAL BACKGROUND REQUIREMENTS (MOST IMPORTANT):
+- Background MUST be 100% pure solid white (#FFFFFF) - NO exceptions
+- NO shadows on the background whatsoever
+- NO gradients or variations in the background
+- NO floor shadows, NO ambient occlusion, NO soft shadows
+- The background should look like a perfectly white seamless backdrop
+- Think: passport photo or product catalog on pure white
+
+SUBJECT REQUIREMENTS:
+- The person MUST be ${randomGender} and ${randomEthnicity} - this is essential for diversity
+- Upper body view from waist up, FACING DIRECTLY TOWARD THE CAMERA (frontal view)
+- Looking straight at the camera with natural, friendly expression and a warm smile
+- Soft, even studio lighting that does NOT cast shadows on the white background
+- The person should look like a real customer ready to make a purchase
+- Authentic, approachable appearance
+- No text or logos in the image
+- Sharp focus on the subject
+- Professional product photography style
+
+Style: Professional studio photograph on PURE WHITE seamless backdrop, like a stock photo with completely blank white background for easy compositing.`;
 
     console.log("Generating customer image with prompt:", prompt);
 
