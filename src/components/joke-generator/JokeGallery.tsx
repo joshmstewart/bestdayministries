@@ -98,16 +98,23 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
     setJokeToDelete(null);
   };
 
+  const { data: categoryEmojis = {} } = useQuery({
+    queryKey: ["joke-category-emojis"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("joke_categories")
+        .select("name, emoji");
+      
+      const emojiMap: Record<string, string> = {};
+      data?.forEach((cat) => {
+        emojiMap[cat.name] = cat.emoji || "🎲";
+      });
+      return emojiMap;
+    },
+  });
+
   const getCategoryEmoji = (category: string) => {
-    const map: Record<string, string> = {
-      random: '🎲',
-      food: '🍕',
-      animals: '🐶',
-      school: '📚',
-      sports: '⚽',
-      music: '🎵',
-    };
-    return map[category] || '🎲';
+    return categoryEmojis[category] || "🎲";
   };
 
   if (isLoading) {

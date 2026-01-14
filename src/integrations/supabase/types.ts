@@ -3891,6 +3891,7 @@ export type Database = {
           created_at: string
           description: string | null
           display_order: number
+          emoji: string | null
           icon_url: string | null
           id: string
           is_active: boolean
@@ -3903,6 +3904,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number
+          emoji?: string | null
           icon_url?: string | null
           id?: string
           is_active?: boolean
@@ -3915,6 +3917,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number
+          emoji?: string | null
           icon_url?: string | null
           id?: string
           is_active?: boolean
