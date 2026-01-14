@@ -603,6 +603,7 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                   tempo={tempo}
                   instruments={instruments}
                   onImageGenerated={(url) => setSavedBeatImageUrl(url)}
+                  isLoadedBeat={beatLoaded && !!savedBeatId}
                 />
                 
                 <PlaybackControls
