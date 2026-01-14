@@ -569,6 +569,7 @@ export type Database = {
       }
       beat_pad_creations: {
         Row: {
+          ai_audio_url: string | null
           created_at: string
           creator_id: string
           id: string
@@ -581,6 +582,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_audio_url?: string | null
           created_at?: string
           creator_id: string
           id?: string
@@ -593,6 +595,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_audio_url?: string | null
           created_at?: string
           creator_id?: string
           id?: string

@@ -16,6 +16,7 @@ interface BeatCreation {
   is_public: boolean;
   created_at: string;
   image_url?: string | null;
+  ai_audio_url?: string | null;
 }
 
 interface Beat {
@@ -25,6 +26,7 @@ interface Beat {
   tempo: number;
   image_url?: string | null;
   is_public?: boolean;
+  ai_audio_url?: string | null;
 }
 
 interface MyBeatsProps {

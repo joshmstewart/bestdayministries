@@ -184,6 +184,7 @@ const BeatPad: React.FC = () => {
             name: beatName.trim() || 'My Beat',
             pattern: patternWithIds,
             tempo,
+            ai_audio_url: aiAudioUrl,
           })
           .eq('id', savedBeatId);
         
@@ -198,6 +199,7 @@ const BeatPad: React.FC = () => {
             pattern: patternWithIds,
             tempo,
             is_public: false,
+            ai_audio_url: aiAudioUrl,
           })
           .select('id')
           .single();
@@ -330,7 +332,7 @@ const BeatPad: React.FC = () => {
     }
   };
 
-  const handleLoadBeat = async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null; is_public?: boolean }) => {
+  const handleLoadBeat = async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null; is_public?: boolean; ai_audio_url?: string | null }) => {
     handleStop();
 
     const allKeys = Object.keys(beat.pattern || {});
@@ -340,7 +342,7 @@ const BeatPad: React.FC = () => {
     const soundIdKeys = allKeys.filter((k) => uuidRegex.test(k));
     const soundTypeKeys = allKeys.filter((k) => !uuidRegex.test(k) && !numericRegex.test(k));
 
-    const loadIntoGrid = (orderedKeys: string[], soundLookup: Map<string, SoundConfig>, getSteps: (key: string) => boolean[] | undefined) => {
+    const loadIntoGrid = async (orderedKeys: string[], soundLookup: Map<string, SoundConfig>, getSteps: (key: string) => boolean[] | undefined) => {
       const loadedInstruments: (SoundConfig | null)[] = [];
       const newPattern: Record<string, boolean[]> = {};
 
@@ -377,6 +379,13 @@ const BeatPad: React.FC = () => {
       setBeatLoaded(true);
       setInstruments(loadedInstruments);
       setPattern(newPattern);
+      
+      // Preload sounds immediately after loading
+      const soundsToPreload = loadedInstruments.filter(Boolean) as SoundConfig[];
+      if (soundsToPreload.length > 0) {
+        await preloadSounds(soundsToPreload);
+      }
+      
       return true;
     };
 
@@ -393,7 +402,7 @@ const BeatPad: React.FC = () => {
         if (error) throw error;
 
         const soundMap = new Map((sounds || []).map((s) => [s.id, s as SoundConfig]));
-        loaded = loadIntoGrid(soundIdKeys, soundMap, (k) => beat.pattern[k]);
+        loaded = await loadIntoGrid(soundIdKeys, soundMap, (k) => beat.pattern[k]);
       } else if (soundTypeKeys.length > 0) {
         // Legacy format: pattern keys are sound_type strings (e.g., "kick", "snare", "bass")
         const { data: sounds, error } = await supabase
@@ -405,7 +414,7 @@ const BeatPad: React.FC = () => {
         if (error) throw error;
 
         const soundMap = new Map((sounds || []).map((s) => [s.sound_type, s as SoundConfig]));
-        loaded = loadIntoGrid(soundTypeKeys, soundMap, (k) => (beat.pattern as any)[k]);
+        loaded = await loadIntoGrid(soundTypeKeys, soundMap, (k) => (beat.pattern as any)[k]);
       } else {
         showErrorToastWithCopy(
           'Load Beat',
@@ -434,10 +443,11 @@ const BeatPad: React.FC = () => {
     setSavedBeatImageUrl(beat.image_url ? `${beat.image_url}?t=${Date.now()}` : null);
     setActiveTab('create');
 
+    // Handle AI audio URL - revoke old one and set new if present
     if (aiAudioUrl) {
       URL.revokeObjectURL(aiAudioUrl);
-      setAiAudioUrl(null);
     }
+    setAiAudioUrl(beat.ai_audio_url || null);
 
     toast.success('Beat loaded! Press play to listen.');
   };
@@ -601,6 +611,11 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
       return;
     }
 
+    if (!user) {
+      showErrorToastWithCopy('AI Music', 'Sign in to create AI tracks!');
+      return;
+    }
+
     handleStop();
     setIsAIifying(true);
 
@@ -638,12 +653,34 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
 
       const audioBlob = await response.blob();
       
-      if (aiAudioUrl) {
-        URL.revokeObjectURL(aiAudioUrl);
-      }
+      // Upload to storage so it persists
+      const fileName = `${user.id}/${Date.now()}-ai-track.mp3`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('beat-pad-audio')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/mpeg',
+          upsert: false,
+        });
 
-      const newAudioUrl = URL.createObjectURL(audioBlob);
-      setAiAudioUrl(newAudioUrl);
+      if (uploadError) {
+        console.error('Failed to upload AI audio:', uploadError);
+        // Fall back to blob URL if upload fails
+        if (aiAudioUrl) {
+          URL.revokeObjectURL(aiAudioUrl);
+        }
+        const newAudioUrl = URL.createObjectURL(audioBlob);
+        setAiAudioUrl(newAudioUrl);
+      } else {
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('beat-pad-audio')
+          .getPublicUrl(fileName);
+        
+        if (aiAudioUrl && aiAudioUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(aiAudioUrl);
+        }
+        setAiAudioUrl(publicUrl);
+      }
 
       toast.success('AI track created! Auto-saving... 🎵');
       

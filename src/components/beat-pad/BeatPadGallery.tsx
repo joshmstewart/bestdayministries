@@ -39,6 +39,7 @@ interface Beat {
   tempo: number;
   image_url?: string | null;
   is_public?: boolean;
+  ai_audio_url?: string | null;
 }
 
 interface BeatPadGalleryProps {
