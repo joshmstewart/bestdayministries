@@ -127,65 +127,63 @@ export const StreakDisplay = ({ userId, className, onShowVideos }: StreakDisplay
   });
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
-      <CardContent className="p-0">
-        <div className="bg-gradient-to-br from-orange-500 to-red-500 p-4 text-white">
-          <div className="flex items-center justify-between">
+    <Card className={cn("overflow-hidden h-full flex flex-col", className)}>
+      <CardContent className="p-0 flex-1 flex flex-col">
+        <div className="bg-gradient-to-br from-orange-500 to-red-500 p-4 text-white flex-1">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Flame className={cn(
-                  "h-12 w-12 transition-all",
+                  "h-10 w-10 transition-all",
                   weekStreak > 0 ? "animate-pulse" : "opacity-50"
                 )} />
                 {weekStreak >= 4 && (
-                  <Trophy className="h-5 w-5 absolute -top-1 -right-1 text-yellow-300" />
+                  <Trophy className="h-4 w-4 absolute -top-1 -right-1 text-yellow-300" />
                 )}
               </div>
               <div>
-                <div className="text-4xl font-bold">{weekStreak}</div>
+                <div className="text-3xl font-bold">{weekStreak}</div>
                 <div className="text-sm opacity-90">week streak</div>
               </div>
             </div>
             
-            <div className="text-right">
-              {onShowVideos && (
-                <Button 
-                  size="sm" 
-                  variant="secondary"
-                  className="bg-white/20 hover:bg-white/30 text-white border-0"
-                  onClick={onShowVideos}
-                >
-                  <Play className="h-4 w-4 mr-1" />
-                  Videos
-                </Button>
-              )}
-            </div>
+            {onShowVideos && (
+              <Button 
+                size="sm" 
+                variant="secondary"
+                className="bg-white/20 hover:bg-white/30 text-white border-0"
+                onClick={onShowVideos}
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Videos
+              </Button>
+            )}
           </div>
-        </div>
-        
-        {/* Mini week calendar */}
-        <div className="p-3 bg-muted/50 flex justify-between">
-          {weekDays.map((day, i) => (
-            <div 
-              key={i}
-              className={cn(
-                "flex flex-col items-center gap-1",
-                day.isToday && "font-bold"
-              )}
-            >
-              <span className="text-xs text-muted-foreground">{day.dayLabel}</span>
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm",
-                day.hasActivity 
-                  ? "bg-primary text-primary-foreground" 
-                  : day.isToday 
-                    ? "border-2 border-dashed border-primary" 
-                    : "bg-muted"
-              )}>
-                {day.hasActivity ? "🔥" : format(day.date, "d")}
+          
+          {/* Mini week calendar inline */}
+          <div className="flex justify-between">
+            {weekDays.map((day, i) => (
+              <div 
+                key={i}
+                className={cn(
+                  "flex flex-col items-center gap-1",
+                  day.isToday && "font-bold"
+                )}
+              >
+                <span className="text-xs text-white/70">{day.dayLabel}</span>
+                <div className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center text-xs",
+                  day.hasActivity 
+                    ? "bg-white text-orange-600" 
+                    : day.isToday 
+                      ? "border-2 border-dashed border-white/60" 
+                      : "bg-white/20"
+                )}>
+                  {day.hasActivity ? "✓" : format(day.date, "d")}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>

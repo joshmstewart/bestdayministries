@@ -8,14 +8,16 @@ import { WeeklyGoalCard } from "@/components/workout/WeeklyGoalCard";
 import { QuickLogGrid } from "@/components/workout/QuickLogGrid";
 import { FeaturedVideo } from "@/components/workout/FeaturedVideo";
 import { Dumbbell } from "lucide-react";
+import { useState } from "react";
 
 const WorkoutTracker = () => {
   const { user } = useAuth();
+  const [showVideos, setShowVideos] = useState(false);
 
   return (
     <>
       <SEOHead
-        title="Workout Tracker"
+        title="Fitness Center"
         description="Watch workout videos and log your activities to reach your weekly fitness goals!"
       />
       <UnifiedHeader />
@@ -25,7 +27,7 @@ const WorkoutTracker = () => {
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Dumbbell className="h-7 w-7 text-primary" />
-              <h1 className="text-2xl font-bold">Workout Tracker</h1>
+              <h1 className="text-2xl font-bold">Fitness Center</h1>
             </div>
             <p className="text-sm text-muted-foreground">
               Stay active and earn coins!
@@ -36,8 +38,8 @@ const WorkoutTracker = () => {
             <div className="space-y-4">
               {/* Streak & Goal Row */}
               <div className="grid gap-4 sm:grid-cols-2">
-                <StreakDisplay userId={user.id} />
-                <WeeklyGoalCard userId={user.id} />
+                <StreakDisplay userId={user.id} onShowVideos={() => setShowVideos(true)} />
+                <WeeklyGoalCard userId={user.id} className="h-full" />
               </div>
 
               {/* Quick Log Grid */}
