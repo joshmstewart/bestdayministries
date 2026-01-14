@@ -146,7 +146,7 @@ export const CashRegisterCustomersManager = () => {
     setRegeneratingId(customer.id);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-cash-register-image", {
+      const { data, error } = await supabase.functions.invoke("generate-customer-image", {
         body: {
           characterType: customer.character_type,
           description: customer.description || "",
