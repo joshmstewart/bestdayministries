@@ -43,7 +43,10 @@ export default function ImageLightbox({
               variant="ghost"
               size="icon"
               className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white"
-              onClick={onPrevious}
+              onClick={(e) => {
+                e.stopPropagation();
+                onPrevious();
+              }}
             >
               <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
             </Button>
@@ -69,7 +72,10 @@ export default function ImageLightbox({
               variant="ghost"
               size="icon"
               className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white"
-              onClick={onNext}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNext();
+              }}
             >
               <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
             </Button>
