@@ -81,8 +81,10 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
         response.data?.url;
 
       if (newImageUrl) {
-        setCurrentImageUrl(newImageUrl);
-        onImageGenerated?.(newImageUrl);
+        // Add cache-busting parameter to force browser to load new image
+        const cacheBustedUrl = `${newImageUrl}?t=${Date.now()}`;
+        setCurrentImageUrl(cacheBustedUrl);
+        onImageGenerated?.(newImageUrl); // Pass original URL for storage
         toast.success('Cover art generated! 🎨');
       } else {
         console.warn('generate-beat-image returned no image URL', response.data);
