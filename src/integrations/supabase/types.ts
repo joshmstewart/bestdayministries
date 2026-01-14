@@ -834,6 +834,7 @@ export type Database = {
           character_type: string
           created_at: string
           description: string | null
+          disability: string | null
           display_order: number | null
           id: string
           image_url: string | null
@@ -845,6 +846,7 @@ export type Database = {
           character_type: string
           created_at?: string
           description?: string | null
+          disability?: string | null
           display_order?: number | null
           id?: string
           image_url?: string | null
@@ -856,6 +858,7 @@ export type Database = {
           character_type?: string
           created_at?: string
           description?: string | null
+          disability?: string | null
           display_order?: number | null
           id?: string
           image_url?: string | null
