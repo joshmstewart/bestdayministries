@@ -52,7 +52,7 @@ const JokeGenerator: React.FC = () => {
   const [hasGuessed, setHasGuessed] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [score, setScore] = useState({ correct: 0, total: 0 });
+  const [correctGuesses, setCorrectGuesses] = useState(0);
   const [activeTab, setActiveTab] = useState('create');
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -160,21 +160,15 @@ const JokeGenerator: React.FC = () => {
     setIsCorrect(correct);
     setHasGuessed(true);
     setShowAnswer(true);
-    setScore(prev => ({
-      correct: prev.correct + (correct ? 1 : 0),
-      total: prev.total + 1
-    }));
-
+    
     if (correct) {
+      setCorrectGuesses(prev => prev + 1);
       toast.success('🎉 You got it!');
     }
   };
 
   const revealAnswer = () => {
     setShowAnswer(true);
-    if (!hasGuessed) {
-      setScore(prev => ({ ...prev, total: prev.total + 1 }));
-    }
   };
 
   const deleteJokeFromLibrary = async () => {
@@ -370,12 +364,11 @@ const JokeGenerator: React.FC = () => {
                         </>
                       )}
                     </Button>
-                    {/* Score - to the right of button */}
-                    {score.total > 0 && (
+                    {/* All-time correct guesses - to the right of button */}
+                    {correctGuesses > 0 && (
                       <div className="flex items-center gap-1.5 text-base whitespace-nowrap">
                         <Trophy className="w-4 h-4 text-yellow-500" />
-                        <span className="font-semibold">{score.correct}</span>
-                        <span className="text-muted-foreground">/ {score.total}</span>
+                        <span className="font-semibold">{correctGuesses}</span>
                       </div>
                     )}
                   </div>
