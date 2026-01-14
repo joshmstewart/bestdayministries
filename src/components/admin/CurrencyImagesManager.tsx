@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Upload, Loader2, DollarSign, Coins } from "lucide-react";
 import { CURRENCY_IMAGES } from "@/lib/currencyImages";
+import { getCoinSize, isCoinDenomination } from "@/lib/coinSizeRatios";
 
 interface CurrencyImage {
   id: string;
@@ -152,11 +153,11 @@ export function CurrencyImagesManager() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Coins className="h-5 w-5" />
-            Coins
+            Coins (shown at accurate relative sizes)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex items-end justify-center gap-6">
             {coins.map((currency) => (
               <CurrencyImageCard
                 key={currency.id}
@@ -192,6 +193,10 @@ function CurrencyImageCard({
   const displayImage = currency.image_url || defaultImage;
   const isCustom = !!currency.image_url;
   const isBill = currency.denomination_type === "bill";
+  const isCoin = currency.denomination_type === "coin";
+
+  // Calculate coin size based on real-world ratios
+  const coinSize = isCoin ? getCoinSize(currency.denomination, 56) : 0;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,15 +209,27 @@ function CurrencyImageCard({
     <div className="flex flex-col items-center p-3 border rounded-lg bg-card">
       <Label className="text-xs font-medium mb-2">{currency.display_name}</Label>
       
-      <div className={`relative mb-2 flex items-center justify-center ${isBill ? "h-16" : "h-14"}`}>
+      <div className={`relative mb-2 flex items-center justify-center ${isBill ? "h-16" : "h-16"}`}>
         {displayImage ? (
-          <img
-            src={displayImage}
-            alt={currency.display_name}
-            className={`object-contain ${isBill ? "max-h-16 max-w-24" : "max-h-14 max-w-14 rounded-full"}`}
-          />
+          isCoin ? (
+            <img
+              src={displayImage}
+              alt={currency.display_name}
+              className="object-contain rounded-full"
+              style={{ width: coinSize, height: coinSize }}
+            />
+          ) : (
+            <img
+              src={displayImage}
+              alt={currency.display_name}
+              className="object-contain max-h-16 max-w-24"
+            />
+          )
         ) : (
-          <div className={`bg-muted flex items-center justify-center text-muted-foreground ${isBill ? "w-24 h-12" : "w-12 h-12 rounded-full"}`}>
+          <div 
+            className={`bg-muted flex items-center justify-center text-muted-foreground ${isBill ? "w-24 h-12" : "rounded-full"}`}
+            style={isCoin ? { width: coinSize, height: coinSize } : undefined}
+          >
             {isBill ? <DollarSign className="h-6 w-6" /> : <Coins className="h-5 w-5" />}
           </div>
         )}

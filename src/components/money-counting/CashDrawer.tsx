@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DENOMINATIONS } from "@/lib/moneyCountingUtils";
 import { getCurrencyImage } from "@/lib/currencyImages";
+import { getCoinSize, BASE_COIN_SIZE } from "@/lib/coinSizeRatios";
 
 interface CashDrawerProps {
   onSelectMoney: (denomination: string) => void;
@@ -10,27 +11,11 @@ interface CashDrawerProps {
   customCurrencyImages?: { [key: string]: string };
 }
 
-// Real coin diameter ratios (relative to quarter = 1.0)
-// Quarter: 24.26mm, Nickel: 21.21mm, Penny: 19.05mm, Dime: 17.91mm
-const COIN_SIZE_RATIOS: { [key: string]: number } = {
-  "0.25": 1.0,      // Quarter - largest
-  "0.10": 0.738,    // Dime - smallest
-  "0.05": 0.874,    // Nickel
-  "0.01": 0.785,    // Penny
-};
-
-const BASE_COIN_SIZE = 64; // Base size in pixels for quarter
-
 export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: CashDrawerProps) {
   const bills = DENOMINATIONS.filter((d) => d.type === "bill");
   const coins = DENOMINATIONS.filter((d) => d.type === "coin");
 
   const getImage = (denomination: string) => getCurrencyImage(denomination, customCurrencyImages);
-
-  const getCoinSize = (value: number) => {
-    const ratio = COIN_SIZE_RATIOS[value.toString()] || 1;
-    return Math.round(BASE_COIN_SIZE * ratio);
-  };
 
   return (
     <Card className={cn("transition-opacity", disabled && "opacity-50")}>
