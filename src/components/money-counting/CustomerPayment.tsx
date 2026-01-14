@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, HandCoins } from "lucide-react";
 import { formatMoney, getDenominationLabel } from "@/lib/moneyCountingUtils";
+import { getCurrencyImage } from "@/lib/currencyImages";
 import { cn } from "@/lib/utils";
 
 interface CustomerPaymentProps {
@@ -11,7 +12,17 @@ interface CustomerPaymentProps {
   orderTotal: number;
   cashCollected: boolean;
   onCollect: () => void;
+  customCurrencyImages?: { [key: string]: string };
 }
+
+// Coin size ratios based on real US coin sizes
+const COIN_SIZE_RATIOS: { [key: string]: number } = {
+  "0.25": 1,      // Quarter = largest (24.26mm)
+  "0.10": 0.74,   // Dime = smallest (17.91mm)
+  "0.1": 0.74,    // Dime alternate
+  "0.05": 0.88,   // Nickel (21.21mm)
+  "0.01": 0.79,   // Penny (19.05mm)
+};
 
 export function CustomerPayment({
   customerCash,
@@ -19,6 +30,7 @@ export function CustomerPayment({
   orderTotal,
   cashCollected,
   onCollect,
+  customCurrencyImages,
 }: CustomerPaymentProps) {
   const changeNeeded = Math.round((totalPayment - orderTotal) * 100) / 100;
   // Sort by denomination value descending
@@ -51,26 +63,47 @@ export function CustomerPayment({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Display customer's cash */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-end">
           {sortedCash.map(([denom, count]) => {
             const numValue = parseFloat(denom);
             const isBill = numValue >= 1;
+            const currencyImage = getCurrencyImage(denom, customCurrencyImages);
+            const coinSizeRatio = COIN_SIZE_RATIOS[denom] || 1;
+            const baseSize = 48; // Base size for largest coin in pixels
+            const coinSize = Math.round(baseSize * coinSizeRatio);
             
             return (
-              <div key={denom} className="flex items-center gap-1">
+              <div key={denom} className="flex items-end gap-1">
                 {Array.from({ length: count }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "flex items-center justify-center font-semibold text-sm",
-                      isBill
-                        ? "w-14 h-8 rounded bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 text-green-700 dark:text-green-300 border border-green-300"
-                        : "w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 border border-gray-400",
-                      numValue === 0.01 && "from-amber-200 to-amber-300 dark:from-amber-800 dark:to-amber-700 border-amber-500"
-                    )}
-                  >
-                    {getDenominationLabel(denom)}
-                  </div>
+                  currencyImage ? (
+                    <img
+                      key={i}
+                      src={currencyImage}
+                      alt={getDenominationLabel(denom)}
+                      className={cn(
+                        "object-contain drop-shadow-md",
+                        isBill ? "h-12 w-auto" : ""
+                      )}
+                      style={!isBill ? { 
+                        width: coinSize, 
+                        height: coinSize,
+                        borderRadius: '50%'
+                      } : undefined}
+                    />
+                  ) : (
+                    <div
+                      key={i}
+                      className={cn(
+                        "flex items-center justify-center font-semibold text-sm",
+                        isBill
+                          ? "w-14 h-8 rounded bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900 dark:to-green-800 text-green-700 dark:text-green-300 border border-green-300"
+                          : "w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 border border-gray-400",
+                        numValue === 0.01 && "from-amber-200 to-amber-300 dark:from-amber-800 dark:to-amber-700 border-amber-500"
+                      )}
+                    >
+                      {getDenominationLabel(denom)}
+                    </div>
+                  )
                 ))}
               </div>
             );

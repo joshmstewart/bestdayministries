@@ -661,6 +661,7 @@ export default function MoneyCounting() {
                     orderTotal={gameState.total}
                     cashCollected={gameState.cashCollected}
                     onCollect={goToNextStep}
+                    customCurrencyImages={customCurrencyImages}
                   />
                 </div>
               )}
