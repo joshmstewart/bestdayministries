@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Eye, EyeOff, Loader2, Upload, Download, User, Edit } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, Upload, Download, User, Edit, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,7 @@ export const CashRegisterCustomersManager = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -138,6 +139,47 @@ export const CashRegisterCustomersManager = () => {
         description: "Failed to download image",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleRegenerateImage = async (customer: Customer) => {
+    setRegeneratingId(customer.id);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-cash-register-image", {
+        body: {
+          characterType: customer.character_type,
+          description: customer.description || "",
+          customerId: customer.id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        const { error: updateError } = await supabase
+          .from("cash_register_customers")
+          .update({ image_url: data.imageUrl })
+          .eq("id", customer.id);
+
+        if (updateError) throw updateError;
+
+        toast({
+          title: "Success",
+          description: "Image regenerated!",
+        });
+
+        fetchCustomers();
+      }
+    } catch (error) {
+      console.error("Error regenerating image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to regenerate image",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -468,6 +510,19 @@ export const CashRegisterCustomersManager = () => {
                       title="Download image"
                     >
                       <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => handleRegenerateImage(customer)}
+                      disabled={regeneratingId === customer.id}
+                      title="Regenerate image"
+                    >
+                      {regeneratingId === customer.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button
                       size="icon"
