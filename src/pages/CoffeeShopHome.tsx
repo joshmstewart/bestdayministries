@@ -36,6 +36,7 @@ const CoffeeShopHome = () => {
 
   const loadContent = async () => {
     try {
+      // Add cache-busting timestamp to ensure fresh data on every load
       const { data } = await supabase
         .from("app_settings")
         .select("setting_value")

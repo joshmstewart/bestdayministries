@@ -49,7 +49,9 @@ const CoffeeShopMenu = () => {
         .order("display_order");
       if (error) throw error;
       return data as MenuCategory[];
-    }
+    },
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when component mounts
   });
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
@@ -62,7 +64,9 @@ const CoffeeShopMenu = () => {
         .order("display_order");
       if (error) throw error;
       return data as MenuItem[];
-    }
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: addons = [], isLoading: addonsLoading } = useQuery({
@@ -75,7 +79,9 @@ const CoffeeShopMenu = () => {
         .order("display_order");
       if (error) throw error;
       return data as MenuAddon[];
-    }
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const isLoading = categoriesLoading || itemsLoading || addonsLoading;
