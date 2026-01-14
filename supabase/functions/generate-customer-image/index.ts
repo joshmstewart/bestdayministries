@@ -144,15 +144,47 @@ Style: Professional studio photograph on pure white seamless backdrop, like a st
       throw uploadError;
     }
 
-    // Get public URL
+    // Get public URL of the initial image
     const { data: urlData } = supabase.storage
       .from("app-assets")
       .getPublicUrl(`cash-register-customers/${fileName}`);
 
-    console.log("Image uploaded successfully:", urlData.publicUrl);
+    console.log("Initial image uploaded:", urlData.publicUrl);
+
+    // Now automatically remove the background
+    console.log("Removing background from generated image...");
+    
+    const removeBackgroundResponse = await fetch(`${supabaseUrl}/functions/v1/remove-customer-background`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${supabaseServiceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        imageUrl: urlData.publicUrl,
+        customerId: fileId,
+      }),
+    });
+
+    if (!removeBackgroundResponse.ok) {
+      const errorText = await removeBackgroundResponse.text();
+      console.error("Background removal failed:", errorText);
+      // Return original image if background removal fails
+      return new Response(
+        JSON.stringify({ imageUrl: urlData.publicUrl }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const bgRemovalResult = await removeBackgroundResponse.json();
+    const finalImageUrl = bgRemovalResult.imageUrl || urlData.publicUrl;
+    
+    console.log("Final image with background removed:", finalImageUrl);
 
     return new Response(
-      JSON.stringify({ imageUrl: urlData.publicUrl }),
+      JSON.stringify({ imageUrl: finalImageUrl }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
