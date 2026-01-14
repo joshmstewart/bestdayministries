@@ -829,6 +829,45 @@ export type Database = {
           },
         ]
       }
+      cash_register_stores: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          menu_items: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          menu_items?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          menu_items?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       change_logs: {
         Row: {
           affected_record_id: string | null

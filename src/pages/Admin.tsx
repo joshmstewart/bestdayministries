@@ -79,6 +79,7 @@ import { DrinkIngredientsManager } from "@/components/admin/DrinkIngredientsMana
 import { DrinkVibesManager } from "@/components/admin/DrinkVibesManager";
 import { RecipeIngredientsManager } from "@/components/admin/RecipeIngredientsManager";
 import { RecipeToolsManager } from "@/components/admin/RecipeToolsManager";
+import { CashRegisterStoresManager } from "@/components/admin/CashRegisterStoresManager";
 import { MemoryMatchPackManager } from "@/components/admin/MemoryMatchPackManager";
 import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
@@ -560,8 +561,13 @@ const Admin = () => {
                 <Tabs defaultValue="recipes" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
                     <TabsTrigger value="recipes">Recipes</TabsTrigger>
+                    <TabsTrigger value="cash-register">Cash Register</TabsTrigger>
                     <TabsTrigger value="chores">Chores</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="cash-register">
+                    <CashRegisterStoresManager />
+                  </TabsContent>
 
                   <TabsContent value="recipes">
                     <Tabs defaultValue="ingredients" className="space-y-4">

@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RotateCcw, Trophy, Lightbulb } from "lucide-react";
+import { ArrowLeft, RotateCcw, Trophy, Store, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
@@ -11,8 +10,32 @@ import { CustomerPayment } from "@/components/money-counting/CustomerPayment";
 import { ChangeTracker } from "@/components/money-counting/ChangeTracker";
 import { ReceiptDisplay } from "@/components/money-counting/ReceiptDisplay";
 import { LevelComplete } from "@/components/money-counting/LevelComplete";
-import { generateOrder, calculateOptimalChange, DENOMINATIONS } from "@/lib/moneyCountingUtils";
-import coffeeShopBg from "@/assets/games/coffee-shop-counter-pov.jpg";
+import { generateOrder, calculateOptimalChange } from "@/lib/moneyCountingUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+// Fallback images for stores without DB images
+import coffeeShopBg from "@/assets/games/stores/coffee-shop-pov.jpg";
+import groceryBg from "@/assets/games/stores/grocery-store-pov.jpg";
+import clothingBg from "@/assets/games/stores/clothing-store-pov.jpg";
+import convenienceBg from "@/assets/games/stores/convenience-store-pov.jpg";
+import bakeryBg from "@/assets/games/stores/bakery-pov.jpg";
+
+interface StoreType {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  is_default: boolean;
+}
+
+const FALLBACK_IMAGES: Record<string, string> = {
+  "Coffee Shop": coffeeShopBg,
+  "Grocery Store": groceryBg,
+  "Clothing Store": clothingBg,
+  "Convenience Store": convenienceBg,
+  "Bakery": bakeryBg,
+};
 
 export interface OrderItem {
   name: string;
@@ -53,12 +76,50 @@ const TAX_RATE = 0.08; // 8% tax
 export default function MoneyCounting() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [showComplete, setShowComplete] = useState(false);
+  const [stores, setStores] = useState<StoreType[]>([]);
+  const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [levelResult, setLevelResult] = useState<{
     success: boolean;
     piecesUsed: number;
     optimalPieces: number;
     optimalBreakdown: { [key: string]: number };
   } | null>(null);
+
+  // Load stores from database
+  useEffect(() => {
+    const loadStores = async () => {
+      const { data, error } = await supabase
+        .from("cash_register_stores")
+        .select("id, name, description, image_url, is_default")
+        .eq("is_active", true)
+        .order("display_order");
+
+      if (error) {
+        console.error("Error loading stores:", error);
+        return;
+      }
+
+      setStores(data || []);
+      
+      // Set default store
+      const defaultStore = data?.find((s) => s.is_default) || data?.[0];
+      if (defaultStore) {
+        setSelectedStore(defaultStore);
+      }
+    };
+
+    loadStores();
+  }, []);
+
+  const getStoreBackground = () => {
+    if (selectedStore?.image_url) {
+      return selectedStore.image_url;
+    }
+    if (selectedStore?.name && FALLBACK_IMAGES[selectedStore.name]) {
+      return FALLBACK_IMAGES[selectedStore.name];
+    }
+    return coffeeShopBg;
+  };
 
   const startNewGame = useCallback(() => {
     const order = generateOrder(1);
@@ -329,7 +390,7 @@ export default function MoneyCounting() {
     <main 
       className="min-h-screen pt-24 pb-8 px-4 relative"
       style={{
-        backgroundImage: `url(${coffeeShopBg})`,
+        backgroundImage: `url(${getStoreBackground()})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
@@ -340,7 +401,7 @@ export default function MoneyCounting() {
       
       <div className="container mx-auto max-w-6xl relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 bg-background/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+        <div className="flex items-center justify-between mb-6 bg-background/90 backdrop-blur-sm rounded-lg p-4 shadow-lg flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <Button variant="outline" size="sm" asChild>
               <Link to="/community">
@@ -353,7 +414,30 @@ export default function MoneyCounting() {
               <p className="text-muted-foreground text-sm">Make correct change for customers!</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Store Selector */}
+            {stores.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Store className="h-4 w-4 mr-2" />
+                    {selectedStore?.name || "Select Store"}
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {stores.map((store) => (
+                    <DropdownMenuItem
+                      key={store.id}
+                      onClick={() => setSelectedStore(store)}
+                      className={selectedStore?.id === store.id ? "bg-accent" : ""}
+                    >
+                      {store.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Badge variant="secondary" className="text-lg px-3 py-1">
               Level {gameState.level}
             </Badge>
