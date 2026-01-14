@@ -40,7 +40,7 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
                 <button
                   key={denom.value}
                   className={cn(
-                    "relative cursor-pointer transition-all duration-150",
+                    "relative cursor-pointer transition-all duration-150 flex flex-col items-center",
                     "hover:scale-105 hover:z-10 active:scale-95",
                     "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
                     disabled && "pointer-events-none"
@@ -61,6 +61,9 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
                       </span>
                     </div>
                   )}
+                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
+                    {denom.label}
+                  </span>
                 </button>
               );
             })}
@@ -78,7 +81,7 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
                 <button
                   key={denom.value}
                   className={cn(
-                    "relative cursor-pointer transition-all duration-150",
+                    "relative cursor-pointer transition-all duration-150 flex flex-col items-center",
                     "hover:scale-110 hover:z-10 active:scale-95",
                     "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded-full",
                     disabled && "pointer-events-none"
@@ -101,6 +104,9 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
                       <span className="text-xs font-bold">{denom.label}</span>
                     </div>
                   )}
+                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
+                    {denom.label}
+                  </span>
                 </button>
               );
             })}
