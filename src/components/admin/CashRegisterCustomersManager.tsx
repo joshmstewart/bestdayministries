@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Eye, EyeOff, Loader2, RefreshCw, Shuffle, User, Eraser, Edit } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, Upload, Download, User, Edit } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,77 +25,19 @@ interface Customer {
   is_active: boolean;
 }
 
-// Predefined diverse character types for random generation
-const CHARACTER_TYPES = [
-  // Age variety
-  { type: "grandma", description: "Elderly grandmother with gray hair and warm smile, wearing cozy cardigan" },
-  { type: "grandpa", description: "Elderly grandfather with glasses, maybe a cane or walking aid" },
-  { type: "teenager", description: "Trendy teenager with colorful clothes and headphones" },
-  { type: "toddler with parent", description: "Small child being held by or standing with a parent" },
-  
-  // Occupations/Hobbies
-  { type: "soccer player", description: "Athletic person in soccer jersey and cleats, carrying a ball" },
-  { type: "chef", description: "Professional chef in white coat and tall hat" },
-  { type: "astronaut", description: "Person in colorful space suit" },
-  { type: "firefighter", description: "Brave firefighter in full gear with helmet" },
-  { type: "doctor", description: "Friendly doctor in white coat with stethoscope" },
-  { type: "construction worker", description: "Worker in hard hat, tool belt, and safety vest" },
-  { type: "artist", description: "Creative person with paint splatter on clothes, holding brushes" },
-  { type: "musician", description: "Person with musical instrument like guitar or violin" },
-  { type: "farmer", description: "Farmer in overalls and straw hat" },
-  { type: "scientist", description: "Scientist in lab coat with safety goggles" },
-  
-  // Pop culture inspired (generic)
-  { type: "pop star", description: "Glamorous performer in sparkly outfit with microphone" },
-  { type: "superhero fan", description: "Person wearing a cape and superhero costume" },
-  { type: "punk rocker", description: "Person with colorful mohawk and leather jacket" },
-  { type: "disco dancer", description: "Person in 70s disco outfit with platform shoes" },
-  { type: "hippie", description: "Person with tie-dye clothes, peace signs, and flowers" },
-  { type: "cowboy", description: "Western cowboy with hat, boots, and bandana" },
-  { type: "ninja", description: "Friendly ninja in colorful outfit" },
-  { type: "pirate", description: "Fun pirate with eye patch and parrot" },
-  { type: "princess", description: "Royal princess in beautiful gown and tiara" },
-  { type: "knight", description: "Armored knight with shield" },
-  
-  // Diverse body types
-  { type: "tall basketball player", description: "Very tall athletic person in basketball jersey" },
-  { type: "bodybuilder", description: "Muscular person in workout clothes" },
-  { type: "curvy fashionista", description: "Stylish plus-size person in trendy outfit" },
-  { type: "petite dancer", description: "Small graceful person in dance attire" },
-  
-  // Ability diversity
-  { type: "wheelchair user", description: "Person in colorful wheelchair, sporty or decorated" },
-  { type: "person with prosthetic", description: "Person with cool decorated prosthetic limb" },
-  { type: "person with service dog", description: "Person accompanied by a friendly service dog" },
-  { type: "person with hearing aids", description: "Person with visible hearing aids, signing or smiling" },
-  { type: "person with cane", description: "Person using a white cane, wearing sunglasses" },
-  
-  // Cultural diversity
-  { type: "traditional dancer", description: "Person in colorful traditional cultural dance attire" },
-  { type: "martial artist", description: "Person in karate or taekwondo uniform with belt" },
-  { type: "yoga instructor", description: "Peaceful person in comfortable yoga clothes" },
-  
-  // Fun/Quirky
-  { type: "magician", description: "Mysterious magician with top hat and wand" },
-  { type: "clown", description: "Friendly colorful clown with big shoes" },
-  { type: "robot enthusiast", description: "Person in robot-themed costume or with robot friend" },
-  { type: "alien visitor", description: "Friendly green alien in earth clothes trying to fit in" },
-  { type: "time traveler", description: "Person in mix of futuristic and vintage clothes" },
-];
-
 export const CashRegisterCustomersManager = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [removingBgId, setRemovingBgId] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const { toast } = useToast();
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   // Form state for create
   const [formName, setFormName] = useState("");
@@ -132,24 +74,70 @@ export const CashRegisterCustomersManager = () => {
     fetchCustomers();
   }, []);
 
-  const randomizeCharacter = () => {
-    const randomChar = CHARACTER_TYPES[Math.floor(Math.random() * CHARACTER_TYPES.length)];
-    setFormCharacterType(randomChar.type);
-    setFormDescription(randomChar.description);
-    setFormName(randomChar.type.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
-  };
+  const handleUploadImage = async (customer: Customer, file: File) => {
+    setUploadingId(customer.id);
 
-  const generateImage = async (characterType: string, description: string): Promise<string | null> => {
     try {
-      const { data, error } = await supabase.functions.invoke("generate-customer-image", {
-        body: { characterType, description },
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${customer.id}-${Date.now()}.${fileExt}`;
+      const filePath = `customers/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from("cash_register_customers")
+        .update({ image_url: urlData.publicUrl })
+        .eq("id", customer.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: "Image uploaded!",
       });
 
-      if (error) throw error;
-      return data?.imageUrl || null;
+      fetchCustomers();
     } catch (error) {
-      console.error("Error generating image:", error);
-      return null;
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  const handleDownloadImage = async (customer: Customer) => {
+    if (!customer.image_url) return;
+
+    try {
+      const response = await fetch(customer.image_url);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${customer.name.replace(/\s+/g, "-").toLowerCase()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download image",
+        variant: "destructive",
+      });
     }
   };
 
@@ -166,16 +154,13 @@ export const CashRegisterCustomersManager = () => {
     setIsCreating(true);
 
     try {
-      // Generate image first
-      const imageUrl = await generateImage(formCharacterType, formDescription);
-
       const { error } = await supabase
         .from("cash_register_customers")
         .insert({
           name: formName.trim(),
           character_type: formCharacterType.trim(),
           description: formDescription.trim() || null,
-          image_url: imageUrl,
+          image_url: null,
           display_order: customers.length,
         });
 
@@ -183,7 +168,7 @@ export const CashRegisterCustomersManager = () => {
 
       toast({
         title: "Success",
-        description: `Customer "${formName}" created${imageUrl ? " with image" : ""}!`,
+        description: `Customer "${formName}" created! You can now upload an image.`,
       });
 
       setFormName("");
@@ -203,88 +188,6 @@ export const CashRegisterCustomersManager = () => {
     }
   };
 
-  const handleRegenerateImage = async (customer: Customer) => {
-    setGeneratingId(customer.id);
-
-    try {
-      const imageUrl = await generateImage(customer.character_type, customer.description || "");
-
-      if (!imageUrl) {
-        throw new Error("Failed to generate image");
-      }
-
-      const { error } = await supabase
-        .from("cash_register_customers")
-        .update({ image_url: imageUrl })
-        .eq("id", customer.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Image regenerated!",
-      });
-
-      fetchCustomers();
-    } catch (error) {
-      console.error("Error regenerating image:", error);
-      toast({
-        title: "Error",
-        description: "Failed to regenerate image",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingId(null);
-    }
-  };
-
-  const handleRemoveBackground = async (customer: Customer) => {
-    if (!customer.image_url) {
-      toast({
-        title: "Error",
-        description: "No image to process",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setRemovingBgId(customer.id);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("remove-customer-background", {
-        body: { imageUrl: customer.image_url },
-      });
-
-      if (error) throw error;
-
-      if (!data?.imageUrl) {
-        throw new Error("Failed to remove background");
-      }
-
-      const { error: updateError } = await supabase
-        .from("cash_register_customers")
-        .update({ image_url: data.imageUrl })
-        .eq("id", customer.id);
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Success",
-        description: "Background removed!",
-      });
-
-      fetchCustomers();
-    } catch (error) {
-      console.error("Error removing background:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove background",
-        variant: "destructive",
-      });
-    } finally {
-      setRemovingBgId(null);
-    }
-  };
 
   const handleToggleActive = async (customer: Customer) => {
     try {
@@ -429,16 +332,6 @@ export const CashRegisterCustomersManager = () => {
                 <DialogTitle>Create New Customer</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={randomizeCharacter}
-                  className="w-full"
-                >
-                  <Shuffle className="h-4 w-4 mr-2" />
-                  Randomize Character
-                </Button>
-
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input
@@ -462,7 +355,7 @@ export const CashRegisterCustomersManager = () => {
                   <Input
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Additional details for image generation"
+                    placeholder="Notes about the character"
                   />
                 </div>
 
@@ -474,7 +367,7 @@ export const CashRegisterCustomersManager = () => {
                   {isCreating ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating & Generating Image...
+                      Creating...
                     </>
                   ) : (
                     "Create Customer"
@@ -534,6 +427,18 @@ export const CashRegisterCustomersManager = () => {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* Hidden file input for upload */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={(el) => (fileInputRefs.current[customer.id] = el)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUploadImage(customer, file);
+                        e.target.value = "";
+                      }}
+                      className="hidden"
+                    />
                     <Button
                       size="icon"
                       variant="outline"
@@ -545,28 +450,24 @@ export const CashRegisterCustomersManager = () => {
                     <Button
                       size="icon"
                       variant="outline"
-                      onClick={() => handleRegenerateImage(customer)}
-                      disabled={generatingId === customer.id || removingBgId === customer.id}
-                      title="Regenerate image"
+                      onClick={() => fileInputRefs.current[customer.id]?.click()}
+                      disabled={uploadingId === customer.id}
+                      title="Upload image"
                     >
-                      {generatingId === customer.id ? (
+                      {uploadingId === customer.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <RefreshCw className="h-4 w-4" />
+                        <Upload className="h-4 w-4" />
                       )}
                     </Button>
                     <Button
                       size="icon"
                       variant="outline"
-                      onClick={() => handleRemoveBackground(customer)}
-                      disabled={!customer.image_url || removingBgId === customer.id || generatingId === customer.id}
-                      title="Remove background"
+                      onClick={() => handleDownloadImage(customer)}
+                      disabled={!customer.image_url}
+                      title="Download image"
                     >
-                      {removingBgId === customer.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Eraser className="h-4 w-4" />
-                      )}
+                      <Download className="h-4 w-4" />
                     </Button>
                     <Button
                       size="icon"
