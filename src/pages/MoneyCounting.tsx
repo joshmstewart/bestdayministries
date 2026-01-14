@@ -101,42 +101,70 @@ export default function MoneyCounting() {
     optimalBreakdown: { [key: string]: number };
   } | null>(null);
 
-  // Load stores and customers from database
+  // Load stores and customers from database (including purchased pack items)
   useEffect(() => {
     const loadData = async () => {
       console.log("Loading cash register data...");
-      const [storesRes, customersRes, currencyImages] = await Promise.all([
+      
+      // Get current user for pack purchases
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Load base data and user's purchased packs
+      const [storesRes, customersRes, currencyImages, userPacksRes, packItemsRes] = await Promise.all([
         supabase
           .from("cash_register_stores")
-          .select("id, name, description, image_url, is_default, menu_items")
+          .select("id, name, description, image_url, is_default, menu_items, is_pack_only")
           .eq("is_active", true)
           .order("display_order"),
         supabase
           .from("cash_register_customers")
-          .select("id, name, description, image_url")
+          .select("id, name, description, image_url, is_pack_only")
           .eq("is_active", true),
         loadCustomCurrencyImages(),
+        user ? supabase
+          .from("user_cash_register_packs")
+          .select("pack_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        supabase.from("cash_register_pack_items").select("pack_id, store_id, customer_id"),
       ]);
 
       setCustomCurrencyImages(currencyImages);
+      
+      // Get purchased pack IDs
+      const purchasedPackIds = new Set((userPacksRes.data || []).map(p => p.pack_id));
+      
+      // Get store/customer IDs from purchased packs
+      const unlockedStoreIds = new Set<string>();
+      const unlockedCustomerIds = new Set<string>();
+      (packItemsRes.data || []).forEach(item => {
+        if (purchasedPackIds.has(item.pack_id)) {
+          if (item.store_id) unlockedStoreIds.add(item.store_id);
+          if (item.customer_id) unlockedCustomerIds.add(item.customer_id);
+        }
+      });
 
       if (storesRes.error) {
         console.error("Error loading stores:", storesRes.error);
       } else {
-        console.log("Loaded stores:", storesRes.data?.length, storesRes.data?.map(s => s.name));
-        setStores(storesRes.data || []);
-        const defaultStore = storesRes.data?.find((s) => s.is_default) || storesRes.data?.[0];
-        if (defaultStore) {
-          console.log("Default store:", defaultStore.name, "has image:", !!defaultStore.image_url);
-          setSelectedStore(defaultStore);
-        }
+        // Filter: show non-pack-only stores OR pack-only stores that are unlocked
+        const availableStores = (storesRes.data || []).filter(s => 
+          !s.is_pack_only || unlockedStoreIds.has(s.id)
+        );
+        console.log("Loaded stores:", availableStores.length);
+        setStores(availableStores);
+        const defaultStore = availableStores.find((s) => s.is_default) || availableStores[0];
+        if (defaultStore) setSelectedStore(defaultStore);
       }
 
       if (customersRes.error) {
         console.error("Error loading customers:", customersRes.error);
       } else {
-        console.log("Loaded customers:", customersRes.data?.length, customersRes.data?.map(c => ({ name: c.name, hasImage: !!c.image_url })));
-        setCustomers(customersRes.data || []);
+        // Filter: show non-pack-only customers OR pack-only customers that are unlocked
+        const availableCustomers = (customersRes.data || []).filter(c => 
+          !c.is_pack_only || unlockedCustomerIds.has(c.id)
+        );
+        console.log("Loaded customers:", availableCustomers.length);
+        setCustomers(availableCustomers);
       }
       
       setDataLoaded(true);

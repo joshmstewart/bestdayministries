@@ -82,6 +82,7 @@ import { RecipeToolsManager } from "@/components/admin/RecipeToolsManager";
 import { CashRegisterStoresManager } from "@/components/admin/CashRegisterStoresManager";
 import { CurrencyImagesManager } from "@/components/admin/CurrencyImagesManager";
 import { CashRegisterCustomersManager } from "@/components/admin/CashRegisterCustomersManager";
+import { CashRegisterPacksManager } from "@/components/admin/CashRegisterPacksManager";
 import { MemoryMatchPackManager } from "@/components/admin/MemoryMatchPackManager";
 import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
@@ -572,6 +573,7 @@ const Admin = () => {
                       <TabsList>
                         <TabsTrigger value="stores">Stores</TabsTrigger>
                         <TabsTrigger value="customers">Customers</TabsTrigger>
+                        <TabsTrigger value="packs">Packs</TabsTrigger>
                         <TabsTrigger value="currency">Currency</TabsTrigger>
                       </TabsList>
                       <TabsContent value="stores">
@@ -579,6 +581,9 @@ const Admin = () => {
                       </TabsContent>
                       <TabsContent value="customers">
                         <CashRegisterCustomersManager />
+                      </TabsContent>
+                      <TabsContent value="packs">
+                        <CashRegisterPacksManager />
                       </TabsContent>
                       <TabsContent value="currency">
                         <CurrencyImagesManager />

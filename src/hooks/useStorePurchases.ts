@@ -87,11 +87,14 @@ export const useStorePurchases = () => {
       // Determine item type
       const isMemoryPack = itemId.startsWith("memory_pack_");
       const isColoringBook = itemId.startsWith("coloring_book_");
+      const isCashRegisterPack = itemId.startsWith("cash_register_pack_");
       const actualItemId = isMemoryPack 
         ? itemId.replace("memory_pack_", "") 
         : isColoringBook 
           ? itemId.replace("coloring_book_", "") 
-          : itemId;
+          : isCashRegisterPack
+            ? itemId.replace("cash_register_pack_", "")
+            : itemId;
 
       // Start transaction: deduct coins and create purchase
       const { data: profile, error: profileError } = await supabase
@@ -149,6 +152,26 @@ export const useStorePurchases = () => {
           amount: -itemPrice,
           transaction_type: "store_purchase",
           description: "Coloring Book purchase",
+          related_item_id: actualItemId,
+        });
+      } else if (isCashRegisterPack) {
+        // Handle cash register pack purchase
+        const { error: packPurchaseError } = await supabase
+          .from("user_cash_register_packs")
+          .insert({
+            user_id: user.id,
+            pack_id: actualItemId,
+            coins_spent: itemPrice,
+          });
+
+        if (packPurchaseError) throw packPurchaseError;
+
+        // Record transaction
+        await supabase.from("coin_transactions").insert({
+          user_id: user.id,
+          amount: -itemPrice,
+          transaction_type: "store_purchase",
+          description: "Cash Register pack purchase",
           related_item_id: actualItemId,
         });
       } else {

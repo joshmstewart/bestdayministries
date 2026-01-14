@@ -52,8 +52,8 @@ const Store = () => {
         setUserRole(roleData?.role || "supporter");
       }
 
-      // Fetch store items, purchasable memory match packs, coloring books, and user's purchases in parallel
-      const [storeItemsResult, memoryPacksResult, coloringBooksResult, userPacksResult, userColoringBooksResult] = await Promise.all([
+      // Fetch store items, purchasable memory match packs, coloring books, cash register packs, and user's purchases in parallel
+      const [storeItemsResult, memoryPacksResult, coloringBooksResult, cashRegisterPacksResult, userPacksResult, userColoringBooksResult, userCashRegisterPacksResult] = await Promise.all([
         supabase
           .from("store_items")
           .select("*")
@@ -71,6 +71,11 @@ const Store = () => {
           .eq("is_free", false)
           .gt("coin_price", 0)
           .eq("coloring_pages.is_active", true),
+        supabase
+          .from("cash_register_packs")
+          .select("id, name, description, image_url, price_coins, pack_type, display_order")
+          .eq("is_active", true)
+          .order("display_order"),
         user ? supabase
           .from("user_memory_match_packs")
           .select("pack_id")
@@ -78,15 +83,20 @@ const Store = () => {
         user ? supabase
           .from("user_coloring_books")
           .select("book_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        user ? supabase
+          .from("user_cash_register_packs")
+          .select("pack_id")
           .eq("user_id", user.id) : Promise.resolve({ data: [] })
       ]);
 
       if (storeItemsResult.error) throw storeItemsResult.error;
       
-      // Store purchased pack IDs (memory packs and coloring books)
+      // Store purchased pack IDs (memory packs, coloring books, and cash register packs)
       const purchasedIds = new Set<string>([
         ...(userPacksResult.data || []).map((p: { pack_id: string }) => `memory_pack_${p.pack_id}`),
-        ...(userColoringBooksResult.data || []).map((p: { book_id: string }) => `coloring_book_${p.book_id}`)
+        ...(userColoringBooksResult.data || []).map((p: { book_id: string }) => `coloring_book_${p.book_id}`),
+        ...(userCashRegisterPacksResult.data || []).map((p: { pack_id: string }) => `cash_register_pack_${p.pack_id}`)
       ]);
       setPurchasedPackIds(purchasedIds);
       
@@ -127,8 +137,24 @@ const Store = () => {
         pageCount: bookPageCounts.get(book.id) || 0,
       }));
 
+      // Convert cash register packs to store item format
+      const packTypeLabels: Record<string, string> = {
+        customers: "Customers",
+        stores: "Stores",
+        mixed: "Content",
+      };
+      const cashRegisterPackItems: StoreItem[] = (cashRegisterPacksResult.data || []).map((pack, index) => ({
+        id: `cash_register_pack_${pack.id}`,
+        name: `Cash Register: ${pack.name}`,
+        description: pack.description || `Unlock new ${packTypeLabels[pack.pack_type] || "content"} for the Cash Register game`,
+        price: pack.price_coins,
+        category: "games",
+        image_url: pack.image_url,
+        display_order: 3000 + (pack.display_order || index),
+      }));
+
       // Combine and set items
-      setItems([...(storeItemsResult.data || []), ...memoryPackItems, ...coloringBookItems]);
+      setItems([...(storeItemsResult.data || []), ...memoryPackItems, ...coloringBookItems, ...cashRegisterPackItems]);
     } catch (error) {
       console.error("Error fetching store items:", error);
     } finally {
