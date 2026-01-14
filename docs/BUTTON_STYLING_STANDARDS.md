@@ -139,6 +139,25 @@ When using custom colors outside the brand palette, always use solid backgrounds
 
 **Effect:** Organic liquid appearance with soft yellow spots over burnt orange base
 
+## Settings Bar Gradient
+
+**Variable:** `--gradient-settings-bar`  
+**Utility Class:** `.bg-gradient-settings-bar`
+
+```css
+--gradient-settings-bar: linear-gradient(to right, hsl(var(--primary) / 0.2), hsl(var(--accent) / 0.2), hsl(var(--primary) / 0.2));
+```
+
+**Effect:** Soft, branded background for control bars, toolbars, and settings panels  
+**Use for:** Game settings bars, filter bars, toolbar backgrounds, any horizontal control strip  
+**Example:** Cash Register game settings bar
+
+```tsx
+<div className="bg-gradient-settings-bar rounded-lg p-4 border border-primary/30">
+  {/* Settings controls */}
+</div>
+```
+
 ## Color Decision Tree
 
 ```
