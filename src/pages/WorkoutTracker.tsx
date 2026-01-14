@@ -1,17 +1,16 @@
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WorkoutVideos } from "@/components/workout/WorkoutVideos";
-import { QuickActivities } from "@/components/workout/QuickActivities";
-import { WorkoutProgress } from "@/components/workout/WorkoutProgress";
-import { Dumbbell, Play, TrendingUp } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { StreakDisplay } from "@/components/workout/StreakDisplay";
+import { WeeklyGoalCard } from "@/components/workout/WeeklyGoalCard";
+import { QuickLogGrid } from "@/components/workout/QuickLogGrid";
+import { FeaturedVideo } from "@/components/workout/FeaturedVideo";
+import { Dumbbell } from "lucide-react";
 
 const WorkoutTracker = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("videos");
 
   return (
     <>
@@ -21,39 +20,43 @@ const WorkoutTracker = () => {
       />
       <UnifiedHeader />
       <main className="min-h-screen bg-background pt-24 pb-8">
-        <div className="container max-w-4xl mx-auto px-4">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Dumbbell className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">Workout Tracker</h1>
+        <div className="container max-w-lg mx-auto px-4">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Dumbbell className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl font-bold">Workout Tracker</h1>
             </div>
-            <p className="text-muted-foreground">
-              Watch videos or log activities to hit your weekly goal!
+            <p className="text-sm text-muted-foreground">
+              Stay active and earn coins!
             </p>
           </div>
 
-          {user && <WorkoutProgress userId={user.id} className="mb-6" />}
+          {user ? (
+            <div className="space-y-4">
+              {/* Streak & Goal Row */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <StreakDisplay userId={user.id} />
+                <WeeklyGoalCard userId={user.id} />
+              </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="videos" className="flex items-center gap-2">
-                <Play className="h-4 w-4" />
-                <span>Videos</span>
-              </TabsTrigger>
-              <TabsTrigger value="activities" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                <span>Quick Log</span>
-              </TabsTrigger>
-            </TabsList>
+              {/* Quick Log Grid */}
+              <QuickLogGrid userId={user.id} />
 
-            <TabsContent value="videos">
-              <WorkoutVideos userId={user?.id} />
-            </TabsContent>
-
-            <TabsContent value="activities">
-              <QuickActivities userId={user?.id} />
-            </TabsContent>
-          </Tabs>
+              {/* Featured Video Section */}
+              <FeaturedVideo userId={user.id} />
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h2 className="text-lg font-semibold mb-2">Log in to track your workouts</h2>
+                <p className="text-muted-foreground">
+                  Sign in to log activities, watch videos, and earn coins!
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
       <Footer />
