@@ -85,6 +85,7 @@ import { CashRegisterCustomersManager } from "@/components/admin/CashRegisterCus
 import { CashRegisterPacksManager } from "@/components/admin/CashRegisterPacksManager";
 import { MemoryMatchPackManager } from "@/components/admin/MemoryMatchPackManager";
 import { JokeLibraryManager } from "@/components/admin/JokeLibraryManager";
+import { JokeCategoriesManager } from "@/components/admin/JokeCategoriesManager";
 import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
@@ -530,7 +531,10 @@ const Admin = () => {
                   </TabsContent>
 
                   <TabsContent value="jokes">
-                    <JokeLibraryManager />
+                    <div className="space-y-6">
+                      <JokeCategoriesManager />
+                      <JokeLibraryManager />
+                    </div>
                   </TabsContent>
                   
                   <TabsContent value="stickers">
