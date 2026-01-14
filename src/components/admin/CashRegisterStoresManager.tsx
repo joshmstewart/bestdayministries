@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -62,7 +63,7 @@ export const CashRegisterStoresManager = () => {
       setStores(data || []);
     } catch (error) {
       console.error("Error loading stores:", error);
-      toast.error("Failed to load stores");
+      showErrorToastWithCopy("Loading stores", error);
     } finally {
       setLoading(false);
     }
@@ -81,7 +82,7 @@ export const CashRegisterStoresManager = () => {
       await loadStores();
     } catch (error) {
       console.error("Error regenerating image:", error);
-      toast.error("Failed to regenerate image");
+      showErrorToastWithCopy(`Regenerating image for ${store.name}`, error);
     } finally {
       setRegenerating(null);
     }
@@ -99,7 +100,7 @@ export const CashRegisterStoresManager = () => {
       await loadStores();
     } catch (error) {
       console.error("Error toggling store:", error);
-      toast.error("Failed to update store");
+      showErrorToastWithCopy(`Updating store visibility (${store.name})`, error);
     }
   };
 
@@ -122,7 +123,7 @@ export const CashRegisterStoresManager = () => {
       await loadStores();
     } catch (error) {
       console.error("Error setting default:", error);
-      toast.error("Failed to set default store");
+      showErrorToastWithCopy(`Setting default store (${store.name})`, error);
     }
   };
 
@@ -158,7 +159,7 @@ export const CashRegisterStoresManager = () => {
       await loadStores();
     } catch (error) {
       console.error("Error saving store:", error);
-      toast.error("Failed to save store");
+      showErrorToastWithCopy(editingStore ? "Updating store" : "Creating store", error);
     }
   };
 
@@ -176,7 +177,7 @@ export const CashRegisterStoresManager = () => {
       await loadStores();
     } catch (error) {
       console.error("Error deleting store:", error);
-      toast.error("Failed to delete store");
+      showErrorToastWithCopy(`Deleting store (${store.name})`, error);
     }
   };
 
