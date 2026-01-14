@@ -8,10 +8,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Lock } from 'lucide-react';
+import { Lock, Loader2, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CoinIcon } from '@/components/CoinIcon';
+import { useCoins } from '@/hooks/useCoins';
+import { toast } from 'sonner';
 
 interface JokeCategory {
   id: string;
@@ -31,42 +33,44 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
   onCategoriesChange,
 }) => {
   const { user } = useAuth();
+  const { coins, deductCoins, refetch: refetchCoins } = useCoins();
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<JokeCategory[]>([]);
   const [purchasedCategories, setPurchasedCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [purchasingId, setPurchasingId] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    
+    // Fetch all active categories (excluding 'random')
+    const { data: categoryData, error: categoryError } = await supabase
+      .from('joke_categories')
+      .select('id, name, emoji, is_free, coin_price')
+      .eq('is_active', true)
+      .neq('name', 'random')
+      .order('display_order');
+    
+    if (!categoryError && categoryData) {
+      setCategories(categoryData);
+    }
+
+    // Fetch purchased categories if user is logged in
+    if (user) {
+      const { data: purchaseData } = await supabase
+        .from('user_store_purchases')
+        .select('store_item_id')
+        .eq('user_id', user.id);
+      
+      if (purchaseData) {
+        setPurchasedCategories(purchaseData.map(p => p.store_item_id).filter(Boolean) as string[]);
+      }
+    }
+    
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      
-      // Fetch all active categories (excluding 'random')
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('joke_categories')
-        .select('id, name, emoji, is_free, coin_price')
-        .eq('is_active', true)
-        .neq('name', 'random')
-        .order('display_order');
-      
-      if (!categoryError && categoryData) {
-        setCategories(categoryData);
-      }
-
-      // Fetch purchased categories if user is logged in
-      if (user) {
-        const { data: purchaseData } = await supabase
-          .from('user_store_purchases')
-          .select('store_item_id')
-          .eq('user_id', user.id);
-        
-        if (purchaseData) {
-          setPurchasedCategories(purchaseData.map(p => p.store_item_id).filter(Boolean) as string[]);
-        }
-      }
-      
-      setIsLoading(false);
-    };
-
     fetchData();
   }, [user]);
 
@@ -87,13 +91,75 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
     }
   };
 
+  const handlePurchase = async (category: JokeCategory) => {
+    if (!user) {
+      toast.error('Please log in to purchase categories');
+      return;
+    }
+
+    if (coins < category.coin_price) {
+      toast.error(`Not enough coins! You need ${category.coin_price} coins.`);
+      return;
+    }
+
+    setPurchasingId(category.id);
+
+    try {
+      // Deduct coins
+      const deducted = await deductCoins(category.coin_price, `Purchased joke category: ${category.name}`);
+      if (!deducted) {
+        throw new Error('Failed to deduct coins');
+      }
+
+      // Record the purchase
+      const { error: purchaseError } = await supabase
+        .from('user_store_purchases')
+        .insert({
+          user_id: user.id,
+          store_item_id: category.id,
+          item_type: 'joke_category',
+          item_name: `Joke Category: ${category.name}`,
+          coins_spent: category.coin_price,
+        });
+
+      if (purchaseError) throw purchaseError;
+
+      // Record transaction
+      await supabase.from('coin_transactions').insert({
+        user_id: user.id,
+        amount: -category.coin_price,
+        transaction_type: 'purchase',
+        description: `Purchased joke category: ${category.name}`,
+        related_item_id: category.id,
+      });
+
+      // Refresh data
+      await fetchData();
+      await refetchCoins();
+      
+      // Auto-select the newly purchased category
+      onCategoriesChange([...selectedCategories, category.id]);
+
+      toast.success(`Unlocked ${category.name} jokes! 🎉`);
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast.error('Failed to purchase category');
+    } finally {
+      setPurchasingId(null);
+    }
+  };
+
   const handleSelectAll = () => {
     const accessibleCategories = categories.filter(hasAccess).map(c => c.id);
     onCategoriesChange(accessibleCategories);
   };
 
+  // Separate accessible and locked categories
+  const accessibleCategories = categories.filter(hasAccess);
+  const lockedCategories = categories.filter(c => !hasAccess(c));
+
   const selectedCount = selectedCategories.length;
-  const totalAccessible = categories.filter(hasAccess).length;
+  const totalAccessible = accessibleCategories.length;
 
   return (
     <>
@@ -117,7 +183,7 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto space-y-2 py-4">
+          <div className="flex-1 overflow-y-auto space-y-3 py-4">
             {/* Select All */}
             <div className="flex items-center justify-between pb-2 border-b mb-2">
               <span className="text-sm text-muted-foreground">
@@ -133,49 +199,79 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
               </Button>
             </div>
 
-            {/* Category List */}
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : (
-              categories.map((category) => {
-                const accessible = hasAccess(category);
-                const isSelected = selectedCategories.includes(category.id);
+              <>
+                {/* Accessible Categories - 2 per row */}
+                {accessibleCategories.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {accessibleCategories.map((category) => {
+                      const isSelected = selectedCategories.includes(category.id);
 
-                return (
-                  <div
-                    key={category.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                      accessible
-                        ? 'hover:bg-muted/50 cursor-pointer'
-                        : 'opacity-60 bg-muted/30'
-                    } ${isSelected && accessible ? 'border-primary bg-primary/5' : 'border-border'}`}
-                    onClick={() => handleCategoryToggle(category.id, category)}
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      disabled={!accessible}
-                      className="pointer-events-none"
-                    />
-                    <span className="text-xl">{category.emoji}</span>
-                    <span className="flex-1 font-medium capitalize">{category.name}</span>
-                    
-                    {!accessible && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Lock className="w-3.5 h-3.5" />
-                        <CoinIcon size={14} />
-                        <span>{category.coin_price}</span>
+                      return (
+                        <div
+                          key={category.id}
+                          className={`flex items-center gap-2 p-2.5 rounded-lg border transition-colors cursor-pointer hover:bg-muted/50 ${
+                            isSelected ? 'border-primary bg-primary/5' : 'border-border'
+                          }`}
+                          onClick={() => handleCategoryToggle(category.id, category)}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            className="pointer-events-none"
+                          />
+                          <span className="text-lg">{category.emoji}</span>
+                          <span className="flex-1 font-medium capitalize text-sm truncate">{category.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Locked Categories - single column with purchase option */}
+                {lockedCategories.length > 0 && (
+                  <div className="space-y-2 pt-4 border-t mt-4">
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide flex items-center gap-1.5">
+                      <Lock className="w-3 h-3" />
+                      Unlock More Categories
+                    </p>
+                    {lockedCategories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20"
+                      >
+                        <span className="text-xl">{category.emoji}</span>
+                        <span className="flex-1 font-medium capitalize">{category.name}</span>
+                        
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1.5 shrink-0"
+                          onClick={() => handlePurchase(category)}
+                          disabled={purchasingId === category.id || coins < category.coin_price}
+                        >
+                          {purchasingId === category.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                              <CoinIcon size={14} />
+                              <span>{category.coin_price}</span>
+                            </>
+                          )}
+                        </Button>
                       </div>
+                    ))}
+                    
+                    {user && (
+                      <p className="text-xs text-muted-foreground text-center pt-2">
+                        Your balance: <CoinIcon size={12} className="inline mx-0.5" /> {coins} coins
+                      </p>
                     )}
                   </div>
-                );
-              })
-            )}
-
-            {/* Locked categories hint */}
-            {categories.some(c => !hasAccess(c)) && (
-              <p className="text-xs text-muted-foreground text-center pt-4">
-                🔒 Locked categories can be purchased in the Store
-              </p>
+                )}
+              </>
             )}
           </div>
 
