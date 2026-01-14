@@ -26,6 +26,9 @@ interface Joke {
   times_served: number;
   created_at: string;
   is_reviewed: boolean;
+  ai_quality_rating: string | null;
+  ai_quality_reason: string | null;
+  ai_reviewed_at: string | null;
 }
 
 interface JokeCategory {
@@ -151,6 +154,23 @@ export const JokeLibraryManager = () => {
     init();
   }, [loadJokes, loadCategoryStats]);
 
+  // Load AI quality from database into state when jokes load
+  useEffect(() => {
+    const qualityFromDb: Record<string, JokeQualityResult> = {};
+    jokes.forEach(joke => {
+      if (joke.ai_quality_rating) {
+        qualityFromDb[joke.id] = {
+          id: joke.id,
+          quality: joke.ai_quality_rating as "good" | "bad",
+          reason: joke.ai_quality_reason || ""
+        };
+      }
+    });
+    if (Object.keys(qualityFromDb).length > 0) {
+      setJokeQuality(prev => ({ ...qualityFromDb, ...prev }));
+    }
+  }, [jokes]);
+
   const handleDeleteJoke = async (id: string) => {
     try {
       const { error } = await supabase
@@ -227,16 +247,32 @@ export const JokeLibraryManager = () => {
 
   const handleToggleReviewed = async (id: string, currentValue: boolean) => {
     try {
+      // If marking as reviewed and has a bad AI rating, clear it from DB too
+      const updateData: Record<string, any> = { is_reviewed: !currentValue };
+      if (!currentValue && jokeQuality[id]?.quality === "bad") {
+        updateData.ai_quality_rating = null;
+        updateData.ai_quality_reason = null;
+        updateData.ai_reviewed_at = null;
+      }
+      
       const { error } = await supabase
         .from("joke_library")
-        .update({ is_reviewed: !currentValue })
+        .update(updateData)
         .eq("id", id);
 
       if (error) throw error;
 
-      setJokes(prev => prev.map(j => j.id === id ? { ...j, is_reviewed: !currentValue } : j));
+      setJokes(prev => prev.map(j => j.id === id ? { 
+        ...j, 
+        is_reviewed: !currentValue,
+        ...(updateData.ai_quality_rating === null ? {
+          ai_quality_rating: null,
+          ai_quality_reason: null,
+          ai_reviewed_at: null
+        } : {})
+      } : j));
       
-      // If marking as reviewed and has a bad AI rating, clear it
+      // If marking as reviewed and has a bad AI rating, clear it from state
       if (!currentValue && jokeQuality[id]?.quality === "bad") {
         setJokeQuality(prev => {
           const newQuality = { ...prev };
@@ -270,11 +306,15 @@ export const JokeLibraryManager = () => {
     
     setSavingEdit(true);
     try {
+      // Clear AI quality in DB since joke was edited
       const { error } = await supabase
         .from("joke_library")
         .update({ 
           question: editQuestion.trim(), 
-          answer: editAnswer.trim() 
+          answer: editAnswer.trim(),
+          ai_quality_rating: null,
+          ai_quality_reason: null,
+          ai_reviewed_at: null
         })
         .eq("id", editingJoke.id);
 
@@ -282,11 +322,18 @@ export const JokeLibraryManager = () => {
 
       setJokes(prev => prev.map(j => 
         j.id === editingJoke.id 
-          ? { ...j, question: editQuestion.trim(), answer: editAnswer.trim() } 
+          ? { 
+              ...j, 
+              question: editQuestion.trim(), 
+              answer: editAnswer.trim(),
+              ai_quality_rating: null,
+              ai_quality_reason: null,
+              ai_reviewed_at: null
+            } 
           : j
       ));
       
-      // Clear AI quality since joke was edited
+      // Clear AI quality from state since joke was edited
       setJokeQuality(prev => {
         const newQuality = { ...prev };
         delete newQuality[editingJoke.id];
@@ -296,7 +343,7 @@ export const JokeLibraryManager = () => {
       setEditingJoke(null);
       toast({
         title: "Joke updated",
-        description: "Your changes have been saved",
+        description: "Your changes have been saved (AI review cleared)",
       });
     } catch (error) {
       console.error("Error updating joke:", error);
@@ -342,19 +389,18 @@ export const JokeLibraryManager = () => {
   };
 
   const handleReviewAllJokes = async () => {
-    // Filter out already-reviewed jokes from AI review
-    const jokesToReview = jokes.filter(j => !j.is_reviewed);
+    // Filter out already-reviewed jokes AND jokes with existing AI ratings from AI review
+    const jokesToReview = jokes.filter(j => !j.is_reviewed && !j.ai_quality_rating);
     
     if (jokesToReview.length === 0) {
       toast({
         title: "No jokes to review",
-        description: "All jokes have been manually reviewed",
+        description: "All jokes have been reviewed (manually or by AI)",
       });
       return;
     }
     
     setReviewingAll(true);
-    setJokeQuality({});
     
     try {
       // Process in batches of 20 to avoid token limits
@@ -376,12 +422,38 @@ export const JokeLibraryManager = () => {
         if (response.error) throw response.error;
 
         const results = response.data.reviews as JokeQualityResult[];
-        results.forEach(r => {
+        
+        // Save each result to the database
+        for (const r of results) {
           allResults[r.id] = r;
-        });
+          
+          // Persist to database
+          await supabase
+            .from("joke_library")
+            .update({ 
+              ai_quality_rating: r.quality,
+              ai_quality_reason: r.reason,
+              ai_reviewed_at: new Date().toISOString()
+            })
+            .eq("id", r.id);
+        }
         
         // Update state progressively
         setJokeQuality(prev => ({ ...prev, ...allResults }));
+        
+        // Update local jokes state with new AI ratings
+        setJokes(prev => prev.map(j => {
+          const result = allResults[j.id];
+          if (result) {
+            return {
+              ...j,
+              ai_quality_rating: result.quality,
+              ai_quality_reason: result.reason,
+              ai_reviewed_at: new Date().toISOString()
+            };
+          }
+          return j;
+        }));
       }
       
       const badCount = Object.values(allResults).filter(r => r.quality === "bad").length;
@@ -389,7 +461,7 @@ export const JokeLibraryManager = () => {
       
       toast({
         title: "Review complete!",
-        description: `${goodCount} good, ${badCount} need attention`,
+        description: `${goodCount} good, ${badCount} need attention (saved to database)`,
       });
     } catch (error) {
       console.error("Error reviewing jokes:", error);
