@@ -3885,6 +3885,35 @@ export type Database = {
         }
         Relationships: []
       }
+      joke_likes: {
+        Row: {
+          created_at: string
+          id: string
+          joke_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          joke_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          joke_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "joke_likes_joke_id_fkey"
+            columns: ["joke_id"]
+            isOneToOne: false
+            referencedRelation: "saved_jokes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memory_match_images: {
         Row: {
           created_at: string
@@ -5965,6 +5994,45 @@ export type Database = {
           stripe_mode?: string
           triggered_by?: string | null
           updated_count?: number | null
+        }
+        Relationships: []
+      }
+      saved_jokes: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string
+          id: string
+          is_public: boolean | null
+          likes_count: number | null
+          question: string
+          times_shared: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          likes_count?: number | null
+          question: string
+          times_shared?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          likes_count?: number | null
+          question?: string
+          times_shared?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
