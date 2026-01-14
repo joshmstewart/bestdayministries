@@ -125,7 +125,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         </Button>
       )}
 
-      {/* AI-ify button */}
+      {/* Create AI Track button */}
       <Button
         onClick={onAIify}
         disabled={!canSave || isAIifying}
@@ -134,12 +134,12 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         {isAIifying ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Creating AI Magic...
+            Creating AI Track...
           </>
         ) : (
           <>
             <Sparkles className="h-4 w-4 mr-2" />
-            AI-ify My Beat! ✨
+            Create AI Track ✨
           </>
         )}
       </Button>
