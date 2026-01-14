@@ -447,7 +447,12 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
       const newAudioUrl = URL.createObjectURL(audioBlob);
       setAiAudioUrl(newAudioUrl);
 
-      toast.success('AI music created! 🎵');
+      toast.success('AI track created! Auto-saving... 🎵');
+      
+      // Auto-save after AI track is created
+      setTimeout(() => {
+        handleSave();
+      }, 500);
     } catch (error) {
       console.error('Error generating AI music:', error);
       showErrorToastWithCopy('AI Music Generation', error);
