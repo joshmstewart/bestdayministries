@@ -43,11 +43,12 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
   const fetchData = async () => {
     setIsLoading(true);
     
-    // Fetch all active categories (excluding 'random')
+    // Fetch all active categories that should appear in selector
     const { data: categoryData, error: categoryError } = await supabase
       .from('joke_categories')
-      .select('id, name, emoji, is_free, coin_price')
+      .select('id, name, emoji, is_free, coin_price, show_in_selector')
       .eq('is_active', true)
+      .eq('show_in_selector', true)
       .neq('name', 'random')
       .order('display_order');
     
