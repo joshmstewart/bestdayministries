@@ -7,6 +7,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { showErrorToastWithCopy } from '@/lib/errorToast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import CustomizableBeatGrid from '@/components/beat-pad/CustomizableBeatGrid';
 import PlaybackControls from '@/components/beat-pad/PlaybackControls';
 import BeatPadGallery from '@/components/beat-pad/BeatPadGallery';
@@ -40,6 +50,7 @@ const BeatPad: React.FC = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [isGeneratingName, setIsGeneratingName] = useState(false);
   const [isGeneratingBeat, setIsGeneratingBeat] = useState(false);
+  const [showGenerateBeatConfirm, setShowGenerateBeatConfirm] = useState(false);
   // Track saved beat info for cover image
   const [savedBeatId, setSavedBeatId] = useState<string | null>(null);
   const [savedBeatImageUrl, setSavedBeatImageUrl] = useState<string | null>(null);
@@ -296,10 +307,16 @@ const BeatPad: React.FC = () => {
   }, [handleStop, aiAudioUrl]);
 
   // Generate AI beat pattern from current instruments
-  const generateAIBeat = async () => {
+  const generateAIBeat = async (skipConfirm = false) => {
     const activeInstruments = instruments.filter(Boolean) as SoundConfig[];
     if (activeInstruments.length === 0) {
       toast.error('Add some instruments first!');
+      return;
+    }
+
+    // If there's an existing pattern and we haven't confirmed, show dialog
+    if (hasPattern && !skipConfirm) {
+      setShowGenerateBeatConfirm(true);
       return;
     }
 
@@ -707,6 +724,27 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
       </main>
       
       <Footer />
+
+      {/* Generate Beat Confirmation Dialog */}
+      <AlertDialog open={showGenerateBeatConfirm} onOpenChange={setShowGenerateBeatConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Override Current Beat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have an existing beat pattern. Generating a new beat will replace your current pattern. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setShowGenerateBeatConfirm(false);
+              generateAIBeat(true);
+            }}>
+              Generate New Beat
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
