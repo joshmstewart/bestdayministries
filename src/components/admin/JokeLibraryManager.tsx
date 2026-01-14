@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle } from "lucide-react";
+import { TextToSpeech } from "@/components/TextToSpeech";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
@@ -442,8 +443,18 @@ export const JokeLibraryManager = () => {
                           )}
                         </Button>
                       </TableCell>
-                      <TableCell className="font-medium">{joke.question}</TableCell>
-                      <TableCell>{joke.answer}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-start gap-1">
+                          <span className="flex-1">{joke.question}</span>
+                          <TextToSpeech text={joke.question} size="icon" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-start gap-1">
+                          <span className="flex-1">{joke.answer}</span>
+                          <TextToSpeech text={joke.answer} size="icon" />
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">{joke.category}</Badge>
                       </TableCell>
