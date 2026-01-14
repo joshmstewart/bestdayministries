@@ -30,6 +30,13 @@ interface StoreType {
   is_default: boolean;
 }
 
+interface CustomerType {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+}
+
 const FALLBACK_IMAGES: Record<string, string> = {
   "Coffee Shop": coffeeShopBg,
   "Grocery Store": groceryBg,
@@ -78,6 +85,8 @@ export default function MoneyCounting() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [showComplete, setShowComplete] = useState(false);
   const [stores, setStores] = useState<StoreType[]>([]);
+  const [customers, setCustomers] = useState<CustomerType[]>([]);
+  const [currentCustomer, setCurrentCustomer] = useState<CustomerType | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [levelResult, setLevelResult] = useState<{
     success: boolean;
@@ -86,31 +95,48 @@ export default function MoneyCounting() {
     optimalBreakdown: { [key: string]: number };
   } | null>(null);
 
-  // Load stores from database
+  // Load stores and customers from database
   useEffect(() => {
-    const loadStores = async () => {
-      const { data, error } = await supabase
-        .from("cash_register_stores")
-        .select("id, name, description, image_url, is_default")
-        .eq("is_active", true)
-        .order("display_order");
+    const loadData = async () => {
+      const [storesRes, customersRes] = await Promise.all([
+        supabase
+          .from("cash_register_stores")
+          .select("id, name, description, image_url, is_default")
+          .eq("is_active", true)
+          .order("display_order"),
+        supabase
+          .from("cash_register_customers")
+          .select("id, name, description, image_url")
+          .eq("is_active", true),
+      ]);
 
-      if (error) {
-        console.error("Error loading stores:", error);
-        return;
+      if (storesRes.error) {
+        console.error("Error loading stores:", storesRes.error);
+      } else {
+        setStores(storesRes.data || []);
+        const defaultStore = storesRes.data?.find((s) => s.is_default) || storesRes.data?.[0];
+        if (defaultStore) {
+          setSelectedStore(defaultStore);
+        }
       }
 
-      setStores(data || []);
-      
-      // Set default store
-      const defaultStore = data?.find((s) => s.is_default) || data?.[0];
-      if (defaultStore) {
-        setSelectedStore(defaultStore);
+      if (customersRes.error) {
+        console.error("Error loading customers:", customersRes.error);
+      } else {
+        setCustomers(customersRes.data || []);
       }
     };
 
-    loadStores();
+    loadData();
   }, []);
+
+  // Pick a random customer when customers load or level changes
+  const pickRandomCustomer = useCallback(() => {
+    if (customers.length > 0) {
+      const randomIndex = Math.floor(Math.random() * customers.length);
+      setCurrentCustomer(customers[randomIndex]);
+    }
+  }, [customers]);
 
   const getStoreBackground = () => {
     if (selectedStore?.image_url) {
@@ -149,7 +175,8 @@ export default function MoneyCounting() {
     });
     setShowComplete(false);
     setLevelResult(null);
-  }, []);
+    pickRandomCustomer();
+  }, [pickRandomCustomer]);
 
   const startNextLevel = useCallback(() => {
     if (!gameState) return;
@@ -179,7 +206,8 @@ export default function MoneyCounting() {
     });
     setShowComplete(false);
     setLevelResult(null);
-  }, [gameState]);
+    pickRandomCustomer();
+  }, [gameState, pickRandomCustomer]);
 
   const goToNextStep = useCallback(() => {
     if (!gameState) return;
@@ -456,65 +484,100 @@ export default function MoneyCounting() {
             onNewGame={startNewGame}
           />
         ) : (
-          <div className="max-w-2xl mx-auto space-y-6 bg-background/90 backdrop-blur-sm rounded-lg p-6 shadow-lg">
-            {/* Step 1: Receipt */}
-            {gameState.step === "receipt" && (
-              <div className="space-y-4">
-                <div className="text-center mb-4">
-                  <Badge variant="outline" className="text-lg px-4 py-2">
-                    Step 1: Review the Order
-                  </Badge>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {/* Left Column - Interactive Modules */}
+            <div className="space-y-6 bg-background/90 backdrop-blur-sm rounded-lg p-6 shadow-lg order-2 lg:order-1">
+              {/* Step 1: Receipt */}
+              {gameState.step === "receipt" && (
+                <div className="space-y-4">
+                  <div className="text-center mb-4">
+                    <Badge variant="outline" className="text-lg px-4 py-2">
+                      Step 1: Review the Order
+                    </Badge>
+                  </div>
+                  <ReceiptDisplay
+                    items={gameState.items}
+                    subtotal={gameState.subtotal}
+                    tax={gameState.tax}
+                    total={gameState.total}
+                  />
+                  <Button onClick={goToNextStep} size="lg" className="w-full">
+                    Next: See Customer Payment →
+                  </Button>
                 </div>
-                <ReceiptDisplay
-                  items={gameState.items}
-                  subtotal={gameState.subtotal}
-                  tax={gameState.tax}
-                  total={gameState.total}
-                />
-                <Button onClick={goToNextStep} size="lg" className="w-full">
-                  Next: See Customer Payment →
-                </Button>
-              </div>
-            )}
+              )}
 
-            {/* Step 2: Customer Payment */}
-            {gameState.step === "payment" && (
-              <div className="space-y-4">
-                <div className="text-center mb-4">
-                  <Badge variant="outline" className="text-lg px-4 py-2">
-                    Step 2: Collect Payment
-                  </Badge>
+              {/* Step 2: Customer Payment */}
+              {gameState.step === "payment" && (
+                <div className="space-y-4">
+                  <div className="text-center mb-4">
+                    <Badge variant="outline" className="text-lg px-4 py-2">
+                      Step 2: Collect Payment
+                    </Badge>
+                  </div>
+                  <CustomerPayment
+                    customerCash={gameState.customerCash}
+                    totalPayment={gameState.customerPayment}
+                    orderTotal={gameState.total}
+                    cashCollected={gameState.cashCollected}
+                    onCollect={goToNextStep}
+                  />
                 </div>
-                <CustomerPayment
-                  customerCash={gameState.customerCash}
-                  totalPayment={gameState.customerPayment}
-                  orderTotal={gameState.total}
-                  cashCollected={gameState.cashCollected}
-                  onCollect={goToNextStep}
-                />
-              </div>
-            )}
+              )}
 
-            {/* Step 3: Make Change */}
-            {gameState.step === "change" && (
-              <div className="space-y-6">
-                <div className="text-center mb-4">
-                  <Badge variant="outline" className="text-lg px-4 py-2">
-                    Step 3: Give Change
-                  </Badge>
+              {/* Step 3: Make Change */}
+              {gameState.step === "change" && (
+                <div className="space-y-6">
+                  <div className="text-center mb-4">
+                    <Badge variant="outline" className="text-lg px-4 py-2">
+                      Step 3: Give Change
+                    </Badge>
+                  </div>
+                  <ChangeTracker
+                    changeNeeded={gameState.changeNeeded}
+                    changeGiven={gameState.changeGiven}
+                    cashCollected={gameState.cashCollected}
+                    onReturnMoney={returnMoney}
+                  />
+                  <CashDrawer
+                    onSelectMoney={giveMoney}
+                    disabled={!gameState.cashCollected}
+                  />
                 </div>
-                <ChangeTracker
-                  changeNeeded={gameState.changeNeeded}
-                  changeGiven={gameState.changeGiven}
-                  cashCollected={gameState.cashCollected}
-                  onReturnMoney={returnMoney}
-                />
-                <CashDrawer
-                  onSelectMoney={giveMoney}
-                  disabled={!gameState.cashCollected}
-                />
+              )}
+            </div>
+
+            {/* Right Column - Customer Display */}
+            <div className="bg-background/90 backdrop-blur-sm rounded-lg p-6 shadow-lg order-1 lg:order-2">
+              <div className="text-center space-y-4">
+                <h2 className="text-xl font-semibold text-foreground">Your Customer</h2>
+                {currentCustomer ? (
+                  <div className="space-y-3">
+                    {currentCustomer.image_url ? (
+                      <div className="relative mx-auto w-48 h-48 lg:w-64 lg:h-64">
+                        <img
+                          src={currentCustomer.image_url}
+                          alt={currentCustomer.name}
+                          className="w-full h-full object-contain rounded-lg"
+                        />
+                      </div>
+                    ) : (
+                      <div className="mx-auto w-48 h-48 lg:w-64 lg:h-64 bg-muted rounded-lg flex items-center justify-center">
+                        <span className="text-6xl">👤</span>
+                      </div>
+                    )}
+                    <h3 className="text-lg font-medium text-foreground">{currentCustomer.name}</h3>
+                    {currentCustomer.description && (
+                      <p className="text-sm text-muted-foreground">{currentCustomer.description}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mx-auto w-48 h-48 lg:w-64 lg:h-64 bg-muted rounded-lg flex items-center justify-center">
+                    <span className="text-6xl">👤</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
