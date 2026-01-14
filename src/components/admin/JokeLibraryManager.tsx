@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle, Brain, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Trash2, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle, Brain, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -37,6 +38,12 @@ interface CategoryStats {
   count: number;
 }
 
+interface JokeQualityResult {
+  id: string;
+  quality: "good" | "bad";
+  reason: string;
+}
+
 export const JokeLibraryManager = () => {
   const [jokes, setJokes] = useState<Joke[]>([]);
   const [categories, setCategories] = useState<JokeCategory[]>([]);
@@ -50,8 +57,14 @@ export const JokeLibraryManager = () => {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterReviewed, setFilterReviewed] = useState<string>("all");
-  const [checkingJokeId, setCheckingJokeId] = useState<string | null>(null);
-  const [jokeQuality, setJokeQuality] = useState<Record<string, { quality: "good" | "bad"; reason: string }>>({});
+  
+  // Bulk quality review state
+  const [reviewingAll, setReviewingAll] = useState(false);
+  const [jokeQuality, setJokeQuality] = useState<Record<string, JokeQualityResult>>({});
+  const [filterQuality, setFilterQuality] = useState<string>("all");
+  const [selectedJokes, setSelectedJokes] = useState<Set<string>>(new Set());
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  
   const { toast } = useToast();
 
   const loadJokes = useCallback(async () => {
@@ -91,7 +104,6 @@ export const JokeLibraryManager = () => {
 
   const loadCategoryStats = useCallback(async () => {
     try {
-      // Load categories from database
       const { data: categoriesData, error: categoriesError } = await supabase
         .from("joke_categories")
         .select("id, name, is_free")
@@ -101,14 +113,12 @@ export const JokeLibraryManager = () => {
       if (categoriesError) throw categoriesError;
       setCategories(categoriesData || []);
 
-      // Load joke counts
       const { data, error } = await supabase
         .from("joke_library")
         .select("category");
 
       if (error) throw error;
 
-      // Count jokes per category
       const counts: Record<string, number> = {};
       (data || []).forEach((joke) => {
         const cat = joke.category || "uncategorized";
@@ -144,6 +154,16 @@ export const JokeLibraryManager = () => {
       if (error) throw error;
 
       setJokes(prev => prev.filter(j => j.id !== id));
+      setJokeQuality(prev => {
+        const newQuality = { ...prev };
+        delete newQuality[id];
+        return newQuality;
+      });
+      setSelectedJokes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
       loadCategoryStats();
       
       toast({
@@ -157,6 +177,44 @@ export const JokeLibraryManager = () => {
         description: "Failed to delete joke",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedJokes.size === 0) return;
+    
+    setDeletingSelected(true);
+    try {
+      const idsToDelete = Array.from(selectedJokes);
+      const { error } = await supabase
+        .from("joke_library")
+        .delete()
+        .in("id", idsToDelete);
+
+      if (error) throw error;
+
+      setJokes(prev => prev.filter(j => !selectedJokes.has(j.id)));
+      setJokeQuality(prev => {
+        const newQuality = { ...prev };
+        idsToDelete.forEach(id => delete newQuality[id]);
+        return newQuality;
+      });
+      setSelectedJokes(new Set());
+      loadCategoryStats();
+      
+      toast({
+        title: "Jokes deleted",
+        description: `Deleted ${idsToDelete.length} jokes from the library`,
+      });
+    } catch (error) {
+      console.error("Error deleting jokes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete jokes",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingSelected(false);
     }
   };
 
@@ -216,38 +274,100 @@ export const JokeLibraryManager = () => {
     }
   };
 
-  const handleCheckQuality = async (joke: Joke) => {
-    setCheckingJokeId(joke.id);
+  const handleReviewAllJokes = async () => {
+    if (jokes.length === 0) return;
+    
+    setReviewingAll(true);
+    setJokeQuality({});
+    
     try {
-      const response = await supabase.functions.invoke("review-joke-quality", {
-        body: { question: joke.question, answer: joke.answer },
-      });
+      // Process in batches of 20 to avoid token limits
+      const batchSize = 20;
+      const allResults: Record<string, JokeQualityResult> = {};
+      
+      for (let i = 0; i < jokes.length; i += batchSize) {
+        const batch = jokes.slice(i, i + batchSize);
+        const jokesForReview = batch.map(j => ({
+          id: j.id,
+          question: j.question,
+          answer: j.answer
+        }));
 
-      if (response.error) throw response.error;
+        const response = await supabase.functions.invoke("review-joke-quality", {
+          body: { jokes: jokesForReview },
+        });
 
-      const result = response.data;
-      setJokeQuality(prev => ({ ...prev, [joke.id]: result }));
+        if (response.error) throw response.error;
+
+        const results = response.data.reviews as JokeQualityResult[];
+        results.forEach(r => {
+          allResults[r.id] = r;
+        });
+        
+        // Update state progressively
+        setJokeQuality(prev => ({ ...prev, ...allResults }));
+      }
+      
+      const badCount = Object.values(allResults).filter(r => r.quality === "bad").length;
+      const goodCount = Object.values(allResults).filter(r => r.quality === "good").length;
       
       toast({
-        title: result.quality === "good" ? "✓ Joke looks good!" : "✗ Joke has issues",
-        description: result.reason,
-        variant: result.quality === "good" ? "default" : "destructive",
+        title: "Review complete!",
+        description: `${goodCount} good, ${badCount} need attention`,
       });
     } catch (error) {
-      console.error("Error checking joke quality:", error);
+      console.error("Error reviewing jokes:", error);
       toast({
         title: "Error",
-        description: "Failed to check joke quality",
+        description: "Failed to review jokes",
         variant: "destructive",
       });
     } finally {
-      setCheckingJokeId(null);
+      setReviewingAll(false);
+    }
+  };
+
+  const handleSelectAllBad = () => {
+    const badJokeIds = Object.entries(jokeQuality)
+      .filter(([_, result]) => result.quality === "bad")
+      .map(([id]) => id);
+    setSelectedJokes(new Set(badJokeIds));
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedJokes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedJokes.size === filteredJokes.length) {
+      setSelectedJokes(new Set());
+    } else {
+      setSelectedJokes(new Set(filteredJokes.map(j => j.id)));
     }
   };
 
   const totalJokes = categoryStats.reduce((sum, s) => sum + s.count, 0);
+  
+  // Apply quality filter
+  const filteredJokes = jokes.filter(joke => {
+    if (filterQuality === "all") return true;
+    const quality = jokeQuality[joke.id];
+    if (filterQuality === "bad") return quality?.quality === "bad";
+    if (filterQuality === "good") return quality?.quality === "good";
+    if (filterQuality === "unreviewed") return !quality;
+    return true;
+  });
 
-  const filteredJokes = jokes;
+  const badCount = Object.values(jokeQuality).filter(r => r.quality === "bad").length;
+  const goodCount = Object.values(jokeQuality).filter(r => r.quality === "good").length;
 
   return (
     <div className="space-y-6">
@@ -318,7 +438,24 @@ export const JokeLibraryManager = () => {
               <CardTitle>Joke Library</CardTitle>
               <CardDescription>Manage and generate jokes</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                onClick={handleReviewAllJokes}
+                disabled={reviewingAll || jokes.length === 0}
+              >
+                {reviewingAll ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Reviewing...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="h-4 w-4 mr-2" />
+                    AI Review All
+                  </>
+                )}
+              </Button>
               <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -389,6 +526,44 @@ export const JokeLibraryManager = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* AI Review Stats */}
+          {Object.keys(jokeQuality).length > 0 && (
+            <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <ThumbsUp className="h-4 w-4 text-green-500" />
+                <span className="font-medium">{goodCount} good</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ThumbsDown className="h-4 w-4 text-destructive" />
+                <span className="font-medium">{badCount} need attention</span>
+              </div>
+              {badCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAllBad}
+                >
+                  Select All Bad ({badCount})
+                </Button>
+              )}
+              {selectedJokes.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  disabled={deletingSelected}
+                >
+                  {deletingSelected ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Delete Selected ({selectedJokes.size})
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -403,7 +578,7 @@ export const JokeLibraryManager = () => {
               </div>
             </div>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>
@@ -416,13 +591,34 @@ export const JokeLibraryManager = () => {
               </SelectContent>
             </Select>
             <Select value={filterReviewed} onValueChange={setFilterReviewed}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Jokes</SelectItem>
                 <SelectItem value="reviewed">Reviewed</SelectItem>
                 <SelectItem value="unreviewed">Unreviewed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterQuality} onValueChange={setFilterQuality}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="AI Quality" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Quality</SelectItem>
+                <SelectItem value="bad">
+                  <span className="flex items-center gap-2">
+                    <ThumbsDown className="h-3 w-3 text-destructive" />
+                    Bad Only
+                  </span>
+                </SelectItem>
+                <SelectItem value="good">
+                  <span className="flex items-center gap-2">
+                    <ThumbsUp className="h-3 w-3 text-green-500" />
+                    Good Only
+                  </span>
+                </SelectItem>
+                <SelectItem value="unreviewed">Not Reviewed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -437,7 +633,14 @@ export const JokeLibraryManager = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px] text-center">✓</TableHead>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={selectedJokes.size === filteredJokes.length && filteredJokes.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead className="w-[40px] text-center">AI</TableHead>
+                    <TableHead className="w-[40px] text-center">✓</TableHead>
                     <TableHead className="w-[30%]">Question</TableHead>
                     <TableHead className="w-[25%]">Answer</TableHead>
                     <TableHead>Category</TableHead>
@@ -455,103 +658,97 @@ export const JokeLibraryManager = () => {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead className="w-[90px] text-center">AI</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredJokes.map((joke) => (
-                    <TableRow key={joke.id}>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleReviewed(joke.id, joke.is_reviewed)}
-                          title={joke.is_reviewed ? "Reviewed - click to unmark" : "Click to mark as reviewed"}
-                        >
-                          {joke.is_reviewed ? (
-                            <CheckCircle className="h-5 w-5 text-green-500" />
-                          ) : (
-                            <Circle className="h-5 w-5 text-muted-foreground/40" />
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex items-start gap-1">
-                          <span className="flex-1">{joke.question}</span>
-                          <TextToSpeech text={joke.question} size="icon" />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-start gap-1">
-                          <span className="flex-1">{joke.answer}</span>
-                          <TextToSpeech text={joke.answer} size="icon" />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{joke.category}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">{joke.times_served}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                        {format(new Date(joke.created_at), "M/d/yy h:mm a")}
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <div className="flex items-center justify-center gap-1">
+                  {filteredJokes.map((joke) => {
+                    const quality = jokeQuality[joke.id];
+                    return (
+                      <TableRow 
+                        key={joke.id}
+                        className={quality?.quality === "bad" ? "bg-destructive/5" : undefined}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedJokes.has(joke.id)}
+                            onCheckedChange={() => handleToggleSelect(joke.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleCheckQuality(joke)}
-                                  disabled={checkingJokeId === joke.id}
-                                  title="Check joke quality with AI"
-                                >
-                                  {checkingJokeId === joke.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : jokeQuality[joke.id] ? (
-                                    jokeQuality[joke.id].quality === "good" ? (
+                                <div className="flex justify-center">
+                                  {quality ? (
+                                    quality.quality === "good" ? (
                                       <ThumbsUp className="h-4 w-4 text-green-500" />
                                     ) : (
                                       <ThumbsDown className="h-4 w-4 text-destructive" />
                                     )
                                   ) : (
-                                    <Brain className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-muted-foreground/30">—</span>
                                   )}
-                                </Button>
+                                </div>
                               </TooltipTrigger>
-                              <TooltipContent side="left" className="max-w-[300px]">
-                                {jokeQuality[joke.id] ? (
-                                  <p>{jokeQuality[joke.id].reason}</p>
-                                ) : (
-                                  <p>Check joke quality with AI</p>
-                                )}
-                              </TooltipContent>
+                              {quality && (
+                                <TooltipContent side="right" className="max-w-[300px]">
+                                  <p>{quality.reason}</p>
+                                </TooltipContent>
+                              )}
                             </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteJoke(joke.id)}
-                                  title="Delete joke"
-                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="left">
-                                <p>Delete joke</p>
-                              </TooltipContent>
-                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleReviewed(joke.id, joke.is_reviewed)}
+                            title={joke.is_reviewed ? "Reviewed - click to unmark" : "Click to mark as reviewed"}
+                          >
+                            {joke.is_reviewed ? (
+                              <CheckCircle className="h-5 w-5 text-green-500" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-muted-foreground/40" />
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-start gap-1">
+                            <span className="flex-1">{joke.question}</span>
+                            <TextToSpeech text={joke.question} size="icon" />
                           </div>
-                        </TooltipProvider>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-start gap-1">
+                            <span className="flex-1">{joke.answer}</span>
+                            <TextToSpeech text={joke.answer} size="icon" />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{joke.category}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center">{joke.times_served}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {format(new Date(joke.created_at), "M/d/yy h:mm a")}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteJoke(joke.id)}
+                            title="Delete joke"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {filteredJokes.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                         No jokes found
                       </TableCell>
                     </TableRow>
@@ -563,6 +760,7 @@ export const JokeLibraryManager = () => {
           
           <p className="text-sm text-muted-foreground">
             Showing {filteredJokes.length} jokes {filterCategory !== "all" && `in "${filterCategory}"`}
+            {filterQuality !== "all" && ` (${filterQuality} quality)`}
           </p>
         </CardContent>
       </Card>
