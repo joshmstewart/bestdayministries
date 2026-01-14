@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Store, X, Settings, MessageSquare, ShoppingBag, FileCheck } from "lucide-react";
+import { Link as LinkIcon, Trash2, UserPlus, Star, Heart, Edit, DollarSign, Share2, Plus, Play, Pause, Store, X, Settings, MessageSquare, ShoppingBag, FileCheck, Dumbbell } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
@@ -27,6 +27,7 @@ import { GuardianSponsorMessenger } from "@/components/guardian/GuardianSponsorM
 import { SponsorMessageInbox } from "@/components/sponsor/SponsorMessageInbox";
 import { DonationHistory } from "@/components/sponsor/DonationHistory";
 import { PicturePasswordManager } from "@/components/auth/PicturePasswordManager";
+import { WorkoutGoalSetter } from "@/components/guardian/WorkoutGoalSetter";
 
 // Build timestamp for admin visibility
 const BUILD_TIMESTAMP = new Date().toISOString();
@@ -1371,6 +1372,24 @@ export default function GuardianLinks() {
                                   <PicturePasswordManager
                                     userId={link.bestie_id}
                                     isGuardianManaging={true}
+                                    bestieName={link.bestie.display_name}
+                                  />
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+
+                            {/* Workout Goals */}
+                            <AccordionItem value="workout-goals">
+                              <AccordionTrigger className="hover:no-underline">
+                                <div className="flex items-center gap-2">
+                                  <Dumbbell className="w-4 h-4" />
+                                  <span className="font-medium">Workout Goals</span>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="pt-2">
+                                  <WorkoutGoalSetter
+                                    bestieId={link.bestie_id}
                                     bestieName={link.bestie.display_name}
                                   />
                                 </div>
