@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles } from "lucide-react";
+import { Trash2, Plus, RefreshCw, Loader2, Search, Sparkles, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
 
 interface Joke {
   id: string;
@@ -44,6 +45,7 @@ export const JokeLibraryManager = () => {
   const [generateCount, setGenerateCount] = useState(20);
   const [generateCategory, setGenerateCategory] = useState<string>("random");
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const { toast } = useToast();
 
   const loadJokes = useCallback(async () => {
@@ -51,7 +53,7 @@ export const JokeLibraryManager = () => {
       let query = supabase
         .from("joke_library")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: sortOrder === "asc" });
 
       if (filterCategory && filterCategory !== "all") {
         query = query.eq("category", filterCategory);
@@ -73,7 +75,7 @@ export const JokeLibraryManager = () => {
         variant: "destructive",
       });
     }
-  }, [filterCategory, searchQuery, toast]);
+  }, [filterCategory, searchQuery, sortOrder, toast]);
 
   const loadCategoryStats = useCallback(async () => {
     try {
@@ -360,10 +362,23 @@ export const JokeLibraryManager = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[80px]">ID</TableHead>
-                    <TableHead className="w-[35%]">Question</TableHead>
-                    <TableHead className="w-[30%]">Answer</TableHead>
+                    <TableHead className="w-[30%]">Question</TableHead>
+                    <TableHead className="w-[25%]">Answer</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-center">Served</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSortOrder(prev => prev === "desc" ? "asc" : "desc")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Created
+                        {sortOrder === "desc" ? (
+                          <ArrowDown className="h-4 w-4" />
+                        ) : (
+                          <ArrowUp className="h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -377,6 +392,9 @@ export const JokeLibraryManager = () => {
                         <Badge variant="outline">{joke.category}</Badge>
                       </TableCell>
                       <TableCell className="text-center">{joke.times_served}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {format(new Date(joke.created_at), "M/d/yy h:mm a")}
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -391,7 +409,7 @@ export const JokeLibraryManager = () => {
                   ))}
                   {filteredJokes.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         No jokes found
                       </TableCell>
                     </TableRow>
