@@ -23,22 +23,23 @@ serve(async (req) => {
     }
 
     // Build a detailed prompt for diverse customer generation
-    const prompt = `Create a friendly, cartoon-style illustration of a customer for a children's cash register game. 
+    const prompt = `Create a hyper-realistic photograph of a customer at a store checkout counter.
 
 Character type: ${characterType}
 ${description ? `Additional details: ${description}` : ''}
 
 Requirements:
-- Full body view, standing and facing forward as if at a checkout counter
-- Warm, approachable expression with a smile
-- Colorful, playful art style suitable for children
-- Simple, clean background (solid pastel color or transparent)
-- The character should look like they're ready to make a purchase
+- Upper body view from waist up, as if standing at a checkout counter
+- Natural, friendly expression with a warm smile
+- Hyper-realistic photography style with natural lighting
+- Simple, blurred store background (bokeh effect)
+- The person should look like a real customer ready to make a purchase
 - Diverse and inclusive representation
-- Kid-friendly and non-threatening appearance
+- Authentic, approachable appearance
 - No text or logos in the image
+- Professional photography quality with sharp focus on the subject
 
-Style: Pixar-like 3D rendered character with soft lighting, vibrant colors, and appealing proportions.`;
+Style: Hyper-realistic photograph, like a candid shot in a retail store, with natural skin textures and authentic clothing.`;
 
     console.log("Generating customer image with prompt:", prompt);
 
