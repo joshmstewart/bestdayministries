@@ -3885,10 +3885,50 @@ export type Database = {
         }
         Relationships: []
       }
+      joke_categories: {
+        Row: {
+          coin_price: number
+          created_at: string
+          description: string | null
+          display_order: number
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          is_free: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          coin_price?: number
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          coin_price?: number
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       joke_library: {
         Row: {
           answer: string
           category: string | null
+          category_id: string | null
           created_at: string
           id: string
           is_active: boolean | null
@@ -3898,6 +3938,7 @@ export type Database = {
         Insert: {
           answer: string
           category?: string | null
+          category_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
@@ -3907,13 +3948,22 @@ export type Database = {
         Update: {
           answer?: string
           category?: string | null
+          category_id?: string | null
           created_at?: string
           id?: string
           is_active?: boolean | null
           question?: string
           times_served?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "joke_library_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "joke_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       joke_likes: {
         Row: {
@@ -7270,6 +7320,38 @@ export type Database = {
             columns: ["coloring_page_id"]
             isOneToOne: false
             referencedRelation: "coloring_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_joke_categories: {
+        Row: {
+          category_id: string
+          coins_spent: number
+          id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_joke_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "joke_categories"
             referencedColumns: ["id"]
           },
         ]

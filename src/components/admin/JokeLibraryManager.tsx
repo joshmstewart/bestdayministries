@@ -17,8 +17,15 @@ interface Joke {
   question: string;
   answer: string;
   category: string;
+  category_id: string | null;
   times_served: number;
   created_at: string;
+}
+
+interface JokeCategory {
+  id: string;
+  name: string;
+  is_free: boolean;
 }
 
 interface CategoryStats {
@@ -26,24 +33,16 @@ interface CategoryStats {
   count: number;
 }
 
-const DEFAULT_CATEGORIES = [
-  "animals", "food", "school", "work", "sports", "weather", 
-  "music", "nature", "science", "holidays", "technology", 
-  "family", "travel", "movies", "books", "random"
-];
-
 export const JokeLibraryManager = () => {
   const [jokes, setJokes] = useState<Joke[]>([]);
-  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<JokeCategory[]>([]);
   const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
-  const [newCategory, setNewCategory] = useState("");
   const [generateCount, setGenerateCount] = useState(20);
   const [generateCategory, setGenerateCategory] = useState<string>("random");
-  const [addCategoryDialogOpen, setAddCategoryDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -78,6 +77,17 @@ export const JokeLibraryManager = () => {
 
   const loadCategoryStats = useCallback(async () => {
     try {
+      // Load categories from database
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("joke_categories")
+        .select("id, name, is_free")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      
+      if (categoriesError) throw categoriesError;
+      setCategories(categoriesData || []);
+
+      // Load joke counts
       const { data, error } = await supabase
         .from("joke_library")
         .select("category");
@@ -96,11 +106,6 @@ export const JokeLibraryManager = () => {
         .sort((a, b) => b.count - a.count);
 
       setCategoryStats(stats);
-
-      // Update categories list with any new ones from the database
-      const dbCategories = stats.map(s => s.category);
-      const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...dbCategories])].sort();
-      setCategories(allCategories);
     } catch (error) {
       console.error("Error loading category stats:", error);
     }
@@ -139,29 +144,6 @@ export const JokeLibraryManager = () => {
         variant: "destructive",
       });
     }
-  };
-
-  const handleAddCategory = () => {
-    if (!newCategory.trim()) return;
-    
-    const normalized = newCategory.toLowerCase().trim();
-    if (categories.includes(normalized)) {
-      toast({
-        title: "Category exists",
-        description: "This category already exists",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setCategories(prev => [...prev, normalized].sort());
-    setNewCategory("");
-    setAddCategoryDialogOpen(false);
-    
-    toast({
-      title: "Category added",
-      description: `"${normalized}" is now available for joke generation`,
-    });
   };
 
   const handleGenerateJokes = async () => {
@@ -237,40 +219,8 @@ export const JokeLibraryManager = () => {
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Category Breakdown</CardTitle>
-              <CardDescription>Jokes per category</CardDescription>
+              <CardDescription>Jokes per category (manage categories above)</CardDescription>
             </div>
-            <Dialog open={addCategoryDialogOpen} onOpenChange={setAddCategoryDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Category
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Category</DialogTitle>
-                  <DialogDescription>
-                    Create a new category for joke generation
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label>Category Name</Label>
-                    <Input
-                      value={newCategory}
-                      onChange={(e) => setNewCategory(e.target.value)}
-                      placeholder="e.g., pirates, dinosaurs, space"
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAddCategoryDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddCategory}>Add Category</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -336,8 +286,8 @@ export const JokeLibraryManager = () => {
                         <SelectContent>
                           <SelectItem value="random">Random (Mixed)</SelectItem>
                           {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
-                              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                            <SelectItem key={cat.id} value={cat.name}>
+                              {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -391,8 +341,8 @@ export const JokeLibraryManager = () => {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  <SelectItem key={cat.id} value={cat.name}>
+                    {cat.name.charAt(0).toUpperCase() + cat.name.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
