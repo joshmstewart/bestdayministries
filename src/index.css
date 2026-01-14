@@ -156,8 +156,8 @@ All colors MUST be HSL.
     --gradient-sunset: linear-gradient(180deg, hsl(33 100% 58% / 0.1) 0%, hsl(46 95% 55% / 0.05) 100%);
     --gradient-glow: radial-gradient(circle at 50% 50%, hsl(46 95% 55% / 0.2) 0%, transparent 70%);
     
-    /* Settings Bar Gradient - Soft branded background for control bars/toolbars */
-    --gradient-settings-bar: linear-gradient(to right, hsl(var(--primary) / 0.2), hsl(var(--accent) / 0.2), hsl(var(--primary) / 0.2));
+    /* Soft Ribbon - Gentle horizontal band of brand colors for toolbars/settings bars */
+    --gradient-soft-ribbon: linear-gradient(to right, hsl(var(--primary) / 0.2), hsl(var(--accent) / 0.2), hsl(var(--primary) / 0.2));
 
     /* Modern Shadows & Effects - Enhanced Orange Glow */
     --shadow-sm: 0 2px 8px -2px hsl(24 85% 56% / 0.15);
@@ -293,8 +293,8 @@ All colors MUST be HSL.
     background: var(--gradient-sunset);
   }
   
-  .bg-gradient-settings-bar {
-    background: var(--gradient-settings-bar);
+  .bg-soft-ribbon {
+    background: var(--gradient-soft-ribbon);
   }
 
   .transition-smooth {
