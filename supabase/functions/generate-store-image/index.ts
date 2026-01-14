@@ -63,7 +63,7 @@ serve(async (req) => {
     }
 
     // Generate the image using Lovable AI chat completions (Nano banana)
-    const prompt = `Realistic photo from the cashier's perspective standing behind a ${storeName.toLowerCase()} checkout counter. View shows: a cash register and scanner in the foreground, a customer standing across the counter, store shelves and aisles visible in the background. ${storeDescription || ""} Professional retail photography, natural store lighting, 16:9 aspect ratio. No text overlays, no watermarks.`;
+    const prompt = `Realistic photo from the cashier's perspective standing behind a ${storeName.toLowerCase()} checkout counter. View shows: a cash register and scanner in the foreground, empty checkout area where a customer would stand, store shelves and aisles visible in the background. No people in the image. ${storeDescription || ""} Professional retail photography, natural store lighting, 16:9 aspect ratio. No text overlays, no watermarks.`;
 
     console.log("Generating image with prompt:", prompt);
 
