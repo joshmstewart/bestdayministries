@@ -314,8 +314,13 @@ const BeatPad: React.FC = () => {
       return;
     }
 
+    // Check if any cells are currently checked in the pattern
+    const patternHasCheckedCells = Object.values(pattern).some(steps => 
+      steps && steps.some(Boolean)
+    );
+
     // If there's an existing pattern and we haven't confirmed, show dialog
-    if (hasPattern && !skipConfirm) {
+    if (patternHasCheckedCells && !skipConfirm) {
       setShowGenerateBeatConfirm(true);
       return;
     }
