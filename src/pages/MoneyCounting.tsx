@@ -546,7 +546,7 @@ export default function MoneyCounting() {
         {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-black/30" />
         
-        <div className="container mx-auto max-w-6xl relative z-10 pt-8">
+        <div className="container mx-auto max-w-6xl relative z-10 pt-32">
         {showComplete && levelResult ? (
           <LevelComplete
             result={levelResult}
