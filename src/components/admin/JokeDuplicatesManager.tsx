@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Loader2, Trash2, RefreshCw, AlertTriangle, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,8 +33,8 @@ interface DuplicateGroup {
 export const JokeDuplicatesManager: React.FC = () => {
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // Track which joke to KEEP per group (by answer key)
-  const [keepSelections, setKeepSelections] = useState<Record<string, string>>({});
+  // Track which jokes to KEEP per group (by answer key) - now allows multiple
+  const [keepSelections, setKeepSelections] = useState<Record<string, Set<string>>>({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -71,11 +71,15 @@ export const JokeDuplicatesManager: React.FC = () => {
 
       setDuplicateGroups(duplicates);
       
-      // Initialize keep selections - default to reviewed joke or first joke
-      const initialSelections: Record<string, string> = {};
+      // Initialize keep selections - default to reviewed jokes or first joke
+      const initialSelections: Record<string, Set<string>> = {};
       duplicates.forEach(group => {
-        const reviewedJoke = group.jokes.find(j => j.is_reviewed);
-        initialSelections[group.answer] = reviewedJoke?.id || group.jokes[0].id;
+        const reviewedJokes = group.jokes.filter(j => j.is_reviewed);
+        if (reviewedJokes.length > 0) {
+          initialSelections[group.answer] = new Set(reviewedJokes.map(j => j.id));
+        } else {
+          initialSelections[group.answer] = new Set([group.jokes[0].id]);
+        }
       });
       setKeepSelections(initialSelections);
     } catch (error) {
@@ -90,20 +94,32 @@ export const JokeDuplicatesManager: React.FC = () => {
     fetchDuplicates();
   }, []);
 
-  const handleKeepSelection = (groupAnswer: string, jokeId: string) => {
-    setKeepSelections(prev => ({
-      ...prev,
-      [groupAnswer]: jokeId
-    }));
+  const handleToggleKeep = (groupAnswer: string, jokeId: string) => {
+    setKeepSelections(prev => {
+      const current = prev[groupAnswer] || new Set<string>();
+      const updated = new Set(current);
+      if (updated.has(jokeId)) {
+        // Don't allow deselecting if it's the last one
+        if (updated.size > 1) {
+          updated.delete(jokeId);
+        } else {
+          toast.error("You must keep at least one joke");
+          return prev;
+        }
+      } else {
+        updated.add(jokeId);
+      }
+      return { ...prev, [groupAnswer]: updated };
+    });
   };
 
   // Get all jokes that will be deleted (not selected to keep)
   const getJokesToDelete = (): string[] => {
     const toDelete: string[] = [];
     duplicateGroups.forEach(group => {
-      const keepId = keepSelections[group.answer];
+      const keepIds = keepSelections[group.answer] || new Set();
       group.jokes.forEach(joke => {
-        if (joke.id !== keepId) {
+        if (!keepIds.has(joke.id)) {
           toDelete.push(joke.id);
         }
       });
@@ -136,10 +152,13 @@ export const JokeDuplicatesManager: React.FC = () => {
   };
 
   const deleteGroupDuplicates = async (group: DuplicateGroup) => {
-    const keepId = keepSelections[group.answer];
-    const toDelete = group.jokes.filter(j => j.id !== keepId).map(j => j.id);
+    const keepIds = keepSelections[group.answer] || new Set();
+    const toDelete = group.jokes.filter(j => !keepIds.has(j.id)).map(j => j.id);
     
-    if (toDelete.length === 0) return;
+    if (toDelete.length === 0) {
+      toast.info("No duplicates to remove - all jokes are marked to keep");
+      return;
+    }
     
     try {
       const { error } = await supabase
@@ -149,7 +168,7 @@ export const JokeDuplicatesManager: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success(`Removed ${toDelete.length} duplicates, kept your selection`);
+      toast.success(`Removed ${toDelete.length} duplicates, kept ${keepIds.size} joke(s)`);
       fetchDuplicates();
     } catch (error) {
       console.error('Error deleting jokes:', error);
@@ -195,7 +214,7 @@ export const JokeDuplicatesManager: React.FC = () => {
       </div>
 
       <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-        💡 Select which joke to <strong>keep</strong> in each group, then delete the duplicates.
+        💡 Select which jokes to <strong>keep</strong> in each group (you can keep multiple), then delete the rest.
       </p>
 
       {duplicateGroups.length === 0 ? (
@@ -229,13 +248,9 @@ export const JokeDuplicatesManager: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <RadioGroup 
-                    value={keepSelections[group.answer] || ''} 
-                    onValueChange={(value) => handleKeepSelection(group.answer, value)}
-                    className="space-y-2"
-                  >
+                  <div className="space-y-2">
                     {group.jokes.map((joke) => {
-                      const isSelected = keepSelections[group.answer] === joke.id;
+                      const isSelected = keepSelections[group.answer]?.has(joke.id) || false;
                       return (
                         <div 
                           key={joke.id}
@@ -244,10 +259,14 @@ export const JokeDuplicatesManager: React.FC = () => {
                               ? 'bg-green-500/10 border border-green-500/30' 
                               : 'bg-muted/50 hover:bg-muted'
                           }`}
-                          onClick={() => handleKeepSelection(group.answer, joke.id)}
+                          onClick={() => handleToggleKeep(group.answer, joke.id)}
                         >
-                          <RadioGroupItem value={joke.id} id={joke.id} className="mt-0.5" />
-                          <Label htmlFor={joke.id} className="flex-1 min-w-0 cursor-pointer">
+                          <Checkbox 
+                            checked={isSelected} 
+                            onCheckedChange={() => handleToggleKeep(group.answer, joke.id)}
+                            className="mt-0.5" 
+                          />
+                          <Label className="flex-1 min-w-0 cursor-pointer">
                             <p className="text-sm font-medium">{joke.question}</p>
                             <p className="text-xs text-muted-foreground mt-1">
                               ID: {joke.id.slice(0, 8)}...
@@ -267,7 +286,7 @@ export const JokeDuplicatesManager: React.FC = () => {
                         </div>
                       );
                     })}
-                  </RadioGroup>
+                  </div>
                 </CardContent>
               </Card>
             ))}
