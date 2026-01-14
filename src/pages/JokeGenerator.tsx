@@ -51,10 +51,12 @@ const JokeGenerator: React.FC = () => {
         .order('display_order');
       
       if (!error && data) {
+        // Filter out 'random' from database since we add it manually
+        const filteredData = data.filter(cat => cat.name.toLowerCase() !== 'random');
         // Add random option at the beginning
         setCategories([
           { id: 'random', name: 'Random', emoji: '🎲' },
-          ...data.map(cat => ({
+          ...filteredData.map(cat => ({
             id: cat.name.toLowerCase(),
             name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1),
             emoji: cat.emoji || '🎲'
