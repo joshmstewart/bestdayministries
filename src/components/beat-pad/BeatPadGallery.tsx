@@ -38,6 +38,7 @@ interface Beat {
   pattern: Record<string, boolean[]>;
   tempo: number;
   image_url?: string | null;
+  is_public?: boolean;
 }
 
 interface BeatPadGalleryProps {
@@ -260,6 +261,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                           pattern: creation.pattern,
                           tempo: creation.tempo,
                           image_url: creation.image_url,
+                          is_public: true, // It's in the gallery, so it's public
                         });
                       }}
                     >

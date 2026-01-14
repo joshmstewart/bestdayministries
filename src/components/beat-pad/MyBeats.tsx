@@ -24,6 +24,7 @@ interface Beat {
   pattern: Record<string, boolean[]>;
   tempo: number;
   image_url?: string | null;
+  is_public?: boolean;
 }
 
 interface MyBeatsProps {
@@ -155,6 +156,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
                 pattern: beat.pattern,
                 tempo: beat.tempo,
                 image_url: beat.image_url,
+                is_public: beat.is_public,
               });
             }}
           >
@@ -195,6 +197,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
                   pattern: beat.pattern,
                   tempo: beat.tempo,
                   image_url: beat.image_url,
+                  is_public: beat.is_public,
                 });
               }}
             >
@@ -237,6 +240,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
                     pattern: beat.pattern,
                     tempo: beat.tempo,
                     image_url: beat.image_url,
+                    is_public: beat.is_public,
                   });
                 }}
                 className="flex-shrink-0"

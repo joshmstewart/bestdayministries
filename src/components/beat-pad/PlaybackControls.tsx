@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Square, Trash2, Save, Share2, Sparkles, Loader2, Wand2, Shuffle } from 'lucide-react';
+import { Play, Pause, Square, Trash2, Save, Share2, Sparkles, Loader2, Wand2, Shuffle, EyeOff } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -11,7 +11,8 @@ interface PlaybackControlsProps {
   onTempoChange: (tempo: number) => void;
   onClear: () => void;
   onSave: () => void;
-  onShare: () => void;
+  onSaveAndShare: () => void;
+  onUnshare: () => void;
   onAIify: () => void;
   onGenerateBeat: () => void;
   onRemix: () => void;
@@ -19,6 +20,9 @@ interface PlaybackControlsProps {
   canGenerateBeat: boolean;
   showRemix: boolean;
   isSaving: boolean;
+  isSharing: boolean;
+  isUnsharing: boolean;
+  isShared: boolean;
   isAIifying: boolean;
   isGeneratingBeat: boolean;
 }
@@ -31,7 +35,8 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onTempoChange,
   onClear,
   onSave,
-  onShare,
+  onSaveAndShare,
+  onUnshare,
   onAIify,
   onGenerateBeat,
   onRemix,
@@ -39,6 +44,9 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   canGenerateBeat,
   showRemix,
   isSaving,
+  isSharing,
+  isUnsharing,
+  isShared,
   isAIifying,
   isGeneratingBeat,
 }) => {
@@ -144,7 +152,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         )}
       </Button>
 
-      {/* Save and share buttons */}
+      {/* Save and Save & Share buttons - matching Coloring pattern */}
       <div className="flex gap-2">
         <Button
           variant="outline"
@@ -152,18 +160,43 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           onClick={onSave}
           disabled={!canSave || isSaving}
         >
-          <Save className="h-4 w-4 mr-2" />
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={onShare}
-          disabled={!canSave}
-        >
-          <Share2 className="h-4 w-4 mr-2" />
-          Share
-        </Button>
+
+        {isShared ? (
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={onUnshare}
+            disabled={!canSave || isUnsharing || isSaving}
+          >
+            {isUnsharing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <EyeOff className="h-4 w-4 mr-2" />
+            )}
+            {isUnsharing ? 'Unsharing...' : 'Unshare'}
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={onSaveAndShare}
+            disabled={!canSave || isSharing || isSaving}
+          >
+            {isSharing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Share2 className="h-4 w-4 mr-2" />
+            )}
+            {isSharing ? 'Sharing...' : 'Save & Share'}
+          </Button>
+        )}
       </div>
     </div>
   );
