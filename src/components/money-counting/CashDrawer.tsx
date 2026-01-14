@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DENOMINATIONS } from "@/lib/moneyCountingUtils";
 import { getCurrencyImage } from "@/lib/currencyImages";
@@ -34,17 +33,17 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
         {/* Bills Section */}
         <div>
           <h3 className="text-xs font-medium text-muted-foreground mb-2">Bills</h3>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {bills.map((denom) => {
               const image = getImage(denom.value.toString());
               return (
-                <Button
+                <button
                   key={denom.value}
-                  variant="ghost"
                   className={cn(
-                    "h-auto p-1.5 flex flex-col items-center justify-center",
-                    "hover:bg-accent/50 hover:scale-105 transition-transform",
-                    "border border-border/50 hover:border-primary/50 rounded-lg bg-card/50"
+                    "relative cursor-pointer transition-all duration-150",
+                    "hover:scale-105 hover:z-10 active:scale-95",
+                    "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
+                    disabled && "pointer-events-none"
                   )}
                   onClick={() => onSelectMoney(denom.value.toString())}
                   disabled={disabled}
@@ -53,17 +52,16 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
                     <img
                       src={image}
                       alt={denom.label}
-                      className="w-full h-auto object-contain rounded shadow-sm"
+                      className="w-full h-auto object-contain rounded shadow-md hover:shadow-lg"
                     />
                   ) : (
-                    <span className="text-sm font-bold text-green-700 dark:text-green-300">
-                      {denom.label}
-                    </span>
+                    <div className="w-full aspect-[2.35/1] bg-green-100 dark:bg-green-900 rounded flex items-center justify-center">
+                      <span className="text-lg font-bold text-green-700 dark:text-green-300">
+                        {denom.label}
+                      </span>
+                    </div>
                   )}
-                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
-                    {denom.label}
-                  </span>
-                </Button>
+                </button>
               );
             })}
           </div>
@@ -77,13 +75,13 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
               const image = getImage(denom.value.toString());
               const coinSize = getCoinSize(denom.value);
               return (
-                <Button
+                <button
                   key={denom.value}
-                  variant="ghost"
                   className={cn(
-                    "h-auto p-1.5 flex flex-col items-center justify-center",
-                    "hover:bg-accent/50 hover:scale-110 transition-transform",
-                    "border border-border/50 hover:border-primary/50 rounded-lg bg-card/50"
+                    "relative cursor-pointer transition-all duration-150",
+                    "hover:scale-110 hover:z-10 active:scale-95",
+                    "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded-full",
+                    disabled && "pointer-events-none"
                   )}
                   onClick={() => onSelectMoney(denom.value.toString())}
                   disabled={disabled}
@@ -93,15 +91,17 @@ export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: Ca
                       src={image}
                       alt={denom.label}
                       style={{ width: coinSize, height: coinSize }}
-                      className="object-contain rounded-full shadow-sm"
+                      className="object-contain rounded-full shadow-md hover:shadow-lg"
                     />
                   ) : (
-                    <span className="text-xs font-bold">{denom.label}</span>
+                    <div 
+                      style={{ width: coinSize, height: coinSize }}
+                      className="bg-amber-100 dark:bg-amber-900 rounded-full flex items-center justify-center"
+                    >
+                      <span className="text-xs font-bold">{denom.label}</span>
+                    </div>
                   )}
-                  <span className="text-xs font-semibold mt-1 text-muted-foreground">
-                    {denom.label}
-                  </span>
-                </Button>
+                </button>
               );
             })}
           </div>
