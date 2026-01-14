@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle, Brain, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Trash2, RefreshCw, Loader2, Search, Sparkles, ArrowUp, ArrowDown, CheckCircle, Circle, Brain, ThumbsUp, ThumbsDown, Pencil } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -64,6 +65,12 @@ export const JokeLibraryManager = () => {
   const [filterQuality, setFilterQuality] = useState<string>("all");
   const [selectedJokes, setSelectedJokes] = useState<Set<string>>(new Set());
   const [deletingSelected, setDeletingSelected] = useState(false);
+  
+  // Edit joke state
+  const [editingJoke, setEditingJoke] = useState<Joke | null>(null);
+  const [editQuestion, setEditQuestion] = useState("");
+  const [editAnswer, setEditAnswer] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   
   const { toast } = useToast();
 
@@ -229,6 +236,15 @@ export const JokeLibraryManager = () => {
 
       setJokes(prev => prev.map(j => j.id === id ? { ...j, is_reviewed: !currentValue } : j));
       
+      // If marking as reviewed and has a bad AI rating, clear it
+      if (!currentValue && jokeQuality[id]?.quality === "bad") {
+        setJokeQuality(prev => {
+          const newQuality = { ...prev };
+          delete newQuality[id];
+          return newQuality;
+        });
+      }
+      
       toast({
         title: !currentValue ? "Marked as reviewed" : "Marked as unreviewed",
         description: "Joke status updated",
@@ -240,6 +256,57 @@ export const JokeLibraryManager = () => {
         description: "Failed to update joke",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleEditJoke = (joke: Joke) => {
+    setEditingJoke(joke);
+    setEditQuestion(joke.question);
+    setEditAnswer(joke.answer);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingJoke) return;
+    
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("joke_library")
+        .update({ 
+          question: editQuestion.trim(), 
+          answer: editAnswer.trim() 
+        })
+        .eq("id", editingJoke.id);
+
+      if (error) throw error;
+
+      setJokes(prev => prev.map(j => 
+        j.id === editingJoke.id 
+          ? { ...j, question: editQuestion.trim(), answer: editAnswer.trim() } 
+          : j
+      ));
+      
+      // Clear AI quality since joke was edited
+      setJokeQuality(prev => {
+        const newQuality = { ...prev };
+        delete newQuality[editingJoke.id];
+        return newQuality;
+      });
+      
+      setEditingJoke(null);
+      toast({
+        title: "Joke updated",
+        description: "Your changes have been saved",
+      });
+    } catch (error) {
+      console.error("Error updating joke:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update joke",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -275,7 +342,16 @@ export const JokeLibraryManager = () => {
   };
 
   const handleReviewAllJokes = async () => {
-    if (jokes.length === 0) return;
+    // Filter out already-reviewed jokes from AI review
+    const jokesToReview = jokes.filter(j => !j.is_reviewed);
+    
+    if (jokesToReview.length === 0) {
+      toast({
+        title: "No jokes to review",
+        description: "All jokes have been manually reviewed",
+      });
+      return;
+    }
     
     setReviewingAll(true);
     setJokeQuality({});
@@ -285,8 +361,8 @@ export const JokeLibraryManager = () => {
       const batchSize = 20;
       const allResults: Record<string, JokeQualityResult> = {};
       
-      for (let i = 0; i < jokes.length; i += batchSize) {
-        const batch = jokes.slice(i, i + batchSize);
+      for (let i = 0; i < jokesToReview.length; i += batchSize) {
+        const batch = jokesToReview.slice(i, i + batchSize);
         const jokesForReview = batch.map(j => ({
           id: j.id,
           question: j.question,
@@ -658,7 +734,7 @@ export const JokeLibraryManager = () => {
                         )}
                       </div>
                     </TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -733,15 +809,25 @@ export const JokeLibraryManager = () => {
                           {format(new Date(joke.created_at), "M/d/yy h:mm a")}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteJoke(joke.id)}
-                            title="Delete joke"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditJoke(joke)}
+                              title="Edit joke"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteJoke(joke.id)}
+                              title="Delete joke"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -764,6 +850,56 @@ export const JokeLibraryManager = () => {
           </p>
         </CardContent>
       </Card>
+
+      {/* Edit Joke Dialog */}
+      <Dialog open={!!editingJoke} onOpenChange={(open) => !open && setEditingJoke(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Joke</DialogTitle>
+            <DialogDescription>
+              Modify the question or answer to fix the joke
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Question</Label>
+              <Textarea
+                value={editQuestion}
+                onChange={(e) => setEditQuestion(e.target.value)}
+                placeholder="Why did the..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Answer</Label>
+              <Textarea
+                value={editAnswer}
+                onChange={(e) => setEditAnswer(e.target.value)}
+                placeholder="Because..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingJoke(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveEdit} 
+              disabled={savingEdit || !editQuestion.trim() || !editAnswer.trim()}
+            >
+              {savingEdit ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
