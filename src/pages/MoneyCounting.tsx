@@ -12,6 +12,7 @@ import { ChangeTracker } from "@/components/money-counting/ChangeTracker";
 import { ReceiptDisplay } from "@/components/money-counting/ReceiptDisplay";
 import { LevelComplete } from "@/components/money-counting/LevelComplete";
 import { generateOrder, calculateOptimalChange, DENOMINATIONS } from "@/lib/moneyCountingUtils";
+import coffeeShopBg from "@/assets/games/coffee-shop-counter-pov.jpg";
 
 export interface OrderItem {
   name: string;
@@ -325,10 +326,21 @@ export default function MoneyCounting() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-muted/30 pt-24 pb-8 px-4">
-      <div className="container mx-auto max-w-6xl">
+    <main 
+      className="min-h-screen pt-24 pb-8 px-4 relative"
+      style={{
+        backgroundImage: `url(${coffeeShopBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/40" />
+      
+      <div className="container mx-auto max-w-6xl relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 bg-background/90 backdrop-blur-sm rounded-lg p-4 shadow-lg">
           <div className="flex items-center gap-4">
             <Button variant="outline" size="sm" asChild>
               <Link to="/community">
@@ -365,7 +377,7 @@ export default function MoneyCounting() {
             onNewGame={startNewGame}
           />
         ) : (
-          <div className="max-w-2xl mx-auto space-y-6">
+          <div className="max-w-2xl mx-auto space-y-6 bg-background/90 backdrop-blur-sm rounded-lg p-6 shadow-lg">
             {/* Step 1: Receipt */}
             {gameState.step === "receipt" && (
               <div className="space-y-4">
