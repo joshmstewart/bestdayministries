@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Eye, EyeOff, Loader2, Upload, Download, User, Edit, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Loader2, Upload, Download, User, Edit, RefreshCw, Shuffle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +49,29 @@ export const CashRegisterCustomersManager = () => {
   const [editName, setEditName] = useState("");
   const [editCharacterType, setEditCharacterType] = useState("");
   const [editDescription, setEditDescription] = useState("");
+
+  const characterTypes = [
+    "grandma", "grandpa", "mom", "dad", "teenager", "child",
+    "soccer player", "astronaut", "chef", "doctor", "nurse", "teacher",
+    "firefighter", "police officer", "construction worker", "artist",
+    "musician", "scientist", "farmer", "mailman", "superhero", "princess",
+    "knight", "pirate", "cowboy", "ninja", "robot", "alien"
+  ];
+
+  const randomNames = [
+    "Rose", "Betty", "Martha", "Earl", "Harold", "Walter",
+    "Timmy", "Sally", "Bobby", "Max", "Luna", "Zoe",
+    "Chef Marco", "Dr. Smith", "Officer Jones", "Captain Blaze",
+    "Princess Lily", "Sir Lancelot", "Sparky", "Buzz"
+  ];
+
+  const randomizeCharacter = () => {
+    const randomType = characterTypes[Math.floor(Math.random() * characterTypes.length)];
+    const randomName = randomNames[Math.floor(Math.random() * randomNames.length)];
+    setFormCharacterType(randomType);
+    setFormName(randomName);
+    setFormDescription("");
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -374,6 +397,15 @@ export const CashRegisterCustomersManager = () => {
                 <DialogTitle>Create New Customer</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={randomizeCharacter}
+                  className="w-full"
+                >
+                  <Shuffle className="w-4 h-4 mr-2" />
+                  Randomize Character
+                </Button>
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input
