@@ -3932,6 +3932,9 @@ export type Database = {
       }
       joke_library: {
         Row: {
+          ai_quality_rating: string | null
+          ai_quality_reason: string | null
+          ai_reviewed_at: string | null
           answer: string
           category: string | null
           category_id: string | null
@@ -3943,6 +3946,9 @@ export type Database = {
           times_served: number | null
         }
         Insert: {
+          ai_quality_rating?: string | null
+          ai_quality_reason?: string | null
+          ai_reviewed_at?: string | null
           answer: string
           category?: string | null
           category_id?: string | null
@@ -3954,6 +3960,9 @@ export type Database = {
           times_served?: number | null
         }
         Update: {
+          ai_quality_rating?: string | null
+          ai_quality_reason?: string | null
+          ai_reviewed_at?: string | null
           answer?: string
           category?: string | null
           category_id?: string | null
