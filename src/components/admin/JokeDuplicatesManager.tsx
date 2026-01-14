@@ -264,6 +264,7 @@ export const JokeDuplicatesManager: React.FC = () => {
                           <Checkbox 
                             checked={isSelected} 
                             onCheckedChange={() => handleToggleKeep(group.answer, joke.id)}
+                            onClick={(e) => e.stopPropagation()}
                             className="mt-0.5" 
                           />
                           <Label className="flex-1 min-w-0 cursor-pointer">
