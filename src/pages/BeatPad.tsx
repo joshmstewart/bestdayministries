@@ -34,7 +34,7 @@ const STEPS = 16;
 
 const BeatPad: React.FC = () => {
   const { user } = useAuth();
-  const { playSound, getAudioContext, preloadSounds } = useCustomBeatAudio();
+  const { playSound, ensureAudioContextRunning, preloadSounds } = useCustomBeatAudio();
 
   const [pattern, setPattern] = useState<Record<string, boolean[]>>({});
   const [instruments, setInstruments] = useState<(SoundConfig | null)[]>([]);
@@ -77,13 +77,15 @@ const BeatPad: React.FC = () => {
   const hasPattern = Object.values(pattern).some(steps => steps.some(Boolean));
 
   const handlePlaySound = useCallback((sound: SoundConfig) => {
-    getAudioContext();
+    // Unlock AudioContext for iOS/Safari (must be called from a click)
+    void ensureAudioContextRunning();
     playSound(sound);
-  }, [playSound, getAudioContext]);
+  }, [playSound, ensureAudioContextRunning]);
 
   const handlePlay = useCallback(async () => {
-    getAudioContext();
-    
+    const ctx = await ensureAudioContextRunning();
+    console.log('[BeatPad] AudioContext state on play:', ctx.state);
+
     // Ensure sounds are preloaded before starting playback
     const soundsToPreload = instruments.filter(Boolean) as SoundConfig[];
     if (soundsToPreload.length > 0) {
@@ -92,7 +94,7 @@ const BeatPad: React.FC = () => {
     
     setIsPlaying(true);
     setCurrentStep(0);
-  }, [getAudioContext, instruments, preloadSounds]);
+  }, [ensureAudioContextRunning, instruments, preloadSounds]);
 
   const handleStop = useCallback(() => {
     setIsPlaying(false);

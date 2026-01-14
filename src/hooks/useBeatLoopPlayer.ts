@@ -42,11 +42,23 @@ export const useBeatLoopPlayer = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
-    }
     return audioContextRef.current;
   }, []);
+
+  // IMPORTANT: must be called from a direct user gesture BEFORE any awaits/interval playback.
+  const ensureAudioContextRunning = useCallback(async () => {
+    const ctx = getAudioContext();
+
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch (error) {
+        console.warn('Failed to resume AudioContext:', error);
+      }
+    }
+
+    return ctx;
+  }, [getAudioContext]);
 
   const loadAudioBuffer = useCallback(async (url: string, key: string): Promise<AudioBuffer | null> => {
     if (audioBuffersRef.current.has(key)) {
@@ -231,6 +243,9 @@ export const useBeatLoopPlayer = () => {
     pattern: Record<string, boolean[]>,
     tempo: number
   ) => {
+    // Ensure AudioContext is running (Safari/iOS requires this to happen in a user gesture).
+    await ensureAudioContextRunning();
+
     // Stop any currently playing beat globally
     if (globalStopCallback && globalPlayingBeatId !== beatId) {
       globalStopCallback();
