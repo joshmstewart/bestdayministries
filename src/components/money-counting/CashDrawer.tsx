@@ -7,6 +7,7 @@ import { getCurrencyImage } from "@/lib/currencyImages";
 interface CashDrawerProps {
   onSelectMoney: (denomination: string) => void;
   disabled: boolean;
+  customCurrencyImages?: { [key: string]: string };
 }
 
 // Real coin diameter ratios (relative to quarter = 1.0)
@@ -20,9 +21,11 @@ const COIN_SIZE_RATIOS: { [key: string]: number } = {
 
 const BASE_COIN_SIZE = 64; // Base size in pixels for quarter
 
-export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
+export function CashDrawer({ onSelectMoney, disabled, customCurrencyImages }: CashDrawerProps) {
   const bills = DENOMINATIONS.filter((d) => d.type === "bill");
   const coins = DENOMINATIONS.filter((d) => d.type === "coin");
+
+  const getImage = (denomination: string) => getCurrencyImage(denomination, customCurrencyImages);
 
   const getCoinSize = (value: number) => {
     const ratio = COIN_SIZE_RATIOS[value.toString()] || 1;
@@ -48,7 +51,7 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
           <h3 className="text-xs font-medium text-muted-foreground mb-2">Bills</h3>
           <div className="grid grid-cols-3 gap-2">
             {bills.map((denom) => {
-              const image = getCurrencyImage(denom.value.toString());
+              const image = getImage(denom.value.toString());
               return (
                 <Button
                   key={denom.value}
@@ -86,7 +89,7 @@ export function CashDrawer({ onSelectMoney, disabled }: CashDrawerProps) {
           <h3 className="text-xs font-medium text-muted-foreground mb-2">Coins</h3>
           <div className="flex items-end justify-center gap-3">
             {coins.map((denom) => {
-              const image = getCurrencyImage(denom.value.toString());
+              const image = getImage(denom.value.toString());
               const coinSize = getCoinSize(denom.value);
               return (
                 <Button
