@@ -9,11 +9,23 @@ export const useCustomBeatAudio = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
-    }
     return audioContextRef.current;
   }, []);
+
+  // IMPORTANT: Call this from a direct user gesture (e.g., click) BEFORE starting interval-based playback.
+  const ensureAudioContextRunning = useCallback(async () => {
+    const ctx = getAudioContext();
+
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch (error) {
+        console.warn('Failed to resume AudioContext:', error);
+      }
+    }
+
+    return ctx;
+  }, [getAudioContext]);
 
   // Load audio buffer from URL
   const loadAudioBuffer = useCallback(async (url: string, key: string): Promise<AudioBuffer | null> => {
@@ -148,7 +160,7 @@ export const useCustomBeatAudio = () => {
     };
   }, []);
 
-  return { playSound, getAudioContext, preloadSounds };
+  return { playSound, getAudioContext, ensureAudioContextRunning, preloadSounds };
 };
 
 export default useCustomBeatAudio;
