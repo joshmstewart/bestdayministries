@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play, Square, Trash2, Share2, Lock } from 'lucide-react';
+import { Loader2, Play, Square, Trash2, Share2, Lock, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -28,9 +28,10 @@ interface Beat {
 
 interface MyBeatsProps {
   onLoadBeat: (beat: Beat) => void;
+  onRemixBeat?: (beat: Beat) => void;
 }
 
-const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
+const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
   const { user } = useAuth();
   const [beats, setBeats] = useState<BeatCreation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,6 +243,25 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat }) => {
               >
                 Load
               </Button>
+              {onRemixBeat && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    stopBeat();
+                    onRemixBeat({
+                      id: beat.id,
+                      name: beat.name,
+                      pattern: beat.pattern,
+                      tempo: beat.tempo,
+                      image_url: null, // Don't copy image for remixes
+                    });
+                  }}
+                  title="Create a copy"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"

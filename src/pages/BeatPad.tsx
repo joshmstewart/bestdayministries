@@ -258,6 +258,27 @@ const BeatPad: React.FC = () => {
     toast.success('Beat loaded! Press play to listen.');
   };
 
+  // Handle remixing a beat - create a copy with a new name
+  const handleRemixBeat = useCallback(async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null }) => {
+    if (!user) {
+      toast.error('Sign in to remix beats!');
+      return;
+    }
+
+    // First load the beat pattern into the editor
+    await handleLoadBeat({
+      ...beat,
+      name: `${beat.name} (Remix)`,
+      image_url: null, // Don't copy the image
+    });
+    
+    // Clear the saved beat ID so it saves as a new beat
+    setSavedBeatId(null);
+    setSavedBeatImageUrl(null);
+    
+    toast.success('Beat remixed! Edit it and save as your own! 🎵');
+  }, [user, handleLoadBeat]);
+
   // Reset to new beat when switching to create tab without a loaded beat
   const handleNewBeat = useCallback(() => {
     handleStop();
@@ -672,11 +693,11 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
           </TabsContent>
 
           <TabsContent value="my-beats">
-            <MyBeats onLoadBeat={handleLoadBeat} />
+            <MyBeats onLoadBeat={handleLoadBeat} onRemixBeat={handleRemixBeat} />
           </TabsContent>
 
           <TabsContent value="community">
-            <BeatPadGallery onLoadBeat={handleLoadBeat} />
+            <BeatPadGallery onLoadBeat={handleLoadBeat} onRemixBeat={handleRemixBeat} />
           </TabsContent>
         </Tabs>
       </main>
