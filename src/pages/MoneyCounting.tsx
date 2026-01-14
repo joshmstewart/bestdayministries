@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RotateCcw, Trophy, Store, ChevronDown } from "lucide-react";
+import { RotateCcw, Trophy, Store, ChevronDown, Loader2 } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { ChangeTracker } from "@/components/money-counting/ChangeTracker";
 import { ReceiptDisplay } from "@/components/money-counting/ReceiptDisplay";
 import { LevelComplete } from "@/components/money-counting/LevelComplete";
 import { generateOrder, calculateOptimalChange } from "@/lib/moneyCountingUtils";
+import { removeBackground, loadImage } from "@/lib/removeBackground";
 import { supabase } from "@/integrations/supabase/client";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -89,6 +90,13 @@ export default function MoneyCounting() {
   const [currentCustomer, setCurrentCustomer] = useState<CustomerType | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+
+  // Render-time background removal (so even "baked" backgrounds disappear)
+  const [processedCustomerImageUrl, setProcessedCustomerImageUrl] = useState<string | null>(null);
+  const [isRemovingCustomerBg, setIsRemovingCustomerBg] = useState(false);
+  const processedCustomerUrlRef = useRef<string | null>(null);
+  const hasShownBgErrorRef = useRef(false);
+
   const [levelResult, setLevelResult] = useState<{
     success: boolean;
     piecesUsed: number;
@@ -155,6 +163,71 @@ export default function MoneyCounting() {
       pickRandomCustomer();
     }
   }, [customers, currentCustomer, pickRandomCustomer]);
+
+  // Cleanup any generated object URLs
+  useEffect(() => {
+    return () => {
+      if (processedCustomerUrlRef.current) {
+        URL.revokeObjectURL(processedCustomerUrlRef.current);
+        processedCustomerUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Remove background at render-time so the game always shows a clean cutout
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      // Reset whenever customer changes
+      setProcessedCustomerImageUrl(null);
+
+      if (!currentCustomer?.image_url) {
+        setIsRemovingCustomerBg(false);
+        return;
+      }
+
+      setIsRemovingCustomerBg(true);
+
+      try {
+        const resp = await fetch(currentCustomer.image_url, { cache: "no-store" });
+        if (!resp.ok) {
+          throw new Error(`Failed to fetch customer image (${resp.status})`);
+        }
+
+        const blob = await resp.blob();
+        const img = await loadImage(blob);
+        const outBlob = await removeBackground(img);
+        const url = URL.createObjectURL(outBlob);
+
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+
+        if (processedCustomerUrlRef.current) {
+          URL.revokeObjectURL(processedCustomerUrlRef.current);
+        }
+
+        processedCustomerUrlRef.current = url;
+        setProcessedCustomerImageUrl(url);
+      } catch (e) {
+        console.error("Render-time background removal failed:", e);
+        if (!hasShownBgErrorRef.current) {
+          hasShownBgErrorRef.current = true;
+          toast.error("Couldn't auto-remove the background on this device; showing the original image.");
+        }
+      } finally {
+        if (!cancelled) setIsRemovingCustomerBg(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentCustomer?.id, currentCustomer?.image_url]);
 
   const getStoreBackground = () => {
     if (selectedStore?.image_url) {
@@ -565,26 +638,34 @@ export default function MoneyCounting() {
               )}
             </div>
 
-            {/* Right Column - Customer Display (no background, overlaid on store) */}
+            {/* Right Column - Customer Display (background removed at render-time) */}
             <div className="flex flex-col items-center justify-end min-h-[300px]">
               {currentCustomer && currentCustomer.image_url ? (
                 <div className="text-center">
-                  <img
-                    src={currentCustomer.image_url}
-                    alt={currentCustomer.name}
-                    className="w-64 h-auto lg:w-80 xl:w-96 max-h-[70vh] object-contain drop-shadow-2xl"
-                    onError={(e) => {
-                      console.error("Customer image failed to load:", currentCustomer.name);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
+                  {isRemovingCustomerBg && !processedCustomerImageUrl ? (
+                    <div className="flex flex-col items-center justify-center w-80 sm:w-96 lg:w-[28rem] xl:w-[32rem] max-h-[75vh]">
+                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                      <p className="mt-3 text-sm text-muted-foreground">Removing background…</p>
+                    </div>
+                  ) : (
+                    <img
+                      src={processedCustomerImageUrl || currentCustomer.image_url}
+                      alt={currentCustomer.name}
+                      className="w-80 sm:w-96 lg:w-[28rem] xl:w-[32rem] max-h-[75vh] object-contain drop-shadow-2xl"
+                      onError={(e) => {
+                        console.error("Customer image failed to load:", currentCustomer.name);
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+
                   <div className="mt-2 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
                     <h3 className="text-lg font-medium text-foreground">{currentCustomer.name}</h3>
                   </div>
                 </div>
               ) : currentCustomer ? (
                 <div className="text-center">
-                  <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
+                  <div className="w-80 h-80 sm:w-96 sm:h-96 lg:w-[28rem] lg:h-[28rem] flex items-center justify-center">
                     <span className="text-9xl drop-shadow-lg">👤</span>
                   </div>
                   <div className="mt-2 bg-background/80 backdrop-blur-sm rounded-lg px-4 py-2 inline-block">
@@ -593,13 +674,13 @@ export default function MoneyCounting() {
                 </div>
               ) : customers.length === 0 ? (
                 <div className="text-center">
-                  <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
+                  <div className="w-80 h-80 sm:w-96 sm:h-96 lg:w-[28rem] lg:h-[28rem] flex items-center justify-center">
                     <span className="text-6xl drop-shadow-lg animate-pulse">⏳</span>
                   </div>
-                  <p className="mt-2 text-white/80">Loading customers...</p>
+                  <p className="mt-2 text-muted-foreground">Loading customers...</p>
                 </div>
               ) : (
-                <div className="w-64 h-64 lg:w-80 lg:h-80 flex items-center justify-center">
+                <div className="w-80 h-80 sm:w-96 sm:h-96 lg:w-[28rem] lg:h-[28rem] flex items-center justify-center">
                   <span className="text-9xl drop-shadow-lg">👤</span>
                 </div>
               )}
