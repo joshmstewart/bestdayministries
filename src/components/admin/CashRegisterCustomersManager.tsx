@@ -13,6 +13,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import ImageLightbox from "@/components/ImageLightbox";
 
 interface Customer {
@@ -23,6 +30,7 @@ interface Customer {
   image_url: string | null;
   display_order: number;
   is_active: boolean;
+  disability: string | null;
 }
 
 export const CashRegisterCustomersManager = () => {
@@ -44,13 +52,15 @@ export const CashRegisterCustomersManager = () => {
   const [formName, setFormName] = useState("");
   const [formCharacterType, setFormCharacterType] = useState("");
   const [formDescription, setFormDescription] = useState("");
+  const [formDisability, setFormDisability] = useState<string>("none");
 
   // Form state for edit
   const [editName, setEditName] = useState("");
   const [editCharacterType, setEditCharacterType] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editDisability, setEditDisability] = useState<string>("none");
 
-  // Character types for randomization - includes diverse abilities representation
+  // Character types for randomization
   const characterTypes = [
     "grandma", "grandpa", "soccer player", "astronaut", "chef", "doctor", 
     "nurse", "teacher", "firefighter", "police officer", "construction worker", 
@@ -62,13 +72,26 @@ export const CashRegisterCustomersManager = () => {
     "lifeguard", "DJ", "photographer", "veterinarian", "clown", "mime", 
     "explorer", "archaeologist", "weather reporter", "game show host",
     "disco dancer", "punk rocker", "hippie", "goth", "cheerleader", "wrestler",
-    "ballerina", "opera singer", "mime artist", "circus performer", "fortune teller",
-    // Characters with disabilities - inclusive representation
-    "wheelchair user", "person with Down syndrome", "blind person with guide dog",
-    "deaf person", "person with autism", "Paralympic athlete", "person with cerebral palsy",
-    "little person", "person with prosthetic leg", "person with hearing aids",
-    "person using a walker", "person with service dog", "person with arm prosthetic",
-    "wheelchair basketball player", "Special Olympics athlete", "sign language user"
+    "ballerina", "opera singer", "mime artist", "circus performer", "fortune teller"
+  ];
+
+  // Disability options for inclusive representation
+  const disabilityOptions = [
+    { value: "none", label: "None" },
+    { value: "wheelchair user", label: "Wheelchair User" },
+    { value: "Down syndrome", label: "Down Syndrome" },
+    { value: "blind with guide dog", label: "Blind with Guide Dog" },
+    { value: "deaf", label: "Deaf" },
+    { value: "autism", label: "Autism" },
+    { value: "cerebral palsy", label: "Cerebral Palsy" },
+    { value: "little person", label: "Little Person" },
+    { value: "prosthetic leg", label: "Prosthetic Leg" },
+    { value: "hearing aids", label: "Hearing Aids" },
+    { value: "uses walker", label: "Uses Walker" },
+    { value: "service dog", label: "Service Dog" },
+    { value: "prosthetic arm", label: "Prosthetic Arm" },
+    { value: "uses cane", label: "Uses Cane" },
+    { value: "uses crutches", label: "Uses Crutches" },
   ];
 
   // Capitalize first letter of each word
@@ -89,9 +112,13 @@ export const CashRegisterCustomersManager = () => {
     const typePool = availableTypes.length > 0 ? availableTypes : characterTypes;
     const randomType = typePool[Math.floor(Math.random() * typePool.length)];
     
+    // Pick a random disability option (including "none")
+    const randomDisability = disabilityOptions[Math.floor(Math.random() * disabilityOptions.length)];
+    
     setFormCharacterType(randomType);
     setFormName(toTitleCase(randomType)); // Name matches type
     setFormDescription("");
+    setFormDisability(randomDisability.value);
   };
 
   const fetchCustomers = async () => {
@@ -247,6 +274,7 @@ export const CashRegisterCustomersManager = () => {
           name: formName.trim(),
           character_type: formCharacterType.trim(),
           description: formDescription.trim() || null,
+          disability: formDisability === "none" ? null : formDisability,
           image_url: null,
           display_order: customers.length,
         })
@@ -260,10 +288,14 @@ export const CashRegisterCustomersManager = () => {
         description: "Generating image...",
       });
 
-      // Now generate the image
+      // Now generate the image - include disability in the prompt
+      const characterDescription = formDisability !== "none" 
+        ? `${formCharacterType.trim()} with ${formDisability}` 
+        : formCharacterType.trim();
+      
       const { data: imageData, error: imageError } = await supabase.functions.invoke("generate-customer-image", {
         body: {
-          characterType: formCharacterType.trim(),
+          characterType: characterDescription,
           description: formDescription.trim() || "",
           customerId: newCustomer.id,
         },
@@ -291,6 +323,7 @@ export const CashRegisterCustomersManager = () => {
       setFormName("");
       setFormCharacterType("");
       setFormDescription("");
+      setFormDisability("none");
       setDialogOpen(false);
       fetchCustomers();
     } catch (error) {
@@ -363,6 +396,7 @@ export const CashRegisterCustomersManager = () => {
     setEditName(customer.name);
     setEditCharacterType(customer.character_type);
     setEditDescription(customer.description || "");
+    setEditDisability(customer.disability || "none");
     setEditDialogOpen(true);
   };
 
@@ -387,6 +421,7 @@ export const CashRegisterCustomersManager = () => {
           name: editName.trim(),
           character_type: editCharacterType.trim(),
           description: editDescription.trim() || null,
+          disability: editDisability === "none" ? null : editDisability,
         })
         .eq("id", editingCustomer.id);
 
@@ -483,6 +518,22 @@ export const CashRegisterCustomersManager = () => {
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder="Notes about the character"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Disability (optional)</Label>
+                  <Select value={formDisability} onValueChange={setFormDisability}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select disability" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {disabilityOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Button
@@ -677,6 +728,22 @@ export const CashRegisterCustomersManager = () => {
                 onChange={(e) => setEditDescription(e.target.value)}
                 placeholder="Additional details for image generation"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Disability (optional)</Label>
+              <Select value={editDisability} onValueChange={setEditDisability}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select disability" />
+                </SelectTrigger>
+                <SelectContent>
+                  {disabilityOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex gap-2">
