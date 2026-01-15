@@ -889,7 +889,7 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
           </TabsContent>
 
           <TabsContent value="my-beats">
-            <MyBeats onLoadBeat={handleLoadBeat} onRemixBeat={handleRemixBeat} />
+            <MyBeats onLoadBeat={handleLoadBeat} onRemixBeat={handleRemixBeat} isActive={activeTab === 'my-beats'} />
           </TabsContent>
 
           <TabsContent value="community">
