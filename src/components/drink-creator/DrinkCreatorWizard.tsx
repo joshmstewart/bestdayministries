@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Sparkles, Loader2, Share2 } from "lucide-react";
 import { IngredientSelector } from "./IngredientSelector";
 import { VibeSelector, Vibe, getVibeById } from "./VibeSelector";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Ingredient {
   id: string;
@@ -279,6 +280,64 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
+  // Build TTS text for current step
+  const stepTtsText = useMemo(() => {
+    const stepIntro = `Step ${currentStep + 1} of ${STEPS.length}. ${currentStepData.title}. ${currentStepData.description}.`;
+    
+    if (currentStep === 0) {
+      const baseNames = baseIngredients.map(ing => ing.name).join(", ");
+      const modifierNames = modifierIngredients.map(ing => ing.name).join(", ");
+      const selectedBaseNames = ingredients
+        .filter(ing => selectedIngredients.base.includes(ing.id))
+        .map(ing => ing.name)
+        .join(", ");
+      const selectedModNames = ingredients
+        .filter(ing => selectedIngredients.modifier.includes(ing.id))
+        .map(ing => ing.name)
+        .join(", ");
+      
+      let text = stepIntro + ` Available drinks: ${baseNames || "none"}.`;
+      if (modifierNames) {
+        text += ` Optional customizations: ${modifierNames}.`;
+      }
+      if (selectedBaseNames) {
+        text += ` Selected drink: ${selectedBaseNames}.`;
+      }
+      if (selectedModNames) {
+        text += ` Selected customizations: ${selectedModNames}.`;
+      }
+      return text;
+    } else if (currentStep < 3) {
+      const categoryNames = categoryIngredients.map(ing => ing.name).join(", ");
+      const selectedNames = ingredients
+        .filter(ing => (selectedIngredients[stepCategory] || []).includes(ing.id))
+        .map(ing => ing.name)
+        .join(", ");
+      
+      let text = stepIntro + ` Available options: ${categoryNames || "none"}.`;
+      if (selectedNames) {
+        text += ` Selected: ${selectedNames}.`;
+      }
+      return text;
+    } else if (currentStep === 3) {
+      return stepIntro + " Choose an optional vibe to set the atmosphere for your drink.";
+    } else {
+      // Generate step
+      const allSelected = getSelectedIngredientNames().map(ing => ing.name).join(", ");
+      let text = stepIntro + ` Your selections: ${allSelected || "none"}.`;
+      if (drinkName) {
+        text += ` Drink name: ${drinkName}.`;
+      }
+      if (generatedImage) {
+        text += " Your drink image has been generated!";
+        if (savedDrinkId) {
+          text += " Your drink has been saved and shared with the community!";
+        }
+      }
+      return text;
+    }
+  }, [currentStep, currentStepData, baseIngredients, modifierIngredients, categoryIngredients, selectedIngredients, stepCategory, ingredients, drinkName, generatedImage, savedDrinkId]);
+
   const canProceed = () => {
     if (currentStep === 0) {
       return selectedIngredients.base.length > 0;
@@ -290,7 +349,10 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
     <Card className="border-primary/20">
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
-          <CardTitle className="text-xl">{currentStepData.title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-xl">{currentStepData.title}</CardTitle>
+            <TextToSpeech text={stepTtsText} size="sm" />
+          </div>
           <span className="text-sm text-muted-foreground">
             Step {currentStep + 1} of {STEPS.length}
           </span>
