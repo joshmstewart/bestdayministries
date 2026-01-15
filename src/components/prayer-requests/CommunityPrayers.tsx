@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Loader2, CheckCircle2, Users, HandHeart, Sparkles, Mic, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays, differenceInHours } from "date-fns";
@@ -321,13 +322,42 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
 
                 {/* Gratitude Message */}
                 {prayer.gratitude_message && (
-                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-1">
-                      <Sparkles className="w-4 h-4" />
-                      <span className="text-sm font-medium">Prayer of Gratitude</span>
-                    </div>
-                    <p className="text-sm text-green-800 dark:text-green-300">{prayer.gratitude_message}</p>
-                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg cursor-pointer hover:bg-green-500/15 transition-colors">
+                        <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-1">
+                          <Sparkles className="w-4 h-4" />
+                          <span className="text-sm font-medium">Prayer of Gratitude</span>
+                        </div>
+                        <p className="text-sm text-green-800 dark:text-green-300 line-clamp-3">
+                          "{prayer.gratitude_message}"
+                        </p>
+                        {prayer.gratitude_message.length > 150 && (
+                          <span className="text-xs text-green-600 dark:text-green-400 mt-1 inline-block">
+                            Tap to read more...
+                          </span>
+                        )}
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                          <Sparkles className="w-5 h-5" />
+                          Prayer of Gratitude
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                          <p className="text-green-800 dark:text-green-300 italic">
+                            "{prayer.gratitude_message}"
+                          </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground text-right">
+                          — {prayer.creator_name}
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 )}
 
                 {/* Footer: Creator left, Actions right */}
