@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { EMAILS, ORGANIZATION_NAME } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -242,7 +243,7 @@ serve(async (req) => {
             
             <p style="color: #6B7280; font-size: 14px;">
               Please retain this email for your tax records. If you have any questions about your giving history, 
-              please contact us at ${settings.contact_email || 'support@bestdayministries.org'}.
+              please contact us at ${settings.contact_email || EMAILS.support}.
             </p>
             
             <p>With gratitude,<br/><strong>${organizationName}</strong></p>
@@ -250,9 +251,9 @@ serve(async (req) => {
         `;
 
         const emailResult = await resend.emails.send({
-          from: `${organizationName} <noreply@bestdayministries.org>`,
+          from: `${organizationName} <${EMAILS.noreply}>`,
           to: [email],
-          subject: (settings.email_subject || `Your {year} Tax Summary from Best Day Ministries`).replace('{year}', String(taxYear)),
+          subject: (settings.email_subject || `Your {year} Tax Summary from ${ORGANIZATION_NAME}`).replace('{year}', String(taxYear)),
           html: emailHtml,
         });
 
