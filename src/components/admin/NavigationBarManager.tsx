@@ -381,24 +381,24 @@ export function NavigationBarManager() {
     try {
       const { data, error } = await supabase
         .from("navigation_links")
-        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id, emoji, bestie_emoji");
+        .select("id, label, href, display_order, is_active, visible_to_roles, link_type, parent_id, emoji, bestie_emoji")
+        .order("display_order", { ascending: true });
 
       if (error) throw error;
       
-      // Sort links properly: top-level by display_order, then children by display_order
-      const sorted = (data || []).sort((a, b) => {
-        // If one has no parent and the other does, parent comes first
-        if (!a.parent_id && b.parent_id) return -1;
-        if (a.parent_id && !b.parent_id) return 1;
-        
-        // If both have no parent or both have the same parent, sort by display_order
-        if (a.parent_id === b.parent_id) {
-          return a.display_order - b.display_order;
-        }
-        
-        // Otherwise maintain original order
-        return 0;
-      });
+      // Sort links properly: top-level by display_order, then children by display_order within their parent
+      const topLevel = (data || []).filter(l => !l.parent_id).sort((a, b) => a.display_order - b.display_order);
+      const children = (data || []).filter(l => l.parent_id);
+      
+      // Build sorted array: each top-level followed by its children sorted by display_order
+      const sorted: typeof data = [];
+      for (const parent of topLevel) {
+        sorted.push(parent);
+        const parentChildren = children
+          .filter(c => c.parent_id === parent.id)
+          .sort((a, b) => a.display_order - b.display_order);
+        sorted.push(...parentChildren);
+      }
       
       setLinks(sorted as NavigationLink[]);
     } catch (error: any) {
