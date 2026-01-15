@@ -22,11 +22,17 @@ import {
   Share2, 
   CheckCircle2,
   Edit,
-  BookOpen
+  BookOpen,
+  EyeOff,
+  Clock,
+  RefreshCw,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, differenceInDays, addWeeks, addDays, isPast } from "date-fns";
 import { PrayerRequestDialog } from "./PrayerRequestDialog";
+import { AnsweredPrayerDialog } from "./AnsweredPrayerDialog";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface PrayerRequest {
   id: string;
@@ -39,6 +45,10 @@ interface PrayerRequest {
   likes_count: number;
   created_at: string;
   updated_at: string;
+  is_anonymous: boolean;
+  share_duration: string | null;
+  expires_at: string | null;
+  gratitude_message: string | null;
 }
 
 interface MyPrayersProps {
@@ -46,11 +56,49 @@ interface MyPrayersProps {
   onRefresh: () => void;
 }
 
+const getRenewalDays = (shareDuration: string | null): number => {
+  switch (shareDuration) {
+    case "1_week":
+    case "2_weeks":
+      return 2;
+    case "1_month":
+    default:
+      return 5;
+  }
+};
+
+const canRenew = (expiresAt: string | null, shareDuration: string | null): boolean => {
+  if (!expiresAt) return false;
+  const expiryDate = new Date(expiresAt);
+  const daysUntilExpiry = differenceInDays(expiryDate, new Date());
+  const renewalDays = getRenewalDays(shareDuration);
+  return daysUntilExpiry <= renewalDays && daysUntilExpiry >= 0;
+};
+
+const isExpired = (expiresAt: string | null): boolean => {
+  if (!expiresAt) return false;
+  return isPast(new Date(expiresAt));
+};
+
+const calculateNewExpiresAt = (shareDuration: string | null): string => {
+  const now = new Date();
+  switch (shareDuration) {
+    case "1_week":
+      return addWeeks(now, 1).toISOString();
+    case "2_weeks":
+      return addWeeks(now, 2).toISOString();
+    case "1_month":
+    default:
+      return addDays(now, 30).toISOString();
+  }
+};
+
 export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
   const queryClient = useQueryClient();
   const [selectedPrayer, setSelectedPrayer] = useState<PrayerRequest | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [answeredDialogOpen, setAnsweredDialogOpen] = useState(false);
   const [prayerToDelete, setPrayerToDelete] = useState<string | null>(null);
 
   const { data: prayers, isLoading, refetch } = useQuery({
@@ -68,10 +116,16 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
   });
 
   const toggleShareMutation = useMutation({
-    mutationFn: async ({ id, isPublic }: { id: string; isPublic: boolean }) => {
+    mutationFn: async ({ id, isPublic, shareDuration }: { id: string; isPublic: boolean; shareDuration?: string }) => {
+      const expiresAt = isPublic ? calculateNewExpiresAt(shareDuration || "1_month") : null;
       const { error } = await supabase
         .from("prayer_requests")
-        .update({ is_public: isPublic })
+        .update({ 
+          is_public: isPublic,
+          expires_at: expiresAt,
+          share_duration: shareDuration || "1_month",
+          expiry_notified: false
+        })
         .eq("id", id);
       if (error) throw error;
     },
@@ -85,13 +139,36 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
     },
   });
 
+  const renewMutation = useMutation({
+    mutationFn: async ({ id, shareDuration }: { id: string; shareDuration: string | null }) => {
+      const newExpiresAt = calculateNewExpiresAt(shareDuration);
+      const { error } = await supabase
+        .from("prayer_requests")
+        .update({ 
+          expires_at: newExpiresAt,
+          renewed_at: new Date().toISOString(),
+          expiry_notified: false
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      refetch();
+      toast.success("Prayer sharing renewed!");
+    },
+    onError: () => {
+      toast.error("Failed to renew");
+    },
+  });
+
   const toggleAnsweredMutation = useMutation({
     mutationFn: async ({ id, isAnswered }: { id: string; isAnswered: boolean }) => {
       const { error } = await supabase
         .from("prayer_requests")
         .update({ 
           is_answered: isAnswered,
-          answered_at: isAnswered ? new Date().toISOString() : null
+          answered_at: isAnswered ? new Date().toISOString() : null,
+          gratitude_message: isAnswered ? null : null // Clear gratitude when unmarking
         })
         .eq("id", id);
       if (error) throw error;
@@ -99,7 +176,9 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
     onSuccess: (_, { isAnswered }) => {
       refetch();
       queryClient.invalidateQueries({ queryKey: ["community-prayers"] });
-      toast.success(isAnswered ? "Marked as answered! 🙏" : "Unmarked as answered");
+      if (!isAnswered) {
+        toast.success("Unmarked as answered");
+      }
     },
     onError: () => {
       toast.error("Failed to update status");
@@ -130,6 +209,13 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
     onRefresh();
   };
 
+  const handleAnsweredSuccess = () => {
+    setAnsweredDialogOpen(false);
+    setSelectedPrayer(null);
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["community-prayers"] });
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -152,126 +238,200 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
   return (
     <>
       <div className="space-y-4">
-        {prayers.map((prayer) => (
-          <Card key={prayer.id} className="overflow-hidden">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold truncate">{prayer.title}</h3>
-                    {prayer.is_answered && (
-                      <Badge className="bg-green-500/90 text-white gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Answered
-                      </Badge>
-                    )}
-                    {prayer.is_public ? (
-                      <Badge variant="secondary" className="gap-1">
-                        <Globe className="w-3 h-3" />
-                        Shared
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="gap-1">
-                        <Lock className="w-3 h-3" />
-                        Private
-                      </Badge>
-                    )}
+        {prayers.map((prayer) => {
+          const expired = prayer.is_public && isExpired(prayer.expires_at);
+          const renewable = prayer.is_public && canRenew(prayer.expires_at, prayer.share_duration);
+          const daysUntilExpiry = prayer.expires_at 
+            ? differenceInDays(new Date(prayer.expires_at), new Date())
+            : null;
+          const ttsText = `${prayer.title}. ${prayer.content}`;
+
+          return (
+            <Card key={prayer.id} className={`overflow-hidden ${expired ? 'opacity-70' : ''}`}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold truncate">{prayer.title}</h3>
+                      <TextToSpeech text={ttsText} size="sm" />
+                      {prayer.is_answered && (
+                        <Badge className="bg-green-500/90 text-white gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Answered
+                        </Badge>
+                      )}
+                      {prayer.is_anonymous && (
+                        <Badge variant="outline" className="gap-1">
+                          <EyeOff className="w-3 h-3" />
+                          Anonymous
+                        </Badge>
+                      )}
+                      {expired ? (
+                        <Badge variant="destructive" className="gap-1">
+                          <Clock className="w-3 h-3" />
+                          Expired
+                        </Badge>
+                      ) : prayer.is_public ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <Globe className="w-3 h-3" />
+                          Shared
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="gap-1">
+                          <Lock className="w-3 h-3" />
+                          Private
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {format(new Date(prayer.created_at), "MMM d, yyyy")}
+                      {prayer.likes_count > 0 && ` · ${prayer.likes_count} praying`}
+                      {prayer.is_public && daysUntilExpiry !== null && daysUntilExpiry >= 0 && (
+                        <span className={renewable ? "text-yellow-600 dark:text-yellow-400 font-medium" : ""}>
+                          {` · Expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`}
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {format(new Date(prayer.created_at), "MMM d, yyyy")}
-                    {prayer.likes_count > 0 && ` · ${prayer.likes_count} praying`}
-                  </p>
                 </div>
-              </div>
 
-              <p className="text-sm line-clamp-3">{prayer.content}</p>
+                <p className="text-sm line-clamp-3">{prayer.content}</p>
 
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedPrayer(prayer);
-                    setEditDialogOpen(true);
-                  }}
-                  className="gap-1"
-                >
-                  <Edit className="w-3 h-3" />
-                  Edit
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => toggleAnsweredMutation.mutate({ 
-                    id: prayer.id, 
-                    isAnswered: !prayer.is_answered 
-                  })}
-                  disabled={toggleAnsweredMutation.isPending}
-                  className={prayer.is_answered ? "text-green-600" : ""}
-                >
-                  {toggleAnsweredMutation.isPending ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-3 h-3" />
-                  )}
-                  {prayer.is_answered ? "Answered" : "Mark Answered"}
-                </Button>
-
-                {prayer.is_public ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleShareMutation.mutate({ 
-                      id: prayer.id, 
-                      isPublic: false 
-                    })}
-                    disabled={toggleShareMutation.isPending}
-                    className="gap-1"
-                  >
-                    {toggleShareMutation.isPending ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Lock className="w-3 h-3" />
-                    )}
-                    Make Private
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleShareMutation.mutate({ 
-                      id: prayer.id, 
-                      isPublic: true 
-                    })}
-                    disabled={toggleShareMutation.isPending}
-                    className="gap-1 text-green-600"
-                  >
-                    {toggleShareMutation.isPending ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Share2 className="w-3 h-3" />
-                    )}
-                    Share
-                  </Button>
+                {/* Gratitude Message Display */}
+                {prayer.gratitude_message && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-1">
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-sm font-medium">Your Prayer of Gratitude</span>
+                    </div>
+                    <p className="text-sm text-green-800 dark:text-green-300">{prayer.gratitude_message}</p>
+                  </div>
                 )}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setPrayerToDelete(prayer.id);
-                    setDeleteDialogOpen(true);
-                  }}
-                  className="text-destructive hover:text-destructive gap-1"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedPrayer(prayer);
+                      setEditDialogOpen(true);
+                    }}
+                    className="gap-1"
+                  >
+                    <Edit className="w-3 h-3" />
+                    Edit
+                  </Button>
+
+                  {prayer.is_answered ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleAnsweredMutation.mutate({ 
+                        id: prayer.id, 
+                        isAnswered: false 
+                      })}
+                      disabled={toggleAnsweredMutation.isPending}
+                      className="text-green-600 gap-1"
+                    >
+                      {toggleAnsweredMutation.isPending ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3 h-3" />
+                      )}
+                      Answered
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPrayer(prayer);
+                        setAnsweredDialogOpen(true);
+                      }}
+                      className="gap-1"
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      Mark Answered
+                    </Button>
+                  )}
+
+                  {/* Renew Button - show when within renewal window */}
+                  {(renewable || expired) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => renewMutation.mutate({ 
+                        id: prayer.id, 
+                        shareDuration: prayer.share_duration 
+                      })}
+                      disabled={renewMutation.isPending}
+                      className="gap-1 text-primary"
+                    >
+                      {renewMutation.isPending ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3" />
+                      )}
+                      Renew
+                    </Button>
+                  )}
+
+                  {!expired && (prayer.is_public ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleShareMutation.mutate({ 
+                        id: prayer.id, 
+                        isPublic: false 
+                      })}
+                      disabled={toggleShareMutation.isPending}
+                      className="gap-1"
+                    >
+                      {toggleShareMutation.isPending ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Lock className="w-3 h-3" />
+                      )}
+                      Make Private
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleShareMutation.mutate({ 
+                        id: prayer.id, 
+                        isPublic: true,
+                        shareDuration: prayer.share_duration || "1_month"
+                      })}
+                      disabled={toggleShareMutation.isPending}
+                      className="gap-1 text-green-600"
+                    >
+                      {toggleShareMutation.isPending ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Share2 className="w-3 h-3" />
+                      )}
+                      Share
+                    </Button>
+                  ))}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPrayerToDelete(prayer.id);
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="text-destructive hover:text-destructive gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Edit Dialog */}
@@ -282,6 +442,17 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
         userId={userId}
         editingPrayer={selectedPrayer}
       />
+
+      {/* Answered Prayer Dialog */}
+      {selectedPrayer && (
+        <AnsweredPrayerDialog
+          open={answeredDialogOpen}
+          onOpenChange={setAnsweredDialogOpen}
+          prayerId={selectedPrayer.id}
+          currentGratitude={selectedPrayer.gratitude_message}
+          onSuccess={handleAnsweredSuccess}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

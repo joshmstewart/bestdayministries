@@ -12,8 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Lock, Share2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2, Lock, Share2, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { addDays, addWeeks } from "date-fns";
 
 interface PrayerRequest {
   id: string;
@@ -22,6 +25,9 @@ interface PrayerRequest {
   is_public: boolean;
   is_answered: boolean;
   answer_notes: string | null;
+  is_anonymous?: boolean;
+  share_duration?: string;
+  expires_at?: string | null;
 }
 
 interface PrayerRequestDialogProps {
@@ -31,6 +37,21 @@ interface PrayerRequestDialogProps {
   userId?: string;
   editingPrayer?: PrayerRequest | null;
 }
+
+type ShareDuration = "1_week" | "2_weeks" | "1_month";
+
+const calculateExpiresAt = (duration: ShareDuration): string => {
+  const now = new Date();
+  switch (duration) {
+    case "1_week":
+      return addWeeks(now, 1).toISOString();
+    case "2_weeks":
+      return addWeeks(now, 2).toISOString();
+    case "1_month":
+    default:
+      return addDays(now, 30).toISOString();
+  }
+};
 
 export const PrayerRequestDialog = ({
   open,
@@ -42,14 +63,20 @@ export const PrayerRequestDialog = ({
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [shareDuration, setShareDuration] = useState<ShareDuration>("1_month");
 
   useEffect(() => {
     if (editingPrayer) {
       setTitle(editingPrayer.title);
       setContent(editingPrayer.content);
+      setIsAnonymous(editingPrayer.is_anonymous || false);
+      setShareDuration((editingPrayer.share_duration as ShareDuration) || "1_month");
     } else {
       setTitle("");
       setContent("");
+      setIsAnonymous(false);
+      setShareDuration("1_month");
     }
   }, [editingPrayer, open]);
 
@@ -72,6 +99,7 @@ export const PrayerRequestDialog = ({
           .update({
             title: title.trim(),
             content: content.trim(),
+            is_anonymous: isAnonymous,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editingPrayer.id);
@@ -79,6 +107,8 @@ export const PrayerRequestDialog = ({
         if (error) throw error;
         toast.success("Prayer request updated!");
       } else {
+        const expiresAt = makePublic ? calculateExpiresAt(shareDuration) : null;
+        
         const { error } = await supabase
           .from("prayer_requests")
           .insert({
@@ -86,6 +116,9 @@ export const PrayerRequestDialog = ({
             title: title.trim(),
             content: content.trim(),
             is_public: makePublic,
+            is_anonymous: isAnonymous,
+            share_duration: shareDuration,
+            expires_at: expiresAt,
           });
 
         if (error) throw error;
@@ -98,6 +131,8 @@ export const PrayerRequestDialog = ({
 
       setTitle("");
       setContent("");
+      setIsAnonymous(false);
+      setShareDuration("1_month");
       onSuccess();
     } catch (error) {
       console.error("Error saving prayer request:", error);
@@ -109,7 +144,7 @@ export const PrayerRequestDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingPrayer ? "Edit Prayer Request" : "New Prayer Request"}
@@ -148,6 +183,50 @@ export const PrayerRequestDialog = ({
               {content.length}/1000
             </p>
           </div>
+
+          {/* Anonymous Toggle */}
+          <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+            <div className="flex items-center gap-2">
+              <EyeOff className="w-4 h-4 text-muted-foreground" />
+              <div>
+                <Label htmlFor="anonymous" className="cursor-pointer">Share Anonymously</Label>
+                <p className="text-xs text-muted-foreground">Your name won't be shown</p>
+              </div>
+            </div>
+            <Switch
+              id="anonymous"
+              checked={isAnonymous}
+              onCheckedChange={setIsAnonymous}
+            />
+          </div>
+
+          {/* Share Duration - only show when creating new and not editing */}
+          {!editingPrayer && (
+            <div className="space-y-3">
+              <Label>Share Duration</Label>
+              <p className="text-xs text-muted-foreground">
+                Prayer will auto-unshare after this time (you can renew later)
+              </p>
+              <RadioGroup
+                value={shareDuration}
+                onValueChange={(v) => setShareDuration(v as ShareDuration)}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="1_week" id="1_week" />
+                  <Label htmlFor="1_week" className="cursor-pointer">1 Week</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="2_weeks" id="2_weeks" />
+                  <Label htmlFor="2_weeks" className="cursor-pointer">2 Weeks</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="1_month" id="1_month" />
+                  <Label htmlFor="1_month" className="cursor-pointer">1 Month</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
