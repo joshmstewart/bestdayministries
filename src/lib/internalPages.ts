@@ -79,6 +79,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/games/beat-pad", label: "Beat Pad" },
   { value: "/games/cash-register", label: "Cash Register" },
   { value: "/games/jokes", label: "Jokes" },
+  { value: "/games/card-creator", label: "Card Creator" },
   
   // Health & Wellness
   { value: "/workout-tracker", label: "Workout Tracker" },
