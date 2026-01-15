@@ -95,7 +95,7 @@ import { ChoreBadgeManager } from "@/components/admin/ChoreBadgeManager";
 import { ChoreChallengeManager } from "@/components/admin/ChoreChallengeManager";
 import { WorkoutManager } from "@/components/admin/WorkoutManager";
 import { CardManager } from "@/components/admin/CardManager";
-
+import { GuardianResourcesManager } from "@/components/admin/GuardianResourcesManager";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -713,6 +713,7 @@ const Admin = () => {
                     <TabsTrigger value="partners">Partners</TabsTrigger>
                     <TabsTrigger value="footer">Footer</TabsTrigger>
                     <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
+                    <TabsTrigger value="guardian-resources">Guardian Resources</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="homepage">
@@ -757,6 +758,10 @@ const Admin = () => {
 
                   <TabsContent value="quick-links">
                     <QuickLinksManager />
+                  </TabsContent>
+
+                  <TabsContent value="guardian-resources">
+                    <GuardianResourcesManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
