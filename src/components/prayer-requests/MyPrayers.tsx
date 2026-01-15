@@ -32,7 +32,8 @@ import {
   XCircle
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, differenceInDays, addWeeks, addDays, isPast } from "date-fns";
+import { format, differenceInDays, differenceInHours, addWeeks, addDays, isPast } from "date-fns";
+import { cn } from "@/lib/utils";
 import { PrayerRequestDialog } from "./PrayerRequestDialog";
 import { AnsweredPrayerDialog } from "./AnsweredPrayerDialog";
 import { TextToSpeech } from "@/components/TextToSpeech";
@@ -84,6 +85,23 @@ const canRenew = (expiresAt: string | null, shareDuration: string | null): boole
 const isExpired = (expiresAt: string | null): boolean => {
   if (!expiresAt) return false;
   return isPast(new Date(expiresAt));
+};
+
+const formatTimeRemaining = (expiresAt: string | null): string | null => {
+  if (!expiresAt) return null;
+  const expiryDate = new Date(expiresAt);
+  const now = new Date();
+  const daysRemaining = differenceInDays(expiryDate, now);
+  const hoursRemaining = differenceInHours(expiryDate, now);
+  
+  if (daysRemaining > 1) {
+    return `${daysRemaining} days`;
+  } else if (daysRemaining === 1) {
+    return "1 day";
+  } else if (hoursRemaining > 0) {
+    return `${hoursRemaining}h`;
+  }
+  return null;
 };
 
 const calculateNewExpiresAt = (shareDuration: string | null): string => {
@@ -247,9 +265,7 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
         {prayers.map((prayer) => {
           const expired = prayer.is_public && isExpired(prayer.expires_at);
           const renewable = prayer.is_public && canRenew(prayer.expires_at, prayer.share_duration);
-          const daysUntilExpiry = prayer.expires_at 
-            ? differenceInDays(new Date(prayer.expires_at), new Date())
-            : null;
+          const timeRemaining = formatTimeRemaining(prayer.expires_at);
           const ttsText = `${prayer.title}. ${prayer.content}`;
 
           return (
@@ -310,12 +326,17 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                     <p className="text-sm text-muted-foreground mt-1">
                       {format(new Date(prayer.created_at), "MMM d, yyyy")}
                       {prayer.likes_count > 0 && ` · ${prayer.likes_count} praying`}
-                      {prayer.is_public && daysUntilExpiry !== null && daysUntilExpiry >= 0 && (
-                        <span className={renewable ? "text-yellow-600 dark:text-yellow-400 font-medium" : ""}>
-                          {` · Expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`}
-                        </span>
-                      )}
                     </p>
+                    {/* Time Remaining Display */}
+                    {prayer.is_public && prayer.approval_status === "approved" && timeRemaining && !expired && (
+                      <div className={cn(
+                        "flex items-center gap-1.5 mt-1 text-sm",
+                        renewable ? "text-yellow-600 dark:text-yellow-400 font-medium" : "text-muted-foreground"
+                      )}>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{timeRemaining} remaining</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -386,8 +407,8 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                     </Button>
                   )}
 
-                  {/* Renew Button - show when within renewal window */}
-                  {(renewable || expired) && (
+                  {/* Extend Time Button - always show for shared prayers, disabled until renewal window */}
+                  {prayer.is_public && prayer.approval_status === "approved" && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -395,15 +416,19 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                         id: prayer.id, 
                         shareDuration: prayer.share_duration 
                       })}
-                      disabled={renewMutation.isPending}
-                      className="gap-1 text-primary"
+                      disabled={renewMutation.isPending || (!renewable && !expired)}
+                      className={cn(
+                        "gap-1",
+                        (renewable || expired) ? "text-primary border-primary hover:bg-primary/10" : "opacity-60"
+                      )}
+                      title={(!renewable && !expired) ? "Available when nearing expiration" : "Extend sharing time"}
                     >
                       {renewMutation.isPending ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
                       ) : (
                         <RefreshCw className="w-3 h-3" />
                       )}
-                      Renew
+                      Extend Time
                     </Button>
                   )}
 
