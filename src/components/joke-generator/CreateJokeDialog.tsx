@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, PenLine, Share2 } from "lucide-react";
 import { VoiceInput } from "@/components/VoiceInput";
+import { TextToSpeech } from "@/components/TextToSpeech";
 import { useQuery } from "@tanstack/react-query";
 interface CreateJokeDialogProps {
   open: boolean;
@@ -145,14 +146,19 @@ export function CreateJokeDialog({
                 className="resize-none flex-1"
                 rows={2}
               />
-              <VoiceInput
-                onTranscript={handleQuestionTranscript}
-                showTranscript={false}
-                buttonSize="icon"
-                autoStop={true}
-                silenceStopSeconds={5}
-                maxDuration={30}
-              />
+              <div className="flex flex-col gap-1">
+                <VoiceInput
+                  onTranscript={handleQuestionTranscript}
+                  showTranscript={false}
+                  buttonSize="icon"
+                  autoStop={true}
+                  silenceStopSeconds={5}
+                  maxDuration={30}
+                />
+                {question.trim() && (
+                  <TextToSpeech text={question} size="icon" />
+                )}
+              </div>
             </div>
           </div>
 
@@ -170,14 +176,19 @@ export function CreateJokeDialog({
                 className="resize-none flex-1"
                 rows={2}
               />
-              <VoiceInput
-                onTranscript={handleAnswerTranscript}
-                showTranscript={false}
-                buttonSize="icon"
-                autoStop={true}
-                silenceStopSeconds={5}
-                maxDuration={30}
-              />
+              <div className="flex flex-col gap-1">
+                <VoiceInput
+                  onTranscript={handleAnswerTranscript}
+                  showTranscript={false}
+                  buttonSize="icon"
+                  autoStop={true}
+                  silenceStopSeconds={5}
+                  maxDuration={30}
+                />
+                {answer.trim() && (
+                  <TextToSpeech text={answer} size="icon" />
+                )}
+              </div>
             </div>
           </div>
 
