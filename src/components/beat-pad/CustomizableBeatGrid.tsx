@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import InstrumentSlot, { SoundConfig } from './InstrumentSlot';
@@ -127,6 +127,19 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
     }));
   };
 
+  const handleClearAll = () => {
+    // Clear all instruments
+    const emptyInstruments: (SoundConfig | null)[] = Array(MAX_INSTRUMENTS).fill(null);
+    setInstruments(emptyInstruments);
+    
+    // Clear all patterns
+    const emptyPattern: Record<string, boolean[]> = {};
+    for (let i = 0; i < MAX_INSTRUMENTS; i++) {
+      emptyPattern[i.toString()] = Array(STEPS).fill(false);
+    }
+    setPattern(emptyPattern);
+  };
+
   const handleToggleCell = (slotIndex: number, step: number) => {
     const sound = instruments[slotIndex];
     if (!sound) return;
@@ -194,17 +207,29 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
           />
         ))}
 
-        {/* Add more button */}
-        {canAddMore && slotsToShow < MAX_INSTRUMENTS && (
-          <Button
-            variant="outline"
-            onClick={() => handleOpenSoundPicker(slotsToShow)}
-            className="w-full border-dashed"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Sound ({activeSlots}/{MAX_INSTRUMENTS})
-          </Button>
-        )}
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          {activeSlots > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleClearAll}
+              className="border-dashed text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear All
+            </Button>
+          )}
+          {canAddMore && slotsToShow < MAX_INSTRUMENTS && (
+            <Button
+              variant="outline"
+              onClick={() => handleOpenSoundPicker(slotsToShow)}
+              className="flex-1 border-dashed"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Sound ({activeSlots}/{MAX_INSTRUMENTS})
+            </Button>
+          )}
+        </div>
       </div>
 
       <SoundPickerDialog
