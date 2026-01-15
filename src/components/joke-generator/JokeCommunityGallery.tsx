@@ -275,7 +275,7 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
                     <div className="flex items-start gap-2">
                       <p className="font-medium line-clamp-2 flex-1">{joke.question}</p>
                       <div onClick={(e) => e.stopPropagation()}>
-                        <TextToSpeech text={`${joke.question} ... ${joke.answer}`} size="icon" />
+                        <TextToSpeech text={joke.question} size="icon" />
                       </div>
                     </div>
                   </div>
