@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Share2, Lock, Globe, Loader2, Eye, EyeOff, Candy, Heart, ShieldAlert, PenLine, Plus } from "lucide-react";
+import { Trash2, Share2, Globe, Loader2, Eye, EyeOff, Candy, Heart, PenLine, Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { CreateJokeDialog } from "./CreateJokeDialog";
@@ -35,6 +34,7 @@ interface SavedJoke {
   is_public: boolean;
   likes_count: number;
   created_at: string;
+  is_user_created: boolean;
 }
 
 interface JokeGalleryProps {
@@ -47,6 +47,7 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
   const [jokeToDelete, setJokeToDelete] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingJoke, setEditingJoke] = useState<SavedJoke | null>(null);
 
   const { data: savedJokes, isLoading, refetch } = useQuery({
     queryKey: ["user-jokes", userId],
@@ -173,8 +174,14 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className="text-xl">{getCategoryEmoji(joke.category)}</span>
+                    {joke.is_user_created && (
+                      <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                        <PenLine className="w-3 h-3 mr-1" />
+                        My Creation
+                      </Badge>
+                    )}
                     {joke.is_public && (
                       <Badge className="bg-green-500/90 text-white text-xs">
                         <Globe className="w-3 h-3 mr-1" />
@@ -212,6 +219,12 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
             <DialogTitle className="flex items-center gap-2">
               <span className="text-2xl">{getCategoryEmoji(selectedJoke?.category || 'random')}</span>
               {selectedJoke?.category?.charAt(0).toUpperCase()}{selectedJoke?.category?.slice(1)} Joke
+              {selectedJoke?.is_user_created && (
+                <Badge variant="secondary" className="text-xs bg-primary/10 text-primary ml-2">
+                  <PenLine className="w-3 h-3 mr-1" />
+                  My Creation
+                </Badge>
+              )}
             </DialogTitle>
             <DialogDescription>
               Saved on {selectedJoke && format(new Date(selectedJoke.created_at), "MMMM d, yyyy")}
@@ -269,7 +282,21 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
             )}
           </div>
 
-          <div className="flex justify-center pt-2">
+          <div className="flex justify-center gap-3 pt-2">
+            {selectedJoke?.is_user_created && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditingJoke(selectedJoke);
+                  setCreateDialogOpen(true);
+                  setSelectedJoke(null);
+                }}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Joke
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -301,15 +328,20 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Create Joke Dialog */}
+      {/* Create/Edit Joke Dialog */}
       <CreateJokeDialog
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) setEditingJoke(null);
+        }}
         userId={userId}
         onJokeCreated={() => {
           refetch();
+          setEditingJoke(null);
           queryClient.invalidateQueries({ queryKey: ["community-jokes"] });
         }}
+        editingJoke={editingJoke}
       />
     </>
   );
