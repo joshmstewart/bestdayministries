@@ -9,8 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, Info } from "lucide-react";
+import { Loader2, Save, Eye, Info, PlayCircle, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface YearEndSettings {
   id: string;
@@ -37,6 +40,14 @@ const MONTHS = [
   { value: 12, label: "December" },
 ];
 
+interface DryRunResult {
+  email: string;
+  donorId: string | null;
+  totalAmount: number;
+  userName: string;
+  wouldSkip: boolean;
+}
+
 export function YearEndSummarySettings() {
   const [settings, setSettings] = useState<YearEndSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +55,10 @@ export function YearEndSummarySettings() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string>("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [dryRunOpen, setDryRunOpen] = useState(false);
+  const [dryRunLoading, setDryRunLoading] = useState(false);
+  const [dryRunResults, setDryRunResults] = useState<DryRunResult[] | null>(null);
+  const [dryRunSummary, setDryRunSummary] = useState<{ sent: number; skipped: number; taxYear: number } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -150,6 +165,51 @@ export function YearEndSummarySettings() {
       setPreviewOpen(false);
     } finally {
       setPreviewLoading(false);
+    }
+  };
+
+  const handleDryRun = async () => {
+    setDryRunLoading(true);
+    setDryRunOpen(true);
+    setDryRunResults(null);
+    setDryRunSummary(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-batch-year-end-summaries', {
+        body: { 
+          force: true,
+          dryRun: true, // This is the default, but being explicit
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
+        setDryRunOpen(false);
+        return;
+      }
+
+      setDryRunResults(data.preview || []);
+      setDryRunSummary({
+        sent: data.sent || 0,
+        skipped: data.skipped || 0,
+        taxYear: data.taxYear,
+      });
+    } catch (error: any) {
+      console.error("Error running dry run:", error);
+      toast({
+        title: "Error",
+        description: "Failed to run dry run test",
+        variant: "destructive",
+      });
+      setDryRunOpen(false);
+    } finally {
+      setDryRunLoading(false);
     }
   };
 
@@ -277,36 +337,123 @@ export function YearEndSummarySettings() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center pt-4 border-t">
-          <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" onClick={handlePreview}>
-                <Eye className="mr-2 h-4 w-4" />
-                Preview Email
-              </Button>
-            </DialogTrigger>
-            <DialogDescription className="sr-only">
-              Preview of the year-end tax summary email template with your custom settings
-            </DialogDescription>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Year-End Tax Summary Preview</DialogTitle>
-              </DialogHeader>
-              {previewLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : (
-                <div className="border rounded-lg overflow-hidden">
-                  <iframe
-                    srcDoc={previewHtml}
-                    className="w-full h-[600px]"
-                    title="Year-End Email Preview"
-                  />
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+        <div className="flex flex-wrap gap-2 justify-between items-center pt-4 border-t">
+          <div className="flex gap-2">
+            <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" onClick={handlePreview}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Preview Email
+                </Button>
+              </DialogTrigger>
+              <DialogDescription className="sr-only">
+                Preview of the year-end tax summary email template with your custom settings
+              </DialogDescription>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Year-End Tax Summary Preview</DialogTitle>
+                </DialogHeader>
+                {previewLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="border rounded-lg overflow-hidden">
+                    <iframe
+                      srcDoc={previewHtml}
+                      className="w-full h-[600px]"
+                      title="Year-End Email Preview"
+                    />
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Dry Run Test Button */}
+            <Dialog open={dryRunOpen} onOpenChange={setDryRunOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" onClick={handleDryRun}>
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Test Dry Run
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    Dry Run Test - No Emails Sent
+                  </DialogTitle>
+                  <DialogDescription>
+                    This shows what WOULD be sent if you enabled sending. No emails are actually sent.
+                  </DialogDescription>
+                </DialogHeader>
+                {dryRunLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : dryRunResults ? (
+                  <div className="space-y-4">
+                    {/* Summary */}
+                    <div className="flex gap-4">
+                      <Badge variant="secondary" className="text-base px-3 py-1">
+                        Tax Year: {dryRunSummary?.taxYear}
+                      </Badge>
+                      <Badge variant="default" className="text-base px-3 py-1 bg-green-600">
+                        Would Send: {dryRunSummary?.sent}
+                      </Badge>
+                      <Badge variant="outline" className="text-base px-3 py-1">
+                        Already Sent (Skip): {dryRunSummary?.skipped}
+                      </Badge>
+                    </div>
+
+                    {/* Warning */}
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Review carefully!</strong> Verify these amounts match what donors actually gave before enabling real sends.
+                      </AlertDescription>
+                    </Alert>
+
+                    {/* Results Table */}
+                    <ScrollArea className="h-[400px] border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {dryRunResults.map((result, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-mono text-sm">{result.email}</TableCell>
+                              <TableCell>{result.userName}</TableCell>
+                              <TableCell className="text-right font-semibold">
+                                ${result.totalAmount.toFixed(2)}
+                              </TableCell>
+                              <TableCell>
+                                {result.wouldSkip ? (
+                                  <Badge variant="outline">Already Sent</Badge>
+                                ) : (
+                                  <Badge variant="default" className="bg-green-600">Would Send</Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No data available
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
 
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
