@@ -72,7 +72,7 @@ const DrinkCreator = () => {
             </p>
           </div>
 
-          <Tabs defaultValue="create" className="w-full">
+          <Tabs defaultValue="create" className="w-full" id="drink-creator-tabs">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="create">Create</TabsTrigger>
               <TabsTrigger value="gallery">Gallery</TabsTrigger>
