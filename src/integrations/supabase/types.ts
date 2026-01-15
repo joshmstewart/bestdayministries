@@ -6570,6 +6570,42 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_unmatched_items: {
+        Row: {
+          first_seen_at: string
+          id: string
+          is_resolved: boolean
+          item_name: string
+          item_type: string
+          last_seen_at: string
+          occurrence_count: number
+          resolved_at: string | null
+          resolved_to: string | null
+        }
+        Insert: {
+          first_seen_at?: string
+          id?: string
+          is_resolved?: boolean
+          item_name: string
+          item_type: string
+          last_seen_at?: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          resolved_to?: string | null
+        }
+        Update: {
+          first_seen_at?: string
+          id?: string
+          is_resolved?: boolean
+          item_name?: string
+          item_type?: string
+          last_seen_at?: string
+          occurrence_count?: number
+          resolved_at?: string | null
+          resolved_to?: string | null
+        }
+        Relationships: []
+      }
       reconciliation_changes: {
         Row: {
           after_state: Json

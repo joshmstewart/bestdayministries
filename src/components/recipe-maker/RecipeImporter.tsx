@@ -6,14 +6,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Sparkles, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Check, BookmarkPlus, Share2 } from "lucide-react";
+import { Loader2, Sparkles, ChevronDown, ChevronUp, AlertTriangle, Lightbulb, Check, BookmarkPlus, Share2, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Suggestion {
   type: "safety" | "simplification" | "substitution" | "tip";
   original?: string;
   suggested: string;
   reason: string;
+}
+
+interface IngredientMatch {
+  original: string;
+  matched: string | null;
+}
+
+interface ToolMatch {
+  original: string;
+  matched: string | null;
 }
 
 interface ParsedRecipe {
@@ -26,6 +37,12 @@ interface ParsedRecipe {
   safetyNotes?: string[];
   suggestions?: Suggestion[];
   imageUrl?: string;
+  matchedIngredients?: string[];
+  matchedTools?: string[];
+  unmatchedIngredients?: string[];
+  unmatchedTools?: string[];
+  ingredientMatches?: IngredientMatch[];
+  toolMatches?: ToolMatch[];
 }
 
 interface RecipeImporterProps {
@@ -280,28 +297,140 @@ export function RecipeImporter({ userId, onSaved }: RecipeImporterProps) {
               </Collapsible>
             )}
 
-            {/* Ingredients */}
+            {/* Ingredients with match status */}
             <div>
-              <p className="text-sm font-medium mb-2">Ingredients</p>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-sm font-medium">Ingredients</p>
+                {parsedRecipe.unmatchedIngredients && parsedRecipe.unmatchedIngredients.length > 0 && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-700 border-yellow-500/30">
+                          <Info className="h-3 w-3 mr-1" />
+                          {parsedRecipe.unmatchedIngredients.length} not in wizard
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[300px]">
+                        <p className="font-medium mb-1">These items aren't in your wizard inventory:</p>
+                        <ul className="text-xs">
+                          {parsedRecipe.unmatchedIngredients.map((item, i) => (
+                            <li key={i}>• {item}</li>
+                          ))}
+                        </ul>
+                        <p className="text-xs mt-2 text-muted-foreground">
+                          You can still make this recipe, but these won't match your saved inventory.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
               <div className="flex flex-wrap gap-1">
-                {parsedRecipe.ingredients.map((ing, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs">
-                    {ing}
-                  </Badge>
-                ))}
+                {parsedRecipe.ingredientMatches ? (
+                  parsedRecipe.ingredientMatches.map((match, i) => (
+                    <TooltipProvider key={i}>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge 
+                            variant={match.matched ? "secondary" : "outline"} 
+                            className={`text-xs ${!match.matched ? 'border-yellow-500/50 bg-yellow-500/10' : ''}`}
+                          >
+                            {match.matched ? (
+                              <>
+                                <Check className="h-3 w-3 mr-1 text-green-600" />
+                                {match.matched}
+                              </>
+                            ) : (
+                              match.original
+                            )}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {match.matched ? (
+                            <p>Matches wizard item: <strong>{match.matched}</strong></p>
+                          ) : (
+                            <p>Not found in wizard ingredients</p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ))
+                ) : (
+                  parsedRecipe.ingredients.map((ing, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {ing}
+                    </Badge>
+                  ))
+                )}
               </div>
             </div>
 
-            {/* Tools */}
+            {/* Tools with match status */}
             {parsedRecipe.tools && parsedRecipe.tools.length > 0 && (
               <div>
-                <p className="text-sm font-medium mb-2">Tools Needed</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-medium">Tools Needed</p>
+                  {parsedRecipe.unmatchedTools && parsedRecipe.unmatchedTools.length > 0 && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-700 border-yellow-500/30">
+                            <Info className="h-3 w-3 mr-1" />
+                            {parsedRecipe.unmatchedTools.length} not in wizard
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[300px]">
+                          <p className="font-medium mb-1">These tools aren't in your wizard inventory:</p>
+                          <ul className="text-xs">
+                            {parsedRecipe.unmatchedTools.map((item, i) => (
+                              <li key={i}>• {item}</li>
+                            ))}
+                          </ul>
+                          <p className="text-xs mt-2 text-muted-foreground">
+                            You can still make this recipe, but these won't match your saved tools.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-1">
-                  {parsedRecipe.tools.map((tool, i) => (
-                    <Badge key={i} variant="outline" className="text-xs">
-                      {tool}
-                    </Badge>
-                  ))}
+                  {parsedRecipe.toolMatches ? (
+                    parsedRecipe.toolMatches.map((match, i) => (
+                      <TooltipProvider key={i}>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge 
+                              variant={match.matched ? "outline" : "outline"} 
+                              className={`text-xs ${!match.matched ? 'border-yellow-500/50 bg-yellow-500/10' : ''}`}
+                            >
+                              {match.matched ? (
+                                <>
+                                  <Check className="h-3 w-3 mr-1 text-green-600" />
+                                  {match.matched}
+                                </>
+                              ) : (
+                                match.original
+                              )}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {match.matched ? (
+                              <p>Matches wizard tool: <strong>{match.matched}</strong></p>
+                            ) : (
+                              <p>Not found in wizard tools</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))
+                  ) : (
+                    parsedRecipe.tools.map((tool, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {tool}
+                      </Badge>
+                    ))
+                  )}
                 </div>
               </div>
             )}
