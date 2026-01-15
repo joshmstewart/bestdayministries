@@ -122,9 +122,9 @@ const JoyHouseStores = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <UnifiedHeader />
-      <main className="flex-1 pt-24">
+      <main className="flex-1 pt-24 bg-gradient-to-br from-primary/10 via-background to-accent/10">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/10 -mt-6">
+        <section className="relative -mt-6">
           {content?.hero_image_url && (
             <div className="absolute inset-0">
               <img
