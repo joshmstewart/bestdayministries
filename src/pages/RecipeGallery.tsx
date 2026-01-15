@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, ChefHat, BookmarkPlus, Check, Sparkles, ShoppingCart } from "lucide-react";
+import { ArrowLeft, BookOpen, ChefHat, BookmarkPlus, Check, Sparkles, ShoppingCart, Plus } from "lucide-react";
 import { PageLoadingState } from "@/components/common";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { toast } from "sonner";
@@ -471,8 +471,16 @@ const RecipeGallery = () => {
                 />
                 
                 {savedRecipes.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-12 text-muted-foreground space-y-4">
                     <p>Your cookbook is empty. Start saving recipes!</p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setActiveTab("maker")}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Import Your Own Recipe
+                    </Button>
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
