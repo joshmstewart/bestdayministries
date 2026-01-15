@@ -125,29 +125,34 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
 
     try {
       if (isLiked) {
-        await supabase
+        const { error } = await supabase
           .from('beat_pad_likes')
           .delete()
           .eq('creation_id', creationId)
           .eq('user_id', user.id);
-        
-        setUserLikes(prev => {
+
+        if (error) throw error;
+
+        setUserLikes((prev) => {
           const next = new Set(prev);
           next.delete(creationId);
           return next;
         });
       } else {
-        await supabase
+        const { error } = await supabase
           .from('beat_pad_likes')
           .insert({ creation_id: creationId, user_id: user.id });
-        
-        setUserLikes(prev => new Set(prev).add(creationId));
+
+        if (error) throw error;
+
+        setUserLikes((prev) => new Set(prev).add(creationId));
       }
 
       // Refresh to get updated count
-      loadCreations();
-    } catch (error) {
+      void loadCreations();
+    } catch (error: any) {
       console.error('Error toggling like:', error);
+      toast.error(error?.message || 'Could not update like. Please try again.');
     }
   };
 

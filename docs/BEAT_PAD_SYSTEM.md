@@ -10,8 +10,10 @@ Beat Pad (`/games/beat-pad`) is a step-sequencer game that lets users create bea
 - `beat_pad_creations`
   - User-created beats.
   - `pattern` is stored as a JSON object.
+  - `likes_count` is maintained by a trigger that reacts to inserts/deletes in `beat_pad_likes`.
 - `beat_pad_likes`
   - Community likes for public beats.
+  - Inserting a like also triggers an in-app notification for the beat creator (via a trigger function).
 
 ## Pattern Storage (CRITICAL)
 ### Current format (preferred)
