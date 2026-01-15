@@ -263,6 +263,15 @@ export const useBeatLoopPlayer = () => {
     // Load any missing sound configs by UUID before starting playback
     await loadSoundsByUUID(instrumentKeys);
 
+    // Increment plays_count in database using RPC function
+    (async () => {
+      try {
+        await supabase.rpc('increment_beat_plays', { beat_id: beatId });
+      } catch (err) {
+        console.warn('Failed to increment plays count:', err);
+      }
+    })();
+
     // Start new beat
     setPlayingBeatId(beatId);
     globalPlayingBeatId = beatId;
@@ -283,7 +292,7 @@ export const useBeatLoopPlayer = () => {
 
     tick(); // Play immediately
     intervalRef.current = window.setInterval(tick, intervalMs);
-  }, [playingBeatId, playSound, stopBeat, loadSoundsByUUID]);
+  }, [playingBeatId, playSound, stopBeat, loadSoundsByUUID, ensureAudioContextRunning]);
 
   // Cleanup on unmount
   useEffect(() => {

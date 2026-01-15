@@ -23,6 +23,7 @@ interface BeatCreation {
   pattern: Record<string, boolean[]>;
   tempo: number;
   likes_count: number;
+  plays_count: number;
   creator_id: string;
   created_at: string;
   image_url?: string | null;
@@ -63,7 +64,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
     try {
       let query = supabase
         .from('beat_pad_creations')
-        .select('id, name, pattern, tempo, likes_count, creator_id, created_at, image_url')
+        .select('id, name, pattern, tempo, likes_count, plays_count, creator_id, created_at, image_url')
         .eq('is_public', true);
 
       if (sortBy === 'newest') {
@@ -233,7 +234,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                  <span>{countActiveSteps(creation.pattern)} notes</span>
+                  <span>{countActiveSteps(creation.pattern)} notes • {creation.plays_count || 0} plays</span>
                 </div>
 
                 <div className="flex gap-2">
