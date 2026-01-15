@@ -8372,6 +8372,7 @@ export type Database = {
           name: string
           points: number | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           category?: string | null
@@ -8384,6 +8385,7 @@ export type Database = {
           name: string
           points?: number | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           category?: string | null
@@ -8396,6 +8398,7 @@ export type Database = {
           name?: string
           points?: number | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
