@@ -18,6 +18,9 @@ serve(async (req) => {
       throw new Error("Prompt is required");
     }
 
+    // Enhance prompt to ensure standard portrait card ratio (2.5:3.5 like playing cards)
+    const enhancedPrompt = `Create a greeting card design in PORTRAIT orientation with a standard card aspect ratio (2.5:3.5, like a playing card or greeting card). The image should be taller than it is wide. ${prompt}`;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -36,7 +39,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: prompt,
+            content: enhancedPrompt,
           },
         ],
         modalities: ["image", "text"],
