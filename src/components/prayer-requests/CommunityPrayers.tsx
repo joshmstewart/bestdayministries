@@ -329,17 +329,9 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                           <Sparkles className="w-4 h-4" />
                           <span className="text-sm font-medium">Prayer of Gratitude</span>
                         </div>
-                        <p className={cn(
-                          "text-sm text-green-800 dark:text-green-300",
-                          prayer.gratitude_message.length > 200 && "line-clamp-3"
-                        )}>
+                        <p className="text-sm text-green-800 dark:text-green-300">
                           "{prayer.gratitude_message}"
                         </p>
-                        {prayer.gratitude_message.length > 200 && (
-                          <span className="text-xs text-green-600 dark:text-green-400 mt-1 inline-block">
-                            Tap to read more...
-                          </span>
-                        )}
                       </div>
                     </DialogTrigger>
                     <DialogContent className="max-w-md">
