@@ -66,6 +66,7 @@ const ProfileSettings = () => {
     email_on_prayer_rejected: true,
     email_on_prayed_for_you: true,
     email_on_prayer_expiring: true,
+    email_on_content_like: false,
     inapp_on_pending_approval: true,
     inapp_on_approval_decision: true,
     inapp_on_new_sponsor_message: true,
@@ -82,6 +83,7 @@ const ProfileSettings = () => {
     inapp_on_prayer_rejected: true,
     inapp_on_prayed_for_you: true,
     inapp_on_prayer_expiring: true,
+    inapp_on_content_like: true,
     digest_frequency: 'never' as 'never' | 'daily' | 'weekly',
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
@@ -394,6 +396,9 @@ const ProfileSettings = () => {
           inapp_on_prayer_rejected: prefs.inapp_on_prayer_rejected ?? true,
           inapp_on_prayed_for_you: prefs.inapp_on_prayed_for_you ?? true,
           inapp_on_prayer_expiring: prefs.inapp_on_prayer_expiring ?? true,
+          // Provide defaults for content like fields
+          email_on_content_like: prefs.email_on_content_like ?? false,
+          inapp_on_content_like: prefs.inapp_on_content_like ?? true,
         });
       }
     } catch (error: any) {
@@ -1179,6 +1184,33 @@ const ProfileSettings = () => {
                             checked={notificationPrefs.inapp_on_event_update}
                             onCheckedChange={(checked) => 
                               setNotificationPrefs(prev => ({ ...prev, inapp_on_event_update: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content Likes - Show to everyone */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">Content Likes</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Likes on your creations</Label>
+                          <p className="text-xs text-muted-foreground">When someone likes your colorings, drinks, or recipes</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_content_like}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_content_like: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_content_like}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_content_like: checked }))
                             }
                           />
                         </div>

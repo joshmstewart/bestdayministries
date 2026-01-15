@@ -5247,6 +5247,7 @@ export type Database = {
           email_on_approval_decision: boolean
           email_on_comment_on_post: boolean
           email_on_comment_on_thread: boolean
+          email_on_content_like: boolean | null
           email_on_event_update: boolean
           email_on_message_approved: boolean
           email_on_message_rejected: boolean
@@ -5266,6 +5267,7 @@ export type Database = {
           inapp_on_approval_decision: boolean
           inapp_on_comment_on_post: boolean
           inapp_on_comment_on_thread: boolean
+          inapp_on_content_like: boolean | null
           inapp_on_event_update: boolean
           inapp_on_message_approved: boolean
           inapp_on_message_rejected: boolean
@@ -5290,6 +5292,7 @@ export type Database = {
           email_on_approval_decision?: boolean
           email_on_comment_on_post?: boolean
           email_on_comment_on_thread?: boolean
+          email_on_content_like?: boolean | null
           email_on_event_update?: boolean
           email_on_message_approved?: boolean
           email_on_message_rejected?: boolean
@@ -5309,6 +5312,7 @@ export type Database = {
           inapp_on_approval_decision?: boolean
           inapp_on_comment_on_post?: boolean
           inapp_on_comment_on_thread?: boolean
+          inapp_on_content_like?: boolean | null
           inapp_on_event_update?: boolean
           inapp_on_message_approved?: boolean
           inapp_on_message_rejected?: boolean
@@ -5333,6 +5337,7 @@ export type Database = {
           email_on_approval_decision?: boolean
           email_on_comment_on_post?: boolean
           email_on_comment_on_thread?: boolean
+          email_on_content_like?: boolean | null
           email_on_event_update?: boolean
           email_on_message_approved?: boolean
           email_on_message_rejected?: boolean
@@ -5352,6 +5357,7 @@ export type Database = {
           inapp_on_approval_decision?: boolean
           inapp_on_comment_on_post?: boolean
           inapp_on_comment_on_thread?: boolean
+          inapp_on_content_like?: boolean | null
           inapp_on_event_update?: boolean
           inapp_on_message_approved?: boolean
           inapp_on_message_rejected?: boolean
