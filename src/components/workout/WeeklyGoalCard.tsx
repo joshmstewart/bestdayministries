@@ -59,7 +59,7 @@ export const WeeklyGoalCard = ({ userId, className }: WeeklyGoalCardProps) => {
           "p-4 h-full transition-colors flex flex-col",
           isGoalMet 
             ? "bg-gradient-to-r from-yellow-400 to-amber-500 text-white" 
-            : "bg-gradient-ribbon"
+            : "bg-soft-ribbon"
         )}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
