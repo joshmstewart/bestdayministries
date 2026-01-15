@@ -45,13 +45,13 @@ const WorkoutTracker = () => {
               {/* Videos Button */}
               <Button 
                 variant="outline" 
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 bg-soft-ribbon hover:bg-soft-ribbon/80 border-2 border-primary/30 shadow-md hover:shadow-lg transition-all text-foreground font-semibold py-6"
                 onClick={() => {
                   const videoSection = document.getElementById('video-section');
                   videoSection?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                <Video className="h-5 w-5" />
+                <Video className="h-6 w-6 text-primary" />
                 Browse Workout Videos
               </Button>
 
