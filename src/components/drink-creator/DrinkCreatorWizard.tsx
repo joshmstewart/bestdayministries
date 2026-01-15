@@ -52,9 +52,12 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [savedDrinkId, setSavedDrinkId] = useState<string | null>(null);
 
-  // Scroll to page top when step changes
+  // Scroll to tabs section when step changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const tabsElement = document.getElementById('drink-creator-tabs');
+    if (tabsElement) {
+      tabsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, [currentStep]);
 
   useEffect(() => {
