@@ -18,6 +18,7 @@ interface BeatCreation {
   image_url?: string | null;
   ai_audio_url?: string | null;
   plays_count?: number;
+  instrument_order?: string[] | null;
 }
 
 interface Beat {
@@ -28,6 +29,7 @@ interface Beat {
   image_url?: string | null;
   is_public?: boolean;
   ai_audio_url?: string | null;
+  instrument_order?: string[] | null;
 }
 
 interface MyBeatsProps {
@@ -160,6 +162,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
                 tempo: beat.tempo,
                 image_url: beat.image_url,
                 is_public: beat.is_public,
+                instrument_order: beat.instrument_order,
               });
             }}
           >
@@ -201,6 +204,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
                   tempo: beat.tempo,
                   image_url: beat.image_url,
                   is_public: beat.is_public,
+                  instrument_order: beat.instrument_order,
                 });
               }}
             >
@@ -244,6 +248,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
                     tempo: beat.tempo,
                     image_url: beat.image_url,
                     is_public: beat.is_public,
+                    instrument_order: beat.instrument_order,
                   });
                 }}
                 className="flex-shrink-0"

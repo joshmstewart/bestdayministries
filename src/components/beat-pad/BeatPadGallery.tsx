@@ -27,6 +27,7 @@ interface BeatCreation {
   creator_id: string;
   created_at: string;
   image_url?: string | null;
+  instrument_order?: string[] | null;
   profiles?: {
     display_name: string | null;
     avatar_number: number | null;
@@ -41,6 +42,7 @@ interface Beat {
   image_url?: string | null;
   is_public?: boolean;
   ai_audio_url?: string | null;
+  instrument_order?: string[] | null;
 }
 
 interface BeatPadGalleryProps {
@@ -64,7 +66,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
     try {
       let query = supabase
         .from('beat_pad_creations')
-        .select('id, name, pattern, tempo, likes_count, plays_count, creator_id, created_at, image_url')
+        .select('id, name, pattern, tempo, likes_count, plays_count, creator_id, created_at, image_url, instrument_order')
         .eq('is_public', true);
 
       if (sortBy === 'newest') {
@@ -266,7 +268,8 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                           pattern: creation.pattern,
                           tempo: creation.tempo,
                           image_url: creation.image_url,
-                          is_public: true, // It's in the gallery, so it's public
+                          is_public: true,
+                          instrument_order: creation.instrument_order,
                         });
                       }}
                     >

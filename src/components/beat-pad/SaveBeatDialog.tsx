@@ -106,9 +106,13 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
     try {
       // Convert pattern to use sound IDs for storage
       const patternWithIds: Record<string, boolean[]> = {};
+      // Build instrument order array to preserve display order
+      const instrumentOrder: string[] = [];
+      
       instruments.forEach((sound, idx) => {
         if (sound && pattern[idx.toString()]) {
           patternWithIds[sound.id] = pattern[idx.toString()];
+          instrumentOrder.push(sound.id);
         }
       });
 
@@ -124,6 +128,7 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
             tempo,
             is_public: isPublic,
             ai_audio_url: aiAudioUrl,
+            instrument_order: instrumentOrder,
           })
           .eq('id', savedBeatId);
         
@@ -140,6 +145,7 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
             tempo,
             is_public: isPublic,
             ai_audio_url: aiAudioUrl,
+            instrument_order: instrumentOrder,
           })
           .select('id')
           .single();
