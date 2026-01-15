@@ -5,8 +5,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Coins, Trophy, Frown, Share2, Calendar } from "lucide-react";
-import { toast } from "sonner";
+import { Coins, Trophy, Frown, Calendar } from "lucide-react";
+
 
 interface WordleResultDialogProps {
   open: boolean;
@@ -29,22 +29,6 @@ export function WordleResultDialog({
   hintsUsed,
   onPlayOtherDays
 }: WordleResultDialogProps) {
-  const handleShare = async () => {
-    const shareText = won
-      ? `🎮 Daily Five - ${guessCount}/6\n${hintsUsed > 0 ? `(${hintsUsed} hint${hintsUsed > 1 ? 's' : ''} used)` : 'No hints!'}\n\n🎉 I solved it!`
-      : `🎮 Daily Five - X/6\n\n😅 Better luck next time!`;
-    
-    try {
-      if (navigator.share) {
-        await navigator.share({ text: shareText });
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        toast.success("Copied to clipboard!");
-      }
-    } catch (error) {
-      // User cancelled share
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,12 +103,8 @@ export function WordleResultDialog({
           )}
 
           {/* Actions */}
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-            <Button className="flex-1" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-center">
+            <Button onClick={() => onOpenChange(false)}>
               Close
             </Button>
           </div>
