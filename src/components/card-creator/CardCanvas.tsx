@@ -16,12 +16,13 @@ import {
 import { 
   RotateCcw, Save, Download, Brush, Undo2, 
   Sticker, Trash2, Type, Image as ImageIcon,
-  Share2, Loader2, Palette
+  Share2, Loader2, Palette, LetterText
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StickerPicker } from "@/components/coloring-book/StickerPicker";
+import { WordArtPicker } from "@/components/card-creator/WordArtPicker";
 import { useCoins } from "@/hooks/useCoins";
 
 // Card-friendly color palette
@@ -63,8 +64,9 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
   const [activeColor, setActiveColor] = useState("#FF6B6B");
   const [brushSize, setBrushSize] = useState(8);
-  const [activeTool, setActiveTool] = useState<"select" | "brush" | "text" | "sticker">("select");
+  const [activeTool, setActiveTool] = useState<"select" | "brush" | "text" | "sticker" | "wordart">("select");
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [showWordArtPicker, setShowWordArtPicker] = useState(false);
   const { user } = useAuth();
   const { awardCoins } = useCoins();
   const [saving, setSaving] = useState(false);
@@ -227,6 +229,27 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
     });
     
     setShowStickerPicker(false);
+    setActiveTool("select");
+  }, [fabricCanvas]);
+
+  const handleWordArtSelect = useCallback((wordArtUrl: string) => {
+    if (!fabricCanvas) return;
+    
+    FabricImage.fromURL(wordArtUrl, { crossOrigin: 'anonymous' }).then((img) => {
+      // Word arts are bigger than stickers - scale to fit nicely
+      const scale = Math.min(200 / img.width!, 150 / img.height!);
+      img.scale(scale);
+      img.set({
+        left: CARD_WIDTH / 2 - (img.width! * scale) / 2,
+        top: CARD_HEIGHT / 3 - (img.height! * scale) / 2,
+      });
+      fabricCanvas.add(img);
+      fabricCanvas.setActiveObject(img);
+      fabricCanvas.renderAll();
+      setHasChanges(true);
+    });
+    
+    setShowWordArtPicker(false);
     setActiveTool("select");
   }, [fabricCanvas]);
 
@@ -428,6 +451,17 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
           >
             <Sticker className="w-4 h-4" />
           </Button>
+          <Button
+            size="sm"
+            variant={activeTool === "wordart" ? "default" : "outline"}
+            onClick={() => {
+              setActiveTool("wordart");
+              setShowWordArtPicker(true);
+            }}
+            title="Add Word Art"
+          >
+            <LetterText className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Divider */}
@@ -544,6 +578,13 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
         open={showStickerPicker}
         onOpenChange={setShowStickerPicker}
         onSelectSticker={handleStickerSelect}
+      />
+
+      <WordArtPicker
+        open={showWordArtPicker}
+        onOpenChange={setShowWordArtPicker}
+        onSelectWordArt={handleWordArtSelect}
+        templateId={template?.id}
       />
 
       {/* Clear confirmation dialog */}

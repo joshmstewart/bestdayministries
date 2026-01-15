@@ -18,23 +18,40 @@ serve(async (req) => {
       throw new Error("Prompt is required");
     }
 
-    // Build the enhanced prompt with portrait ratio and block letters for the phrase
-    const phraseInstruction = phrase 
-      ? `Include the phrase "${phrase}" prominently on the card in large, bold BLOCK LETTERS (outline style, like coloring book letters that can be filled in). The letters should be thick-outlined and hollow inside.`
-      : "";
+    // If phrase is provided, this is a word art generation request
+    const isWordArt = !!phrase;
 
-    const enhancedPrompt = `Create a greeting card design in PORTRAIT orientation with a standard card aspect ratio (2.5:3.5, like a playing card or greeting card). The image should be taller than it is wide. 
+    let enhancedPrompt: string;
+    
+    if (isWordArt) {
+      // Word art generation - focused on the text/phrase
+      enhancedPrompt = `Create decorative word art with the phrase "${phrase}" in fun, bold BLOCK LETTERS. 
+
+Style requirements:
+- Large, thick-outlined letters (hollow/outline style, ready to be colored in)
+- Black outlines on pure white background
+- Letters should be the main focus and fill most of the image
+- Playful, greeting card typography style
+- Add small decorative elements around the letters (stars, hearts, swirls, etc.)
+- Portrait orientation (taller than wide)
+- NO filled colors, just clean black outlines
+- The text must be clearly readable`;
+    } else {
+      // Card design generation - NO text, just artwork
+      enhancedPrompt = `Create a greeting card design in PORTRAIT orientation with a standard card aspect ratio (2.5:3.5, like a playing card or greeting card). The image should be taller than it is wide. 
 
 Design: ${prompt}
 
-${phraseInstruction}
-
-Style requirements:
+CRITICAL REQUIREMENTS:
+- NO TEXT, NO WORDS, NO LETTERS, NO CAPTIONS anywhere in the image
+- This is ONLY the artwork/illustration - users will add their own text separately
 - Clean line art suitable for coloring (black outlines on white background)
 - Bold, clear outlines
 - No filled colors, just outlines
-- Whimsical, friendly style
-- Any text should be in thick block letter outlines (hollow, fillable letters)`;
+- Whimsical, friendly cartoon style
+- Subject should fill most of the image`;
+    }
+
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
