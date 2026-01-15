@@ -114,6 +114,37 @@ const generateEmailContent = (
       emailMessage = requestData.message;
       actionText = "Review Now";
       break;
+
+    case "prayer_expiring":
+      emailTitle = "Your prayer request is expiring soon 🙏";
+      emailMessage = requestData.message;
+      actionText = "Renew Prayer";
+      break;
+
+    case "prayer_pending_approval":
+      emailTitle = "Prayer request awaiting approval";
+      emailMessage = requestData.message;
+      actionText = "Review Prayer";
+      break;
+
+    case "prayer_approved":
+      emailTitle = "Your prayer request was approved! 🎉";
+      emailMessage = `Your prayer request has been approved and is now visible to the community.`;
+      actionText = "View Prayer";
+      break;
+
+    case "prayer_rejected":
+      emailTitle = "Your prayer request needs revision";
+      emailMessage = requestData.message;
+      actionText = "Review Feedback";
+      break;
+
+    case "prayed_for_you":
+      emailTitle = "Someone prayed for you! 💙";
+      const prayerName = requestData.metadata?.prayerName || "Someone";
+      emailMessage = `${prayerName} prayed for your prayer request "${requestData.metadata?.prayerTitle || 'your request'}".`;
+      actionText = "View Prayer";
+      break;
   }
 
   return { title: emailTitle, message: emailMessage, actionText };
@@ -198,6 +229,11 @@ const handler = async (req: Request): Promise<Response> => {
       comment_on_thread: "email_on_comment_on_thread",
       new_event: "email_on_new_event",
       event_update: "email_on_event_update",
+      prayer_expiring: "email_on_prayer_expiring",
+      prayer_pending_approval: "email_on_prayer_pending_approval",
+      prayer_approved: "email_on_prayer_approved",
+      prayer_rejected: "email_on_prayer_rejected",
+      prayed_for_you: "email_on_prayed_for_you",
     };
 
     const preferenceField = preferenceMap[requestData.notificationType];

@@ -59,6 +59,18 @@ serve(async (req) => {
     if (profileError) {
       console.error("Error fetching profiles:", profileError);
     }
+    
+    // Get notification preferences for all users
+    const { data: allPreferences, error: prefsError } = await supabase
+      .from("notification_preferences")
+      .select("user_id, inapp_on_prayer_expiring, email_on_prayer_expiring")
+      .in("user_id", userIds);
+    
+    if (prefsError) {
+      console.error("Error fetching notification preferences:", prefsError);
+    }
+    
+    const prefsMap = new Map(allPreferences?.map(p => [p.user_id, p]) || []);
 
     // Get auth users for emails
     const authEmails = new Map<string, string>();
@@ -74,23 +86,29 @@ serve(async (req) => {
 
     for (const prayer of expiringPrayers) {
       try {
-        // Create in-app notification
+        const userPrefs = prefsMap.get(prayer.user_id);
+        const shouldSendInApp = userPrefs?.inapp_on_prayer_expiring !== false;
+        const shouldSendEmail = userPrefs?.email_on_prayer_expiring !== false;
+        
         const daysUntilExpiry = Math.ceil(
           (new Date(prayer.expires_at).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        await supabase.from("notifications").insert({
-          user_id: prayer.user_id,
-          type: "prayer_expiring",
-          title: "Prayer Request Expiring Soon",
-          message: `Your prayer "${prayer.title}" will be unshared in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}. Renew it to keep it visible to the community.`,
-          target_id: prayer.id,
-          target_type: "prayer_request",
-        });
+        // Create in-app notification only if preference allows
+        if (shouldSendInApp) {
+          await supabase.from("notifications").insert({
+            user_id: prayer.user_id,
+            type: "prayer_expiring",
+            title: "Prayer Request Expiring Soon",
+            message: `Your prayer "${prayer.title}" will be unshared in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}. Renew it to keep it visible to the community.`,
+            target_id: prayer.id,
+            target_type: "prayer_request",
+          });
+        }
 
-        // Send email notification if Resend is configured
+        // Send email notification if Resend is configured and preference allows
         const userEmail = authEmails.get(prayer.user_id);
-        if (resendApiKey && userEmail) {
+        if (resendApiKey && userEmail && shouldSendEmail) {
           const profile = profileMap.get(prayer.user_id);
           const userName = profile?.display_name || "Friend";
 
@@ -132,7 +150,7 @@ serve(async (req) => {
           .update({ expiry_notified: true })
           .eq("id", prayer.id);
 
-        results.push({ prayerId: prayer.id, status: "notified" });
+        results.push({ prayerId: prayer.id, status: "notified", inApp: shouldSendInApp, email: shouldSendEmail });
       } catch (notifyError) {
         console.error(`Error notifying for prayer ${prayer.id}:`, notifyError);
         results.push({ prayerId: prayer.id, status: "error", error: String(notifyError) });
