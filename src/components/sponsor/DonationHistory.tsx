@@ -86,13 +86,22 @@ export const DonationHistory = () => {
   }, []);
 
   // Load donation history from the COMBINED TABLE (donation_stripe_transactions)
-  const loadTransactions = useCallback(async (isRefresh = false) => {
+  const loadTransactions = useCallback(async (isRefresh = false, syncFromStripe = false) => {
     if (!userEmail) return;
 
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
+      // If syncing from Stripe, call the sync edge function first
+      if (syncFromStripe) {
+        const { error: syncError } = await supabase.functions.invoke('sync-donation-history', {});
+        if (syncError) {
+          console.error("[DonationHistory] Sync error:", syncError);
+          // Don't throw - continue to load from cache
+        }
+      }
+
       // Query the combined transactions table directly
       const { data: txData, error: txError } = await supabase
         .from("donation_stripe_transactions")
@@ -137,7 +146,7 @@ export const DonationHistory = () => {
 
       if (isRefresh) {
         toast({
-          title: "Updated",
+          title: syncFromStripe ? "Synced from Stripe" : "Updated",
           description: `Loaded ${mappedTransactions.length} transactions`,
         });
       }
@@ -154,7 +163,7 @@ export const DonationHistory = () => {
     }
   }, [userEmail, stripeMode, toast]);
 
-  const refresh = () => loadTransactions(true);
+  const refresh = () => loadTransactions(true, true); // Sync from Stripe when refreshing
 
   // Initial load
   useEffect(() => {
