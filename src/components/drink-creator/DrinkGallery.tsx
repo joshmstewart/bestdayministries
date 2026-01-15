@@ -336,16 +336,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
         <DialogContent className="max-w-2xl p-0 overflow-hidden max-h-[90vh]">
           {selectedDrink && (
             <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
-                onClick={() => setSelectedDrink(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              
-              <div className="overflow-y-auto max-h-[90vh]">
+              <div className="overflow-y-auto max-h-[90vh] pt-8">
                 {selectedDrink.generated_image_url ? (
                   <img
                     src={selectedDrink.generated_image_url}
