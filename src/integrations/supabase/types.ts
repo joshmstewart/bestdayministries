@@ -882,6 +882,53 @@ export type Database = {
         }
         Relationships: []
       }
+      card_word_arts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          phrase: string
+          template_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          phrase: string
+          template_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          phrase?: string
+          template_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_word_arts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "card_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       caregiver_bestie_links: {
         Row: {
           allow_featured_posts: boolean
