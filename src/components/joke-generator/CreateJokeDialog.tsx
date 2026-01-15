@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -22,8 +21,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, PenLine, Share2 } from "lucide-react";
+import { VoiceInput } from "@/components/VoiceInput";
 import { useQuery } from "@tanstack/react-query";
-
 interface CreateJokeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -42,6 +41,10 @@ export function CreateJokeDialog({
   const [category, setCategory] = useState("mixed");
   const [shareWithCommunity, setShareWithCommunity] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Refs to accumulate voice transcripts
+  const questionTranscriptRef = useRef("");
+  const answerTranscriptRef = useRef("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["joke-categories-for-create"],
@@ -56,6 +59,22 @@ export function CreateJokeDialog({
       return data;
     },
   });
+
+  // Voice transcript handlers for question
+  const handleQuestionTranscript = (text: string) => {
+    questionTranscriptRef.current = questionTranscriptRef.current
+      ? `${questionTranscriptRef.current} ${text}`
+      : text;
+    setQuestion(questionTranscriptRef.current);
+  };
+
+  // Voice transcript handlers for answer
+  const handleAnswerTranscript = (text: string) => {
+    answerTranscriptRef.current = answerTranscriptRef.current
+      ? `${answerTranscriptRef.current} ${text}`
+      : text;
+    setAnswer(answerTranscriptRef.current);
+  };
 
   const handleSubmit = async () => {
     if (!question.trim() || !answer.trim()) {
@@ -81,11 +100,13 @@ export function CreateJokeDialog({
           : "Joke saved to your collection!"
       );
 
-      // Reset form
+      // Reset form and refs
       setQuestion("");
       setAnswer("");
       setCategory("mixed");
       setShareWithCommunity(false);
+      questionTranscriptRef.current = "";
+      answerTranscriptRef.current = "";
       onOpenChange(false);
       onJokeCreated();
     } catch (error) {
@@ -112,26 +133,52 @@ export function CreateJokeDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="question">Question</Label>
-            <Textarea
-              id="question"
-              placeholder="Why did the chicken cross the road?"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              className="resize-none"
-              rows={2}
-            />
+            <div className="flex gap-2 items-start">
+              <Textarea
+                id="question"
+                placeholder="Why did the chicken cross the road?"
+                value={question}
+                onChange={(e) => {
+                  setQuestion(e.target.value);
+                  questionTranscriptRef.current = e.target.value;
+                }}
+                className="resize-none flex-1"
+                rows={2}
+              />
+              <VoiceInput
+                onTranscript={handleQuestionTranscript}
+                showTranscript={false}
+                buttonSize="icon"
+                autoStop={true}
+                silenceStopSeconds={5}
+                maxDuration={30}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="answer">Answer (Punchline)</Label>
-            <Textarea
-              id="answer"
-              placeholder="To get to the other side!"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              className="resize-none"
-              rows={2}
-            />
+            <div className="flex gap-2 items-start">
+              <Textarea
+                id="answer"
+                placeholder="To get to the other side!"
+                value={answer}
+                onChange={(e) => {
+                  setAnswer(e.target.value);
+                  answerTranscriptRef.current = e.target.value;
+                }}
+                className="resize-none flex-1"
+                rows={2}
+              />
+              <VoiceInput
+                onTranscript={handleAnswerTranscript}
+                showTranscript={false}
+                buttonSize="icon"
+                autoStop={true}
+                silenceStopSeconds={5}
+                maxDuration={30}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
