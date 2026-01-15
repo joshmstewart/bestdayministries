@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { EMAILS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -146,7 +147,7 @@ serve(async (req) => {
           <p>Thank you for supporting Best Day Ever Ministries!</p>
           <p style="margin-top: 16px;">
             Questions? Reply to this email or contact us at<br>
-            <a href="mailto:info@bestdayministries.org" style="color: #D97706;">info@bestdayministries.org</a>
+            <a href="mailto:${EMAILS.info}" style="color: #D97706;">${EMAILS.info}</a>
           </p>
         </div>
       </body>
@@ -156,7 +157,7 @@ serve(async (req) => {
     logStep('Sending shipped email', { to: order.customer_email });
 
     const emailResponse = await resend.emails.send({
-      from: "Joy House Store <orders@bestdayministries.org>",
+      from: `Joy House Store <orders@bestdayministries.org>`,
       to: [order.customer_email],
       subject: `📦 Your order has shipped! Tracking: ${trackingNumber}`,
       html: emailHtml,

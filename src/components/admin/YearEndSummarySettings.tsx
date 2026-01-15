@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EMAILS } from "@/lib/domainConstants";
 
 interface YearEndSettings {
   id: string;
@@ -450,7 +451,7 @@ export function YearEndSummarySettings() {
                     <Alert className="bg-muted/50">
                       <Info className="h-4 w-4" />
                       <AlertDescription>
-                        <strong>Sending From:</strong> <code className="bg-background px-2 py-0.5 rounded text-sm">noreply@bestdayministries.org</code>
+                        <strong>Sending From:</strong> <code className="bg-background px-2 py-0.5 rounded text-sm">{EMAILS.noreply}</code>
                       </AlertDescription>
                     </Alert>
 
