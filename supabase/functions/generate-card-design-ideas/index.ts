@@ -39,20 +39,25 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a creative card designer. Generate design ideas as a JSON array of strings. Return ONLY valid JSON, no markdown or explanation."
+            content: "You are a creative, witty greeting card designer known for fun, funny, and punny card ideas. Generate design ideas as a JSON array of objects. Return ONLY valid JSON, no markdown or explanation."
           },
           {
             role: "user",
-            content: `Generate 10 creative card design ideas for a greeting card pack called "${templateTitle}"${templateDescription ? ` (${templateDescription})` : ""}${category ? `. Category: ${category}` : ""}.${existingList}
+            content: `Generate 10 creative, fun, and punny greeting card ideas for a card pack called "${templateTitle}"${templateDescription ? ` (${templateDescription})` : ""}${category ? `. Category: ${category}` : ""}.${existingList}
 
 Requirements:
-- Each idea should be a simple 2-4 word description of a card design
-- Ideas should be suitable for a coloring card (line art that can be colored in)
-- Focus on the visual subject/scene, not text
-- Variety of different designs within the theme
-- Examples of good format: "Birthday Cake", "Balloons and Confetti", "Party Hat Cat"
+- Each idea should include a catchy phrase/message AND a visual design concept
+- Be creative with puns, wordplay, and humor appropriate for all ages
+- Phrases should be short and impactful (perfect for block letters)
+- Visual designs should work as coloring cards (line art style)
+- Mix of heartfelt, funny, and punny options
 
-Return ONLY a JSON array of strings. Example: ["Design 1", "Design 2", "Design 3"]`,
+Examples for Birthday:
+- { "phrase": "You Take The Cake!", "design": "Smiling birthday cake with candles" }
+- { "phrase": "Let's Get This Party Started!", "design": "Dancing animals with party hats" }
+- { "phrase": "Another Year Older, Still Awesome!", "design": "Superhero character with cape" }
+
+Return ONLY a JSON array of objects with "phrase" and "design" keys.`,
           },
         ],
       }),
