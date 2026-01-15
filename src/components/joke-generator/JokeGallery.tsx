@@ -22,9 +22,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Share2, Lock, Globe, Loader2, Eye, EyeOff, Candy, Heart, ShieldAlert } from "lucide-react";
+import { Trash2, Share2, Lock, Globe, Loader2, Eye, EyeOff, Candy, Heart, ShieldAlert, PenLine, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { CreateJokeDialog } from "./CreateJokeDialog";
 
 interface SavedJoke {
   id: string;
@@ -45,6 +46,7 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
   const [selectedJoke, setSelectedJoke] = useState<SavedJoke | null>(null);
   const [jokeToDelete, setJokeToDelete] = useState<string | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: savedJokes, isLoading, refetch } = useQuery({
     queryKey: ["user-jokes", userId],
@@ -128,12 +130,36 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
         <Candy className="w-12 h-12 mx-auto mb-4 opacity-50" />
         <p>You haven't saved any jokes yet.</p>
         <p className="text-sm mt-2">Generate some jokes and save your favorites!</p>
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="mt-4 gap-2"
+        >
+          <PenLine className="w-4 h-4" />
+          Create Your Own Joke
+        </Button>
+        <CreateJokeDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          userId={userId}
+          onJokeCreated={() => refetch()}
+        />
       </div>
     );
   }
 
   return (
     <>
+      {/* Create Button */}
+      <div className="flex justify-end mb-4">
+        <Button
+          onClick={() => setCreateDialogOpen(true)}
+          className="gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Create Your Own
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {savedJokes.map((joke) => (
           <Card
@@ -274,6 +300,17 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Joke Dialog */}
+      <CreateJokeDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        userId={userId}
+        onJokeCreated={() => {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ["community-jokes"] });
+        }}
+      />
     </>
   );
 }
