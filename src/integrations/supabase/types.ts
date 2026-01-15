@@ -5790,6 +5790,77 @@ export type Database = {
           },
         ]
       }
+      prayer_request_likes: {
+        Row: {
+          created_at: string
+          id: string
+          prayer_request_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prayer_request_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prayer_request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prayer_request_likes_prayer_request_id_fkey"
+            columns: ["prayer_request_id"]
+            isOneToOne: false
+            referencedRelation: "prayer_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prayer_requests: {
+        Row: {
+          answer_notes: string | null
+          answered_at: string | null
+          content: string
+          created_at: string
+          id: string
+          is_answered: boolean
+          is_public: boolean
+          likes_count: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer_notes?: string | null
+          answered_at?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_answered?: boolean
+          is_public?: boolean
+          likes_count?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer_notes?: string | null
+          answered_at?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_answered?: boolean
+          is_public?: boolean
+          likes_count?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_color_images: {
         Row: {
           color_name: string
