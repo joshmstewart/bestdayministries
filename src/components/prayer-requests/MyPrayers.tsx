@@ -14,6 +14,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
   Trash2, 
   Lock, 
@@ -81,6 +87,33 @@ const canRenew = (expiresAt: string | null, shareDuration: string | null): boole
   const daysUntilExpiry = differenceInDays(expiryDate, new Date());
   const renewalDays = getRenewalDays(shareDuration);
   return daysUntilExpiry <= renewalDays && daysUntilExpiry >= 0;
+};
+
+const getTimeUntilRenewal = (expiresAt: string | null, shareDuration: string | null): string | null => {
+  if (!expiresAt) return null;
+  const expiryDate = new Date(expiresAt);
+  const now = new Date();
+  const daysUntilExpiry = differenceInDays(expiryDate, now);
+  const renewalDays = getRenewalDays(shareDuration);
+  
+  // If already in renewal window or expired, no wait time
+  if (daysUntilExpiry <= renewalDays) return null;
+  
+  const daysUntilRenewalWindow = daysUntilExpiry - renewalDays;
+  
+  if (daysUntilRenewalWindow > 1) {
+    return `Available in ${daysUntilRenewalWindow} days`;
+  } else if (daysUntilRenewalWindow === 1) {
+    return "Available tomorrow";
+  } else {
+    // Less than a day - show hours
+    const hoursUntilExpiry = differenceInHours(expiryDate, now);
+    const hoursUntilRenewal = hoursUntilExpiry - (renewalDays * 24);
+    if (hoursUntilRenewal > 0) {
+      return `Available in ${hoursUntilRenewal}h`;
+    }
+  }
+  return null;
 };
 
 const isExpired = (expiresAt: string | null): boolean => {
@@ -420,29 +453,51 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                   )}
 
                   {/* Extend Time Button - always show for shared prayers, disabled until renewal window */}
-                  {prayer.is_public && prayer.approval_status === "approved" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => renewMutation.mutate({ 
-                        id: prayer.id, 
-                        shareDuration: prayer.share_duration 
-                      })}
-                      disabled={renewMutation.isPending || (!renewable && !expired)}
-                      className={cn(
-                        "gap-1",
-                        (renewable || expired) ? "text-primary border-primary hover:bg-primary/10" : "opacity-60"
-                      )}
-                      title={(!renewable && !expired) ? "Available when nearing expiration" : "Extend sharing time"}
-                    >
-                      {renewMutation.isPending ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-3 h-3" />
-                      )}
-                      Extend Time
-                    </Button>
-                  )}
+                  {prayer.is_public && prayer.approval_status === "approved" && (() => {
+                    const timeUntilRenewal = getTimeUntilRenewal(prayer.expires_at, prayer.share_duration);
+                    const isDisabled = renewMutation.isPending || (!renewable && !expired);
+                    
+                    const button = (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => renewMutation.mutate({ 
+                          id: prayer.id, 
+                          shareDuration: prayer.share_duration 
+                        })}
+                        disabled={isDisabled}
+                        className={cn(
+                          "gap-1",
+                          (renewable || expired) ? "text-primary border-primary hover:bg-primary/10" : "opacity-60"
+                        )}
+                      >
+                        {renewMutation.isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3 h-3" />
+                        )}
+                        Extend Time
+                      </Button>
+                    );
+                    
+                    // Show tooltip with time remaining when disabled
+                    if (isDisabled && timeUntilRenewal) {
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-block">{button}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{timeUntilRenewal}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    }
+                    
+                    return button;
+                  })()}
 
                   {!expired && (prayer.is_public ? (
                     <Button
