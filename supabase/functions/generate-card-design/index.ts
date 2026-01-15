@@ -12,14 +12,29 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json();
+    const { prompt, phrase } = await req.json();
 
     if (!prompt) {
       throw new Error("Prompt is required");
     }
 
-    // Enhance prompt to ensure standard portrait card ratio (2.5:3.5 like playing cards)
-    const enhancedPrompt = `Create a greeting card design in PORTRAIT orientation with a standard card aspect ratio (2.5:3.5, like a playing card or greeting card). The image should be taller than it is wide. ${prompt}`;
+    // Build the enhanced prompt with portrait ratio and block letters for the phrase
+    const phraseInstruction = phrase 
+      ? `Include the phrase "${phrase}" prominently on the card in large, bold BLOCK LETTERS (outline style, like coloring book letters that can be filled in). The letters should be thick-outlined and hollow inside.`
+      : "";
+
+    const enhancedPrompt = `Create a greeting card design in PORTRAIT orientation with a standard card aspect ratio (2.5:3.5, like a playing card or greeting card). The image should be taller than it is wide. 
+
+Design: ${prompt}
+
+${phraseInstruction}
+
+Style requirements:
+- Clean line art suitable for coloring (black outlines on white background)
+- Bold, clear outlines
+- No filled colors, just outlines
+- Whimsical, friendly style
+- Any text should be in thick block letter outlines (hollow, fillable letters)`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
