@@ -19,6 +19,7 @@ import {
 import { Heart, Loader2, X, Eye, EyeOff, Candy, Save, Trash2, ShieldAlert, UserPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 type SortOption = "newest" | "popular";
 
@@ -271,7 +272,12 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
                         </span>
                       )}
                     </div>
-                    <p className="font-medium line-clamp-2">{joke.question}</p>
+                    <div className="flex items-start gap-2">
+                      <p className="font-medium line-clamp-2 flex-1">{joke.question}</p>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <TextToSpeech text={`${joke.question} ... ${joke.answer}`} size="icon" />
+                      </div>
+                    </div>
                   </div>
                   <button
                     onClick={(e) => {
@@ -309,7 +315,10 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
 
               <div className="space-y-4 py-4">
                 <div className="bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 rounded-lg p-4">
-                  <p className="text-lg font-medium text-center">{selectedJoke.question}</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-lg font-medium text-center">{selectedJoke.question}</p>
+                    <TextToSpeech text={selectedJoke.question} size="icon" />
+                  </div>
                 </div>
 
                 {!showAnswer ? (
@@ -323,7 +332,10 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
                   </Button>
                 ) : (
                   <div className="bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg p-4">
-                    <p className="text-lg font-semibold text-center">{selectedJoke.answer}</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="text-lg font-semibold text-center">{selectedJoke.answer}</p>
+                      <TextToSpeech text={selectedJoke.answer} size="icon" />
+                    </div>
                   </div>
                 )}
               </div>
