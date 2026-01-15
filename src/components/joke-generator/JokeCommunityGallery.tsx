@@ -32,6 +32,7 @@ interface PublicJoke {
   created_at: string;
   user_id: string;
   creator_name: string | null;
+  is_user_created: boolean;
 }
 
 interface JokeCommunityGalleryProps {
@@ -77,7 +78,7 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
     setLoading(true);
     const query = supabase
       .from("saved_jokes")
-      .select("id, question, answer, category, likes_count, created_at, user_id")
+      .select("id, question, answer, category, likes_count, created_at, user_id, is_user_created")
       .eq("is_public", true)
       .limit(50);
 
@@ -265,7 +266,7 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
                           Yours
                         </span>
                       )}
-                      {joke.creator_name && (
+                      {joke.is_user_created && joke.creator_name && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-medium">
                           <UserPen className="w-3 h-3" />
                           Created by {joke.creator_name}
