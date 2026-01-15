@@ -78,6 +78,7 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
       
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
       queryClient.invalidateQueries({ queryKey: ["workout-logs-today"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-logs-week"] });
       queryClient.invalidateQueries({ queryKey: ["workout-streak-logs"] });
       toast.success("Activity logged! 🎉");
       onLog?.();

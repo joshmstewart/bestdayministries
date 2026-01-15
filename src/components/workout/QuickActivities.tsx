@@ -71,6 +71,9 @@ export const QuickActivities = ({ userId }: QuickActivitiesProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-logs-today"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-logs-week"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-streak-logs"] });
       toast.success("Activity logged! 🎉");
     },
     onError: (error) => {
