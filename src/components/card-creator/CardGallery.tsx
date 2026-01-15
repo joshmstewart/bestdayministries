@@ -59,8 +59,8 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
       if (error) throw error;
       
       // Award coins on first share
-      if (isPublic) {
-        await awardCoins(5, 'card_shared', 'Shared a card with the community');
+      if (isPublic && user?.id) {
+        await awardCoins(user.id, 5, 'Shared a card with the community');
       }
     },
     onSuccess: (_, { isPublic }) => {

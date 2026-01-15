@@ -357,8 +357,8 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
       if (error) throw error;
 
       // Award coins on first share
-      if (newShareState && !isShared) {
-        await awardCoins(5, 'card_shared', 'Shared a card with the community');
+      if (newShareState && !isShared && user) {
+        await awardCoins(user.id, 5, 'Shared a card with the community');
       }
 
       setIsShared(newShareState);
@@ -543,7 +543,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
       <StickerPicker
         open={showStickerPicker}
         onOpenChange={setShowStickerPicker}
-        onSelect={handleStickerSelect}
+        onSelectSticker={handleStickerSelect}
       />
 
       {/* Clear confirmation dialog */}
