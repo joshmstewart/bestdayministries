@@ -268,7 +268,17 @@ const Admin = () => {
             <TabsTrigger value="featured">Besties</TabsTrigger>
             <TabsTrigger value="sponsorships">Donations</TabsTrigger>
             <TabsTrigger value="games">Games</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="resources" className="relative">
+              Resources
+              {unmatchedItemsCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs"
+                >
+                  {unmatchedItemsCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="vendors" className="relative">
               Store
               {pendingVendorsCount > 0 && (
