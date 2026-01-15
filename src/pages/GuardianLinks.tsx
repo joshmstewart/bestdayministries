@@ -513,18 +513,51 @@ export default function GuardianLinks() {
             }
           } else if (bestie) {
             // Get featured bestie data for profile besties
-            const fb = featuredBestiesData?.find(fb => fb.bestie_id === sponsorship.bestie_id);
-            const f = fundingData?.find(f => f.bestie_id === sponsorship.bestie_id);
+            // First check sponsor_besties (preferred source), then fall back to featured_besties
+            const sponsorBestie = sponsorship.sponsor_bestie_id 
+              ? sponsorBestiesData?.find(sb => sb.id === sponsorship.sponsor_bestie_id)
+              : null;
             
-            if (fb) {
+            if (sponsorBestie) {
+              // Use sponsor_besties data (same as above, but bestie already found from profiles)
+              const sponsorFunding = sponsorFundingData?.find(f => 
+                f.sponsor_bestie_id === sponsorship.sponsor_bestie_id && 
+                f.stripe_mode === sponsorship.stripe_mode
+              );
+              
+              let textSections: TextSection[] = [];
+              if (sponsorBestie.text_sections) {
+                textSections = Array.isArray(sponsorBestie.text_sections) 
+                  ? sponsorBestie.text_sections 
+                  : (typeof sponsorBestie.text_sections === 'string' 
+                    ? JSON.parse(sponsorBestie.text_sections) 
+                    : []);
+              }
+              
               featuredBestie = {
-                id: fb.id,
-                description: fb.description,
-                image_url: fb.image_url,
-                voice_note_url: fb.voice_note_url,
-                monthly_goal: f?.monthly_goal || fb.monthly_goal || 0,
-                current_monthly_pledges: f?.current_monthly_pledges || 0
+                id: sponsorBestie.id,
+                description: `Supporting ${sponsorBestie.bestie_name}'s programs and activities`,
+                image_url: sponsorBestie.image_url,
+                voice_note_url: sponsorBestie.voice_note_url,
+                monthly_goal: sponsorFunding?.monthly_goal || sponsorBestie.monthly_goal || 0,
+                current_monthly_pledges: sponsorFunding?.current_monthly_pledges || 0,
+                text_sections: textSections
               };
+            } else {
+              // Fall back to featured_besties table
+              const fb = featuredBestiesData?.find(fb => fb.bestie_id === sponsorship.bestie_id);
+              const f = fundingData?.find(f => f.bestie_id === sponsorship.bestie_id);
+              
+              if (fb) {
+                featuredBestie = {
+                  id: fb.id,
+                  description: fb.description,
+                  image_url: fb.image_url,
+                  voice_note_url: fb.voice_note_url,
+                  monthly_goal: f?.monthly_goal || fb.monthly_goal || 0,
+                  current_monthly_pledges: f?.current_monthly_pledges || 0
+                };
+              }
             }
           }
 
