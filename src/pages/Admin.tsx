@@ -509,7 +509,6 @@ const Admin = () => {
                     <TabsTrigger value="stickers">Stickers</TabsTrigger>
                     <TabsTrigger value="drink">Drinks</TabsTrigger>
                     <TabsTrigger value="coloring">Coloring</TabsTrigger>
-                    <TabsTrigger value="workout">Workout</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="earn-coins">
@@ -575,9 +574,6 @@ const Admin = () => {
                     <ColoringManager />
                   </TabsContent>
 
-                  <TabsContent value="workout">
-                    <WorkoutManager />
-                  </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
@@ -595,6 +591,7 @@ const Admin = () => {
                     <TabsTrigger value="recipes">Recipes</TabsTrigger>
                     <TabsTrigger value="cash-register">Cash Register</TabsTrigger>
                     <TabsTrigger value="chores">Chores</TabsTrigger>
+                    <TabsTrigger value="workout">Workout</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="cash-register">
@@ -648,6 +645,10 @@ const Admin = () => {
                         <ChoreChallengeManager />
                       </TabsContent>
                     </Tabs>
+                  </TabsContent>
+
+                  <TabsContent value="workout">
+                    <WorkoutManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
