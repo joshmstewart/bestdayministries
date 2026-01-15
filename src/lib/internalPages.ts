@@ -34,6 +34,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   // Community Features
   { value: "/community", label: "Community" },
   { value: "/discussions", label: "Discussions" },
+  { value: "/prayer-requests", label: "Prayer Requests" },
   { value: "/events", label: "Events" },
   { value: "/gallery", label: "Albums" },
   { value: "/videos", label: "Videos" },

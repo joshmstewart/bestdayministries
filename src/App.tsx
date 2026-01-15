@@ -87,6 +87,7 @@ const CardCreator = lazy(() => import("./pages/CardCreator"));
 const GuardianResources = lazy(() => import("./pages/GuardianResources"));
 const GuardianResourceDetail = lazy(() => import("./pages/GuardianResourceDetail"));
 const JoyHouseStores = lazy(() => import("./pages/JoyHouseStores"));
+const PrayerRequests = lazy(() => import("./pages/PrayerRequests"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -277,6 +278,7 @@ const App = () => {
               <Route path="/sponsor-bestie" element={<SponsorBestie />} />
               <Route path="/sponsorship-success" element={<SponsorshipSuccess />} />
               <Route path="/discussions" element={<Discussions />} />
+              <Route path="/prayer-requests" element={<PrayerRequests />} />
               <Route path="/moderation" element={<ModerationQueue />} />
               <Route path="/profile" element={<ProfileSettings />} />
               <Route path="/guardian-links" element={<GuardianLinks />} />
