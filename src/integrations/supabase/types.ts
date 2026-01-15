@@ -644,6 +644,36 @@ export type Database = {
           },
         ]
       }
+      beat_pad_presets: {
+        Row: {
+          created_at: string
+          id: string
+          instrument_ids: string[]
+          is_default: boolean | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instrument_ids: string[]
+          is_default?: boolean | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instrument_ids?: string[]
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       beat_pad_sounds: {
         Row: {
           audio_url: string | null

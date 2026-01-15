@@ -69,25 +69,78 @@ export const SaveBeatDialog: React.FC<SaveBeatDialogProps> = ({
   const generateAIName = async () => {
     setIsGeneratingName(true);
     try {
-      // Build a description of the beat for AI
-      const activeInstruments = instruments.filter(Boolean).map(i => i!.name);
-      const totalNotes = Object.values(pattern).reduce((sum, steps) => 
-        sum + steps.filter(Boolean).length, 0
-      );
+      // Build a detailed analysis of the beat for AI
+      const activeInstruments = instruments.filter(Boolean);
       
-      const prompt = `Generate a single creative, fun, catchy name (2-4 words max) for a beat that uses these instruments: ${activeInstruments.join(', ')}. The beat has ${totalNotes} notes at ${tempo} BPM. Make it playful and memorable. Just return the name, nothing else.`;
+      // Count notes per instrument to understand which sounds dominate
+      const instrumentNoteCounts: { name: string; soundType: string; noteCount: number }[] = [];
+      activeInstruments.forEach((sound, idx) => {
+        if (sound && pattern[idx.toString()]) {
+          const noteCount = pattern[idx.toString()].filter(Boolean).length;
+          instrumentNoteCounts.push({
+            name: sound.name,
+            soundType: sound.sound_type || 'synth',
+            noteCount,
+          });
+        }
+      });
+      
+      // Sort by note count to identify dominant sounds
+      instrumentNoteCounts.sort((a, b) => b.noteCount - a.noteCount);
+      
+      const totalNotes = instrumentNoteCounts.reduce((sum, i) => sum + i.noteCount, 0);
+      const dominantSounds = instrumentNoteCounts.slice(0, 3);
+      const backgroundSounds = instrumentNoteCounts.slice(3);
+      
+      // Analyze rhythm density
+      const density = totalNotes > 30 ? 'dense and busy' : totalNotes > 15 ? 'balanced and groovy' : 'sparse and minimal';
+      
+      // Analyze tempo feel
+      let tempoFeel = '';
+      if (tempo < 80) tempoFeel = 'slow, chill, laid-back';
+      else if (tempo < 100) tempoFeel = 'mid-tempo, smooth, steady';
+      else if (tempo < 120) tempoFeel = 'upbeat, energetic';
+      else if (tempo < 140) tempoFeel = 'driving, pumping, club-ready';
+      else tempoFeel = 'fast, intense, frenetic';
+      
+      // Build the analysis string
+      const dominantDesc = dominantSounds.length > 0 
+        ? `The dominant sounds are ${dominantSounds.map(s => `${s.name} (${s.noteCount} notes)`).join(', ')}.`
+        : '';
+      const backgroundDesc = backgroundSounds.length > 0
+        ? `Background elements include ${backgroundSounds.map(s => s.name).join(', ')}.`
+        : '';
+      
+      const prompt = `You are a creative music producer naming beats. Generate ONE unique, catchy, memorable beat name (2-4 words).
+
+BEAT ANALYSIS:
+- Tempo: ${tempo} BPM (${tempoFeel})
+- Rhythm density: ${density} (${totalNotes} total notes)
+- ${dominantDesc}
+- ${backgroundDesc}
+
+NAMING GUIDELINES:
+- Do NOT just list instruments (bad: "Kick Snare Beat")
+- Focus on the VIBE, MOOD, and FEELING the sounds create together
+- Use creative metaphors, places, times of day, emotions, or imagery
+- Examples of good names: "Midnight Prowl", "Golden Hour", "Basement Bounce", "Velvet Thunder", "Neon Daydream", "Pocket Rocket", "Sunday Sauce", "Electric Honey"
+- Be playful, evocative, and memorable
+- Consider what genre/mood the tempo and instruments suggest
+
+Return ONLY the beat name, nothing else.`;
 
       const response = await supabase.functions.invoke('lovable-ai', {
         body: {
           messages: [{ role: 'user', content: prompt }],
-          model: 'google/gemini-2.5-flash-lite',
+          model: 'google/gemini-2.5-flash',
         },
       });
 
       if (response.error) throw response.error;
       
-      const name = response.data?.content?.trim() || 'My Epic Beat';
-      setBeatName(name.replace(/["']/g, '').substring(0, 50));
+      const name = response.data?.content?.trim() || 'Untitled Groove';
+      // Clean up any quotes or extra punctuation
+      setBeatName(name.replace(/["'*_#]/g, '').trim().substring(0, 50));
     } catch (error) {
       console.error('Error generating name:', error);
       showErrorToastWithCopy('Generate Beat Name', error);
