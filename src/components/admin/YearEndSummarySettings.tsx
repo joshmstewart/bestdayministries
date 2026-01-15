@@ -434,7 +434,7 @@ export function YearEndSummarySettings() {
                 ) : dryRunResults ? (
                   <div className="space-y-4">
                     {/* Summary */}
-                    <div className="flex gap-4">
+                    <div className="flex flex-wrap gap-4">
                       <Badge variant="secondary" className="text-base px-3 py-1">
                         Tax Year: {dryRunSummary?.taxYear}
                       </Badge>
@@ -445,6 +445,14 @@ export function YearEndSummarySettings() {
                         Already Sent (Skip): {dryRunSummary?.skipped}
                       </Badge>
                     </div>
+                    
+                    {/* From Email Display */}
+                    <Alert className="bg-muted/50">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Sending From:</strong> <code className="bg-background px-2 py-0.5 rounded text-sm">noreply@bestdayministries.org</code>
+                      </AlertDescription>
+                    </Alert>
 
                     {/* Warning */}
                     <Alert variant="destructive">

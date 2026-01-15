@@ -146,7 +146,7 @@ serve(async (req) => {
           <p>Thank you for supporting Best Day Ever Ministries!</p>
           <p style="margin-top: 16px;">
             Questions? Reply to this email or contact us at<br>
-            <a href="mailto:info@bestdayministries.com" style="color: #D97706;">info@bestdayministries.com</a>
+            <a href="mailto:info@bestdayministries.org" style="color: #D97706;">info@bestdayministries.org</a>
           </p>
         </div>
       </body>

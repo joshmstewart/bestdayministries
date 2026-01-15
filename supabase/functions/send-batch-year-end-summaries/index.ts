@@ -242,7 +242,7 @@ serve(async (req) => {
             
             <p style="color: #6B7280; font-size: 14px;">
               Please retain this email for your tax records. If you have any questions about your giving history, 
-              please contact us at ${settings.contact_email || 'support@bestdayministries.com'}.
+              please contact us at ${settings.contact_email || 'support@bestdayministries.org'}.
             </p>
             
             <p>With gratitude,<br/><strong>${organizationName}</strong></p>
