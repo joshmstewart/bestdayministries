@@ -265,10 +265,10 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
                           Yours
                         </span>
                       )}
-                      {joke.creator_name && !isOwn && (
+                      {joke.creator_name && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-medium">
                           <UserPen className="w-3 h-3" />
-                          {joke.creator_name}
+                          Created by {joke.creator_name}
                         </span>
                       )}
                     </div>
