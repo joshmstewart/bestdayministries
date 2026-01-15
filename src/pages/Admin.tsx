@@ -96,6 +96,7 @@ import { ChoreChallengeManager } from "@/components/admin/ChoreChallengeManager"
 import { WorkoutManager } from "@/components/admin/WorkoutManager";
 import { CardManager } from "@/components/admin/CardManager";
 import { GuardianResourcesManager } from "@/components/admin/GuardianResourcesManager";
+import JoyHouseStoresManager from "@/components/admin/JoyHouseStoresManager";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -712,6 +713,7 @@ const Admin = () => {
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
+                    <TabsTrigger value="joy-house-stores">Joy House Stores</TabsTrigger>
                     <TabsTrigger value="welcome-modal">Welcome Modal</TabsTrigger>
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
@@ -738,6 +740,10 @@ const Admin = () => {
 
                   <TabsContent value="coffee-shop">
                     <CoffeeShopManager />
+                  </TabsContent>
+
+                  <TabsContent value="joy-house-stores">
+                    <JoyHouseStoresManager />
                   </TabsContent>
 
                   <TabsContent value="welcome-modal">
