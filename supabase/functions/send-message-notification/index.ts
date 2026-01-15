@@ -107,7 +107,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Build email content based on notification type
     let subject = "";
     let content = "";
-    let actionUrl = `${Deno.env.get("SUPABASE_URL")?.replace("https://", "https://id-preview--609caef2-e036-416b-a2bc-d1430e40b6ba.lovable.app") || ""}/guardian-links`;
+    // Use bestie-messages for sponsors, guardian-links for guardians/besties
+    let actionUrl = `https://bestdayministries.lovable.app/bestie-messages`;
 
     switch (notificationType) {
       case 'new_message':
@@ -131,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           <p>Your message will now be delivered to your sponsors.</p>
         `;
-        actionUrl = `${actionUrl}`;
+        actionUrl = `https://bestdayministries.lovable.app/bestie-messages`;
         break;
       case 'rejected':
         subject = `❌ Your Message Needs Revision`;
@@ -143,7 +144,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           <p>Please review the feedback and submit a revised message.</p>
         `;
-        actionUrl = `${Deno.env.get("SUPABASE_URL")?.replace("https://", "https://id-preview--609caef2-e036-416b-a2bc-d1430e40b6ba.lovable.app") || ""}/bestie-messages`;
+        actionUrl = `https://bestdayministries.lovable.app/bestie-messages`;
         break;
     }
 
