@@ -221,7 +221,7 @@ export const FavoriteActivitiesDialog = ({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <ScrollArea className="flex-1 pr-4 -mr-4">
+          <ScrollArea className="h-[50vh] pr-4 -mr-4">
             <div className="space-y-4">
               {/* Add Custom Activity Section */}
               {showAddCustom ? (
