@@ -578,6 +578,7 @@ export type Database = {
           likes_count: number
           name: string
           pattern: Json
+          plays_count: number | null
           tempo: number
           updated_at: string
         }
@@ -591,6 +592,7 @@ export type Database = {
           likes_count?: number
           name?: string
           pattern?: Json
+          plays_count?: number | null
           tempo?: number
           updated_at?: string
         }
@@ -604,6 +606,7 @@ export type Database = {
           likes_count?: number
           name?: string
           pattern?: Json
+          plays_count?: number | null
           tempo?: number
           updated_at?: string
         }
@@ -9100,6 +9103,7 @@ export type Database = {
         Args: { _permission_type: string; _user_id: string }
         Returns: boolean
       }
+      increment_beat_plays: { Args: { beat_id: string }; Returns: undefined }
       is_guardian_of: {
         Args: { _bestie_id: string; _guardian_id: string }
         Returns: boolean

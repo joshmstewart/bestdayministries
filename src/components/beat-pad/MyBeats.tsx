@@ -17,6 +17,7 @@ interface BeatCreation {
   created_at: string;
   image_url?: string | null;
   ai_audio_url?: string | null;
+  plays_count?: number;
 }
 
 interface Beat {
@@ -206,7 +207,7 @@ const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-lg truncate">{beat.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {beat.tempo} BPM • {countActiveSteps(beat.pattern)} notes
+                  {beat.tempo} BPM • {countActiveSteps(beat.pattern)} notes • {beat.plays_count || 0} plays
                 </p>
               </div>
               <div className="flex items-center gap-1 ml-2">
