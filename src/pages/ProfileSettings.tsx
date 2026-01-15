@@ -67,6 +67,9 @@ const ProfileSettings = () => {
     email_on_prayed_for_you: true,
     email_on_prayer_expiring: true,
     email_on_content_like: false,
+    email_on_order_shipped: true,
+    email_on_order_delivered: true,
+    email_on_badge_earned: true,
     inapp_on_pending_approval: true,
     inapp_on_approval_decision: true,
     inapp_on_new_sponsor_message: true,
@@ -84,6 +87,9 @@ const ProfileSettings = () => {
     inapp_on_prayed_for_you: true,
     inapp_on_prayer_expiring: true,
     inapp_on_content_like: true,
+    inapp_on_order_shipped: true,
+    inapp_on_order_delivered: true,
+    inapp_on_badge_earned: true,
     digest_frequency: 'never' as 'never' | 'daily' | 'weekly',
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
@@ -399,6 +405,14 @@ const ProfileSettings = () => {
           // Provide defaults for content like fields
           email_on_content_like: prefs.email_on_content_like ?? false,
           inapp_on_content_like: prefs.inapp_on_content_like ?? true,
+          // Provide defaults for order notification fields
+          email_on_order_shipped: prefs.email_on_order_shipped ?? true,
+          email_on_order_delivered: prefs.email_on_order_delivered ?? true,
+          inapp_on_order_shipped: prefs.inapp_on_order_shipped ?? true,
+          inapp_on_order_delivered: prefs.inapp_on_order_delivered ?? true,
+          // Provide defaults for badge earned fields
+          email_on_badge_earned: prefs.email_on_badge_earned ?? true,
+          inapp_on_badge_earned: prefs.inapp_on_badge_earned ?? true,
         });
       }
     } catch (error: any) {
@@ -1198,7 +1212,7 @@ const ProfileSettings = () => {
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5 flex-1">
                           <Label className="font-normal">Likes on your creations</Label>
-                          <p className="text-xs text-muted-foreground">When someone likes your colorings, drinks, or recipes</p>
+                          <p className="text-xs text-muted-foreground">When someone likes your colorings, cards, beats, drinks, recipes, jokes, or challenge creations</p>
                         </div>
                         <div className="flex gap-4 items-center">
                           <Switch
@@ -1211,6 +1225,80 @@ const ProfileSettings = () => {
                             checked={notificationPrefs.inapp_on_content_like}
                             onCheckedChange={(checked) => 
                               setNotificationPrefs(prev => ({ ...prev, inapp_on_content_like: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Orders - Show to everyone */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">Orders</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Order shipped</Label>
+                          <p className="text-xs text-muted-foreground">When your order has been shipped</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_order_shipped}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_order_shipped: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_order_shipped}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_order_shipped: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Order delivered</Label>
+                          <p className="text-xs text-muted-foreground">When your order has been delivered</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_order_delivered}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_order_delivered: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_order_delivered}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_order_delivered: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Achievements - Show to everyone */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">Achievements</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Badge earned</Label>
+                          <p className="text-xs text-muted-foreground">When you earn a badge or achievement</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_badge_earned}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_badge_earned: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_badge_earned}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_badge_earned: checked }))
                             }
                           />
                         </div>

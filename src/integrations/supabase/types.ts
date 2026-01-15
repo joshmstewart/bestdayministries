@@ -5245,6 +5245,7 @@ export type Database = {
           created_at: string
           digest_frequency: string | null
           email_on_approval_decision: boolean
+          email_on_badge_earned: boolean | null
           email_on_comment_on_post: boolean
           email_on_comment_on_thread: boolean
           email_on_content_like: boolean | null
@@ -5254,6 +5255,8 @@ export type Database = {
           email_on_new_event: boolean
           email_on_new_sponsor_message: boolean
           email_on_new_sponsorship: boolean
+          email_on_order_delivered: boolean | null
+          email_on_order_shipped: boolean | null
           email_on_pending_approval: boolean
           email_on_prayed_for_you: boolean | null
           email_on_prayer_approved: boolean | null
@@ -5265,6 +5268,7 @@ export type Database = {
           enable_digest_emails: boolean
           id: string
           inapp_on_approval_decision: boolean
+          inapp_on_badge_earned: boolean | null
           inapp_on_comment_on_post: boolean
           inapp_on_comment_on_thread: boolean
           inapp_on_content_like: boolean | null
@@ -5274,6 +5278,8 @@ export type Database = {
           inapp_on_new_event: boolean
           inapp_on_new_sponsor_message: boolean
           inapp_on_new_sponsorship: boolean
+          inapp_on_order_delivered: boolean | null
+          inapp_on_order_shipped: boolean | null
           inapp_on_pending_approval: boolean
           inapp_on_prayed_for_you: boolean | null
           inapp_on_prayer_approved: boolean | null
@@ -5290,6 +5296,7 @@ export type Database = {
           created_at?: string
           digest_frequency?: string | null
           email_on_approval_decision?: boolean
+          email_on_badge_earned?: boolean | null
           email_on_comment_on_post?: boolean
           email_on_comment_on_thread?: boolean
           email_on_content_like?: boolean | null
@@ -5299,6 +5306,8 @@ export type Database = {
           email_on_new_event?: boolean
           email_on_new_sponsor_message?: boolean
           email_on_new_sponsorship?: boolean
+          email_on_order_delivered?: boolean | null
+          email_on_order_shipped?: boolean | null
           email_on_pending_approval?: boolean
           email_on_prayed_for_you?: boolean | null
           email_on_prayer_approved?: boolean | null
@@ -5310,6 +5319,7 @@ export type Database = {
           enable_digest_emails?: boolean
           id?: string
           inapp_on_approval_decision?: boolean
+          inapp_on_badge_earned?: boolean | null
           inapp_on_comment_on_post?: boolean
           inapp_on_comment_on_thread?: boolean
           inapp_on_content_like?: boolean | null
@@ -5319,6 +5329,8 @@ export type Database = {
           inapp_on_new_event?: boolean
           inapp_on_new_sponsor_message?: boolean
           inapp_on_new_sponsorship?: boolean
+          inapp_on_order_delivered?: boolean | null
+          inapp_on_order_shipped?: boolean | null
           inapp_on_pending_approval?: boolean
           inapp_on_prayed_for_you?: boolean | null
           inapp_on_prayer_approved?: boolean | null
@@ -5335,6 +5347,7 @@ export type Database = {
           created_at?: string
           digest_frequency?: string | null
           email_on_approval_decision?: boolean
+          email_on_badge_earned?: boolean | null
           email_on_comment_on_post?: boolean
           email_on_comment_on_thread?: boolean
           email_on_content_like?: boolean | null
@@ -5344,6 +5357,8 @@ export type Database = {
           email_on_new_event?: boolean
           email_on_new_sponsor_message?: boolean
           email_on_new_sponsorship?: boolean
+          email_on_order_delivered?: boolean | null
+          email_on_order_shipped?: boolean | null
           email_on_pending_approval?: boolean
           email_on_prayed_for_you?: boolean | null
           email_on_prayer_approved?: boolean | null
@@ -5355,6 +5370,7 @@ export type Database = {
           enable_digest_emails?: boolean
           id?: string
           inapp_on_approval_decision?: boolean
+          inapp_on_badge_earned?: boolean | null
           inapp_on_comment_on_post?: boolean
           inapp_on_comment_on_thread?: boolean
           inapp_on_content_like?: boolean | null
@@ -5364,6 +5380,8 @@ export type Database = {
           inapp_on_new_event?: boolean
           inapp_on_new_sponsor_message?: boolean
           inapp_on_new_sponsorship?: boolean
+          inapp_on_order_delivered?: boolean | null
+          inapp_on_order_shipped?: boolean | null
           inapp_on_pending_approval?: boolean
           inapp_on_prayed_for_you?: boolean | null
           inapp_on_prayer_approved?: boolean | null
