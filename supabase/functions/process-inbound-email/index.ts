@@ -691,17 +691,29 @@ function extractMessageContent(content: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
   
-  // Handle MIME multipart boundaries
-  // Look for text/plain content between boundaries
-  const textPlainMatch = text.match(/Content-Type:\s*text\/plain[^\n]*\n\n([\s\S]*?)(?:--\d+|$)/i);
+  // Handle MIME multipart boundaries - more robust parsing
+  // Match patterns like --_000_BY1PR06MB909466DE7368... or --000000000000...
+  // First try to extract text/plain content
+  const textPlainMatch = text.match(/Content-Type:\s*text\/plain[^\n]*(?:\n[^\n]+)*\n\n([\s\S]*?)(?=--[_\-0-9a-zA-Z]+|$)/i);
   if (textPlainMatch && textPlainMatch[1]) {
     text = textPlainMatch[1];
   }
   
+  // Remove all MIME boundary markers (various formats)
+  // Match patterns like: --_000_xxx, --000000000, --boundary_xxx, etc.
+  text = text.replace(/--[_]?[0-9a-zA-Z]+[_]?[0-9a-zA-Z]*--?\s*/g, '');
+  text = text.replace(/--[_\-0-9a-zA-Z]{10,}[^\n]*\n?/g, ''); // Long boundary markers
+  
   // Remove MIME headers that might still be present
   text = text.replace(/Content-Type:[^\n]*\n/gi, '');
   text = text.replace(/Content-Transfer-Encoding:[^\n]*\n/gi, '');
-  text = text.replace(/--\d{10,}[^\n]*\n/g, ''); // Remove boundary markers
+  text = text.replace(/Content-Disposition:[^\n]*\n/gi, '');
+  text = text.replace(/MIME-Version:[^\n]*\n/gi, '');
+  text = text.replace(/charset=[^\s;]+;?/gi, '');
+  
+  // Remove quoted-printable soft line breaks
+  text = text.replace(/=\r?\n/g, '');
+  text = text.replace(/=([0-9A-Fa-f]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
   
   // Split by common reply separators
   const separators = [

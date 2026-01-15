@@ -85,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
       
       adminEmails = (profiles || [])
         .map(p => p.email)
-        .filter((email): email is string => !!email);
+        .filter((email): email is string => !!email && !email.match(/^test\d*@example\.com$/));
     }
 
     // Combine settings email with admin emails, deduplicate
