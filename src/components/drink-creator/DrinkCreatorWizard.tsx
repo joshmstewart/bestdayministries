@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ const STEPS = [
 
 export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   const { toast } = useToast();
+  const wizardRef = useRef<HTMLDivElement>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [selectedIngredients, setSelectedIngredients] = useState<Record<string, string[]>>({
@@ -50,6 +51,13 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedDrinkId, setSavedDrinkId] = useState<string | null>(null);
+
+  // Scroll to wizard top when step changes
+  useEffect(() => {
+    if (wizardRef.current) {
+      wizardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [currentStep]);
 
   useEffect(() => {
     loadIngredients();
@@ -346,6 +354,7 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   };
 
   return (
+    <div ref={wizardRef}>
     <Card className="border-primary/20">
       <CardHeader>
         <div className="flex items-center justify-between mb-4">
@@ -536,5 +545,6 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 };
