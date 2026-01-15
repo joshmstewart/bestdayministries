@@ -749,6 +749,83 @@ export type Database = {
         }
         Relationships: []
       }
+      card_likes: {
+        Row: {
+          card_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_likes_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "user_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_templates: {
+        Row: {
+          background_image_url: string | null
+          category: string | null
+          coin_price: number
+          cover_image_url: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_free: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          background_image_url?: string | null
+          category?: string | null
+          coin_price?: number
+          cover_image_url: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          background_image_url?: string | null
+          category?: string | null
+          coin_price?: number
+          cover_image_url?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       caregiver_bestie_links: {
         Row: {
           allow_featured_posts: boolean
@@ -7227,6 +7304,88 @@ export type Database = {
             columns: ["sound_id"]
             isOneToOne: false
             referencedRelation: "beat_pad_sounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_card_templates: {
+        Row: {
+          coins_spent: number
+          id: string
+          purchased_at: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_card_templates_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "card_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_cards: {
+        Row: {
+          canvas_data: string | null
+          created_at: string
+          id: string
+          is_completed: boolean | null
+          is_public: boolean | null
+          likes_count: number | null
+          template_id: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          canvas_data?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          is_public?: boolean | null
+          likes_count?: number | null
+          template_id?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          canvas_data?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          is_public?: boolean | null
+          likes_count?: number | null
+          template_id?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cards_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "card_templates"
             referencedColumns: ["id"]
           },
         ]
