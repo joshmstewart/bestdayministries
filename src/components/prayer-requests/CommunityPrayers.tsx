@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, CheckCircle2, Users, HandHeart, Sparkles, Mic } from "lucide-react";
+import { Loader2, CheckCircle2, Users, HandHeart, Sparkles, Mic, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -24,7 +24,25 @@ interface CommunityPrayer {
   is_anonymous: boolean;
   gratitude_message: string | null;
   audio_url: string | null;
+  expires_at: string | null;
 }
+
+const formatTimeRemaining = (expiresAt: string | null): string | null => {
+  if (!expiresAt) return null;
+  const expiryDate = new Date(expiresAt);
+  const now = new Date();
+  const daysRemaining = differenceInDays(expiryDate, now);
+  const hoursRemaining = differenceInHours(expiryDate, now);
+  
+  if (daysRemaining > 1) {
+    return `${daysRemaining} days left`;
+  } else if (daysRemaining === 1) {
+    return "1 day left";
+  } else if (hoursRemaining > 0) {
+    return `${hoursRemaining}h left`;
+  }
+  return null;
+};
 
 interface CommunityPrayersProps {
   userId?: string;
@@ -52,7 +70,7 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
     
     let query = supabase
       .from("prayer_requests")
-      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id, is_anonymous, gratitude_message, audio_url, approval_status")
+      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id, is_anonymous, gratitude_message, audio_url, approval_status, expires_at")
       .eq("is_public", true)
       .eq("approval_status", "approved")
       .or(`expires_at.is.null,expires_at.gt.${now}`)
@@ -217,6 +235,8 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
           const isLiking = likingPrayer === prayer.id;
           const ttsText = `${prayer.title}. ${prayer.content}${prayer.gratitude_message ? `. Gratitude: ${prayer.gratitude_message}` : ""}`;
 
+          const timeRemaining = formatTimeRemaining(prayer.expires_at);
+
           return (
             <Card key={prayer.id} className="overflow-hidden">
               <CardContent className="p-4 space-y-3">
@@ -235,6 +255,12 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                         <Badge className="bg-green-500/90 text-white gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           Answered
+                        </Badge>
+                      )}
+                      {timeRemaining && (
+                        <Badge variant="outline" className="gap-1 text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          {timeRemaining}
                         </Badge>
                       )}
                     </div>
