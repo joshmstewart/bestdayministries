@@ -20,6 +20,7 @@ interface AnsweredPrayer {
   answered_at: string;
   is_anonymous: boolean;
   user_id: string;
+  image_url: string | null;
   display_name?: string;
 }
 
@@ -36,7 +37,7 @@ export const AnsweredPrayersGallery = () => {
       // Fetch answered prayers that were public (shared)
       const { data: prayersData, error } = await supabase
         .from("prayer_requests")
-        .select("id, title, content, gratitude_message, answered_at, is_anonymous, user_id")
+        .select("id, title, content, gratitude_message, answered_at, is_anonymous, user_id, image_url")
         .eq("is_answered", true)
         .eq("is_public", true)
         .eq("approval_status", "approved")
@@ -136,6 +137,17 @@ export const AnsweredPrayersGallery = () => {
                     {prayer.content}
                   </p>
                 </div>
+
+                {/* Prayer Image */}
+                {prayer.image_url && (
+                  <div className="rounded-lg overflow-hidden">
+                    <img 
+                      src={prayer.image_url} 
+                      alt="Prayer request image" 
+                      className="w-full h-36 object-cover"
+                    />
+                  </div>
+                )}
 
                 {/* Gratitude message */}
                 <div className="p-4 bg-yellow-50/80 dark:bg-yellow-950/30 border border-yellow-200/50 dark:border-yellow-800/30 rounded-lg">
