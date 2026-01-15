@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type SortOption = 'newest' | 'popular';
+type SortOption = 'newest' | 'liked' | 'played';
 
 interface BeatCreation {
   id: string;
@@ -69,8 +69,10 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
 
       if (sortBy === 'newest') {
         query = query.order('created_at', { ascending: false });
-      } else {
+      } else if (sortBy === 'liked') {
         query = query.order('likes_count', { ascending: false });
+      } else if (sortBy === 'played') {
+        query = query.order('plays_count', { ascending: false });
       }
 
       const { data, error } = await query.limit(20);
@@ -181,7 +183,8 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="popular">Most Popular</SelectItem>
+            <SelectItem value="liked">Most Liked</SelectItem>
+            <SelectItem value="played">Most Played</SelectItem>
           </SelectContent>
         </Select>
       </div>
