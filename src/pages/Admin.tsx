@@ -94,6 +94,7 @@ import { PicturePasswordImagesViewer } from "@/components/admin/PicturePasswordI
 import { ChoreBadgeManager } from "@/components/admin/ChoreBadgeManager";
 import { ChoreChallengeManager } from "@/components/admin/ChoreChallengeManager";
 import { WorkoutManager } from "@/components/admin/WorkoutManager";
+import { CardManager } from "@/components/admin/CardManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -592,6 +593,7 @@ const Admin = () => {
                     <TabsTrigger value="cash-register">Cash Register</TabsTrigger>
                     <TabsTrigger value="chores">Chores</TabsTrigger>
                     <TabsTrigger value="workout">Workout</TabsTrigger>
+                    <TabsTrigger value="cards">Card Creator</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="cash-register">
@@ -649,6 +651,10 @@ const Admin = () => {
 
                   <TabsContent value="workout">
                     <WorkoutManager />
+                  </TabsContent>
+
+                  <TabsContent value="cards">
+                    <CardManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
