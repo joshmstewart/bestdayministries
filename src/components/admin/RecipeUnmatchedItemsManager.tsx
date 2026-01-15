@@ -21,17 +21,64 @@ interface UnmatchedItem {
   resolved_at: string | null;
 }
 
-// Format item name to proper case (capitalize first letter of each word)
-function formatItemName(name: string): string {
-  return name
+// Preparation terms that should be stripped to find the actual ingredient
+const PREP_PATTERNS: { pattern: RegExp; toolSuggestion?: string }[] = [
+  { pattern: /^zest\s+of\s+/i, toolSuggestion: "Zester" },
+  { pattern: /\s+zest$/i, toolSuggestion: "Zester" },
+  { pattern: /^juice\s+of\s+/i, toolSuggestion: "Juicer" },
+  { pattern: /\s+juice$/i, toolSuggestion: "Juicer" },
+  { pattern: /^minced\s+/i, toolSuggestion: "Knife" },
+  { pattern: /^diced\s+/i, toolSuggestion: "Knife" },
+  { pattern: /^chopped\s+/i, toolSuggestion: "Knife" },
+  { pattern: /^sliced\s+/i, toolSuggestion: "Knife" },
+  { pattern: /^grated\s+/i, toolSuggestion: "Grater" },
+  { pattern: /^shredded\s+/i, toolSuggestion: "Grater" },
+  { pattern: /^mashed\s+/i, toolSuggestion: "Masher" },
+  { pattern: /^crushed\s+/i },
+  { pattern: /^ground\s+/i },
+  { pattern: /^fresh\s+/i },
+  { pattern: /^dried\s+/i },
+  { pattern: /^frozen\s+/i },
+  { pattern: /^melted\s+/i },
+  { pattern: /^softened\s+/i },
+  { pattern: /^cooked\s+/i },
+  { pattern: /^raw\s+/i },
+];
+
+interface FormattedResult {
+  name: string;
+  toolSuggestion?: string;
+}
+
+// Format item name intelligently - extract actual ingredient from prep descriptions
+function formatItemName(name: string): FormattedResult {
+  let cleaned = name
     .toLowerCase()
     .trim()
     .replace(/[^a-zA-Z\s]/g, '') // Remove special characters
     .replace(/\s+/g, ' ') // Normalize spaces
+    .trim();
+
+  let toolSuggestion: string | undefined;
+
+  // Apply preparation patterns
+  for (const { pattern, toolSuggestion: tool } of PREP_PATTERNS) {
+    if (pattern.test(cleaned)) {
+      cleaned = cleaned.replace(pattern, '').trim();
+      if (tool && !toolSuggestion) {
+        toolSuggestion = tool;
+      }
+    }
+  }
+
+  // Capitalize each word
+  const formatted = cleaned
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
     .trim();
+
+  return { name: formatted, toolSuggestion };
 }
 
 export function RecipeUnmatchedItemsManager() {
@@ -185,16 +232,24 @@ export function RecipeUnmatchedItemsManager() {
                 </TableHeader>
                 <TableBody>
                   {filteredItems.map((item) => {
-                    const formattedName = formatItemName(item.item_name);
+                    const formatted = formatItemName(item.item_name);
                     return (
                       <TableRow key={item.id} className={item.is_resolved ? "opacity-50" : ""}>
                         <TableCell className="font-medium text-muted-foreground">
                           {item.item_name}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
-                            {formattedName}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline" className="bg-primary/10 text-primary font-medium w-fit">
+                              {formatted.name}
+                            </Badge>
+                            {formatted.toolSuggestion && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <UtensilsCrossed className="h-3 w-3" />
+                                Needs: {formatted.toolSuggestion}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant={item.occurrence_count >= 5 ? "destructive" : item.occurrence_count >= 2 ? "secondary" : "outline"}>
@@ -223,8 +278,8 @@ export function RecipeUnmatchedItemsManager() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleMarkResolved(item, formattedName)}
-                                title={`Mark as resolved and add as "${formattedName}"`}
+                                onClick={() => handleMarkResolved(item, formatted.name)}
+                                title={`Mark as resolved and add as "${formatted.name}"`}
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
