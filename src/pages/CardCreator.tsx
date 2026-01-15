@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreditCard, Image, Users, Plus, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { CardCanvas } from "@/components/card-creator/CardCanvas";
 import { CardGallery } from "@/components/card-creator/CardGallery";
 import { CardCommunityGallery } from "@/components/card-creator/CardCommunityGallery";
