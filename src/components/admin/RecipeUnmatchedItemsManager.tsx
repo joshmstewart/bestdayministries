@@ -21,6 +21,19 @@ interface UnmatchedItem {
   resolved_at: string | null;
 }
 
+// Format item name to proper case (capitalize first letter of each word)
+function formatItemName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-zA-Z\s]/g, '') // Remove special characters
+    .replace(/\s+/g, ' ') // Normalize spaces
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .trim();
+}
+
 export function RecipeUnmatchedItemsManager() {
   const [items, setItems] = useState<UnmatchedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,7 +174,8 @@ export function RecipeUnmatchedItemsManager() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item Name</TableHead>
+                    <TableHead>Original Name</TableHead>
+                    <TableHead>Formatted Name</TableHead>
                     <TableHead className="text-center">Times Seen</TableHead>
                     <TableHead>First Seen</TableHead>
                     <TableHead>Last Seen</TableHead>
@@ -170,55 +184,65 @@ export function RecipeUnmatchedItemsManager() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredItems.map((item) => (
-                    <TableRow key={item.id} className={item.is_resolved ? "opacity-50" : ""}>
-                      <TableCell className="font-medium">{item.item_name}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant={item.occurrence_count >= 5 ? "destructive" : item.occurrence_count >= 2 ? "secondary" : "outline"}>
-                          {item.occurrence_count}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(item.first_seen_at), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(item.last_seen_at), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {item.is_resolved ? (
-                          <Badge variant="outline" className="bg-green-500/10 text-green-700">
-                            <Check className="h-3 w-3 mr-1" />
-                            {item.resolved_to ? `→ ${item.resolved_to}` : "Resolved"}
+                  {filteredItems.map((item) => {
+                    const formattedName = formatItemName(item.item_name);
+                    return (
+                      <TableRow key={item.id} className={item.is_resolved ? "opacity-50" : ""}>
+                        <TableCell className="font-medium text-muted-foreground">
+                          {item.item_name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-primary/10 text-primary font-medium">
+                            {formattedName}
                           </Badge>
-                        ) : (
-                          <Badge variant="secondary">Pending</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {!item.is_resolved && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleMarkResolved(item)}
-                              title="Mark as resolved (added to wizard or not needed)"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={item.occurrence_count >= 5 ? "destructive" : item.occurrence_count >= 2 ? "secondary" : "outline"}>
+                            {item.occurrence_count}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(item.first_seen_at), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(item.last_seen_at), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          {item.is_resolved ? (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-700">
+                              <Check className="h-3 w-3 mr-1" />
+                              {item.resolved_to ? `→ ${item.resolved_to}` : "Resolved"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Pending</Badge>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(item)}
-                            className="text-destructive hover:text-destructive"
-                            title="Delete this item"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {!item.is_resolved && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleMarkResolved(item, formattedName)}
+                                title={`Mark as resolved and add as "${formattedName}"`}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(item)}
+                              className="text-destructive hover:text-destructive"
+                              title="Delete this item"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
