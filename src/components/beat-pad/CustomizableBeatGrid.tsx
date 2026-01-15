@@ -19,6 +19,7 @@ interface CustomizableBeatGridProps {
   currentStep: number;
   isPlaying: boolean;
   onPlaySound: (sound: SoundConfig) => void;
+  onStopPlayback?: () => void;
   skipDefaultLoad?: boolean;
 }
 
@@ -30,6 +31,7 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
   currentStep,
   isPlaying,
   onPlaySound,
+  onStopPlayback,
   skipDefaultLoad = false,
 }) => {
   const [soundPickerOpen, setSoundPickerOpen] = useState(false);
@@ -237,6 +239,7 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
         onOpenChange={setSoundPickerOpen}
         onSelectSound={handleSelectSound}
         excludeSoundIds={excludeSoundIds}
+        onPreviewStart={onStopPlayback}
       />
     </div>
   );
