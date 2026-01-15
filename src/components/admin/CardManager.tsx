@@ -1282,16 +1282,18 @@ DRAWING REQUIREMENTS:
 
       {/* Preview Dialog */}
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{previewImage?.name}</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <img 
-              src={previewImage.url} 
-              alt={previewImage.name} 
-              className="w-full rounded-lg bg-white"
-            />
+            <div className="flex justify-center">
+              <img 
+                src={previewImage.url} 
+                alt={previewImage.name} 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg bg-white"
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
