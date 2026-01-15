@@ -145,6 +145,35 @@ const generateEmailContent = (
       emailMessage = `${prayerName} prayed for your prayer request "${requestData.metadata?.prayerTitle || 'your request'}".`;
       actionText = "View Prayer";
       break;
+
+    case "content_like":
+      emailTitle = "Someone liked your creation! ❤️";
+      const likerName = requestData.metadata?.likerName || "Someone";
+      emailMessage = requestData.message || `${likerName} liked your content.`;
+      actionText = "View Creation";
+      break;
+
+    case "order_shipped":
+      emailTitle = "Your order has shipped! 📦";
+      const productName = requestData.metadata?.productName || "Your item";
+      const trackingNumber = requestData.metadata?.trackingNumber;
+      emailMessage = `${productName} is on its way!${trackingNumber ? `\n\nTracking: ${trackingNumber}` : ''}`;
+      actionText = "Track Order";
+      break;
+
+    case "order_delivered":
+      emailTitle = "Your order was delivered! 🎉";
+      const deliveredProduct = requestData.metadata?.productName || "Your item";
+      emailMessage = `${deliveredProduct} has arrived! We hope you love it.`;
+      actionText = "View Order";
+      break;
+
+    case "badge_earned":
+      emailTitle = "Achievement Unlocked! 🏆";
+      const badgeName = requestData.metadata?.badgeName || "a badge";
+      emailMessage = `Congratulations! You earned the ${badgeName} badge!`;
+      actionText = "View Achievement";
+      break;
   }
 
   return { title: emailTitle, message: emailMessage, actionText };
@@ -234,6 +263,10 @@ const handler = async (req: Request): Promise<Response> => {
       prayer_approved: "email_on_prayer_approved",
       prayer_rejected: "email_on_prayer_rejected",
       prayed_for_you: "email_on_prayed_for_you",
+      content_like: "email_on_content_like",
+      order_shipped: "email_on_order_shipped",
+      order_delivered: "email_on_order_delivered",
+      badge_earned: "email_on_badge_earned",
     };
 
     const preferenceField = preferenceMap[requestData.notificationType];
