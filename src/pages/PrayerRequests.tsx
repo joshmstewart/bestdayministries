@@ -9,7 +9,7 @@ import { CommunityPrayers } from "@/components/prayer-requests/CommunityPrayers"
 import { PrayerRequestDialog } from "@/components/prayer-requests/PrayerRequestDialog";
 
 const PrayerRequests = () => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -87,6 +87,7 @@ const PrayerRequests = () => {
         onOpenChange={setCreateDialogOpen}
         onSuccess={handlePrayerCreated}
         userId={user?.id}
+        userRole={role}
       />
     </div>
   );

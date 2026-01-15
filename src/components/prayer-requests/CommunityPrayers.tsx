@@ -4,11 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, CheckCircle2, Users, HandHeart, Sparkles } from "lucide-react";
+import { Loader2, CheckCircle2, Users, HandHeart, Sparkles, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface CommunityPrayer {
   id: string;
@@ -22,6 +23,7 @@ interface CommunityPrayer {
   creator_name: string | null;
   is_anonymous: boolean;
   gratitude_message: string | null;
+  audio_url: string | null;
 }
 
 interface CommunityPrayersProps {
@@ -50,8 +52,9 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
     
     let query = supabase
       .from("prayer_requests")
-      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id, is_anonymous, gratitude_message")
+      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id, is_anonymous, gratitude_message, audio_url, approval_status")
       .eq("is_public", true)
+      .eq("approval_status", "approved")
       .or(`expires_at.is.null,expires_at.gt.${now}`)
       .limit(50);
 
@@ -222,6 +225,12 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold">{prayer.title}</h3>
                       <TextToSpeech text={ttsText} size="sm" />
+                      {prayer.audio_url && (
+                        <Badge variant="outline" className="gap-1">
+                          <Mic className="w-3 h-3 text-red-500" />
+                          Audio
+                        </Badge>
+                      )}
                       {prayer.is_answered && (
                         <Badge className="bg-green-500/90 text-white gap-1">
                           <CheckCircle2 className="w-3 h-3" />
@@ -236,6 +245,13 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                 </div>
 
                 <p className="text-sm">{prayer.content}</p>
+
+                {/* Audio Player */}
+                {prayer.audio_url && (
+                  <div className="p-2 bg-muted/30 rounded-lg">
+                    <AudioPlayer src={prayer.audio_url} />
+                  </div>
+                )}
 
                 {/* Gratitude Message */}
                 {prayer.gratitude_message && (

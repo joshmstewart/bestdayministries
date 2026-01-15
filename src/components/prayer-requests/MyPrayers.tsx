@@ -26,13 +26,17 @@ import {
   EyeOff,
   Clock,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Mic,
+  AlertCircle,
+  XCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays, addWeeks, addDays, isPast } from "date-fns";
 import { PrayerRequestDialog } from "./PrayerRequestDialog";
 import { AnsweredPrayerDialog } from "./AnsweredPrayerDialog";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface PrayerRequest {
   id: string;
@@ -49,6 +53,8 @@ interface PrayerRequest {
   share_duration: string | null;
   expires_at: string | null;
   gratitude_message: string | null;
+  audio_url: string | null;
+  approval_status: string | null;
 }
 
 interface MyPrayersProps {
@@ -254,6 +260,12 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold truncate">{prayer.title}</h3>
                       <TextToSpeech text={ttsText} size="sm" />
+                      {prayer.audio_url && (
+                        <Badge variant="outline" className="gap-1">
+                          <Mic className="w-3 h-3 text-red-500" />
+                          Audio
+                        </Badge>
+                      )}
                       {prayer.is_answered && (
                         <Badge className="bg-green-500/90 text-white gap-1">
                           <CheckCircle2 className="w-3 h-3" />
@@ -266,22 +278,34 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                           Anonymous
                         </Badge>
                       )}
+                      {prayer.approval_status === "pending_approval" && (
+                        <Badge variant="secondary" className="gap-1 bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
+                          <AlertCircle className="w-3 h-3" />
+                          Pending Approval
+                        </Badge>
+                      )}
+                      {prayer.approval_status === "rejected" && (
+                        <Badge variant="destructive" className="gap-1">
+                          <XCircle className="w-3 h-3" />
+                          Rejected
+                        </Badge>
+                      )}
                       {expired ? (
                         <Badge variant="destructive" className="gap-1">
                           <Clock className="w-3 h-3" />
                           Expired
                         </Badge>
-                      ) : prayer.is_public ? (
+                      ) : prayer.is_public && prayer.approval_status === "approved" ? (
                         <Badge variant="secondary" className="gap-1">
                           <Globe className="w-3 h-3" />
                           Shared
                         </Badge>
-                      ) : (
+                      ) : !prayer.is_public ? (
                         <Badge variant="outline" className="gap-1">
                           <Lock className="w-3 h-3" />
                           Private
                         </Badge>
-                      )}
+                      ) : null}
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {format(new Date(prayer.created_at), "MMM d, yyyy")}
@@ -296,6 +320,13 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                 </div>
 
                 <p className="text-sm line-clamp-3">{prayer.content}</p>
+
+                {/* Audio Player */}
+                {prayer.audio_url && (
+                  <div className="p-2 bg-muted/30 rounded-lg">
+                    <AudioPlayer src={prayer.audio_url} />
+                  </div>
+                )}
 
                 {/* Gratitude Message Display */}
                 {prayer.gratitude_message && (
