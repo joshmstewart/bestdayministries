@@ -15,12 +15,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Share2, Lock, Download } from "lucide-react";
+import { Edit, Trash2, Share2, Lock, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useCoins } from "@/hooks/useCoins";
 
 interface CardGalleryProps {
-  onSelectCard: (card: any) => void;
+  onSelectCard: (card: any, startFresh?: boolean, template?: any) => void;
 }
 
 export function CardGallery({ onSelectCard }: CardGalleryProps) {
@@ -30,7 +30,7 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const [cardToDelete, setCardToDelete] = useState<any>(null);
 
-  // Fetch user's saved cards
+  // Fetch user's saved cards with design info
   const { data: cards, isLoading } = useQuery({
     queryKey: ["user-cards", user?.id],
     queryFn: async () => {
@@ -39,7 +39,8 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
         .from("user_cards")
         .select(`
           *,
-          template:card_templates(title, cover_image_url)
+          template:card_templates(id, title, cover_image_url),
+          design:card_designs(id, title, image_url, template_id)
         `)
         .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
@@ -100,7 +101,27 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
 
   const handleContinueEditing = () => {
     if (selectedCard) {
-      onSelectCard(selectedCard);
+      // Get the template from design if available
+      const template = selectedCard.design?.template_id ? {
+        id: selectedCard.template?.id || selectedCard.design.template_id,
+        title: selectedCard.template?.title || "Card Pack",
+        cover_image_url: selectedCard.template?.cover_image_url || "",
+      } : null;
+      
+      onSelectCard(selectedCard, false, template);
+      setSelectedCard(null);
+    }
+  };
+
+  const handleStartFresh = () => {
+    if (selectedCard) {
+      const template = selectedCard.design?.template_id ? {
+        id: selectedCard.template?.id || selectedCard.design.template_id,
+        title: selectedCard.template?.title || "Card Pack",
+        cover_image_url: selectedCard.template?.cover_image_url || "",
+      } : null;
+      
+      onSelectCard(selectedCard, true, template);
       setSelectedCard(null);
     }
   };
@@ -144,7 +165,7 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">
-          You haven't created any cards yet. Pick a template to get started!
+          You haven't created any cards yet. Pick a card pack to get started!
         </p>
       </div>
     );
@@ -181,7 +202,7 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
               <div className="p-3">
                 <h3 className="font-medium text-sm truncate">{card.title || "Untitled Card"}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {card.template?.title || "Custom Card"}
+                  {card.design?.title || card.template?.title || "Custom Card"}
                 </p>
               </div>
             </CardContent>
@@ -195,7 +216,7 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
           <DialogHeader>
             <DialogTitle>{selectedCard?.title || "Untitled Card"}</DialogTitle>
             <DialogDescription>
-              {selectedCard?.template?.title || "Custom card"}
+              {selectedCard?.design?.title || selectedCard?.template?.title || "Custom card"}
             </DialogDescription>
           </DialogHeader>
           
@@ -238,6 +259,15 @@ export function CardGallery({ onSelectCard }: CardGalleryProps) {
                   Share
                 </>
               )}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartFresh}
+            >
+              <Copy className="w-4 h-4 mr-1" />
+              Start New Copy
             </Button>
             
             <Button

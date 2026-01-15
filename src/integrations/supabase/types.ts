@@ -7446,6 +7446,7 @@ export type Database = {
       user_cards: {
         Row: {
           canvas_data: string | null
+          card_design_id: string | null
           created_at: string
           id: string
           is_completed: boolean | null
@@ -7459,6 +7460,7 @@ export type Database = {
         }
         Insert: {
           canvas_data?: string | null
+          card_design_id?: string | null
           created_at?: string
           id?: string
           is_completed?: boolean | null
@@ -7472,6 +7474,7 @@ export type Database = {
         }
         Update: {
           canvas_data?: string | null
+          card_design_id?: string | null
           created_at?: string
           id?: string
           is_completed?: boolean | null
@@ -7484,6 +7487,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_cards_card_design_id_fkey"
+            columns: ["card_design_id"]
+            isOneToOne: false
+            referencedRelation: "card_designs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_cards_template_id_fkey"
             columns: ["template_id"]

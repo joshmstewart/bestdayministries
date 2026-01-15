@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Canvas as FabricCanvas, PencilBrush, FabricImage, FabricText, Textbox } from "fabric";
+import { Canvas as FabricCanvas, PencilBrush, FabricImage, Textbox } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,24 +40,21 @@ const COLORS = [
   "#000000", "#808080", "#FFFFFF",
 ];
 
-interface CardCanvasProps {
-  template: {
-    id: string;
-    title: string;
-    background_image_url?: string | null;
-    cover_image_url: string;
-  } | null;
-  savedCard?: {
-    id: string;
-    canvas_data: string;
-    title?: string;
-    is_public?: boolean;
-  } | null;
-  onClose: () => void;
-  onSaved?: () => void;
+interface CardDesign {
+  id: string;
+  title: string;
+  image_url: string;
+  template_id: string | null;
 }
 
-export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvasProps) {
+interface CardCanvasProps {
+  design: CardDesign | null;
+  savedCanvasData?: string | null;
+  isPublic?: boolean;
+  onClose: () => void;
+}
+
+export function CardCanvas({ design, savedCanvasData, isPublic = false, onClose }: CardCanvasProps) {
   const fabricCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fabricCanvas, setFabricCanvas] = useState<FabricCanvas | null>(null);
@@ -71,19 +67,47 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
   const { awardCoins } = useCoins();
   const [saving, setSaving] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [isShared, setIsShared] = useState(savedCard?.is_public || false);
+  const [isShared, setIsShared] = useState(isPublic);
   const [hasChanges, setHasChanges] = useState(false);
-  const [cardTitle, setCardTitle] = useState(savedCard?.title || template?.title || "My Card");
   const [hasSelection, setHasSelection] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [existingCardId, setExistingCardId] = useState<string | null>(null);
   
   // Card dimensions (standard greeting card aspect ratio ~5:7)
   const CARD_WIDTH = 500;
   const CARD_HEIGHT = 700;
 
+  // Store initial savedCanvasData in a ref to prevent it from being lost on re-renders
+  const initialSavedDataRef = useRef<string | null>(savedCanvasData || null);
+  const hasInitializedRef = useRef(false);
+  const originalImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Check for existing user card for this design (like coloring upsert pattern)
+  useEffect(() => {
+    const checkExisting = async () => {
+      if (!user?.id || !design?.id) return;
+      
+      const { data } = await supabase
+        .from("user_cards")
+        .select("id, canvas_data, is_public")
+        .eq("user_id", user.id)
+        .eq("card_design_id", design.id)
+        .maybeSingle();
+      
+      if (data) {
+        setExistingCardId(data.id);
+        initialSavedDataRef.current = data.canvas_data;
+        setIsShared(data.is_public || false);
+      }
+    };
+    
+    checkExisting();
+  }, [user?.id, design?.id]);
+
   // Initialize Fabric.js canvas
   useEffect(() => {
-    if (!fabricCanvasRef.current) return;
+    if (!fabricCanvasRef.current || !design) return;
+    if (hasInitializedRef.current) return;
 
     const canvas = new FabricCanvas(fabricCanvasRef.current, {
       width: CARD_WIDTH,
@@ -98,31 +122,60 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
     canvas.freeDrawingBrush.width = brushSize;
 
     // Load saved canvas data if available
-    if (savedCard?.canvas_data) {
+    const savedData = initialSavedDataRef.current;
+    if (savedData) {
       try {
-        const savedData = JSON.parse(savedCard.canvas_data);
-        canvas.loadFromJSON(savedData, () => {
+        const parsed = JSON.parse(savedData);
+        canvas.loadFromJSON(parsed, () => {
           canvas.renderAll();
+          hasInitializedRef.current = true;
         });
+        
+        // Still need to store original image for clear function
+        const origImg = new Image();
+        origImg.crossOrigin = "anonymous";
+        origImg.onload = () => {
+          originalImageRef.current = origImg;
+        };
+        origImg.src = design.image_url;
+        
+        setFabricCanvas(canvas);
+        return () => {
+          canvas.dispose();
+        };
       } catch (e) {
         console.error("Failed to restore saved card:", e);
       }
-    } else if (template?.background_image_url) {
-      // Load template background
-      FabricImage.fromURL(template.background_image_url, { crossOrigin: 'anonymous' }).then((img) => {
-        img.scaleToWidth(CARD_WIDTH);
-        img.scaleToHeight(CARD_HEIGHT);
-        img.set({
-          left: 0,
-          top: 0,
-          selectable: false,
-          evented: false,
-        });
-        canvas.add(img);
-        canvas.sendObjectToBack(img);
-        canvas.renderAll();
-      });
     }
+    
+    hasInitializedRef.current = true;
+
+    // Load the card design image as background
+    FabricImage.fromURL(design.image_url, { crossOrigin: 'anonymous' }).then((img) => {
+      // Scale to fill canvas while maintaining aspect ratio
+      const scaleX = CARD_WIDTH / img.width!;
+      const scaleY = CARD_HEIGHT / img.height!;
+      const scale = Math.max(scaleX, scaleY);
+      
+      img.scale(scale);
+      img.set({
+        left: (CARD_WIDTH - img.width! * scale) / 2,
+        top: (CARD_HEIGHT - img.height! * scale) / 2,
+        selectable: false,
+        evented: false,
+      });
+      canvas.add(img);
+      canvas.sendObjectToBack(img);
+      canvas.renderAll();
+      
+      // Store original image for clear function
+      const origImg = new Image();
+      origImg.crossOrigin = "anonymous";
+      origImg.onload = () => {
+        originalImageRef.current = origImg;
+      };
+      origImg.src = design.image_url;
+    });
 
     // Track selection changes
     canvas.on('selection:created', () => setHasSelection(true));
@@ -137,7 +190,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
     return () => {
       canvas.dispose();
     };
-  }, [template, savedCard]);
+  }, [design]);
 
   // Update tool settings
   useEffect(() => {
@@ -254,7 +307,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
   }, [fabricCanvas]);
 
   const handleClear = useCallback(() => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !design) return;
     
     // Keep only the background image
     const objects = fabricCanvas.getObjects();
@@ -267,10 +320,10 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
     setHasChanges(true);
     setShowClearDialog(false);
     toast.success("Card cleared");
-  }, [fabricCanvas]);
+  }, [fabricCanvas, design]);
 
   const handleSave = async () => {
-    if (!fabricCanvas || !user) {
+    if (!fabricCanvas || !user || !design) {
       toast.error("Please sign in to save");
       return;
     }
@@ -288,10 +341,10 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
       });
 
       // Upload thumbnail to storage
-      const fileName = `card_${savedCard?.id || 'new'}_${Date.now()}.png`;
+      const fileName = `card_${design.id}_${Date.now()}.png`;
       const blob = await fetch(dataUrl).then(r => r.blob());
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('app-assets')
         .upload(`user-cards/${user.id}/${fileName}`, blob, {
           contentType: 'image/png',
@@ -306,37 +359,41 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
 
       const thumbnailUrl = urlData.publicUrl;
 
-      if (savedCard?.id) {
+      // Upsert pattern - like coloring book (1 save per design)
+      if (existingCardId) {
         // Update existing card
         const { error } = await supabase
           .from('user_cards')
           .update({
             canvas_data: canvasData,
             thumbnail_url: thumbnailUrl,
-            title: cardTitle,
+            title: design.title,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', savedCard.id);
+          .eq('id', existingCardId);
 
         if (error) throw error;
       } else {
         // Create new card
-        const { error } = await supabase
+        const { data: newCard, error } = await supabase
           .from('user_cards')
           .insert({
             user_id: user.id,
-            template_id: template?.id || null,
+            template_id: design.template_id,
+            card_design_id: design.id,
             canvas_data: canvasData,
             thumbnail_url: thumbnailUrl,
-            title: cardTitle,
-          });
+            title: design.title,
+          })
+          .select('id')
+          .single();
 
         if (error) throw error;
+        setExistingCardId(newCard.id);
       }
 
       setHasChanges(false);
       toast.success("Card saved!");
-      onSaved?.();
     } catch (error) {
       console.error("Save error:", error);
       toast.error("Failed to save card");
@@ -346,7 +403,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
   };
 
   const handleDownload = () => {
-    if (!fabricCanvas) return;
+    if (!fabricCanvas || !design) return;
     
     const dataUrl = fabricCanvas.toDataURL({
       format: 'png',
@@ -355,7 +412,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
     });
     
     const link = document.createElement('a');
-    link.download = `${cardTitle.replace(/\s+/g, '_')}.png`;
+    link.download = `${design.title.replace(/\s+/g, '_')}.png`;
     link.href = dataUrl;
     link.click();
     
@@ -363,7 +420,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
   };
 
   const handleShare = async () => {
-    if (!savedCard?.id || !user) {
+    if (!existingCardId || !user) {
       toast.error("Save your card first to share it");
       return;
     }
@@ -375,7 +432,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
       const { error } = await supabase
         .from('user_cards')
         .update({ is_public: newShareState })
-        .eq('id', savedCard.id);
+        .eq('id', existingCardId);
 
       if (error) throw error;
 
@@ -394,21 +451,12 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
     }
   };
 
+  if (!design) {
+    return null;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Title input */}
-      <div className="flex items-center gap-2">
-        <Input
-          value={cardTitle}
-          onChange={(e) => {
-            setCardTitle(e.target.value);
-            setHasChanges(true);
-          }}
-          className="max-w-xs font-medium"
-          placeholder="Card title..."
-        />
-      </div>
-
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 rounded-lg">
         {/* Tool buttons */}
@@ -502,89 +550,82 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
         {/* Divider */}
         <div className="h-6 w-px bg-border" />
 
-        {/* Delete selected */}
-        {hasSelection && (
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={handleDeleteSelected}
-          >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Delete
-          </Button>
-        )}
-
-        {/* Clear */}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setShowClearDialog(true)}
-        >
-          <RotateCcw className="w-4 h-4 mr-1" />
-          Clear
-        </Button>
-      </div>
-
-      {/* Canvas */}
-      <div 
-        ref={containerRef}
-        className="flex justify-center bg-muted/30 rounded-lg p-4 overflow-auto"
-      >
-        <div className="shadow-lg rounded-lg overflow-hidden border-4 border-white">
-          <canvas ref={fabricCanvasRef} />
-        </div>
-      </div>
-
-      {/* Bottom actions */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Button variant="outline" onClick={onClose}>
-          Back to Templates
-        </Button>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDownload}>
-            <Download className="w-4 h-4 mr-1" />
-            Download
-          </Button>
-          
-          {savedCard?.id && (
+        {/* Action buttons */}
+        <div className="flex gap-1">
+          {hasSelection && (
             <Button
-              variant="outline"
-              onClick={handleShare}
-              disabled={sharing}
+              size="sm"
+              variant="destructive"
+              onClick={handleDeleteSelected}
+              title="Delete Selected"
             >
-              {sharing ? (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-              ) : (
-                <Share2 className="w-4 h-4 mr-1" />
-              )}
-              {isShared ? "Unshare" : "Share"}
+              <Trash2 className="w-4 h-4" />
             </Button>
           )}
-          
-          <Button onClick={handleSave} disabled={saving || !hasChanges}>
-            {saving ? (
-              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-1" />
-            )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowClearDialog(true)}
+            title="Clear All"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Save/Download/Share */}
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleDownload}
+            title="Download"
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant={isShared ? "secondary" : "outline"}
+            onClick={handleShare}
+            disabled={sharing || !existingCardId}
+            title={existingCardId ? (isShared ? "Make Private" : "Share to Community") : "Save first to share"}
+          >
+            {sharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving}
+            title="Save"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
             Save
           </Button>
         </div>
       </div>
 
-      {/* Sticker Picker */}
+      {/* Canvas container */}
+      <div ref={containerRef} className="flex justify-center">
+        <div className="border rounded-lg shadow-lg overflow-hidden bg-white">
+          <canvas ref={fabricCanvasRef} />
+        </div>
+      </div>
+
+      {/* Sticker Picker Dialog */}
       <StickerPicker
         open={showStickerPicker}
         onOpenChange={setShowStickerPicker}
         onSelectSticker={handleStickerSelect}
       />
 
+      {/* Word Art Picker Dialog */}
       <WordArtPicker
         open={showWordArtPicker}
         onOpenChange={setShowWordArtPicker}
         onSelectWordArt={handleWordArtSelect}
-        templateId={template?.id}
+        templateId={design?.template_id}
       />
 
       {/* Clear confirmation dialog */}
@@ -593,7 +634,7 @@ export function CardCanvas({ template, savedCard, onClose, onSaved }: CardCanvas
           <AlertDialogHeader>
             <AlertDialogTitle>Clear Card?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove all your drawings, text, and stickers. The background will be kept.
+              This will remove all your drawings, text, and stickers. The background design will remain.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
