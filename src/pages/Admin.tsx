@@ -29,6 +29,7 @@ import { useModerationCount } from "@/hooks/useModerationCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
 import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import { useMessagesCount } from "@/hooks/useMessagesCount";
+import { useUnmatchedItemsCount } from "@/hooks/useUnmatchedItemsCount";
 import LandingPageOrderManager from "@/components/admin/HomepageOrderManager";
 import CommunityOrderManager from "@/components/admin/CommunityOrderManager";
 import AboutPageManager from "@/components/admin/AboutPageManager";
@@ -115,6 +116,7 @@ const Admin = () => {
   const { count: pendingVendorsCount } = usePendingVendorsCount();
   const { count: messageModerationCount } = useMessageModerationCount();
   const { count: messagesCount } = useMessagesCount();
+  const { count: unmatchedItemsCount } = useUnmatchedItemsCount();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -592,7 +594,14 @@ const Admin = () => {
                 <Tabs defaultValue="guardian-resources" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
                     <TabsTrigger value="guardian-resources">Guardian Resources</TabsTrigger>
-                    <TabsTrigger value="recipes">Recipes</TabsTrigger>
+                    <TabsTrigger value="recipes" className="relative">
+                      Recipes
+                      {unmatchedItemsCount > 0 && (
+                        <Badge variant="destructive" className="ml-1.5 h-5 min-w-[20px] px-1.5 text-xs">
+                          {unmatchedItemsCount}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
                     <TabsTrigger value="cash-register">Cash Register</TabsTrigger>
                     <TabsTrigger value="chores">Chores</TabsTrigger>
                     <TabsTrigger value="workout">Workout</TabsTrigger>
@@ -631,7 +640,14 @@ const Admin = () => {
                       <TabsList>
                         <TabsTrigger value="ingredients">Ingredients</TabsTrigger>
                         <TabsTrigger value="tools">Tools</TabsTrigger>
-                        <TabsTrigger value="unmatched">Unmatched Items</TabsTrigger>
+                        <TabsTrigger value="unmatched" className="relative">
+                          Unmatched Items
+                          {unmatchedItemsCount > 0 && (
+                            <Badge variant="destructive" className="ml-1.5 h-5 min-w-[20px] px-1.5 text-xs">
+                              {unmatchedItemsCount}
+                            </Badge>
+                          )}
+                        </TabsTrigger>
                       </TabsList>
                       <TabsContent value="ingredients">
                         <RecipeIngredientsManager />
