@@ -3,9 +3,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, HandHeart, BookOpen } from "lucide-react";
+import { Plus, HandHeart, BookOpen, Sparkles } from "lucide-react";
 import { MyPrayers } from "@/components/prayer-requests/MyPrayers";
 import { CommunityPrayers } from "@/components/prayer-requests/CommunityPrayers";
+import { AnsweredPrayersGallery } from "@/components/prayer-requests/AnsweredPrayersGallery";
 import { PrayerRequestDialog } from "@/components/prayer-requests/PrayerRequestDialog";
 
 const PrayerRequests = () => {
@@ -47,14 +48,21 @@ const PrayerRequests = () => {
 
             {/* Tabs */}
             <Tabs defaultValue="community" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="community" className="gap-2">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="community" className="gap-2">
                   <HandHeart className="w-4 h-4" />
-                  Community Board
+                  <span className="hidden sm:inline">Community Board</span>
+                  <span className="sm:hidden">Community</span>
                 </TabsTrigger>
                 <TabsTrigger value="my-prayers" className="gap-2">
                   <BookOpen className="w-4 h-4" />
-                  My Prayers
+                  <span className="hidden sm:inline">My Prayers</span>
+                  <span className="sm:hidden">My Prayers</span>
+                </TabsTrigger>
+                <TabsTrigger value="answered" className="gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden sm:inline">Answered</span>
+                  <span className="sm:hidden">Answered</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -75,6 +83,10 @@ const PrayerRequests = () => {
                     <p>Sign in to see your prayer requests</p>
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="answered">
+                <AnsweredPrayersGallery key={`answered-${refreshKey}`} />
               </TabsContent>
             </Tabs>
           </div>

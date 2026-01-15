@@ -83,6 +83,8 @@ export const PrayerApprovals = ({ currentUserId, onUpdate }: PrayerApprovalsProp
 
   const handleApprove = async (prayerId: string) => {
     setProcessingId(prayerId);
+    const prayer = prayers.find(p => p.id === prayerId);
+    
     try {
       const { error } = await supabase
         .from("prayer_requests")
@@ -94,6 +96,23 @@ export const PrayerApprovals = ({ currentUserId, onUpdate }: PrayerApprovalsProp
         .eq("id", prayerId);
 
       if (error) throw error;
+
+      // Send notification to the bestie
+      if (prayer) {
+        try {
+          await supabase.functions.invoke('send-prayer-notification', {
+            body: {
+              type: 'approved',
+              prayerId: prayerId,
+              recipientId: prayer.user_id,
+              prayerTitle: prayer.title
+            }
+          });
+        } catch (notifError) {
+          console.error("Error sending approval notification:", notifError);
+        }
+      }
+
       toast.success("Prayer request approved");
       await loadPendingPrayers();
       onUpdate();
@@ -106,6 +125,8 @@ export const PrayerApprovals = ({ currentUserId, onUpdate }: PrayerApprovalsProp
 
   const handleReject = async (prayerId: string) => {
     setProcessingId(prayerId);
+    const prayer = prayers.find(p => p.id === prayerId);
+    
     try {
       const { error } = await supabase
         .from("prayer_requests")
@@ -117,6 +138,23 @@ export const PrayerApprovals = ({ currentUserId, onUpdate }: PrayerApprovalsProp
         .eq("id", prayerId);
 
       if (error) throw error;
+
+      // Send notification to the bestie
+      if (prayer) {
+        try {
+          await supabase.functions.invoke('send-prayer-notification', {
+            body: {
+              type: 'rejected',
+              prayerId: prayerId,
+              recipientId: prayer.user_id,
+              prayerTitle: prayer.title
+            }
+          });
+        } catch (notifError) {
+          console.error("Error sending rejection notification:", notifError);
+        }
+      }
+
       toast.success("Prayer request rejected");
       await loadPendingPrayers();
       onUpdate();

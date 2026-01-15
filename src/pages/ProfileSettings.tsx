@@ -61,6 +61,10 @@ const ProfileSettings = () => {
     email_on_sponsorship_update: true,
     email_on_comment_on_post: true,
     email_on_comment_on_thread: true,
+    email_on_prayer_pending_approval: true,
+    email_on_prayer_approved: true,
+    email_on_prayer_rejected: true,
+    email_on_prayed_for_you: true,
     inapp_on_pending_approval: true,
     inapp_on_approval_decision: true,
     inapp_on_new_sponsor_message: true,
@@ -72,6 +76,10 @@ const ProfileSettings = () => {
     inapp_on_sponsorship_update: true,
     inapp_on_comment_on_post: true,
     inapp_on_comment_on_thread: true,
+    inapp_on_prayer_pending_approval: true,
+    inapp_on_prayer_approved: true,
+    inapp_on_prayer_rejected: true,
+    inapp_on_prayed_for_you: true,
     digest_frequency: 'never' as 'never' | 'daily' | 'weekly',
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
@@ -358,9 +366,19 @@ const ProfileSettings = () => {
       }
 
       if (data) {
+        const prefs = data as any; // Cast to any since new columns may not be in types yet
         setNotificationPrefs({
-          ...data,
-          digest_frequency: (data.digest_frequency || 'never') as 'never' | 'daily' | 'weekly'
+          ...prefs,
+          digest_frequency: (prefs.digest_frequency || 'never') as 'never' | 'daily' | 'weekly',
+          // Provide defaults for prayer notification fields
+          email_on_prayer_pending_approval: prefs.email_on_prayer_pending_approval ?? true,
+          email_on_prayer_approved: prefs.email_on_prayer_approved ?? true,
+          email_on_prayer_rejected: prefs.email_on_prayer_rejected ?? true,
+          email_on_prayed_for_you: prefs.email_on_prayed_for_you ?? true,
+          inapp_on_prayer_pending_approval: prefs.inapp_on_prayer_pending_approval ?? true,
+          inapp_on_prayer_approved: prefs.inapp_on_prayer_approved ?? true,
+          inapp_on_prayer_rejected: prefs.inapp_on_prayer_rejected ?? true,
+          inapp_on_prayed_for_you: prefs.inapp_on_prayed_for_you ?? true,
         });
       }
     } catch (error: any) {
@@ -974,6 +992,95 @@ const ProfileSettings = () => {
                           No sponsorship message notifications available for your account.
                         </p>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Prayer Requests */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">Prayer Requests</Label>
+                    <div className="space-y-3">
+                      {(profile?.role === "caregiver" || profile?.role === "admin" || profile?.role === "owner") && (
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5 flex-1">
+                            <Label className="font-normal">Pending prayer approvals</Label>
+                            <p className="text-xs text-muted-foreground">When a bestie submits a prayer for approval</p>
+                          </div>
+                          <div className="flex gap-4 items-center">
+                            <Switch
+                              checked={notificationPrefs.email_on_prayer_pending_approval}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, email_on_prayer_pending_approval: checked }))
+                              }
+                            />
+                            <Switch
+                              checked={notificationPrefs.inapp_on_prayer_pending_approval}
+                              onCheckedChange={(checked) => 
+                                setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_pending_approval: checked }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Prayer approved</Label>
+                          <p className="text-xs text-muted-foreground">When your prayer is approved for sharing</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_prayer_approved}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_prayer_approved: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_prayer_approved}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_approved: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Prayer not approved</Label>
+                          <p className="text-xs text-muted-foreground">When your prayer is not approved</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_prayer_rejected}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_prayer_rejected: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_prayer_rejected}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_rejected: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Someone prayed for you</Label>
+                          <p className="text-xs text-muted-foreground">When someone prays for your request</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_prayed_for_you}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_prayed_for_you: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_prayed_for_you}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_prayed_for_you: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 

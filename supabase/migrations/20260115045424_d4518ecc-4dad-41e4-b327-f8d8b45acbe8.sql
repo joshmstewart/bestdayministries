@@ -1,0 +1,81 @@
+-- Drop and recreate the get_notification_preferences function with new columns
+DROP FUNCTION IF EXISTS public.get_notification_preferences(uuid);
+
+CREATE FUNCTION public.get_notification_preferences(_user_id uuid)
+RETURNS TABLE (
+  email_on_pending_approval boolean,
+  email_on_approval_decision boolean,
+  email_on_new_sponsor_message boolean,
+  email_on_message_approved boolean,
+  email_on_message_rejected boolean,
+  email_on_new_event boolean,
+  email_on_event_update boolean,
+  email_on_new_sponsorship boolean,
+  email_on_sponsorship_update boolean,
+  email_on_comment_on_post boolean,
+  email_on_comment_on_thread boolean,
+  email_on_product_update boolean,
+  email_on_prayer_pending_approval boolean,
+  email_on_prayer_approved boolean,
+  email_on_prayer_rejected boolean,
+  email_on_prayed_for_you boolean,
+  inapp_on_pending_approval boolean,
+  inapp_on_approval_decision boolean,
+  inapp_on_new_sponsor_message boolean,
+  inapp_on_message_approved boolean,
+  inapp_on_message_rejected boolean,
+  inapp_on_new_event boolean,
+  inapp_on_event_update boolean,
+  inapp_on_new_sponsorship boolean,
+  inapp_on_sponsorship_update boolean,
+  inapp_on_comment_on_post boolean,
+  inapp_on_comment_on_thread boolean,
+  inapp_on_product_update boolean,
+  inapp_on_prayer_pending_approval boolean,
+  inapp_on_prayer_approved boolean,
+  inapp_on_prayer_rejected boolean,
+  inapp_on_prayed_for_you boolean,
+  enable_digest_emails boolean,
+  digest_frequency text
+) LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    np.email_on_pending_approval,
+    np.email_on_approval_decision,
+    np.email_on_new_sponsor_message,
+    np.email_on_message_approved,
+    np.email_on_message_rejected,
+    np.email_on_new_event,
+    np.email_on_event_update,
+    np.email_on_new_sponsorship,
+    np.email_on_sponsorship_update,
+    np.email_on_comment_on_post,
+    np.email_on_comment_on_thread,
+    np.email_on_product_update,
+    np.email_on_prayer_pending_approval,
+    np.email_on_prayer_approved,
+    np.email_on_prayer_rejected,
+    np.email_on_prayed_for_you,
+    np.inapp_on_pending_approval,
+    np.inapp_on_approval_decision,
+    np.inapp_on_new_sponsor_message,
+    np.inapp_on_message_approved,
+    np.inapp_on_message_rejected,
+    np.inapp_on_new_event,
+    np.inapp_on_event_update,
+    np.inapp_on_new_sponsorship,
+    np.inapp_on_sponsorship_update,
+    np.inapp_on_comment_on_post,
+    np.inapp_on_comment_on_thread,
+    np.inapp_on_product_update,
+    np.inapp_on_prayer_pending_approval,
+    np.inapp_on_prayer_approved,
+    np.inapp_on_prayer_rejected,
+    np.inapp_on_prayed_for_you,
+    np.enable_digest_emails,
+    np.digest_frequency
+  FROM notification_preferences np
+  WHERE np.user_id = _user_id;
+END;
+$$;

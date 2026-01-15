@@ -185,6 +185,30 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
           )
         );
         toast.success("Praying with you 🙏");
+
+        // Send notification to prayer author (if not praying for own prayer)
+        if (prayer.user_id !== userId) {
+          try {
+            // Get current user's display name
+            const { data: currentUserProfile } = await supabase
+              .from("profiles")
+              .select("display_name")
+              .eq("id", userId)
+              .single();
+
+            await supabase.functions.invoke('send-prayer-notification', {
+              body: {
+                type: 'prayed_for_you',
+                prayerId: prayerId,
+                recipientId: prayer.user_id,
+                senderName: currentUserProfile?.display_name || "Someone",
+                prayerTitle: prayer.title
+              }
+            });
+          } catch (notifError) {
+            console.error("Error sending prayer notification:", notifError);
+          }
+        }
       }
     } catch (error) {
       toast.error("Something went wrong");
