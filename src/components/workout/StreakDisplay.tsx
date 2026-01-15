@@ -119,7 +119,7 @@ export const StreakDisplay = ({ userId, className }: StreakDisplayProps) => {
     <Card className={cn("overflow-hidden", className)}>
       <CardContent className="p-0 flex flex-col h-full">
         {/* Streak Section - Sunburst */}
-        <div className="p-4 bg-gradient-sunburst text-white">
+        <div className="p-4 bg-gradient-warm text-white">
           <div className="flex items-center gap-3">
             <div className="relative bg-white/20 rounded-full p-2">
               <Flame className={cn(
