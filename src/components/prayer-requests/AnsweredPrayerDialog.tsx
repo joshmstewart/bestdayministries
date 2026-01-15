@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -29,8 +29,15 @@ export const AnsweredPrayerDialog = ({
   currentGratitude,
   onSuccess,
 }: AnsweredPrayerDialogProps) => {
-  const [gratitudeMessage, setGratitudeMessage] = useState(currentGratitude || "");
+  const [gratitudeMessage, setGratitudeMessage] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Reset gratitude message when dialog opens
+  useEffect(() => {
+    if (open) {
+      setGratitudeMessage(currentGratitude || "");
+    }
+  }, [open, currentGratitude]);
 
   const handleSave = async (includeGratitude: boolean) => {
     setSaving(true);
