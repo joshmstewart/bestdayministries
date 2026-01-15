@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, ChefHat, BookmarkPlus, Check, Sparkles, ShoppingCart, Plus } from "lucide-react";
+import { ArrowLeft, BookOpen, ChefHat, BookmarkPlus, Check, Sparkles, ShoppingCart, Plus, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PageLoadingState } from "@/components/common";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { toast } from "sonner";
@@ -69,6 +70,7 @@ const RecipeGallery = () => {
   const [savedRecipeIds, setSavedRecipeIds] = useState<Set<string>>(new Set());
   const [savedTitles, setSavedTitles] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortOption>("most_saved");
+  const [showImportDialog, setShowImportDialog] = useState(false);
   
   // Get initial tab from URL or default to "maker"
   const initialTab = searchParams.get("tab") || "maker";
@@ -461,6 +463,30 @@ const RecipeGallery = () => {
               </div>
             ) : (
               <>
+                {/* Import Recipe Button - Always visible */}
+                <Card className="border-dashed border-2 border-primary/30 bg-primary/5 mb-6">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-foreground">Add Your Own Recipe</h3>
+                          <p className="text-sm text-muted-foreground">Paste any recipe to add it to your cookbook</p>
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={() => setShowImportDialog(true)}
+                        className="gap-2 shrink-0"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Import Recipe
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <CollapsibleShoppingTips
                   ingredients={userIngredients}
                   tools={userTools}
@@ -471,16 +497,8 @@ const RecipeGallery = () => {
                 />
                 
                 {savedRecipes.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground space-y-4">
+                  <div className="text-center py-12 text-muted-foreground">
                     <p>Your cookbook is empty. Start saving recipes!</p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab("maker")}
-                      className="gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Import Your Own Recipe
-                    </Button>
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -571,6 +589,40 @@ const RecipeGallery = () => {
           onIngredientChanged={refreshUserData}
         />
       )}
+
+      {/* Import Recipe Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Import Your Own Recipe</DialogTitle>
+            <DialogDescription>
+              Paste a recipe from anywhere and we'll help you add it to your cookbook
+            </DialogDescription>
+          </DialogHeader>
+          {user && (
+            <RecipeImporter 
+              userId={user.id} 
+              onSaved={() => {
+                setShowImportDialog(false);
+                // Refresh saved recipes
+                supabase
+                  .from("saved_recipes")
+                  .select("*")
+                  .eq("user_id", user.id)
+                  .order("created_at", { ascending: false })
+                  .then(({ data }) => {
+                    setSavedRecipes(data || []);
+                    const savedBySourceId = new Set(data?.map(r => r.source_recipe_id).filter(Boolean) || []);
+                    const titles = new Set(data?.map(r => r.title.toLowerCase()) || []);
+                    setSavedRecipeIds(savedBySourceId);
+                    setSavedTitles(titles);
+                  });
+                toast.success("Recipe added to your cookbook!");
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
