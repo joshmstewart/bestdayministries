@@ -13,7 +13,7 @@ import Footer from "@/components/Footer";
 import { 
   Search, ExternalLink, FileText, Shield, DollarSign, Heart, 
   Home, Briefcase, Users, GraduationCap, Laptop, PiggyBank,
-  Ticket, HeartHandshake, BookOpen, ArrowLeft
+  Ticket, HeartHandshake, BookOpen, ArrowLeft, ChevronRight
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -36,17 +36,20 @@ const resourceTypeColors: Record<string, string> = {
   form: "bg-blue-500/10 text-blue-600 border-blue-500/20",
   guide: "bg-green-500/10 text-green-600 border-green-500/20",
   link: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  article: "bg-orange-500/10 text-orange-600 border-orange-500/20",
 };
 
 const resourceTypeLabels: Record<string, string> = {
   form: "Form/Application",
   guide: "Guide",
   link: "Resource",
+  article: "Article",
 };
 
 export default function GuardianResources() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const navigate = useNavigate();
 
   const { data: resources = [], isLoading } = useQuery({
     queryKey: ["guardian-resources"],
@@ -93,7 +96,13 @@ export default function GuardianResources() {
     return grouped;
   }, [filteredResources]);
 
-  const navigate = useNavigate();
+  const handleResourceClick = (resource: any) => {
+    if (resource.has_content_page) {
+      navigate(`/guardian-resources/${resource.id}`);
+    } else if (resource.url) {
+      window.open(resource.url, "_blank", "noopener,noreferrer");
+    }
+  };
 
   return (
     <>
@@ -182,7 +191,11 @@ export default function GuardianResources() {
                   <h2 className="text-xl font-semibold mb-4 text-foreground">{category}</h2>
                   <div className="grid gap-4 md:grid-cols-2">
                     {categoryResources.map((resource) => (
-                      <ResourceCard key={resource.id} resource={resource} />
+                      <ResourceCard 
+                        key={resource.id} 
+                        resource={resource} 
+                        onClick={() => handleResourceClick(resource)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -192,7 +205,11 @@ export default function GuardianResources() {
             // Flat view when filtered by category
             <div className="grid gap-4 md:grid-cols-2">
               {filteredResources.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} />
+                <ResourceCard 
+                  key={resource.id} 
+                  resource={resource}
+                  onClick={() => handleResourceClick(resource)}
+                />
               ))}
             </div>
           )}
@@ -203,11 +220,25 @@ export default function GuardianResources() {
   );
 }
 
-function ResourceCard({ resource }: { resource: any }) {
+function ResourceCard({ resource, onClick }: { resource: any; onClick: () => void }) {
   const IconComponent = iconMap[resource.icon] || FileText;
+  const hasContentPage = resource.has_content_page;
+  const hasExternalUrl = !!resource.url;
 
   return (
-    <Card className="group hover:shadow-md transition-shadow">
+    <Card 
+      className="group hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
+      {resource.cover_image_url && hasContentPage && (
+        <div className="h-32 overflow-hidden rounded-t-lg">
+          <img
+            src={resource.cover_image_url}
+            alt={resource.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+      )}
       <CardHeader className="pb-2">
         <div className="flex items-start gap-3">
           <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -215,13 +246,19 @@ function ResourceCard({ resource }: { resource: any }) {
           </div>
           <div className="flex-1 min-w-0">
             <CardTitle className="text-lg line-clamp-2">{resource.title}</CardTitle>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <Badge
                 variant="outline"
                 className={resourceTypeColors[resource.resource_type] || ""}
               >
                 {resourceTypeLabels[resource.resource_type] || resource.resource_type}
               </Badge>
+              {hasContentPage && (
+                <Badge variant="secondary" className="text-xs">
+                  <FileText className="h-3 w-3 mr-1" />
+                  Full Page
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -230,17 +267,29 @@ function ResourceCard({ resource }: { resource: any }) {
         <CardDescription className="line-clamp-2 mb-4">
           {resource.description}
         </CardDescription>
-        {resource.url && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-            onClick={() => window.open(resource.url, "_blank", "noopener,noreferrer")}
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Visit Resource
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+        >
+          {hasContentPage ? (
+            <>
+              Read More
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </>
+          ) : hasExternalUrl ? (
+            <>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Visit Resource
+            </>
+          ) : (
+            "View Details"
+          )}
+        </Button>
       </CardContent>
     </Card>
   );

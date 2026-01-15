@@ -3839,11 +3839,15 @@ export type Database = {
       }
       guardian_resources: {
         Row: {
+          attachments: Json | null
           category: string
+          content: string | null
+          cover_image_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
           display_order: number
+          has_content_page: boolean
           icon: string | null
           id: string
           is_active: boolean
@@ -3853,11 +3857,15 @@ export type Database = {
           url: string | null
         }
         Insert: {
+          attachments?: Json | null
           category?: string
+          content?: string | null
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           display_order?: number
+          has_content_page?: boolean
           icon?: string | null
           id?: string
           is_active?: boolean
@@ -3867,11 +3875,15 @@ export type Database = {
           url?: string | null
         }
         Update: {
+          attachments?: Json | null
           category?: string
+          content?: string | null
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           display_order?: number
+          has_content_page?: boolean
           icon?: string | null
           id?: string
           is_active?: boolean

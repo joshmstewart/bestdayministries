@@ -85,6 +85,7 @@ const MoneyCounting = lazy(() => import("./pages/MoneyCounting"));
 const JokeGenerator = lazy(() => import("./pages/JokeGenerator"));
 const CardCreator = lazy(() => import("./pages/CardCreator"));
 const GuardianResources = lazy(() => import("./pages/GuardianResources"));
+const GuardianResourceDetail = lazy(() => import("./pages/GuardianResourceDetail"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -279,6 +280,7 @@ const App = () => {
               <Route path="/guardian-links" element={<GuardianLinks />} />
               <Route path="/guardian-approvals" element={<GuardianApprovals />} />
               <Route path="/guardian-resources" element={<GuardianResources />} />
+              <Route path="/guardian-resources/:id" element={<GuardianResourceDetail />} />
               <Route path="/bestie-messages" element={<BestieMessages />} />
               <Route path="/joyhousestore" element={<Marketplace />} />
               <Route path="/vendors/:id" element={<VendorProfile />} />
