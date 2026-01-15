@@ -55,9 +55,7 @@ const BeatPad: React.FC = () => {
   const [savedBeatId, setSavedBeatId] = useState<string | null>(null);
   const [savedBeatImageUrl, setSavedBeatImageUrl] = useState<string | null>(null);
   const [beatLoaded, setBeatLoaded] = useState(false);
-  // Save/share state
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
+  // Save/share state - only isUnsharing and isShared are used, saving/sharing handled by dialog
   const [isUnsharing, setIsUnsharing] = useState(false);
   const [isShared, setIsShared] = useState(false);
   // Key to force CustomizableBeatGrid remount when creating new beat
@@ -158,7 +156,8 @@ const BeatPad: React.FC = () => {
     };
   }, [isPlaying, tempo, pattern, instruments, playSound]);
 
-  const handleSave = async () => {
+  // Open save dialog instead of saving directly
+  const handleSave = () => {
     if (!user) {
       showErrorToastWithCopy('Save Beat', 'Sign in to save your beat!');
       return;
@@ -167,75 +166,25 @@ const BeatPad: React.FC = () => {
       showErrorToastWithCopy('Save Beat', 'Add some notes first!');
       return;
     }
+    setSaveDialogOpen(true);
+  };
 
-    setIsSaving(true);
-    try {
-      // Convert pattern to use sound IDs for storage
-      const patternWithIds: Record<string, boolean[]> = {};
-      instruments.forEach((sound, idx) => {
-        if (sound && pattern[idx.toString()]) {
-          patternWithIds[sound.id] = pattern[idx.toString()];
-        }
-      });
-
-      // If we have a saved beat, update it; otherwise insert new
-      if (savedBeatId) {
-        const { error } = await supabase
-          .from('beat_pad_creations')
-          .update({
-            name: beatName.trim() || 'My Beat',
-            pattern: patternWithIds,
-            tempo,
-            ai_audio_url: aiAudioUrl,
-          })
-          .eq('id', savedBeatId);
-        
-        if (error) throw error;
-        toast.success('Beat saved!');
-      } else {
-        const { data, error } = await supabase
-          .from('beat_pad_creations')
-          .insert({
-            creator_id: user.id,
-            name: beatName.trim() || 'My Beat',
-            pattern: patternWithIds,
-            tempo,
-            is_public: false,
-            ai_audio_url: aiAudioUrl,
-          })
-          .select('id')
-          .single();
-
-        if (error) throw error;
-        setSavedBeatId(data.id);
-        setIsShared(false);
-        toast.success('Beat saved!');
-        
-        // Generate cover art in background
-        const instrumentNames = instruments.filter(Boolean).map(i => i!.name);
-        supabase.functions.invoke('generate-beat-image', {
-          body: {
-            beatId: data.id,
-            beatName: beatName.trim() || 'My Beat',
-            instruments: instrumentNames,
-            tempo,
-            pattern: patternWithIds,
-          },
-        }).then((res) => {
-          if (!res.error) {
-            toast.success('Cover art generated! 🎨');
-          }
-        }).catch(console.error);
-      }
-    } catch (error) {
-      console.error('Error saving beat:', error);
-      showErrorToastWithCopy('Save Beat', error);
-    } finally {
-      setIsSaving(false);
+  // Callback when beat is saved via dialog
+  const handleBeatSaved = (beatId: string, imageUrl?: string, newBeatName?: string, isPublic?: boolean) => {
+    setSavedBeatId(beatId);
+    if (newBeatName) {
+      setBeatName(newBeatName);
+    }
+    if (isPublic !== undefined) {
+      setIsShared(isPublic);
+    }
+    if (imageUrl) {
+      setSavedBeatImageUrl(imageUrl);
     }
   };
 
-  const handleSaveAndShare = async () => {
+  // Save and share also opens the dialog - same flow
+  const handleSaveAndShare = () => {
     if (!user) {
       showErrorToastWithCopy('Share Beat', 'Sign in to share your beat!');
       return;
@@ -244,73 +193,7 @@ const BeatPad: React.FC = () => {
       showErrorToastWithCopy('Share Beat', 'Add some notes first!');
       return;
     }
-
-    setIsSharing(true);
-    try {
-      // Convert pattern to use sound IDs for storage
-      const patternWithIds: Record<string, boolean[]> = {};
-      instruments.forEach((sound, idx) => {
-        if (sound && pattern[idx.toString()]) {
-          patternWithIds[sound.id] = pattern[idx.toString()];
-        }
-      });
-
-      if (savedBeatId) {
-        // Update existing beat to be public
-        const { error } = await supabase
-          .from('beat_pad_creations')
-          .update({
-            name: beatName.trim() || 'My Beat',
-            pattern: patternWithIds,
-            tempo,
-            is_public: true,
-          })
-          .eq('id', savedBeatId);
-        
-        if (error) throw error;
-        setIsShared(true);
-        toast.success('Beat shared with community! 🎉');
-      } else {
-        // Insert new public beat
-        const { data, error } = await supabase
-          .from('beat_pad_creations')
-          .insert({
-            creator_id: user.id,
-            name: beatName.trim() || 'My Beat',
-            pattern: patternWithIds,
-            tempo,
-            is_public: true,
-          })
-          .select('id')
-          .single();
-
-        if (error) throw error;
-        setSavedBeatId(data.id);
-        setIsShared(true);
-        toast.success('Beat saved & shared with community! 🎉');
-        
-        // Generate cover art in background
-        const instrumentNames = instruments.filter(Boolean).map(i => i!.name);
-        supabase.functions.invoke('generate-beat-image', {
-          body: {
-            beatId: data.id,
-            beatName: beatName.trim() || 'My Beat',
-            instruments: instrumentNames,
-            tempo,
-            pattern: patternWithIds,
-          },
-        }).then((res) => {
-          if (!res.error) {
-            toast.success('Cover art generated! 🎨');
-          }
-        }).catch(console.error);
-      }
-    } catch (error) {
-      console.error('Error sharing beat:', error);
-      showErrorToastWithCopy('Share Beat', error);
-    } finally {
-      setIsSharing(false);
-    }
+    setSaveDialogOpen(true);
   };
 
   const handleUnshare = async () => {
@@ -756,11 +639,11 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
         tempo={tempo}
         instruments={instruments}
         userId={user?.id || ''}
-        onSaved={(beatId, imageUrl) => {
-          setSavedBeatId(beatId);
-          if (imageUrl) setSavedBeatImageUrl(imageUrl);
-          setActiveTab('my-beats');
-        }}
+        initialBeatName={beatName}
+        savedBeatId={savedBeatId}
+        isShared={isShared}
+        aiAudioUrl={aiAudioUrl}
+        onSaved={handleBeatSaved}
       />
 
       {/* Main content */}
@@ -875,8 +758,8 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                   canSave={hasPattern}
                   canGenerateBeat={instruments.filter(Boolean).length > 0}
                   showRemix={!!savedBeatId && !!user}
-                  isSaving={isSaving}
-                  isSharing={isSharing}
+                  isSaving={false}
+                  isSharing={false}
                   isUnsharing={isUnsharing}
                   isShared={isShared}
                   isAIifying={isAIifying}
