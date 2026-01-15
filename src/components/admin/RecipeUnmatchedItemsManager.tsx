@@ -6,9 +6,46 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Check, RefreshCw, Trash2, UtensilsCrossed, Carrot, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+// Category options
+const INGREDIENT_CATEGORIES = ["protein", "dairy", "grains", "fruits", "vegetables", "condiments", "pantry"] as const;
+const TOOL_CATEGORIES = ["appliances", "cookware", "utensils"] as const;
+
+// Keywords to auto-detect ingredient category
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  protein: ["chicken", "beef", "pork", "fish", "salmon", "tuna", "shrimp", "bacon", "sausage", "turkey", "lamb", "egg", "tofu", "tempeh"],
+  dairy: ["milk", "cheese", "butter", "cream", "yogurt", "sour cream", "cottage", "ricotta", "mozzarella", "parmesan", "cheddar"],
+  grains: ["rice", "pasta", "bread", "flour", "oats", "quinoa", "barley", "cereal", "noodle", "tortilla", "cracker", "wheat"],
+  fruits: ["apple", "banana", "orange", "lemon", "lime", "berry", "strawberry", "blueberry", "grape", "mango", "peach", "pear", "cherry", "pineapple", "watermelon", "coconut"],
+  vegetables: ["onion", "garlic", "tomato", "potato", "carrot", "celery", "pepper", "broccoli", "spinach", "lettuce", "cucumber", "zucchini", "mushroom", "corn", "pea", "bean", "cabbage", "kale", "parsley", "cilantro", "basil", "mint", "oregano", "thyme", "rosemary", "dill", "chive", "scallion", "leek", "ginger"],
+  condiments: ["sauce", "ketchup", "mustard", "mayo", "mayonnaise", "vinegar", "soy sauce", "hot sauce", "salsa", "dressing", "relish", "honey", "syrup", "jam", "jelly"],
+  pantry: ["salt", "pepper", "sugar", "oil", "olive oil", "vegetable oil", "baking", "vanilla", "cinnamon", "paprika", "cumin", "chili", "nutmeg", "stock", "broth", "wine", "spice", "seasoning", "powder"],
+};
+
+// Keywords to auto-detect tool category
+const TOOL_CATEGORY_KEYWORDS: Record<string, string[]> = {
+  appliances: ["blender", "mixer", "processor", "microwave", "oven", "toaster", "grill", "fryer", "instant pot", "slow cooker", "rice cooker"],
+  cookware: ["pan", "pot", "skillet", "wok", "baking", "sheet", "casserole", "dutch oven", "saucepan", "stockpot"],
+  utensils: ["knife", "spoon", "fork", "spatula", "whisk", "tongs", "ladle", "peeler", "grater", "zester", "masher", "colander", "strainer", "cutting board", "bowl", "measuring"],
+};
+
+function detectCategory(name: string, isIngredient: boolean): string {
+  const nameLower = name.toLowerCase();
+  const keywords = isIngredient ? CATEGORY_KEYWORDS : TOOL_CATEGORY_KEYWORDS;
+  
+  for (const [category, words] of Object.entries(keywords)) {
+    if (words.some(word => nameLower.includes(word))) {
+      return category;
+    }
+  }
+  
+  // Default categories
+  return isIngredient ? "pantry" : "utensils";
+}
 
 interface UnmatchedItem {
   id: string;
@@ -89,7 +126,7 @@ export function RecipeUnmatchedItemsManager() {
   const [existingIngredients, setExistingIngredients] = useState<Set<string>>(new Set());
   const [existingTools, setExistingTools] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedNames, setEditedNames] = useState<Record<string, { name: string; toolSuggestion?: string }>>({});
+  const [editedNames, setEditedNames] = useState<Record<string, { name: string; toolSuggestion?: string; category?: string }>>({});
 
   useEffect(() => {
     loadItems();
@@ -132,24 +169,94 @@ export function RecipeUnmatchedItemsManager() {
     }
   };
 
-  const handleMarkResolved = async (item: UnmatchedItem, resolvedTo?: string) => {
+  const handleAddAndResolve = async (item: UnmatchedItem) => {
+    const formatted = getFormattedForItem(item);
+    const isIngredient = item.item_type === "ingredient";
+    const category = formatted.category || detectCategory(formatted.name, isIngredient);
+    
     try {
+      // First, add to the appropriate table
+      if (isIngredient) {
+        const { error: insertError } = await supabase
+          .from("recipe_ingredients")
+          .insert({
+            name: formatted.name,
+            category: category,
+            is_active: true,
+          });
+        
+        if (insertError) {
+          if (insertError.code === "23505") {
+            // Duplicate - already exists, just mark as resolved
+            console.log("Ingredient already exists, marking as resolved");
+          } else {
+            throw insertError;
+          }
+        }
+        
+        // Update existing ingredients set
+        setExistingIngredients(prev => new Set([...prev, formatted.name.toLowerCase()]));
+      } else {
+        const { error: insertError } = await supabase
+          .from("recipe_tools")
+          .insert({
+            name: formatted.name,
+            category: category,
+            is_active: true,
+          });
+        
+        if (insertError) {
+          if (insertError.code === "23505") {
+            console.log("Tool already exists, marking as resolved");
+          } else {
+            throw insertError;
+          }
+        }
+        
+        // Update existing tools set
+        setExistingTools(prev => new Set([...prev, formatted.name.toLowerCase()]));
+      }
+      
+      // Also add suggested tool if present (for ingredients)
+      if (isIngredient && formatted.toolSuggestion) {
+        const toolCategory = detectCategory(formatted.toolSuggestion, false);
+        await supabase
+          .from("recipe_tools")
+          .insert({
+            name: formatted.toolSuggestion,
+            category: toolCategory,
+            is_active: true,
+          })
+          .then(({ error }) => {
+            if (error && error.code !== "23505") {
+              console.error("Failed to add suggested tool:", error);
+            }
+          });
+      }
+      
+      // Mark as resolved
       const { error } = await supabase
         .from("recipe_unmatched_items")
         .update({
           is_resolved: true,
-          resolved_to: resolvedTo || null,
+          resolved_to: `Added: ${formatted.name} (${category})`,
           resolved_at: new Date().toISOString(),
         })
         .eq("id", item.id);
 
       if (error) throw error;
-      toast.success(`Marked "${item.item_name}" as resolved`);
+      
+      toast.success(`Added "${formatted.name}" to ${isIngredient ? "ingredients" : "tools"} (${category})`);
       setEditingId(null);
+      setEditedNames(prev => {
+        const newNames = { ...prev };
+        delete newNames[item.id];
+        return newNames;
+      });
       loadItems();
     } catch (err) {
-      console.error("Error marking resolved:", err);
-      toast.error("Failed to update item");
+      console.error("Error adding item:", err);
+      toast.error("Failed to add item");
     }
   };
 
@@ -169,25 +276,28 @@ export function RecipeUnmatchedItemsManager() {
     }
   };
 
-  const getFormattedForItem = (item: UnmatchedItem): FormattedResult => {
+  const getFormattedForItem = (item: UnmatchedItem): FormattedResult & { category?: string } => {
     // If we have an edited value, use that
     if (editedNames[item.id]) {
       return editedNames[item.id];
     }
     // Otherwise calculate from original
-    return formatItemName(item.item_name);
+    const formatted = formatItemName(item.item_name);
+    const category = detectCategory(formatted.name, item.item_type === "ingredient");
+    return { ...formatted, category };
   };
 
   const startEditing = (item: UnmatchedItem) => {
     const formatted = formatItemName(item.item_name);
+    const category = detectCategory(formatted.name, item.item_type === "ingredient");
     setEditedNames(prev => ({
       ...prev,
-      [item.id]: formatted,
+      [item.id]: { ...formatted, category },
     }));
     setEditingId(item.id);
   };
 
-  const updateEditedName = (itemId: string, field: 'name' | 'toolSuggestion', value: string) => {
+  const updateEditedName = (itemId: string, field: 'name' | 'toolSuggestion' | 'category', value: string) => {
     setEditedNames(prev => ({
       ...prev,
       [itemId]: {
@@ -343,9 +453,8 @@ export function RecipeUnmatchedItemsManager() {
                   <TableRow>
                     <TableHead>Original Name</TableHead>
                     <TableHead>Formatted Name</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead className="text-center">Times Seen</TableHead>
-                    <TableHead>First Seen</TableHead>
-                    <TableHead>Last Seen</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -367,9 +476,9 @@ export function RecipeUnmatchedItemsManager() {
                                 value={formatted.name}
                                 onChange={(e) => updateEditedName(item.id, 'name', e.target.value)}
                                 className="h-8 w-40"
-                                placeholder="Ingredient name"
+                                placeholder={item.item_type === "ingredient" ? "Ingredient name" : "Tool name"}
                               />
-                              {item.item_type === "ingredient" && (
+                              {item.item_type === "ingredient" && formatted.toolSuggestion && (
                                 <Input
                                   value={formatted.toolSuggestion || ''}
                                   onChange={(e) => updateEditedName(item.id, 'toolSuggestion', e.target.value)}
@@ -386,10 +495,33 @@ export function RecipeUnmatchedItemsManager() {
                               {formatted.toolSuggestion && (
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <UtensilsCrossed className="h-3 w-3" />
-                                  Needs: {formatted.toolSuggestion}
+                                  + {formatted.toolSuggestion}
                                 </span>
                               )}
                             </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Select
+                              value={formatted.category || detectCategory(formatted.name, item.item_type === "ingredient")}
+                              onValueChange={(value) => updateEditedName(item.id, 'category', value)}
+                            >
+                              <SelectTrigger className="h-8 w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(item.item_type === "ingredient" ? INGREDIENT_CATEGORIES : TOOL_CATEGORIES).map((cat) => (
+                                  <SelectItem key={cat} value={cat} className="capitalize">
+                                    {cat}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant="outline" className="capitalize">
+                              {formatted.category || detectCategory(formatted.name, item.item_type === "ingredient")}
+                            </Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
@@ -397,17 +529,11 @@ export function RecipeUnmatchedItemsManager() {
                             {item.occurrence_count}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(item.first_seen_at), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(item.last_seen_at), "MMM d, yyyy")}
-                        </TableCell>
                         <TableCell>
                           {item.is_resolved ? (
                             <Badge variant="outline" className="bg-green-500/10 text-green-700">
                               <Check className="h-3 w-3 mr-1" />
-                              {item.resolved_to ? `→ ${item.resolved_to}` : "Resolved"}
+                              Resolved
                             </Badge>
                           ) : (
                             <Badge variant="secondary">Pending</Badge>
@@ -422,8 +548,8 @@ export function RecipeUnmatchedItemsManager() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleMarkResolved(item, formatted.name)}
-                                      title="Confirm and resolve"
+                                      onClick={() => handleAddAndResolve(item)}
+                                      title="Add to list and resolve"
                                     >
                                       <Check className="h-4 w-4" />
                                     </Button>
@@ -442,15 +568,15 @@ export function RecipeUnmatchedItemsManager() {
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => startEditing(item)}
-                                      title="Edit formatted name"
+                                      title="Edit before adding"
                                     >
                                       <Pencil className="h-4 w-4" />
                                     </Button>
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleMarkResolved(item, formatted.name)}
-                                      title={`Mark as resolved and add as "${formatted.name}"`}
+                                      onClick={() => handleAddAndResolve(item)}
+                                      title={`Add "${formatted.name}" to ${item.item_type}s`}
                                     >
                                       <Check className="h-4 w-4" />
                                     </Button>
