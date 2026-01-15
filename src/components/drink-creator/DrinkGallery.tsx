@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Heart, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 // Lazy loading image component with blur placeholder
 const LazyImage = ({ 
@@ -298,11 +299,19 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
 
               {/* Info */}
               <div className="p-3 flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-medium text-sm truncate">{drink.name}</h3>
-                  {drink.creator_name && (
-                    <p className="text-xs text-muted-foreground truncate">by {drink.creator_name}</p>
-                  )}
+                <div className="min-w-0 flex-1 flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-sm truncate">{drink.name}</h3>
+                    {drink.creator_name && (
+                      <p className="text-xs text-muted-foreground truncate">by {drink.creator_name}</p>
+                    )}
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <TextToSpeech 
+                      text={`${drink.name}. ${drink.description || ''} Made with ${drink.ingredientDetails.map(i => i.name).join(', ')}.`}
+                      size="icon"
+                    />
+                  </div>
                 </div>
                 <button
                   onClick={(e) => {
@@ -350,11 +359,17 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
                 )}
                 
                 <div className="p-4 bg-background space-y-4">
-                  <div>
-                    <h2 className="text-xl font-semibold">{selectedDrink.name}</h2>
-                    {selectedDrink.creator_name && (
-                      <p className="text-sm text-muted-foreground">by {selectedDrink.creator_name}</p>
-                    )}
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <h2 className="text-xl font-semibold">{selectedDrink.name}</h2>
+                      {selectedDrink.creator_name && (
+                        <p className="text-sm text-muted-foreground">by {selectedDrink.creator_name}</p>
+                      )}
+                    </div>
+                    <TextToSpeech 
+                      text={`${selectedDrink.name}. ${selectedDrink.description || ''} Made with ${selectedDrink.ingredientDetails.map(i => i.name).join(', ')}.`}
+                      size="icon"
+                    />
                   </div>
                   
                   {/* Description */}
