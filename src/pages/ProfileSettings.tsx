@@ -65,6 +65,7 @@ const ProfileSettings = () => {
     email_on_prayer_approved: true,
     email_on_prayer_rejected: true,
     email_on_prayed_for_you: true,
+    email_on_prayer_expiring: true,
     inapp_on_pending_approval: true,
     inapp_on_approval_decision: true,
     inapp_on_new_sponsor_message: true,
@@ -80,6 +81,7 @@ const ProfileSettings = () => {
     inapp_on_prayer_approved: true,
     inapp_on_prayer_rejected: true,
     inapp_on_prayed_for_you: true,
+    inapp_on_prayer_expiring: true,
     digest_frequency: 'never' as 'never' | 'daily' | 'weekly',
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
@@ -88,6 +90,7 @@ const ProfileSettings = () => {
   const [isSponsor, setIsSponsor] = useState(false);
   const [isBeingSponsored, setIsBeingSponsored] = useState(false);
   const [isBestie, setIsBestie] = useState(false);
+  const [isGuardianOfBestie, setIsGuardianOfBestie] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -347,6 +350,16 @@ const ProfileSettings = () => {
         .maybeSingle();
       
       setIsBestie(roleData?.role === "bestie");
+      
+      // Check if user is a guardian linked to any besties
+      const { data: guardianData } = await supabase
+        .from("caregiver_bestie_links")
+        .select("id")
+        .eq("caregiver_id", userId)
+        .limit(1)
+        .maybeSingle();
+      
+      setIsGuardianOfBestie(!!guardianData);
     } catch (error: any) {
       console.error("Error checking user relationships:", error);
     }
@@ -375,10 +388,12 @@ const ProfileSettings = () => {
           email_on_prayer_approved: prefs.email_on_prayer_approved ?? true,
           email_on_prayer_rejected: prefs.email_on_prayer_rejected ?? true,
           email_on_prayed_for_you: prefs.email_on_prayed_for_you ?? true,
+          email_on_prayer_expiring: prefs.email_on_prayer_expiring ?? true,
           inapp_on_prayer_pending_approval: prefs.inapp_on_prayer_pending_approval ?? true,
           inapp_on_prayer_approved: prefs.inapp_on_prayer_approved ?? true,
           inapp_on_prayer_rejected: prefs.inapp_on_prayer_rejected ?? true,
           inapp_on_prayed_for_you: prefs.inapp_on_prayed_for_you ?? true,
+          inapp_on_prayer_expiring: prefs.inapp_on_prayer_expiring ?? true,
         });
       }
     } catch (error: any) {
@@ -999,10 +1014,14 @@ const ProfileSettings = () => {
                   <div className="space-y-3 pb-4 border-b">
                     <Label className="text-base">Prayer Requests</Label>
                     <div className="space-y-3">
-                      {(profile?.role === "caregiver" || profile?.role === "admin" || profile?.role === "owner") && (
+                      {/* Pending prayer approvals - Only for guardians linked to besties */}
+                      {isGuardianOfBestie && (
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5 flex-1">
-                            <Label className="font-normal">Pending prayer approvals</Label>
+                            <div className="flex items-center gap-2">
+                              <Label className="font-normal">Pending prayer approvals</Label>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Guardians only</span>
+                            </div>
                             <p className="text-xs text-muted-foreground">When a bestie submits a prayer for approval</p>
                           </div>
                           <div className="flex gap-4 items-center">
@@ -1021,46 +1040,60 @@ const ProfileSettings = () => {
                           </div>
                         </div>
                       )}
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5 flex-1">
-                          <Label className="font-normal">Prayer approved</Label>
-                          <p className="text-xs text-muted-foreground">When your prayer is approved for sharing</p>
-                        </div>
-                        <div className="flex gap-4 items-center">
-                          <Switch
-                            checked={notificationPrefs.email_on_prayer_approved}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, email_on_prayer_approved: checked }))
-                            }
-                          />
-                          <Switch
-                            checked={notificationPrefs.inapp_on_prayer_approved}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_approved: checked }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5 flex-1">
-                          <Label className="font-normal">Prayer not approved</Label>
-                          <p className="text-xs text-muted-foreground">When your prayer is not approved</p>
-                        </div>
-                        <div className="flex gap-4 items-center">
-                          <Switch
-                            checked={notificationPrefs.email_on_prayer_rejected}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, email_on_prayer_rejected: checked }))
-                            }
-                          />
-                          <Switch
-                            checked={notificationPrefs.inapp_on_prayer_rejected}
-                            onCheckedChange={(checked) => 
-                              setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_rejected: checked }))
-                            }
-                          />
-                        </div>
-                      </div>
+                      
+                      {/* Prayer approved/rejected - Only for besties */}
+                      {isBestie && (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Label className="font-normal">Prayer approved</Label>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Besties only</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">When your prayer is approved for sharing</p>
+                            </div>
+                            <div className="flex gap-4 items-center">
+                              <Switch
+                                checked={notificationPrefs.email_on_prayer_approved}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, email_on_prayer_approved: checked }))
+                                }
+                              />
+                              <Switch
+                                checked={notificationPrefs.inapp_on_prayer_approved}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_approved: checked }))
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5 flex-1">
+                              <div className="flex items-center gap-2">
+                                <Label className="font-normal">Prayer not approved</Label>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Besties only</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">When your prayer is not approved</p>
+                            </div>
+                            <div className="flex gap-4 items-center">
+                              <Switch
+                                checked={notificationPrefs.email_on_prayer_rejected}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, email_on_prayer_rejected: checked }))
+                                }
+                              />
+                              <Switch
+                                checked={notificationPrefs.inapp_on_prayer_rejected}
+                                onCheckedChange={(checked) => 
+                                  setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_rejected: checked }))
+                                }
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Someone prayed for you - Show to everyone */}
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5 flex-1">
                           <Label className="font-normal">Someone prayed for you</Label>
@@ -1077,6 +1110,28 @@ const ProfileSettings = () => {
                             checked={notificationPrefs.inapp_on_prayed_for_you}
                             onCheckedChange={(checked) => 
                               setNotificationPrefs(prev => ({ ...prev, inapp_on_prayed_for_you: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Prayer expiring notification - Show to everyone */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Prayer expiring soon</Label>
+                          <p className="text-xs text-muted-foreground">When your prayer is about to expire</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={notificationPrefs.email_on_prayer_expiring}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_prayer_expiring: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={notificationPrefs.inapp_on_prayer_expiring}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_prayer_expiring: checked }))
                             }
                           />
                         </div>
