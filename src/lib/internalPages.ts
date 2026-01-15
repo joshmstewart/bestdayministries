@@ -56,6 +56,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   // Guardian/Bestie
   { value: "/guardian-links", label: "My Besties" },
   { value: "/guardian-approvals", label: "Guardian Approvals" },
+  { value: "/guardian-resources", label: "Guardian Resources" },
   { value: "/bestie-messages", label: "Bestie Messages" },
   { value: "/moderation", label: "Moderation Queue" },
   
