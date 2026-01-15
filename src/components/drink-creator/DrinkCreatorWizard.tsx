@@ -52,13 +52,17 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [savedDrinkId, setSavedDrinkId] = useState<string | null>(null);
 
-  // Scroll to tabs section when step changes, accounting for fixed navbar
+  // Scroll behavior: top of page for first step, tabs section for subsequent steps
   useEffect(() => {
-    const tabsElement = document.getElementById('drink-creator-tabs');
-    if (tabsElement) {
-      const navbarHeight = 96; // pt-24 = 96px
-      const elementPosition = tabsElement.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: elementPosition - navbarHeight - 16, behavior: 'smooth' });
+    if (currentStep === 0) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const tabsElement = document.getElementById('drink-creator-tabs');
+      if (tabsElement) {
+        const navbarHeight = 96; // pt-24 = 96px
+        const elementPosition = tabsElement.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: elementPosition - navbarHeight - 16, behavior: 'smooth' });
+      }
     }
   }, [currentStep]);
 
