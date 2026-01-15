@@ -1,9 +1,63 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Fuzzy matching helper - finds best match from a list
+function findBestMatch(item: string, options: string[]): { match: string | null; score: number } {
+  const normalizedItem = item.toLowerCase().trim();
+  
+  // Direct match
+  const directMatch = options.find(opt => opt.toLowerCase() === normalizedItem);
+  if (directMatch) return { match: directMatch, score: 1 };
+  
+  // Contains match (e.g., "cheddar cheese" -> "Cheese")
+  for (const opt of options) {
+    const normalizedOpt = opt.toLowerCase();
+    if (normalizedItem.includes(normalizedOpt) || normalizedOpt.includes(normalizedItem)) {
+      return { match: opt, score: 0.8 };
+    }
+  }
+  
+  // Word overlap match
+  const itemWords = normalizedItem.split(/\s+/);
+  let bestMatch: string | null = null;
+  let bestScore = 0;
+  
+  for (const opt of options) {
+    const optWords = opt.toLowerCase().split(/\s+/);
+    const commonWords = itemWords.filter(w => optWords.some(ow => ow.includes(w) || w.includes(ow)));
+    const score = commonWords.length / Math.max(itemWords.length, optWords.length);
+    if (score > bestScore && score >= 0.5) {
+      bestScore = score;
+      bestMatch = opt;
+    }
+  }
+  
+  return { match: bestMatch, score: bestScore };
+}
+
+// Extract base ingredient name (remove quantities, units, descriptions)
+function extractIngredientName(ingredient: string): string {
+  // Remove quantities and units
+  let name = ingredient
+    .replace(/^\d+[\s\/\d]*\s*(cups?|tbsp|tsp|tablespoons?|teaspoons?|oz|ounces?|lb|lbs?|pounds?|g|grams?|kg|ml|liters?|pieces?|slices?|cloves?|heads?|bunches?|cans?|jars?|packages?|bags?|boxes?)?\s*/i, '')
+    .trim();
+  
+  // Remove common descriptors
+  name = name
+    .replace(/\b(fresh|frozen|canned|dried|chopped|diced|sliced|minced|grated|shredded|large|small|medium|whole|half|optional|to taste|for garnish|room temperature|cold|warm|hot)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Remove parenthetical notes
+  name = name.replace(/\([^)]*\)/g, '').trim();
+  
+  return name;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -24,6 +78,20 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    // Initialize Supabase client for fetching wizard items
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch wizard ingredients and tools for matching
+    const [ingredientsResult, toolsResult] = await Promise.all([
+      supabase.from("recipe_ingredients").select("name").eq("is_active", true),
+      supabase.from("recipe_tools").select("name").eq("is_active", true),
+    ]);
+
+    const wizardIngredients = (ingredientsResult.data || []).map(i => i.name);
+    const wizardTools = (toolsResult.data || []).map(t => t.name);
 
     const systemPrompt = `You are a helpful cooking assistant that specializes in adapting recipes for adults with intellectual disabilities.
 
@@ -129,6 +197,96 @@ Only return the JSON, no other text.`;
       throw new Error("Failed to parse recipe structure. Please try again.");
     }
 
+    // Match ingredients and tools with wizard items
+    const matchedIngredients: string[] = [];
+    const unmatchedIngredients: string[] = [];
+    const matchedTools: string[] = [];
+    const unmatchedTools: string[] = [];
+
+    // Process ingredients
+    for (const ingredient of parsedRecipe.ingredients || []) {
+      const baseName = extractIngredientName(ingredient);
+      const { match } = findBestMatch(baseName, wizardIngredients);
+      
+      if (match) {
+        if (!matchedIngredients.includes(match)) {
+          matchedIngredients.push(match);
+        }
+      } else {
+        unmatchedIngredients.push(baseName || ingredient);
+      }
+    }
+
+    // Process tools
+    for (const tool of parsedRecipe.tools || []) {
+      const { match } = findBestMatch(tool, wizardTools);
+      
+      if (match) {
+        if (!matchedTools.includes(match)) {
+          matchedTools.push(match);
+        }
+      } else {
+        unmatchedTools.push(tool);
+      }
+    }
+
+    // Log unmatched items to database for admin tracking
+    const unmatchedItemsToLog: { item_name: string; item_type: string }[] = [];
+    
+    for (const item of unmatchedIngredients) {
+      if (item.length > 1) { // Skip very short items
+        unmatchedItemsToLog.push({ item_name: item, item_type: 'ingredient' });
+      }
+    }
+    
+    for (const item of unmatchedTools) {
+      if (item.length > 1) {
+        unmatchedItemsToLog.push({ item_name: item, item_type: 'tool' });
+      }
+    }
+
+    // Upsert unmatched items (increment count if exists)
+    for (const item of unmatchedItemsToLog) {
+      const { data: existing } = await supabase
+        .from("recipe_unmatched_items")
+        .select("id, occurrence_count")
+        .eq("item_name", item.item_name)
+        .eq("item_type", item.item_type)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from("recipe_unmatched_items")
+          .update({ 
+            occurrence_count: existing.occurrence_count + 1,
+            last_seen_at: new Date().toISOString()
+          })
+          .eq("id", existing.id);
+      } else {
+        await supabase
+          .from("recipe_unmatched_items")
+          .insert(item);
+      }
+    }
+
+    // Update the recipe with matched items and add notes about unmatched
+    parsedRecipe.matchedIngredients = matchedIngredients;
+    parsedRecipe.matchedTools = matchedTools;
+    parsedRecipe.unmatchedIngredients = unmatchedIngredients;
+    parsedRecipe.unmatchedTools = unmatchedTools;
+    
+    // Keep original ingredients and tools arrays for display, but mark which are matched
+    parsedRecipe.ingredientMatches = (parsedRecipe.ingredients || []).map((ing: string) => {
+      const baseName = extractIngredientName(ing);
+      const { match } = findBestMatch(baseName, wizardIngredients);
+      return { original: ing, matched: match };
+    });
+    
+    parsedRecipe.toolMatches = (parsedRecipe.tools || []).map((tool: string) => {
+      const { match } = findBestMatch(tool, wizardTools);
+      return { original: tool, matched: match };
+    });
+
     // Generate an image for the recipe
     console.log("Generating image for parsed recipe:", parsedRecipe.title);
     
@@ -175,6 +333,8 @@ Homemade, warm, and inviting appearance.`;
     }
 
     console.log("Recipe parsed successfully:", parsedRecipe.title);
+    console.log("Matched ingredients:", matchedIngredients.length, "Unmatched:", unmatchedIngredients.length);
+    console.log("Matched tools:", matchedTools.length, "Unmatched:", unmatchedTools.length);
 
     return new Response(
       JSON.stringify({ recipe: parsedRecipe }),
