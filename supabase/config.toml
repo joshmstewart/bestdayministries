@@ -271,3 +271,7 @@ verify_jwt = true
 
 [functions.extract-pdf-pages]
 verify_jwt = true
+
+[functions.send-batch-year-end-summaries]
+verify_jwt = false
+schedule = "0 14 * * *"
