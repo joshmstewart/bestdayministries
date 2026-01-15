@@ -78,6 +78,8 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/chore-challenge-gallery", label: "Chore Challenge Gallery" },
   { value: "/games/beat-pad", label: "Beat Pad" },
   { value: "/games/cash-register", label: "Cash Register" },
+  
+  // Health & Wellness
   { value: "/workout-tracker", label: "Workout Tracker" },
   
   // Help & Support
