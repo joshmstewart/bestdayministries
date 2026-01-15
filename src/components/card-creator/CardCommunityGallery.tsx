@@ -62,18 +62,11 @@ export function CardCommunityGallery({ userId }: CardCommunityGalleryProps) {
           .eq("user_id", userId);
         if (error) throw error;
         
-        // Decrement likes count
-        await supabase.rpc('increment', { 
-          row_id: cardId, 
-          table_name: 'user_cards', 
-          amount: -1 
-        }).catch(() => {
-          // Fallback: manual update
-          supabase
-            .from("user_cards")
-            .update({ likes_count: (selectedCard?.likes_count || 1) - 1 })
-            .eq("id", cardId);
-        });
+        // Decrement likes count manually
+        await supabase
+          .from("user_cards")
+          .update({ likes_count: Math.max(0, (selectedCard?.likes_count || 1) - 1) })
+          .eq("id", cardId);
       } else {
         // Like
         const { error } = await supabase
@@ -81,18 +74,11 @@ export function CardCommunityGallery({ userId }: CardCommunityGalleryProps) {
           .insert({ card_id: cardId, user_id: userId });
         if (error) throw error;
         
-        // Increment likes count
-        await supabase.rpc('increment', { 
-          row_id: cardId, 
-          table_name: 'user_cards', 
-          amount: 1 
-        }).catch(() => {
-          // Fallback: manual update
-          supabase
-            .from("user_cards")
-            .update({ likes_count: (selectedCard?.likes_count || 0) + 1 })
-            .eq("id", cardId);
-        });
+        // Increment likes count manually
+        await supabase
+          .from("user_cards")
+          .update({ likes_count: (selectedCard?.likes_count || 0) + 1 })
+          .eq("id", cardId);
       }
     },
     onSuccess: () => {
