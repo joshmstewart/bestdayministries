@@ -86,6 +86,7 @@ const JokeGenerator = lazy(() => import("./pages/JokeGenerator"));
 const CardCreator = lazy(() => import("./pages/CardCreator"));
 const GuardianResources = lazy(() => import("./pages/GuardianResources"));
 const GuardianResourceDetail = lazy(() => import("./pages/GuardianResourceDetail"));
+const JoyHouseStores = lazy(() => import("./pages/JoyHouseStores"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -255,6 +256,7 @@ const App = () => {
               <Routes>
               <Route path="/" element={<DomainRouter />} />
               <Route path="/coffee-shop" element={<CoffeeShopHome />} />
+              <Route path="/joy-house-stores" element={<JoyHouseStores />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/picture" element={<PictureLogin />} />
               <Route path="/auth/vendor" element={<VendorAuth />} />
