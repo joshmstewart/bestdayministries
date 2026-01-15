@@ -60,6 +60,10 @@ export const useCustomBeatAudio = () => {
   // Play audio buffer
   const playAudioBuffer = useCallback((buffer: AudioBuffer) => {
     const ctx = getAudioContext();
+    // Ensure context is running (may be suspended on some browsers)
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const source = ctx.createBufferSource();
     const gainNode = ctx.createGain();
     
@@ -74,6 +78,10 @@ export const useCustomBeatAudio = () => {
   // Play synthesized sound (fallback)
   const playSynthesizedSound = useCallback((sound: SoundConfig) => {
     const ctx = getAudioContext();
+    // Ensure context is running (may be suspended on some browsers)
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     const now = ctx.currentTime;
     
     const freq = sound.frequency || 200;
@@ -133,9 +141,12 @@ export const useCustomBeatAudio = () => {
   }, [loadAudioBuffer]);
 
   const playSound = useCallback((sound: SoundConfig) => {
+    console.log('[useCustomBeatAudio] playSound called for:', sound.name, 'id:', sound.id, 'audio_url:', !!sound.audio_url);
+    
     // Try to play from cached audio buffer first (synchronous)
     if (sound.audio_url) {
       const buffer = audioBuffersRef.current.get(sound.id);
+      console.log('[useCustomBeatAudio] Cached buffer exists:', !!buffer);
       if (buffer) {
         playAudioBuffer(buffer);
         return;
@@ -143,12 +154,13 @@ export const useCustomBeatAudio = () => {
       // If not cached, load and play async (but also trigger synth immediately)
       loadAudioBuffer(sound.audio_url, sound.id).then(buffer => {
         if (buffer) {
-          // Buffer now cached for next time
+          console.log('[useCustomBeatAudio] Loaded buffer for next time:', sound.id);
         }
       });
     }
     
     // Fallback to synthesized (always works synchronously)
+    console.log('[useCustomBeatAudio] Playing synthesized for:', sound.name);
     playSynthesizedSound(sound);
   }, [loadAudioBuffer, playAudioBuffer, playSynthesizedSound]);
 

@@ -217,14 +217,18 @@ const BeatPad: React.FC = () => {
     }
   };
 
-  const handleLoadBeat = async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null; is_public?: boolean; ai_audio_url?: string | null }) => {
+  const handleLoadBeat = async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null; is_public?: boolean; ai_audio_url?: string | null; instrument_order?: string[] | null }) => {
     handleStop();
 
     const allKeys = Object.keys(beat.pattern || {});
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const numericRegex = /^\d+$/;
 
-    const soundIdKeys = allKeys.filter((k) => uuidRegex.test(k));
+    // Use saved instrument_order if available, otherwise fall back to pattern keys
+    const savedOrder = beat.instrument_order;
+    const soundIdKeys = savedOrder && savedOrder.length > 0 
+      ? savedOrder.filter((k) => uuidRegex.test(k))
+      : allKeys.filter((k) => uuidRegex.test(k));
     const soundTypeKeys = allKeys.filter((k) => !uuidRegex.test(k) && !numericRegex.test(k));
 
     const loadIntoGrid = async (orderedKeys: string[], soundLookup: Map<string, SoundConfig>, getSteps: (key: string) => boolean[] | undefined) => {
@@ -338,7 +342,7 @@ const BeatPad: React.FC = () => {
   };
 
   // Handle remixing a beat - create a copy with a new name
-  const handleRemixBeat = useCallback(async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null }) => {
+  const handleRemixBeat = useCallback(async (beat: { id: string; name: string; pattern: Record<string, boolean[]>; tempo: number; image_url?: string | null; instrument_order?: string[] | null }) => {
     if (!user) {
       toast.error('Sign in to remix beats!');
       return;
@@ -349,6 +353,7 @@ const BeatPad: React.FC = () => {
       ...beat,
       name: `${beat.name} (Remix)`,
       image_url: null, // Don't copy the image
+      instrument_order: beat.instrument_order,
     });
     
     // Clear the saved beat ID so it saves as a new beat
