@@ -328,7 +328,7 @@ const JokeGenerator: React.FC = () => {
             <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-6">
               <TabsTrigger value="create" className="gap-2">
                 <Sparkles className="w-4 h-4" />
-                Create
+                Get Jokes
               </TabsTrigger>
               <TabsTrigger value="community" className="gap-2" disabled={loading || !isAuthenticated}>
                 <Users className="w-4 h-4" />

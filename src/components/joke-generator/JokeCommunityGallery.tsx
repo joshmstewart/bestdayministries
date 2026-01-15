@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Heart, Loader2, X, Eye, EyeOff, Candy, Save, Trash2, ShieldAlert } from "lucide-react";
+import { Heart, Loader2, X, Eye, EyeOff, Candy, Save, Trash2, ShieldAlert, UserPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -257,18 +257,21 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="text-xl">{getCategoryEmoji(joke.category)}</span>
                       {isOwn && (
                         <span className="px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-medium">
                           Yours
                         </span>
                       )}
+                      {joke.creator_name && !isOwn && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-xs font-medium">
+                          <UserPen className="w-3 h-3" />
+                          {joke.creator_name}
+                        </span>
+                      )}
                     </div>
                     <p className="font-medium line-clamp-2">{joke.question}</p>
-                    {joke.creator_name && (
-                      <p className="text-xs text-muted-foreground mt-2">by {joke.creator_name}</p>
-                    )}
                   </div>
                   <button
                     onClick={(e) => {
