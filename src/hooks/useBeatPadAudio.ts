@@ -152,18 +152,39 @@ export const useBeatPadAudio = () => {
   }, []);
 
   // Play audio buffer (for AI-generated sounds)
-  const playAudioBuffer = useCallback((buffer: AudioBuffer) => {
+  const playAudioBuffer = useCallback((buffer: AudioBuffer, instrument?: InstrumentType) => {
     const ctx = getAudioContext();
     const source = ctx.createBufferSource();
     const gainNode = ctx.createGain();
     
+    // Create compressor for consistent levels
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.setValueAtTime(-20, ctx.currentTime);
+    compressor.knee.setValueAtTime(30, ctx.currentTime);
+    compressor.ratio.setValueAtTime(8, ctx.currentTime);
+    compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+    compressor.release.setValueAtTime(0.25, ctx.currentTime);
+    
     source.buffer = buffer;
-    gainNode.gain.setValueAtTime(0.7, ctx.currentTime);
+    
+    // Boost bass sounds which are naturally quieter
+    const config = instrument ? (instrumentConfigs[instrument] || DEFAULT_INSTRUMENTS[instrument as keyof typeof DEFAULT_INSTRUMENTS]) : null;
+    const isBass = instrument && (instrument === 'kick' || instrument === 'bass' || (config && config.freq < 150));
+    const gain = isBass ? 1.0 : 0.7;
+    
+    gainNode.gain.setValueAtTime(gain, ctx.currentTime);
     
     source.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(compressor);
+    compressor.connect(ctx.destination);
     source.start(0);
-  }, [getAudioContext]);
+  }, [getAudioContext, instrumentConfigs]);
+
+  // Determine if this is a bass-heavy sound that needs volume boost
+  const isBassSound = useCallback((instrument: InstrumentType, freq: number): boolean => {
+    const bassInstruments = ['kick', 'bass'];
+    return bassInstruments.includes(instrument) || freq < 150;
+  }, []);
 
   // Play synthesized sound (fallback)
   const playSynthesizedSound = useCallback((instrument: InstrumentType) => {
@@ -175,6 +196,14 @@ export const useBeatPadAudio = () => {
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
+    // Create a compressor to normalize levels
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.setValueAtTime(-24, now);
+    compressor.knee.setValueAtTime(30, now);
+    compressor.ratio.setValueAtTime(12, now);
+    compressor.attack.setValueAtTime(0.003, now);
+    compressor.release.setValueAtTime(0.25, now);
+    
     osc.type = config.type;
     osc.frequency.setValueAtTime(config.freq, now);
     
@@ -183,12 +212,31 @@ export const useBeatPadAudio = () => {
       osc.frequency.exponentialRampToValueAtTime(30, now + config.decay);
     }
     
+    // Boost gain significantly for bass frequencies (they sound quieter naturally)
+    const isBass = isBassSound(instrument, config.freq);
+    const baseGain = isBass ? 1.2 : 0.6;
+    
     // Gain envelope
-    gainNode.gain.setValueAtTime(0.5, now);
+    gainNode.gain.setValueAtTime(baseGain, now);
     gainNode.gain.exponentialRampToValueAtTime(0.01, now + config.decay);
 
+    // For bass sounds, add a secondary oscillator one octave up for presence
+    if (isBass && instrument !== 'kick') {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(config.freq * 2, now); // One octave up
+      gain2.gain.setValueAtTime(baseGain * 0.3, now);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + config.decay);
+      osc2.connect(gain2);
+      gain2.connect(compressor);
+      osc2.start(now);
+      osc2.stop(now + config.decay);
+    }
+
     osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(compressor);
+    compressor.connect(ctx.destination);
     
     osc.start(now);
     osc.stop(now + config.decay);
@@ -204,25 +252,25 @@ export const useBeatPadAudio = () => {
       noiseFilter.type = 'highpass';
       noiseFilter.frequency.value = 1000;
       
-      noiseGain.gain.setValueAtTime(0.3, now);
+      noiseGain.gain.setValueAtTime(0.4, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.01, now + config.decay);
       
       noise.connect(noiseFilter);
       noiseFilter.connect(noiseGain);
-      noiseGain.connect(ctx.destination);
+      noiseGain.connect(compressor);
       
       noise.start(now);
       noise.stop(now + config.decay);
     }
-  }, [getAudioContext, createNoiseBuffer, instrumentConfigs]);
+  }, [getAudioContext, createNoiseBuffer, instrumentConfigs, isBassSound]);
 
   const playSound = useCallback((instrument: InstrumentType) => {
     // Check if we have a pre-loaded audio buffer for this instrument
     const audioBuffer = audioBuffersRef.current.get(instrument);
     
     if (audioBuffer) {
-      // Play the AI-generated sound
-      playAudioBuffer(audioBuffer);
+      // Play the AI-generated sound with instrument info for gain adjustment
+      playAudioBuffer(audioBuffer, instrument);
     } else {
       // Fallback to synthesized sound
       playSynthesizedSound(instrument);
