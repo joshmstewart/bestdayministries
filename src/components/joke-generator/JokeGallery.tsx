@@ -202,7 +202,7 @@ export function JokeGallery({ userId }: JokeGalleryProps) {
               <Button
                 variant="destructive"
                 size="icon"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
                 onClick={(e) => handleDeleteClick(joke.id, e)}
               >
                 <Trash2 className="w-4 h-4" />
