@@ -24,6 +24,7 @@ interface CommunityPrayer {
   is_anonymous: boolean;
   gratitude_message: string | null;
   audio_url: string | null;
+  image_url: string | null;
   expires_at: string | null;
 }
 
@@ -70,7 +71,7 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
     
     let query = supabase
       .from("prayer_requests")
-      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id, is_anonymous, gratitude_message, audio_url, approval_status, expires_at")
+      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id, is_anonymous, gratitude_message, audio_url, image_url, approval_status, expires_at, image_moderation_status")
       .eq("is_public", true)
       .eq("approval_status", "approved")
       .or(`expires_at.is.null,expires_at.gt.${now}`)
@@ -295,6 +296,17 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                 </div>
 
                 <p className="text-sm">{prayer.content}</p>
+
+                {/* Prayer Image */}
+                {prayer.image_url && (
+                  <div className="rounded-lg overflow-hidden">
+                    <img 
+                      src={prayer.image_url} 
+                      alt="Prayer request image" 
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
+                )}
 
                 {/* Audio Player */}
                 {prayer.audio_url && (

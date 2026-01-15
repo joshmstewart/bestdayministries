@@ -5836,6 +5836,10 @@ export type Database = {
           expiry_notified: boolean
           gratitude_message: string | null
           id: string
+          image_moderation_reason: string | null
+          image_moderation_severity: string | null
+          image_moderation_status: string | null
+          image_url: string | null
           is_anonymous: boolean
           is_answered: boolean
           is_public: boolean
@@ -5860,6 +5864,10 @@ export type Database = {
           expiry_notified?: boolean
           gratitude_message?: string | null
           id?: string
+          image_moderation_reason?: string | null
+          image_moderation_severity?: string | null
+          image_moderation_status?: string | null
+          image_url?: string | null
           is_anonymous?: boolean
           is_answered?: boolean
           is_public?: boolean
@@ -5884,6 +5892,10 @@ export type Database = {
           expiry_notified?: boolean
           gratitude_message?: string | null
           id?: string
+          image_moderation_reason?: string | null
+          image_moderation_severity?: string | null
+          image_moderation_status?: string | null
+          image_url?: string | null
           is_anonymous?: boolean
           is_answered?: boolean
           is_public?: boolean

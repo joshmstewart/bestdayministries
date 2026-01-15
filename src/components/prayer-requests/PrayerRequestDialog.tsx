@@ -15,11 +15,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Lock, Share2, EyeOff, Mic, Play, Pause, Trash2 } from "lucide-react";
+import { Loader2, Lock, Share2, EyeOff, Mic, Play, Pause, Trash2, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { addDays, addWeeks } from "date-fns";
 import { VoiceInput } from "@/components/VoiceInput";
 import AudioPlayer from "@/components/AudioPlayer";
+import { ImageUploadWithCrop } from "@/components/common/ImageUploadWithCrop";
 import { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
@@ -35,6 +36,7 @@ interface PrayerRequest {
   share_duration?: string;
   expires_at?: string | null;
   audio_url?: string | null;
+  image_url?: string | null;
   visible_to_roles?: UserRole[] | null;
 }
 
@@ -87,6 +89,9 @@ export const PrayerRequestDialog = ({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showImageUpload, setShowImageUpload] = useState(false);
 
   // Check if bestie needs approval from guardian
   useEffect(() => {
@@ -125,6 +130,7 @@ export const PrayerRequestDialog = ({
       setIsAnonymous(editingPrayer.is_anonymous || false);
       setShareDuration((editingPrayer.share_duration as ShareDuration) || "1_month");
       setAudioUrl(editingPrayer.audio_url || null);
+      setImagePreview(editingPrayer.image_url || null);
       if (editingPrayer.visible_to_roles && editingPrayer.visible_to_roles.length > 0) {
         setUseRoleRestriction(true);
         setSelectedRoles(editingPrayer.visible_to_roles);
@@ -142,6 +148,9 @@ export const PrayerRequestDialog = ({
       setShowVoiceInput(false);
       setAudioUrl(null);
       setIsRecordingMode(false);
+      setImageFile(null);
+      setImagePreview(null);
+      setShowImageUpload(false);
     }
   }, [editingPrayer, open]);
 
@@ -171,7 +180,53 @@ export const PrayerRequestDialog = ({
     setSaving(true);
     try {
       // Determine approval status based on user role and guardian settings
-      const approvalStatus = requiresApproval && makePublic ? "pending_approval" : "approved";
+      let approvalStatus = requiresApproval && makePublic ? "pending_approval" : "approved";
+
+      // Handle image upload and moderation
+      let imageUrl: string | null = imagePreview && !imageFile ? imagePreview : null;
+      let imageModerationStatus = "approved";
+      let imageModerationReason: string | null = null;
+      let imageModerationSeverity: string | null = null;
+
+      if (imageFile) {
+        const fileName = `prayer-${userId}-${Date.now()}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("prayer-images")
+          .upload(fileName, imageFile, { contentType: "image/jpeg", upsert: true });
+
+        if (uploadError) {
+          console.error("Image upload error:", uploadError);
+          toast.error("Failed to upload image");
+          setSaving(false);
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("prayer-images")
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+
+        // AI moderation for the image
+        const { data: imageModeration, error: imageModerationError } = await supabase.functions.invoke("moderate-image", {
+          body: { imageUrl: publicUrl },
+        });
+
+        if (imageModerationError) {
+          console.error("Image moderation error:", imageModerationError);
+          // Fail open - allow image if moderation fails
+        } else {
+          const imageApproved = imageModeration?.approved ?? true;
+          imageModerationStatus = imageApproved ? "approved" : "pending";
+          imageModerationSeverity = imageModeration?.severity || null;
+          imageModerationReason = imageModeration?.reason || null;
+
+          // If image is flagged, set prayer to pending for admin review
+          if (!imageApproved) {
+            approvalStatus = "pending_approval";
+          }
+        }
+      }
 
       if (editingPrayer) {
         const { error } = await supabase
@@ -181,6 +236,10 @@ export const PrayerRequestDialog = ({
             content: content.trim(),
             is_anonymous: isAnonymous,
             audio_url: audioUrl,
+            image_url: imageUrl,
+            image_moderation_status: imageModerationStatus,
+            image_moderation_reason: imageModerationReason,
+            image_moderation_severity: imageModerationSeverity,
             visible_to_roles: useRoleRestriction && selectedRoles.length > 0 ? selectedRoles : null,
             updated_at: new Date().toISOString(),
           })
@@ -202,13 +261,19 @@ export const PrayerRequestDialog = ({
             share_duration: shareDuration,
             expires_at: expiresAt,
             audio_url: audioUrl,
+            image_url: imageUrl,
+            image_moderation_status: imageModerationStatus,
+            image_moderation_reason: imageModerationReason,
+            image_moderation_severity: imageModerationSeverity,
             visible_to_roles: useRoleRestriction && selectedRoles.length > 0 ? selectedRoles : null,
             approval_status: approvalStatus,
           });
 
         if (error) throw error;
         
-        if (approvalStatus === "pending_approval") {
+        if (approvalStatus === "pending_approval" && imageModerationStatus === "pending") {
+          toast.success("Prayer request submitted - image flagged for admin review");
+        } else if (approvalStatus === "pending_approval") {
           toast.success("Prayer request submitted for guardian approval!");
         } else {
           toast.success(
@@ -227,6 +292,9 @@ export const PrayerRequestDialog = ({
       setUseRoleRestriction(false);
       setAudioUrl(null);
       setShowVoiceInput(false);
+      setImageFile(null);
+      setImagePreview(null);
+      setShowImageUpload(false);
       onSuccess();
     } catch (error) {
       console.error("Error saving prayer request:", error);
@@ -275,8 +343,8 @@ export const PrayerRequestDialog = ({
             />
           </div>
 
-          {/* Audio Input Toggle */}
-          <div className="flex items-center gap-2">
+          {/* Audio/Image Input Toggles */}
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               type="button"
               variant={isRecordingMode ? "default" : "outline"}
@@ -285,7 +353,17 @@ export const PrayerRequestDialog = ({
               className="gap-2"
             >
               <Mic className="w-4 h-4 text-red-500" strokeWidth={2.5} />
-              {isRecordingMode ? "Recording Mode" : "Record Audio Prayer"}
+              {isRecordingMode ? "Recording Mode" : "Record Audio"}
+            </Button>
+            <Button
+              type="button"
+              variant={showImageUpload ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowImageUpload(!showImageUpload)}
+              className="gap-2"
+            >
+              <ImagePlus className="w-4 h-4" />
+              {showImageUpload ? "Hide Image" : "Add Image"}
             </Button>
           </div>
 
@@ -304,6 +382,49 @@ export const PrayerRequestDialog = ({
                 maxDuration={120}
                 silenceStopSeconds={10}
               />
+            </div>
+          )}
+
+          {/* Image Upload */}
+          {showImageUpload && (
+            <div className="space-y-2">
+              <ImageUploadWithCrop
+                label="Add an image to your prayer"
+                imagePreview={imagePreview}
+                onImageChange={(file, preview) => {
+                  setImageFile(file);
+                  setImagePreview(preview);
+                }}
+                aspectRatio="16:9"
+                allowAspectRatioChange={false}
+                maxSizeMB={5}
+              />
+              <p className="text-xs text-muted-foreground">
+                Images are reviewed by AI for appropriate content
+              </p>
+            </div>
+          )}
+
+          {/* Image Preview (when not showing upload) */}
+          {!showImageUpload && imagePreview && (
+            <div className="relative rounded-lg overflow-hidden">
+              <img 
+                src={imagePreview} 
+                alt="Prayer image" 
+                className="w-full h-40 object-cover rounded-lg"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setImageFile(null);
+                  setImagePreview(null);
+                }}
+                className="absolute top-2 right-2 bg-background/80 hover:bg-background h-8 w-8"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           )}
 

@@ -55,6 +55,7 @@ interface PrayerRequest {
   expires_at: string | null;
   gratitude_message: string | null;
   audio_url: string | null;
+  image_url: string | null;
   approval_status: string | null;
 }
 
@@ -341,6 +342,17 @@ export const MyPrayers = ({ userId, onRefresh }: MyPrayersProps) => {
                 </div>
 
                 <p className="text-sm line-clamp-3">{prayer.content}</p>
+
+                {/* Prayer Image */}
+                {prayer.image_url && (
+                  <div className="rounded-lg overflow-hidden">
+                    <img 
+                      src={prayer.image_url} 
+                      alt="Prayer request image" 
+                      className="w-full h-40 object-cover"
+                    />
+                  </div>
+                )}
 
                 {/* Audio Player */}
                 {prayer.audio_url && (
