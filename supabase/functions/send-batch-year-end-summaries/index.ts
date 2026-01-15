@@ -250,7 +250,7 @@ serve(async (req) => {
         `;
 
         const emailResult = await resend.emails.send({
-          from: `${organizationName} <${settings.contact_email || 'noreply@bestdayministries.com'}>`,
+          from: `${organizationName} <noreply@bestdayministries.org>`,
           to: [email],
           subject: (settings.email_subject || `Your {year} Tax Summary from Best Day Ministries`).replace('{year}', String(taxYear)),
           html: emailHtml,
