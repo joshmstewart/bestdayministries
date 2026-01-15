@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, MessageSquare, FileText, Mail } from "lucide-react";
+import { CheckCircle, XCircle, MessageSquare, FileText, Mail, HandHeart } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { VendorLinkRequests } from "@/components/guardian/VendorLinkRequests";
 import { BestieSponsorMessages } from "@/components/guardian/BestieSponsorMessages";
+import { PrayerApprovals } from "@/components/guardian/PrayerApprovals";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface PendingPost {
@@ -51,6 +52,7 @@ export default function GuardianApprovals() {
   const [pendingComments, setPendingComments] = useState<PendingComment[]>([]);
   const [pendingVendorLinks, setPendingVendorLinks] = useState(0);
   const [pendingMessages, setPendingMessages] = useState(0);
+  const [pendingPrayers, setPendingPrayers] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -205,6 +207,15 @@ export default function GuardianApprovals() {
         .eq('status', 'pending_approval');
 
       setPendingMessages(messagesCount || 0);
+
+      // Load pending prayer requests count
+      const { count: prayerCount } = await supabase
+        .from('prayer_requests')
+        .select('*', { count: 'exact', head: true })
+        .in('user_id', bestieIds)
+        .eq('approval_status', 'pending_approval');
+
+      setPendingPrayers(prayerCount || 0);
     } catch (error: any) {
       toast({
         title: "Error loading content",
@@ -389,6 +400,13 @@ export default function GuardianApprovals() {
                 Messages
                 {pendingMessages > 0 && (
                   <Badge variant="destructive" className="ml-1">{pendingMessages}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="prayers" className="gap-2" data-tour-target="prayers-tab">
+                <HandHeart className="w-4 h-4" />
+                Prayers
+                {pendingPrayers > 0 && (
+                  <Badge variant="destructive" className="ml-1">{pendingPrayers}</Badge>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -599,6 +617,15 @@ export default function GuardianApprovals() {
 
             <TabsContent value="messages">
               <BestieSponsorMessages onMessagesChange={() => currentUserId && loadPendingContent(currentUserId)} />
+            </TabsContent>
+
+            <TabsContent value="prayers">
+              {currentUserId && (
+                <PrayerApprovals 
+                  currentUserId={currentUserId} 
+                  onUpdate={() => loadPendingContent(currentUserId)} 
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>

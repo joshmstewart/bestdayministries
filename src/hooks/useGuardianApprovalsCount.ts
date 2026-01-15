@@ -136,6 +136,15 @@ export const useGuardianApprovalsCount = () => {
       )
       .subscribe();
 
+    const prayersChannel = supabase
+      .channel("guardian-approvals-prayers")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "prayer_requests" },
+        () => fetchApprovalsCount()
+      )
+      .subscribe();
+
     const linksChannel = supabase
       .channel("guardian-approvals-links")
       .on(
@@ -149,6 +158,7 @@ export const useGuardianApprovalsCount = () => {
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(commentsChannel);
       supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(prayersChannel);
       supabase.removeChannel(linksChannel);
     };
   }, [authLoading, canApprove, fetchApprovalsCount]);

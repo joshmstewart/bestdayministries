@@ -16,6 +16,7 @@ interface BestieLink {
   created_at: string;
   require_post_approval: boolean;
   require_comment_approval: boolean;
+  require_prayer_approval: boolean;
   allow_featured_posts: boolean;
   require_vendor_asset_approval: boolean;
   show_vendor_link_on_bestie: boolean;
@@ -136,6 +137,16 @@ export function BestieLinksCard({
                     id={`comment-approval-${link.id}`}
                     checked={link.require_comment_approval}
                     onCheckedChange={(checked) => onUpdateLink(link.id, "require_comment_approval", checked)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`prayer-approval-${link.id}`} className="flex-1">
+                    Require prayer request approval
+                  </Label>
+                  <Switch
+                    id={`prayer-approval-${link.id}`}
+                    checked={link.require_prayer_approval}
+                    onCheckedChange={(checked) => onUpdateLink(link.id, "require_prayer_approval", checked)}
                   />
                 </div>
                 <div className="flex items-center justify-between">
