@@ -52,11 +52,9 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [savedDrinkId, setSavedDrinkId] = useState<string | null>(null);
 
-  // Scroll to wizard top when step changes
+  // Scroll to page top when step changes
   useEffect(() => {
-    if (wizardRef.current) {
-      wizardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
   useEffect(() => {
