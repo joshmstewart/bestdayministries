@@ -7342,6 +7342,38 @@ export type Database = {
           },
         ]
       }
+      user_favorite_activities: {
+        Row: {
+          activity_id: string
+          created_at: string
+          display_order: number
+          id: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorite_activities_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "workout_activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_joke_categories: {
         Row: {
           category_id: string
