@@ -234,7 +234,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                  <span>{countActiveSteps(creation.pattern)} notes • {creation.plays_count || 0} plays</span>
+                  <span>{countActiveSteps(creation.pattern)} notes • {creation.plays_count || 0} loop plays</span>
                 </div>
 
                 <div className="flex gap-2">
