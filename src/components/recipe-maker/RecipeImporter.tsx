@@ -325,44 +325,38 @@ export function RecipeImporter({ userId, onSaved }: RecipeImporterProps) {
                   </TooltipProvider>
                 )}
               </div>
-              <div className="flex flex-wrap gap-1">
+              <ul className="space-y-1 text-sm">
                 {parsedRecipe.ingredientMatches ? (
                   parsedRecipe.ingredientMatches.map((match, i) => (
-                    <TooltipProvider key={i}>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Badge 
-                            variant={match.matched ? "secondary" : "outline"} 
-                            className={`text-xs ${!match.matched ? 'border-yellow-500/50 bg-yellow-500/10' : ''}`}
-                          >
-                            {match.matched ? (
-                              <>
-                                <Check className="h-3 w-3 mr-1 text-green-600" />
-                                {match.matched}
-                              </>
-                            ) : (
-                              match.original
-                            )}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {match.matched ? (
-                            <p>Matches wizard item: <strong>{match.matched}</strong></p>
-                          ) : (
-                            <p>Not found in wizard ingredients</p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <li key={i} className="flex items-center gap-2">
+                      {match.matched ? (
+                        <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Not in your wizard inventory</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <span className={!match.matched ? 'text-yellow-700' : ''}>
+                        {match.original}
+                      </span>
+                    </li>
                   ))
                 ) : (
                   parsedRecipe.ingredients.map((ing, i) => (
-                    <Badge key={i} variant="secondary" className="text-xs">
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="w-4" />
                       {ing}
-                    </Badge>
+                    </li>
                   ))
                 )}
-              </div>
+              </ul>
             </div>
 
             {/* Tools with match status */}
@@ -394,44 +388,38 @@ export function RecipeImporter({ userId, onSaved }: RecipeImporterProps) {
                     </TooltipProvider>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <ul className="space-y-1 text-sm">
                   {parsedRecipe.toolMatches ? (
                     parsedRecipe.toolMatches.map((match, i) => (
-                      <TooltipProvider key={i}>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Badge 
-                              variant={match.matched ? "outline" : "outline"} 
-                              className={`text-xs ${!match.matched ? 'border-yellow-500/50 bg-yellow-500/10' : ''}`}
-                            >
-                              {match.matched ? (
-                                <>
-                                  <Check className="h-3 w-3 mr-1 text-green-600" />
-                                  {match.matched}
-                                </>
-                              ) : (
-                                match.original
-                              )}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {match.matched ? (
-                              <p>Matches wizard tool: <strong>{match.matched}</strong></p>
-                            ) : (
-                              <p>Not found in wizard tools</p>
-                            )}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <li key={i} className="flex items-center gap-2">
+                        {match.matched ? (
+                          <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Info className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Not in your wizard tools</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        <span className={!match.matched ? 'text-yellow-700' : ''}>
+                          {match.original}
+                        </span>
+                      </li>
                     ))
                   ) : (
                     parsedRecipe.tools.map((tool, i) => (
-                      <Badge key={i} variant="outline" className="text-xs">
+                      <li key={i} className="flex items-center gap-2">
+                        <span className="w-4" />
                         {tool}
-                      </Badge>
+                      </li>
                     ))
                   )}
-                </div>
+                </ul>
               </div>
             )}
 
