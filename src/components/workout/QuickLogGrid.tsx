@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 
 interface QuickLogGridProps {
   userId: string;
@@ -81,8 +82,8 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
       toast.success("Activity logged! 🎉");
       onLog?.();
     },
-    onError: () => {
-      toast.error("Failed to log activity");
+    onError: (error) => {
+      showErrorToastWithCopy("Failed to log activity", error);
     },
   });
 
