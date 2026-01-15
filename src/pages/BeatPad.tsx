@@ -832,6 +832,7 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                   currentStep={currentStep}
                   isPlaying={isPlaying}
                   onPlaySound={handlePlaySound}
+                  onStopPlayback={handleStop}
                   skipDefaultLoad={beatLoaded}
                 />
               </div>

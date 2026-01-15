@@ -18,6 +18,7 @@ interface SoundPickerDialogProps {
   onOpenChange: (open: boolean) => void;
   onSelectSound: (sound: SoundConfig) => void;
   excludeSoundIds?: string[];
+  onPreviewStart?: () => void;
 }
 
 export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
@@ -25,6 +26,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
   onOpenChange,
   onSelectSound,
   excludeSoundIds = [],
+  onPreviewStart,
 }) => {
   const [sounds, setSounds] = useState<SoundConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,10 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
 
   const playSound = async (sound: SoundConfig, e: React.MouseEvent) => {
     e.stopPropagation();
+    
+    // Stop any playing beat when previewing a sound
+    onPreviewStart?.();
+    
     setPlayingId(sound.id);
     
     const ctx = getAudioContext();
