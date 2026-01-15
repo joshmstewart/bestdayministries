@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Loader2, 
-  Sparkles, 
-  Heart, 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Loader2,
+  Sparkles,
+  Heart,
   CheckCircle2,
-  Calendar
+  Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
 import { TextToSpeech } from "@/components/TextToSpeech";
@@ -130,13 +131,38 @@ export const AnsweredPrayersGallery = () => {
                   <TextToSpeech text={ttsText} size="sm" />
                 </div>
 
-                {/* Prayer title */}
-                <div>
-                  <h3 className="font-semibold text-lg">{prayer.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                    {prayer.content}
-                  </p>
-                </div>
+                {/* Prayer title + preview (click to open full prayer) */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <div className="cursor-pointer">
+                      <h3 className="font-semibold text-lg">{prayer.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {prayer.content}
+                      </p>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>{prayer.title}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <p className="text-sm whitespace-pre-wrap">{prayer.content}</p>
+                      {prayer.image_url && (
+                        <div className="rounded-lg overflow-hidden">
+                          <img
+                            src={prayer.image_url}
+                            alt="Prayer request image"
+                            className="w-full h-64 object-cover"
+                          />
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground text-right">
+                        — {prayer.display_name}{" "}
+                        {prayer.answered_at ? `· Answered ${format(new Date(prayer.answered_at), "MMM d, yyyy")}` : ""}
+                      </p>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Prayer Image */}
                 {prayer.image_url && (
