@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, PenLine, Share2 } from "lucide-react";
+import { Loader2, PenLine, Share2, Edit } from "lucide-react";
 import { VoiceInput } from "@/components/VoiceInput";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { useQuery } from "@tanstack/react-query";
@@ -29,6 +29,13 @@ interface CreateJokeDialogProps {
   onOpenChange: (open: boolean) => void;
   userId: string;
   onJokeCreated: () => void;
+  editingJoke?: {
+    id: string;
+    question: string;
+    answer: string;
+    category: string;
+    is_public: boolean;
+  } | null;
 }
 
 export function CreateJokeDialog({
@@ -36,7 +43,9 @@ export function CreateJokeDialog({
   onOpenChange,
   userId,
   onJokeCreated,
+  editingJoke,
 }: CreateJokeDialogProps) {
+  const isEditing = !!editingJoke;
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [category, setCategory] = useState("mixed");
@@ -46,6 +55,26 @@ export function CreateJokeDialog({
   // Refs to accumulate voice transcripts
   const questionTranscriptRef = useRef("");
   const answerTranscriptRef = useRef("");
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingJoke && open) {
+      setQuestion(editingJoke.question);
+      setAnswer(editingJoke.answer);
+      setCategory(editingJoke.category || "mixed");
+      setShareWithCommunity(editingJoke.is_public);
+      questionTranscriptRef.current = editingJoke.question;
+      answerTranscriptRef.current = editingJoke.answer;
+    } else if (!open) {
+      // Reset form when dialog closes
+      setQuestion("");
+      setAnswer("");
+      setCategory("mixed");
+      setShareWithCommunity(false);
+      questionTranscriptRef.current = "";
+      answerTranscriptRef.current = "";
+    }
+  }, [editingJoke, open]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["joke-categories-for-create"],
@@ -85,34 +114,44 @@ export function CreateJokeDialog({
 
     setIsSaving(true);
     try {
-      const { error } = await supabase.from("saved_jokes").insert({
-        user_id: userId,
-        question: question.trim(),
-        answer: answer.trim(),
-        category: category,
-        is_public: shareWithCommunity,
-      });
+      if (isEditing && editingJoke) {
+        // Update existing joke
+        const { error } = await supabase
+          .from("saved_jokes")
+          .update({
+            question: question.trim(),
+            answer: answer.trim(),
+            category: category,
+            is_public: shareWithCommunity,
+          })
+          .eq("id", editingJoke.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success("Joke updated! ✨");
+      } else {
+        // Create new joke
+        const { error } = await supabase.from("saved_jokes").insert({
+          user_id: userId,
+          question: question.trim(),
+          answer: answer.trim(),
+          category: category,
+          is_public: shareWithCommunity,
+          is_user_created: true,
+        });
 
-      toast.success(
-        shareWithCommunity
-          ? "Joke created and shared with the community! 🎉"
-          : "Joke saved to your collection!"
-      );
+        if (error) throw error;
+        toast.success(
+          shareWithCommunity
+            ? "Joke created and shared with the community! 🎉"
+            : "Joke saved to your collection!"
+        );
+      }
 
-      // Reset form and refs
-      setQuestion("");
-      setAnswer("");
-      setCategory("mixed");
-      setShareWithCommunity(false);
-      questionTranscriptRef.current = "";
-      answerTranscriptRef.current = "";
       onOpenChange(false);
       onJokeCreated();
     } catch (error) {
-      console.error("Error creating joke:", error);
-      toast.error("Failed to create joke");
+      console.error("Error saving joke:", error);
+      toast.error(isEditing ? "Failed to update joke" : "Failed to create joke");
     } finally {
       setIsSaving(false);
     }
@@ -123,11 +162,17 @@ export function CreateJokeDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <PenLine className="w-5 h-5 text-primary" />
-            Create Your Own Joke
+            {isEditing ? (
+              <Edit className="w-5 h-5 text-primary" />
+            ) : (
+              <PenLine className="w-5 h-5 text-primary" />
+            )}
+            {isEditing ? "Edit Your Joke" : "Create Your Own Joke"}
           </DialogTitle>
           <DialogDescription>
-            Write your own joke and share it with the community!
+            {isEditing
+              ? "Update your joke below"
+              : "Write your own joke and share it with the community!"}
           </DialogDescription>
         </DialogHeader>
 
@@ -237,12 +282,18 @@ export function CreateJokeDialog({
           >
             {isSaving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isEditing ? (
+              <Edit className="w-4 h-4" />
             ) : shareWithCommunity ? (
               <Share2 className="w-4 h-4" />
             ) : (
               <PenLine className="w-4 h-4" />
             )}
-            {shareWithCommunity ? "Create & Share" : "Create Joke"}
+            {isEditing
+              ? "Save Changes"
+              : shareWithCommunity
+              ? "Create & Share"
+              : "Create Joke"}
           </Button>
         </DialogFooter>
       </DialogContent>
