@@ -941,6 +941,7 @@ export type Database = {
           require_comment_approval: boolean
           require_message_approval: boolean
           require_post_approval: boolean
+          require_prayer_approval: boolean | null
           require_vendor_asset_approval: boolean
           show_sponsor_link_on_bestie: boolean
           show_sponsor_link_on_guardian: boolean
@@ -958,6 +959,7 @@ export type Database = {
           require_comment_approval?: boolean
           require_message_approval?: boolean
           require_post_approval?: boolean
+          require_prayer_approval?: boolean | null
           require_vendor_asset_approval?: boolean
           show_sponsor_link_on_bestie?: boolean
           show_sponsor_link_on_guardian?: boolean
@@ -975,6 +977,7 @@ export type Database = {
           require_comment_approval?: boolean
           require_message_approval?: boolean
           require_post_approval?: boolean
+          require_prayer_approval?: boolean | null
           require_vendor_asset_approval?: boolean
           show_sponsor_link_on_bestie?: boolean
           show_sponsor_link_on_guardian?: boolean
@@ -5823,6 +5826,10 @@ export type Database = {
         Row: {
           answer_notes: string | null
           answered_at: string | null
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          audio_url: string | null
           content: string
           created_at: string
           expires_at: string | null
@@ -5838,10 +5845,15 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           answer_notes?: string | null
           answered_at?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          audio_url?: string | null
           content: string
           created_at?: string
           expires_at?: string | null
@@ -5857,10 +5869,15 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           answer_notes?: string | null
           answered_at?: string | null
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          audio_url?: string | null
           content?: string
           created_at?: string
           expires_at?: string | null
@@ -5876,8 +5893,24 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prayer_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prayer_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_color_images: {
         Row: {

@@ -23,7 +23,7 @@ export const useGuardianApprovalsCount = () => {
       // Get all linked besties and their approval requirements
       const { data: links, error: linksError } = await supabase
         .from("caregiver_bestie_links")
-        .select("bestie_id, require_post_approval, require_comment_approval, require_message_approval")
+        .select("bestie_id, require_post_approval, require_comment_approval, require_message_approval, require_prayer_approval")
         .eq("caregiver_id", user.id);
 
       if (linksError) throw linksError;
@@ -37,10 +37,12 @@ export const useGuardianApprovalsCount = () => {
       setHasLinkedBesties(true);
       let totalCount = 0;
 
-      // Fetch pending posts, comments, and messages in parallel
+      // Fetch pending posts, comments, messages, and prayers in parallel
       const postLinks = links.filter(l => l.require_post_approval);
       const commentLinks = links.filter(l => l.require_comment_approval);
       const messageLinks = links.filter(l => l.require_message_approval);
+      // All links can have prayer approval requirement
+      const prayerLinks = links.filter(l => (l as any).require_prayer_approval !== false);
 
       const results: { count: number | null }[] = [];
 
@@ -68,6 +70,16 @@ export const useGuardianApprovalsCount = () => {
           .select("*", { count: "exact", head: true })
           .in("bestie_id", messageLinks.map(l => l.bestie_id))
           .eq("status", "pending_approval");
+        results.push({ count });
+      }
+
+      // Count pending prayer requests
+      if (prayerLinks.length > 0) {
+        const { count } = await supabase
+          .from("prayer_requests")
+          .select("*", { count: "exact", head: true })
+          .in("user_id", prayerLinks.map(l => l.bestie_id))
+          .eq("approval_status", "pending_approval");
         results.push({ count });
       }
 
