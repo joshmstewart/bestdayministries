@@ -107,8 +107,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Build email content based on notification type
     let subject = "";
     let content = "";
-    // Use bestie-messages for sponsors, guardian-links for guardians/besties
-    let actionUrl = `https://bestdayministries.lovable.app/bestie-messages`;
+    // Sponsors view messages on /guardian-links (My Sponsorships section)
+    // Besties view/send messages on /bestie-messages
+    let actionUrl = `https://bestdayministries.lovable.app/guardian-links`;
 
     switch (notificationType) {
       case 'new_message':
