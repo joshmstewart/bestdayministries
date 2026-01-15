@@ -12,6 +12,9 @@ const logStep = (step: string, details?: any) => {
   console.log(`[BATCH-YEAR-END] ${step}${detailsStr}`);
 };
 
+// Rate limit delay between emails (600ms = ~1.6 emails/sec, safely under Resend's 2/sec limit)
+const RATE_LIMIT_DELAY_MS = 600;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,6 +32,15 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const resend = new Resend(resendApiKey);
 
+    // Parse request body
+    const body = await req.json().catch(() => ({}));
+    
+    // SAFETY: Dry run mode is ON by default. Must explicitly set dryRun: false to send emails.
+    const dryRun = body.dryRun !== false;
+    const forceRun = body.force === true;
+    
+    logStep("Starting batch year-end summaries", { dryRun, forceRun });
+
     // Get year-end summary settings
     const { data: settings, error: settingsError } = await supabase
       .from("year_end_summary_settings")
@@ -43,7 +55,7 @@ serve(async (req) => {
       });
     }
 
-    if (!settings.auto_send_enabled) {
+    if (!settings.auto_send_enabled && !forceRun) {
       logStep("Year-end summaries are disabled");
       return new Response(JSON.stringify({ message: "Year-end summaries disabled" }), {
         status: 200,
@@ -56,10 +68,7 @@ serve(async (req) => {
     const taxYear = now.getFullYear() - 1;
     logStep("Processing tax year", { taxYear });
 
-    // Check if we should run based on auto_send settings
-    const body = await req.json().catch(() => ({}));
-    const forceRun = body.force === true;
-
+    // Check if we should run based on auto_send settings (unless forced)
     if (!forceRun && settings.auto_send_enabled) {
       const currentMonth = now.getMonth() + 1; // 1-12
       const currentDay = now.getDate();
@@ -84,49 +93,52 @@ serve(async (req) => {
       .select("*")
       .single();
 
-    // Get all donors who gave in the tax year (from sponsorship_receipts)
-    const { data: donorSummaries, error: summaryError } = await supabase
-      .from("sponsorship_receipts")
-      .select("user_id, sponsor_email, amount, organization_name, organization_ein")
-      .eq("tax_year", taxYear)
-      .not("sent_at", "is", null);
+    // FIXED: Use donation_stripe_transactions as the source of truth (synced from Stripe)
+    // This table has accurate, deduplicated transaction data
+    const startDate = `${taxYear}-01-01`;
+    const endDate = `${taxYear + 1}-01-01`;
+    
+    const { data: transactions, error: transactionError } = await supabase
+      .from("donation_stripe_transactions")
+      .select("email, donor_id, amount")
+      .eq("stripe_mode", "live")
+      .gte("transaction_date", startDate)
+      .lt("transaction_date", endDate);
 
-    if (summaryError) {
-      logStep("Error fetching donor summaries", summaryError);
-      throw summaryError;
+    if (transactionError) {
+      logStep("Error fetching transactions", transactionError);
+      throw transactionError;
     }
 
-    if (!donorSummaries || donorSummaries.length === 0) {
-      logStep("No donors found for tax year", { taxYear });
+    if (!transactions || transactions.length === 0) {
+      logStep("No transactions found for tax year", { taxYear });
       return new Response(JSON.stringify({ message: "No donors to process", taxYear }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    logStep("Found transactions", { count: transactions.length });
+
     // Aggregate by email
     const donorTotals = new Map<string, { 
       email: string; 
-      userId: string | null; 
+      donorId: string | null; 
       totalAmount: number;
-      organizationName: string;
-      organizationEin: string;
     }>();
 
-    for (const receipt of donorSummaries) {
-      const email = receipt.sponsor_email;
+    for (const tx of transactions) {
+      const email = tx.email;
       if (!email) continue;
 
       const existing = donorTotals.get(email);
       if (existing) {
-        existing.totalAmount += receipt.amount || 0;
+        existing.totalAmount += tx.amount || 0;
       } else {
         donorTotals.set(email, {
           email,
-          userId: receipt.user_id,
-          totalAmount: receipt.amount || 0,
-          organizationName: receipt.organization_name || receiptSettings?.organization_name || "Best Day Ever Ministries",
-          organizationEin: receipt.organization_ein || receiptSettings?.organization_ein || "",
+          donorId: tx.donor_id,
+          totalAmount: tx.amount || 0,
         });
       }
     }
@@ -142,33 +154,63 @@ serve(async (req) => {
     const alreadySentEmails = new Set(alreadySent?.map(s => s.user_email) || []);
     logStep("Already sent count", { count: alreadySentEmails.size });
 
+    // Build preview data for dry run mode
+    const previewData: Array<{
+      email: string;
+      donorId: string | null;
+      totalAmount: number;
+      userName: string;
+      wouldSkip: boolean;
+    }> = [];
+
     const results = {
       sent: 0,
       skipped: 0,
       errors: [] as string[],
     };
 
-    // Send emails to each donor
+    // Get organization info
+    const organizationName = receiptSettings?.organization_name || "Best Day Ministries";
+    const organizationEin = receiptSettings?.organization_ein || "";
+
+    // Process each donor
     for (const [email, donor] of donorTotals) {
-      if (alreadySentEmails.has(email)) {
+      const wouldSkip = alreadySentEmails.has(email);
+      
+      // Get user name if available
+      let userName = "Valued Donor";
+      if (donor.donorId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", donor.donorId)
+          .single();
+        if (profile?.full_name) {
+          userName = profile.full_name;
+        }
+      }
+
+      // Add to preview
+      previewData.push({
+        email,
+        donorId: donor.donorId,
+        totalAmount: donor.totalAmount,
+        userName,
+        wouldSkip,
+      });
+
+      if (wouldSkip) {
         results.skipped++;
         continue;
       }
 
-      try {
-        // Get user name if available
-        let userName = "Valued Donor";
-        if (donor.userId) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", donor.userId)
-            .single();
-          if (profile?.full_name) {
-            userName = profile.full_name;
-          }
-        }
+      // In dry run mode, don't actually send
+      if (dryRun) {
+        results.sent++; // Count as would-be-sent
+        continue;
+      }
 
+      try {
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h1 style="color: #B45309; border-bottom: 2px solid #B45309; padding-bottom: 10px;">
@@ -191,8 +233,8 @@ serve(async (req) => {
             
             <div style="background: #F3F4F6; border-radius: 8px; padding: 15px; margin: 20px 0;">
               <p style="margin: 0; font-size: 14px; color: #4B5563;">
-                <strong>${donor.organizationName}</strong><br/>
-                ${donor.organizationEin ? `EIN: ${donor.organizationEin}<br/>` : ''}
+                <strong>${organizationName}</strong><br/>
+                ${organizationEin ? `EIN: ${organizationEin}<br/>` : ''}
                 This letter serves as your official acknowledgment for tax purposes.
                 No goods or services were provided in exchange for your contribution.
               </p>
@@ -203,20 +245,20 @@ serve(async (req) => {
               please contact us at ${settings.contact_email || 'support@bestdayministries.com'}.
             </p>
             
-            <p>With gratitude,<br/><strong>${donor.organizationName}</strong></p>
+            <p>With gratitude,<br/><strong>${organizationName}</strong></p>
           </div>
         `;
 
         const emailResult = await resend.emails.send({
-          from: `${donor.organizationName} <${settings.contact_email || 'noreply@bestdayministries.com'}>`,
+          from: `${organizationName} <${settings.contact_email || 'noreply@bestdayministries.com'}>`,
           to: [email],
-          subject: settings.email_subject || `Your ${taxYear} Year-End Giving Summary`,
+          subject: (settings.email_subject || `Your {year} Tax Summary from Best Day Ministries`).replace('{year}', String(taxYear)),
           html: emailHtml,
         });
 
         // Log the sent summary
         await supabase.from("year_end_summary_sent").insert({
-          user_id: donor.userId,
+          user_id: donor.donorId,
           user_email: email,
           user_name: userName,
           tax_year: taxYear,
@@ -228,18 +270,23 @@ serve(async (req) => {
         results.sent++;
         logStep("Sent summary", { email, amount: donor.totalAmount });
 
+        // Rate limiting: wait between emails to avoid hitting Resend's rate limit
+        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
+
       } catch (emailError: any) {
         results.errors.push(`${email}: ${emailError.message}`);
         logStep("Error sending to donor", { email, error: emailError.message });
       }
     }
 
-    logStep("Batch complete", results);
+    logStep("Batch complete", { ...results, dryRun });
 
     return new Response(JSON.stringify({
       success: true,
+      dryRun,
       taxYear,
       ...results,
+      preview: dryRun ? previewData : undefined,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
