@@ -32,8 +32,10 @@ const formatTimeRemaining = (expiresAt: string | null): string | null => {
   if (!expiresAt) return null;
   const expiryDate = new Date(expiresAt);
   const now = new Date();
-  const daysRemaining = differenceInDays(expiryDate, now);
   const hoursRemaining = differenceInHours(expiryDate, now);
+  
+  // Use ceiling for days so "30 days from now" shows as "30 days left" not "29 days left"
+  const daysRemaining = Math.ceil(hoursRemaining / 24);
   
   if (daysRemaining > 1) {
     return `${daysRemaining} days left`;
