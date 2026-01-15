@@ -641,6 +641,7 @@ export type Database = {
       beat_pad_sounds: {
         Row: {
           audio_url: string | null
+          category: string | null
           color: string
           created_at: string
           decay: number | null
@@ -661,6 +662,7 @@ export type Database = {
         }
         Insert: {
           audio_url?: string | null
+          category?: string | null
           color?: string
           created_at?: string
           decay?: number | null
@@ -681,6 +683,7 @@ export type Database = {
         }
         Update: {
           audio_url?: string | null
+          category?: string | null
           color?: string
           created_at?: string
           decay?: number | null
