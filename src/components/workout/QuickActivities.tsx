@@ -6,6 +6,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { startOfWeek, endOfWeek, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 
 interface QuickActivitiesProps {
   userId?: string;
@@ -72,8 +73,8 @@ export const QuickActivities = ({ userId }: QuickActivitiesProps) => {
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
       toast.success("Activity logged! 🎉");
     },
-    onError: () => {
-      toast.error("Failed to log activity");
+    onError: (error) => {
+      showErrorToastWithCopy("Failed to log activity", error);
     },
   });
 
