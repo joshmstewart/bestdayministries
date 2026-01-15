@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Heart, BookOpen } from "lucide-react";
+import { Plus, HandHeart, BookOpen } from "lucide-react";
 import { MyPrayers } from "@/components/prayer-requests/MyPrayers";
 import { CommunityPrayers } from "@/components/prayer-requests/CommunityPrayers";
 import { PrayerRequestDialog } from "@/components/prayer-requests/PrayerRequestDialog";
@@ -48,8 +48,8 @@ const PrayerRequests = () => {
             {/* Tabs */}
             <Tabs defaultValue="community" className="space-y-6">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="community" className="gap-2">
-                  <Heart className="w-4 h-4" />
+              <TabsTrigger value="community" className="gap-2">
+                  <HandHeart className="w-4 h-4" />
                   Community Board
                 </TabsTrigger>
                 <TabsTrigger value="my-prayers" className="gap-2">

@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Heart, Loader2, CheckCircle2, Users } from "lucide-react";
+import { Loader2, CheckCircle2, Users, HandHeart, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface CommunityPrayer {
   id: string;
@@ -19,6 +20,8 @@ interface CommunityPrayer {
   created_at: string;
   user_id: string;
   creator_name: string | null;
+  is_anonymous: boolean;
+  gratitude_message: string | null;
 }
 
 interface CommunityPrayersProps {
@@ -43,10 +46,13 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
 
   const loadPrayers = async () => {
     setLoading(true);
+    const now = new Date().toISOString();
+    
     let query = supabase
       .from("prayer_requests")
-      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id")
+      .select("id, title, content, is_answered, answered_at, likes_count, created_at, user_id, is_anonymous, gratitude_message")
       .eq("is_public", true)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
       .limit(50);
 
     if (sortBy === "newest") {
@@ -71,18 +77,22 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
       return;
     }
 
-    // Fetch creator names
-    const creatorIds = [...new Set(data.map((p) => p.user_id))];
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", creatorIds);
+    // Fetch creator names only for non-anonymous prayers
+    const nonAnonymousIds = data.filter(p => !p.is_anonymous).map(p => p.user_id);
+    let profileMap = new Map<string, string>();
+    
+    if (nonAnonymousIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", [...new Set(nonAnonymousIds)]);
 
-    const profileMap = new Map(profiles?.map((p) => [p.id, p.display_name]) || []);
+      profileMap = new Map(profiles?.map((p) => [p.id, p.display_name]) || []);
+    }
 
     const prayersWithNames = data.map((prayer) => ({
       ...prayer,
-      creator_name: profileMap.get(prayer.user_id) || "Anonymous",
+      creator_name: prayer.is_anonymous ? "Anonymous" : (profileMap.get(prayer.user_id) || "Anonymous"),
     }));
 
     setPrayers(prayersWithNames);
@@ -202,6 +212,7 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
         {prayers.map((prayer) => {
           const isLiked = userLikes.has(prayer.id);
           const isLiking = likingPrayer === prayer.id;
+          const ttsText = `${prayer.title}. ${prayer.content}${prayer.gratitude_message ? `. Gratitude: ${prayer.gratitude_message}` : ""}`;
 
           return (
             <Card key={prayer.id} className="overflow-hidden">
@@ -210,6 +221,7 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold">{prayer.title}</h3>
+                      <TextToSpeech text={ttsText} size="sm" />
                       {prayer.is_answered && (
                         <Badge className="bg-green-500/90 text-white gap-1">
                           <CheckCircle2 className="w-3 h-3" />
@@ -225,6 +237,17 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
 
                 <p className="text-sm">{prayer.content}</p>
 
+                {/* Gratitude Message */}
+                {prayer.gratitude_message && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400 mb-1">
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-sm font-medium">Prayer of Gratitude</span>
+                    </div>
+                    <p className="text-sm text-green-800 dark:text-green-300">{prayer.gratitude_message}</p>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between">
                   <Button
                     variant="ghost"
@@ -233,16 +256,16 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                     disabled={isLiking}
                     className={cn(
                       "gap-2",
-                      isLiked && "text-red-500 hover:text-red-600"
+                      isLiked && "text-primary"
                     )}
                   >
                     {isLiking ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
+                      <HandHeart className={cn("w-4 h-4", isLiked && "fill-current")} />
                     )}
                     {prayer.likes_count > 0 
-                      ? `${prayer.likes_count} praying`
+                      ? `${prayer.likes_count} ${prayer.likes_count === 1 ? 'person' : 'people'} praying`
                       : "Pray for this"
                     }
                   </Button>

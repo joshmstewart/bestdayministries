@@ -5825,10 +5825,16 @@ export type Database = {
           answered_at: string | null
           content: string
           created_at: string
+          expires_at: string | null
+          expiry_notified: boolean
+          gratitude_message: string | null
           id: string
+          is_anonymous: boolean
           is_answered: boolean
           is_public: boolean
           likes_count: number
+          renewed_at: string | null
+          share_duration: string | null
           title: string
           updated_at: string
           user_id: string
@@ -5838,10 +5844,16 @@ export type Database = {
           answered_at?: string | null
           content: string
           created_at?: string
+          expires_at?: string | null
+          expiry_notified?: boolean
+          gratitude_message?: string | null
           id?: string
+          is_anonymous?: boolean
           is_answered?: boolean
           is_public?: boolean
           likes_count?: number
+          renewed_at?: string | null
+          share_duration?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -5851,10 +5863,16 @@ export type Database = {
           answered_at?: string | null
           content?: string
           created_at?: string
+          expires_at?: string | null
+          expiry_notified?: boolean
+          gratitude_message?: string | null
           id?: string
+          is_anonymous?: boolean
           is_answered?: boolean
           is_public?: boolean
           likes_count?: number
+          renewed_at?: string | null
+          share_duration?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -9353,6 +9371,10 @@ export type Database = {
           inapp_on_product_update: boolean
           inapp_on_sponsorship_update: boolean
         }[]
+      }
+      get_prayer_creator_name: {
+        Args: { prayer_is_anonymous: boolean; prayer_user_id: string }
+        Returns: string
       }
       get_public_app_settings: {
         Args: never
