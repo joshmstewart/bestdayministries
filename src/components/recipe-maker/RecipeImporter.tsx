@@ -202,7 +202,7 @@ export function RecipeImporter({ userId, onSaved }: RecipeImporterProps) {
             ) : (
               <>
                 <Sparkles className="h-4 w-4 mr-2" />
-                Parse & Improve Recipe
+                Add & Format Recipe
               </>
             )}
           </Button>

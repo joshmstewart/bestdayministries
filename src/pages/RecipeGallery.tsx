@@ -481,7 +481,7 @@ const RecipeGallery = () => {
                         className="gap-2 shrink-0"
                       >
                         <Plus className="h-4 w-4" />
-                        Import Recipe
+                        Add Your Recipe
                       </Button>
                     </div>
                   </CardContent>
