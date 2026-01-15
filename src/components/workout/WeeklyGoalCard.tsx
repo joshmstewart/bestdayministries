@@ -53,7 +53,7 @@ export const WeeklyGoalCard = ({ userId, className }: WeeklyGoalCardProps) => {
   const remaining = Math.max(0, weeklyGoal - completedCount);
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
+    <Card className={cn("overflow-hidden shadow-md border-2 border-primary/20", className)}>
       <CardContent className="p-0 h-full">
         <div className={cn(
           "p-4 h-full transition-colors flex flex-col",
