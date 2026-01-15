@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Eye, Info, PlayCircle, AlertTriangle } from "lucide-react";
+import { Loader2, Save, Eye, Info, PlayCircle, AlertTriangle, Send } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,7 @@ export function YearEndSummarySettings() {
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunResults, setDryRunResults] = useState<DryRunResult[] | null>(null);
   const [dryRunSummary, setDryRunSummary] = useState<{ sent: number; skipped: number; taxYear: number } | null>(null);
+  const [sendNowLoading, setSendNowLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -210,6 +212,44 @@ export function YearEndSummarySettings() {
       setDryRunOpen(false);
     } finally {
       setDryRunLoading(false);
+    }
+  };
+
+  const handleSendNow = async () => {
+    setSendNowLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-batch-year-end-summaries', {
+        body: { 
+          force: true,
+          dryRun: false, // ACTUALLY SEND EMAILS
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast({
+          title: "Error",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Year-End Summaries Sent!",
+        description: `Successfully sent ${data.sent} emails. ${data.skipped} were skipped (already sent).`,
+      });
+    } catch (error: any) {
+      console.error("Error sending year-end summaries:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send year-end summaries: " + error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSendNowLoading(false);
     }
   };
 
@@ -453,6 +493,48 @@ export function YearEndSummarySettings() {
                 )}
               </DialogContent>
             </Dialog>
+
+            {/* Send Now Button with Confirmation */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={sendNowLoading}>
+                  {sendNowLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-2 h-4 w-4" />
+                  )}
+                  Send Now
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                    Send Year-End Summaries Now?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2">
+                    <p>
+                      <strong>This will send real emails to all donors</strong> for tax year {new Date().getFullYear() - 1}.
+                    </p>
+                    <p>
+                      Have you verified the amounts in the Dry Run test? This action cannot be undone.
+                    </p>
+                    <p className="text-amber-600 font-medium">
+                      Donors who have already received a summary this year will be skipped.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleSendNow}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Yes, Send Emails Now
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           <Button onClick={handleSave} disabled={saving}>
