@@ -9379,6 +9379,7 @@ export type Database = {
       get_notification_preferences: {
         Args: { _user_id: string }
         Returns: {
+          digest_frequency: string
           email_on_approval_decision: boolean
           email_on_comment_on_post: boolean
           email_on_comment_on_thread: boolean
@@ -9389,8 +9390,13 @@ export type Database = {
           email_on_new_sponsor_message: boolean
           email_on_new_sponsorship: boolean
           email_on_pending_approval: boolean
+          email_on_prayed_for_you: boolean
+          email_on_prayer_approved: boolean
+          email_on_prayer_pending_approval: boolean
+          email_on_prayer_rejected: boolean
           email_on_product_update: boolean
           email_on_sponsorship_update: boolean
+          enable_digest_emails: boolean
           inapp_on_approval_decision: boolean
           inapp_on_comment_on_post: boolean
           inapp_on_comment_on_thread: boolean
@@ -9401,6 +9407,10 @@ export type Database = {
           inapp_on_new_sponsor_message: boolean
           inapp_on_new_sponsorship: boolean
           inapp_on_pending_approval: boolean
+          inapp_on_prayed_for_you: boolean
+          inapp_on_prayer_approved: boolean
+          inapp_on_prayer_pending_approval: boolean
+          inapp_on_prayer_rejected: boolean
           inapp_on_product_update: boolean
           inapp_on_sponsorship_update: boolean
         }[]
