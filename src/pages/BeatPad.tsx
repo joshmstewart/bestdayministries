@@ -24,6 +24,7 @@ import BeatPadSoundShop from '@/components/beat-pad/BeatPadSoundShop';
 import MyBeats from '@/components/beat-pad/MyBeats';
 import SaveBeatDialog from '@/components/beat-pad/SaveBeatDialog';
 import BeatCoverImage from '@/components/beat-pad/BeatCoverImage';
+import PresetManager from '@/components/beat-pad/PresetManager';
 import useCustomBeatAudio from '@/hooks/useCustomBeatAudio';
 import { SoundConfig } from '@/components/beat-pad/InstrumentSlot';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
@@ -380,6 +381,59 @@ const BeatPad: React.FC = () => {
     }
   }, [handleStop, aiAudioUrl]);
 
+  // Load a preset (set of instruments) - triggered by PresetManager
+  const handleLoadPreset = useCallback(async (instrumentIds: string[]) => {
+    if (instrumentIds.length === 0) return;
+
+    try {
+      // Fetch the sounds by ID
+      const { data: sounds, error } = await supabase
+        .from('beat_pad_sounds')
+        .select('id, name, emoji, color, sound_type, frequency, decay, oscillator_type, has_noise, audio_url')
+        .in('id', instrumentIds);
+
+      if (error) throw error;
+
+      // Build a map for ordering
+      const soundMap = new Map<string, SoundConfig>();
+      (sounds || []).forEach(s => soundMap.set(s.id, s as SoundConfig));
+
+      // Preserve the order from the preset
+      const orderedInstruments: (SoundConfig | null)[] = instrumentIds
+        .map(id => soundMap.get(id) || null)
+        .filter((s): s is SoundConfig => s !== null);
+
+      // Fill to MAX_INSTRUMENTS
+      while (orderedInstruments.length < 20) {
+        orderedInstruments.push(null);
+      }
+
+      // Clear the pattern but keep the new instruments
+      const newPattern: Record<string, boolean[]> = {};
+      orderedInstruments.forEach((_, idx) => {
+        newPattern[idx.toString()] = Array(16).fill(false);
+      });
+
+      // Set state
+      setBeatLoaded(true); // Prevent default load
+      setInstruments(orderedInstruments);
+      setPattern(newPattern);
+      setBeatName('My Beat');
+      setSavedBeatId(null);
+      setSavedBeatImageUrl(null);
+      setIsShared(false);
+
+      // Preload sounds
+      const soundsToPreload = orderedInstruments.filter(Boolean) as SoundConfig[];
+      if (soundsToPreload.length > 0) {
+        await preloadSounds(soundsToPreload);
+      }
+    } catch (error) {
+      console.error('Error loading preset:', error);
+      showErrorToastWithCopy('Load Preset', error);
+    }
+  }, [preloadSounds]);
+
   // Generate AI beat pattern from current instruments
   const generateAIBeat = useCallback(async (skipConfirm = false) => {
     const activeInstruments = instruments.filter(Boolean) as SoundConfig[];
@@ -698,7 +752,13 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
                 </div>
               </div>
               
-              {/* New Beat Button */}
+              {/* Preset Manager and New Beat Button */}
+              <PresetManager
+                userId={user?.id || null}
+                currentInstruments={instruments}
+                onLoadPreset={handleLoadPreset}
+              />
+              
               <Button
                 variant="ghost"
                 onClick={handleNewBeat}
