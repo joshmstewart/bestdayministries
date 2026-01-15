@@ -587,14 +587,19 @@ const Admin = () => {
                 <CardDescription>Manage resources like recipes and chore tracking</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="recipes" className="space-y-4">
+                <Tabs defaultValue="guardian-resources" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="guardian-resources">Guardian Resources</TabsTrigger>
                     <TabsTrigger value="recipes">Recipes</TabsTrigger>
                     <TabsTrigger value="cash-register">Cash Register</TabsTrigger>
                     <TabsTrigger value="chores">Chores</TabsTrigger>
                     <TabsTrigger value="workout">Workout</TabsTrigger>
                     <TabsTrigger value="cards">Card Creator</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="guardian-resources">
+                    <GuardianResourcesManager />
+                  </TabsContent>
 
                   <TabsContent value="cash-register">
                     <Tabs defaultValue="stores" className="space-y-4">
@@ -713,7 +718,6 @@ const Admin = () => {
                     <TabsTrigger value="partners">Partners</TabsTrigger>
                     <TabsTrigger value="footer">Footer</TabsTrigger>
                     <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
-                    <TabsTrigger value="guardian-resources">Guardian Resources</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="homepage">
@@ -758,10 +762,6 @@ const Admin = () => {
 
                   <TabsContent value="quick-links">
                     <QuickLinksManager />
-                  </TabsContent>
-
-                  <TabsContent value="guardian-resources">
-                    <GuardianResourcesManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
