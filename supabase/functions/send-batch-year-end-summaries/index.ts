@@ -43,7 +43,7 @@ serve(async (req) => {
       });
     }
 
-    if (!settings.enable_summaries) {
+    if (!settings.auto_send_enabled) {
       logStep("Year-end summaries are disabled");
       return new Response(JSON.stringify({ message: "Year-end summaries disabled" }), {
         status: 200,
@@ -89,7 +89,7 @@ serve(async (req) => {
       .from("sponsorship_receipts")
       .select("user_id, sponsor_email, amount, organization_name, organization_ein")
       .eq("tax_year", taxYear)
-      .eq("status", "sent");
+      .not("sent_at", "is", null);
 
     if (summaryError) {
       logStep("Error fetching donor summaries", summaryError);
