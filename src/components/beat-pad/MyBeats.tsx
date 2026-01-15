@@ -35,21 +35,23 @@ interface Beat {
 interface MyBeatsProps {
   onLoadBeat: (beat: Beat) => void;
   onRemixBeat?: (beat: Beat) => void;
+  isActive?: boolean;
 }
 
-const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat }) => {
+const MyBeats: React.FC<MyBeatsProps> = ({ onLoadBeat, onRemixBeat, isActive = true }) => {
   const { user } = useAuth();
   const [beats, setBeats] = useState<BeatCreation[]>([]);
   const [loading, setLoading] = useState(true);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
+  // Reload beats when tab becomes active or user changes
   useEffect(() => {
-    if (user) {
+    if (user && isActive) {
       loadMyBeats();
-    } else {
+    } else if (!user) {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isActive]);
 
   const loadMyBeats = async () => {
     if (!user) return;
