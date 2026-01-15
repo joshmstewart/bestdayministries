@@ -267,36 +267,38 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
           return (
             <Card key={prayer.id} className="overflow-hidden">
               <CardContent className="p-4 space-y-3">
+                {/* Header: Title + TTS left, Date/Time right */}
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold">{prayer.title}</h3>
-                      <TextToSpeech text={ttsText} size="sm" />
-                      {prayer.audio_url && (
-                        <Badge variant="outline" className="gap-1">
-                          <Mic className="w-3 h-3 text-red-500" />
-                          Audio
-                        </Badge>
-                      )}
-                      {prayer.is_answered && (
-                        <Badge className="bg-green-500/90 text-white gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Answered
-                        </Badge>
-                      )}
-                      {timeRemaining && (
-                        <Badge variant="outline" className="gap-1 text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          {timeRemaining}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      by {prayer.creator_name} · {format(new Date(prayer.created_at), "MMM d, yyyy")}
-                    </p>
+                  <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                    <h3 className="font-semibold">{prayer.title}</h3>
+                    <TextToSpeech text={ttsText} size="sm" />
+                    {prayer.audio_url && (
+                      <Badge variant="outline" className="gap-1">
+                        <Mic className="w-3 h-3 text-red-500" />
+                        Audio
+                      </Badge>
+                    )}
+                    {prayer.is_answered && (
+                      <Badge className="bg-green-500/90 text-white gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Answered
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {timeRemaining && (
+                      <Badge variant="outline" className="gap-1 text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        {timeRemaining}
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {format(new Date(prayer.created_at), "MMM d, yyyy")}
+                    </span>
                   </div>
                 </div>
 
+                {/* Content */}
                 <p className="text-sm">{prayer.content}</p>
 
                 {/* Prayer Image */}
@@ -328,7 +330,14 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
+                {/* Footer: Creator left, Actions right */}
+                <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                  <span className="text-sm text-muted-foreground">
+                    by {prayer.creator_name}
+                    {prayer.is_answered && prayer.answered_at && (
+                      <span className="ml-2">· Answered {format(new Date(prayer.answered_at), "MMM d, yyyy")}</span>
+                    )}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -345,16 +354,10 @@ export const CommunityPrayers = ({ userId }: CommunityPrayersProps) => {
                       <HandHeart className={cn("w-4 h-4", isLiked && "fill-current")} />
                     )}
                     {prayer.likes_count > 0 
-                      ? `${prayer.likes_count} ${prayer.likes_count === 1 ? 'person' : 'people'} praying`
+                      ? `${prayer.likes_count} praying`
                       : "Pray for this"
                     }
                   </Button>
-
-                  {prayer.is_answered && prayer.answered_at && (
-                    <span className="text-xs text-muted-foreground">
-                      Answered {format(new Date(prayer.answered_at), "MMM d, yyyy")}
-                    </span>
-                  )}
                 </div>
               </CardContent>
             </Card>
