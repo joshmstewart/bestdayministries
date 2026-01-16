@@ -12,6 +12,8 @@ interface SavedLocation {
   id: string;
   name: string;
   address: string;
+  hours: string | null;
+  hours_vary_seasonally: boolean;
   is_active: boolean;
   created_at: string;
 }
@@ -23,6 +25,8 @@ export const SavedLocationsManager = () => {
   const [editingLocation, setEditingLocation] = useState<SavedLocation | null>(null);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [hours, setHours] = useState("");
+  const [hoursVarySeasonally, setHoursVarySeasonally] = useState(false);
 
   useEffect(() => {
     loadLocations();
@@ -47,6 +51,8 @@ export const SavedLocationsManager = () => {
   const resetForm = () => {
     setName("");
     setAddress("");
+    setHours("");
+    setHoursVarySeasonally(false);
     setEditingLocation(null);
     setShowDialog(false);
   };
@@ -63,6 +69,8 @@ export const SavedLocationsManager = () => {
     const locationData = {
       name: name.trim(),
       address: address.trim(),
+      hours: hours.trim() || null,
+      hours_vary_seasonally: hoursVarySeasonally,
       created_by: user.id,
     };
 
@@ -100,6 +108,8 @@ export const SavedLocationsManager = () => {
     setEditingLocation(location);
     setName(location.name);
     setAddress(location.address);
+    setHours(location.hours || "");
+    setHoursVarySeasonally(location.hours_vary_seasonally || false);
     setShowDialog(true);
   };
 
@@ -176,6 +186,27 @@ export const SavedLocationsManager = () => {
                     placeholder="Full address"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hours">Hours</Label>
+                  <Input
+                    id="hours"
+                    value={hours}
+                    onChange={(e) => setHours(e.target.value)}
+                    placeholder="e.g., Mon-Fri 9am-5pm, Sat 10am-3pm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="hoursVarySeasonally"
+                    checked={hoursVarySeasonally}
+                    onChange={(e) => setHoursVarySeasonally(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="hoursVarySeasonally" className="text-sm font-normal cursor-pointer">
+                    Hours may vary seasonally
+                  </Label>
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={resetForm}>
                     Cancel
@@ -207,6 +238,16 @@ export const SavedLocationsManager = () => {
                   <p className="text-sm text-muted-foreground break-words">
                     {location.address}
                   </p>
+                  {location.hours && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      <span className="font-medium">Hours:</span> {location.hours}
+                      {location.hours_vary_seasonally && (
+                        <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                          Hours vary seasonally
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <Button

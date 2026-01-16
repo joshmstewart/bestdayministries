@@ -6755,6 +6755,8 @@ export type Database = {
           address: string
           created_at: string
           created_by: string
+          hours: string | null
+          hours_vary_seasonally: boolean
           id: string
           is_active: boolean
           name: string
@@ -6764,6 +6766,8 @@ export type Database = {
           address: string
           created_at?: string
           created_by: string
+          hours?: string | null
+          hours_vary_seasonally?: boolean
           id?: string
           is_active?: boolean
           name: string
@@ -6773,6 +6777,8 @@ export type Database = {
           address?: string
           created_at?: string
           created_by?: string
+          hours?: string | null
+          hours_vary_seasonally?: boolean
           id?: string
           is_active?: boolean
           name?: string
