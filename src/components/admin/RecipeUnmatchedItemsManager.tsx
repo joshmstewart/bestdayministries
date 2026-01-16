@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Check, RefreshCw, Trash2, UtensilsCrossed, Carrot, Pencil, X } from "lucide-react";
+import { AlertTriangle, Check, RefreshCw, Trash2, UtensilsCrossed, Carrot, Pencil, X, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -127,6 +127,8 @@ export function RecipeUnmatchedItemsManager() {
   const [existingTools, setExistingTools] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedNames, setEditedNames] = useState<Record<string, { name: string; toolSuggestion?: string; category?: string }>>({});
+  const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadItems();
@@ -175,42 +177,66 @@ export function RecipeUnmatchedItemsManager() {
     const category = formatted.category || detectCategory(formatted.name, isIngredient);
     
     try {
+      let insertedId: string | null = null;
+      
       // First, add to the appropriate table
       if (isIngredient) {
-        const { error: insertError } = await supabase
+        const { data: insertData, error: insertError } = await supabase
           .from("recipe_ingredients")
           .insert({
             name: formatted.name,
             category: category,
             is_active: true,
-          });
+          })
+          .select("id")
+          .single();
         
         if (insertError) {
           if (insertError.code === "23505") {
             // Duplicate - already exists, just mark as resolved
             console.log("Ingredient already exists, marking as resolved");
+            // Get the existing ID for image generation
+            const { data: existing } = await supabase
+              .from("recipe_ingredients")
+              .select("id")
+              .ilike("name", formatted.name)
+              .single();
+            insertedId = existing?.id || null;
           } else {
             throw insertError;
           }
+        } else {
+          insertedId = insertData?.id || null;
         }
         
         // Update existing ingredients set
         setExistingIngredients(prev => new Set([...prev, formatted.name.toLowerCase()]));
       } else {
-        const { error: insertError } = await supabase
+        const { data: insertData, error: insertError } = await supabase
           .from("recipe_tools")
           .insert({
             name: formatted.name,
             category: category,
             is_active: true,
-          });
+          })
+          .select("id")
+          .single();
         
         if (insertError) {
           if (insertError.code === "23505") {
             console.log("Tool already exists, marking as resolved");
+            // Get the existing ID for image generation
+            const { data: existing } = await supabase
+              .from("recipe_tools")
+              .select("id")
+              .ilike("name", formatted.name)
+              .single();
+            insertedId = existing?.id || null;
           } else {
             throw insertError;
           }
+        } else {
+          insertedId = insertData?.id || null;
         }
         
         // Update existing tools set
@@ -254,9 +280,50 @@ export function RecipeUnmatchedItemsManager() {
         return newNames;
       });
       loadItems();
+      
+      // Auto-generate image in background
+      if (insertedId) {
+        generateImageForItem(item.id, insertedId, formatted.name, category, isIngredient);
+      }
     } catch (err) {
       console.error("Error adding item:", err);
       toast.error("Failed to add item");
+    }
+  };
+
+  const generateImageForItem = async (
+    unmatchedItemId: string,
+    itemId: string,
+    name: string,
+    category: string,
+    isIngredient: boolean
+  ) => {
+    setGeneratingImageFor(unmatchedItemId);
+    
+    try {
+      const functionName = isIngredient ? "generate-recipe-ingredient-icon" : "generate-recipe-tool-icon";
+      const payload = isIngredient
+        ? { ingredientId: itemId, ingredientName: name, category }
+        : { toolId: itemId, toolName: name, category };
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: payload,
+      });
+      
+      if (error) {
+        console.error("Image generation error:", error);
+        toast.error(`Failed to generate image for "${name}"`);
+        return;
+      }
+      
+      if (data?.imageUrl) {
+        setGeneratedImages(prev => ({ ...prev, [unmatchedItemId]: data.imageUrl }));
+        toast.success(`Generated image for "${name}"`);
+      }
+    } catch (err) {
+      console.error("Error generating image:", err);
+    } finally {
+      setGeneratingImageFor(null);
     }
   };
 
@@ -456,6 +523,7 @@ export function RecipeUnmatchedItemsManager() {
                     <TableHead>Category</TableHead>
                     <TableHead className="text-center">Times Seen</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Image</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -537,6 +605,23 @@ export function RecipeUnmatchedItemsManager() {
                             </Badge>
                           ) : (
                             <Badge variant="secondary">Pending</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {generatingImageFor === item.id ? (
+                            <div className="flex items-center justify-center">
+                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                          ) : generatedImages[item.id] ? (
+                            <img
+                              src={generatedImages[item.id]}
+                              alt={formatted.name}
+                              className="h-10 w-10 rounded object-cover mx-auto"
+                            />
+                          ) : item.is_resolved ? (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          ) : (
+                            <ImageIcon className="h-5 w-5 text-muted-foreground/30 mx-auto" />
                           )}
                         </TableCell>
                         <TableCell className="text-right">
