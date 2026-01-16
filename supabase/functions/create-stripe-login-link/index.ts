@@ -7,15 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[STRIPE-LOGIN-LINK] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    logStep("Function started");
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     const authHeader = req.headers.get("Authorization")!;
@@ -27,15 +34,91 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    // Get vendor account
-    const { data: vendor, error: vendorError } = await supabaseClient
-      .from("vendors")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+    logStep("User authenticated", { userId: user.id });
 
-    if (vendorError || !vendor) {
-      throw new Error("Vendor account not found");
+    // Parse request body for optional vendor_id
+    let requestedVendorId: string | null = null;
+    try {
+      const body = await req.json();
+      requestedVendorId = body.vendor_id || null;
+    } catch {
+      // No body or invalid JSON
+    }
+
+    let vendor = null;
+
+    if (requestedVendorId) {
+      // Check if user is the owner or a team member of this specific vendor
+      const { data: vendorData, error: vendorError } = await supabaseClient
+        .from("vendors")
+        .select("*")
+        .eq("id", requestedVendorId)
+        .single();
+
+      if (vendorError || !vendorData) {
+        throw new Error("Vendor not found");
+      }
+
+      // Check if user is the owner
+      if (vendorData.user_id === user.id) {
+        vendor = vendorData;
+        logStep("User is vendor owner");
+      } else {
+        // Check if user is a team member
+        const { data: teamMember } = await supabaseClient
+          .from("vendor_team_members")
+          .select("*")
+          .eq("vendor_id", requestedVendorId)
+          .eq("user_id", user.id)
+          .not("accepted_at", "is", null)
+          .single();
+
+        if (!teamMember) {
+          throw new Error("User is not authorized to access this vendor's Stripe account");
+        }
+
+        vendor = vendorData;
+        logStep("User is team member");
+      }
+    } else {
+      // Get vendor account (check ownership first, then team membership)
+      const { data: vendorData, error: vendorError } = await supabaseClient
+        .from("vendors")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (vendorError || !vendorData) {
+        // Check if they're a team member of any vendor
+        const { data: teamMemberData } = await supabaseClient
+          .from("vendor_team_members")
+          .select("vendor_id")
+          .eq("user_id", user.id)
+          .not("accepted_at", "is", null)
+          .limit(1)
+          .single();
+
+        if (!teamMemberData) {
+          throw new Error("Vendor account not found");
+        }
+
+        // Get the vendor they're a team member of
+        const { data: teamVendor } = await supabaseClient
+          .from("vendors")
+          .select("*")
+          .eq("id", teamMemberData.vendor_id)
+          .single();
+
+        if (!teamVendor) {
+          throw new Error("Vendor account not found");
+        }
+
+        vendor = teamVendor;
+        logStep("Found vendor via team membership", { vendorId: vendor.id });
+      } else {
+        vendor = vendorData;
+        logStep("Found vendor via ownership", { vendorId: vendor.id });
+      }
     }
 
     if (!vendor.stripe_account_id) {
@@ -58,6 +141,8 @@ serve(async (req) => {
       throw new Error(`Stripe ${mode} secret key not configured`);
     }
 
+    logStep("Using Stripe mode", { mode });
+
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
@@ -65,7 +150,7 @@ serve(async (req) => {
     // Create a login link for the connected account's Express dashboard
     const loginLink = await stripe.accounts.createLoginLink(vendor.stripe_account_id);
 
-    console.log("Created Stripe login link for vendor:", vendor.id);
+    logStep("Created Stripe login link", { vendorId: vendor.id });
 
     return new Response(
       JSON.stringify({
@@ -74,8 +159,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error creating login link:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: errorMessage });
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { 
