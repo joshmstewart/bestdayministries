@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, Check, RefreshCw, Trash2, UtensilsCrossed, Carrot, Pencil, X, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import ImageLightbox from "@/components/ImageLightbox";
 
 // Category options
 const INGREDIENT_CATEGORIES = ["protein", "dairy", "grains", "fruits", "vegetables", "condiments", "pantry"] as const;
@@ -129,6 +130,7 @@ export function RecipeUnmatchedItemsManager() {
   const [editedNames, setEditedNames] = useState<Record<string, { name: string; toolSuggestion?: string; category?: string }>>({});
   const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
 
   useEffect(() => {
     loadItems();
@@ -636,7 +638,8 @@ export function RecipeUnmatchedItemsManager() {
                                 <img
                                   src={generatedImages[item.id]}
                                   alt={formatted.name}
-                                  className="h-10 w-10 rounded object-cover mx-auto"
+                                  className="h-10 w-10 rounded object-cover mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => setLightboxImage({ url: generatedImages[item.id], name: formatted.name })}
                                 />
                               );
                             } else if (existingImageUrl) {
@@ -644,7 +647,8 @@ export function RecipeUnmatchedItemsManager() {
                                 <img
                                   src={existingImageUrl}
                                   alt={formatted.name}
-                                  className="h-10 w-10 rounded object-cover mx-auto"
+                                  className="h-10 w-10 rounded object-cover mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => setLightboxImage({ url: existingImageUrl, name: formatted.name })}
                                 />
                               );
                             } else if (item.is_resolved) {
@@ -719,6 +723,16 @@ export function RecipeUnmatchedItemsManager() {
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        images={lightboxImage ? [{ image_url: lightboxImage.url, caption: lightboxImage.name }] : []}
+        currentIndex={0}
+        isOpen={!!lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        onPrevious={() => {}}
+        onNext={() => {}}
+      />
     </Card>
   );
 }
