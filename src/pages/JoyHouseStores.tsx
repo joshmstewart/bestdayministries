@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Phone, Clock, ExternalLink, ShoppingBag, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { normalizeStoreHours, type StoreDayHours } from "@/lib/storeHours";
 
 interface StoreLocation {
   id: string;
@@ -16,7 +17,7 @@ interface StoreLocation {
   state: string;
   zip: string;
   phone: string;
-  hours: { day: string; open: string; close: string }[];
+  hours: StoreDayHours[];
   hours_vary_seasonally: boolean;
   description: string;
 }
@@ -77,10 +78,12 @@ const JoyHouseStores = () => {
       }
 
       if (locationsRes.data) {
-        setLocations(locationsRes.data.map(loc => ({
-          ...loc,
-          hours: (loc.hours as { day: string; open: string; close: string }[]) || [],
-        })) as StoreLocation[]);
+        setLocations(
+          locationsRes.data.map((loc) => ({
+            ...loc,
+            hours: normalizeStoreHours(loc.hours),
+          })) as StoreLocation[]
+        );
       }
 
       if (imagesRes.data) {
@@ -259,7 +262,7 @@ const JoyHouseStores = () => {
                                   </div>
                                 ))}
                                 {location.hours_vary_seasonally && (
-                                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 italic">
+                                  <p className="text-xs text-muted-foreground mt-2 italic">
                                     * Hours may vary seasonally
                                   </p>
                                 )}
