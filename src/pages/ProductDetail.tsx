@@ -15,6 +15,7 @@ import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton"
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 import { useCartSession } from "@/hooks/useCartSession";
+import { useProductViewTracking } from "@/hooks/useProductViewTracking";
 
 interface ProductVariant {
   id: number;
@@ -28,6 +29,9 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Track product view
+  useProductViewTracking(productId);
   
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
