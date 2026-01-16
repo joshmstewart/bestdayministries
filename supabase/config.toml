@@ -275,3 +275,9 @@ verify_jwt = true
 [functions.send-batch-year-end-summaries]
 verify_jwt = false
 schedule = "0 14 * * *"
+
+[functions.generate-avatar-image]
+verify_jwt = true
+
+[functions.generate-workout-image]
+verify_jwt = true
