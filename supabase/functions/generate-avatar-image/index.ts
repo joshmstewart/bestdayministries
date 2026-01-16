@@ -76,6 +76,12 @@ CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
 - The character should be isolated on a pure white background for easy integration into app interfaces
 
+CRITICAL ANIMAL CHARACTER REQUIREMENT:
+- If the character is an animal (dog, cat, bear, rabbit, etc.), they MUST be anthropomorphic - standing UPRIGHT on their HIND LEGS like a human
+- Animal characters should have a humanoid posture: standing on two legs, arms/front paws at their sides or in a friendly pose
+- NEVER show animal characters on all fours or in a natural animal stance
+- Animal characters should look like cartoon mascots (think Zootopia, Animal Crossing style)
+
 Style requirements:
 - Bright, cheerful cartoon/animated art style similar to modern mobile games
 - Character should be standing in a confident, friendly pose
