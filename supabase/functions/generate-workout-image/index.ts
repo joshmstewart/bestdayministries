@@ -38,44 +38,6 @@ serve(async (req) => {
 
     const { avatarId, activityName, imageType, workoutLogId, isAdminTest, location } = await req.json();
 
-    // Random locations for variety
-    const locations = [
-      "a sunny beach at sunrise",
-      "a lush green park with trees",
-      "a modern gym with equipment",
-      "a mountain trail with scenic views",
-      "a city rooftop at sunset",
-      "a backyard garden",
-      "a basketball court",
-      "a swimming pool area",
-      "a yoga studio with natural light",
-      "a forest trail surrounded by nature",
-      "a home living room",
-      "a sports stadium",
-      "a peaceful lake shore",
-      "a snowy mountain",
-      "a desert landscape at golden hour"
-    ];
-
-    // Random workouts for admin testing
-    const workouts = [
-      "running",
-      "yoga",
-      "weight lifting",
-      "swimming",
-      "cycling",
-      "dancing",
-      "jumping jacks",
-      "push-ups",
-      "stretching",
-      "hiking",
-      "boxing",
-      "jumping rope",
-      "basketball",
-      "tennis",
-      "pilates"
-    ];
-
     if (!avatarId || !imageType) {
       throw new Error("avatarId and imageType are required");
     }
@@ -121,31 +83,92 @@ serve(async (req) => {
       }
     }
 
-    // Build the image editing prompt - we'll use the avatar's actual image as input
+    // Build the image editing prompt
     let prompt: string;
     let selectedLocation: string | null = null;
     let selectedWorkout: string | null = null;
+    let selectedLocationName: string | null = null;
+    let selectedWorkoutName: string | null = null;
     
     // Check if avatar has an image to use for image-to-image
     const avatarImageUrl = avatar.image_url;
     
     if (imageType === "activity") {
-      // Use provided activity or pick random for admin test
-      selectedWorkout = activityName || workouts[Math.floor(Math.random() * workouts.length)];
-      selectedLocation = location || locations[Math.floor(Math.random() * locations.length)];
+      // For admin test or when not provided, fetch random from database
+      if (isAdminTest || !activityName) {
+        // Fetch a random active workout activity from the database
+        const { data: activities, error: activitiesError } = await supabase
+          .from("workout_activities")
+          .select("id, name, description, icon")
+          .eq("is_active", true);
+        
+        if (activitiesError || !activities || activities.length === 0) {
+          console.error("No activities found:", activitiesError);
+          throw new Error("No workout activities found in database");
+        }
+        
+        const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+        selectedWorkout = randomActivity.description || randomActivity.name;
+        selectedWorkoutName = `${randomActivity.icon} ${randomActivity.name}`;
+        console.log("Selected random activity:", selectedWorkoutName, "-", selectedWorkout);
+      } else {
+        selectedWorkout = activityName;
+        selectedWorkoutName = activityName;
+      }
+
+      // For admin test or when not provided, fetch random location from database
+      if (isAdminTest || !location) {
+        // Fetch a random active location from the database
+        const { data: locations, error: locationsError } = await supabase
+          .from("workout_locations")
+          .select("id, name, prompt_text, pack_id")
+          .eq("is_active", true);
+        
+        if (locationsError || !locations || locations.length === 0) {
+          console.error("No locations found:", locationsError);
+          throw new Error("No workout locations found in database");
+        }
+        
+        const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+        selectedLocation = randomLocation.prompt_text;
+        selectedLocationName = randomLocation.name;
+        console.log("Selected random location:", selectedLocationName, "-", selectedLocation);
+      } else {
+        selectedLocation = location;
+        selectedLocationName = location;
+      }
       
-      prompt = `Take this character and show them actively doing ${selectedWorkout} exercise in ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be dynamic and energetic while exercising. Add the location as the background. Make them look happy and motivated. High quality cartoon illustration.`;
+      prompt = `Take this character and show them actively doing ${selectedWorkout} ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be dynamic and energetic while exercising. Add the location as the background. Make them look happy and motivated. High quality cartoon illustration.`;
     } else if (imageType === "celebration") {
-      selectedLocation = location || locations[Math.floor(Math.random() * locations.length)];
-      prompt = `Take this character and show them celebrating with arms raised in victory in ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be celebratory. Add confetti, streamers, and a trophy or medal. Make them look extremely happy and proud. Colorful celebratory background with sparkles. High quality cartoon illustration.`;
+      // For celebration, also use real location if in admin test
+      if (isAdminTest || !location) {
+        const { data: locations, error: locationsError } = await supabase
+          .from("workout_locations")
+          .select("id, name, prompt_text")
+          .eq("is_active", true);
+        
+        if (locationsError || !locations || locations.length === 0) {
+          selectedLocation = "a beautiful outdoor setting";
+          selectedLocationName = "Outdoor Setting";
+        } else {
+          const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+          selectedLocation = randomLocation.prompt_text;
+          selectedLocationName = randomLocation.name;
+        }
+      } else {
+        selectedLocation = location;
+        selectedLocationName = location;
+      }
+      
+      prompt = `Take this character and show them celebrating with arms raised in victory ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be celebratory. Add confetti, streamers, and a trophy or medal. Make them look extremely happy and proud. Colorful celebratory background with sparkles. High quality cartoon illustration.`;
     } else {
       throw new Error("Invalid imageType");
     }
 
     console.log("Generating image with prompt:", prompt);
     console.log("Avatar image URL:", avatarImageUrl);
-    console.log("Selected workout:", selectedWorkout);
-    console.log("Selected location:", selectedLocation);
+    console.log("Selected workout:", selectedWorkoutName);
+    console.log("Selected location:", selectedLocationName);
 
     // Build the message content - use image-to-image if avatar has an image
     let messageContent: any;
@@ -267,8 +290,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         image: savedImage,
-        selectedWorkout,
-        selectedLocation,
+        selectedWorkout: selectedWorkoutName,
+        selectedLocation: selectedLocationName,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
