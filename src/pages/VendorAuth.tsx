@@ -77,8 +77,33 @@ const VendorAuth = () => {
   useEffect(() => {
     const newParam = searchParams.get('new');
     
+    const checkVendorAccess = async (userId: string) => {
+      // Check if user owns any vendors
+      const { data: ownedVendors } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', userId);
+      
+      if (ownedVendors && ownedVendors.length > 0) {
+        return true;
+      }
+      
+      // Check if user is a team member of any vendors
+      const { data: teamMemberships } = await supabase
+        .from('vendor_team_members')
+        .select('vendor_id, accepted_at')
+        .eq('user_id', userId)
+        .not('accepted_at', 'is', null);
+      
+      if (teamMemberships && teamMemberships.length > 0) {
+        return true;
+      }
+      
+      return false;
+    };
+    
     // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setExistingUser({ id: session.user.id, email: session.user.email || '' });
         
@@ -88,20 +113,15 @@ const VendorAuth = () => {
           return;
         }
         
-        // Otherwise check if they have vendors and redirect
-        supabase
-          .from('vendors')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .then(({ data: vendors }) => {
-            if (vendors && vendors.length > 0) {
-              navigate("/vendor-dashboard", { replace: true });
-            }
-          });
+        // Check if they have vendor access (owned or team member)
+        const hasAccess = await checkVendorAccess(session.user.id);
+        if (hasAccess) {
+          navigate("/vendor-dashboard", { replace: true });
+        }
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user && event === 'SIGNED_IN') {
         setExistingUser({ id: session.user.id, email: session.user.email || '' });
         
@@ -111,16 +131,11 @@ const VendorAuth = () => {
           return;
         }
         
-        // Check vendor status
-        supabase
-          .from('vendors')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .then(({ data: vendors }) => {
-            if (vendors && vendors.length > 0) {
-              navigate("/vendor-dashboard", { replace: true });
-            }
-          });
+        // Check if they have vendor access (owned or team member)
+        const hasAccess = await checkVendorAccess(session.user.id);
+        if (hasAccess) {
+          navigate("/vendor-dashboard", { replace: true });
+        }
       }
     });
 
