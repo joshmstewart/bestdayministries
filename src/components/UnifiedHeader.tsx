@@ -6,6 +6,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HeaderSkeleton } from "@/components/HeaderSkeleton";
 import { LogOut, Shield, Users, CheckCircle, ArrowLeft, UserCircle2, Mail, ChevronDown, Menu, Settings, HelpCircle, Package, Store, Receipt } from "lucide-react";
 import { isProblematicIOSVersion } from "@/lib/browserDetection";
+import { hasVendorAccess } from "@/lib/vendorAccess";
 
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -180,12 +181,8 @@ export const UnifiedHeader = () => {
             .select("id, visible_to_roles")
             .eq("is_active", true)
             .limit(1),
-          supabase
-            .from("vendors")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("status", "approved")
-            .limit(1),
+          // Vendor access includes: owning a vendor OR being an accepted team member.
+          hasVendorAccess(user.id),
           profile.role === "bestie" 
             ? supabase
                 .from("sponsorship_shares")
@@ -208,7 +205,7 @@ export const UnifiedHeader = () => {
 
         // Process vendor status
         if (vendorResult.status === 'fulfilled') {
-          setIsApprovedVendor((vendorResult.value.data?.length ?? 0) > 0);
+          setIsApprovedVendor(Boolean(vendorResult.value));
         }
 
         // Process shared sponsorships
