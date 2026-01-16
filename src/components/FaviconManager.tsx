@@ -8,7 +8,7 @@ export const FaviconManager = () => {
         const { data } = await supabase
           .from("app_settings")
           .select("setting_value")
-          .eq("setting_key", "mobile_app_icon_url")
+          .eq("setting_key", "favicon_url")
           .maybeSingle();
 
         if (data?.setting_value) {
