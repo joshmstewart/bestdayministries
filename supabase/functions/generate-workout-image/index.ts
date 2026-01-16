@@ -36,7 +36,45 @@ serve(async (req) => {
       throw new Error("Invalid user");
     }
 
-    const { avatarId, activityName, imageType, workoutLogId } = await req.json();
+    const { avatarId, activityName, imageType, workoutLogId, isAdminTest, location } = await req.json();
+
+    // Random locations for variety
+    const locations = [
+      "a sunny beach at sunrise",
+      "a lush green park with trees",
+      "a modern gym with equipment",
+      "a mountain trail with scenic views",
+      "a city rooftop at sunset",
+      "a backyard garden",
+      "a basketball court",
+      "a swimming pool area",
+      "a yoga studio with natural light",
+      "a forest trail surrounded by nature",
+      "a home living room",
+      "a sports stadium",
+      "a peaceful lake shore",
+      "a snowy mountain",
+      "a desert landscape at golden hour"
+    ];
+
+    // Random workouts for admin testing
+    const workouts = [
+      "running",
+      "yoga",
+      "weight lifting",
+      "swimming",
+      "cycling",
+      "dancing",
+      "jumping jacks",
+      "push-ups",
+      "stretching",
+      "hiking",
+      "boxing",
+      "jumping rope",
+      "basketball",
+      "tennis",
+      "pilates"
+    ];
 
     if (!avatarId || !imageType) {
       throw new Error("avatarId and imageType are required");
@@ -69,16 +107,25 @@ serve(async (req) => {
 
     // Build the image generation prompt
     let prompt: string;
+    let selectedLocation: string | null = null;
+    let selectedWorkout: string | null = null;
     
-    if (imageType === "activity" && activityName) {
-      prompt = `${avatar.character_prompt}, actively doing ${activityName} exercise, dynamic action pose, energetic and happy expression, colorful gym or outdoor workout background, high quality cartoon illustration, fun and motivational, 4K quality`;
+    if (imageType === "activity") {
+      // Use provided activity or pick random for admin test
+      selectedWorkout = activityName || workouts[Math.floor(Math.random() * workouts.length)];
+      selectedLocation = location || locations[Math.floor(Math.random() * locations.length)];
+      
+      prompt = `${avatar.character_prompt}, actively doing ${selectedWorkout} exercise in ${selectedLocation}, dynamic action pose, energetic and happy expression, high quality cartoon illustration, fun and motivational, 4K quality, plain white background replaced with the location scene`;
     } else if (imageType === "celebration") {
-      prompt = `${avatar.character_prompt}, celebrating with arms raised in victory, confetti and streamers in the air, trophy or medal visible, extremely happy and proud expression, colorful celebratory background with sparkles, high quality cartoon illustration, joyful and triumphant mood, 4K quality`;
+      selectedLocation = location || locations[Math.floor(Math.random() * locations.length)];
+      prompt = `${avatar.character_prompt}, celebrating with arms raised in victory in ${selectedLocation}, confetti and streamers in the air, trophy or medal visible, extremely happy and proud expression, colorful celebratory background with sparkles, high quality cartoon illustration, joyful and triumphant mood, 4K quality`;
     } else {
-      throw new Error("Invalid imageType or missing activityName for activity type");
+      throw new Error("Invalid imageType");
     }
 
     console.log("Generating image with prompt:", prompt);
+    console.log("Selected workout:", selectedWorkout);
+    console.log("Selected location:", selectedLocation);
 
     // Call Lovable AI to generate the image
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -176,6 +223,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         image: savedImage,
+        selectedWorkout,
+        selectedLocation,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

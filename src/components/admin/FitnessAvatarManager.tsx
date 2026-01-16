@@ -14,7 +14,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import ImageLightbox from "@/components/ImageLightbox";
@@ -64,6 +64,13 @@ export function FitnessAvatarManager() {
   const [generatingInDialog, setGeneratingInDialog] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [generatingWorkoutTest, setGeneratingWorkoutTest] = useState<string | null>(null);
+  const [workoutTestResult, setWorkoutTestResult] = useState<{
+    imageUrl: string;
+    workout: string;
+    location: string;
+  } | null>(null);
+  const [workoutTestDialogOpen, setWorkoutTestDialogOpen] = useState(false);
 
   const handleImageClick = (imageUrl: string) => {
     setLightboxImage(imageUrl);
@@ -147,6 +154,46 @@ export function FitnessAvatarManager() {
       setGeneratingInDialog(false);
     },
   });
+
+  const testWorkoutImageMutation = useMutation({
+    mutationFn: async (avatar: { id: string; name: string }) => {
+      const { data, error } = await supabase.functions.invoke("generate-workout-image", {
+        body: { 
+          avatarId: avatar.id, 
+          imageType: "activity",
+          isAdminTest: true,
+        },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      setWorkoutTestResult({
+        imageUrl: data.image?.image_url,
+        workout: data.selectedWorkout || "Unknown",
+        location: data.selectedLocation || "Unknown",
+      });
+      setWorkoutTestDialogOpen(true);
+      toast.success("Test workout image generated!");
+    },
+    onError: (error) => {
+      showErrorToastWithCopy("Failed to generate test workout image", error);
+    },
+    onSettled: () => {
+      setGeneratingWorkoutTest(null);
+    },
+  });
+
+  const handleTestWorkoutImage = (avatar: any) => {
+    if (!avatar.character_prompt) {
+      toast.error("Character prompt is required");
+      return;
+    }
+    setGeneratingWorkoutTest(avatar.id);
+    toast.info("🏋️ Generating test workout image...", { description: "Random workout + random location" });
+    testWorkoutImageMutation.mutate({ id: avatar.id, name: avatar.name });
+  };
 
   const handleEdit = (avatar: any) => {
     setEditingAvatar(avatar);
@@ -501,6 +548,19 @@ export function FitnessAvatarManager() {
                     <Button 
                       size="icon" 
                       variant="outline" 
+                      onClick={() => handleTestWorkoutImage(avatar)}
+                      disabled={generatingWorkoutTest === avatar.id || !avatar.character_prompt}
+                      title="Test workout image (random workout + location)"
+                    >
+                      {generatingWorkoutTest === avatar.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Dumbbell className="h-4 w-4 text-orange-600" />
+                      )}
+                    </Button>
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
                       onClick={() => handleGenerateImage(avatar)}
                       disabled={generatingImageFor === avatar.id || !avatar.character_prompt}
                       title={avatar.preview_image_url ? "Regenerate AI image" : "Generate AI image"}
@@ -557,6 +617,43 @@ export function FitnessAvatarManager() {
         onPrevious={() => {}}
         onNext={() => {}}
       />
+
+      {/* Test Workout Image Result Dialog */}
+      <Dialog open={workoutTestDialogOpen} onOpenChange={setWorkoutTestDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Test Workout Image Result</DialogTitle>
+          </DialogHeader>
+          {workoutTestResult && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-medium text-muted-foreground">Workout:</p>
+                  <p className="text-lg font-semibold capitalize">{workoutTestResult.workout}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-muted-foreground">Location:</p>
+                  <p className="text-lg font-semibold capitalize">{workoutTestResult.location}</p>
+                </div>
+              </div>
+              {workoutTestResult.imageUrl && (
+                <div className="rounded-lg overflow-hidden border">
+                  <img 
+                    src={workoutTestResult.imageUrl} 
+                    alt="Test workout" 
+                    className="w-full h-auto cursor-pointer"
+                    onClick={() => handleImageClick(workoutTestResult.imageUrl)}
+                    title="Click to enlarge"
+                  />
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground text-center">
+                This image was generated with a random workout and location to test the system.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
