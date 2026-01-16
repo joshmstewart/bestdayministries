@@ -26,14 +26,23 @@ Vendor application system where ANY authenticated user can apply to become a ven
 
 ## Vendor Check Pattern
 ```typescript
-// Check if user has vendor capabilities
-const { data: vendor } = await supabase
+// Check if user has vendor capabilities (owner OR accepted team member)
+const { data: owned } = await supabase
   .from('vendors')
-  .select('status')
+  .select('id')
   .eq('user_id', userId)
-  .maybeSingle();
+  .limit(1);
 
-if (vendor?.status === 'approved') {
+const { data: team } = await supabase
+  .from('vendor_team_members')
+  .select('id')
+  .eq('user_id', userId)
+  .not('accepted_at', 'is', null)
+  .limit(1);
+
+const hasVendorAccess = (owned?.length ?? 0) > 0 || (team?.length ?? 0) > 0;
+
+if (hasVendorAccess) {
   // User can access vendor features
 }
 ```

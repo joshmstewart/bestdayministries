@@ -71,25 +71,29 @@ const Marketplace = () => {
     }
   });
 
-  // Check if user is a vendor
-  const { data: userVendors } = useQuery({
-    queryKey: ['user-vendors'],
+  // Check if user has vendor access (owned vendor OR accepted team member)
+  const { data: vendorAccess } = useQuery({
+    queryKey: ['vendor-access'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('vendors')
-        .select('id, business_name, status')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      return data || [];
+      if (!user) return { hasAccess: false };
+
+      const [{ data: owned }, { data: team }] = await Promise.all([
+        supabase.from('vendors').select('id').eq('user_id', user.id).limit(1),
+        supabase
+          .from('vendor_team_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .not('accepted_at', 'is', null)
+          .limit(1),
+      ]);
+
+      return { hasAccess: (owned?.length ?? 0) > 0 || (team?.length ?? 0) > 0 };
     },
-    enabled: isAuthenticated
+    enabled: isAuthenticated,
   });
 
-  const isVendor = userVendors && userVendors.length > 0;
+  const isVendor = !!vendorAccess?.hasAccess;
 
   // Check which categories have products and get sample images
   const { data: categoryStatus } = useQuery({
