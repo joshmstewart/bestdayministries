@@ -8820,6 +8820,7 @@ export type Database = {
           banner_image_url: string | null
           business_name: string
           commission_percentage: number
+          contact_email: string | null
           created_at: string
           description: string | null
           estimated_processing_days: number | null
@@ -8849,6 +8850,7 @@ export type Database = {
           banner_image_url?: string | null
           business_name: string
           commission_percentage?: number
+          contact_email?: string | null
           created_at?: string
           description?: string | null
           estimated_processing_days?: number | null
@@ -8878,6 +8880,7 @@ export type Database = {
           banner_image_url?: string | null
           business_name?: string
           commission_percentage?: number
+          contact_email?: string | null
           created_at?: string
           description?: string | null
           estimated_processing_days?: number | null

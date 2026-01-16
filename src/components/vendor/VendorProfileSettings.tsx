@@ -27,6 +27,8 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
     instagram: '',
     facebook: '',
     free_shipping_threshold: 35,
+    estimated_processing_days: 3,
+    contact_email: '',
   });
 
   useEffect(() => {
@@ -54,6 +56,8 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           instagram: socialLinks?.instagram || '',
           facebook: socialLinks?.facebook || '',
           free_shipping_threshold: data.free_shipping_threshold ?? 35,
+          estimated_processing_days: data.estimated_processing_days ?? 3,
+          contact_email: data.contact_email || '',
         });
       }
     } catch (error) {
@@ -109,6 +113,8 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           logo_url: formData.logo_url || null,
           banner_image_url: formData.banner_image_url || null,
           free_shipping_threshold: formData.free_shipping_threshold,
+          estimated_processing_days: formData.estimated_processing_days,
+          contact_email: formData.contact_email || null,
           social_links: {
             website: formData.website || undefined,
             instagram: formData.instagram || undefined,
@@ -181,6 +187,35 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
             />
             <p className="text-xs text-muted-foreground">
               Orders over this amount qualify for free shipping. Default is $35.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="estimated_processing_days">Estimated Processing Time (Days)</Label>
+            <Input
+              id="estimated_processing_days"
+              type="number"
+              min="1"
+              max="30"
+              value={formData.estimated_processing_days}
+              onChange={(e) => setFormData(prev => ({ ...prev, estimated_processing_days: parseInt(e.target.value) || 3 }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              How many business days it typically takes to prepare an order for shipping.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="contact_email">Customer Contact Email</Label>
+            <Input
+              id="contact_email"
+              type="email"
+              value={formData.contact_email}
+              onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+              placeholder="support@yourstore.com"
+            />
+            <p className="text-xs text-muted-foreground">
+              Email address buyers can use to contact you about order issues.
             </p>
           </div>
         </CardContent>
