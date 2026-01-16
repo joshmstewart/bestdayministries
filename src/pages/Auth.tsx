@@ -160,9 +160,19 @@ const Auth = () => {
           return;
         }
 
-        // All users go to community by default
-        // Vendors can navigate to their dashboard manually
-        navigate("/community", { replace: true });
+        // If user has vendor access (owner OR accepted team member), take them to vendor dashboard
+        const [{ data: owned }, { data: team }] = await Promise.all([
+          supabase.from('vendors').select('id').eq('user_id', userId).limit(1),
+          supabase
+            .from('vendor_team_members')
+            .select('id')
+            .eq('user_id', userId)
+            .not('accepted_at', 'is', null)
+            .limit(1),
+        ]);
+
+        const hasVendorAccess = (owned?.length ?? 0) > 0 || (team?.length ?? 0) > 0;
+        navigate(hasVendorAccess ? "/vendor-dashboard" : "/community", { replace: true });
       } catch (err) {
         navigate("/community", { replace: true });
       }
