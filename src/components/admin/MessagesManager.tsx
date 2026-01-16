@@ -60,6 +60,7 @@ interface Reply {
   sender_email: string;
   message: string;
   created_at: string;
+  cc_emails?: string[] | null;
 }
 
 export const MessagesManager = () => {
@@ -1018,6 +1019,11 @@ export const MessagesManager = () => {
                           <span>•</span>
                           <span>{format(new Date(reply.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
                         </div>
+                        {reply.cc_emails && reply.cc_emails.length > 0 && (
+                          <div className="text-xs text-muted-foreground mb-2">
+                            <span className="font-medium">CC:</span> {reply.cc_emails.join(', ')}
+                          </div>
+                        )}
                         <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
                       </div>
                     ))}
@@ -1117,6 +1123,11 @@ export const MessagesManager = () => {
                         <span>•</span>
                         <span>{format(new Date(reply.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
                       </div>
+                      {reply.cc_emails && reply.cc_emails.length > 0 && (
+                        <div className="text-xs text-muted-foreground mb-2">
+                          <span className="font-medium">CC:</span> {reply.cc_emails.join(', ')}
+                        </div>
+                      )}
                       <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
                     </div>
                   ))}

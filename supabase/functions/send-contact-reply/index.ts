@@ -259,6 +259,7 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
         sender_name: adminName,
         sender_email: fromEmail,
         message: replyMessage,
+        cc_emails: ccRecipients.length > 0 ? ccRecipients : null,
       });
 
     if (replyError) {
