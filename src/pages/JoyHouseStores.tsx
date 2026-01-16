@@ -17,6 +17,7 @@ interface StoreLocation {
   zip: string;
   phone: string;
   hours: { day: string; open: string; close: string }[];
+  hours_vary_seasonally: boolean;
   description: string;
 }
 
@@ -257,6 +258,11 @@ const JoyHouseStores = () => {
                                     </span>
                                   </div>
                                 ))}
+                                {location.hours_vary_seasonally && (
+                                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 italic">
+                                    * Hours may vary seasonally
+                                  </p>
+                                )}
                               </div>
                             </div>
                           )}
