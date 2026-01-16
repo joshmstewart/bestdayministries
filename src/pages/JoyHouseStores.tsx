@@ -108,209 +108,208 @@ const JoyHouseStores = () => {
 
   const galleryImages = images.filter(img => !img.location_id);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <UnifiedHeader />
-        <main className="flex-1 pt-24">
-          <div className="container mx-auto px-4 py-12">
-            <Skeleton className="h-64 w-full mb-8" />
-            <Skeleton className="h-8 w-1/3 mb-4" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // Content loading skeleton (header handles its own loading state)
+  const ContentSkeleton = () => (
+    <div className="container mx-auto px-4 py-12">
+      <Skeleton className="h-64 w-full mb-8" />
+      <Skeleton className="h-8 w-1/3 mb-4" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <UnifiedHeader />
       <main className="flex-1 pt-24 bg-gradient-to-br from-primary/10 via-background to-accent/10">
-        {/* Hero Section */}
-        <section className="relative -mt-6">
-          {content?.hero_image_url && (
-            <div className="absolute inset-0">
-              <img
-                src={content.hero_image_url}
-                alt="Joy House Stores"
-                className="w-full h-full object-cover opacity-20"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
-            </div>
-          )}
-          <div className="container mx-auto px-4 pt-6 pb-12 md:pt-8 md:pb-16 relative z-10">
-            <div className="max-w-3xl mx-auto text-center">
-              <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {content?.hero_heading || "Joy House Stores"}
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground">
-                {content?.hero_subheading || "Visit our physical store locations"}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* History Section */}
-        {content?.history_content && (
-          <section className="py-12 md:py-16">
-            <div className="container mx-auto px-4">
-              <div className="max-w-3xl mx-auto">
-                <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">
-                  {content.history_title || "Our Story"}
-                </h2>
-                <div className="prose prose-lg max-w-none text-muted-foreground">
-                  {content.history_content.split('\n').map((para, idx) => (
-                    <p key={idx}>{para}</p>
-                  ))}
+        {loading ? (
+          <ContentSkeleton />
+        ) : (
+          <>
+            {/* Hero Section */}
+            <section className="relative -mt-6">
+              {content?.hero_image_url && (
+                <div className="absolute inset-0">
+                  <img
+                    src={content.hero_image_url}
+                    alt="Joy House Stores"
+                    className="w-full h-full object-cover opacity-20"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+                </div>
+              )}
+              <div className="container mx-auto px-4 pt-6 pb-12 md:pt-8 md:pb-16 relative z-10">
+                <div className="max-w-3xl mx-auto text-center">
+                  <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    {content?.hero_heading || "Joy House Stores"}
+                  </h1>
+                  <p className="text-lg md:text-xl text-muted-foreground">
+                    {content?.hero_subheading || "Visit our physical store locations"}
+                  </p>
                 </div>
               </div>
-            </div>
-          </section>
-        )}
+            </section>
 
-        {/* Gallery Section */}
-        {galleryImages.length > 0 && (
-          <section className="py-12 bg-muted/30">
-            <div className="container mx-auto px-4">
-              <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Our Stores</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {galleryImages.slice(0, 8).map((img) => (
-                  <div key={img.id} className="aspect-square overflow-hidden rounded-lg">
-                    <img
-                      src={img.image_url}
-                      alt={img.caption || "Joy House Store"}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
+            {/* History Section */}
+            {content?.history_content && (
+              <section className="py-12 md:py-16">
+                <div className="container mx-auto px-4">
+                  <div className="max-w-3xl mx-auto">
+                    <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">
+                      {content.history_title || "Our Story"}
+                    </h2>
+                    <div className="prose prose-lg max-w-none text-muted-foreground">
+                      {content.history_content.split('\n').map((para, idx) => (
+                        <p key={idx}>{para}</p>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+                </div>
+              </section>
+            )}
 
-        {/* Locations Section */}
-        <section className="py-12 md:py-16">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Visit Us</h2>
-            {locations.length === 0 ? (
-              <div className="text-center text-muted-foreground py-12">
-                <p>Store locations coming soon!</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {locations.map((location) => {
-                  const locationImages = getLocationImages(location.id);
-                  return (
-                    <Card key={location.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      {locationImages.length > 0 && (
-                        <div className="aspect-video overflow-hidden">
-                          <img
-                            src={locationImages[0].image_url}
-                            alt={location.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <CardContent className="p-6">
-                        <h3 className="text-xl font-semibold mb-3">{location.name}</h3>
-                        
-                        {location.description && (
-                          <p className="text-muted-foreground mb-4 text-sm">
-                            {location.description}
-                          </p>
-                        )}
+            {/* Gallery Section */}
+            {galleryImages.length > 0 && (
+              <section className="py-12 bg-muted/30">
+                <div className="container mx-auto px-4">
+                  <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Our Stores</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {galleryImages.slice(0, 8).map((img) => (
+                      <div key={img.id} className="aspect-square overflow-hidden rounded-lg">
+                        <img
+                          src={img.image_url}
+                          alt={img.caption || "Joy House Store"}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
 
-                        <div className="space-y-3">
-                          {/* Address */}
-                          <a
-                            href={getGoogleMapsUrl(location)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-start gap-2 text-sm hover:text-primary transition-colors group"
-                          >
-                            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <span className="group-hover:underline">
-                              {location.address}
-                              <br />
-                              {location.city}, {location.state} {location.zip}
-                            </span>
-                          </a>
-
-                          {/* Phone */}
-                          {location.phone && (
-                            <a
-                              href={`tel:${location.phone.replace(/\D/g, '')}`}
-                              className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-                            >
-                              <Phone className="w-4 h-4 flex-shrink-0" />
-                              {location.phone}
-                            </a>
-                          )}
-
-                          {/* Hours */}
-                          {location.hours && location.hours.length > 0 && (
-                            <div className="flex items-start gap-2 text-sm">
-                              <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              <div className="space-y-0.5">
-                                {location.hours.map((hour) => (
-                                  <div key={hour.day} className="flex justify-between gap-4">
-                                    <span className="font-medium">{hour.day}</span>
-                                    <span className="text-muted-foreground">
-                                      {hour.open === "Closed" ? "Closed" : `${hour.open} - ${hour.close}`}
-                                    </span>
-                                  </div>
-                                ))}
-                                {location.hours_vary_seasonally && (
-                                  <p className="text-xs text-muted-foreground mt-2 italic">
-                                    * Hours may vary seasonally
-                                  </p>
-                                )}
-                              </div>
+            {/* Locations Section */}
+            <section className="py-12 md:py-16">
+              <div className="container mx-auto px-4">
+                <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">Visit Us</h2>
+                {locations.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-12">
+                    <p>Store locations coming soon!</p>
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {locations.map((location) => {
+                      const locationImages = getLocationImages(location.id);
+                      return (
+                        <Card key={location.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                          {locationImages.length > 0 && (
+                            <div className="aspect-video overflow-hidden">
+                              <img
+                                src={locationImages[0].image_url}
+                                alt={location.name}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                           )}
-                        </div>
+                          <CardContent className="p-6">
+                            <h3 className="text-xl font-semibold mb-3">{location.name}</h3>
+                            
+                            {location.description && (
+                              <p className="text-muted-foreground mb-4 text-sm">
+                                {location.description}
+                              </p>
+                            )}
 
-                        <Button
-                          asChild
-                          variant="outline"
-                          className="w-full mt-4 gap-2"
-                        >
-                          <a href={getGoogleMapsUrl(location)} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4" />
-                            Get Directions
-                          </a>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                            <div className="space-y-3">
+                              {/* Address */}
+                              <a
+                                href={getGoogleMapsUrl(location)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-start gap-2 text-sm hover:text-primary transition-colors group"
+                              >
+                                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <span className="group-hover:underline">
+                                  {location.address}
+                                  <br />
+                                  {location.city}, {location.state} {location.zip}
+                                </span>
+                              </a>
+
+                              {/* Phone */}
+                              {location.phone && (
+                                <a
+                                  href={`tel:${location.phone.replace(/\D/g, '')}`}
+                                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                                >
+                                  <Phone className="w-4 h-4 flex-shrink-0" />
+                                  {location.phone}
+                                </a>
+                              )}
+
+                              {/* Hours */}
+                              {location.hours && location.hours.length > 0 && (
+                                <div className="flex items-start gap-2 text-sm">
+                                  <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                  <div className="space-y-0.5">
+                                    {location.hours.map((hour) => (
+                                      <div key={hour.day} className="flex justify-between gap-4">
+                                        <span className="font-medium">{hour.day}</span>
+                                        <span className="text-muted-foreground">
+                                          {hour.open === "Closed" ? "Closed" : `${hour.open} - ${hour.close}`}
+                                        </span>
+                                      </div>
+                                    ))}
+                                    {location.hours_vary_seasonally && (
+                                      <p className="text-xs text-muted-foreground mt-2 italic">
+                                        * Hours may vary seasonally
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <Button
+                              asChild
+                              variant="outline"
+                              className="w-full mt-4 gap-2"
+                            >
+                              <a href={getGoogleMapsUrl(location)} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="w-4 h-4" />
+                                Get Directions
+                              </a>
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </section>
+            </section>
 
-        {/* Online Store CTA */}
-        <section className="py-12 md:py-16 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
-          <div className="container mx-auto px-4">
-            <div className="max-w-2xl mx-auto text-center">
-              <ShoppingBag className="w-12 h-12 mx-auto mb-4 text-primary" />
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                {content?.online_store_title || "Shop Online Too!"}
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                {content?.online_store_description || "Can't make it to one of our physical locations? Visit our online store!"}
-              </p>
-              <Button asChild size="lg" className="gap-2 bg-gradient-warm">
-                <Link to={content?.online_store_link || "/joyhousestore"}>
-                  {content?.online_store_button_text || "Visit Online Store"}
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
+            {/* Online Store CTA */}
+            <section className="py-12 md:py-16 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+              <div className="container mx-auto px-4">
+                <div className="max-w-2xl mx-auto text-center">
+                  <ShoppingBag className="w-12 h-12 mx-auto mb-4 text-primary" />
+                  <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                    {content?.online_store_title || "Shop Online Too!"}
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    {content?.online_store_description || "Can't make it to one of our physical locations? Visit our online store!"}
+                  </p>
+                  <Button asChild size="lg" className="gap-2 bg-gradient-warm">
+                    <Link to={content?.online_store_link || "/joyhousestore"}>
+                      {content?.online_store_button_text || "Visit Online Store"}
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
       </main>
       <Footer />
     </div>
