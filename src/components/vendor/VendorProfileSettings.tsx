@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, ExternalLink } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
 
@@ -129,6 +130,16 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Preview Store Link */}
+      <div className="flex justify-end">
+        <Button variant="outline" asChild>
+          <Link to={`/vendors/${vendorId}`} target="_blank">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Preview Store Page
+          </Link>
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Business Information</CardTitle>
