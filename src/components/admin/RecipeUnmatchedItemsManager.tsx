@@ -123,8 +123,8 @@ export function RecipeUnmatchedItemsManager() {
   const [items, setItems] = useState<UnmatchedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("ingredients");
-  const [existingIngredients, setExistingIngredients] = useState<Set<string>>(new Set());
-  const [existingTools, setExistingTools] = useState<Set<string>>(new Set());
+  const [existingIngredients, setExistingIngredients] = useState<Map<string, string>>(new Map()); // name -> image_url
+  const [existingTools, setExistingTools] = useState<Map<string, string>>(new Map()); // name -> image_url
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedNames, setEditedNames] = useState<Record<string, { name: string; toolSuggestion?: string; category?: string }>>({});
   const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
@@ -138,15 +138,19 @@ export function RecipeUnmatchedItemsManager() {
   const loadExistingItems = async () => {
     try {
       const [ingredientsResult, toolsResult] = await Promise.all([
-        supabase.from("recipe_ingredients").select("name"),
-        supabase.from("recipe_tools").select("name"),
+        supabase.from("recipe_ingredients").select("name, image_url"),
+        supabase.from("recipe_tools").select("name, image_url"),
       ]);
 
       if (ingredientsResult.data) {
-        setExistingIngredients(new Set(ingredientsResult.data.map(i => i.name.toLowerCase())));
+        const map = new Map<string, string>();
+        ingredientsResult.data.forEach(i => map.set(i.name.toLowerCase(), i.image_url || ''));
+        setExistingIngredients(map);
       }
       if (toolsResult.data) {
-        setExistingTools(new Set(toolsResult.data.map(t => t.name.toLowerCase())));
+        const map = new Map<string, string>();
+        toolsResult.data.forEach(t => map.set(t.name.toLowerCase(), t.image_url || ''));
+        setExistingTools(map);
       }
     } catch (err) {
       console.error("Error loading existing items:", err);
@@ -209,8 +213,8 @@ export function RecipeUnmatchedItemsManager() {
           insertedId = insertData?.id || null;
         }
         
-        // Update existing ingredients set
-        setExistingIngredients(prev => new Set([...prev, formatted.name.toLowerCase()]));
+        // Update existing ingredients map
+        setExistingIngredients(prev => new Map([...prev, [formatted.name.toLowerCase(), '']]));
       } else {
         const { data: insertData, error: insertError } = await supabase
           .from("recipe_tools")
@@ -239,8 +243,8 @@ export function RecipeUnmatchedItemsManager() {
           insertedId = insertData?.id || null;
         }
         
-        // Update existing tools set
-        setExistingTools(prev => new Set([...prev, formatted.name.toLowerCase()]));
+        // Update existing tools map
+        setExistingTools(prev => new Map([...prev, [formatted.name.toLowerCase(), '']]));
       }
       
       // Also add suggested tool if present (for ingredients)
@@ -385,6 +389,17 @@ export function RecipeUnmatchedItemsManager() {
       return existingIngredients.has(nameLower);
     } else {
       return existingTools.has(nameLower);
+    }
+  };
+
+  // Get the image URL for a resolved item
+  const getExistingImageUrl = (item: UnmatchedItem): string | null => {
+    const formatted = formatItemName(item.item_name);
+    const nameLower = formatted.name.toLowerCase();
+    if (item.item_type === "ingredient") {
+      return existingIngredients.get(nameLower) || null;
+    } else {
+      return existingTools.get(nameLower) || null;
     }
   };
 
@@ -608,21 +623,36 @@ export function RecipeUnmatchedItemsManager() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          {generatingImageFor === item.id ? (
-                            <div className="flex items-center justify-center">
-                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
-                          ) : generatedImages[item.id] ? (
-                            <img
-                              src={generatedImages[item.id]}
-                              alt={formatted.name}
-                              className="h-10 w-10 rounded object-cover mx-auto"
-                            />
-                          ) : item.is_resolved ? (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          ) : (
-                            <ImageIcon className="h-5 w-5 text-muted-foreground/30 mx-auto" />
-                          )}
+                          {(() => {
+                            const existingImageUrl = getExistingImageUrl(item);
+                            if (generatingImageFor === item.id) {
+                              return (
+                                <div className="flex items-center justify-center">
+                                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                </div>
+                              );
+                            } else if (generatedImages[item.id]) {
+                              return (
+                                <img
+                                  src={generatedImages[item.id]}
+                                  alt={formatted.name}
+                                  className="h-10 w-10 rounded object-cover mx-auto"
+                                />
+                              );
+                            } else if (existingImageUrl) {
+                              return (
+                                <img
+                                  src={existingImageUrl}
+                                  alt={formatted.name}
+                                  className="h-10 w-10 rounded object-cover mx-auto"
+                                />
+                              );
+                            } else if (item.is_resolved) {
+                              return <span className="text-muted-foreground text-xs">—</span>;
+                            } else {
+                              return <ImageIcon className="h-5 w-5 text-muted-foreground/30 mx-auto" />;
+                            }
+                          })()}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
