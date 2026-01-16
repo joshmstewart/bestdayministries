@@ -467,6 +467,18 @@ Deno.serve(async (req) => {
     if (insertError) {
       throw new Error(`Failed to insert reply: ${insertError.message}`);
     }
+    
+    // Reset replied_at to null so the new user reply shows as unread
+    // This ensures the badge count logic in useMessagesCount detects the new reply
+    const { error: updateError } = await supabase
+      .from('contact_form_submissions')
+      .update({ replied_at: null })
+      .eq('id', matchedSubmission.id);
+    
+    if (updateError) {
+      console.error('[process-inbound-email] Failed to reset replied_at:', updateError);
+      // Don't throw - the reply was saved, this is just for badge tracking
+    }
 
     console.log('[process-inbound-email] Reply saved successfully');
 
