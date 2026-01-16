@@ -281,3 +281,6 @@ verify_jwt = true
 
 [functions.generate-workout-image]
 verify_jwt = true
+
+[functions.generate-workout-location-image]
+verify_jwt = true
