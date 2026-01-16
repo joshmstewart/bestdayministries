@@ -269,6 +269,22 @@ const JoyHouseStoresManager = () => {
 
   const handleEditLocation = (location: StoreLocation) => {
     setEditingLocation(location);
+    // Ensure hours is always a valid array
+    let parsedHours = DEFAULT_HOURS;
+    if (location.hours) {
+      if (Array.isArray(location.hours)) {
+        parsedHours = location.hours;
+      } else if (typeof location.hours === 'string') {
+        try {
+          const parsed = JSON.parse(location.hours);
+          if (Array.isArray(parsed)) {
+            parsedHours = parsed;
+          }
+        } catch {
+          // Keep default hours if parsing fails
+        }
+      }
+    }
     setLocationForm({
       name: location.name,
       address: location.address,
@@ -277,7 +293,7 @@ const JoyHouseStoresManager = () => {
       zip: location.zip || "",
       phone: location.phone || "",
       description: location.description || "",
-      hours: location.hours || DEFAULT_HOURS,
+      hours: parsedHours,
     });
     setLocationDialogOpen(true);
   };
