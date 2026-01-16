@@ -185,6 +185,10 @@ export const WorkoutLocationsManager = () => {
   // AI prompt state for pack dialog
   const [packImagePrompt, setPackImagePrompt] = useState("");
   const [generatingDialogImage, setGeneratingDialogImage] = useState(false);
+  
+  // Complete pack generation state
+  const [generatingCompletePack, setGeneratingCompletePack] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState({ step: "", current: 0, total: 0 });
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -584,6 +588,127 @@ export const WorkoutLocationsManager = () => {
     toast.success(`Randomized: ${randomLoc.name}`);
   };
 
+  // Generate a complete pack with locations and all images
+  const handleGenerateCompletePack = async () => {
+    setGeneratingCompletePack(true);
+    
+    try {
+      // Step 1: Pick a dissimilar theme
+      setGenerationProgress({ step: "Selecting unique theme...", current: 0, total: 7 });
+      const dissimilarThemes = packThemes.filter(theme => !isThemeSimilarToExisting(theme, packs));
+      
+      if (dissimilarThemes.length === 0) {
+        toast.error("All unique themes have been used! Delete some packs first.");
+        setGeneratingCompletePack(false);
+        return;
+      }
+      
+      const randomTheme = dissimilarThemes[Math.floor(Math.random() * dissimilarThemes.length)];
+      
+      // Step 2: Create the pack
+      setGenerationProgress({ step: `Creating pack: ${randomTheme.name}...`, current: 1, total: 7 });
+      
+      const { data: newPack, error: packError } = await supabase
+        .from("workout_location_packs")
+        .insert({
+          name: randomTheme.name,
+          description: randomTheme.description,
+          is_free: false,
+          is_active: true,
+          display_order: packs.length,
+          price_coins: 100,
+        })
+        .select()
+        .single();
+      
+      if (packError) throw packError;
+      
+      // Step 3: Generate pack image
+      setGenerationProgress({ step: "Generating pack cover image...", current: 2, total: 7 });
+      
+      const packImagePromptText = `A beautiful promotional image for a workout location pack: "${randomTheme.name}". ${randomTheme.description}. Show a scenic collage or overview representing this destination. Photorealistic, vibrant colors, inspiring travel photography style. Square format, high quality.`;
+      
+      const { data: packImageData, error: packImageError } = await supabase.functions.invoke("generate-workout-location-image", {
+        body: { prompt: packImagePromptText, packId: newPack.id },
+      });
+      
+      if (packImageError || packImageData?.error) {
+        console.error("Pack image generation failed:", packImageError || packImageData?.error);
+        // Continue without pack image
+      }
+      
+      // Step 4: Create locations with images
+      const locationCount = randomTheme.locations.length;
+      
+      for (let i = 0; i < locationCount; i++) {
+        const locationName = randomTheme.locations[i];
+        setGenerationProgress({ 
+          step: `Creating location ${i + 1}/${locationCount}: ${locationName}...`, 
+          current: 3 + i, 
+          total: 2 + locationCount + 1 
+        });
+        
+        // Create the location
+        const locationPrompt = `${locationName} in ${randomTheme.name}, beautiful scenic workout location, photorealistic, warm lighting, inspiring fitness environment`;
+        
+        const { data: newLocation, error: locError } = await supabase
+          .from("workout_locations")
+          .insert({
+            pack_id: newPack.id,
+            name: locationName,
+            prompt_text: locationPrompt,
+            is_active: true,
+            display_order: i,
+          })
+          .select()
+          .single();
+        
+        if (locError) {
+          console.error(`Failed to create location ${locationName}:`, locError);
+          continue;
+        }
+        
+        // Generate image for this location
+        setGenerationProgress({ 
+          step: `Generating image for ${locationName}...`, 
+          current: 3 + i, 
+          total: 2 + locationCount + 1 
+        });
+        
+        try {
+          const { data: locImageData, error: locImageError } = await supabase.functions.invoke("generate-workout-location-image", {
+            body: { prompt: locationPrompt, locationId: newLocation.id },
+          });
+          
+          if (locImageData?.imageUrl && !locImageError) {
+            await supabase
+              .from("workout_locations")
+              .update({ image_url: locImageData.imageUrl })
+              .eq("id", newLocation.id);
+          }
+        } catch (imgError) {
+          console.error(`Failed to generate image for ${locationName}:`, imgError);
+          // Continue with next location
+        }
+      }
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["workout-location-packs"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-locations"] });
+      
+      toast.success(`Created "${randomTheme.name}" with ${locationCount} locations!`, {
+        description: "Pack and all location images generated successfully.",
+      });
+      
+    } catch (error: any) {
+      console.error("Failed to generate complete pack:", error);
+      toast.error("Failed to generate pack: " + (error.message || "Unknown error"));
+    } finally {
+      setGeneratingCompletePack(false);
+      setGenerationProgress({ step: "", current: 0, total: 0 });
+    }
+  };
+
   // Generate pack image in dialog
   const handleGenerateDialogImage = async () => {
     if (!packImagePrompt.trim()) {
@@ -624,6 +749,25 @@ export const WorkoutLocationsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Generation Progress Banner */}
+      {generatingCompletePack && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="flex-1">
+                <p className="font-medium text-primary">{generationProgress.step}</p>
+                {generationProgress.total > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Step {generationProgress.current + 1} of {generationProgress.total}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -632,10 +776,24 @@ export const WorkoutLocationsManager = () => {
             Click on a pack to view and manage its locations
           </p>
         </div>
-        <Button onClick={() => { resetPackForm(); setEditingPack(null); setPackDialogOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Pack
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleGenerateCompletePack}
+            disabled={generatingCompletePack}
+          >
+            {generatingCompletePack ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Generate Complete Pack
+          </Button>
+          <Button onClick={() => { resetPackForm(); setEditingPack(null); setPackDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Pack
+          </Button>
+        </div>
       </div>
 
       {/* Packs Accordion */}
