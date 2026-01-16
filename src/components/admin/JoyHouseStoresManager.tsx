@@ -291,19 +291,6 @@ const JoyHouseStoresManager = () => {
     });
     setLocationDialogOpen(true);
   };
-    setLocationForm({
-      name: location.name,
-      address: location.address,
-      city: location.city || "",
-      state: location.state || "",
-      zip: location.zip || "",
-      phone: location.phone || "",
-      description: location.description || "",
-      hours: parsedHours,
-      hours_vary_seasonally: location.hours_vary_seasonally || false,
-    });
-    setLocationDialogOpen(true);
-  };
 
   const handleDeleteLocation = async (id: string) => {
     if (!confirm("Delete this location?")) return;
