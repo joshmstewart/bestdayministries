@@ -7,12 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Store, ExternalLink, Upload, Plus, Edit, Trash2, MapPin, Clock, Phone, Eye, EyeOff, GripVertical, Image as ImageIcon } from "lucide-react";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { compressImage } from "@/lib/imageUtils";
 import { SectionLoadingState } from "@/components/common";
+import { normalizeStoreHours, type StoreDayHours } from "@/lib/storeHours";
 
 interface StoreLocation {
   id: string;
@@ -22,7 +24,7 @@ interface StoreLocation {
   state: string;
   zip: string;
   phone: string;
-  hours: { day: string; open: string; close: string }[];
+  hours: StoreDayHours[];
   hours_vary_seasonally: boolean;
   description: string;
   is_active: boolean;
@@ -50,7 +52,7 @@ interface PageContent {
   online_store_link: string;
 }
 
-const DEFAULT_HOURS = [
+const DEFAULT_HOURS: StoreDayHours[] = [
   { day: "Monday", open: "10:00 AM", close: "6:00 PM" },
   { day: "Tuesday", open: "10:00 AM", close: "6:00 PM" },
   { day: "Wednesday", open: "10:00 AM", close: "6:00 PM" },
@@ -127,10 +129,12 @@ const JoyHouseStoresManager = () => {
       }
 
       if (locationsRes.data) {
-        setLocations(locationsRes.data.map(loc => ({
-          ...loc,
-          hours: (loc.hours as { day: string; open: string; close: string }[]) || DEFAULT_HOURS,
-        })) as StoreLocation[]);
+        setLocations(
+          locationsRes.data.map((loc) => ({
+            ...loc,
+            hours: normalizeStoreHours(loc.hours, DEFAULT_HOURS),
+          })) as StoreLocation[]
+        );
       }
 
       if (imagesRes.data) {
@@ -271,22 +275,22 @@ const JoyHouseStoresManager = () => {
 
   const handleEditLocation = (location: StoreLocation) => {
     setEditingLocation(location);
-    // Ensure hours is always a valid array
-    let parsedHours = DEFAULT_HOURS;
-    if (location.hours) {
-      if (Array.isArray(location.hours)) {
-        parsedHours = location.hours;
-      } else if (typeof location.hours === 'string') {
-        try {
-          const parsed = JSON.parse(location.hours);
-          if (Array.isArray(parsed)) {
-            parsedHours = parsed;
-          }
-        } catch {
-          // Keep default hours if parsing fails
-        }
-      }
-    }
+
+    const parsedHours = normalizeStoreHours((location as any).hours, DEFAULT_HOURS);
+
+    setLocationForm({
+      name: location.name,
+      address: location.address,
+      city: location.city || "",
+      state: location.state || "",
+      zip: location.zip || "",
+      phone: location.phone || "",
+      description: location.description || "",
+      hours: parsedHours,
+      hours_vary_seasonally: location.hours_vary_seasonally || false,
+    });
+    setLocationDialogOpen(true);
+  };
     setLocationForm({
       name: location.name,
       address: location.address,
@@ -621,12 +625,15 @@ const JoyHouseStoresManager = () => {
                       ))}
                     </div>
                     <div className="flex items-center gap-2 mt-3">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         id="hoursVarySeasonally"
                         checked={locationForm.hours_vary_seasonally}
-                        onChange={(e) => setLocationForm(prev => ({ ...prev, hours_vary_seasonally: e.target.checked }))}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        onCheckedChange={(checked) =>
+                          setLocationForm((prev) => ({
+                            ...prev,
+                            hours_vary_seasonally: checked === true,
+                          }))
+                        }
                       />
                       <Label htmlFor="hoursVarySeasonally" className="text-sm font-normal cursor-pointer">
                         Hours may vary seasonally
