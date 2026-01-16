@@ -32,6 +32,30 @@ serve(async (req) => {
 
     console.log(`📧 Finding template for event: ${trigger_event}`);
 
+    // Check for duplicate sends within last 24 hours to prevent spam
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentSend } = await supabaseClient
+      .from("automated_campaign_sends")
+      .select("id, created_at")
+      .eq("recipient_email", recipient_email)
+      .eq("trigger_event", trigger_event)
+      .eq("status", "sent")
+      .gte("created_at", twentyFourHoursAgo)
+      .maybeSingle();
+
+    if (recentSend) {
+      console.log(`⏭️ Skipping duplicate send - same email (${recipient_email}) and trigger (${trigger_event}) was sent at ${recentSend.created_at}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Skipped - duplicate email within 24 hours",
+          skipped: true,
+          previous_send_at: recentSend.created_at
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
     // Find active template for this trigger event
     const { data: template, error: templateError } = await supabaseClient
       .from("campaign_templates")
