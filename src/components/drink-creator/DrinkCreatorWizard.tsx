@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, Sparkles, Loader2, Share2 } from "lucide-rea
 import { IngredientSelector } from "./IngredientSelector";
 import { VibeSelector, Vibe, getVibeById } from "./VibeSelector";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 interface Ingredient {
   id: string;
@@ -259,6 +260,9 @@ export const DrinkCreatorWizard = ({ userId }: DrinkCreatorWizardProps) => {
         .single();
 
       if (error) throw error;
+
+      // Award coins for creating a drink
+      await awardCoinReward(userId, 'drink_lab_create', 'Created a drink in Drink Lab');
 
       setSavedDrinkId(data.id);
       toast({

@@ -22,6 +22,7 @@ import { VoiceInput } from "@/components/VoiceInput";
 import AudioPlayer from "@/components/AudioPlayer";
 import { ImageUploadWithCrop } from "@/components/common/ImageUploadWithCrop";
 import { Database } from "@/integrations/supabase/types";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 
@@ -270,6 +271,11 @@ export const PrayerRequestDialog = ({
           });
 
         if (error) throw error;
+
+        // Award coins for submitting a prayer request
+        if (userId) {
+          await awardCoinReward(userId, 'prayer_request_submit', 'Submitted a prayer request');
+        }
         
         if (approvalStatus === "pending_approval" && imageModerationStatus === "pending") {
           toast.success("Prayer request submitted - image flagged for admin review");

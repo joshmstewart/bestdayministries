@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 interface Recipe {
   title: string;
@@ -144,6 +145,9 @@ export const RecipeActions = ({ recipe, userId, onMadeIt, onSaved }: RecipeActio
       });
 
       if (error) throw error;
+
+      // Award coins for completing/sharing a recipe
+      await awardCoinReward(userId, 'recipe_complete', 'Completed a recipe in Recipe Pal');
 
       setIsShared(true);
       toast({

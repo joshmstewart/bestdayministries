@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { startOfWeek, endOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 interface FeaturedVideoProps {
   userId: string;
@@ -86,13 +87,17 @@ export const FeaturedVideo = ({ userId, className }: FeaturedVideoProps) => {
         });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
         colors: ['#ff6b35', '#ffa726', '#ffcc02'],
       });
+      
+      // Award coins for completing a workout
+      await awardCoinReward(userId, 'workout_complete', 'Completed a workout');
+      
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
       queryClient.invalidateQueries({ queryKey: ["workout-streak-logs"] });
       toast.success("Workout completed! 💪");
