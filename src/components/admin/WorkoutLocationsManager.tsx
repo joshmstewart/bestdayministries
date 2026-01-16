@@ -59,20 +59,36 @@ interface WorkoutLocation {
   created_at: string;
 }
 
-// Predefined location pack themes for randomization
+// Predefined location pack themes for randomization with keywords for similarity matching
 const packThemes = [
-  { name: "Beach Paradise", description: "Sun-soaked beaches and coastal workouts", locations: ["Malibu Beach", "Caribbean Shore", "Tropical Lagoon", "Sunset Pier", "Sandy Cove"] },
-  { name: "Mountain Adventures", description: "Epic mountain peaks and alpine trails", locations: ["Rocky Summit", "Alpine Meadow", "Forest Trail", "Misty Peaks", "Valley View"] },
-  { name: "Urban Fitness", description: "City rooftops and urban workout spots", locations: ["Rooftop Gym", "City Park", "Downtown Plaza", "Industrial Loft", "Street Corner"] },
-  { name: "Forest Retreat", description: "Peaceful woodland and nature settings", locations: ["Enchanted Forest", "Woodland Clearing", "Riverside Path", "Bamboo Grove", "Oak Sanctuary"] },
-  { name: "Desert Oasis", description: "Stunning desert landscapes and sunsets", locations: ["Red Rock Canyon", "Desert Dunes", "Cactus Garden", "Sunrise Mesa", "Sand Valley"] },
-  { name: "Tropical Paradise", description: "Lush jungles and exotic destinations", locations: ["Jungle Waterfall", "Palm Beach", "Volcanic Island", "Rainforest Path", "Coconut Grove"] },
-  { name: "Winter Wonderland", description: "Snowy landscapes and cozy settings", locations: ["Frozen Lake", "Ski Lodge", "Snow Valley", "Ice Cave", "Mountain Cabin"] },
-  { name: "Zen Gardens", description: "Peaceful Asian-inspired locations", locations: ["Japanese Garden", "Bamboo Temple", "Koi Pond", "Zen Courtyard", "Cherry Blossom Park"] },
-  { name: "Space Station", description: "Futuristic space and sci-fi environments", locations: ["Orbital Gym", "Moon Base", "Space Deck", "Galaxy View", "Asteroid Platform"] },
-  { name: "Underwater World", description: "Ocean depths and aquatic scenes", locations: ["Coral Reef", "Deep Sea Trench", "Underwater Cave", "Kelp Forest", "Sunken Temple"] },
-  { name: "Safari Adventure", description: "African savanna and wildlife", locations: ["Savanna Sunrise", "Watering Hole", "Acacia Tree", "Safari Camp", "Lion Rock"] },
-  { name: "Mediterranean Coast", description: "Greek islands and coastal villages", locations: ["Santorini Terrace", "Greek Temple", "Olive Grove", "Coastal Cliff", "Harbor Town"] },
+  { name: "Beach Paradise", description: "Sun-soaked beaches and coastal workouts", locations: ["Malibu Beach", "Caribbean Shore", "Tropical Lagoon", "Sunset Pier", "Sandy Cove"], keywords: ["beach", "ocean", "coastal", "shore", "sand", "waves", "seaside", "surf"] },
+  { name: "Mountain Adventures", description: "Epic mountain peaks and alpine trails", locations: ["Rocky Summit", "Alpine Meadow", "Forest Trail", "Misty Peaks", "Valley View"], keywords: ["mountain", "peak", "alpine", "summit", "hiking", "trail", "climb", "rocky"] },
+  { name: "Urban Fitness", description: "City rooftops and urban workout spots", locations: ["Rooftop Gym", "City Park", "Downtown Plaza", "Industrial Loft", "Street Corner"], keywords: ["city", "urban", "rooftop", "downtown", "street", "metro", "skyline", "industrial"] },
+  { name: "Forest Retreat", description: "Peaceful woodland and nature settings", locations: ["Enchanted Forest", "Woodland Clearing", "Riverside Path", "Bamboo Grove", "Oak Sanctuary"], keywords: ["forest", "woodland", "trees", "woods", "grove", "nature", "green", "foliage"] },
+  { name: "Desert Oasis", description: "Stunning desert landscapes and sunsets", locations: ["Red Rock Canyon", "Desert Dunes", "Cactus Garden", "Sunrise Mesa", "Sand Valley"], keywords: ["desert", "sand", "dunes", "cactus", "arid", "mesa", "canyon", "dry"] },
+  { name: "Tropical Paradise", description: "Lush jungles and exotic destinations", locations: ["Jungle Waterfall", "Palm Beach", "Volcanic Island", "Rainforest Path", "Coconut Grove"], keywords: ["tropical", "jungle", "rainforest", "palm", "exotic", "island", "lush", "paradise"] },
+  { name: "Winter Wonderland", description: "Snowy landscapes and cozy settings", locations: ["Frozen Lake", "Ski Lodge", "Snow Valley", "Ice Cave", "Mountain Cabin"], keywords: ["winter", "snow", "ice", "frozen", "cold", "ski", "arctic", "frost"] },
+  { name: "Zen Gardens", description: "Peaceful Asian-inspired locations", locations: ["Japanese Garden", "Bamboo Temple", "Koi Pond", "Zen Courtyard", "Cherry Blossom Park"], keywords: ["zen", "japanese", "asian", "garden", "temple", "meditation", "peaceful", "bamboo"] },
+  { name: "Space Station", description: "Futuristic space and sci-fi environments", locations: ["Orbital Gym", "Moon Base", "Space Deck", "Galaxy View", "Asteroid Platform"], keywords: ["space", "galaxy", "moon", "orbit", "futuristic", "sci-fi", "cosmic", "stellar"] },
+  { name: "Underwater World", description: "Ocean depths and aquatic scenes", locations: ["Coral Reef", "Deep Sea Trench", "Underwater Cave", "Kelp Forest", "Sunken Temple"], keywords: ["underwater", "ocean", "reef", "deep", "aquatic", "marine", "sea", "diving"] },
+  { name: "Safari Adventure", description: "African savanna and wildlife", locations: ["Savanna Sunrise", "Watering Hole", "Acacia Tree", "Safari Camp", "Lion Rock"], keywords: ["safari", "savanna", "africa", "wildlife", "serengeti", "animal", "wild", "plains"] },
+  { name: "Mediterranean Coast", description: "Greek islands and coastal villages", locations: ["Santorini Terrace", "Greek Temple", "Olive Grove", "Coastal Cliff", "Harbor Town"], keywords: ["mediterranean", "greek", "santorini", "european", "coastal", "villa", "harbor", "aegean"] },
+  { name: "Ancient Temples", description: "Historic ruins and sacred monuments", locations: ["Mayan Pyramid", "Egyptian Temple", "Roman Colosseum", "Angkor Wat", "Stonehenge"], keywords: ["ancient", "temple", "ruins", "historic", "monument", "pyramid", "archaeological", "sacred"] },
+  { name: "Nordic Fjords", description: "Scandinavian landscapes and aurora views", locations: ["Fjord Vista", "Viking Village", "Aurora Lake", "Glacier Bay", "Nordic Forest"], keywords: ["nordic", "scandinavian", "fjord", "aurora", "viking", "norway", "sweden", "finland"] },
+  { name: "Countryside Farm", description: "Rural landscapes and pastoral scenes", locations: ["Rolling Hills", "Vineyard Path", "Barn Sunrise", "Meadow Stream", "Harvest Field"], keywords: ["farm", "rural", "countryside", "pastoral", "barn", "vineyard", "meadow", "agriculture"] },
+  { name: "Volcano Islands", description: "Dramatic volcanic landscapes", locations: ["Lava Fields", "Crater Lake", "Volcanic Beach", "Magma Glow", "Sulfur Springs"], keywords: ["volcano", "lava", "volcanic", "crater", "magma", "eruption", "geothermal", "hot springs"] },
+  { name: "Crystal Caves", description: "Underground caverns and crystal formations", locations: ["Crystal Chamber", "Underground Lake", "Glowing Grotto", "Stalactite Hall", "Gem Cavern"], keywords: ["cave", "crystal", "underground", "cavern", "grotto", "stalactite", "gem", "subterranean"] },
+  { name: "Floating Islands", description: "Fantasy floating landscapes in the sky", locations: ["Sky Garden", "Cloud Platform", "Floating Temple", "Aerial Falls", "Sky Bridge"], keywords: ["floating", "sky", "aerial", "fantasy", "cloud", "flying", "levitating", "airborne"] },
+  { name: "Enchanted Meadow", description: "Magical flower fields and fairy gardens", locations: ["Flower Sea", "Butterfly Garden", "Rainbow Field", "Fairy Ring", "Blossom Valley"], keywords: ["meadow", "flower", "fairy", "magical", "enchanted", "butterfly", "blossom", "whimsical"] },
+  { name: "Sunset Cliffs", description: "Dramatic coastal cliffs at golden hour", locations: ["Golden Bluff", "Sunset Point", "Coastal Edge", "Twilight Terrace", "Horizon View"], keywords: ["cliff", "sunset", "golden", "bluff", "horizon", "twilight", "dramatic", "edge"] },
+  { name: "Bamboo Paradise", description: "Serene bamboo forests of Asia", locations: ["Bamboo Cathedral", "Panda Trail", "Green Tunnel", "Misty Bamboo", "Jade Forest"], keywords: ["bamboo", "panda", "china", "green", "jade", "oriental", "tranquil", "serene"] },
+  { name: "Rainforest Canopy", description: "Elevated platforms in dense jungle", locations: ["Canopy Walk", "Treehouse Gym", "Rope Bridge", "Jungle Platform", "Treetop Vista"], keywords: ["rainforest", "canopy", "treehouse", "jungle", "elevated", "treetop", "amazon", "dense"] },
+  { name: "Glacial Peaks", description: "Icy mountain summits and glaciers", locations: ["Ice Peak", "Glacier Trail", "Frozen Summit", "Snow Cap", "Crystal Peak"], keywords: ["glacier", "icy", "frozen", "peak", "ice cap", "permafrost", "glacial", "frigid"] },
+  { name: "Bioluminescent Bay", description: "Glowing waters and magical nights", locations: ["Glowing Beach", "Light Waters", "Phosphor Cove", "Star Bay", "Neon Shore"], keywords: ["bioluminescent", "glow", "phosphorescent", "neon", "luminous", "night", "glowing", "radiant"] },
+  { name: "Scottish Highlands", description: "Misty moors and rugged castles", locations: ["Highland Moor", "Castle Ruins", "Loch View", "Misty Glen", "Heather Field"], keywords: ["scottish", "highlands", "moor", "castle", "loch", "celtic", "heather", "rugged"] },
+  { name: "Tropical Reef", description: "Vibrant underwater coral ecosystems", locations: ["Rainbow Reef", "Fish School", "Sea Turtle Cove", "Anemone Garden", "Coral Canyon"], keywords: ["reef", "coral", "tropical", "fish", "snorkel", "marine", "aquarium", "ecosystem"] },
+  { name: "Autumn Forest", description: "Fall foliage and harvest colors", locations: ["Maple Grove", "Golden Path", "Leaf Stream", "Autumn Cabin", "Harvest Trail"], keywords: ["autumn", "fall", "foliage", "maple", "harvest", "leaves", "orange", "seasonal"] },
+  { name: "Mystic Swamp", description: "Mysterious wetlands with Spanish moss", locations: ["Bayou Trail", "Cypress Grove", "Misty Marsh", "Mangrove Maze", "Swamp Sunset"], keywords: ["swamp", "bayou", "marsh", "wetland", "cypress", "moss", "mysterious", "murky"] },
 ];
 
 // Individual location ideas for randomization
@@ -98,6 +114,39 @@ const locationIdeas = [
   { name: "Cherry Blossoms", prompt: "A path lined with cherry blossom trees in full bloom, pink petals floating" },
   { name: "Space Station", prompt: "A futuristic space station gym with Earth visible through large windows" },
 ];
+
+// Helper function to check if a theme is similar to existing packs
+const isThemeSimilarToExisting = (theme: typeof packThemes[0], existingPacks: LocationPack[]): boolean => {
+  const existingNamesLower = existingPacks.map(p => p.name.toLowerCase());
+  const existingDescLower = existingPacks.map(p => (p.description || "").toLowerCase());
+  const allExistingText = [...existingNamesLower, ...existingDescLower].join(" ");
+  
+  // Check exact name match
+  if (existingNamesLower.includes(theme.name.toLowerCase())) {
+    return true;
+  }
+  
+  // Check keyword overlap - if any existing pack contains 2+ keywords from this theme
+  const matchingKeywords = theme.keywords.filter(keyword => 
+    allExistingText.includes(keyword.toLowerCase())
+  );
+  
+  if (matchingKeywords.length >= 2) {
+    return true;
+  }
+  
+  // Check if theme name words appear in existing packs
+  const themeWords = theme.name.toLowerCase().split(/\s+/);
+  const significantMatches = themeWords.filter(word => 
+    word.length > 3 && allExistingText.includes(word)
+  );
+  
+  if (significantMatches.length > 0) {
+    return true;
+  }
+  
+  return false;
+};
 
 export const WorkoutLocationsManager = () => {
   const queryClient = useQueryClient();
@@ -480,13 +529,28 @@ export const WorkoutLocationsManager = () => {
     setLightboxOpen(true);
   };
 
-  // Randomize pack form with a theme
+  // Randomize pack form with a theme that's dissimilar to existing packs
   const handleRandomizePack = () => {
-    const usedNames = new Set(packs.map(p => p.name.toLowerCase()));
-    const availableThemes = packThemes.filter(t => !usedNames.has(t.name.toLowerCase()));
-    const pool = availableThemes.length > 0 ? availableThemes : packThemes;
+    // Filter out themes that are similar to existing packs
+    const dissimilarThemes = packThemes.filter(theme => !isThemeSimilarToExisting(theme, packs));
     
-    const randomTheme = pool[Math.floor(Math.random() * pool.length)];
+    if (dissimilarThemes.length === 0) {
+      toast.info("All unique themes have been used!", {
+        description: "Consider creating custom pack themes or the list will cycle through existing ones.",
+      });
+      // Fall back to any theme if all are similar
+      const randomTheme = packThemes[Math.floor(Math.random() * packThemes.length)];
+      setPackForm(prev => ({
+        ...prev,
+        name: randomTheme.name,
+        description: randomTheme.description,
+        is_active: true,
+      }));
+      setPackImagePrompt(randomTheme.name);
+      return;
+    }
+    
+    const randomTheme = dissimilarThemes[Math.floor(Math.random() * dissimilarThemes.length)];
     
     setPackForm(prev => ({
       ...prev,
@@ -497,7 +561,7 @@ export const WorkoutLocationsManager = () => {
     setPackImagePrompt(randomTheme.name);
     
     toast.success(`Randomized: ${randomTheme.name}`, {
-      description: `Contains ${randomTheme.locations.length} location ideas`,
+      description: `${dissimilarThemes.length - 1} more unique themes available`,
     });
   };
 
