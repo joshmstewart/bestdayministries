@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff, Wand2, Loader2, ImageIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -56,7 +60,6 @@ interface WorkoutLocation {
 
 export const WorkoutLocationsManager = () => {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("packs");
   
   // Pack state
   const [packDialogOpen, setPackDialogOpen] = useState(false);
@@ -70,6 +73,7 @@ export const WorkoutLocationsManager = () => {
     is_active: true,
   });
   const [deletePackId, setDeletePackId] = useState<string | null>(null);
+  const [generatingPackImage, setGeneratingPackImage] = useState<string | null>(null);
 
   // Location state
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
@@ -83,7 +87,13 @@ export const WorkoutLocationsManager = () => {
     is_active: true,
   });
   const [deleteLocationId, setDeleteLocationId] = useState<string | null>(null);
-  const [selectedPackFilter, setSelectedPackFilter] = useState<string>("all");
+  const [addingLocationToPackId, setAddingLocationToPackId] = useState<string | null>(null);
+  const [newLocationName, setNewLocationName] = useState("");
+  const [addingLocation, setAddingLocation] = useState(false);
+
+  // AI prompt state for pack dialog
+  const [packImagePrompt, setPackImagePrompt] = useState("");
+  const [generatingDialogImage, setGeneratingDialogImage] = useState(false);
 
   // Fetch packs
   const { data: packs = [], isLoading: packsLoading } = useQuery({
@@ -109,6 +119,16 @@ export const WorkoutLocationsManager = () => {
       if (error) throw error;
       return data as WorkoutLocation[];
     },
+  });
+
+  // Group locations by pack
+  const locationsByPack: Record<string, WorkoutLocation[]> = {};
+  locations.forEach((loc) => {
+    const packId = loc.pack_id || "unassigned";
+    if (!locationsByPack[packId]) {
+      locationsByPack[packId] = [];
+    }
+    locationsByPack[packId].push(loc);
   });
 
   // Pack mutations
@@ -269,6 +289,7 @@ export const WorkoutLocationsManager = () => {
       is_free: false,
       is_active: true,
     });
+    setPackImagePrompt("");
   };
 
   const resetLocationForm = () => {
@@ -292,6 +313,7 @@ export const WorkoutLocationsManager = () => {
       is_free: pack.is_free,
       is_active: pack.is_active,
     });
+    setPackImagePrompt(pack.name);
     setPackDialogOpen(true);
   };
 
@@ -308,255 +330,489 @@ export const WorkoutLocationsManager = () => {
     setLocationDialogOpen(true);
   };
 
-  const filteredLocations = selectedPackFilter === "all" 
-    ? locations 
-    : selectedPackFilter === "unassigned"
-    ? locations.filter(l => !l.pack_id)
-    : locations.filter(l => l.pack_id === selectedPackFilter);
+  // Quick add location to a pack
+  const handleQuickAddLocation = async (packId: string) => {
+    if (!newLocationName.trim()) {
+      toast.error("Please enter a location name");
+      return;
+    }
 
-  const getPackName = (packId: string | null) => {
-    if (!packId) return "Unassigned";
-    const pack = packs.find(p => p.id === packId);
-    return pack?.name || "Unknown";
+    setAddingLocation(true);
+    try {
+      const packLocations = locationsByPack[packId] || [];
+      const pack = packs.find(p => p.id === packId);
+      
+      const { error } = await supabase
+        .from("workout_locations")
+        .insert({
+          pack_id: packId,
+          name: newLocationName.trim(),
+          prompt_text: `${newLocationName.trim()}${pack ? ` in ${pack.name}` : ""}, beautiful scenic workout location, photorealistic, warm lighting`,
+          is_active: true,
+          display_order: packLocations.length,
+        });
+      
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["workout-locations"] });
+      setNewLocationName("");
+      setAddingLocationToPackId(null);
+      toast.success(`Added ${newLocationName}`);
+    } catch (error: any) {
+      toast.error("Failed to add location: " + error.message);
+    } finally {
+      setAddingLocation(false);
+    }
   };
+
+  // Generate pack image using AI
+  const generatePackImage = async (packId: string, packName: string) => {
+    setGeneratingPackImage(packId);
+    try {
+      const prompt = `A beautiful promotional image for a workout location pack called "${packName}". Show a scenic collage or overview representing this destination. Photorealistic, vibrant colors, inspiring travel photography style. Square format, high quality.`;
+      
+      const { data, error } = await supabase.functions.invoke("generate-workout-location-image", {
+        body: { prompt, packId },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      queryClient.invalidateQueries({ queryKey: ["workout-location-packs"] });
+      toast.success("Pack image generated!");
+    } catch (error: any) {
+      console.error("Failed to generate pack image:", error);
+      toast.error("Failed to generate image: " + (error.message || "Unknown error"));
+    } finally {
+      setGeneratingPackImage(null);
+    }
+  };
+
+  // Generate pack image in dialog
+  const handleGenerateDialogImage = async () => {
+    if (!packImagePrompt.trim()) {
+      toast.error("Please enter a prompt");
+      return;
+    }
+
+    setGeneratingDialogImage(true);
+    try {
+      const prompt = `A beautiful promotional image for a workout location pack: "${packImagePrompt}". Show a scenic collage or overview representing this destination. Photorealistic, vibrant colors, inspiring travel photography style. Square format, high quality.`;
+      
+      const { data, error } = await supabase.functions.invoke("generate-workout-location-image", {
+        body: { prompt },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.imageUrl) {
+        setPackForm(prev => ({ ...prev, image_url: data.imageUrl }));
+        toast.success("Image generated!");
+      }
+    } catch (error: any) {
+      console.error("Failed to generate image:", error);
+      toast.error("Failed to generate image: " + (error.message || "Unknown error"));
+    } finally {
+      setGeneratingDialogImage(false);
+    }
+  };
+
+  const getLocationCount = (packId: string) => {
+    return (locationsByPack[packId] || []).length;
+  };
+
+  if (packsLoading || locationsLoading) {
+    return <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  }
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="packs" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Location Packs
-          </TabsTrigger>
-          <TabsTrigger value="locations" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            All Locations
-          </TabsTrigger>
-        </TabsList>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold">Workout Location Packs</h3>
+          <p className="text-sm text-muted-foreground">
+            Click on a pack to view and manage its locations
+          </p>
+        </div>
+        <Button onClick={() => { resetPackForm(); setEditingPack(null); setPackDialogOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Pack
+        </Button>
+      </div>
 
-        {/* Location Packs Tab */}
-        <TabsContent value="packs" className="mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <p className="text-muted-foreground">
-              Create purchasable location packs like "Hawaii" or "City Adventures"
-            </p>
-            <Button onClick={() => { resetPackForm(); setEditingPack(null); setPackDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Pack
-            </Button>
-          </div>
-
-          {packsLoading ? (
-            <p>Loading...</p>
-          ) : packs.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No location packs yet. Create your first pack to get started.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {packs.map((pack) => {
-                const packLocations = locations.filter(l => l.pack_id === pack.id);
-                return (
-                  <Card key={pack.id} className={!pack.is_active ? "opacity-60" : ""}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">{pack.name}</CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => togglePackActive.mutate({ id: pack.id, is_active: !pack.is_active })}
-                            title={pack.is_active ? "Deactivate" : "Activate"}
-                          >
-                            {pack.is_active ? (
-                              <Eye className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <EyeOff className="h-4 w-4 text-red-500" />
-                            )}
-                          </Button>
-                          <Button size="icon" variant="outline" onClick={() => openEditPack(pack)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setDeletePackId(pack.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+      {/* Packs Accordion */}
+      {packs.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No location packs yet. Create your first pack to get started.
+          </CardContent>
+        </Card>
+      ) : (
+        <Accordion type="single" collapsible className="space-y-2">
+          {packs.map((pack) => {
+            const packLocations = locationsByPack[pack.id] || [];
+            const isGenerating = generatingPackImage === pack.id;
+            
+            return (
+              <AccordionItem key={pack.id} value={pack.id} className="border rounded-lg overflow-hidden">
+                <AccordionTrigger className="px-4 hover:no-underline">
+                  <div className="flex items-center gap-4 flex-1">
+                    {/* Pack Image */}
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                      {pack.image_url ? (
+                        <img 
+                          src={pack.image_url} 
+                          alt={pack.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package className="h-6 w-6 text-muted-foreground" />
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {pack.description && (
-                        <p className="text-sm text-muted-foreground mb-3">{pack.description}</p>
                       )}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {packLocations.length} locations
-                        </Badge>
-                        {pack.is_free ? (
-                          <Badge variant="outline" className="text-green-600">Free</Badge>
-                        ) : (
-                          <Badge variant="outline">
-                            <Coins className="h-3 w-3 mr-1" />
-                            {pack.price_coins} coins
-                          </Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* All Locations Tab */}
-        <TabsContent value="locations" className="mt-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <div className="flex items-center gap-4">
-              <Label>Filter by pack:</Label>
-              <Select value={selectedPackFilter} onValueChange={setSelectedPackFilter}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {packs.map((pack) => (
-                    <SelectItem key={pack.id} value={pack.id}>{pack.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={() => { resetLocationForm(); setEditingLocation(null); setLocationDialogOpen(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Location
-            </Button>
-          </div>
-
-          {locationsLoading ? (
-            <p>Loading...</p>
-          ) : filteredLocations.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No locations found. Add locations to use in workout image generation.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3">
-              {filteredLocations.map((location) => (
-                <Card key={location.id} className={!location.is_active ? "opacity-60" : ""}>
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium">{location.name}</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {getPackName(location.pack_id)}
-                          </Badge>
+                      {isGenerating && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <Loader2 className="h-4 w-4 animate-spin text-white" />
                         </div>
-                        <p className="text-sm text-muted-foreground">{location.prompt_text}</p>
-                        {location.description && (
-                          <p className="text-xs text-muted-foreground mt-1">{location.description}</p>
+                      )}
+                    </div>
+
+                    {/* Pack Info */}
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className={`font-medium ${!pack.is_active ? "text-muted-foreground" : ""}`}>
+                          {pack.name}
+                        </span>
+                        {!pack.is_active && (
+                          <Badge variant="secondary" className="text-xs">Inactive</Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {packLocations.length} locations
+                        <span className="mx-1">•</span>
+                        {pack.is_free ? (
+                          <span className="text-green-600">Free</span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <Coins className="h-3 w-3" />
+                            {pack.price_coins}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pack Actions */}
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      {!pack.image_url && (
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => toggleLocationActive.mutate({ id: location.id, is_active: !location.is_active })}
-                          title={location.is_active ? "Deactivate" : "Activate"}
+                          onClick={() => generatePackImage(pack.id, pack.name)}
+                          disabled={isGenerating}
+                          title="Generate pack image"
                         >
-                          {location.is_active ? (
-                            <Eye className="h-4 w-4 text-green-600" />
+                          {isGenerating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <EyeOff className="h-4 w-4 text-red-500" />
+                            <Sparkles className="h-4 w-4 text-primary" />
                           )}
                         </Button>
-                        <Button size="icon" variant="outline" onClick={() => openEditLocation(location)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => setDeleteLocationId(location.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => togglePackActive.mutate({ id: pack.id, is_active: !pack.is_active })}
+                        title={pack.is_active ? "Deactivate" : "Activate"}
+                      >
+                        {pack.is_active ? (
+                          <Eye className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-red-500" />
+                        )}
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => openEditPack(pack)} title="Edit pack">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => setDeletePackId(pack.id)} title="Delete pack">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </AccordionTrigger>
+
+                <AccordionContent className="px-4 pb-4">
+                  {pack.description && (
+                    <p className="text-sm text-muted-foreground mb-4">{pack.description}</p>
+                  )}
+
+                  {/* Quick Add Location */}
+                  <div className="flex gap-2 mb-4">
+                    {addingLocationToPackId === pack.id ? (
+                      <>
+                        <Input
+                          placeholder="Location name (e.g., Waikiki Beach)"
+                          value={newLocationName}
+                          onChange={(e) => setNewLocationName(e.target.value)}
+                          className="flex-1"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleQuickAddLocation(pack.id);
+                            } else if (e.key === "Escape") {
+                              setAddingLocationToPackId(null);
+                              setNewLocationName("");
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <Button 
+                          onClick={() => handleQuickAddLocation(pack.id)}
+                          disabled={addingLocation}
+                        >
+                          {addingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setAddingLocationToPackId(null);
+                            setNewLocationName("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAddingLocationToPackId(pack.id)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Location
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Locations List */}
+                  {packLocations.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground bg-muted/30 rounded-lg">
+                      No locations in this pack yet
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      {packLocations.map((location) => (
+                        <div 
+                          key={location.id} 
+                          className={`flex items-center justify-between p-3 rounded-lg border ${!location.is_active ? "opacity-60 bg-muted/30" : "bg-card"}`}
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* Location Image */}
+                            <div className="w-10 h-10 rounded bg-muted flex-shrink-0 overflow-hidden">
+                              {location.image_url ? (
+                                <img 
+                                  src={location.image_url} 
+                                  alt={location.name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium truncate">{location.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{location.prompt_text}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 ml-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => toggleLocationActive.mutate({ id: location.id, is_active: !location.is_active })}
+                              title={location.is_active ? "Deactivate" : "Activate"}
+                            >
+                              {location.is_active ? (
+                                <Eye className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <EyeOff className="h-4 w-4 text-red-500" />
+                              )}
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => openEditLocation(location)} title="Edit">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDeleteLocationId(location.id)} title="Delete">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
+
+      {/* Unassigned Locations */}
+      {locationsByPack["unassigned"] && locationsByPack["unassigned"].length > 0 && (
+        <Card className="mt-6">
+          <CardContent className="pt-6">
+            <h4 className="font-medium mb-4 flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Unassigned Locations ({locationsByPack["unassigned"].length})
+            </h4>
+            <div className="grid gap-2">
+              {locationsByPack["unassigned"].map((location) => (
+                <div 
+                  key={location.id} 
+                  className={`flex items-center justify-between p-3 rounded-lg border ${!location.is_active ? "opacity-60" : ""}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{location.name}</p>
+                    <p className="text-sm text-muted-foreground truncate">{location.prompt_text}</p>
+                  </div>
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button size="icon" variant="ghost" onClick={() => openEditLocation(location)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => setDeleteLocationId(location.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pack Dialog */}
       <Dialog open={packDialogOpen} onOpenChange={setPackDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPack ? "Edit Pack" : "Create Location Pack"}</DialogTitle>
+            <DialogTitle>{editingPack ? "Edit Pack" : "Create Pack"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); savePack.mutate({ ...packForm, id: editingPack?.id }); }} className="space-y-4">
             <div>
               <Label>Pack Name</Label>
               <Input
                 value={packForm.name}
-                onChange={(e) => setPackForm({ ...packForm, name: e.target.value })}
+                onChange={(e) => {
+                  setPackForm({ ...packForm, name: e.target.value });
+                  if (!packImagePrompt) setPackImagePrompt(e.target.value);
+                }}
                 placeholder="e.g., Hawaii Adventure"
+                required
               />
             </div>
+
             <div>
               <Label>Description</Label>
               <Textarea
                 value={packForm.description}
                 onChange={(e) => setPackForm({ ...packForm, description: e.target.value })}
-                placeholder="Tropical beaches, volcanoes, and more..."
+                placeholder="Describe this location pack..."
+                rows={2}
               />
             </div>
+
+            {/* AI Image Generation */}
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Generate Pack Image with AI
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={packImagePrompt}
+                  onChange={(e) => setPackImagePrompt(e.target.value)}
+                  placeholder="Describe the pack image..."
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  onClick={handleGenerateDialogImage}
+                  disabled={generatingDialogImage || !packImagePrompt.trim()}
+                  variant="secondary"
+                >
+                  {generatingDialogImage ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Wand2 className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+
+              {packForm.image_url && (
+                <div className="relative">
+                  <img 
+                    src={packForm.image_url} 
+                    alt="Pack preview" 
+                    className="w-full max-w-xs mx-auto rounded border"
+                  />
+                </div>
+              )}
+            </div>
+
             <div>
-              <Label>Image URL (optional)</Label>
+              <Label>Image URL (or use AI above)</Label>
               <Input
                 value={packForm.image_url}
                 onChange={(e) => setPackForm({ ...packForm, image_url: e.target.value })}
                 placeholder="https://..."
               />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+
+            {/* Pricing */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-2">
+                  <Coins className="w-4 h-4" />
+                  Free Pack
+                </Label>
                 <Switch
                   checked={packForm.is_free}
                   onCheckedChange={(checked) => setPackForm({ ...packForm, is_free: checked })}
                 />
-                <Label>Free Pack</Label>
               </div>
               {!packForm.is_free && (
-                <div className="flex-1">
+                <div>
                   <Label>Price (coins)</Label>
                   <Input
                     type="number"
+                    min={1}
                     value={packForm.price_coins}
                     onChange={(e) => setPackForm({ ...packForm, price_coins: parseInt(e.target.value) || 0 })}
                   />
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center justify-between">
+              <Label>Active</Label>
               <Switch
                 checked={packForm.is_active}
                 onCheckedChange={(checked) => setPackForm({ ...packForm, is_active: checked })}
               />
-              <Label>Active</Label>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPackDialogOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={() => savePack.mutate({ ...packForm, id: editingPack?.id })}
-              disabled={!packForm.name || savePack.isPending}
-            >
-              {savePack.isPending ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPackDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={savePack.isPending}>
+                {savePack.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {editingPack ? "Save Changes" : "Create Pack"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -566,51 +822,55 @@ export const WorkoutLocationsManager = () => {
           <DialogHeader>
             <DialogTitle>{editingLocation ? "Edit Location" : "Create Location"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); saveLocation.mutate({ ...locationForm, id: editingLocation?.id }); }} className="space-y-4">
             <div>
-              <Label>Location Pack (optional)</Label>
-              <Select 
-                value={locationForm.pack_id} 
-                onValueChange={(value) => setLocationForm({ ...locationForm, pack_id: value })}
+              <Label>Pack</Label>
+              <select
+                className="w-full border rounded-md px-3 py-2"
+                value={locationForm.pack_id}
+                onChange={(e) => setLocationForm({ ...locationForm, pack_id: e.target.value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a pack..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No Pack (Unassigned)</SelectItem>
-                  {packs.map((pack) => (
-                    <SelectItem key={pack.id} value={pack.id}>{pack.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Unassigned</option>
+                {packs.map((pack) => (
+                  <option key={pack.id} value={pack.id}>{pack.name}</option>
+                ))}
+              </select>
             </div>
+
             <div>
               <Label>Location Name</Label>
               <Input
                 value={locationForm.name}
                 onChange={(e) => setLocationForm({ ...locationForm, name: e.target.value })}
                 placeholder="e.g., Waikiki Beach"
+                required
               />
             </div>
+
             <div>
-              <Label>Prompt Text (used in AI generation)</Label>
+              <Label>Description (optional)</Label>
+              <Textarea
+                value={locationForm.description}
+                onChange={(e) => setLocationForm({ ...locationForm, description: e.target.value })}
+                placeholder="A brief description..."
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <Label>Prompt Text (for AI image generation)</Label>
               <Textarea
                 value={locationForm.prompt_text}
                 onChange={(e) => setLocationForm({ ...locationForm, prompt_text: e.target.value })}
-                placeholder="e.g., on a sunny Hawaiian beach with palm trees and blue ocean waves"
+                placeholder="Describe this location for AI image generation..."
+                rows={3}
+                required
               />
               <p className="text-xs text-muted-foreground mt-1">
-                This text is inserted into the AI prompt to describe where the character is exercising.
+                This text is used when generating workout images at this location.
               </p>
             </div>
-            <div>
-              <Label>Description (optional)</Label>
-              <Input
-                value={locationForm.description}
-                onChange={(e) => setLocationForm({ ...locationForm, description: e.target.value })}
-                placeholder="Internal notes about this location"
-              />
-            </div>
+
             <div>
               <Label>Image URL (optional)</Label>
               <Input
@@ -619,23 +879,25 @@ export const WorkoutLocationsManager = () => {
                 placeholder="https://..."
               />
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center justify-between">
+              <Label>Active</Label>
               <Switch
                 checked={locationForm.is_active}
                 onCheckedChange={(checked) => setLocationForm({ ...locationForm, is_active: checked })}
               />
-              <Label>Active</Label>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLocationDialogOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={() => saveLocation.mutate({ ...locationForm, id: editingLocation?.id })}
-              disabled={!locationForm.name || !locationForm.prompt_text || saveLocation.isPending}
-            >
-              {saveLocation.isPending ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setLocationDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saveLocation.isPending}>
+                {saveLocation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {editingLocation ? "Save Changes" : "Create Location"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -643,17 +905,14 @@ export const WorkoutLocationsManager = () => {
       <AlertDialog open={!!deletePackId} onOpenChange={() => setDeletePackId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Location Pack?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Pack?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will also delete all locations within this pack. This action cannot be undone.
+              This will delete the pack and unassign all its locations. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deletePackId && deletePack.mutate(deletePackId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={() => deletePackId && deletePack.mutate(deletePackId)}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -671,10 +930,7 @@ export const WorkoutLocationsManager = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteLocationId && deleteLocation.mutate(deleteLocationId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={() => deleteLocationId && deleteLocation.mutate(deleteLocationId)}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
