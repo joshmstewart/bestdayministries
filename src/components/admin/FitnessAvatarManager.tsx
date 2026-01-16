@@ -17,6 +17,7 @@ import {
 import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
+import ImageLightbox from "@/components/ImageLightbox";
 
 const defaultFormData = {
   name: "", description: "", preview_image_url: "", character_prompt: "",
@@ -61,6 +62,13 @@ export function FitnessAvatarManager() {
   const [formData, setFormData] = useState(defaultFormData);
   const [generatingImageFor, setGeneratingImageFor] = useState<string | null>(null);
   const [generatingInDialog, setGeneratingInDialog] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  const handleImageClick = (imageUrl: string) => {
+    setLightboxImage(imageUrl);
+    setLightboxOpen(true);
+  };
 
   const { data: avatars, isLoading } = useQuery({
     queryKey: ["admin-fitness-avatars"],
@@ -370,9 +378,11 @@ export function FitnessAvatarManager() {
                       <img 
                         src={formData.preview_image_url} 
                         alt="Preview" 
-                        className="w-16 h-16 object-cover rounded-md"
+                        className="w-16 h-16 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => handleImageClick(formData.preview_image_url)}
+                        title="Click to enlarge"
                       />
-                      <span className="text-xs text-muted-foreground">Current preview</span>
+                      <span className="text-xs text-muted-foreground">Click to enlarge</span>
                     </div>
                   )}
                   <p className="text-xs text-muted-foreground">
@@ -448,7 +458,13 @@ export function FitnessAvatarManager() {
                 <TableCell>
                   <div className="w-12 h-12 rounded-md bg-muted overflow-hidden relative">
                     {avatar.preview_image_url ? (
-                      <img src={avatar.preview_image_url} alt={avatar.name} className="w-full h-full object-cover" />
+                      <img 
+                        src={avatar.preview_image_url} 
+                        alt={avatar.name} 
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => handleImageClick(avatar.preview_image_url)}
+                        title="Click to enlarge"
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-lg">🏃</div>
                     )}
@@ -528,6 +544,19 @@ export function FitnessAvatarManager() {
           </TableBody>
         </Table>
       </CardContent>
+      
+      {/* Image Lightbox */}
+      <ImageLightbox
+        images={lightboxImage ? [{ image_url: lightboxImage }] : []}
+        currentIndex={0}
+        isOpen={lightboxOpen}
+        onClose={() => {
+          setLightboxOpen(false);
+          setLightboxImage(null);
+        }}
+        onPrevious={() => {}}
+        onNext={() => {}}
+      />
     </Card>
   );
 }
