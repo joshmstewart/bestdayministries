@@ -152,11 +152,16 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
                 <Package className="h-16 w-16 text-muted-foreground opacity-50" />
               </div>
             )}
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
               {product.is_active ? (
                 <Badge>Active</Badge>
               ) : (
                 <Badge variant="secondary">Inactive</Badge>
+              )}
+              {(product.inventory === 0 || product.inventory === null) && (
+                <Badge variant="destructive" className="bg-red-600">
+                  Out of Stock
+                </Badge>
               )}
             </div>
           </div>
