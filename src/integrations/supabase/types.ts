@@ -8561,6 +8561,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_workout_location_packs: {
+        Row: {
+          id: string
+          pack_id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          pack_id: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          pack_id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_workout_location_packs_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "workout_location_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_workout_logs: {
         Row: {
           activity_id: string | null
@@ -9305,6 +9334,92 @@ export type Database = {
             columns: ["image_id"]
             isOneToOne: false
             referencedRelation: "workout_generated_images"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_location_packs: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_free: boolean
+          name: string
+          price_coins: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_free?: boolean
+          name: string
+          price_coins?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_free?: boolean
+          name?: string
+          price_coins?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workout_locations: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          pack_id: string | null
+          prompt_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          pack_id?: string | null
+          prompt_text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          pack_id?: string | null
+          prompt_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_locations_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "workout_location_packs"
             referencedColumns: ["id"]
           },
         ]

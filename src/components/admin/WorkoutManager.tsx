@@ -4,7 +4,8 @@ import { WorkoutVideosManager } from "./WorkoutVideosManager";
 import { WorkoutActivitiesManager } from "./WorkoutActivitiesManager";
 import { WorkoutCategoriesManager } from "./WorkoutCategoriesManager";
 import { FitnessAvatarManager } from "./FitnessAvatarManager";
-import { Play, ListChecks, FolderOpen, Sparkles } from "lucide-react";
+import { WorkoutLocationsManager } from "./WorkoutLocationsManager";
+import { Play, ListChecks, FolderOpen, Sparkles, MapPin } from "lucide-react";
 
 export const WorkoutManager = () => {
   const [activeTab, setActiveTab] = useState("videos");
@@ -36,6 +37,10 @@ export const WorkoutManager = () => {
             <Sparkles className="h-4 w-4" />
             Avatars
           </TabsTrigger>
+          <TabsTrigger value="locations" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Locations
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="videos" className="mt-6">
@@ -52,6 +57,10 @@ export const WorkoutManager = () => {
 
         <TabsContent value="avatars" className="mt-6">
           <FitnessAvatarManager />
+        </TabsContent>
+
+        <TabsContent value="locations" className="mt-6">
+          <WorkoutLocationsManager />
         </TabsContent>
       </Tabs>
     </div>
