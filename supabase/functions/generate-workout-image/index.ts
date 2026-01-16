@@ -91,8 +91,24 @@ serve(async (req) => {
       throw new Error("Avatar not found");
     }
 
-    // Verify user owns or has access to this avatar
-    if (!avatar.is_free) {
+    // Check if user is admin/owner for admin test mode
+    let isAdmin = false;
+    if (isAdminTest) {
+      const { data: userRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+      
+      isAdmin = userRole?.role === "admin" || userRole?.role === "owner";
+      
+      if (!isAdmin) {
+        throw new Error("Admin access required for testing");
+      }
+    }
+
+    // Verify user owns or has access to this avatar (skip for admin tests)
+    if (!avatar.is_free && !isAdmin) {
       const { data: userAvatar, error: ownershipError } = await supabase
         .from("user_fitness_avatars")
         .select("id")
