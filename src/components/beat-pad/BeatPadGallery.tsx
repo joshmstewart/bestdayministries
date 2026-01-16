@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Play, Square, Loader2, Music, Copy } from 'lucide-react';
+import { Heart, Play, Square, Loader2, Music, Copy, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type SortOption = 'newest' | 'liked' | 'played';
 
@@ -50,6 +56,13 @@ interface BeatPadGalleryProps {
   onRemixBeat?: (beat: Beat) => void;
 }
 
+interface SoundInfo {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+}
+
 export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRemixBeat }) => {
   const { user } = useAuth();
   const [creations, setCreations] = useState<BeatCreation[]>([]);
@@ -57,10 +70,35 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
+  const [soundsMap, setSoundsMap] = useState<Map<string, SoundInfo>>(new Map());
+  const [selectedBeat, setSelectedBeat] = useState<BeatCreation | null>(null);
 
   useEffect(() => {
     loadCreations();
+    loadSounds();
   }, [user, sortBy]);
+
+  const loadSounds = async () => {
+    try {
+      const { data } = await supabase
+        .from('beat_pad_sounds')
+        .select('id, name, emoji, color');
+      
+      if (data) {
+        const map = new Map(data.map(s => [s.id, s]));
+        setSoundsMap(map);
+      }
+    } catch (error) {
+      console.error('Error loading sounds:', error);
+    }
+  };
+
+  const getSoundsForBeat = (pattern: Record<string, boolean[]>): SoundInfo[] => {
+    const soundIds = Object.keys(pattern);
+    return soundIds
+      .map(id => soundsMap.get(id))
+      .filter((s): s is SoundInfo => !!s);
+  };
 
   const loadCreations = async () => {
     try {
@@ -247,7 +285,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                   <span>{countActiveSteps(creation.pattern)} notes • {creation.plays_count || 0} loop plays</span>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant={isPlaying(creation.id) ? "default" : "outline"}
                     size="icon"
@@ -259,6 +297,15 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                     ) : (
                       <Play className="h-5 w-5" />
                     )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setSelectedBeat(creation)}
+                    className="h-10 w-10 flex-shrink-0"
+                    title="View sounds used"
+                  >
+                    <Info className="h-5 w-5" />
                   </Button>
                   {isOwner && (
                     <Button
@@ -316,6 +363,45 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
           );
         })}
       </div>
+
+      {/* Sounds Info Dialog */}
+      <Dialog open={!!selectedBeat} onOpenChange={() => setSelectedBeat(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Music className="h-5 w-5" />
+              Sounds in "{selectedBeat?.name}"
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedBeat && getSoundsForBeat(selectedBeat.pattern).length > 0 ? (
+              <div className="grid gap-2">
+                {getSoundsForBeat(selectedBeat.pattern).map((sound) => (
+                  <div
+                    key={sound.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                      style={{ backgroundColor: sound.color }}
+                    >
+                      {sound.emoji}
+                    </div>
+                    <span className="font-medium">{sound.name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">
+                No sound information available for this beat.
+              </p>
+            )}
+            <div className="pt-2 border-t text-xs text-muted-foreground">
+              <p>{selectedBeat?.tempo} BPM • {selectedBeat ? countActiveSteps(selectedBeat.pattern) : 0} notes</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
