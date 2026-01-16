@@ -82,6 +82,7 @@ const JoyHouseStores = () => {
           locationsRes.data.map((loc) => ({
             ...loc,
             hours: normalizeStoreHours(loc.hours),
+            hours_vary_seasonally: loc.hours_vary_seasonally ?? false,
           })) as StoreLocation[]
         );
       }
