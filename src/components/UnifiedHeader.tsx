@@ -168,9 +168,18 @@ export const UnifiedHeader = () => {
     };
   }, [retryCount]);
 
-  // Load additional user-specific data when user/profile changes
+  // Load additional user-specific data when user changes
   useEffect(() => {
-    if (!user || !profile) return;
+    if (!user?.id || !authProfile) return;
+
+    let mounted = true;
+    const vendorCacheKey = `vendor_access_${user.id}`;
+
+    // If we've previously confirmed vendor access for this user, keep the UI stable
+    // while we re-check in the background.
+    if (localStorage.getItem(vendorCacheKey) === "true") {
+      setIsApprovedVendor(true);
+    }
 
     const loadUserSpecificData = async () => {
       try {
@@ -181,35 +190,61 @@ export const UnifiedHeader = () => {
             .select("id, visible_to_roles")
             .eq("is_active", true)
             .limit(1),
+
           // Vendor access includes: owning a vendor OR being an accepted team member.
+          // NOTE: We treat an initial "false" as potentially transient (e.g. auth token
+          // hydration timing) and confirm with a second check before hiding the link.
           hasVendorAccess(user.id),
-          profile.role === "bestie" 
+
+          profileRole === "bestie"
             ? supabase
                 .from("sponsorship_shares")
                 .select("id")
                 .eq("bestie_id", user.id)
                 .limit(1)
-            : Promise.resolve({ data: [] })
+            : Promise.resolve({ data: [] }),
         ]);
 
+        if (!mounted) return;
+
         // Process store access
-        if (storeResult.status === 'fulfilled' && storeResult.value.data) {
+        if (storeResult.status === "fulfilled" && storeResult.value.data) {
           const hasVisibleItems = storeResult.value.data.some((item: any) => {
             if (isAdmin) return true;
             const visibleRoles = item.visible_to_roles;
             if (!visibleRoles || visibleRoles.length === 0) return true;
-            return visibleRoles.includes(profile.role);
+            return visibleRoles.includes(profileRole);
           });
           setHasStoreAccess(hasVisibleItems || isAdmin);
         }
 
-        // Process vendor status
-        if (vendorResult.status === 'fulfilled') {
-          setIsApprovedVendor(Boolean(vendorResult.value));
+        // Process vendor status (stabilized)
+        if (vendorResult.status === "fulfilled") {
+          const hasAccess = Boolean(vendorResult.value);
+
+          if (hasAccess) {
+            setIsApprovedVendor(true);
+            localStorage.setItem(vendorCacheKey, "true");
+          } else {
+            // Confirm once more after a brief delay before hiding the dashboard link.
+            window.setTimeout(async () => {
+              if (!mounted) return;
+              const confirmed = await hasVendorAccess(user.id);
+              if (!mounted) return;
+
+              if (confirmed) {
+                setIsApprovedVendor(true);
+                localStorage.setItem(vendorCacheKey, "true");
+              } else {
+                setIsApprovedVendor(false);
+                localStorage.removeItem(vendorCacheKey);
+              }
+            }, 1200);
+          }
         }
 
         // Process shared sponsorships
-        if (sharesResult.status === 'fulfilled' && profile.role === "bestie") {
+        if (sharesResult.status === "fulfilled" && profileRole === "bestie") {
           setHasSharedSponsorships(((sharesResult.value as any).data?.length ?? 0) > 0);
         }
       } catch (error) {
@@ -218,7 +253,11 @@ export const UnifiedHeader = () => {
     };
 
     loadUserSpecificData();
-  }, [user, profile, isAdmin]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, authProfile?.id, profileRole, isAdmin]);
 
   // Check if Games tab is visible to current user
   const isGamesVisible = () => {
