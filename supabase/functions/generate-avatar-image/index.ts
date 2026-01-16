@@ -71,17 +71,21 @@ serve(async (req) => {
 
     // Build the prompt for a friendly, cartoon-style fitness avatar
     const imagePrompt = `Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${characterPrompt}. 
-    
+
+CRITICAL BACKGROUND REQUIREMENT:
+- The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
+- The character should be isolated on a pure white background for easy integration into app interfaces
+
 Style requirements:
 - Bright, cheerful cartoon/animated art style similar to modern mobile games
 - Character should be standing in a confident, friendly pose
-- Clean white or simple gradient background
 - Full body view showing the character ready for any sport or exercise
 - Expressive, welcoming face with a smile
 - High quality, professional illustration
 - The character should look approachable and motivating for fitness
 - Vibrant colors and clean lines
-- No text or logos in the image`;
+- No text, logos, or decorative elements in the image
+- No shadows on the background`;
 
     // Call Lovable AI to generate the image
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
