@@ -25,7 +25,7 @@ serve(async (req) => {
 
     console.log("Generating workout location image with prompt:", prompt.substring(0, 100) + "...");
 
-    // Build the full image prompt - representative pack image, no text
+    // Build the full image prompt - representative pack image, no text, edge-to-edge
     const fullPrompt = `Create a beautiful, vibrant illustration representing this workout location theme: ${prompt}
 
 Style requirements:
@@ -35,7 +35,9 @@ Style requirements:
 - NO people or characters in the image
 - Focus on the natural beauty and distinctive features of this location type
 - High quality, detailed digital art style suitable for a mobile app
-- 16:9 aspect ratio composition`;
+- 16:9 aspect ratio composition
+- The image MUST fill the entire frame edge-to-edge with NO white space, borders, margins, or empty areas around the edges
+- No blank background areas - the scene should extend completely to all edges of the image`;
 
     // Generate image using Lovable AI
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
