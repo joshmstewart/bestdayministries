@@ -90,6 +90,7 @@ import { JokeLibraryManager } from "@/components/admin/JokeLibraryManager";
 import { JokeCategoriesManager } from "@/components/admin/JokeCategoriesManager";
 import { JokeDuplicatesManager } from "@/components/admin/JokeDuplicatesManager";
 import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
+import { CoinTransactionsManager } from "@/components/admin/CoinTransactionsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 import { PicturePasswordImagesViewer } from "@/components/admin/PicturePasswordImagesViewer";
@@ -516,6 +517,7 @@ const Admin = () => {
                   <TabsList className="inline-flex flex-wrap h-auto">
                     <TabsTrigger value="earn-coins">Earn Coins</TabsTrigger>
                     <TabsTrigger value="coins">Manage Coins</TabsTrigger>
+                    <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="store-items">Store Items</TabsTrigger>
                     
                     <TabsTrigger value="beat-pad">Beat Pad</TabsTrigger>
@@ -536,6 +538,10 @@ const Admin = () => {
                   
                   <TabsContent value="store-items">
                     <StoreItemsManager />
+                  </TabsContent>
+
+                  <TabsContent value="transactions">
+                    <CoinTransactionsManager />
                   </TabsContent>
                   
 
