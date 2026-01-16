@@ -3757,6 +3757,48 @@ export type Database = {
         }
         Relationships: []
       }
+      fitness_avatars: {
+        Row: {
+          character_prompt: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          is_free: boolean
+          name: string
+          preview_image_url: string | null
+          price_coins: number
+          updated_at: string
+        }
+        Insert: {
+          character_prompt: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          name: string
+          preview_image_url?: string | null
+          price_coins?: number
+          updated_at?: string
+        }
+        Update: {
+          character_prompt?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          is_free?: boolean
+          name?: string
+          preview_image_url?: string | null
+          price_coins?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       footer_links: {
         Row: {
           created_at: string
@@ -8091,6 +8133,38 @@ export type Database = {
           },
         ]
       }
+      user_fitness_avatars: {
+        Row: {
+          avatar_id: string
+          id: string
+          is_selected: boolean
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_id: string
+          id?: string
+          is_selected?: boolean
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_id?: string
+          id?: string
+          is_selected?: boolean
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_fitness_avatars_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_joke_categories: {
         Row: {
           category_id: string
@@ -9151,6 +9225,89 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      workout_generated_images: {
+        Row: {
+          activity_name: string | null
+          avatar_id: string
+          created_at: string
+          id: string
+          image_type: string
+          image_url: string
+          is_shared_to_community: boolean
+          likes_count: number
+          user_id: string
+          workout_log_id: string | null
+        }
+        Insert: {
+          activity_name?: string | null
+          avatar_id: string
+          created_at?: string
+          id?: string
+          image_type: string
+          image_url: string
+          is_shared_to_community?: boolean
+          likes_count?: number
+          user_id: string
+          workout_log_id?: string | null
+        }
+        Update: {
+          activity_name?: string | null
+          avatar_id?: string
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url?: string
+          is_shared_to_community?: boolean
+          likes_count?: number
+          user_id?: string
+          workout_log_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_generated_images_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_generated_images_workout_log_id_fkey"
+            columns: ["workout_log_id"]
+            isOneToOne: false
+            referencedRelation: "user_workout_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_image_likes: {
+        Row: {
+          created_at: string
+          id: string
+          image_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_image_likes_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "workout_generated_images"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_videos: {
         Row: {
