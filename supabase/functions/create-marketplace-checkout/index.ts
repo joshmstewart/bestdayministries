@@ -317,6 +317,8 @@ serve(async (req) => {
       mode: "payment",
       success_url: `${origin}/checkout-success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
       cancel_url: `${origin}/marketplace?canceled=true`,
+      // Enable automatic tax calculation for marketplace sales
+      automatic_tax: { enabled: true },
       shipping_address_collection: {
         allowed_countries: ['US', 'CA'],
       },
