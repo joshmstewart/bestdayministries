@@ -480,9 +480,52 @@ const VendorDashboard = () => {
                 <VendorEarnings vendorId={selectedVendorId} />
               </TabsContent>
               
-              <TabsContent value="payments" className="space-y-4">
+              <TabsContent value="payments" className="space-y-6">
                 <h2 className="text-2xl font-semibold">Payment Settings</h2>
                 <StripeConnectOnboarding vendorId={selectedVendorId} />
+                
+                {/* 1099 Tax Information */}
+                <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                      <DollarSign className="h-5 w-5" />
+                      1099 Tax Reporting – Handled by Stripe
+                    </CardTitle>
+                    <CardDescription className="text-blue-600 dark:text-blue-400">
+                      Good news! You don't need to worry about 1099 paperwork.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      When you completed Stripe Connect onboarding, you provided your tax information (legal name, address, and Tax ID). Stripe uses this to automatically handle your 1099-K tax reporting.
+                    </p>
+                    
+                    <div className="bg-background/60 rounded-lg p-4 space-y-3">
+                      <p className="font-medium text-sm">What Stripe does for you:</p>
+                      <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                        <li>Issues <strong>1099-K forms</strong> if you receive $600 or more in a calendar year</li>
+                        <li>Files the 1099-K with the IRS automatically</li>
+                        <li>Sends you a copy by <strong>January 31st</strong> each year</li>
+                        <li>Stores your tax documents in your Stripe dashboard</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="bg-background/60 rounded-lg p-4 space-y-3">
+                      <p className="font-medium text-sm">What you need to do:</p>
+                      <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                        <li>Keep your tax information up to date in Stripe</li>
+                        <li>Look for your 1099-K after January 31st if you earned $600+</li>
+                        <li>Include the income on your tax return</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        <strong>Note:</strong> The $600 threshold applies per calendar year. If you earned less than $600, you typically won't receive a 1099-K, but you're still responsible for reporting the income on your taxes.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-8">
