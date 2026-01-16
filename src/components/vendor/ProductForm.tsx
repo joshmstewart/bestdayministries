@@ -14,6 +14,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Json } from "@/integrations/supabase/types";
 import { ProductReviewPreview } from "./ProductReviewPreview";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const PRODUCT_CATEGORIES = [
+  "Art",
+  "Candles",
+  "Clothing",
+  "Home Decor",
+  "Jewelry",
+  "Pottery",
+  "Prints",
+  "Stickers",
+  "Woodwork",
+];
 
 interface ProductOption {
   name: string;
@@ -56,6 +69,9 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
   
   // Image-option mapping state
   const [imageOptionMapping, setImageOptionMapping] = useState<ImageOptionMapping>(product?.image_option_mapping || {});
+  
+  // Custom category state
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
 
   // Reset form when product changes or dialog opens
   useEffect(() => {
@@ -312,6 +328,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setNewOptionName("");
     setNewOptionValues("");
     setStep('edit');
+    setShowCustomCategory(false);
   };
 
   const handleDialogChange = (isOpen: boolean) => {
@@ -449,12 +466,38 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
 
           <div>
             <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="Pottery, Jewelry, Art, etc."
-            />
+            <div className="space-y-2">
+              <Select
+                value={PRODUCT_CATEGORIES.includes(category) ? category : (category ? "other" : "")}
+                onValueChange={(value) => {
+                  if (value === "other") {
+                    setCategory("");
+                    setShowCustomCategory(true);
+                  } else {
+                    setCategory(value);
+                    setShowCustomCategory(false);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRODUCT_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                  <SelectItem value="other">Other (custom)</SelectItem>
+                </SelectContent>
+              </Select>
+              {(showCustomCategory || (category && !PRODUCT_CATEGORIES.includes(category))) && (
+                <Input
+                  id="customCategory"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Enter custom category"
+                />
+              )}
+            </div>
           </div>
 
           <div>
