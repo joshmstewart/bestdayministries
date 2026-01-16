@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Trash2, Eye, EyeOff } from "lucide-react";
+import { Package, Trash2, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ProductForm } from "./ProductForm";
 import {
   AlertDialog,
@@ -182,7 +183,18 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
               </Badge>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="icon"
+                asChild
+                title="Preview in store"
+              >
+                <Link to={`/store/product/${product.id}`} target="_blank">
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </Button>
+
               <ProductForm
                 vendorId={vendorId}
                 product={product}
