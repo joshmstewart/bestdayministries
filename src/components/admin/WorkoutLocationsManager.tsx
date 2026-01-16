@@ -14,7 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff, Wand2, Loader2, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff, Wand2, Loader2, Sparkles, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -58,6 +58,46 @@ interface WorkoutLocation {
   display_order: number;
   created_at: string;
 }
+
+// Predefined location pack themes for randomization
+const packThemes = [
+  { name: "Beach Paradise", description: "Sun-soaked beaches and coastal workouts", locations: ["Malibu Beach", "Caribbean Shore", "Tropical Lagoon", "Sunset Pier", "Sandy Cove"] },
+  { name: "Mountain Adventures", description: "Epic mountain peaks and alpine trails", locations: ["Rocky Summit", "Alpine Meadow", "Forest Trail", "Misty Peaks", "Valley View"] },
+  { name: "Urban Fitness", description: "City rooftops and urban workout spots", locations: ["Rooftop Gym", "City Park", "Downtown Plaza", "Industrial Loft", "Street Corner"] },
+  { name: "Forest Retreat", description: "Peaceful woodland and nature settings", locations: ["Enchanted Forest", "Woodland Clearing", "Riverside Path", "Bamboo Grove", "Oak Sanctuary"] },
+  { name: "Desert Oasis", description: "Stunning desert landscapes and sunsets", locations: ["Red Rock Canyon", "Desert Dunes", "Cactus Garden", "Sunrise Mesa", "Sand Valley"] },
+  { name: "Tropical Paradise", description: "Lush jungles and exotic destinations", locations: ["Jungle Waterfall", "Palm Beach", "Volcanic Island", "Rainforest Path", "Coconut Grove"] },
+  { name: "Winter Wonderland", description: "Snowy landscapes and cozy settings", locations: ["Frozen Lake", "Ski Lodge", "Snow Valley", "Ice Cave", "Mountain Cabin"] },
+  { name: "Zen Gardens", description: "Peaceful Asian-inspired locations", locations: ["Japanese Garden", "Bamboo Temple", "Koi Pond", "Zen Courtyard", "Cherry Blossom Park"] },
+  { name: "Space Station", description: "Futuristic space and sci-fi environments", locations: ["Orbital Gym", "Moon Base", "Space Deck", "Galaxy View", "Asteroid Platform"] },
+  { name: "Underwater World", description: "Ocean depths and aquatic scenes", locations: ["Coral Reef", "Deep Sea Trench", "Underwater Cave", "Kelp Forest", "Sunken Temple"] },
+  { name: "Safari Adventure", description: "African savanna and wildlife", locations: ["Savanna Sunrise", "Watering Hole", "Acacia Tree", "Safari Camp", "Lion Rock"] },
+  { name: "Mediterranean Coast", description: "Greek islands and coastal villages", locations: ["Santorini Terrace", "Greek Temple", "Olive Grove", "Coastal Cliff", "Harbor Town"] },
+];
+
+// Individual location ideas for randomization
+const locationIdeas = [
+  { name: "Sunrise Beach", prompt: "A beautiful beach at sunrise with golden light reflecting on calm waves, palm trees in the background" },
+  { name: "Mountain Summit", prompt: "A breathtaking mountain peak with panoramic views, snow-capped peaks in the distance" },
+  { name: "City Rooftop", prompt: "A modern rooftop terrace with city skyline views, sunset lighting" },
+  { name: "Forest Clearing", prompt: "A peaceful forest clearing with dappled sunlight, surrounded by tall trees" },
+  { name: "Desert Canyon", prompt: "A dramatic red rock canyon at golden hour, layered rock formations" },
+  { name: "Tropical Waterfall", prompt: "A stunning tropical waterfall surrounded by lush greenery, mist rising" },
+  { name: "Zen Garden", prompt: "A serene Japanese zen garden with raked sand, bonsai trees, and stone lanterns" },
+  { name: "Alpine Meadow", prompt: "A colorful alpine meadow with wildflowers, snow-capped mountains in background" },
+  { name: "Ocean Cliff", prompt: "A dramatic cliff overlooking the ocean, waves crashing below" },
+  { name: "Bamboo Forest", prompt: "A mystical bamboo forest with tall green stalks, filtered sunlight" },
+  { name: "Sunset Pier", prompt: "A wooden pier extending into calm water, vibrant sunset colors" },
+  { name: "Volcano View", prompt: "A tropical location with an active volcano in the distance, dramatic sky" },
+  { name: "Northern Lights", prompt: "An arctic landscape with aurora borealis dancing in the night sky" },
+  { name: "Ancient Ruins", prompt: "Ancient Greek or Roman ruins at golden hour, columns and arches" },
+  { name: "Coral Reef", prompt: "A vibrant underwater coral reef scene with colorful fish and sea life" },
+  { name: "Rice Terraces", prompt: "Beautiful green rice terraces on hillside, traditional Asian landscape" },
+  { name: "Safari Savanna", prompt: "African savanna at sunset with acacia trees, warm golden lighting" },
+  { name: "Glacier Lake", prompt: "A turquoise glacier lake surrounded by mountains, crystal clear water" },
+  { name: "Cherry Blossoms", prompt: "A path lined with cherry blossom trees in full bloom, pink petals floating" },
+  { name: "Space Station", prompt: "A futuristic space station gym with Earth visible through large windows" },
+];
 
 export const WorkoutLocationsManager = () => {
   const queryClient = useQueryClient();
@@ -440,6 +480,46 @@ export const WorkoutLocationsManager = () => {
     setLightboxOpen(true);
   };
 
+  // Randomize pack form with a theme
+  const handleRandomizePack = () => {
+    const usedNames = new Set(packs.map(p => p.name.toLowerCase()));
+    const availableThemes = packThemes.filter(t => !usedNames.has(t.name.toLowerCase()));
+    const pool = availableThemes.length > 0 ? availableThemes : packThemes;
+    
+    const randomTheme = pool[Math.floor(Math.random() * pool.length)];
+    
+    setPackForm(prev => ({
+      ...prev,
+      name: randomTheme.name,
+      description: randomTheme.description,
+      is_active: true,
+    }));
+    setPackImagePrompt(randomTheme.name);
+    
+    toast.success(`Randomized: ${randomTheme.name}`, {
+      description: `Contains ${randomTheme.locations.length} location ideas`,
+    });
+  };
+
+  // Randomize location form with a location idea
+  const handleRandomizeLocation = () => {
+    const usedNames = new Set(locations.map(l => l.name.toLowerCase()));
+    const availableLocations = locationIdeas.filter(l => !usedNames.has(l.name.toLowerCase()));
+    const pool = availableLocations.length > 0 ? availableLocations : locationIdeas;
+    
+    const randomLoc = pool[Math.floor(Math.random() * pool.length)];
+    
+    setLocationForm(prev => ({
+      ...prev,
+      name: randomLoc.name,
+      prompt_text: randomLoc.prompt,
+      description: "",
+      is_active: true,
+    }));
+    
+    toast.success(`Randomized: ${randomLoc.name}`);
+  };
+
   // Generate pack image in dialog
   const handleGenerateDialogImage = async () => {
     if (!packImagePrompt.trim()) {
@@ -783,6 +863,18 @@ export const WorkoutLocationsManager = () => {
           <DialogHeader>
             <DialogTitle>{editingPack ? "Edit Pack" : "Create Pack"}</DialogTitle>
           </DialogHeader>
+          
+          {/* Randomize Pack Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleRandomizePack}
+            className="w-full"
+          >
+            <Shuffle className="w-4 h-4 mr-2" />
+            Randomize Pack (Fill All Details)
+          </Button>
+          
           <form onSubmit={(e) => { e.preventDefault(); savePack.mutate({ ...packForm, id: editingPack?.id }); }} className="space-y-4">
             <div>
               <Label>Pack Name</Label>
@@ -906,6 +998,18 @@ export const WorkoutLocationsManager = () => {
           <DialogHeader>
             <DialogTitle>{editingLocation ? "Edit Location" : "Create Location"}</DialogTitle>
           </DialogHeader>
+          
+          {/* Randomize Location Button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleRandomizeLocation}
+            className="w-full"
+          >
+            <Shuffle className="w-4 h-4 mr-2" />
+            Randomize Location (Fill All Details)
+          </Button>
+          
           <form onSubmit={(e) => { e.preventDefault(); saveLocation.mutate({ ...locationForm, id: editingLocation?.id }); }} className="space-y-4">
             <div>
               <Label>Pack</Label>
