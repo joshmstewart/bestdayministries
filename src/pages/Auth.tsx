@@ -797,7 +797,7 @@ const Auth = () => {
               {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
             </Button>
 
-            {!isSignUp && (
+            {!isSignUp && !isForgotPassword && !isPasswordRecovery && !recoveryTokenHash && (
               <div className="relative z-0">
                 {/* Line stays behind everything in this block */}
                 <div className="absolute inset-0 flex items-center z-0">
@@ -812,7 +812,7 @@ const Auth = () => {
               </div>
             )}
 
-            {!isSignUp && (
+            {!isSignUp && !isForgotPassword && !isPasswordRecovery && !recoveryTokenHash && (
               <Button
                 type="button"
                 variant="outline"
