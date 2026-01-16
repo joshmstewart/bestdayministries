@@ -14,7 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff, Wand2, Loader2, ImageIcon, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff, Wand2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import ImageLightbox from "@/components/ImageLightbox";
 
 interface LocationPack {
   id: string;
@@ -90,10 +91,16 @@ export const WorkoutLocationsManager = () => {
   const [addingLocationToPackId, setAddingLocationToPackId] = useState<string | null>(null);
   const [newLocationName, setNewLocationName] = useState("");
   const [addingLocation, setAddingLocation] = useState(false);
+  const [generatingLocationImage, setGeneratingLocationImage] = useState<string | null>(null);
 
   // AI prompt state for pack dialog
   const [packImagePrompt, setPackImagePrompt] = useState("");
   const [generatingDialogImage, setGeneratingDialogImage] = useState(false);
+
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string }[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // Fetch packs
   const { data: packs = [], isLoading: packsLoading } = useQuery({
@@ -365,11 +372,17 @@ export const WorkoutLocationsManager = () => {
     }
   };
 
-  // Generate pack image using AI
+  // Generate pack image using AI - uses locations within the pack for context
   const generatePackImage = async (packId: string, packName: string) => {
     setGeneratingPackImage(packId);
     try {
-      const prompt = `A beautiful promotional image for a workout location pack called "${packName}". Show a scenic collage or overview representing this destination. Photorealistic, vibrant colors, inspiring travel photography style. Square format, high quality.`;
+      // Get the locations in this pack to provide context
+      const packLocations = locationsByPack[packId] || [];
+      const locationNames = packLocations.map(l => l.name).slice(0, 5).join(", ");
+      
+      const prompt = locationNames 
+        ? `${packName} featuring places like: ${locationNames}`
+        : packName;
       
       const { data, error } = await supabase.functions.invoke("generate-workout-location-image", {
         body: { prompt, packId },
@@ -386,6 +399,45 @@ export const WorkoutLocationsManager = () => {
     } finally {
       setGeneratingPackImage(null);
     }
+  };
+
+  // Generate location image using AI
+  const generateLocationImage = async (locationId: string, locationName: string, promptText: string) => {
+    setGeneratingLocationImage(locationId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-workout-location-image", {
+        body: { 
+          prompt: promptText || locationName,
+          locationId 
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Update the location with the new image URL
+      if (data?.imageUrl) {
+        await supabase
+          .from("workout_locations")
+          .update({ image_url: data.imageUrl })
+          .eq("id", locationId);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["workout-locations"] });
+      toast.success("Location image generated!");
+    } catch (error: any) {
+      console.error("Failed to generate location image:", error);
+      toast.error("Failed to generate image: " + (error.message || "Unknown error"));
+    } finally {
+      setGeneratingLocationImage(null);
+    }
+  };
+
+  // Open lightbox with image
+  const openLightbox = (imageUrl: string, caption?: string) => {
+    setLightboxImages([{ image_url: imageUrl, caption }]);
+    setLightboxIndex(0);
+    setLightboxOpen(true);
   };
 
   // Generate pack image in dialog
@@ -459,8 +511,16 @@ export const WorkoutLocationsManager = () => {
               <AccordionItem key={pack.id} value={pack.id} className="border rounded-lg overflow-hidden">
                 <AccordionTrigger className="px-4 hover:no-underline">
                   <div className="flex items-center gap-4 flex-1">
-                    {/* Pack Image */}
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    {/* Pack Image - clickable to expand */}
+                    <div 
+                      className={`relative w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 ${pack.image_url ? "cursor-pointer hover:ring-2 hover:ring-primary/50" : ""}`}
+                      onClick={(e) => {
+                        if (pack.image_url) {
+                          e.stopPropagation();
+                          openLightbox(pack.image_url, pack.name);
+                        }
+                      }}
+                    >
                       {pack.image_url ? (
                         <img 
                           src={pack.image_url} 
@@ -506,21 +566,19 @@ export const WorkoutLocationsManager = () => {
 
                     {/* Pack Actions */}
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                      {!pack.image_url && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => generatePackImage(pack.id, pack.name)}
-                          disabled={isGenerating}
-                          title="Generate pack image"
-                        >
-                          {isGenerating ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="h-4 w-4 text-primary" />
-                          )}
-                        </Button>
-                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => generatePackImage(pack.id, pack.name)}
+                        disabled={isGenerating}
+                        title={pack.image_url ? "Regenerate pack image" : "Generate pack image"}
+                      >
+                        {isGenerating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4 text-primary" />
+                        )}
+                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -608,8 +666,15 @@ export const WorkoutLocationsManager = () => {
                           className={`flex items-center justify-between p-3 rounded-lg border ${!location.is_active ? "opacity-60 bg-muted/30" : "bg-card"}`}
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {/* Location Image */}
-                            <div className="w-10 h-10 rounded bg-muted flex-shrink-0 overflow-hidden">
+                            {/* Location Image - clickable to expand */}
+                            <div 
+                              className={`relative w-10 h-10 rounded bg-muted flex-shrink-0 overflow-hidden ${location.image_url ? "cursor-pointer hover:ring-2 hover:ring-primary/50" : ""}`}
+                              onClick={() => {
+                                if (location.image_url) {
+                                  openLightbox(location.image_url, location.name);
+                                }
+                              }}
+                            >
                               {location.image_url ? (
                                 <img 
                                   src={location.image_url} 
@@ -621,6 +686,11 @@ export const WorkoutLocationsManager = () => {
                                   <MapPin className="h-4 w-4 text-muted-foreground" />
                                 </div>
                               )}
+                              {generatingLocationImage === location.id && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                  <Loader2 className="h-3 w-3 animate-spin text-white" />
+                                </div>
+                              )}
                             </div>
 
                             <div className="min-w-0 flex-1">
@@ -630,6 +700,20 @@ export const WorkoutLocationsManager = () => {
                           </div>
 
                           <div className="flex items-center gap-1 ml-2">
+                            {/* Generate location image button */}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => generateLocationImage(location.id, location.name, location.prompt_text)}
+                              disabled={generatingLocationImage === location.id}
+                              title={location.image_url ? "Regenerate image" : "Generate image"}
+                            >
+                              {generatingLocationImage === location.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-4 w-4 text-primary" />
+                              )}
+                            </Button>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -936,6 +1020,16 @@ export const WorkoutLocationsManager = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Image Lightbox */}
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrevious={() => setLightboxIndex((i) => Math.max(0, i - 1))}
+        onNext={() => setLightboxIndex((i) => Math.min(lightboxImages.length - 1, i + 1))}
+      />
     </div>
   );
 };
