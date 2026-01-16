@@ -369,6 +369,17 @@ const VendorAuth = () => {
       // Redirect to vendor dashboard to show pending status
       navigate("/vendor-dashboard");
     } catch (error: any) {
+      // Check if this is a "user already exists" error
+      if (error.message?.includes("already registered") || error.code === "user_already_exists") {
+        toast({
+          title: "Account Already Exists",
+          description: "You already have an account. Please sign in below to add your vendor application.",
+        });
+        // Switch to sign-in mode
+        setIsSignUp(false);
+        return;
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to create vendor account",
