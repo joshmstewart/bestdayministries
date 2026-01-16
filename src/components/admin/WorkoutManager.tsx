@@ -3,7 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkoutVideosManager } from "./WorkoutVideosManager";
 import { WorkoutActivitiesManager } from "./WorkoutActivitiesManager";
 import { WorkoutCategoriesManager } from "./WorkoutCategoriesManager";
-import { Play, ListChecks, FolderOpen } from "lucide-react";
+import { FitnessAvatarManager } from "./FitnessAvatarManager";
+import { Play, ListChecks, FolderOpen, Sparkles } from "lucide-react";
 
 export const WorkoutManager = () => {
   const [activeTab, setActiveTab] = useState("videos");
@@ -13,12 +14,12 @@ export const WorkoutManager = () => {
       <div>
         <h2 className="text-2xl font-bold">Workout Tracker</h2>
         <p className="text-muted-foreground">
-          Manage workout videos and quick-log activities
+          Manage workout videos, activities, and fitness avatars
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="videos" className="flex items-center gap-2">
             <Play className="h-4 w-4" />
             Videos
@@ -30,6 +31,10 @@ export const WorkoutManager = () => {
           <TabsTrigger value="categories" className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4" />
             Categories
+          </TabsTrigger>
+          <TabsTrigger value="avatars" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Avatars
           </TabsTrigger>
         </TabsList>
 
@@ -43,6 +48,10 @@ export const WorkoutManager = () => {
 
         <TabsContent value="categories" className="mt-6">
           <WorkoutCategoriesManager />
+        </TabsContent>
+
+        <TabsContent value="avatars" className="mt-6">
+          <FitnessAvatarManager />
         </TabsContent>
       </Tabs>
     </div>

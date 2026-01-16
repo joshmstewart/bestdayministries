@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2, Settings2, Zap } from "lucide-react";
+import { CheckCircle2, Loader2, Settings2, Zap, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { FavoriteActivitiesDialog } from "./FavoriteActivitiesDialog";
+import { useWorkoutImageGeneration } from "@/hooks/useWorkoutImageGeneration";
 
 interface QuickLogGridProps {
   userId: string;
@@ -20,6 +21,9 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
   const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
   const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
+  
+  // Image generation hook
+  const { selectedAvatar, generateActivityImage, isGenerating } = useWorkoutImageGeneration(userId);
 
   // Fetch user's favorite activity IDs
   const { data: favoriteIds = [] } = useQuery({
@@ -93,17 +97,20 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
   });
 
   const logActivityMutation = useMutation({
-    mutationFn: async (activityId: string) => {
-      const { error } = await supabase
+    mutationFn: async (activity: { id: string; name: string }) => {
+      const { data, error } = await supabase
         .from("user_workout_logs")
         .insert({
           user_id: userId,
           workout_type: "activity",
-          activity_id: activityId,
-        });
+          activity_id: activity.id,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      return { logId: data.id, activityName: activity.name };
     },
-    onSuccess: () => {
+    onSuccess: async ({ logId, activityName }) => {
       // Fire confetti!
       confetti({
         particleCount: 100,
@@ -118,6 +125,12 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
       queryClient.invalidateQueries({ queryKey: ["workout-streak-logs"] });
       toast.success("Activity logged! 🎉");
       onLog?.();
+      
+      // Generate AI image if user has an avatar selected
+      if (selectedAvatar?.id) {
+        toast.info("✨ Generating your workout image...", { duration: 3000 });
+        await generateActivityImage(activityName, logId);
+      }
     },
     onError: (error) => {
       showErrorToastWithCopy("Failed to log activity", error);
@@ -167,7 +180,7 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
                       ? "bg-green-100 dark:bg-green-900/30 ring-2 ring-green-500"
                       : "hover:bg-primary/10"
                   )}
-                  onClick={() => !isLoggedToday && logActivityMutation.mutate(activity.id)}
+                  onClick={() => !isLoggedToday && logActivityMutation.mutate({ id: activity.id, name: activity.name })}
                   disabled={isLoggedToday || logActivityMutation.isPending}
                 >
                   <span className="text-3xl">{activity.icon}</span>
