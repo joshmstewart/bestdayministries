@@ -158,7 +158,7 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
               ) : (
                 <Badge variant="secondary">Inactive</Badge>
               )}
-              {(product.inventory === 0 || product.inventory === null) && (
+              {(product.inventory_count === 0 || product.inventory_count === null) && (
                 <Badge variant="destructive" className="bg-red-600">
                   Out of Stock
                 </Badge>
