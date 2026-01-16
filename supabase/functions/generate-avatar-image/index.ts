@@ -84,6 +84,7 @@ Style requirements:
 - High quality, professional illustration
 - The character should look approachable and motivating for fitness
 - Vibrant colors and clean lines
+- Do NOT emphasize muscles, abs, or exaggerated athletic physiques - keep the body proportions natural and cute
 - No text, logos, or decorative elements in the image
 - No shadows on the background`;
 
