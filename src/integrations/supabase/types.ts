@@ -9914,7 +9914,7 @@ export type Database = {
         Returns: boolean
       }
       is_vendor_team_member: {
-        Args: { _user_id: string; _vendor_id: string }
+        Args: { check_user_id: string; check_vendor_id: string }
         Returns: boolean
       }
       promote_collections_to_ga: { Args: never; Returns: undefined }
