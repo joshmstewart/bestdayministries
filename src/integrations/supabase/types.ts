@@ -8823,6 +8823,7 @@ export type Database = {
           contact_email: string | null
           created_at: string
           description: string | null
+          disable_free_shipping: boolean
           estimated_processing_days: number | null
           featured_bestie_id: string | null
           free_shipping_threshold: number | null
@@ -8853,6 +8854,7 @@ export type Database = {
           contact_email?: string | null
           created_at?: string
           description?: string | null
+          disable_free_shipping?: boolean
           estimated_processing_days?: number | null
           featured_bestie_id?: string | null
           free_shipping_threshold?: number | null
@@ -8883,6 +8885,7 @@ export type Database = {
           contact_email?: string | null
           created_at?: string
           description?: string | null
+          disable_free_shipping?: boolean
           estimated_processing_days?: number | null
           featured_bestie_id?: string | null
           free_shipping_threshold?: number | null

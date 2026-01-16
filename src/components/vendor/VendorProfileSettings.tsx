@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
     free_shipping_threshold: 35,
     estimated_processing_days: 3,
     contact_email: '',
+    disable_free_shipping: false,
   });
 
   useEffect(() => {
@@ -58,6 +60,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           free_shipping_threshold: data.free_shipping_threshold ?? 35,
           estimated_processing_days: data.estimated_processing_days ?? 3,
           contact_email: data.contact_email || '',
+          disable_free_shipping: data.disable_free_shipping ?? false,
         });
       }
     } catch (error) {
@@ -112,7 +115,8 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           description: formData.description,
           logo_url: formData.logo_url || null,
           banner_image_url: formData.banner_image_url || null,
-          free_shipping_threshold: formData.free_shipping_threshold,
+          free_shipping_threshold: formData.disable_free_shipping ? null : formData.free_shipping_threshold,
+          disable_free_shipping: formData.disable_free_shipping,
           estimated_processing_days: formData.estimated_processing_days,
           contact_email: formData.contact_email || null,
           social_links: {
@@ -175,19 +179,38 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="free_shipping_threshold">Free Shipping Minimum ($)</Label>
-            <Input
-              id="free_shipping_threshold"
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.free_shipping_threshold}
-              onChange={(e) => setFormData(prev => ({ ...prev, free_shipping_threshold: parseFloat(e.target.value) || 0 }))}
-            />
-            <p className="text-xs text-muted-foreground">
-              Orders over this amount qualify for free shipping. Default is $35.
-            </p>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="disable_free_shipping"
+                checked={formData.disable_free_shipping}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, disable_free_shipping: checked === true }))}
+              />
+              <Label htmlFor="disable_free_shipping" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Never offer free shipping
+              </Label>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="free_shipping_threshold" className={formData.disable_free_shipping ? "text-muted-foreground" : ""}>
+                Free Shipping Minimum ($)
+              </Label>
+              <Input
+                id="free_shipping_threshold"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.free_shipping_threshold}
+                onChange={(e) => setFormData(prev => ({ ...prev, free_shipping_threshold: parseFloat(e.target.value) || 0 }))}
+                disabled={formData.disable_free_shipping}
+                className={formData.disable_free_shipping ? "opacity-50" : ""}
+              />
+              <p className="text-xs text-muted-foreground">
+                {formData.disable_free_shipping 
+                  ? "Free shipping is disabled. Customers will always pay for shipping."
+                  : "Orders over this amount qualify for free shipping. Default is $35."}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2">
