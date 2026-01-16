@@ -114,7 +114,7 @@ export function CustomerPayment({
         <Button
           onClick={onCollect}
           disabled={cashCollected}
-          className="w-full"
+          className="w-full h-auto whitespace-normal py-3"
           size="lg"
         >
           {cashCollected ? (
