@@ -35,7 +35,14 @@ serve(async (req) => {
       .single();
 
     if (vendorError || !vendor) {
-      throw new Error("Vendor account not found");
+      return new Response(
+        JSON.stringify({ 
+          connected: false,
+          vendorNotFound: true,
+          message: "Vendor account not found"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     if (!vendor.stripe_account_id) {
