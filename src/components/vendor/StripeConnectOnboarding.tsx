@@ -122,10 +122,10 @@ export const StripeConnectOnboarding = ({ vendorId }: StripeConnectOnboardingPro
       <CardContent className="space-y-4">
         {!status.connected ? (
           <>
-            <Alert>
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                You need to connect a Stripe account to receive payments from customers.
+                <strong>Required:</strong> You must connect a Stripe account before your products can be listed in the store. Until completed, your products will be hidden from customers.
               </AlertDescription>
             </Alert>
             <Button onClick={handleConnect} disabled={loading}>

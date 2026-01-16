@@ -313,6 +313,10 @@ serve(async (req) => {
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : effectiveEmail,
+      // Required for automatic_tax with existing customers - save shipping to customer
+      customer_update: customerId ? {
+        shipping: 'auto',
+      } : undefined,
       line_items: allLineItems,
       mode: "payment",
       success_url: `${origin}/checkout-success?session_id={CHECKOUT_SESSION_ID}&order_id=${order.id}`,
