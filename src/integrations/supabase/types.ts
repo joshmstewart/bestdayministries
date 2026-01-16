@@ -4334,6 +4334,7 @@ export type Database = {
           description: string | null
           display_order: number | null
           hours: Json | null
+          hours_vary_seasonally: boolean
           id: string
           is_active: boolean | null
           latitude: number | null
@@ -4351,6 +4352,7 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           hours?: Json | null
+          hours_vary_seasonally?: boolean
           id?: string
           is_active?: boolean | null
           latitude?: number | null
@@ -4368,6 +4370,7 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           hours?: Json | null
+          hours_vary_seasonally?: boolean
           id?: string
           is_active?: boolean | null
           latitude?: number | null

@@ -23,6 +23,7 @@ interface StoreLocation {
   zip: string;
   phone: string;
   hours: { day: string; open: string; close: string }[];
+  hours_vary_seasonally: boolean;
   description: string;
   is_active: boolean;
   display_order: number;
@@ -81,6 +82,7 @@ const JoyHouseStoresManager = () => {
     phone: "",
     description: "",
     hours: DEFAULT_HOURS,
+    hours_vary_seasonally: false,
   });
 
   const [content, setContent] = useState<PageContent>({
@@ -294,6 +296,7 @@ const JoyHouseStoresManager = () => {
       phone: location.phone || "",
       description: location.description || "",
       hours: parsedHours,
+      hours_vary_seasonally: location.hours_vary_seasonally || false,
     });
     setLocationDialogOpen(true);
   };
@@ -355,6 +358,7 @@ const JoyHouseStoresManager = () => {
       phone: "",
       description: "",
       hours: DEFAULT_HOURS,
+      hours_vary_seasonally: false,
     });
   };
 
@@ -615,6 +619,18 @@ const JoyHouseStoresManager = () => {
                           />
                         </div>
                       ))}
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <input
+                        type="checkbox"
+                        id="hoursVarySeasonally"
+                        checked={locationForm.hours_vary_seasonally}
+                        onChange={(e) => setLocationForm(prev => ({ ...prev, hours_vary_seasonally: e.target.checked }))}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <Label htmlFor="hoursVarySeasonally" className="text-sm font-normal cursor-pointer">
+                        Hours may vary seasonally
+                      </Label>
                     </div>
                   </div>
                 </div>
