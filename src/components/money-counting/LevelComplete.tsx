@@ -106,12 +106,12 @@ export function LevelComplete({
           )}
 
           {/* Actions */}
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onNewGame} className="flex-1">
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={onNewGame} className="flex-1 min-w-[140px]">
               <RotateCcw className="h-4 w-4 mr-2" />
               New Game
             </Button>
-            <Button onClick={onNextLevel} className="flex-1">
+            <Button onClick={onNextLevel} className="flex-1 min-w-[140px]">
               Next Level
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
