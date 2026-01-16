@@ -22,6 +22,7 @@ import Footer from "@/components/Footer";
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { BadgeEarnedDialog } from "@/components/chores/BadgeEarnedDialog";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 interface Chore {
   id: string;
   title: string;
@@ -268,6 +269,9 @@ export default function ChoreChart() {
         
         fireConfetti();
         toast.success('Great job! 🎉');
+        
+        // Award coins for completing a chore
+        await awardCoinReward(targetUserId, 'chore_complete', 'Completed a chore');
 
         // Check if all chores are now completed - update streak
         const newCompletedIds = new Set(newCompletions.map(c => c.chore_id));

@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { showErrorToastWithCopy } from '@/lib/errorToast';
 import { SoundConfig } from './InstrumentSlot';
+import { awardCoinReward } from '@/utils/awardCoinReward';
 
 interface SaveBeatDialogProps {
   open: boolean;
@@ -206,6 +207,14 @@ Return ONLY the beat name, nothing else.`;
 
         if (error) throw error;
         resultId = data.id;
+        
+        // Award coins for creating a beat
+        await awardCoinReward(userId, 'beat_pad_create', 'Created a new beat');
+        
+        // Additional coins for sharing
+        if (isPublic) {
+          await awardCoinReward(userId, 'beat_pad_share', 'Shared beat with community');
+        }
         
         toast.success(isPublic ? 'Beat shared with community! 🎉' : 'Beat saved!');
         toast.info('Generating cover art...', { duration: 3000 });

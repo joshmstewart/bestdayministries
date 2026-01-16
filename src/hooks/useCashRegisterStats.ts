@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 export function useCashRegisterStats() {
   const { user } = useAuth();
@@ -49,6 +50,9 @@ export function useCashRegisterStats() {
             current_month_year: currentMonthYear,
           });
       }
+
+      // Award coins for completing a level
+      await awardCoinReward(user.id, 'cash_register_complete', 'Completed a Cash Register level');
     } catch (error) {
       console.error("Error saving game result:", error);
     }

@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SEOHead } from "@/components/SEOHead";
 import { DiscussionPostCard } from "@/components/DiscussionPostCard";
 import { DiscussionDetailDialog } from "@/components/DiscussionDetailDialog";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 interface Profile {
   id: string;
@@ -579,6 +580,11 @@ const Discussions = () => {
         }]);
 
         if (error) throw error;
+
+        // Award coins for creating a post (only for new posts)
+        if (user?.id) {
+          await awardCoinReward(user.id, 'discussion_post', 'Created a discussion post');
+        }
 
         if (approvalStatus === 'pending_approval') {
           toast({ 
@@ -1198,6 +1204,11 @@ const Discussions = () => {
                 variant: "destructive",
               });
               return;
+            }
+
+            // Award coins for commenting
+            if (user?.id) {
+              await awardCoinReward(user.id, 'discussion_comment', 'Added a comment');
             }
 
             if (approvalStatus === 'pending_approval') {
