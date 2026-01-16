@@ -26,17 +26,15 @@ VENDOR SYSTEM - CONCISE DOCS
 3. Admin approves → status: 'approved'
 4. User accesses `/vendor-dashboard`
 
-**Check Vendor Status**
-```typescript
-// Prefer an array-based query (limit 1) to avoid failures if duplicates exist
-const { data: vendorRows } = await supabase
-  .from('vendors')
-  .select('id,status')
-  .eq('user_id', userId)
-  .eq('status', 'approved')
-  .limit(1);
+**Who Can Access Vendor Features**
+- Vendor record owner (`vendors.user_id`)
+- Accepted team member (`vendor_team_members.accepted_at` is set)
 
-const isApprovedVendor = (vendorRows?.length ?? 0) > 0;
+**Check Vendor Access (recommended)**
+```typescript
+import { hasVendorAccess } from "@/lib/vendorAccess";
+
+const canSeeVendorDashboard = await hasVendorAccess(userId);
 ```
 
 **Dashboard** (`/vendor-dashboard`)
