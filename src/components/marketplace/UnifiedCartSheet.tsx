@@ -435,9 +435,12 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                         </p>
                       )}
                       <div className="flex justify-between font-semibold pt-1 border-t">
-                        <span>Total</span>
+                        <span>Total (before tax)</span>
                         <span>${cartTotal.toFixed(2)}</span>
                       </div>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Sales tax will be calculated at checkout
+                      </p>
                       <Button 
                         onClick={handleHandmadeCheckout}
                         className="w-full" 

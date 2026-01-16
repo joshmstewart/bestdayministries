@@ -250,10 +250,13 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
                 )}
               </div>
               <div className="flex justify-between text-lg font-bold">
-                <span>Total:</span>
+                <span>Total (before tax):</span>
                 <span className="text-primary">${total.toFixed(2)}</span>
               </div>
-              <Button 
+              <p className="text-xs text-muted-foreground text-center">
+                Sales tax will be calculated at checkout
+              </p>
+              <Button
                 className="w-full" 
                 size="lg"
                 onClick={handleCheckout}
