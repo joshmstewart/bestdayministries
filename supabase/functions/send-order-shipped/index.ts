@@ -37,7 +37,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get order details
+    // Get order details with vendor info
     const { data: order, error: orderError } = await supabaseClient
       .from("orders")
       .select(`
@@ -49,7 +49,8 @@ serve(async (req) => {
           quantity,
           price_at_purchase,
           products (
-            name
+            name,
+            vendor_id
           )
         )
       `)
@@ -76,6 +77,63 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Get unique vendor IDs from order items
+    const vendorIds = [...new Set(
+      (order.order_items || [])
+        .map((item: any) => item.products?.vendor_id)
+        .filter(Boolean)
+    )];
+
+    // Get vendor owner emails and team member emails
+    const vendorEmails: string[] = [];
+    
+    if (vendorIds.length > 0) {
+      // Get vendor owner emails
+      const { data: vendors } = await supabaseClient
+        .from("vendors")
+        .select("user_id")
+        .in("id", vendorIds);
+      
+      if (vendors && vendors.length > 0) {
+        const ownerIds = vendors.map((v: any) => v.user_id).filter(Boolean);
+        
+        const { data: ownerProfiles } = await supabaseClient
+          .from("profiles")
+          .select("id, email")
+          .in("id", ownerIds);
+        
+        if (ownerProfiles) {
+          vendorEmails.push(...ownerProfiles.map((p: any) => p.email).filter(Boolean));
+        }
+      }
+
+      // Get team member emails
+      const { data: teamMembers } = await supabaseClient
+        .from("vendor_team_members")
+        .select("user_id")
+        .in("vendor_id", vendorIds)
+        .not("accepted_at", "is", null);
+      
+      if (teamMembers && teamMembers.length > 0) {
+        const teamMemberIds = teamMembers.map((tm: any) => tm.user_id).filter(Boolean);
+        
+        const { data: teamProfiles } = await supabaseClient
+          .from("profiles")
+          .select("id, email")
+          .in("id", teamMemberIds);
+        
+        if (teamProfiles) {
+          vendorEmails.push(...teamProfiles.map((p: any) => p.email).filter(Boolean));
+        }
+      }
+    }
+
+    // Deduplicate vendor emails and exclude customer email
+    const uniqueVendorEmails = [...new Set(vendorEmails)]
+      .filter(email => email && email !== order.customer_email);
+    
+    logStep("Vendor emails collected", { count: uniqueVendorEmails.length });
 
     const shippingAddress = (order.shipping_address || {}) as any;
 
@@ -181,7 +239,48 @@ serve(async (req) => {
       html_content: emailHtml,
     });
 
-    return new Response(JSON.stringify({ success: true, emailId }), {
+    // Send to vendor owners and team members
+    if (uniqueVendorEmails.length > 0) {
+      const vendorEmailHtml = emailHtml.replace(
+        'Your Order Has Shipped!',
+        'Order Shipped Notification'
+      ).replace(
+        'Great news! Your order is on its way.',
+        `Order for ${order.customer_email} has been shipped.`
+      );
+
+      for (const vendorEmail of uniqueVendorEmails) {
+        try {
+          const vendorEmailResponse = await resend.emails.send({
+            from: `Joy House Store <orders@bestdayministries.org>`,
+            to: [vendorEmail],
+            subject: `📦 Order Shipped - Tracking: ${trackingNumber}`,
+            html: vendorEmailHtml,
+          });
+
+          const vendorEmailId = (vendorEmailResponse as any)?.id || (vendorEmailResponse as any)?.data?.id;
+          logStep('Vendor shipped email sent', { vendorEmail, vendorEmailId });
+
+          await supabaseClient.from("email_audit_log").insert({
+            email_type: "order_shipped_vendor",
+            recipient_email: vendorEmail,
+            subject: `📦 Order Shipped - Tracking: ${trackingNumber}`,
+            from_email: "orders@bestdayministries.org",
+            from_name: "Joy House Store",
+            status: "sent",
+            related_type: "order",
+            related_id: orderId,
+            resend_email_id: vendorEmailId,
+            sent_at: new Date().toISOString(),
+            html_content: vendorEmailHtml,
+          });
+        } catch (vendorError) {
+          logStep('Vendor shipped email failed', { vendorEmail, error: String(vendorError) });
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, emailId, vendorEmailsSent: uniqueVendorEmails.length }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
