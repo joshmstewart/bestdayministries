@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Trash2, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Package, Trash2, Eye, EyeOff, ExternalLink, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProductForm } from "./ProductForm";
 import {
@@ -22,6 +23,7 @@ import {
 interface ProductListProps {
   vendorId: string;
   refreshTrigger?: number;
+  stripeChargesEnabled?: boolean;
 }
 
 export interface ProductListRef {
@@ -29,7 +31,7 @@ export interface ProductListRef {
 }
 
 export const ProductList = forwardRef<ProductListRef, ProductListProps>(
-  ({ vendorId, refreshTrigger }, ref) => {
+  ({ vendorId, refreshTrigger, stripeChargesEnabled = true }, ref) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +140,18 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-4">
+      {!stripeChargesEnabled && products.length > 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Your products are not visible in the store until you complete Stripe setup. 
+            Go to the <strong>Payments</strong> tab to connect your Stripe account.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {products.map((product) => (
         <Card key={product.id} className="overflow-hidden">
           <div className="aspect-square relative">
@@ -240,6 +253,7 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
           </CardContent>
         </Card>
       ))}
+      </div>
     </div>
   );
 });

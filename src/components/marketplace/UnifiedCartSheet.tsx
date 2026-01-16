@@ -162,9 +162,18 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", { body });
 
       if (error) {
+        // Try to parse a more user-friendly error message
+        let errorDescription = error.message || "Unable to start checkout. Please try again.";
+        
+        // Check for vendor Stripe setup issues
+        if (errorDescription.includes("has not completed Stripe setup") || 
+            errorDescription.includes("cannot receive payments")) {
+          errorDescription = `${errorDescription} Please remove their items from your cart or try again later.`;
+        }
+        
         toast({
           title: "Checkout failed",
-          description: error.message || "Unable to start checkout. Please try again.",
+          description: errorDescription,
           variant: "destructive"
         });
         setIsCheckingOutHandmade(false);
@@ -174,9 +183,17 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       if (data?.url) {
         window.location.href = data.url;
       } else {
+        // Handle error returned in data
+        let errorDescription = data?.error || "Unable to create checkout session";
+        
+        if (errorDescription.includes("has not completed Stripe setup") || 
+            errorDescription.includes("cannot receive payments")) {
+          errorDescription = `${errorDescription} Please remove their items from your cart or try again later.`;
+        }
+        
         toast({
           title: "Checkout failed",
-          description: data?.error || "Unable to create checkout session",
+          description: errorDescription,
           variant: "destructive"
         });
       }
