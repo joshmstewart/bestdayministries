@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Package, Trash2, Eye, EyeOff, ExternalLink, AlertCircle } from "lucide-react";
+import { Package, Trash2, Eye, EyeOff, ExternalLink, AlertCircle, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProductForm } from "./ProductForm";
 import {
@@ -186,8 +186,12 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
               {product.description}
             </p>
             
-            <div className="mb-4">
+            <div className="flex items-center justify-between mb-4">
               <span className="text-xl font-bold">${product.price}</span>
+              <div className="flex items-center gap-1 text-muted-foreground text-sm" title="Total product views">
+                <BarChart3 className="h-4 w-4" />
+                <span>{product.view_count || 0} views</span>
+              </div>
             </div>
 
             {product.category && (

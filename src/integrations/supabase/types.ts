@@ -6097,6 +6097,44 @@ export type Database = {
           },
         ]
       }
+      product_views: {
+        Row: {
+          id: string
+          product_id: string
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -6125,6 +6163,7 @@ export type Database = {
           tags: string[] | null
           updated_at: string
           vendor_id: string | null
+          view_count: number
         }
         Insert: {
           category?: string | null
@@ -6153,6 +6192,7 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
+          view_count?: number
         }
         Update: {
           category?: string | null
@@ -6181,6 +6221,7 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
+          view_count?: number
         }
         Relationships: [
           {
