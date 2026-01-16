@@ -233,6 +233,52 @@ export function FitnessAvatarManager() {
     });
   };
 
+  const handleSaveAndGenerate = async () => {
+    if (!formData.name || !formData.character_prompt) {
+      toast.error("Name and character prompt are required");
+      return;
+    }
+    
+    setGeneratingInDialog(true);
+    
+    try {
+      // Save the avatar first
+      const payload = {
+        name: formData.name,
+        description: formData.description || null,
+        preview_image_url: formData.preview_image_url || null,
+        character_prompt: formData.character_prompt,
+        is_free: formData.is_free,
+        price_coins: formData.is_free ? 0 : formData.price_coins,
+        display_order: formData.display_order,
+        is_active: formData.is_active,
+      };
+      
+      const { data: newAvatar, error } = await supabase
+        .from("fitness_avatars")
+        .insert(payload)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      // Set as editing so subsequent generates work
+      setEditingAvatar(newAvatar);
+      queryClient.invalidateQueries({ queryKey: ["admin-fitness-avatars"] });
+      toast.success("Avatar created! Now generating image...");
+      
+      // Now generate the image
+      generateImageMutation.mutate({
+        id: newAvatar.id,
+        name: formData.name,
+        character_prompt: formData.character_prompt,
+      });
+    } catch (error) {
+      setGeneratingInDialog(false);
+      showErrorToastWithCopy("Failed to save avatar", error);
+    }
+  };
+
   if (isLoading) return <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   return (
@@ -305,21 +351,19 @@ export function FitnessAvatarManager() {
                       placeholder="Auto-generated or paste URL"
                       className="flex-1"
                     />
-                    {editingAvatar?.id && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleGenerateImageInDialog}
-                        disabled={generatingInDialog || !formData.character_prompt}
-                        title="Generate AI image"
-                      >
-                        {generatingInDialog ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Wand2 className="h-4 w-4 text-purple-600" />
-                        )}
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={editingAvatar?.id ? handleGenerateImageInDialog : handleSaveAndGenerate}
+                      disabled={generatingInDialog || !formData.character_prompt || !formData.name}
+                      title={editingAvatar?.id ? "Generate AI image" : "Save & Generate AI image"}
+                    >
+                      {generatingInDialog ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 text-purple-600" />
+                      )}
+                    </Button>
                   </div>
                   {formData.preview_image_url && (
                     <div className="mt-2 flex items-center gap-3">
@@ -331,9 +375,9 @@ export function FitnessAvatarManager() {
                       <span className="text-xs text-muted-foreground">Current preview</span>
                     </div>
                   )}
-                  {!editingAvatar && (
-                    <p className="text-xs text-muted-foreground">Image will be auto-generated after saving</p>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {editingAvatar?.id ? "Click the wand to regenerate" : "Click the wand to save & generate image"}
+                  </p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
