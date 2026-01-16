@@ -121,29 +121,57 @@ serve(async (req) => {
       }
     }
 
-    // Build the image generation prompt
+    // Build the image editing prompt - we'll use the avatar's actual image as input
     let prompt: string;
     let selectedLocation: string | null = null;
     let selectedWorkout: string | null = null;
+    
+    // Check if avatar has an image to use for image-to-image
+    const avatarImageUrl = avatar.image_url;
     
     if (imageType === "activity") {
       // Use provided activity or pick random for admin test
       selectedWorkout = activityName || workouts[Math.floor(Math.random() * workouts.length)];
       selectedLocation = location || locations[Math.floor(Math.random() * locations.length)];
       
-      prompt = `${avatar.character_prompt}, actively doing ${selectedWorkout} exercise in ${selectedLocation}, dynamic action pose, energetic and happy expression, high quality cartoon illustration, fun and motivational, 4K quality, plain white background replaced with the location scene`;
+      prompt = `Take this character and show them actively doing ${selectedWorkout} exercise in ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be dynamic and energetic while exercising. Add the location as the background. Make them look happy and motivated. High quality cartoon illustration.`;
     } else if (imageType === "celebration") {
       selectedLocation = location || locations[Math.floor(Math.random() * locations.length)];
-      prompt = `${avatar.character_prompt}, celebrating with arms raised in victory in ${selectedLocation}, confetti and streamers in the air, trophy or medal visible, extremely happy and proud expression, colorful celebratory background with sparkles, high quality cartoon illustration, joyful and triumphant mood, 4K quality`;
+      prompt = `Take this character and show them celebrating with arms raised in victory in ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be celebratory. Add confetti, streamers, and a trophy or medal. Make them look extremely happy and proud. Colorful celebratory background with sparkles. High quality cartoon illustration.`;
     } else {
       throw new Error("Invalid imageType");
     }
 
     console.log("Generating image with prompt:", prompt);
+    console.log("Avatar image URL:", avatarImageUrl);
     console.log("Selected workout:", selectedWorkout);
     console.log("Selected location:", selectedLocation);
 
-    // Call Lovable AI to generate the image
+    // Build the message content - use image-to-image if avatar has an image
+    let messageContent: any;
+    
+    if (avatarImageUrl) {
+      // Use image-to-image editing with the avatar's actual image
+      messageContent = [
+        {
+          type: "text",
+          text: prompt,
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: avatarImageUrl,
+          },
+        },
+      ];
+      console.log("Using image-to-image with avatar image");
+    } else {
+      // Fallback to text-only generation if no avatar image
+      messageContent = `${avatar.character_prompt}, ${prompt}`;
+      console.log("Fallback: Using text-only generation (no avatar image)");
+    }
+
+    // Call Lovable AI to generate/edit the image
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -155,7 +183,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: prompt,
+            content: messageContent,
           },
         ],
         modalities: ["image", "text"],
