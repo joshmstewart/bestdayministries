@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -9,10 +8,15 @@ import { StreakDisplay } from "@/components/workout/StreakDisplay";
 import { WeeklyGoalCard } from "@/components/workout/WeeklyGoalCard";
 import { QuickLogGrid } from "@/components/workout/QuickLogGrid";
 import { FeaturedVideo } from "@/components/workout/FeaturedVideo";
-import { Dumbbell, Video } from "lucide-react";
+import { FitnessAvatarPicker } from "@/components/workout/FitnessAvatarPicker";
+import { WorkoutImageGallery } from "@/components/workout/WorkoutImageGallery";
+import { Dumbbell, Video, Sparkles, Image as ImageIcon } from "lucide-react";
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const WorkoutTracker = () => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("workout");
 
   return (
     <>
@@ -35,34 +39,62 @@ const WorkoutTracker = () => {
           </div>
 
           {user ? (
-            <div className="space-y-4">
-              {/* Streak & Goal Row */}
-              <div className="grid gap-4 grid-cols-2">
-                <StreakDisplay userId={user.id} />
-                <WeeklyGoalCard userId={user.id} />
-              </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="w-full">
+                <TabsTrigger value="workout" className="flex-1 gap-1.5">
+                  <Dumbbell className="h-4 w-4" />
+                  Workout
+                </TabsTrigger>
+                <TabsTrigger value="avatar" className="flex-1 gap-1.5">
+                  <Sparkles className="h-4 w-4" />
+                  Avatar
+                </TabsTrigger>
+                <TabsTrigger value="gallery" className="flex-1 gap-1.5">
+                  <ImageIcon className="h-4 w-4" />
+                  Gallery
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Videos Button */}
-              <Button 
-                variant="outline" 
-                className="w-full flex items-center justify-center gap-2 bg-soft-ribbon hover:bg-soft-ribbon/80 border-2 border-primary/30 shadow-md hover:shadow-lg transition-all text-foreground font-semibold py-6"
-                onClick={() => {
-                  const videoSection = document.getElementById('video-section');
-                  videoSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <Video className="h-6 w-6 text-primary" />
-                Browse Workout Videos
-              </Button>
+              <TabsContent value="workout" className="space-y-4 mt-0">
+                {/* Streak & Goal Row */}
+                <div className="grid gap-4 grid-cols-2">
+                  <StreakDisplay userId={user.id} />
+                  <WeeklyGoalCard userId={user.id} />
+                </div>
 
-              {/* Quick Log Grid */}
-              <QuickLogGrid userId={user.id} />
+                {/* Videos Button */}
+                <Button 
+                  variant="outline" 
+                  className="w-full flex items-center justify-center gap-2 bg-soft-ribbon hover:bg-soft-ribbon/80 border-2 border-primary/30 shadow-md hover:shadow-lg transition-all text-foreground font-semibold py-6"
+                  onClick={() => {
+                    const videoSection = document.getElementById('video-section');
+                    videoSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <Video className="h-6 w-6 text-primary" />
+                  Browse Workout Videos
+                </Button>
 
-              {/* Featured Video Section */}
-              <div id="video-section">
-                <FeaturedVideo userId={user.id} />
-              </div>
-            </div>
+                {/* Quick Log Grid */}
+                <QuickLogGrid userId={user.id} />
+
+                {/* Featured Video Section */}
+                <div id="video-section">
+                  <FeaturedVideo userId={user.id} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="avatar" className="mt-0">
+                <FitnessAvatarPicker userId={user.id} />
+                <p className="text-xs text-muted-foreground text-center mt-4">
+                  Select an avatar to generate personalized workout images when you log activities!
+                </p>
+              </TabsContent>
+
+              <TabsContent value="gallery" className="mt-0">
+                <WorkoutImageGallery userId={user.id} />
+              </TabsContent>
+            </Tabs>
           ) : (
             <Card>
               <CardContent className="p-8 text-center">
