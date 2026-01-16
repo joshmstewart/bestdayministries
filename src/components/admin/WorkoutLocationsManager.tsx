@@ -189,6 +189,7 @@ export const WorkoutLocationsManager = () => {
   // Complete pack generation state
   const [generatingCompletePack, setGeneratingCompletePack] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ step: "", current: 0, total: 0 });
+  const [selectedPackTheme, setSelectedPackTheme] = useState<typeof packThemes[0] | null>(null);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -390,6 +391,7 @@ export const WorkoutLocationsManager = () => {
       is_active: true,
     });
     setPackImagePrompt("");
+    setSelectedPackTheme(null);
   };
 
   const resetLocationForm = () => {
@@ -551,6 +553,7 @@ export const WorkoutLocationsManager = () => {
         is_active: true,
       }));
       setPackImagePrompt(randomTheme.name);
+      setSelectedPackTheme(randomTheme);
       return;
     }
     
@@ -563,9 +566,10 @@ export const WorkoutLocationsManager = () => {
       is_active: true,
     }));
     setPackImagePrompt(randomTheme.name);
+    setSelectedPackTheme(randomTheme);
     
     toast.success(`Randomized: ${randomTheme.name}`, {
-      description: `${dissimilarThemes.length - 1} more unique themes available`,
+      description: `${randomTheme.locations.length} locations • ${dissimilarThemes.length - 1} more unique themes available`,
     });
   };
 
@@ -588,68 +592,71 @@ export const WorkoutLocationsManager = () => {
     toast.success(`Randomized: ${randomLoc.name}`);
   };
 
-  // Generate a complete pack with locations and all images
+  // Generate a complete pack with locations and all images using the selected theme from the dialog
   const handleGenerateCompletePack = async () => {
+    if (!selectedPackTheme) {
+      toast.error("Please click 'Randomize Pack' first to select a theme");
+      return;
+    }
+    
+    if (!packForm.name.trim()) {
+      toast.error("Pack name is required");
+      return;
+    }
+    
     setGeneratingCompletePack(true);
+    setPackDialogOpen(false);
     
     try {
-      // Step 1: Pick a dissimilar theme
-      setGenerationProgress({ step: "Selecting unique theme...", current: 0, total: 7 });
-      const dissimilarThemes = packThemes.filter(theme => !isThemeSimilarToExisting(theme, packs));
+      const theme = selectedPackTheme;
+      const locationCount = theme.locations.length;
       
-      if (dissimilarThemes.length === 0) {
-        toast.error("All unique themes have been used! Delete some packs first.");
-        setGeneratingCompletePack(false);
-        return;
-      }
-      
-      const randomTheme = dissimilarThemes[Math.floor(Math.random() * dissimilarThemes.length)];
-      
-      // Step 2: Create the pack
-      setGenerationProgress({ step: `Creating pack: ${randomTheme.name}...`, current: 1, total: 7 });
+      // Step 1: Create the pack
+      setGenerationProgress({ step: `Creating pack: ${packForm.name}...`, current: 0, total: locationCount + 2 });
       
       const { data: newPack, error: packError } = await supabase
         .from("workout_location_packs")
         .insert({
-          name: randomTheme.name,
-          description: randomTheme.description,
-          is_free: false,
-          is_active: true,
+          name: packForm.name,
+          description: packForm.description || null,
+          image_url: packForm.image_url || null,
+          is_free: packForm.is_free,
+          is_active: packForm.is_active,
           display_order: packs.length,
-          price_coins: 100,
+          price_coins: packForm.price_coins,
         })
         .select()
         .single();
       
       if (packError) throw packError;
       
-      // Step 3: Generate pack image
-      setGenerationProgress({ step: "Generating pack cover image...", current: 2, total: 7 });
-      
-      const packImagePromptText = `A beautiful promotional image for a workout location pack: "${randomTheme.name}". ${randomTheme.description}. Show a scenic collage or overview representing this destination. Photorealistic, vibrant colors, inspiring travel photography style. Square format, high quality.`;
-      
-      const { data: packImageData, error: packImageError } = await supabase.functions.invoke("generate-workout-location-image", {
-        body: { prompt: packImagePromptText, packId: newPack.id },
-      });
-      
-      if (packImageError || packImageData?.error) {
-        console.error("Pack image generation failed:", packImageError || packImageData?.error);
-        // Continue without pack image
+      // Step 2: Generate pack image if not already set
+      if (!packForm.image_url) {
+        setGenerationProgress({ step: "Generating pack cover image...", current: 1, total: locationCount + 2 });
+        
+        const packImagePromptText = `A beautiful promotional image for a workout location pack: "${packForm.name}". ${packForm.description || theme.description}. Show a scenic collage or overview representing this destination. Photorealistic, vibrant colors, inspiring travel photography style. Square format, high quality.`;
+        
+        const { data: packImageData, error: packImageError } = await supabase.functions.invoke("generate-workout-location-image", {
+          body: { prompt: packImagePromptText, packId: newPack.id },
+        });
+        
+        if (packImageError || packImageData?.error) {
+          console.error("Pack image generation failed:", packImageError || packImageData?.error);
+          // Continue without pack image
+        }
       }
       
-      // Step 4: Create locations with images
-      const locationCount = randomTheme.locations.length;
-      
+      // Step 3: Create locations with images
       for (let i = 0; i < locationCount; i++) {
-        const locationName = randomTheme.locations[i];
+        const locationName = theme.locations[i];
         setGenerationProgress({ 
           step: `Creating location ${i + 1}/${locationCount}: ${locationName}...`, 
-          current: 3 + i, 
-          total: 2 + locationCount + 1 
+          current: 2 + i, 
+          total: locationCount + 2 
         });
         
         // Create the location
-        const locationPrompt = `${locationName} in ${randomTheme.name}, beautiful scenic workout location, photorealistic, warm lighting, inspiring fitness environment`;
+        const locationPrompt = `${locationName} in ${packForm.name}, beautiful scenic workout location, photorealistic, warm lighting, inspiring fitness environment`;
         
         const { data: newLocation, error: locError } = await supabase
           .from("workout_locations")
@@ -671,8 +678,8 @@ export const WorkoutLocationsManager = () => {
         // Generate image for this location
         setGenerationProgress({ 
           step: `Generating image for ${locationName}...`, 
-          current: 3 + i, 
-          total: 2 + locationCount + 1 
+          current: 2 + i, 
+          total: locationCount + 2 
         });
         
         try {
@@ -696,7 +703,11 @@ export const WorkoutLocationsManager = () => {
       queryClient.invalidateQueries({ queryKey: ["workout-location-packs"] });
       queryClient.invalidateQueries({ queryKey: ["workout-locations"] });
       
-      toast.success(`Created "${randomTheme.name}" with ${locationCount} locations!`, {
+      // Reset form state
+      resetPackForm();
+      setSelectedPackTheme(null);
+      
+      toast.success(`Created "${packForm.name}" with ${locationCount} locations!`, {
         description: "Pack and all location images generated successfully.",
       });
       
@@ -776,24 +787,10 @@ export const WorkoutLocationsManager = () => {
             Click on a pack to view and manage its locations
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleGenerateCompletePack}
-            disabled={generatingCompletePack}
-          >
-            {generatingCompletePack ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
-            )}
-            Generate Complete Pack
-          </Button>
-          <Button onClick={() => { resetPackForm(); setEditingPack(null); setPackDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Pack
-          </Button>
-        </div>
+        <Button onClick={() => { resetPackForm(); setEditingPack(null); setPackDialogOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Pack
+        </Button>
       </div>
 
       {/* Packs Accordion */}
@@ -1086,16 +1083,38 @@ export const WorkoutLocationsManager = () => {
             <DialogTitle>{editingPack ? "Edit Pack" : "Create Pack"}</DialogTitle>
           </DialogHeader>
           
-          {/* Randomize Pack Button */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleRandomizePack}
-            className="w-full"
-          >
-            <Shuffle className="w-4 h-4 mr-2" />
-            Randomize Pack (Fill All Details)
-          </Button>
+          {/* Randomize Pack Button - only show for new packs */}
+          {!editingPack && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleRandomizePack}
+              className="w-full"
+            >
+              <Shuffle className="w-4 h-4 mr-2" />
+              Randomize Theme
+            </Button>
+          )}
+          
+          {/* Selected Theme Preview */}
+          {selectedPackTheme && !editingPack && (
+            <div className="border rounded-lg p-3 bg-primary/5 border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="font-medium text-sm text-primary">Theme Selected</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">
+                This pack will include {selectedPackTheme.locations.length} locations:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {selectedPackTheme.locations.map((loc, i) => (
+                  <Badge key={i} variant="secondary" className="text-xs">
+                    {loc}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
           
           <form onSubmit={(e) => { e.preventDefault(); savePack.mutate({ ...packForm, id: editingPack?.id }); }} className="space-y-4">
             <div>
@@ -1201,13 +1220,24 @@ export const WorkoutLocationsManager = () => {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button type="button" variant="outline" onClick={() => setPackDialogOpen(false)}>
                 Cancel
               </Button>
+              {selectedPackTheme && !editingPack && (
+                <Button 
+                  type="button" 
+                  onClick={handleGenerateCompletePack}
+                  disabled={!packForm.name.trim()}
+                  className="bg-gradient-to-r from-primary to-primary/80"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Complete Pack ({selectedPackTheme.locations.length} locations)
+                </Button>
+              )}
               <Button type="submit" disabled={savePack.isPending}>
                 {savePack.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {editingPack ? "Save Changes" : "Create Pack"}
+                {editingPack ? "Save Changes" : "Create Pack Only"}
               </Button>
             </DialogFooter>
           </form>
