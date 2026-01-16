@@ -243,19 +243,34 @@ export const useBeatLoopPlayer = () => {
     pattern: Record<string, boolean[]>,
     tempo: number
   ) => {
-    // Ensure AudioContext is running (Safari/iOS requires this to happen in a user gesture).
-    await ensureAudioContextRunning();
+    // FIRST: Stop any currently playing beat (do this synchronously before any async operations)
+    // This ensures we always clear the interval immediately on click
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
-    // Stop any currently playing beat globally
+    // Check if we're toggling off the same beat (use global state for consistency across components)
+    if (globalPlayingBeatId === beatId) {
+      setPlayingBeatId(null);
+      setCurrentStep(0);
+      globalPlayingBeatId = null;
+      globalStopCallback = null;
+      return;
+    }
+
+    // Stop any other playing beat's state
     if (globalStopCallback && globalPlayingBeatId !== beatId) {
       globalStopCallback();
     }
 
-    // Toggle off if same beat
-    if (playingBeatId === beatId) {
-      stopBeat();
-      return;
-    }
+    // Set playing state immediately so UI updates right away
+    setPlayingBeatId(beatId);
+    globalPlayingBeatId = beatId;
+    globalStopCallback = stopBeat;
+
+    // Ensure AudioContext is running (Safari/iOS requires this to happen in a user gesture).
+    await ensureAudioContextRunning();
 
     // Get all instrument keys from the pattern
     const instrumentKeys = Object.keys(pattern);
@@ -263,15 +278,24 @@ export const useBeatLoopPlayer = () => {
     // Load any missing sound configs by UUID before starting playback
     await loadSoundsByUUID(instrumentKeys);
 
-    // Start new beat
-    setPlayingBeatId(beatId);
-    globalPlayingBeatId = beatId;
-    globalStopCallback = stopBeat;
+    // Check if user clicked stop/another beat while we were loading sounds
+    if (globalPlayingBeatId !== beatId) {
+      return;
+    }
 
     const intervalMs = (60 / tempo / 4) * 1000; // 16th notes
     let step = 0;
 
     const tick = () => {
+      // Safety check: if this beat is no longer playing, don't play sounds
+      if (globalPlayingBeatId !== beatId) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        return;
+      }
+      
       setCurrentStep(step);
       Object.entries(pattern).forEach(([instrument, steps]) => {
         if (steps[step]) {
@@ -295,7 +319,7 @@ export const useBeatLoopPlayer = () => {
 
     tick(); // Play immediately
     intervalRef.current = window.setInterval(tick, intervalMs);
-  }, [playingBeatId, playSound, stopBeat, loadSoundsByUUID, ensureAudioContextRunning]);
+  }, [playSound, stopBeat, loadSoundsByUUID, ensureAudioContextRunning]);
 
   // Cleanup on unmount
   useEffect(() => {
