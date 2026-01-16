@@ -15,7 +15,7 @@ export const ProductGrid = ({ category }: ProductGridProps) => {
         .from('products')
         .select(`
           *,
-          vendor:vendors(business_name, user_id, is_house_vendor)
+          vendor:vendors(business_name, user_id, is_house_vendor, stripe_charges_enabled)
         `)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -23,22 +23,35 @@ export const ProductGrid = ({ category }: ProductGridProps) => {
       const { data, error } = await query;
       if (error) throw error;
       
+      // Filter out products from vendors who haven't completed Stripe setup
+      // House vendors and Printify products don't need Stripe Connect
+      const vendorReadyProducts = data?.filter(p => {
+        const vendor = p.vendor as any;
+        if (!vendor) return false;
+        // House vendors don't need Stripe Connect (platform handles payments)
+        if (vendor.is_house_vendor) return true;
+        // Printify products are fulfilled by platform
+        if (p.is_printify_product) return true;
+        // Regular vendors must have Stripe enabled
+        return vendor.stripe_charges_enabled === true;
+      }) || [];
+      
       // Filter based on category
       if (category === 'merch') {
         // Show Printify products OR products from house vendor
-        return data?.filter(p => 
+        return vendorReadyProducts.filter(p => 
           p.is_printify_product === true || 
           (p.vendor as any)?.is_house_vendor === true
-        ) || [];
+        );
       } else if (category === 'handmade') {
         // Show vendor products that are NOT from house vendor
-        return data?.filter(p => 
+        return vendorReadyProducts.filter(p => 
           p.vendor_id !== null && 
           (p.vendor as any)?.is_house_vendor !== true
-        ) || [];
+        );
       }
       
-      return data;
+      return vendorReadyProducts;
     }
   });
 

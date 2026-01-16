@@ -25,6 +25,7 @@ interface Vendor {
   id: string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   business_name: string;
+  stripe_charges_enabled?: boolean;
 }
 
 const VendorDashboard = () => {
@@ -82,7 +83,7 @@ const VendorDashboard = () => {
         // Admins/owners can see ALL approved vendors
         const { data, error } = await supabase
           .from('vendors')
-          .select('id, status, business_name')
+          .select('id, status, business_name, stripe_charges_enabled')
           .eq('status', 'approved')
           .order('business_name', { ascending: true });
         
@@ -93,7 +94,7 @@ const VendorDashboard = () => {
         // Regular users see their own vendors AND vendors they're team members of
         const { data: ownedVendors } = await supabase
           .from('vendors')
-          .select('id, status, business_name')
+          .select('id, status, business_name, stripe_charges_enabled')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
@@ -110,7 +111,7 @@ const VendorDashboard = () => {
         if (teamVendorIds.length > 0) {
           const { data } = await supabase
             .from('vendors')
-            .select('id, status, business_name')
+            .select('id, status, business_name, stripe_charges_enabled')
             .in('id', teamVendorIds)
             .eq('status', 'approved');
           
@@ -462,7 +463,11 @@ const VendorDashboard = () => {
                     }} 
                   />
                 </div>
-                <ProductList vendorId={selectedVendorId} refreshTrigger={productRefreshTrigger} />
+                <ProductList 
+                  vendorId={selectedVendorId} 
+                  refreshTrigger={productRefreshTrigger} 
+                  stripeChargesEnabled={selectedVendor?.stripe_charges_enabled}
+                />
               </TabsContent>
               
               <TabsContent value="orders">

@@ -18,28 +18,37 @@ export const ProductSection = ({ category, title }: ProductSectionProps) => {
           id,
           is_printify_product,
           vendor_id,
-          vendor:vendors(is_house_vendor)
+          vendor:vendors(is_house_vendor, stripe_charges_enabled)
         `)
         .eq('is_active', true);
 
       if (error) throw error;
       
+      // Filter out products from vendors who haven't completed Stripe setup
+      const vendorReadyProducts = data?.filter(p => {
+        const vendor = p.vendor as any;
+        if (!vendor) return false;
+        if (vendor.is_house_vendor) return true;
+        if (p.is_printify_product) return true;
+        return vendor.stripe_charges_enabled === true;
+      }) || [];
+      
       // Filter based on category
       if (category === 'merch') {
-        const filtered = data?.filter(p => 
+        const filtered = vendorReadyProducts.filter(p => 
           p.is_printify_product === true || 
           (p.vendor as any)?.is_house_vendor === true
-        ) || [];
+        );
         return filtered.length > 0;
       } else if (category === 'handmade') {
-        const filtered = data?.filter(p => 
+        const filtered = vendorReadyProducts.filter(p => 
           p.vendor_id !== null && 
           (p.vendor as any)?.is_house_vendor !== true
-        ) || [];
+        );
         return filtered.length > 0;
       }
       
-      return (data?.length || 0) > 0;
+      return vendorReadyProducts.length > 0;
     }
   });
 
