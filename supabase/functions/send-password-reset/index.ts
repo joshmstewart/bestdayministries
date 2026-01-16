@@ -56,33 +56,77 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log("Processing password reset for email:", normalizedEmail);
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Look up user by email
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
-    
-    if (userError) {
-      console.error("Error looking up users:", userError);
-      return new Response(
-        JSON.stringify({ success: true, message: "If an account exists, a reset email will be sent." }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    // Look up user by email using direct database query (more reliable than listUsers pagination)
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("id", supabaseAdmin.rpc("get_user_id_by_email", { email_input: normalizedEmail }))
+      .maybeSingle();
 
-    const user = userData.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    // Fallback: Query auth.users directly via RPC or use listUsers with filter
+    // The listUsers API supports email filter which is more efficient
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+    });
+
+    // Actually, let's use a more reliable approach - query with pagination to find the user
+    let user = null;
+    let page = 1;
+    const perPage = 100;
+    
+    while (!user) {
+      const { data: pageData, error: pageError } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+      
+      if (pageError) {
+        console.error("Error listing users page", page, ":", pageError);
+        break;
+      }
+      
+      if (!pageData.users || pageData.users.length === 0) {
+        break;
+      }
+      
+      user = pageData.users.find((u) => u.email?.toLowerCase() === normalizedEmail);
+      
+      if (user) break;
+      
+      // If we got fewer users than perPage, we've reached the end
+      if (pageData.users.length < perPage) {
+        break;
+      }
+      
+      page++;
+      
+      // Safety limit to prevent infinite loops
+      if (page > 20) {
+        console.error("Exceeded maximum page limit while searching for user");
+        break;
+      }
+    }
 
     if (!user) {
       // Don't reveal if email exists or not for security
-      console.log("No user found for email (not revealing to client)");
+      console.log("No user found for email after searching all pages (not revealing to client)");
       return new Response(
         JSON.stringify({ success: true, message: "If an account exists, a reset email will be sent." }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+
+    console.log("Found user:", user.id, "for email:", normalizedEmail);
 
     // Generate our own reusable token
     const token = generateSecureToken();
@@ -110,11 +154,12 @@ const handler = async (req: Request): Promise<Response> => {
     redirectToUrl.searchParams.set("reset_token", token);
 
     const resetLink = redirectToUrl.toString();
+    console.log("Generated reset link for user");
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
       from: "Best Day Ever <no-reply@bestdayministries.org>",
-      to: [email],
+      to: [normalizedEmail],
       subject: "Reset Your Password - Best Day Ministries",
       html: `
         <!DOCTYPE html>
