@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Loader2, RefreshCw, Sparkles, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 interface Vibe {
@@ -17,6 +22,22 @@ interface Vibe {
   is_active: boolean;
 }
 
+interface VibeFormData {
+  name: string;
+  description: string;
+  atmosphere_hint: string;
+  emoji: string;
+  is_active: boolean;
+}
+
+const defaultFormData: VibeFormData = {
+  name: "",
+  description: "",
+  atmosphere_hint: "",
+  emoji: "✨",
+  is_active: true,
+};
+
 export const DrinkVibesManager = () => {
   const [vibes, setVibes] = useState<Vibe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +45,12 @@ export const DrinkVibesManager = () => {
   const [progress, setProgress] = useState(0);
   const [currentVibe, setCurrentVibe] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+
+  // CRUD state
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingVibe, setEditingVibe] = useState<Vibe | null>(null);
+  const [formData, setFormData] = useState<VibeFormData>(defaultFormData);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadVibes();
@@ -39,7 +66,6 @@ export const DrinkVibesManager = () => {
       console.error("Error loading vibes:", error);
       toast.error("Failed to load vibes");
     } else {
-      // Add cache-busting to image URLs to ensure fresh images are displayed
       const vibesWithCacheBust = (data || []).map(vibe => ({
         ...vibe,
         image_url: vibe.image_url ? `${vibe.image_url.split('?')[0]}?t=${Date.now()}` : null
@@ -86,7 +112,6 @@ export const DrinkVibesManager = () => {
       const success = await generateIcon(vibe);
       if (success) successCount++;
 
-      // Small delay between requests to avoid rate limiting
       if (i < vibesWithoutIcons.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
@@ -102,7 +127,6 @@ export const DrinkVibesManager = () => {
   const handleRegenerate = async (vibe: Vibe) => {
     setRegenerating(vibe.id);
 
-    // Clear existing icon first
     await supabase
       .from("drink_vibes")
       .update({ image_url: null })
@@ -120,6 +144,124 @@ export const DrinkVibesManager = () => {
     setRegenerating(null);
   };
 
+  // CRUD handlers
+  const openAddDialog = () => {
+    setEditingVibe(null);
+    setFormData(defaultFormData);
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (vibe: Vibe) => {
+    setEditingVibe(vibe);
+    setFormData({
+      name: vibe.name,
+      description: vibe.description,
+      atmosphere_hint: vibe.atmosphere_hint,
+      emoji: vibe.emoji || "✨",
+      is_active: vibe.is_active,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Name is required");
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+    if (!formData.atmosphere_hint.trim()) {
+      toast.error("Atmosphere hint is required");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      if (editingVibe) {
+        const { error } = await supabase
+          .from("drink_vibes")
+          .update({
+            name: formData.name.trim(),
+            description: formData.description.trim(),
+            atmosphere_hint: formData.atmosphere_hint.trim(),
+            emoji: formData.emoji.trim() || null,
+            is_active: formData.is_active,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingVibe.id);
+
+        if (error) throw error;
+        toast.success("Vibe updated!");
+      } else {
+        const { data: maxOrderData } = await supabase
+          .from("drink_vibes")
+          .select("display_order")
+          .order("display_order", { ascending: false })
+          .limit(1)
+          .single();
+
+        const newOrder = (maxOrderData?.display_order || 0) + 1;
+
+        const { error } = await supabase
+          .from("drink_vibes")
+          .insert({
+            name: formData.name.trim(),
+            description: formData.description.trim(),
+            atmosphere_hint: formData.atmosphere_hint.trim(),
+            emoji: formData.emoji.trim() || null,
+            is_active: formData.is_active,
+            display_order: newOrder,
+          });
+
+        if (error) throw error;
+        toast.success("Vibe added!");
+      }
+
+      setIsDialogOpen(false);
+      await loadVibes();
+    } catch (error) {
+      console.error("Error saving vibe:", error);
+      toast.error("Failed to save vibe");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (vibe: Vibe) => {
+    if (!confirm(`Delete "${vibe.name}"? This cannot be undone.`)) return;
+
+    const { error } = await supabase
+      .from("drink_vibes")
+      .delete()
+      .eq("id", vibe.id);
+
+    if (error) {
+      toast.error("Failed to delete vibe");
+      console.error(error);
+    } else {
+      toast.success("Vibe deleted");
+      await loadVibes();
+    }
+  };
+
+  const toggleActive = async (vibe: Vibe) => {
+    const { error } = await supabase
+      .from("drink_vibes")
+      .update({ is_active: !vibe.is_active, updated_at: new Date().toISOString() })
+      .eq("id", vibe.id);
+
+    if (error) {
+      toast.error("Failed to update vibe");
+    } else {
+      setVibes(prev => 
+        prev.map(v => v.id === vibe.id ? { ...v, is_active: !vibe.is_active } : v)
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -135,24 +277,34 @@ export const DrinkVibesManager = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Vibe Icons</span>
-            <Button
-              onClick={handleGenerateMissing}
-              disabled={generating || vibesWithoutIcons.length === 0}
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Missing Icons ({vibesWithoutIcons.length})
-                </>
-              )}
-            </Button>
+            <span>Drink Vibes</span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleGenerateMissing}
+                disabled={generating || vibesWithoutIcons.length === 0}
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate Missing ({vibesWithoutIcons.length})
+                  </>
+                )}
+              </Button>
+              <Button onClick={openAddDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Vibe
+              </Button>
+            </div>
           </CardTitle>
+          <CardDescription>
+            Manage vibes/moods for the Drink Creator game. Vibes help users describe the atmosphere of their drink.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {generating && (
@@ -168,7 +320,9 @@ export const DrinkVibesManager = () => {
             {vibes.map((vibe) => (
               <div
                 key={vibe.id}
-                className="group relative flex flex-col items-center p-3 border rounded-lg hover:border-primary transition-colors"
+                className={`group relative flex flex-col items-center p-3 border rounded-lg hover:border-primary transition-colors ${
+                  !vibe.is_active ? "opacity-50" : ""
+                }`}
               >
                 <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center mb-2 relative">
                   {vibe.image_url ? (
@@ -180,21 +334,6 @@ export const DrinkVibesManager = () => {
                   ) : (
                     <span className="text-3xl">{vibe.emoji || "✨"}</span>
                   )}
-                  
-                  {/* Regenerate button overlay */}
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="absolute inset-0 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity bg-background/80"
-                    onClick={() => handleRegenerate(vibe)}
-                    disabled={regenerating === vibe.id}
-                  >
-                    {regenerating === vibe.id ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-5 w-5" />
-                    )}
-                  </Button>
                 </div>
                 <span className="text-xs text-center font-medium truncate w-full">
                   {vibe.name}
@@ -202,11 +341,129 @@ export const DrinkVibesManager = () => {
                 {!vibe.image_url && (
                   <span className="text-xs text-muted-foreground">No icon</span>
                 )}
+                {!vibe.is_active && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <EyeOff className="w-3 h-3" /> Hidden
+                  </span>
+                )}
+
+                {/* Action buttons on hover */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8"
+                    onClick={() => openEditDialog(vibe)}
+                    title="Edit"
+                  >
+                    <Edit className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8"
+                    onClick={() => handleRegenerate(vibe)}
+                    disabled={regenerating === vibe.id}
+                    title="Regenerate icon"
+                  >
+                    {regenerating === vibe.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="h-8 w-8"
+                    onClick={() => toggleActive(vibe)}
+                    title={vibe.is_active ? "Hide" : "Show"}
+                  >
+                    {vibe.is_active ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="h-8 w-8"
+                    onClick={() => handleDelete(vibe)}
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingVibe ? "Edit Vibe" : "Add Vibe"}</DialogTitle>
+            <DialogDescription>
+              {editingVibe ? "Update the vibe details below." : "Add a new vibe/mood for the Drink Creator."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Cozy"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description *</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="e.g., Warm and comfortable, like a blanket"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="atmosphere_hint">Atmosphere Hint *</Label>
+              <Input
+                id="atmosphere_hint"
+                value={formData.atmosphere_hint}
+                onChange={(e) => setFormData({ ...formData, atmosphere_hint: e.target.value })}
+                placeholder="e.g., warm fireplace, soft blankets, gentle rain"
+              />
+              <p className="text-xs text-muted-foreground">Used for AI icon generation - describe the visual feeling</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emoji">Emoji</Label>
+              <Input
+                id="emoji"
+                value={formData.emoji}
+                onChange={(e) => setFormData({ ...formData, emoji: e.target.value })}
+                placeholder="✨"
+                className="w-20"
+              />
+              <p className="text-xs text-muted-foreground">Shown as fallback if no icon exists</p>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="is_active">Active</Label>
+              <Switch
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {editingVibe ? "Save Changes" : "Add Vibe"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
