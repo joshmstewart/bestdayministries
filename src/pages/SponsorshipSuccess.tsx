@@ -60,6 +60,11 @@ const SponsorshipSuccess = () => {
         amount: data.amount,
         frequency: data.frequency,
       });
+      
+      // Send confirmation emails AFTER payment is verified (not before checkout)
+      // This prevents emails being sent for abandoned checkouts
+      await sendConfirmationEmails(data.email, data.frequency, data.amount, data.bestieName);
+      
       toast.success('Sponsorship confirmed!');
     } catch (error) {
       console.error('Error verifying payment:', error);
@@ -71,6 +76,47 @@ const SponsorshipSuccess = () => {
       setTimeout(() => {
         verificationInProgress.current = false;
       }, 2000);
+    }
+  };
+
+  const sendConfirmationEmails = async (email: string, frequency: string, amount: string, bestieName?: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Send sponsorship confirmation email with duplicate prevention (handled by edge function)
+      await supabase.functions.invoke("send-automated-campaign", {
+        body: {
+          trigger_event: "subscription_created",
+          recipient_email: email,
+          recipient_user_id: user?.id,
+          trigger_data: {
+            frequency,
+            amount,
+            bestie_name: bestieName || 'a Bestie',
+          },
+        },
+      });
+
+      // Check if user is subscribed to newsletter, if so send welcome email
+      const { data: subscriber } = await supabase
+        .from("newsletter_subscribers")
+        .select("id")
+        .eq("email", email)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (subscriber) {
+        await supabase.functions.invoke("send-automated-campaign", {
+          body: {
+            trigger_event: "newsletter_signup",
+            recipient_email: email,
+            recipient_user_id: user?.id,
+          },
+        });
+      }
+    } catch (emailError) {
+      console.error("Error sending confirmation emails:", emailError);
+      // Don't fail the success page if emails fail to send
     }
   };
 
