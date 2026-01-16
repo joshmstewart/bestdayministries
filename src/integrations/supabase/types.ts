@@ -2241,6 +2241,7 @@ export type Database = {
       }
       contact_form_replies: {
         Row: {
+          cc_emails: string[] | null
           created_at: string
           id: string
           message: string
@@ -2251,6 +2252,7 @@ export type Database = {
           submission_id: string
         }
         Insert: {
+          cc_emails?: string[] | null
           created_at?: string
           id?: string
           message: string
@@ -2261,6 +2263,7 @@ export type Database = {
           submission_id: string
         }
         Update: {
+          cc_emails?: string[] | null
           created_at?: string
           id?: string
           message?: string

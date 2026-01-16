@@ -41,6 +41,7 @@ interface Reply {
   sender_email: string;
   message: string;
   created_at: string;
+  cc_emails?: string[] | null;
 }
 
 const STATUS_OPTIONS = [
@@ -601,6 +602,11 @@ export default function ContactSubmissions() {
                       <div key={r.id} className={`p-3 rounded ${r.sender_type === 'admin' ? 'bg-primary/10 ml-8' : 'bg-muted mr-8'}`}>
                         <div className="text-sm font-medium">{r.sender_name} ({r.sender_type})</div>
                         <div className="text-xs text-muted-foreground">{format(new Date(r.created_at), 'PPp')}</div>
+                        {r.cc_emails && r.cc_emails.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <span className="font-medium">CC:</span> {r.cc_emails.join(', ')}
+                          </div>
+                        )}
                         <p className="mt-1 whitespace-pre-wrap">{r.message}</p>
                       </div>
                     ))}
