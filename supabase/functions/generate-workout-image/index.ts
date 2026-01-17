@@ -315,6 +315,7 @@ serve(async (req) => {
         image_type: imageType,
         activity_name: activityName || null,
         location_name: selectedLocationName || null,
+        is_test: isAdminTest || false,
       })
       .select()
       .single();

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface AvatarNewsFeedProps {
   userId: string;
+  includeTestImages?: boolean;
 }
 
 interface WorkoutImage {
@@ -19,20 +20,28 @@ interface WorkoutImage {
   location_name: string | null;
   is_shared_to_community: boolean;
   likes_count: number;
+  is_test: boolean;
   created_at: string;
 }
 
-export const AvatarNewsFeed = ({ userId }: AvatarNewsFeedProps) => {
-  // Fetch user's images grouped by date
+export const AvatarNewsFeed = ({ userId, includeTestImages = false }: AvatarNewsFeedProps) => {
+  // Fetch user's images grouped by date (exclude test images unless specified)
   const { data: images = [], isLoading } = useQuery({
-    queryKey: ["workout-images-feed", userId],
+    queryKey: ["workout-images-feed", userId, includeTestImages],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("workout_generated_images")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50);
+
+      // By default, exclude test images from the feed
+      if (!includeTestImages) {
+        query = query.eq("is_test", false);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as WorkoutImage[];

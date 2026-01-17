@@ -9349,6 +9349,7 @@ export type Database = {
           image_type: string
           image_url: string
           is_shared_to_community: boolean
+          is_test: boolean
           likes_count: number
           location_name: string | null
           user_id: string
@@ -9362,6 +9363,7 @@ export type Database = {
           image_type: string
           image_url: string
           is_shared_to_community?: boolean
+          is_test?: boolean
           likes_count?: number
           location_name?: string | null
           user_id: string
@@ -9375,6 +9377,7 @@ export type Database = {
           image_type?: string
           image_url?: string
           is_shared_to_community?: boolean
+          is_test?: boolean
           likes_count?: number
           location_name?: string | null
           user_id?: string
