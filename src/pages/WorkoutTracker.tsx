@@ -63,7 +63,7 @@ const WorkoutTracker = () => {
                 </TabsTrigger>
                 <TabsTrigger value="gallery" className="flex-1 gap-1.5">
                   <ImageIcon className="h-4 w-4" />
-                  Gallery
+                  Community
                 </TabsTrigger>
               </TabsList>
 
