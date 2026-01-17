@@ -162,7 +162,6 @@ serve(async (req) => {
           }
         }
 
-        // Query locations from enabled packs
         // Query locations from enabled packs (include pack name for display)
         let locationsQuery = supabase
           .from("workout_locations")
@@ -182,18 +181,70 @@ serve(async (req) => {
           );
         }
 
-        const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+        // Get user's recently used locations (last 20) to avoid repetition
+        const { data: recentImages } = await supabase
+          .from("workout_generated_images")
+          .select("location_id")
+          .eq("user_id", user.id)
+          .not("location_id", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        const recentLocationIds = new Set(
+          (recentImages || []).map((img) => img.location_id).filter(Boolean)
+        );
+
+        // Filter out recently used locations if we have enough variety
+        let availableLocations = locations.filter(
+          (loc) => !recentLocationIds.has(loc.id)
+        );
+
+        // If we've used most locations, allow repeats from older ones
+        // but still exclude the last 5 to prevent immediate repeats
+        if (availableLocations.length < 3) {
+          const veryRecentIds = new Set(
+            (recentImages || []).slice(0, 5).map((img) => img.location_id).filter(Boolean)
+          );
+          availableLocations = locations.filter(
+            (loc) => !veryRecentIds.has(loc.id)
+          );
+        }
+
+        // If still not enough, just use all locations
+        if (availableLocations.length === 0) {
+          availableLocations = locations;
+        }
+
+        // Use weighted random selection favoring less-used packs
+        // Group by pack and pick a random pack first, then random location
+        const locationsByPack = new Map<string, typeof locations>();
+        for (const loc of availableLocations) {
+          const packId = loc.pack_id;
+          if (!locationsByPack.has(packId)) {
+            locationsByPack.set(packId, []);
+          }
+          locationsByPack.get(packId)!.push(loc);
+        }
+
+        // Pick a random pack, then a random location from that pack
+        const packIds = Array.from(locationsByPack.keys());
+        const randomPackId = packIds[Math.floor(Math.random() * packIds.length)];
+        const packLocations = locationsByPack.get(randomPackId)!;
+        const randomLocation = packLocations[Math.floor(Math.random() * packLocations.length)];
+
         selectedLocation = randomLocation.prompt_text;
         selectedLocationName = randomLocation.name;
         selectedLocationId = randomLocation.id;
         selectedLocationPackName = (randomLocation as any).workout_location_packs?.name || null;
         console.log(
-          "Selected random location from pack:",
+          "Selected location (avoiding recent):",
           selectedLocationName,
-          "-",
-          selectedLocation,
-          "Pack:",
-          selectedLocationPackName
+          "- Pack:",
+          selectedLocationPackName,
+          "- Available locations:",
+          availableLocations.length,
+          "of",
+          locations.length
         );
       } else {
         selectedLocation = location;
