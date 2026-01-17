@@ -108,22 +108,24 @@ const WorkoutTracker = () => {
 
               <TabsContent value="avatar" className="space-y-4 mt-0">
                 {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex gap-2 justify-center">
                   <Button
                     variant="outline"
-                    className="h-auto py-4 flex flex-col items-center gap-2"
+                    size="sm"
+                    className="flex items-center gap-1.5"
                     onClick={() => setAvatarDialogOpen(true)}
                   >
-                    <Sparkles className="h-6 w-6 text-primary" />
-                    <span className="text-sm font-medium">Select Avatar</span>
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Select Avatar
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-auto py-4 flex flex-col items-center gap-2"
+                    size="sm"
+                    className="flex items-center gap-1.5"
                     onClick={() => setLocationsDialogOpen(true)}
                   >
-                    <Package className="h-6 w-6 text-primary" />
-                    <span className="text-sm font-medium">Location Packs</span>
+                    <Package className="h-4 w-4 text-primary" />
+                    Location Packs
                   </Button>
                 </div>
 
