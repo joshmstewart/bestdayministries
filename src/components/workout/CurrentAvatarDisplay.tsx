@@ -122,29 +122,31 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
     return (
       <Card className={cn("overflow-hidden", className)}>
         <CardContent className="p-0 relative">
-          <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-            {/* Ghost avatar outline */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <User className="h-72 w-72 text-muted-foreground/50" strokeWidth={0.5} />
-            </div>
-            
-            {/* Overlay with button */}
-            <div className="relative z-10 flex flex-col items-center text-center p-4">
-              <Sparkles className="h-10 w-10 text-primary mb-3" />
-              <p className="text-sm font-medium text-foreground mb-1">
-                Choose Your Fitness Buddy!
-              </p>
-              <p className="text-xs text-muted-foreground mb-4">
-                Pick an avatar to generate workout images
-              </p>
-              <Button 
-                onClick={onSelectAvatarClick}
-                className="gap-2"
-                size="sm"
-              >
-                <Sparkles className="h-4 w-4" />
-                Pick Avatar
-              </Button>
+          <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted/60 flex items-center justify-center p-6">
+            {/* Large dashed circle placeholder with user icon inside */}
+            <div className="relative w-full h-full flex items-center justify-center">
+              <div className="absolute inset-4 rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                <User className="w-1/2 h-1/2 text-muted-foreground/25" strokeWidth={1} />
+              </div>
+              
+              {/* Centered content overlay */}
+              <div className="relative z-10 flex flex-col items-center text-center bg-background/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                <Sparkles className="h-10 w-10 text-primary mb-3" />
+                <p className="text-base font-semibold text-foreground mb-1">
+                  Choose Your Fitness Buddy!
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pick an avatar to generate workout images
+                </p>
+                <Button 
+                  onClick={onSelectAvatarClick}
+                  className="gap-2"
+                  size="default"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Pick Avatar
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
