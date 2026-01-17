@@ -27,31 +27,31 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
 
   // Reset today's fitness data
   const resetTodayMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<void> => {
       const today = new Date();
-      const startOfToday = startOfDay(today).toISOString();
-      const endOfToday = endOfDay(today).toISOString();
+      const startOfTodayISO = startOfDay(today).toISOString();
+      const endOfTodayISO = endOfDay(today).toISOString();
 
       // Delete today's workout logs
       await supabase
         .from("user_workout_logs")
         .delete()
         .eq("user_id", userId)
-        .gte("completed_at", startOfToday)
-        .lte("completed_at", endOfToday);
+        .gte("completed_at", startOfTodayISO)
+        .lte("completed_at", endOfTodayISO);
 
       // Delete today's generated images
       const { data: todayImages } = await supabase
         .from("workout_generated_images")
         .select("id, image_url")
         .eq("user_id", userId)
-        .gte("created_at", startOfToday)
-        .lte("created_at", endOfToday);
+        .gte("created_at", startOfTodayISO)
+        .lte("created_at", endOfTodayISO);
 
       if (todayImages && todayImages.length > 0) {
         // Delete from storage
         for (const img of todayImages) {
-          const path = img.image_url.split("/workout-images/")[1];
+          const path = img.image_url?.split("/workout-images/")[1];
           if (path) {
             await supabase.storage.from("workout-images").remove([path]);
           }
@@ -61,8 +61,8 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
           .from("workout_generated_images")
           .delete()
           .eq("user_id", userId)
-          .gte("created_at", startOfToday)
-          .lte("created_at", endOfToday);
+          .gte("created_at", startOfTodayISO)
+          .lte("created_at", endOfTodayISO);
       }
     },
     onSuccess: () => {
@@ -86,7 +86,7 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
 
   // Reset all fitness data
   const resetAllMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<void> => {
       // Delete all workout logs
       await supabase
         .from("user_workout_logs")
@@ -102,7 +102,7 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
       if (allImages && allImages.length > 0) {
         // Delete from storage
         for (const img of allImages) {
-          const path = img.image_url.split("/workout-images/")[1];
+          const path = img.image_url?.split("/workout-images/")[1];
           if (path) {
             await supabase.storage.from("workout-images").remove([path]);
           }
@@ -120,11 +120,15 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
         .delete()
         .eq("user_id", userId);
 
-      // Delete location pack ownership
-      await supabase
+      // Delete location pack ownership - use correct table name
+      const { error: locationError } = await supabase
         .from("user_workout_location_packs")
         .delete()
         .eq("user_id", userId);
+      
+      if (locationError) {
+        console.warn("Location packs deletion:", locationError.message);
+      }
     },
     onSuccess: () => {
       // Invalidate all relevant queries
