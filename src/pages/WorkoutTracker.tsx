@@ -13,7 +13,13 @@ import { WorkoutImageGallery } from "@/components/workout/WorkoutImageGallery";
 import { CurrentAvatarDisplay } from "@/components/workout/CurrentAvatarDisplay";
 import { LocationPackPicker } from "@/components/workout/LocationPackPicker";
 import { AvatarNewsFeed } from "@/components/workout/AvatarNewsFeed";
-import { Dumbbell, Video, Sparkles, Image as ImageIcon, MapPin, Package } from "lucide-react";
+import { Dumbbell, Video, Sparkles, Image as ImageIcon, MapPin, Package, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -108,7 +114,7 @@ const WorkoutTracker = () => {
 
               <TabsContent value="avatar" className="space-y-4 mt-0">
                 {/* Action Buttons */}
-                <div className="flex gap-2 justify-center">
+                <div className="flex gap-2 justify-center items-center">
                   <Button
                     variant="outline"
                     size="sm"
@@ -127,11 +133,19 @@ const WorkoutTracker = () => {
                     <Package className="h-4 w-4 text-primary" />
                     Location Packs
                   </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Select an avatar and enable location packs to customize your workout images!</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Select an avatar and enable location packs to customize your workout images!
-                </p>
 
                 {/* Avatar News Feed - Previous images grouped by day */}
                 <AvatarNewsFeed userId={user.id} userName={profile?.display_name} />
