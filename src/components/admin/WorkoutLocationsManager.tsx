@@ -14,7 +14,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff, Wand2, Loader2, Sparkles, Shuffle } from "lucide-react";
+import { Plus, Edit, Trash2, MapPin, Package, Coins, Eye, EyeOff, Wand2, Loader2, Sparkles, Shuffle, ArchiveRestore, X } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -148,6 +149,7 @@ const isThemeSimilarToExisting = (theme: PackTheme, existingPacks: LocationPack[
 
 // Avoid repeating the same suggested themes over and over in the admin "Randomize Pack" button.
 const RECENT_PACK_THEME_STORAGE_KEY = "workout_locations_recent_pack_theme_names_v1";
+const REJECTED_PACK_THEME_STORAGE_KEY = "workout_locations_rejected_pack_themes_v1";
 const MAX_RECENT_PACK_THEMES = 8;
 
 const readRecentPackThemeNames = (): string[] => {
@@ -165,6 +167,26 @@ const writeRecentPackThemeNames = (names: string[]) => {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(RECENT_PACK_THEME_STORAGE_KEY, JSON.stringify(names));
+  } catch {
+    // ignore
+  }
+};
+
+const readRejectedPackThemes = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(REJECTED_PACK_THEME_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeRejectedPackThemes = (names: string[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(REJECTED_PACK_THEME_STORAGE_KEY, JSON.stringify(names));
   } catch {
     // ignore
   }
@@ -226,6 +248,11 @@ export const WorkoutLocationsManager = () => {
   const [randomThemeBag, setRandomThemeBag] = useState<PackTheme[]>([]);
   const [randomThemeBagKey, setRandomThemeBagKey] = useState<string>("");
   const [recentRandomThemes, setRecentRandomThemes] = useState<string[]>(() => readRecentPackThemeNames());
+
+  // Rejected themes state
+  const [rejectedThemes, setRejectedThemes] = useState<string[]>(() => readRejectedPackThemes());
+  const [rejectedDialogOpen, setRejectedDialogOpen] = useState(false);
+  const [previousThemeName, setPreviousThemeName] = useState<string | null>(null);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -573,9 +600,32 @@ export const WorkoutLocationsManager = () => {
 
   // Randomize pack form with a theme that's dissimilar to existing packs
   const handleRandomizePack = () => {
-    // Prefer themes that are dissimilar to existing packs, but don't get stuck repeating the same few.
-    const dissimilarThemes = packThemes.filter((theme) => !isThemeSimilarToExisting(theme, packs));
-    const candidateThemes: PackTheme[] = dissimilarThemes.length > 0 ? dissimilarThemes : packThemes;
+    // If there was a previous theme shown and user clicks randomize again, add it to rejected list
+    if (previousThemeName && packForm.name === previousThemeName) {
+      const newRejected = [...rejectedThemes, previousThemeName].filter(
+        (name, idx, arr) => arr.findIndex((n) => n.toLowerCase() === name.toLowerCase()) === idx
+      );
+      setRejectedThemes(newRejected);
+      writeRejectedPackThemes(newRejected);
+      toast.info(`"${previousThemeName}" added to rejected list`, {
+        description: "It won't be suggested again",
+      });
+    }
+
+    // Filter out rejected themes first
+    const rejectedSet = new Set(rejectedThemes.map((n) => n.toLowerCase()));
+    const nonRejectedThemes = packThemes.filter((t) => !rejectedSet.has(t.name.toLowerCase()));
+
+    if (nonRejectedThemes.length === 0) {
+      toast.error("All themes have been rejected!", {
+        description: "Click 'View Rejected' to restore some themes",
+      });
+      return;
+    }
+
+    // Prefer themes that are dissimilar to existing packs
+    const dissimilarThemes = nonRejectedThemes.filter((theme) => !isThemeSimilarToExisting(theme, packs));
+    const candidateThemes: PackTheme[] = dissimilarThemes.length > 0 ? dissimilarThemes : nonRejectedThemes;
 
     const candidateKey = candidateThemes
       .map((t) => t.name)
@@ -606,6 +656,7 @@ export const WorkoutLocationsManager = () => {
     }));
     setPackImagePrompt(nextTheme.name);
     setSelectedPackTheme(nextTheme);
+    setPreviousThemeName(nextTheme.name);
 
     const nextRecent = [
       nextTheme.name,
@@ -615,16 +666,44 @@ export const WorkoutLocationsManager = () => {
     setRecentRandomThemes(nextRecent);
     writeRecentPackThemeNames(nextRecent);
 
-    if (dissimilarThemes.length === 0) {
-      toast.info("All unique themes have been used!", {
-        description: `Showing any theme next • ${nextBag.length} more before repeats`,
-      });
-      return;
-    }
-
+    const remaining = candidateThemes.length - 1;
     toast.success(`Randomized: ${nextTheme.name}`, {
-      description: `${nextTheme.locations.length} locations • ${nextBag.length} more before repeats`,
+      description: `${nextTheme.locations.length} locations • ${remaining} more available • ${rejectedThemes.length} rejected`,
     });
+  };
+
+  // Restore a rejected theme back to available pool and load it
+  const handleRestoreTheme = (themeName: string) => {
+    const theme = packThemes.find((t) => t.name.toLowerCase() === themeName.toLowerCase());
+    if (!theme) return;
+
+    // Remove from rejected list
+    const newRejected = rejectedThemes.filter((n) => n.toLowerCase() !== themeName.toLowerCase());
+    setRejectedThemes(newRejected);
+    writeRejectedPackThemes(newRejected);
+
+    // Load it into the form
+    setPackForm((prev) => ({
+      ...prev,
+      name: theme.name,
+      description: theme.description,
+      is_active: true,
+    }));
+    setPackImagePrompt(theme.name);
+    setSelectedPackTheme(theme);
+    setPreviousThemeName(null); // Don't re-reject on next randomize
+
+    setRejectedDialogOpen(false);
+    toast.success(`Restored: ${theme.name}`, {
+      description: "Loaded into create pack form",
+    });
+  };
+
+  // Clear all rejected themes
+  const handleClearAllRejected = () => {
+    setRejectedThemes([]);
+    writeRejectedPackThemes([]);
+    toast.success("Cleared all rejected themes");
   };
 
   // Randomize location form with a location idea
@@ -1139,15 +1218,31 @@ export const WorkoutLocationsManager = () => {
           
           {/* Randomize Pack Button - only show for new packs */}
           {!editingPack && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleRandomizePack}
-              className="w-full"
-            >
-              <Shuffle className="w-4 h-4 mr-2" />
-              Randomize Theme
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleRandomizePack}
+                className="flex-1"
+              >
+                <Shuffle className="w-4 h-4 mr-2" />
+                Randomize Theme
+              </Button>
+              {rejectedThemes.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setRejectedDialogOpen(true)}
+                  className="px-3"
+                  title={`${rejectedThemes.length} rejected themes`}
+                >
+                  <ArchiveRestore className="w-4 h-4" />
+                  <Badge variant="secondary" className="ml-1.5 text-xs">
+                    {rejectedThemes.length}
+                  </Badge>
+                </Button>
+              )}
+            </div>
           )}
           
           {/* Selected Theme Preview */}
@@ -1440,6 +1535,70 @@ export const WorkoutLocationsManager = () => {
         onPrevious={() => setLightboxIndex((i) => Math.max(0, i - 1))}
         onNext={() => setLightboxIndex((i) => Math.min(lightboxImages.length - 1, i + 1))}
       />
+
+      {/* Rejected Themes Dialog */}
+      <Dialog open={rejectedDialogOpen} onOpenChange={setRejectedDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArchiveRestore className="w-5 h-5" />
+              Rejected Themes ({rejectedThemes.length})
+            </DialogTitle>
+          </DialogHeader>
+          
+          {rejectedThemes.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">
+              No rejected themes yet
+            </p>
+          ) : (
+            <>
+              <ScrollArea className="max-h-[300px]">
+                <div className="space-y-2 pr-4">
+                  {rejectedThemes.map((themeName) => {
+                    const theme = packThemes.find((t) => t.name.toLowerCase() === themeName.toLowerCase());
+                    return (
+                      <div
+                        key={themeName}
+                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{themeName}</p>
+                          {theme && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {theme.locations.length} locations
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRestoreTheme(themeName)}
+                        >
+                          Restore
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+              
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={handleClearAllRejected}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear All
+                </Button>
+                <Button variant="outline" onClick={() => setRejectedDialogOpen(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
