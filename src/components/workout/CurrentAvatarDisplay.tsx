@@ -172,7 +172,7 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
           </p>
         </div>
       )}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+      <div className="absolute top-2 right-2">
         <span className="inline-flex items-center gap-1.5 bg-primary/90 text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-full shadow-md">
           <ImageIcon className="h-3 w-3" />
           Ready for today's workout!
