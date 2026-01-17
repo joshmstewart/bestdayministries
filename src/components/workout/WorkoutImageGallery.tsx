@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { 
   Loader2, Image as ImageIcon, Heart, Share2, Users, 
-  Trophy, Dumbbell, Trash2 
+  Trophy, Dumbbell, Trash2, EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -43,6 +45,41 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
   const [selectedImage, setSelectedImage] = useState<WorkoutImage | null>(null);
   const [deleteImage, setDeleteImage] = useState<WorkoutImage | null>(null);
   const [activeTab, setActiveTab] = useState("my-images");
+
+  // Fetch user's auto-share setting
+  const { data: autoShareEnabled = true } = useQuery({
+    queryKey: ["auto-share-workout-images", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("auto_share_workout_images")
+        .eq("id", userId)
+        .single();
+
+      if (error) throw error;
+      return data.auto_share_workout_images ?? true;
+    },
+    enabled: !!userId,
+  });
+
+  // Toggle auto-share setting
+  const toggleAutoShareMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ auto_share_workout_images: enabled })
+        .eq("id", userId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["auto-share-workout-images"] });
+      toast.success(enabled ? "Auto-share enabled" : "Auto-share disabled");
+    },
+    onError: () => {
+      toast.error("Failed to update setting");
+    },
+  });
 
   // Fetch user's images (exclude test images)
   const { data: myImages = [], isLoading: loadingMy } = useQuery({
@@ -111,6 +148,27 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     },
     onError: () => {
       toast.error("Failed to share");
+    },
+  });
+
+  // Unshare from community
+  const unshareMutation = useMutation({
+    mutationFn: async (imageId: string) => {
+      const { error } = await supabase
+        .from("workout_generated_images")
+        .update({ is_shared_to_community: false })
+        .eq("id", imageId)
+        .eq("user_id", userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-images"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-images-community"] });
+      toast.success("Removed from community");
+    },
+    onError: () => {
+      toast.error("Failed to unshare");
     },
   });
 
@@ -223,8 +281,23 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
                   e.stopPropagation();
                   shareMutation.mutate(image.id);
                 }}
+                title="Share to community"
               >
                 <Share2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {isOwn && image.is_shared_to_community && (
+              <Button
+                size="icon"
+                variant="secondary"
+                className="h-7 w-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  unshareMutation.mutate(image.id);
+                }}
+                title="Remove from community"
+              >
+                <EyeOff className="h-3.5 w-3.5" />
               </Button>
             )}
             {isOwn && (
@@ -269,10 +342,23 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     <>
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <ImageIcon className="h-5 w-5 text-primary" />
-            Workout Gallery
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ImageIcon className="h-5 w-5 text-primary" />
+              Workout Gallery
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="auto-share" className="text-xs text-muted-foreground">
+                Auto-share
+              </Label>
+              <Switch
+                id="auto-share"
+                checked={autoShareEnabled}
+                onCheckedChange={(checked) => toggleAutoShareMutation.mutate(checked)}
+                disabled={toggleAutoShareMutation.isPending}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
