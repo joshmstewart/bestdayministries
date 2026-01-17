@@ -185,7 +185,30 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-3">
-            {avatars.map((avatar) => {
+            {[...avatars]
+              .sort((a, b) => {
+                const aOwned = ownedAvatarIds.includes(a.id);
+                const bOwned = ownedAvatarIds.includes(b.id);
+                
+                // 1. Free avatars first
+                if (a.is_free && !b.is_free) return -1;
+                if (!a.is_free && b.is_free) return 1;
+                
+                // 2. Purchased (owned, non-free) avatars second
+                if (!a.is_free && !b.is_free) {
+                  if (aOwned && !bOwned) return -1;
+                  if (!aOwned && bOwned) return 1;
+                }
+                
+                // 3. Locked avatars sorted by price ascending
+                if (!a.is_free && !b.is_free && !aOwned && !bOwned) {
+                  return a.price_coins - b.price_coins;
+                }
+                
+                // Keep original order within same category
+                return a.display_order - b.display_order;
+              })
+              .map((avatar) => {
               const isOwned = ownedAvatarIds.includes(avatar.id) || avatar.is_free;
               const isSelected = selectedAvatarId === avatar.id;
               
