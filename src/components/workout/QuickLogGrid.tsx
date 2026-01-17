@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +15,10 @@ import { useWorkoutImageGeneration } from "@/hooks/useWorkoutImageGeneration";
 interface QuickLogGridProps {
   userId: string;
   onLog?: () => void;
+  onGeneratingChange?: (isGenerating: boolean) => void;
 }
 
-export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
+export const QuickLogGrid = ({ userId, onLog, onGeneratingChange }: QuickLogGridProps) => {
   const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
   const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
@@ -25,6 +26,11 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
   
   // Image generation hook
   const { selectedAvatar, generateActivityImage, isGenerating } = useWorkoutImageGeneration(userId);
+
+  // Notify parent of generating state changes
+  useEffect(() => {
+    onGeneratingChange?.(isGenerating);
+  }, [isGenerating, onGeneratingChange]);
 
   // Fetch user's favorite activity IDs
   const { data: favoriteIds = [] } = useQuery({

@@ -28,6 +28,7 @@ const WorkoutTracker = () => {
   const [activeTab, setActiveTab] = useState("workout");
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [locationsDialogOpen, setLocationsDialogOpen] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   return (
     <>
@@ -67,8 +68,8 @@ const WorkoutTracker = () => {
               </TabsList>
 
               <TabsContent value="workout" className="space-y-4 mt-0">
-                {/* Current Avatar Display - Shows today's image or default */}
-                <CurrentAvatarDisplay userId={user.id} />
+                {/* Current Avatar Display - Shows today's image or default, with loading state */}
+                <CurrentAvatarDisplay userId={user.id} isGenerating={isGeneratingImage} />
 
                 {/* Streak & Goal Row */}
                 <div className="grid gap-4 grid-cols-2">
@@ -90,7 +91,10 @@ const WorkoutTracker = () => {
                 </Button>
 
                 {/* Quick Log Grid - now with submit button */}
-                <QuickLogGrid userId={user.id} />
+                <QuickLogGrid 
+                  userId={user.id} 
+                  onGeneratingChange={setIsGeneratingImage}
+                />
 
                 {/* Featured Video Section */}
                 <div id="video-section">
