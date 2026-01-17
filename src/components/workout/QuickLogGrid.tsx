@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Loader2, Settings2, Zap, Sparkles } from "lucide-react";
+import { CheckCircle2, Loader2, Settings2, Zap, Sparkles, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { FavoriteActivitiesDialog } from "./FavoriteActivitiesDialog";
+import { AllActivitiesDialog } from "./AllActivitiesDialog";
 import { useWorkoutImageGeneration } from "@/hooks/useWorkoutImageGeneration";
 
 interface QuickLogGridProps {
@@ -22,6 +23,7 @@ export const QuickLogGrid = ({ userId, onLog, onGeneratingChange }: QuickLogGrid
   const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
   const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
+  const [showAllActivitiesDialog, setShowAllActivitiesDialog] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<{ id: string; name: string } | null>(null);
   
   // Image generation hook
@@ -260,10 +262,20 @@ export const QuickLogGrid = ({ userId, onLog, onGeneratingChange }: QuickLogGrid
             })}
           </div>
           
+          {/* More Activities Button */}
+          <Button
+            variant="outline"
+            className="w-full mt-3 gap-2"
+            onClick={() => setShowAllActivitiesDialog(true)}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            More Activities
+          </Button>
+          
           {/* Submit Button */}
           {selectedActivity && (
             <Button
-              className="w-full mt-4 gap-2"
+              className="w-full mt-3 gap-2"
               onClick={handleSubmit}
               disabled={logActivityMutation.isPending}
             >
@@ -293,6 +305,18 @@ export const QuickLogGrid = ({ userId, onLog, onGeneratingChange }: QuickLogGrid
         open={showFavoritesDialog}
         onOpenChange={setShowFavoritesDialog}
         userId={userId}
+      />
+
+      <AllActivitiesDialog
+        open={showAllActivitiesDialog}
+        onOpenChange={setShowAllActivitiesDialog}
+        userId={userId}
+        todayLogs={todayLogs}
+        onSelectActivity={(activity) => {
+          setSelectedActivity(activity);
+          logActivityMutation.mutate(activity);
+        }}
+        isPending={logActivityMutation.isPending}
       />
     </>
   );
