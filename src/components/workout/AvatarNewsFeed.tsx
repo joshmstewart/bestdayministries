@@ -53,9 +53,11 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
     enabled: !!userId,
   });
 
-  // Group images by date
+  // Group images by date (using local timezone)
   const groupedImages = images.reduce((acc, image) => {
-    const date = format(new Date(image.created_at), "yyyy-MM-dd");
+    // Parse as local date for grouping
+    const imageDate = new Date(image.created_at);
+    const date = format(imageDate, "yyyy-MM-dd");
     if (!acc[date]) {
       acc[date] = [];
     }
@@ -64,7 +66,9 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
   }, {} as Record<string, WorkoutImage[]>);
 
   const formatDateHeader = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // Parse the date string as local date (add time to avoid timezone shift)
+    const [year, month, day] = dateStr.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
     if (isToday(date)) return "Today";
     if (isYesterday(date)) return "Yesterday";
     const daysAgo = differenceInDays(new Date(), date);
