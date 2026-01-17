@@ -149,18 +149,19 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
     );
   }
 
-  // Show the selected avatar (ready for workout)
-  const avatarImageUrl = hasExplicitSelection?.image_url || hasExplicitSelection?.preview_image_url;
+  // Show the selected avatar's preview image (ready for workout)
+  const avatarImageUrl = hasExplicitSelection?.preview_image_url || hasExplicitSelection?.image_url;
+  const avatarName = hasExplicitSelection?.name || "Your fitness buddy";
 
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardContent className="p-0 relative">
-        <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/20 flex items-center justify-center">
+        <div className="aspect-square bg-white flex items-center justify-center">
           {avatarImageUrl ? (
             <img
               src={avatarImageUrl}
-              alt={hasExplicitSelection?.name || "Your fitness buddy"}
-              className="w-full h-full object-cover"
+              alt={avatarName}
+              className="w-full h-full object-contain"
             />
           ) : (
             <div className="text-center p-4">
