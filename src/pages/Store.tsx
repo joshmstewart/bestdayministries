@@ -52,8 +52,22 @@ const Store = () => {
         setUserRole(roleData?.role || "supporter");
       }
 
-      // Fetch store items, purchasable memory match packs, coloring books, cash register packs, joke categories, and user's purchases in parallel
-      const [storeItemsResult, memoryPacksResult, coloringBooksResult, cashRegisterPacksResult, jokeCategoriesResult, userPacksResult, userColoringBooksResult, userCashRegisterPacksResult, userJokeCategoriesResult] = await Promise.all([
+      // Fetch store items, purchasable memory match packs, coloring books, cash register packs, joke categories, fitness avatars, location packs and user's purchases in parallel
+      const [
+        storeItemsResult, 
+        memoryPacksResult, 
+        coloringBooksResult, 
+        cashRegisterPacksResult, 
+        jokeCategoriesResult, 
+        fitnessAvatarsResult,
+        locationPacksResult,
+        userPacksResult, 
+        userColoringBooksResult, 
+        userCashRegisterPacksResult, 
+        userJokeCategoriesResult,
+        userFitnessAvatarsResult,
+        userLocationPacksResult
+      ] = await Promise.all([
         supabase
           .from("store_items")
           .select("*")
@@ -82,6 +96,18 @@ const Store = () => {
           .eq("is_active", true)
           .eq("is_free", false)
           .gt("coin_price", 0),
+        supabase
+          .from("fitness_avatars")
+          .select("id, name, description, preview_image_url, price_coins, is_free, is_active, display_order")
+          .eq("is_active", true)
+          .eq("is_free", false)
+          .gt("price_coins", 0),
+        supabase
+          .from("workout_location_packs")
+          .select("id, name, description, image_url, price_coins, is_free, is_active, display_order")
+          .eq("is_active", true)
+          .eq("is_free", false)
+          .gt("price_coins", 0),
         user ? supabase
           .from("user_memory_match_packs")
           .select("pack_id")
@@ -97,17 +123,27 @@ const Store = () => {
         user ? supabase
           .from("user_joke_categories")
           .select("category_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        user ? supabase
+          .from("user_fitness_avatars")
+          .select("avatar_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        user ? supabase
+          .from("user_workout_location_packs")
+          .select("pack_id")
           .eq("user_id", user.id) : Promise.resolve({ data: [] })
       ]);
 
       if (storeItemsResult.error) throw storeItemsResult.error;
       
-      // Store purchased pack IDs (memory packs, coloring books, cash register packs, and joke categories)
+      // Store purchased pack IDs (memory packs, coloring books, cash register packs, joke categories, fitness avatars, and location packs)
       const purchasedIds = new Set<string>([
         ...(userPacksResult.data || []).map((p: { pack_id: string }) => `memory_pack_${p.pack_id}`),
         ...(userColoringBooksResult.data || []).map((p: { book_id: string }) => `coloring_book_${p.book_id}`),
         ...(userCashRegisterPacksResult.data || []).map((p: { pack_id: string }) => `cash_register_pack_${p.pack_id}`),
-        ...(userJokeCategoriesResult.data || []).map((p: { category_id: string }) => `joke_category_${p.category_id}`)
+        ...(userJokeCategoriesResult.data || []).map((p: { category_id: string }) => `joke_category_${p.category_id}`),
+        ...(userFitnessAvatarsResult.data || []).map((p: { avatar_id: string }) => `fitness_avatar_${p.avatar_id}`),
+        ...(userLocationPacksResult.data || []).map((p: { pack_id: string }) => `location_pack_${p.pack_id}`)
       ]);
       setPurchasedPackIds(purchasedIds);
       
@@ -175,8 +211,38 @@ const Store = () => {
         display_order: 4000 + (cat.display_order || index),
       }));
 
+      // Convert fitness avatars to store item format
+      const fitnessAvatarItems: StoreItem[] = (fitnessAvatarsResult.data || []).map((avatar, index) => ({
+        id: `fitness_avatar_${avatar.id}`,
+        name: `Workout Avatar: ${avatar.name}`,
+        description: avatar.description || `Unlock the ${avatar.name} avatar for your workout journey`,
+        price: avatar.price_coins,
+        category: "fitness",
+        image_url: avatar.preview_image_url,
+        display_order: 5000 + (avatar.display_order || index),
+      }));
+
+      // Convert location packs to store item format
+      const locationPackItems: StoreItem[] = (locationPacksResult.data || []).map((pack, index) => ({
+        id: `location_pack_${pack.id}`,
+        name: `Workout Location: ${pack.name}`,
+        description: pack.description || `Unlock the ${pack.name} location for your workouts`,
+        price: pack.price_coins,
+        category: "fitness",
+        image_url: pack.image_url,
+        display_order: 6000 + (pack.display_order || index),
+      }));
+
       // Combine and set items
-      setItems([...(storeItemsResult.data || []), ...memoryPackItems, ...coloringBookItems, ...cashRegisterPackItems, ...jokeCategoryItems]);
+      setItems([
+        ...(storeItemsResult.data || []), 
+        ...memoryPackItems, 
+        ...coloringBookItems, 
+        ...cashRegisterPackItems, 
+        ...jokeCategoryItems,
+        ...fitnessAvatarItems,
+        ...locationPackItems
+      ]);
     } catch (error) {
       console.error("Error fetching store items:", error);
     } finally {

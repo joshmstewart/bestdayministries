@@ -89,6 +89,8 @@ export const useStorePurchases = () => {
       const isColoringBook = itemId.startsWith("coloring_book_");
       const isCashRegisterPack = itemId.startsWith("cash_register_pack_");
       const isJokeCategory = itemId.startsWith("joke_category_");
+      const isFitnessAvatar = itemId.startsWith("fitness_avatar_");
+      const isLocationPack = itemId.startsWith("location_pack_");
       const actualItemId = isMemoryPack 
         ? itemId.replace("memory_pack_", "") 
         : isColoringBook 
@@ -97,7 +99,11 @@ export const useStorePurchases = () => {
             ? itemId.replace("cash_register_pack_", "")
             : isJokeCategory
               ? itemId.replace("joke_category_", "")
-              : itemId;
+              : isFitnessAvatar
+                ? itemId.replace("fitness_avatar_", "")
+                : isLocationPack
+                  ? itemId.replace("location_pack_", "")
+                  : itemId;
 
       // Start transaction: deduct coins and create purchase
       const { data: profile, error: profileError } = await supabase
@@ -195,6 +201,44 @@ export const useStorePurchases = () => {
           amount: -itemPrice,
           transaction_type: "store_purchase",
           description: "Joke Category purchase",
+          related_item_id: actualItemId,
+        });
+      } else if (isFitnessAvatar) {
+        // Handle fitness avatar purchase
+        const { error: avatarPurchaseError } = await supabase
+          .from("user_fitness_avatars")
+          .insert({
+            user_id: user.id,
+            avatar_id: actualItemId,
+          });
+
+        if (avatarPurchaseError) throw avatarPurchaseError;
+
+        // Record transaction
+        await supabase.from("coin_transactions").insert({
+          user_id: user.id,
+          amount: -itemPrice,
+          transaction_type: "store_purchase",
+          description: "Fitness Avatar purchase",
+          related_item_id: actualItemId,
+        });
+      } else if (isLocationPack) {
+        // Handle location pack purchase
+        const { error: packPurchaseError } = await supabase
+          .from("user_workout_location_packs")
+          .insert({
+            user_id: user.id,
+            pack_id: actualItemId,
+          });
+
+        if (packPurchaseError) throw packPurchaseError;
+
+        // Record transaction
+        await supabase.from("coin_transactions").insert({
+          user_id: user.id,
+          amount: -itemPrice,
+          transaction_type: "store_purchase",
+          description: "Workout Location Pack purchase",
           related_item_id: actualItemId,
         });
       } else {
