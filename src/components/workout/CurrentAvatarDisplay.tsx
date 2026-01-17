@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 interface CurrentAvatarDisplayProps {
   userId: string;
   className?: string;
+  isGenerating?: boolean;
 }
 
-export const CurrentAvatarDisplay = ({ userId, className }: CurrentAvatarDisplayProps) => {
+export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false }: CurrentAvatarDisplayProps) => {
   const today = format(new Date(), "yyyy-MM-dd");
 
   // Get user's selected avatar
@@ -76,6 +77,21 @@ export const CurrentAvatarDisplay = ({ userId, className }: CurrentAvatarDisplay
       <Card className={cn("overflow-hidden", className)}>
         <CardContent className="p-0 flex items-center justify-center aspect-square">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show generating state when image is being created
+  if (isGenerating) {
+    return (
+      <Card className={cn("overflow-hidden", className)}>
+        <CardContent className="p-0 relative">
+          <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/30 flex flex-col items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-3" />
+            <p className="text-sm font-medium text-foreground">Creating your image...</p>
+            <p className="text-xs text-muted-foreground mt-1">This may take a moment ✨</p>
+          </div>
         </CardContent>
       </Card>
     );
