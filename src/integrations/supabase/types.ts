@@ -3764,6 +3764,7 @@ export type Database = {
           description: string | null
           display_order: number
           id: string
+          image_url: string | null
           is_active: boolean
           is_free: boolean
           name: string
@@ -3777,6 +3778,7 @@ export type Database = {
           description?: string | null
           display_order?: number
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_free?: boolean
           name: string
@@ -3790,6 +3792,7 @@ export type Database = {
           description?: string | null
           display_order?: number
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_free?: boolean
           name?: string
@@ -8631,6 +8634,38 @@ export type Database = {
           },
         ]
       }
+      user_workout_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          location_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          location_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          location_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_workout_locations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "workout_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_workout_logs: {
         Row: {
           activity_id: string | null
@@ -9312,6 +9347,7 @@ export type Database = {
           image_url: string
           is_shared_to_community: boolean
           likes_count: number
+          location_name: string | null
           user_id: string
           workout_log_id: string | null
         }
@@ -9324,6 +9360,7 @@ export type Database = {
           image_url: string
           is_shared_to_community?: boolean
           likes_count?: number
+          location_name?: string | null
           user_id: string
           workout_log_id?: string | null
         }
@@ -9336,6 +9373,7 @@ export type Database = {
           image_url?: string
           is_shared_to_community?: boolean
           likes_count?: number
+          location_name?: string | null
           user_id?: string
           workout_log_id?: string | null
         }

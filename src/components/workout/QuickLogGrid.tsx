@@ -21,6 +21,7 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
   const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
   const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<{ id: string; name: string } | null>(null);
   
   // Image generation hook
   const { selectedAvatar, generateActivityImage, isGenerating } = useWorkoutImageGeneration(userId);
@@ -123,7 +124,9 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
       queryClient.invalidateQueries({ queryKey: ["workout-logs-today"] });
       queryClient.invalidateQueries({ queryKey: ["workout-logs-week"] });
       queryClient.invalidateQueries({ queryKey: ["workout-streak-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-image-today"] });
       toast.success("Activity logged! 🎉");
+      setSelectedActivity(null);
       onLog?.();
       
       // Generate AI image if user has an avatar selected
@@ -134,8 +137,24 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
     },
     onError: (error) => {
       showErrorToastWithCopy("Failed to log activity", error);
+      setSelectedActivity(null);
     },
   });
+
+  const handleActivityClick = (activity: { id: string; name: string }) => {
+    if (selectedActivity?.id === activity.id) {
+      // Deselect if clicking the same activity
+      setSelectedActivity(null);
+    } else {
+      setSelectedActivity(activity);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (selectedActivity) {
+      logActivityMutation.mutate(selectedActivity);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -170,6 +189,7 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
           <div className="grid grid-cols-4 gap-2">
             {activities.map((activity) => {
               const isLoggedToday = todayLogs.includes(activity.id);
+              const isSelected = selectedActivity?.id === activity.id;
               return (
                 <Button
                   key={activity.id}
@@ -178,9 +198,11 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
                     "h-auto flex-col gap-1 py-3 px-2 relative transition-all",
                     isLoggedToday
                       ? "bg-green-100 dark:bg-green-900/30 ring-2 ring-green-500"
+                      : isSelected
+                      ? "bg-primary/20 ring-2 ring-primary"
                       : "hover:bg-primary/10"
                   )}
-                  onClick={() => !isLoggedToday && logActivityMutation.mutate({ id: activity.id, name: activity.name })}
+                  onClick={() => !isLoggedToday && handleActivityClick({ id: activity.id, name: activity.name })}
                   disabled={isLoggedToday || logActivityMutation.isPending}
                 >
                   <span className="text-3xl">{activity.icon}</span>
@@ -190,12 +212,41 @@ export const QuickLogGrid = ({ userId, onLog }: QuickLogGridProps) => {
                   {isLoggedToday && (
                     <CheckCircle2 className="absolute top-1 right-1 h-4 w-4 text-green-500" />
                   )}
+                  {isSelected && !isLoggedToday && (
+                    <div className="absolute top-1 right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+                    </div>
+                  )}
                 </Button>
               );
             })}
           </div>
+          
+          {/* Submit Button */}
+          {selectedActivity && (
+            <Button
+              className="w-full mt-4 gap-2"
+              onClick={handleSubmit}
+              disabled={logActivityMutation.isPending}
+            >
+              {logActivityMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Logging...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  Log {selectedActivity.name}
+                </>
+              )}
+            </Button>
+          )}
+          
           <p className="text-xs text-muted-foreground text-center mt-3">
-            Tap to log • Once per day per activity
+            {selectedActivity 
+              ? "Tap again to deselect, or press the button above to log"
+              : "Tap to select • Once per day per activity"}
           </p>
         </CardContent>
       </Card>
