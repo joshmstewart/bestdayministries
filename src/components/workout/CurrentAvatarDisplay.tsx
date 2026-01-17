@@ -123,9 +123,9 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
       <Card className={cn("overflow-hidden", className)}>
         <CardContent className="p-0 relative">
           <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted/60 flex flex-col items-center justify-center p-6">
-            {/* Large dashed circle placeholder with user icon inside */}
-            <div className="w-[55%] aspect-square rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center mb-4">
-              <User className="w-1/2 h-1/2 text-muted-foreground/25" strokeWidth={1} />
+            {/* Large dashed oval placeholder with user icon inside */}
+            <div className="w-[60%] h-[50%] rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center mb-4">
+              <User className="w-1/3 h-1/2 text-muted-foreground/25" strokeWidth={1} />
             </div>
             
             {/* CTA section */}
