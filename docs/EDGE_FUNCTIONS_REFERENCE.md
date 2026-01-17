@@ -79,6 +79,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 ### Utility Functions
 - **`get-sentry-dsn`** - [Public] Returns Sentry DSN for client-side error tracking
 - **`get-google-places-key`** - [Public] Returns Google Places API key for location autocomplete
+- **`generate-workout-image`** - [Auth Required] Generates workout **activity** and **celebration** images from the user's selected fitness avatar and an enabled location; saves to `workout_generated_images` + `workout-images` bucket
 
 ### Recipe Pal (AI Cooking Game)
 - **`generate-recipe-suggestions`** - [Auth Required] Generates 3-5 recipe ideas from user's ingredient/tool inventory via Lovable AI

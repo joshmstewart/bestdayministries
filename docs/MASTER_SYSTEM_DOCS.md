@@ -1335,6 +1335,13 @@ FILES:src/pages/RecipeGallery.tsx|src/pages/RecipeMaker.tsx|src/components/recip
 EDGE:supabase/functions/generate-recipe-*|supabase/functions/backfill-recipe-tools
 DOC:RECIPE_PAL_SYSTEM.md
 
+## WORKOUT_TRACKER|/workout-tracker|fitness
+OVERVIEW:Fitness Center workout tracker with AI avatar images for logged activities + weekly goal celebrations.
+DB:user_workout_logs|workout_activities|fitness_avatars|user_fitness_avatars|workout_generated_images|workout_locations|workout_location_packs|user_workout_location_packs|user_workout_goals
+EDGE:generate-workout-image[auth]→image-to-image using avatar.image_url OR avatar.preview_image_url→stores in workout_generated_images + workout-images bucket
+UI:CurrentAvatarDisplay(prefers activity image over celebration for "Today")|QuickLogGrid(log→generate activity image→optional celebration)|WorkoutImageGallery
+DOC:WORKOUT_IMAGE_SYSTEM.md
+
 ## BEAT_PAD|/games/beat-pad|game
 DB:beat_pad_sounds|beat_pad_creations|beat_pad_likes
 PATTERN:beat_pad_creations.pattern→keys=beat_pad_sounds.id(UUID) [preferred]; legacy keys=beat_pad_sounds.sound_type("kick"/"snare"/"bass") supported in loader
