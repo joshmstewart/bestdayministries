@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Image as ImageIcon, Trophy, Dumbbell, Calendar, Share2, EyeOff } from "lucide-react";
+import { Loader2, Image as ImageIcon, Trophy, Dumbbell, Calendar, Share2, Lock } from "lucide-react";
 import { format, isToday, isYesterday, differenceInDays } from "date-fns";
 import { WorkoutImageDetailDialog } from "./WorkoutImageDetailDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -184,7 +184,7 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
                     )}
                   </div>
 
-                  {/* Share/Unshare button */}
+                  {/* Share/Unshare button - Share2 (green) = shared, Lock button to make private */}
                   <div className="absolute top-2 right-2">
                     {image.is_shared_to_community ? (
                       <Button
@@ -195,9 +195,9 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
                           e.stopPropagation();
                           unshareMutation.mutate(image.id);
                         }}
-                        title="Remove from community"
+                        title="Make private"
                       >
-                        <EyeOff className="h-3.5 w-3.5" />
+                        <Lock className="h-3.5 w-3.5" />
                       </Button>
                     ) : (
                       <Button
