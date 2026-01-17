@@ -55,14 +55,16 @@ serve(async (req) => {
 
     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
 
-    // Get recently used words to avoid duplicates (last 90 days)
-    const { data: recentWords } = await supabase
+    // Get ALL previously used words to avoid any repeats until pool is exhausted
+    const { data: allUsedWords } = await supabase
       .from("wordle_daily_words")
       .select("word")
-      .gte("word_date", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
       .order("word_date", { ascending: false });
 
-    const usedWordsList = recentWords?.map(w => w.word.toUpperCase()).join(", ") || "";
+    const usedWordsList = allUsedWords?.map(w => w.word.toUpperCase()).join(", ") || "";
+    const usedWordsCount = allUsedWords?.length || 0;
+    
+    console.log(`Total words used so far: ${usedWordsCount}`);
 
     // Generate a word using AI
     if (!lovableApiKey) {
