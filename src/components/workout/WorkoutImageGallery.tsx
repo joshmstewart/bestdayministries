@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { 
-  Loader2, Image as ImageIcon, Heart, Share2, Users, 
+  Loader2, Heart, Share2, Users, 
   Trophy, Dumbbell, Trash2, EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { WorkoutImageDetailDialog } from "./WorkoutImageDetailDialog";
 
 interface WorkoutImageGalleryProps {
   userId: string;
@@ -34,6 +35,8 @@ interface WorkoutImage {
   image_url: string;
   image_type: string;
   activity_name: string | null;
+  location_name: string | null;
+  location_pack_name: string | null;
   is_shared_to_community: boolean;
   likes_count: number;
   created_at: string;
@@ -96,6 +99,26 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
       if (error) throw error;
       return data as WorkoutImage[];
     },
+  });
+
+  // Fetch usernames for community images
+  const userIds = [...new Set(communityImages.map(img => img.user_id))];
+  const { data: userProfiles = {} } = useQuery({
+    queryKey: ["workout-image-usernames", userIds],
+    queryFn: async () => {
+      if (userIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+
+      if (error) throw error;
+      return (data || []).reduce((acc, profile) => {
+        acc[profile.id] = profile.display_name;
+        return acc;
+      }, {} as Record<string, string | null>);
+    },
+    enabled: userIds.length > 0,
   });
 
   // Check if user has liked images
@@ -363,34 +386,12 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
       </Card>
 
       {/* Image Detail Dialog */}
-      <AlertDialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {selectedImage?.image_type === "celebration" 
-                ? "🏆 Goal Celebration!" 
-                : selectedImage?.activity_name}
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                {selectedImage && (
-                  <img
-                    src={selectedImage.image_url}
-                    alt={selectedImage.activity_name || "Workout"}
-                    className="w-full rounded-lg"
-                  />
-                )}
-                <p className="text-xs text-muted-foreground text-center">
-                  Created {selectedImage && format(new Date(selectedImage.created_at), "MMMM d, yyyy 'at' h:mm a")}
-                </p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <WorkoutImageDetailDialog
+        open={!!selectedImage}
+        onOpenChange={(open) => !open && setSelectedImage(null)}
+        image={selectedImage}
+        userName={selectedImage ? (userProfiles[selectedImage.user_id] || undefined) : undefined}
+      />
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteImage} onOpenChange={() => setDeleteImage(null)}>
