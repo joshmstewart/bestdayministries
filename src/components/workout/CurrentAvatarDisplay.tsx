@@ -172,11 +172,11 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
           </p>
         </div>
       )}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 rounded-b-lg">
-        <p className="text-white text-sm font-medium flex items-center gap-1">
-          <ImageIcon className="h-3.5 w-3.5" />
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2">
+        <span className="inline-flex items-center gap-1.5 bg-primary/90 text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-full shadow-md">
+          <ImageIcon className="h-3 w-3" />
           Ready for today's workout!
-        </p>
+        </span>
       </div>
     </div>
   );
