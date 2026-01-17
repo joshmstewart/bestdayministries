@@ -210,7 +210,7 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
                         }}
                         title="Share to community"
                       >
-                        <Share2 className="h-3.5 w-3.5" />
+                        <Share2 className="h-3.5 w-3.5 text-green-500" />
                       </Button>
                     )}
                   </div>
