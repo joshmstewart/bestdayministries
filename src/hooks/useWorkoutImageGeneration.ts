@@ -115,6 +115,7 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
     },
     onSuccess: (image) => {
       queryClient.invalidateQueries({ queryKey: ["workout-images"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-image-today"] });
       queryClient.invalidateQueries({ queryKey: ["celebration-generated-this-week"] });
       
       if (image.image_type === "celebration") {
