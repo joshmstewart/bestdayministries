@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { WorkoutImageDetailDialog } from "./WorkoutImageDetailDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CurrentAvatarDisplayProps {
   userId: string;
@@ -18,6 +19,7 @@ interface CurrentAvatarDisplayProps {
 
 export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, onSelectAvatarClick }: CurrentAvatarDisplayProps) => {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   const today = format(new Date(), "yyyy-MM-dd");
   const [showDetailDialog, setShowDetailDialog] = useState(false);
 
@@ -186,25 +188,27 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
               )}
             </div>
             <div className="absolute top-2 right-2 flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetMutation.mutate();
-                }}
-                disabled={resetMutation.isPending}
-                className="bg-red-500/90 hover:bg-red-600 text-white text-xs px-2 py-1 h-auto"
-              >
-                {resetMutation.isPending ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>
-                    <RotateCcw className="h-3 w-3 mr-1" />
-                    Reset
-                  </>
-                )}
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetMutation.mutate();
+                  }}
+                  disabled={resetMutation.isPending}
+                  className="bg-red-500/90 hover:bg-red-600 text-white text-xs px-2 py-1 h-auto"
+                >
+                  {resetMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <>
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      Reset
+                    </>
+                  )}
+                </Button>
+              )}
               <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                 Today ✨
               </span>
