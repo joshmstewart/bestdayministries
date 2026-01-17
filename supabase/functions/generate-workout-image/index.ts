@@ -251,7 +251,7 @@ serve(async (req) => {
         selectedLocationName = location;
       }
 
-      prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character identical (same gender, face, hair, outfit, colors, and art style). Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
+      prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character identical (same gender, face, hair, and art style) but CHANGE their outfit to be appropriate athletic wear for this specific activity (e.g., swimsuit for swimming, yoga clothes for yoga, running gear for running, etc.). Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
     } else if (imageType === "celebration") {
       // For celebration, also use real location if in admin test
       if (isAdminTest || !location) {
@@ -273,7 +273,7 @@ serve(async (req) => {
         selectedLocationName = location;
       }
 
-      prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character identical (same gender, face, hair, outfit, colors, and art style). Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
+      prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character identical (same gender, face, hair, and art style) in athletic/workout attire. Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
     } else {
       throw new Error("Invalid imageType");
     }
