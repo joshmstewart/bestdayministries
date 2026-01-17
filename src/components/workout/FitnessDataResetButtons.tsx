@@ -25,6 +25,11 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
   const [resetTodayOpen, setResetTodayOpen] = useState(false);
   const [resetAllOpen, setResetAllOpen] = useState(false);
 
+  // IMPORTANT: the generated DB union types can trigger "Type instantiation is excessively deep"
+  // in some builds; we intentionally loosen typing for these admin tools.
+  const db = supabase as any;
+  const storage = supabase.storage as any;
+
   // Reset today's fitness data
   const resetTodayMutation = useMutation({
     mutationFn: async (): Promise<void> => {
@@ -33,7 +38,7 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
       const endOfTodayISO = endOfDay(today).toISOString();
 
       // Delete today's workout logs
-      await supabase
+      await db
         .from("user_workout_logs")
         .delete()
         .eq("user_id", userId)
@@ -41,7 +46,7 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
         .lte("completed_at", endOfTodayISO);
 
       // Delete today's generated images
-      const { data: todayImages } = await supabase
+      const { data: todayImages } = await db
         .from("workout_generated_images")
         .select("id, image_url")
         .eq("user_id", userId)
@@ -51,13 +56,14 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
       if (todayImages && todayImages.length > 0) {
         // Delete from storage
         for (const img of todayImages) {
-          const path = img.image_url?.split("/workout-images/")[1];
+          const path = typeof img.image_url === "string" ? img.image_url.split("/workout-images/")[1] : undefined;
           if (path) {
-            await supabase.storage.from("workout-images").remove([path]);
+            await storage.from("workout-images").remove([path]);
           }
         }
+
         // Delete from database
-        await supabase
+        await db
           .from("workout_generated_images")
           .delete()
           .eq("user_id", userId)
@@ -66,7 +72,6 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
       }
     },
     onSuccess: () => {
-      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["workout-images"] });
       queryClient.invalidateQueries({ queryKey: ["workout-weekly-progress"] });
       queryClient.invalidateQueries({ queryKey: ["celebration-generated-this-week"] });
@@ -88,50 +93,32 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
   const resetAllMutation = useMutation({
     mutationFn: async (): Promise<void> => {
       // Delete all workout logs
-      await supabase
-        .from("user_workout_logs")
-        .delete()
-        .eq("user_id", userId);
+      await db.from("user_workout_logs").delete().eq("user_id", userId);
 
       // Delete all generated images
-      const { data: allImages } = await supabase
+      const { data: allImages } = await db
         .from("workout_generated_images")
         .select("id, image_url")
         .eq("user_id", userId);
 
       if (allImages && allImages.length > 0) {
-        // Delete from storage
         for (const img of allImages) {
-          const path = img.image_url?.split("/workout-images/")[1];
+          const path = typeof img.image_url === "string" ? img.image_url.split("/workout-images/")[1] : undefined;
           if (path) {
-            await supabase.storage.from("workout-images").remove([path]);
+            await storage.from("workout-images").remove([path]);
           }
         }
-        // Delete from database
-        await supabase
-          .from("workout_generated_images")
-          .delete()
-          .eq("user_id", userId);
+
+        await db.from("workout_generated_images").delete().eq("user_id", userId);
       }
 
       // Delete avatar ownership
-      await supabase
-        .from("user_fitness_avatars")
-        .delete()
-        .eq("user_id", userId);
+      await db.from("user_fitness_avatars").delete().eq("user_id", userId);
 
-      // Delete location pack ownership - use correct table name
-      const { error: locationError } = await supabase
-        .from("user_workout_location_packs")
-        .delete()
-        .eq("user_id", userId);
-      
-      if (locationError) {
-        console.warn("Location packs deletion:", locationError.message);
-      }
+      // Delete location pack ownership
+      await db.from("user_workout_location_packs").delete().eq("user_id", userId);
     },
     onSuccess: () => {
-      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["workout-images"] });
       queryClient.invalidateQueries({ queryKey: ["workout-weekly-progress"] });
       queryClient.invalidateQueries({ queryKey: ["celebration-generated-this-week"] });
@@ -175,22 +162,17 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
         </Button>
       </div>
 
-      {/* Reset Today Confirmation */}
       <AlertDialog open={resetTodayOpen} onOpenChange={setResetTodayOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Reset Today's Data?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete today's ({format(new Date(), "MMMM d, yyyy")}) workout logs 
-              and generated images. This cannot be undone.
+              This will delete today's ({format(new Date(), "MMMM d, yyyy")}) workout logs and generated images. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => resetTodayMutation.mutate()}
-              disabled={resetTodayMutation.isPending}
-            >
+            <AlertDialogAction onClick={() => resetTodayMutation.mutate()} disabled={resetTodayMutation.isPending}>
               {resetTodayMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
@@ -202,7 +184,6 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reset All Confirmation */}
       <AlertDialog open={resetAllOpen} onOpenChange={setResetAllOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
