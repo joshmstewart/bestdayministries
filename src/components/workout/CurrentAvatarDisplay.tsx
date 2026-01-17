@@ -154,34 +154,30 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
   const avatarName = hasExplicitSelection?.name || "Your fitness buddy";
 
   return (
-    <Card className={cn("overflow-hidden", className)}>
-      <CardContent className="p-0 relative">
-        <div className="aspect-square bg-white flex items-center justify-center">
-          {avatarImageUrl ? (
-            <img
-              src={avatarImageUrl}
-              alt={avatarName}
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <div className="text-center p-4">
-              <Sparkles className="h-12 w-12 text-primary mx-auto mb-2 opacity-50" />
-              <p className="text-sm font-medium text-muted-foreground">
-                {hasExplicitSelection?.name || "Your Avatar"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Log an activity to generate your image!
-              </p>
-            </div>
-          )}
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-          <p className="text-white text-sm font-medium flex items-center gap-1">
-            <ImageIcon className="h-3.5 w-3.5" />
-            Ready for today's workout!
+    <div className={cn("relative aspect-square", className)}>
+      {avatarImageUrl ? (
+        <img
+          src={avatarImageUrl}
+          alt={avatarName}
+          className="w-full h-full object-contain"
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
+          <Sparkles className="h-12 w-12 text-primary mx-auto mb-2 opacity-50" />
+          <p className="text-sm font-medium text-muted-foreground">
+            {hasExplicitSelection?.name || "Your Avatar"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Log an activity to generate your image!
           </p>
         </div>
-      </CardContent>
-    </Card>
+      )}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3 rounded-b-lg">
+        <p className="text-white text-sm font-medium flex items-center gap-1">
+          <ImageIcon className="h-3.5 w-3.5" />
+          Ready for today's workout!
+        </p>
+      </div>
+    </div>
   );
 };
