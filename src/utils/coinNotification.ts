@@ -3,12 +3,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import defaultCoinImage from "@/assets/joycoin.png";
 
-// Cache the custom coin URL
-let cachedCoinUrl: string | null = null;
-
+// Always fetch fresh from database to ensure we have latest coin image
 const getCoinUrl = async (): Promise<string> => {
-  if (cachedCoinUrl !== null) return cachedCoinUrl;
-  
   try {
     const { data } = await supabase
       .from("app_settings")
@@ -17,17 +13,11 @@ const getCoinUrl = async (): Promise<string> => {
       .maybeSingle();
     
     const settingValue = data?.setting_value as { url?: string } | null;
-    cachedCoinUrl = settingValue?.url || defaultCoinImage;
-    return cachedCoinUrl;
+    return settingValue?.url || defaultCoinImage;
   } catch (error) {
     console.error("Failed to load custom coin image:", error);
     return defaultCoinImage;
   }
-};
-
-// Call this when the coin image is updated in admin
-export const invalidateCoinNotificationCache = () => {
-  cachedCoinUrl = null;
 };
 
 /**
