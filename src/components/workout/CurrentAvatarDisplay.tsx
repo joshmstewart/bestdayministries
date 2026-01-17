@@ -122,31 +122,30 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
     return (
       <Card className={cn("overflow-hidden", className)}>
         <CardContent className="p-0 relative">
-          <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted/60 flex items-center justify-center p-6">
+          <div className="aspect-square bg-gradient-to-br from-muted/30 to-muted/60 flex flex-col">
             {/* Large dashed circle placeholder with user icon inside */}
-            <div className="relative w-full h-full flex items-center justify-center">
-              <div className="absolute inset-4 rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="w-full h-full max-w-[70%] max-h-[70%] rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center">
                 <User className="w-1/2 h-1/2 text-muted-foreground/25" strokeWidth={1} />
               </div>
-              
-              {/* Centered content overlay */}
-              <div className="relative z-10 flex flex-col items-center text-center bg-background/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-                <Sparkles className="h-10 w-10 text-primary mb-3" />
-                <p className="text-base font-semibold text-foreground mb-1">
-                  Choose Your Fitness Buddy!
-                </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Pick an avatar to generate workout images
-                </p>
-                <Button 
-                  onClick={onSelectAvatarClick}
-                  className="gap-2"
-                  size="default"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Pick Avatar
-                </Button>
-              </div>
+            </div>
+            
+            {/* Bottom CTA section */}
+            <div className="flex flex-col items-center text-center pb-6 px-4">
+              <p className="text-base font-semibold text-foreground mb-1">
+                Choose Your Fitness Buddy!
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Pick an avatar to generate workout images
+              </p>
+              <Button 
+                onClick={onSelectAvatarClick}
+                className="gap-2"
+                size="default"
+              >
+                <Sparkles className="h-4 w-4" />
+                Pick Avatar
+              </Button>
             </div>
           </div>
         </CardContent>
