@@ -114,7 +114,7 @@ export const FitnessDataResetButtons = ({ userId }: FitnessDataResetButtonsProps
           .eq("user_id", userId);
       }
 
-      // Delete avatar ownership (but keep free ones)
+      // Delete avatar ownership
       await supabase
         .from("user_fitness_avatars")
         .delete()
