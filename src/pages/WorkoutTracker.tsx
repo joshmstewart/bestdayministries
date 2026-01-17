@@ -13,6 +13,7 @@ import { WorkoutImageGallery } from "@/components/workout/WorkoutImageGallery";
 import { CurrentAvatarDisplay } from "@/components/workout/CurrentAvatarDisplay";
 import { LocationPackPicker } from "@/components/workout/LocationPackPicker";
 import { AvatarNewsFeed } from "@/components/workout/AvatarNewsFeed";
+import { FitnessDataResetButtons } from "@/components/workout/FitnessDataResetButtons";
 import { Dumbbell, Video, Sparkles, Image as ImageIcon, MapPin, Package } from "lucide-react";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 
 const WorkoutTracker = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("workout");
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [locationsDialogOpen, setLocationsDialogOpen] = useState(false);
@@ -48,6 +49,12 @@ const WorkoutTracker = () => {
             <p className="text-sm text-muted-foreground">
               Stay active and earn coins!
             </p>
+            {/* Admin Reset Buttons */}
+            {isAdmin && user && (
+              <div className="mt-3 flex justify-center">
+                <FitnessDataResetButtons userId={user.id} />
+              </div>
+            )}
           </div>
 
           {user ? (
