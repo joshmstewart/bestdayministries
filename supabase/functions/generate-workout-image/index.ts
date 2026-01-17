@@ -98,6 +98,8 @@ serve(async (req) => {
     let selectedLocation: string | null = null;
     let selectedWorkout: string | null = null;
     let selectedLocationName: string | null = null;
+    let selectedLocationPackName: string | null = null;
+    let selectedLocationId: string | null = null;
     let selectedWorkoutName: string | null = null;
     
     // Check if avatar has an image to use for image-to-image
@@ -161,9 +163,10 @@ serve(async (req) => {
         }
 
         // Query locations from enabled packs
+        // Query locations from enabled packs (include pack name for display)
         let locationsQuery = supabase
           .from("workout_locations")
-          .select("id, name, prompt_text, pack_id")
+          .select("id, name, prompt_text, pack_id, workout_location_packs(name)")
           .eq("is_active", true);
 
         if (enabledPackIds.size > 0) {
@@ -182,11 +185,15 @@ serve(async (req) => {
         const randomLocation = locations[Math.floor(Math.random() * locations.length)];
         selectedLocation = randomLocation.prompt_text;
         selectedLocationName = randomLocation.name;
+        selectedLocationId = randomLocation.id;
+        selectedLocationPackName = (randomLocation as any).workout_location_packs?.name || null;
         console.log(
           "Selected random location from pack:",
           selectedLocationName,
           "-",
-          selectedLocation
+          selectedLocation,
+          "Pack:",
+          selectedLocationPackName
         );
       } else {
         selectedLocation = location;
@@ -334,6 +341,8 @@ serve(async (req) => {
         image_type: imageType,
         activity_name: activityName || null,
         location_name: selectedLocationName || null,
+        location_id: selectedLocationId || null,
+        location_pack_name: selectedLocationPackName || null,
         is_test: isAdminTest || false,
         is_shared_to_community: autoShareEnabled && !isAdminTest,
       })
