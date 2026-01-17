@@ -228,14 +228,18 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
                 >
                   {/* Avatar Preview */}
                   <div className={cn(
-                    "w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-2",
-                    isOwned ? "bg-gradient-to-br from-primary/20 to-accent" : "bg-muted"
+                    "w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-2 overflow-hidden",
+                    avatar.preview_image_url 
+                      ? "bg-white" 
+                      : isOwned 
+                        ? "bg-gradient-to-br from-primary/20 to-accent" 
+                        : "bg-muted"
                   )}>
                     {avatar.preview_image_url ? (
                       <img 
                         src={avatar.preview_image_url} 
                         alt={avatar.name}
-                        className="w-full h-full rounded-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       // Emoji placeholder based on avatar name
