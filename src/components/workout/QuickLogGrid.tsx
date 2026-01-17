@@ -172,6 +172,38 @@ export const QuickLogGrid = ({ userId, onLog, onGeneratingChange }: QuickLogGrid
     );
   }
 
+  // Show empty state if no favorites selected
+  if (favoriteIds.length === 0) {
+    return (
+      <>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Zap className="h-5 w-5 text-yellow-500" />
+              Quick Log
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center py-6">
+            <div className="text-4xl mb-3">🏃‍♂️</div>
+            <p className="text-muted-foreground mb-4">
+              Choose your favorite activities to get started!
+            </p>
+            <Button onClick={() => setShowFavoritesDialog(true)} className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Select Favorites
+            </Button>
+          </CardContent>
+        </Card>
+
+        <FavoriteActivitiesDialog
+          open={showFavoritesDialog}
+          onOpenChange={setShowFavoritesDialog}
+          userId={userId}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <Card>
