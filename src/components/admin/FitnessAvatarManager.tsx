@@ -14,7 +14,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell, Download, Upload, Eraser } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import ImageLightbox from "@/components/ImageLightbox";
@@ -71,10 +71,106 @@ export function FitnessAvatarManager() {
     location: string;
   } | null>(null);
   const [workoutTestDialogOpen, setWorkoutTestDialogOpen] = useState(false);
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const [removingBgFor, setRemovingBgFor] = useState<string | null>(null);
 
   const handleImageClick = (imageUrl: string) => {
     setLightboxImage(imageUrl);
     setLightboxOpen(true);
+  };
+
+  const handleDownloadImage = async (avatar: any) => {
+    if (!avatar.preview_image_url) {
+      toast.error("No image to download");
+      return;
+    }
+    
+    try {
+      const response = await fetch(avatar.preview_image_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${avatar.name.toLowerCase().replace(/\s+/g, "-")}-avatar.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Image downloaded!");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download image");
+    }
+  };
+
+  const handleUploadImage = async (avatarId: string, file: File) => {
+    setUploadingFor(avatarId);
+    
+    try {
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "png";
+      const fileName = `fitness-avatar-${avatarId}-${Date.now()}.${fileExt}`;
+      const filePath = `fitness-avatars/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(filePath);
+      
+      const { error: updateError } = await supabase
+        .from("fitness_avatars")
+        .update({ preview_image_url: urlData.publicUrl })
+        .eq("id", avatarId);
+      
+      if (updateError) throw updateError;
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-fitness-avatars"] });
+      toast.success("Image uploaded!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      showErrorToastWithCopy("Failed to upload image", error);
+    } finally {
+      setUploadingFor(null);
+    }
+  };
+
+  const handleRemoveBackground = async (avatar: any) => {
+    if (!avatar.preview_image_url) {
+      toast.error("No image to process");
+      return;
+    }
+    
+    setRemovingBgFor(avatar.id);
+    toast.info("🎨 Removing background...", { description: "This may take a moment." });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("remove-customer-background", {
+        body: { imageUrl: avatar.preview_image_url, customerId: avatar.id },
+      });
+      
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      
+      // Update the avatar with the new image
+      const { error: updateError } = await supabase
+        .from("fitness_avatars")
+        .update({ preview_image_url: data.imageUrl })
+        .eq("id", avatar.id);
+      
+      if (updateError) throw updateError;
+      
+      queryClient.invalidateQueries({ queryKey: ["admin-fitness-avatars"] });
+      toast.success("Background removed!", { description: "Image updated with white background." });
+    } catch (error) {
+      console.error("Background removal error:", error);
+      showErrorToastWithCopy("Failed to remove background", error);
+    } finally {
+      setRemovingBgFor(null);
+    }
   };
 
   const { data: avatars, isLoading } = useQuery({
@@ -544,7 +640,59 @@ export function FitnessAvatarManager() {
                   </Button>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1 flex-wrap">
+                    {/* Download button */}
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={() => handleDownloadImage(avatar)}
+                      disabled={!avatar.preview_image_url}
+                      title="Download image"
+                    >
+                      <Download className="h-4 w-4 text-blue-600" />
+                    </Button>
+                    
+                    {/* Upload button */}
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={() => document.getElementById(`upload-${avatar.id}`)?.click()}
+                      disabled={uploadingFor === avatar.id}
+                      title="Upload new image"
+                    >
+                      {uploadingFor === avatar.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 text-green-600" />
+                      )}
+                    </Button>
+                    <input
+                      id={`upload-${avatar.id}`}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUploadImage(avatar.id, file);
+                        e.target.value = "";
+                      }}
+                    />
+                    
+                    {/* Remove background button */}
+                    <Button 
+                      size="icon" 
+                      variant="outline" 
+                      onClick={() => handleRemoveBackground(avatar)}
+                      disabled={removingBgFor === avatar.id || !avatar.preview_image_url}
+                      title="Remove background (white bg)"
+                    >
+                      {removingBgFor === avatar.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eraser className="h-4 w-4 text-pink-600" />
+                      )}
+                    </Button>
+                    
                     <Button 
                       size="icon" 
                       variant="outline" 
