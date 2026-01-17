@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Image as ImageIcon, Trophy, Dumbbell, Calendar } from "lucide-react";
 import { format, isToday, isYesterday, differenceInDays } from "date-fns";
-import { cn } from "@/lib/utils";
+import { WorkoutImageDetailDialog } from "./WorkoutImageDetailDialog";
 
 interface AvatarNewsFeedProps {
   userId: string;
   includeTestImages?: boolean;
+  userName?: string;
 }
 
 interface WorkoutImage {
@@ -18,13 +20,15 @@ interface WorkoutImage {
   image_type: string;
   activity_name: string | null;
   location_name: string | null;
+  location_pack_name?: string | null;
   is_shared_to_community: boolean;
   likes_count: number;
   is_test: boolean;
   created_at: string;
 }
 
-export const AvatarNewsFeed = ({ userId, includeTestImages = false }: AvatarNewsFeedProps) => {
+export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: AvatarNewsFeedProps) => {
+  const [selectedImage, setSelectedImage] = useState<WorkoutImage | null>(null);
   // Fetch user's images grouped by date (exclude test images unless specified)
   const { data: images = [], isLoading } = useQuery({
     queryKey: ["workout-images-feed", userId, includeTestImages],
@@ -113,7 +117,11 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false }: AvatarNews
           {/* Images for this day */}
           <div className="grid grid-cols-2 gap-3">
             {dayImages.map((image) => (
-              <Card key={image.id} className="overflow-hidden">
+              <Card 
+                key={image.id} 
+                className="overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                onClick={() => setSelectedImage(image)}
+              >
                 <div className="relative aspect-square">
                   <img
                     src={image.image_url}
@@ -156,6 +164,13 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false }: AvatarNews
           </div>
         </div>
       ))}
+
+      <WorkoutImageDetailDialog
+        open={!!selectedImage}
+        onOpenChange={(open) => !open && setSelectedImage(null)}
+        image={selectedImage}
+        userName={userName}
+      />
     </div>
   );
 };
