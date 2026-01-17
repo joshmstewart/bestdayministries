@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { 
   Loader2, Heart, Share2, Users, 
-  Trophy, Dumbbell, Trash2, EyeOff
+  Trophy, Dumbbell, Trash2, Lock
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -301,9 +301,9 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
                   e.stopPropagation();
                   unshareMutation.mutate(image.id);
                 }}
-                title="Remove from community"
+                title="Make private"
               >
-                <EyeOff className="h-3.5 w-3.5" />
+                <Lock className="h-3.5 w-3.5" />
               </Button>
             )}
             {isOwn && (
