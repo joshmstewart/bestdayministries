@@ -117,12 +117,33 @@ serve(async (req) => {
       }
 
       // For admin test or when not provided, fetch random location from database
+      // Use user's enabled locations if available
       if (isAdminTest || !location) {
-        // Fetch a random active location from the database
-        const { data: locations, error: locationsError } = await supabase
+        // First, get user's enabled locations
+        const { data: userLocationPrefs } = await supabase
+          .from("user_workout_locations")
+          .select("location_id, is_enabled")
+          .eq("user_id", user.id);
+        
+        // Build the query for locations
+        let locationsQuery = supabase
           .from("workout_locations")
           .select("id, name, prompt_text, pack_id")
           .eq("is_active", true);
+        
+        // If user has location preferences, filter to only enabled ones
+        if (userLocationPrefs && userLocationPrefs.length > 0) {
+          const enabledLocationIds = userLocationPrefs
+            .filter(pref => pref.is_enabled)
+            .map(pref => pref.location_id);
+          
+          // If user has explicitly disabled all locations, use all active ones
+          if (enabledLocationIds.length > 0) {
+            locationsQuery = locationsQuery.in("id", enabledLocationIds);
+          }
+        }
+        
+        const { data: locations, error: locationsError } = await locationsQuery;
         
         if (locationsError || !locations || locations.length === 0) {
           console.error("No locations found:", locationsError);
@@ -277,6 +298,7 @@ serve(async (req) => {
         image_url: imageUrl,
         image_type: imageType,
         activity_name: activityName || null,
+        location_name: selectedLocationName || null,
       })
       .select()
       .single();

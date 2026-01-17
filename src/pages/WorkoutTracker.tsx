@@ -10,7 +10,10 @@ import { QuickLogGrid } from "@/components/workout/QuickLogGrid";
 import { FeaturedVideo } from "@/components/workout/FeaturedVideo";
 import { FitnessAvatarPicker } from "@/components/workout/FitnessAvatarPicker";
 import { WorkoutImageGallery } from "@/components/workout/WorkoutImageGallery";
-import { Dumbbell, Video, Sparkles, Image as ImageIcon } from "lucide-react";
+import { CurrentAvatarDisplay } from "@/components/workout/CurrentAvatarDisplay";
+import { LocationPicker } from "@/components/workout/LocationPicker";
+import { AvatarNewsFeed } from "@/components/workout/AvatarNewsFeed";
+import { Dumbbell, Video, Sparkles, Image as ImageIcon, MapPin } from "lucide-react";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -56,6 +59,9 @@ const WorkoutTracker = () => {
               </TabsList>
 
               <TabsContent value="workout" className="space-y-4 mt-0">
+                {/* Current Avatar Display - Shows today's image or default */}
+                <CurrentAvatarDisplay userId={user.id} />
+
                 {/* Streak & Goal Row */}
                 <div className="grid gap-4 grid-cols-2">
                   <StreakDisplay userId={user.id} />
@@ -75,7 +81,7 @@ const WorkoutTracker = () => {
                   Browse Workout Videos
                 </Button>
 
-                {/* Quick Log Grid */}
+                {/* Quick Log Grid - now with submit button */}
                 <QuickLogGrid userId={user.id} />
 
                 {/* Featured Video Section */}
@@ -84,11 +90,19 @@ const WorkoutTracker = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="avatar" className="mt-0">
+              <TabsContent value="avatar" className="space-y-4 mt-0">
+                {/* Avatar Picker */}
                 <FitnessAvatarPicker userId={user.id} />
-                <p className="text-xs text-muted-foreground text-center mt-4">
-                  Select an avatar to generate personalized workout images when you log activities!
+                
+                {/* Location Picker */}
+                <LocationPicker userId={user.id} />
+                
+                <p className="text-xs text-muted-foreground text-center">
+                  Select an avatar and enable locations to customize your workout images!
                 </p>
+
+                {/* Avatar News Feed - Previous images grouped by day */}
+                <AvatarNewsFeed userId={user.id} />
               </TabsContent>
 
               <TabsContent value="gallery" className="mt-0">
