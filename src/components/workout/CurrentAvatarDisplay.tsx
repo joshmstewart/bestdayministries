@@ -45,7 +45,7 @@ export const CurrentAvatarDisplay = ({ userId, className }: CurrentAvatarDisplay
     enabled: !!userId,
   });
 
-  // Get today's most recent generated image for this user (must be their own image)
+  // Get today's most recent generated image for this user (must be their own REAL image, not test)
   const { data: todayImage, isLoading: loadingImage } = useQuery({
     queryKey: ["workout-image-today", userId, today],
     queryFn: async () => {
@@ -58,6 +58,7 @@ export const CurrentAvatarDisplay = ({ userId, className }: CurrentAvatarDisplay
         .from("workout_generated_images")
         .select("*")
         .eq("user_id", userId)
+        .eq("is_test", false) // Exclude admin test images
         .gte("created_at", startOfDay.toISOString())
         .lte("created_at", endOfDay.toISOString())
         .order("created_at", { ascending: false })
