@@ -42,12 +42,22 @@ serve(async (req) => {
       throw new Error("avatarId and imageType are required");
     }
 
-    // Get the avatar details
-    const { data: avatar, error: avatarError } = await supabase
-      .from("fitness_avatars")
-      .select("*")
-      .eq("id", avatarId)
-      .single();
+    // Get the avatar details and user's auto-share preference in parallel
+    const [avatarResult, profileResult] = await Promise.all([
+      supabase
+        .from("fitness_avatars")
+        .select("*")
+        .eq("id", avatarId)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("auto_share_workout_images")
+        .eq("id", user.id)
+        .single()
+    ]);
+
+    const { data: avatar, error: avatarError } = avatarResult;
+    const autoShareEnabled = profileResult.data?.auto_share_workout_images ?? true;
 
     if (avatarError || !avatar) {
       throw new Error("Avatar not found");
@@ -304,7 +314,7 @@ serve(async (req) => {
 
     const imageUrl = urlData.publicUrl;
 
-    // Save to database
+    // Save to database (auto-share if user has it enabled and not a test image)
     const { data: savedImage, error: saveError } = await supabase
       .from("workout_generated_images")
       .insert({
@@ -316,6 +326,7 @@ serve(async (req) => {
         activity_name: activityName || null,
         location_name: selectedLocationName || null,
         is_test: isAdminTest || false,
+        is_shared_to_community: autoShareEnabled && !isAdminTest,
       })
       .select()
       .single();

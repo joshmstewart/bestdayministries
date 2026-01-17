@@ -6246,6 +6246,7 @@ export type Database = {
       profiles: {
         Row: {
           audio_notifications_enabled: boolean | null
+          auto_share_workout_images: boolean
           avatar_number: number | null
           avatar_url: string | null
           bio: string | null
@@ -6264,6 +6265,7 @@ export type Database = {
         }
         Insert: {
           audio_notifications_enabled?: boolean | null
+          auto_share_workout_images?: boolean
           avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
@@ -6282,6 +6284,7 @@ export type Database = {
         }
         Update: {
           audio_notifications_enabled?: boolean | null
+          auto_share_workout_images?: boolean
           avatar_number?: number | null
           avatar_url?: string | null
           bio?: string | null
