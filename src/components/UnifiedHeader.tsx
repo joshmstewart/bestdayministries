@@ -713,19 +713,17 @@ export const UnifiedHeader = () => {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  {hasStoreAccess && (
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => navigate("/store")}
-                        className="flex items-center gap-1.5 hover:scale-105 transition-transform"
-                        title="Coin Shop"
-                        aria-label="Coin Shop"
-                      >
-                        <CoinIcon className="drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" size={24} />
-                        <span className="font-semibold text-sm">{coins.toLocaleString()}</span>
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => navigate("/store")}
+                      className="flex items-center gap-1.5 hover:scale-105 transition-transform"
+                      title="Coin Shop"
+                      aria-label="Coin Shop"
+                    >
+                      <CoinIcon className="drop-shadow-[0_2px_8px_rgba(234,179,8,0.3)]" size={24} />
+                      <span className="font-semibold text-sm">{coins.toLocaleString()}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -846,7 +844,7 @@ export const UnifiedHeader = () => {
                     </li>
                   </ul>
                   <div className="flex-1 flex justify-end">
-                    {profile && hasStoreAccess && (
+                    {profile && (
                       <button 
                         onClick={() => navigate("/store")}
                         className="flex items-center gap-2 hover:scale-105 transition-transform"
