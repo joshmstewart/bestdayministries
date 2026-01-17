@@ -14,7 +14,7 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
   const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Get user's selected avatar
+  // Get user's EXPLICITLY selected avatar - no fallback to free avatar
   const { data: selectedAvatar } = useQuery({
     queryKey: ["user-selected-fitness-avatar", userId],
     queryFn: async () => {
@@ -23,22 +23,15 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
         .select("avatar_id, fitness_avatars(*)")
         .eq("user_id", userId!)
         .eq("is_selected", true)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        // Check for free avatars if no selection
-        const { data: freeAvatar } = await supabase
-          .from("fitness_avatars")
-          .select("*")
-          .eq("is_free", true)
-          .order("display_order")
-          .limit(1)
-          .single();
-        
-        return freeAvatar;
+      // Only return avatar if user explicitly selected one
+      if (!error && data?.fitness_avatars) {
+        return data.fitness_avatars;
       }
       
-      return data?.fitness_avatars;
+      // Return null if no explicit selection - DO NOT fall back to free avatar
+      return null;
     },
     enabled: !!userId,
   });
