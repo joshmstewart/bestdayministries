@@ -32,7 +32,14 @@ export const WorkoutImageDetailDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-md p-0 overflow-hidden"
-        onInteractOutside={() => onOpenChange(false)}
+        onInteractOutside={(e) => {
+          e.preventDefault();
+          onOpenChange(false);
+        }}
+        onPointerDownOutside={(e) => {
+          e.preventDefault();
+          onOpenChange(false);
+        }}
         onEscapeKeyDown={() => onOpenChange(false)}
       >
         <DialogHeader className="sr-only">
