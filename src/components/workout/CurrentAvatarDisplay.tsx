@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Sparkles, Image as ImageIcon, User } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -9,16 +10,16 @@ interface CurrentAvatarDisplayProps {
   userId: string;
   className?: string;
   isGenerating?: boolean;
+  onSelectAvatarClick?: () => void;
 }
 
-export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false }: CurrentAvatarDisplayProps) => {
+export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, onSelectAvatarClick }: CurrentAvatarDisplayProps) => {
   const today = format(new Date(), "yyyy-MM-dd");
 
-  // Get user's selected avatar
-  const { data: selectedAvatar, isLoading: loadingAvatar } = useQuery({
-    queryKey: ["user-selected-fitness-avatar", userId],
+  // Get user's EXPLICITLY selected avatar (not default)
+  const { data: hasExplicitSelection, isLoading: loadingAvatar } = useQuery({
+    queryKey: ["user-has-explicit-avatar-selection", userId],
     queryFn: async () => {
-      // First, check if user has explicitly selected an avatar
       const { data, error } = await supabase
         .from("user_fitness_avatars")
         .select("avatar_id, fitness_avatars(*)")
@@ -30,18 +31,7 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false }
         return data.fitness_avatars;
       }
       
-      // If no selection, get the first free avatar as default
-      const { data: freeAvatar, error: freeError } = await supabase
-        .from("fitness_avatars")
-        .select("*")
-        .eq("is_active", true)
-        .eq("is_free", true)
-        .order("display_order", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (freeError) throw freeError;
-      return freeAvatar;
+      return null; // No explicit selection
     },
     enabled: !!userId,
   });
@@ -127,8 +117,43 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false }
     );
   }
 
-  // Otherwise show the default avatar image or preview
-  const avatarImageUrl = selectedAvatar?.image_url || selectedAvatar?.preview_image_url;
+  // If user hasn't explicitly selected an avatar, show the "Pick Avatar" prompt
+  if (!hasExplicitSelection) {
+    return (
+      <Card className={cn("overflow-hidden", className)}>
+        <CardContent className="p-0 relative">
+          <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+            {/* Ghost avatar outline */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <User className="h-32 w-32 text-muted-foreground/30" strokeWidth={1} />
+            </div>
+            
+            {/* Overlay with button */}
+            <div className="relative z-10 flex flex-col items-center text-center p-4">
+              <Sparkles className="h-10 w-10 text-primary mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">
+                Choose Your Fitness Buddy!
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Pick an avatar to generate workout images
+              </p>
+              <Button 
+                onClick={onSelectAvatarClick}
+                className="gap-2"
+                size="sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                Pick Avatar
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show the selected avatar (ready for workout)
+  const avatarImageUrl = hasExplicitSelection?.image_url || hasExplicitSelection?.preview_image_url;
 
   return (
     <Card className={cn("overflow-hidden", className)}>
@@ -137,14 +162,14 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false }
           {avatarImageUrl ? (
             <img
               src={avatarImageUrl}
-              alt={selectedAvatar?.name || "Your fitness buddy"}
+              alt={hasExplicitSelection?.name || "Your fitness buddy"}
               className="w-full h-full object-cover"
             />
           ) : (
             <div className="text-center p-4">
               <Sparkles className="h-12 w-12 text-primary mx-auto mb-2 opacity-50" />
               <p className="text-sm font-medium text-muted-foreground">
-                {selectedAvatar?.name || "Select an Avatar"}
+                {hasExplicitSelection?.name || "Your Avatar"}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Log an activity to generate your image!
@@ -152,14 +177,12 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false }
             </div>
           )}
         </div>
-        {selectedAvatar && !todayImage && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-            <p className="text-white text-sm font-medium flex items-center gap-1">
-              <ImageIcon className="h-3.5 w-3.5" />
-              Ready for today's workout!
-            </p>
-          </div>
-        )}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+          <p className="text-white text-sm font-medium flex items-center gap-1">
+            <ImageIcon className="h-3.5 w-3.5" />
+            Ready for today's workout!
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
