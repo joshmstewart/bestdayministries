@@ -289,7 +289,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
                 }}
                 title="Share to community"
               >
-                <Share2 className="h-3.5 w-3.5" />
+                <Share2 className="h-3.5 w-3.5 text-green-500" />
               </Button>
             )}
             {isOwn && image.is_shared_to_community && (
