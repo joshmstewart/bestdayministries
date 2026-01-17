@@ -91,6 +91,8 @@ const packThemes = [
   { name: "Mystic Swamp", description: "Mysterious wetlands with Spanish moss", locations: ["Bayou Trail", "Cypress Grove", "Misty Marsh", "Mangrove Maze", "Swamp Sunset", "Heron Hollow", "Gator Bank", "Moonlit Bog"], keywords: ["swamp", "bayou", "marsh", "wetland", "cypress", "moss", "mysterious", "murky"] },
 ];
 
+type PackTheme = typeof packThemes[number];
+
 // Individual location ideas for randomization
 const locationIdeas = [
   { name: "Sunrise Beach", prompt: "A beautiful beach at sunrise with golden light reflecting on calm waves, palm trees in the background" },
@@ -116,36 +118,65 @@ const locationIdeas = [
 ];
 
 // Helper function to check if a theme is similar to existing packs
-const isThemeSimilarToExisting = (theme: typeof packThemes[0], existingPacks: LocationPack[]): boolean => {
-  const existingNamesLower = existingPacks.map(p => p.name.toLowerCase());
-  const existingDescLower = existingPacks.map(p => (p.description || "").toLowerCase());
+const isThemeSimilarToExisting = (theme: PackTheme, existingPacks: LocationPack[]): boolean => {
+  const existingNamesLower = existingPacks.map((p) => p.name.toLowerCase());
+  const existingDescLower = existingPacks.map((p) => (p.description || "").toLowerCase());
   const allExistingText = [...existingNamesLower, ...existingDescLower].join(" ");
-  
+
   // Check exact name match
   if (existingNamesLower.includes(theme.name.toLowerCase())) {
     return true;
   }
-  
+
   // Check keyword overlap - if any existing pack contains 2+ keywords from this theme
-  const matchingKeywords = theme.keywords.filter(keyword => 
-    allExistingText.includes(keyword.toLowerCase())
-  );
-  
+  const matchingKeywords = theme.keywords.filter((keyword) => allExistingText.includes(keyword.toLowerCase()));
+
   if (matchingKeywords.length >= 2) {
     return true;
   }
-  
+
   // Check if theme name words appear in existing packs
   const themeWords = theme.name.toLowerCase().split(/\s+/);
-  const significantMatches = themeWords.filter(word => 
-    word.length > 3 && allExistingText.includes(word)
-  );
-  
+  const significantMatches = themeWords.filter((word) => word.length > 3 && allExistingText.includes(word));
+
   if (significantMatches.length > 0) {
     return true;
   }
-  
+
   return false;
+};
+
+// Avoid repeating the same suggested themes over and over in the admin "Randomize Pack" button.
+const RECENT_PACK_THEME_STORAGE_KEY = "workout_locations_recent_pack_theme_names_v1";
+const MAX_RECENT_PACK_THEMES = 8;
+
+const readRecentPackThemeNames = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_PACK_THEME_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeRecentPackThemeNames = (names: string[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(RECENT_PACK_THEME_STORAGE_KEY, JSON.stringify(names));
+  } catch {
+    // ignore
+  }
+};
+
+const shuffleArray = <T,>(items: T[]) => {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 };
 
 export const WorkoutLocationsManager = () => {
@@ -189,7 +220,12 @@ export const WorkoutLocationsManager = () => {
   // Complete pack generation state
   const [generatingCompletePack, setGeneratingCompletePack] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ step: "", current: 0, total: 0 });
-  const [selectedPackTheme, setSelectedPackTheme] = useState<typeof packThemes[0] | null>(null);
+  const [selectedPackTheme, setSelectedPackTheme] = useState<PackTheme | null>(null);
+
+  // Randomize Pack variety state (avoid repeating the same few suggestions)
+  const [randomThemeBag, setRandomThemeBag] = useState<PackTheme[]>([]);
+  const [randomThemeBagKey, setRandomThemeBagKey] = useState<string>("");
+  const [recentRandomThemes, setRecentRandomThemes] = useState<string[]>(() => readRecentPackThemeNames());
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -537,39 +573,57 @@ export const WorkoutLocationsManager = () => {
 
   // Randomize pack form with a theme that's dissimilar to existing packs
   const handleRandomizePack = () => {
-    // Filter out themes that are similar to existing packs
-    const dissimilarThemes = packThemes.filter(theme => !isThemeSimilarToExisting(theme, packs));
-    
-    if (dissimilarThemes.length === 0) {
-      toast.info("All unique themes have been used!", {
-        description: "Consider creating custom pack themes or the list will cycle through existing ones.",
-      });
-      // Fall back to any theme if all are similar
-      const randomTheme = packThemes[Math.floor(Math.random() * packThemes.length)];
-      setPackForm(prev => ({
-        ...prev,
-        name: randomTheme.name,
-        description: randomTheme.description,
-        is_active: true,
-      }));
-      setPackImagePrompt(randomTheme.name);
-      setSelectedPackTheme(randomTheme);
-      return;
+    // Prefer themes that are dissimilar to existing packs, but don't get stuck repeating the same few.
+    const dissimilarThemes = packThemes.filter((theme) => !isThemeSimilarToExisting(theme, packs));
+    const candidateThemes: PackTheme[] = dissimilarThemes.length > 0 ? dissimilarThemes : packThemes;
+
+    const candidateKey = candidateThemes
+      .map((t) => t.name)
+      .sort()
+      .join("|");
+
+    // Rebuild the "bag" when it is empty or the candidate set changed.
+    // When rebuilding, try to avoid recently suggested themes first.
+    let bag: PackTheme[] = randomThemeBag;
+    if (candidateKey !== randomThemeBagKey || bag.length === 0) {
+      const recentSet = new Set(recentRandomThemes.map((n) => n.toLowerCase()));
+      const notRecent = candidateThemes.filter((t) => !recentSet.has(t.name.toLowerCase()));
+      const startPool = notRecent.length > 0 ? notRecent : candidateThemes;
+      bag = shuffleArray(startPool);
+      setRandomThemeBagKey(candidateKey);
     }
-    
-    const randomTheme = dissimilarThemes[Math.floor(Math.random() * dissimilarThemes.length)];
-    
-    setPackForm(prev => ({
+
+    const nextTheme = bag[0] || candidateThemes[Math.floor(Math.random() * candidateThemes.length)];
+    const nextBag = bag.slice(1);
+
+    setRandomThemeBag(nextBag);
+
+    setPackForm((prev) => ({
       ...prev,
-      name: randomTheme.name,
-      description: randomTheme.description,
+      name: nextTheme.name,
+      description: nextTheme.description,
       is_active: true,
     }));
-    setPackImagePrompt(randomTheme.name);
-    setSelectedPackTheme(randomTheme);
-    
-    toast.success(`Randomized: ${randomTheme.name}`, {
-      description: `${randomTheme.locations.length} locations • ${dissimilarThemes.length - 1} more unique themes available`,
+    setPackImagePrompt(nextTheme.name);
+    setSelectedPackTheme(nextTheme);
+
+    const nextRecent = [
+      nextTheme.name,
+      ...recentRandomThemes.filter((n) => n.toLowerCase() !== nextTheme.name.toLowerCase()),
+    ].slice(0, MAX_RECENT_PACK_THEMES);
+
+    setRecentRandomThemes(nextRecent);
+    writeRecentPackThemeNames(nextRecent);
+
+    if (dissimilarThemes.length === 0) {
+      toast.info("All unique themes have been used!", {
+        description: `Showing any theme next • ${nextBag.length} more before repeats`,
+      });
+      return;
+    }
+
+    toast.success(`Randomized: ${nextTheme.name}`, {
+      description: `${nextTheme.locations.length} locations • ${nextBag.length} more before repeats`,
     });
   };
 
