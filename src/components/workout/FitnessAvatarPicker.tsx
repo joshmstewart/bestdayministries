@@ -184,7 +184,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             {[...avatars]
               .sort((a, b) => {
                 const aOwned = ownedAvatarIds.includes(a.id);
@@ -218,7 +218,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
                   onClick={() => handleAvatarClick(avatar)}
                   disabled={selectMutation.isPending || purchaseMutation.isPending}
                   className={cn(
-                    "relative flex flex-col items-center p-3 rounded-xl transition-all border-2",
+                    "relative flex flex-col items-center p-4 rounded-xl transition-all border-2",
                     isSelected
                       ? "border-primary bg-primary/10 ring-2 ring-primary ring-offset-2"
                       : isOwned
@@ -228,7 +228,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
                 >
                   {/* Avatar Preview */}
                   <div className={cn(
-                    "w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-2 overflow-hidden",
+                    "w-24 h-24 rounded-full flex items-center justify-center text-3xl mb-2 overflow-hidden",
                     avatar.preview_image_url 
                       ? "bg-white" 
                       : isOwned 
