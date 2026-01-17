@@ -125,7 +125,7 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
           <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
             {/* Ghost avatar outline */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <User className="h-32 w-32 text-muted-foreground/30" strokeWidth={1} />
+              <User className="h-48 w-48 text-muted-foreground/40" strokeWidth={0.75} />
             </div>
             
             {/* Overlay with button */}
