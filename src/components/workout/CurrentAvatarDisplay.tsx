@@ -131,7 +131,7 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
             </div>
             
             {/* Bottom CTA section */}
-            <div className="flex flex-col items-center text-center pb-6 px-4">
+            <div className="flex flex-col items-center text-center pb-4 px-4 -mt-4">
               <p className="text-base font-semibold text-foreground mb-1">
                 Choose Your Fitness Buddy!
               </p>
