@@ -44,7 +44,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
   const [deleteImage, setDeleteImage] = useState<WorkoutImage | null>(null);
   const [activeTab, setActiveTab] = useState("my-images");
 
-  // Fetch user's images
+  // Fetch user's images (exclude test images)
   const { data: myImages = [], isLoading: loadingMy } = useQuery({
     queryKey: ["workout-images", userId],
     queryFn: async () => {
@@ -52,6 +52,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
         .from("workout_generated_images")
         .select("*")
         .eq("user_id", userId)
+        .eq("is_test", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -60,7 +61,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     enabled: !!userId,
   });
 
-  // Fetch community images
+  // Fetch community images (exclude test images)
   const { data: communityImages = [], isLoading: loadingCommunity } = useQuery({
     queryKey: ["workout-images-community"],
     queryFn: async () => {
@@ -68,6 +69,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
         .from("workout_generated_images")
         .select("*")
         .eq("is_shared_to_community", true)
+        .eq("is_test", false)
         .order("likes_count", { ascending: false })
         .limit(50);
 
