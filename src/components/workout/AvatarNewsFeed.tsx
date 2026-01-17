@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Image as ImageIcon, Trophy, Dumbbell, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Image as ImageIcon, Trophy, Dumbbell, Calendar, Share2, EyeOff } from "lucide-react";
 import { format, isToday, isYesterday, differenceInDays } from "date-fns";
 import { WorkoutImageDetailDialog } from "./WorkoutImageDetailDialog";
-
+import { useToast } from "@/hooks/use-toast";
 interface AvatarNewsFeedProps {
   userId: string;
   includeTestImages?: boolean;
@@ -29,6 +30,43 @@ interface WorkoutImage {
 
 export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: AvatarNewsFeedProps) => {
   const [selectedImage, setSelectedImage] = useState<WorkoutImage | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Share mutation
+  const shareMutation = useMutation({
+    mutationFn: async (imageId: string) => {
+      const { error } = await supabase
+        .from("workout_generated_images")
+        .update({ is_shared_to_community: true })
+        .eq("id", imageId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-images-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-community-images"] });
+      toast({ title: "Shared to community!" });
+    },
+  });
+
+  // Unshare mutation
+  const unshareMutation = useMutation({
+    mutationFn: async (imageId: string) => {
+      const { error } = await supabase
+        .from("workout_generated_images")
+        .update({ is_shared_to_community: false })
+        .eq("id", imageId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-images-feed"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-community-images"] });
+      toast({ title: "Removed from community" });
+    },
+  });
+
   // Fetch user's images grouped by date (exclude test images unless specified)
   const { data: images = [], isLoading } = useQuery({
     queryKey: ["workout-images-feed", userId, includeTestImages],
@@ -143,6 +181,37 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
                       <div className="bg-primary text-primary-foreground p-1.5 rounded-full shadow-lg">
                         <Dumbbell className="h-3.5 w-3.5" />
                       </div>
+                    )}
+                  </div>
+
+                  {/* Share/Unshare button */}
+                  <div className="absolute top-2 right-2">
+                    {image.is_shared_to_community ? (
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          unshareMutation.mutate(image.id);
+                        }}
+                        title="Remove from community"
+                      >
+                        <EyeOff className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-7 w-7"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          shareMutation.mutate(image.id);
+                        }}
+                        title="Share to community"
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                      </Button>
                     )}
                   </div>
 
