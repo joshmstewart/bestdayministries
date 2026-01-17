@@ -47,11 +47,12 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
       if (logError) throw logError;
     },
     onSuccess: () => {
-      // Invalidate all relevant queries
+      // Invalidate all relevant queries - must match exact query keys used in components
       queryClient.invalidateQueries({ queryKey: ["workout-image-today"] });
-      queryClient.invalidateQueries({ queryKey: ["today-logged-activities"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-logs-today"] }); // QuickLogGrid uses this
       queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
-      queryClient.invalidateQueries({ queryKey: ["workout-streak"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-logs-week"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-streak-logs"] });
       queryClient.invalidateQueries({ queryKey: ["weekly-workout-goal"] });
       toast.success("Today's workout data reset!");
     },
