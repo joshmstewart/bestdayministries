@@ -45,7 +45,9 @@ const WorkoutTracker = () => {
               <Dumbbell className="h-7 w-7 text-primary" />
               <h1 className="text-2xl font-bold">Fitness Center</h1>
             </div>
-            <p className="text-sm text-muted-foreground">Stay active and earn coins!</p>
+            <p className="text-sm text-muted-foreground">
+              Stay active and earn coins!
+            </p>
           </div>
 
           {user ? (
