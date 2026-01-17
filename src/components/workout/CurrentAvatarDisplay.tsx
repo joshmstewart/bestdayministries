@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Image as ImageIcon, User } from "lucide-react";
+import { Loader2, Sparkles, Image as ImageIcon, User, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface CurrentAvatarDisplayProps {
   userId: string;
@@ -14,7 +15,51 @@ interface CurrentAvatarDisplayProps {
 }
 
 export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, onSelectAvatarClick }: CurrentAvatarDisplayProps) => {
+  const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
+
+  // Reset today's workout data mutation
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Delete today's generated images
+      const { error: imgError } = await supabase
+        .from("workout_generated_images")
+        .delete()
+        .eq("user_id", userId)
+        .gte("created_at", startOfDay.toISOString())
+        .lte("created_at", endOfDay.toISOString());
+
+      if (imgError) throw imgError;
+
+      // Delete today's workout logs
+      const { error: logError } = await supabase
+        .from("user_workout_logs")
+        .delete()
+        .eq("user_id", userId)
+        .gte("completed_at", startOfDay.toISOString())
+        .lte("completed_at", endOfDay.toISOString());
+
+      if (logError) throw logError;
+    },
+    onSuccess: () => {
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ["workout-image-today"] });
+      queryClient.invalidateQueries({ queryKey: ["today-logged-activities"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-streak"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-workout-goal"] });
+      toast.success("Today's workout data reset!");
+    },
+    onError: (error) => {
+      console.error("Reset error:", error);
+      toast.error("Failed to reset workout data");
+    },
+  });
 
   // Get user's EXPLICITLY selected avatar (not default)
   const { data: hasExplicitSelection, isLoading: loadingAvatar } = useQuery({
@@ -109,8 +154,26 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
               <p className="text-white/70 text-xs">📍 {todayImage.location_name}</p>
             )}
           </div>
-          <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-            Today ✨
+          <div className="absolute top-2 right-2 flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => resetMutation.mutate()}
+              disabled={resetMutation.isPending}
+              className="bg-red-500/90 hover:bg-red-600 text-white text-xs px-2 py-1 h-auto"
+            >
+              {resetMutation.isPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <>
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Reset
+                </>
+              )}
+            </Button>
+            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+              Today ✨
+            </span>
           </div>
         </CardContent>
       </Card>
