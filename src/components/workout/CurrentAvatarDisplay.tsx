@@ -82,7 +82,7 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
     enabled: !!userId,
   });
 
-  // Get today's most recent generated image for this user (must be their own REAL image, not test)
+  // Get today's most recent generated image for this user (prefer activity images so celebrations don't overwrite the workout preview)
   const { data: todayImage, isLoading: loadingImage } = useQuery({
     queryKey: ["workout-image-today", userId, today],
     queryFn: async () => {
@@ -99,11 +99,13 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
         .gte("created_at", startOfDay.toISOString())
         .lte("created_at", endOfDay.toISOString())
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(10);
 
       if (error) throw error;
-      return data;
+
+      const images = data || [];
+      // Prefer latest ACTIVITY image (so a later celebration doesn't hide the actual workout image)
+      return images.find((img) => img.image_type === "activity") ?? images[0] ?? null;
     },
     enabled: !!userId,
   });

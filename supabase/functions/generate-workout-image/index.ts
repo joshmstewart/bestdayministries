@@ -101,8 +101,9 @@ serve(async (req) => {
     let selectedWorkoutName: string | null = null;
     
     // Check if avatar has an image to use for image-to-image
-    const avatarImageUrl = avatar.image_url;
-    
+    // Prefer `image_url`, fall back to `preview_image_url` (most avatars only have preview images)
+    const avatarImageUrl = avatar.image_url || avatar.preview_image_url;
+
     if (imageType === "activity") {
       // For admin test or when not provided, fetch random from database
       if (isAdminTest || !activityName) {
@@ -111,12 +112,12 @@ serve(async (req) => {
           .from("workout_activities")
           .select("id, name, description, icon")
           .eq("is_active", true);
-        
+
         if (activitiesError || !activities || activities.length === 0) {
           console.error("No activities found:", activitiesError);
           throw new Error("No workout activities found in database");
         }
-        
+
         const randomActivity = activities[Math.floor(Math.random() * activities.length)];
         selectedWorkout = randomActivity.description || randomActivity.name;
         selectedWorkoutName = `${randomActivity.icon} ${randomActivity.name}`;
@@ -134,20 +135,20 @@ serve(async (req) => {
           .from("user_workout_location_packs")
           .select("pack_id, is_enabled")
           .eq("user_id", user.id);
-        
+
         // Get all free packs (these are always available)
         const { data: freePacks } = await supabase
           .from("workout_location_packs")
           .select("id")
           .eq("is_active", true)
           .eq("is_free", true);
-        
-        const freePackIds = (freePacks || []).map(p => p.id);
-        
+
+        const freePackIds = (freePacks || []).map((p) => p.id);
+
         // Build list of enabled pack IDs
         // Include free packs (default enabled) and user-owned packs that are enabled
         const enabledPackIds = new Set<string>(freePackIds);
-        
+
         if (userPacks && userPacks.length > 0) {
           for (const up of userPacks) {
             if (up.is_enabled) {
@@ -158,34 +159,41 @@ serve(async (req) => {
             }
           }
         }
-        
+
         // Query locations from enabled packs
         let locationsQuery = supabase
           .from("workout_locations")
           .select("id, name, prompt_text, pack_id")
           .eq("is_active", true);
-        
+
         if (enabledPackIds.size > 0) {
           locationsQuery = locationsQuery.in("pack_id", Array.from(enabledPackIds));
         }
-        
+
         const { data: locations, error: locationsError } = await locationsQuery;
-        
+
         if (locationsError || !locations || locations.length === 0) {
           console.error("No locations found:", locationsError);
-          throw new Error("No workout locations found in database. Enable some location packs first!");
+          throw new Error(
+            "No workout locations found in database. Enable some location packs first!"
+          );
         }
-        
+
         const randomLocation = locations[Math.floor(Math.random() * locations.length)];
         selectedLocation = randomLocation.prompt_text;
         selectedLocationName = randomLocation.name;
-        console.log("Selected random location from pack:", selectedLocationName, "-", selectedLocation);
+        console.log(
+          "Selected random location from pack:",
+          selectedLocationName,
+          "-",
+          selectedLocation
+        );
       } else {
         selectedLocation = location;
         selectedLocationName = location;
       }
-      
-      prompt = `Take this character and show them actively doing ${selectedWorkout} ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be dynamic and energetic while exercising. Add the location as the background. Make them look happy and motivated. High quality cartoon illustration.`;
+
+      prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character identical (same gender, face, hair, outfit, colors, and art style). Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
     } else if (imageType === "celebration") {
       // For celebration, also use real location if in admin test
       if (isAdminTest || !location) {
@@ -193,7 +201,7 @@ serve(async (req) => {
           .from("workout_locations")
           .select("id, name, prompt_text")
           .eq("is_active", true);
-        
+
         if (locationsError || !locations || locations.length === 0) {
           selectedLocation = "a beautiful outdoor setting";
           selectedLocationName = "Outdoor Setting";
@@ -206,8 +214,8 @@ serve(async (req) => {
         selectedLocation = location;
         selectedLocationName = location;
       }
-      
-      prompt = `Take this character and show them celebrating with arms raised in victory ${selectedLocation}. Keep the character looking exactly the same (same outfit, colors, style, features) but change their pose to be celebratory. Add confetti, streamers, and a trophy or medal. Make them look extremely happy and proud. Colorful celebratory background with sparkles. High quality cartoon illustration.`;
+
+      prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character identical (same gender, face, hair, outfit, colors, and art style). Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
     } else {
       throw new Error("Invalid imageType");
     }
@@ -249,7 +257,8 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        // Nano Banana image model
+        model: "google/gemini-2.5-flash-image-preview",
         messages: [
           {
             role: "user",
