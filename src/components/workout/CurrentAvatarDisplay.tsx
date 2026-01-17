@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { Loader2, Sparkles, Image as ImageIcon, User, RotateCcw } from "lucide-r
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { WorkoutImageDetailDialog } from "./WorkoutImageDetailDialog";
 
 interface CurrentAvatarDisplayProps {
   userId: string;
@@ -17,6 +19,23 @@ interface CurrentAvatarDisplayProps {
 export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, onSelectAvatarClick }: CurrentAvatarDisplayProps) => {
   const queryClient = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+
+  // Get user's display name
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-profile-display-name", userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", userId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
 
   // Reset today's workout data mutation
   const resetMutation = useMutation({
@@ -110,6 +129,9 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
     enabled: !!userId,
   });
 
+  const userName = userProfile?.display_name || "You";
+  const formattedDate = format(new Date(), "MMM d");
+
   if (loadingAvatar || loadingImage) {
     return (
       <Card className={cn("overflow-hidden", className)}>
@@ -137,49 +159,66 @@ export const CurrentAvatarDisplay = ({ userId, className, isGenerating = false, 
 
   // If there's a generated image for today BY THIS USER, show it
   if (todayImage?.image_url) {
+    // Build display text: "Joshie S Danced" format
+    const activityVerb = todayImage.activity_name || "Worked Out";
+    const displayTitle = `${userName} ${activityVerb}`;
+
     return (
-      <Card className={cn("overflow-hidden", className)}>
-        <CardContent className="p-0 relative">
-          <div className="aspect-square">
-            <img
-              src={todayImage.image_url}
-              alt={todayImage.activity_name || "Today's workout"}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-            <p className="text-white text-sm font-medium">
-              {todayImage.image_type === "celebration" 
-                ? "🏆 Goal Achieved!" 
-                : todayImage.activity_name}
-            </p>
-            {todayImage.location_name && (
-              <p className="text-white/70 text-xs">📍 {todayImage.location_name}</p>
-            )}
-          </div>
-          <div className="absolute top-2 right-2 flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => resetMutation.mutate()}
-              disabled={resetMutation.isPending}
-              className="bg-red-500/90 hover:bg-red-600 text-white text-xs px-2 py-1 h-auto"
-            >
-              {resetMutation.isPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <>
-                  <RotateCcw className="h-3 w-3 mr-1" />
-                  Reset
-                </>
+      <>
+        <Card className={cn("overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all", className)} onClick={() => setShowDetailDialog(true)}>
+          <CardContent className="p-0 relative">
+            <div className="aspect-square">
+              <img
+                src={todayImage.image_url}
+                alt={todayImage.activity_name || "Today's workout"}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+              <p className="text-white text-sm font-medium">
+                {todayImage.image_type === "celebration" 
+                  ? "🏆 Goal Achieved!" 
+                  : displayTitle}
+              </p>
+              <p className="text-white/70 text-xs">{formattedDate}</p>
+              {todayImage.location_name && (
+                <p className="text-white/70 text-xs">📍 {todayImage.location_name}</p>
               )}
-            </Button>
-            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-              Today ✨
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+            <div className="absolute top-2 right-2 flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetMutation.mutate();
+                }}
+                disabled={resetMutation.isPending}
+                className="bg-red-500/90 hover:bg-red-600 text-white text-xs px-2 py-1 h-auto"
+              >
+                {resetMutation.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Reset
+                  </>
+                )}
+              </Button>
+              <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                Today ✨
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <WorkoutImageDetailDialog
+          open={showDetailDialog}
+          onOpenChange={setShowDetailDialog}
+          image={todayImage}
+          userName={userName}
+        />
+      </>
     );
   }
 

@@ -9354,7 +9354,9 @@ export type Database = {
           is_shared_to_community: boolean
           is_test: boolean
           likes_count: number
+          location_id: string | null
           location_name: string | null
+          location_pack_name: string | null
           user_id: string
           workout_log_id: string | null
         }
@@ -9368,7 +9370,9 @@ export type Database = {
           is_shared_to_community?: boolean
           is_test?: boolean
           likes_count?: number
+          location_id?: string | null
           location_name?: string | null
+          location_pack_name?: string | null
           user_id: string
           workout_log_id?: string | null
         }
@@ -9382,7 +9386,9 @@ export type Database = {
           is_shared_to_community?: boolean
           is_test?: boolean
           likes_count?: number
+          location_id?: string | null
           location_name?: string | null
+          location_pack_name?: string | null
           user_id?: string
           workout_log_id?: string | null
         }
@@ -9392,6 +9398,13 @@ export type Database = {
             columns: ["avatar_id"]
             isOneToOne: false
             referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_generated_images_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "workout_locations"
             referencedColumns: ["id"]
           },
           {
