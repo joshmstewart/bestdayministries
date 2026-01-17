@@ -74,12 +74,6 @@ export const WorkoutImageDetailDialog = ({
 
           {/* Detail items */}
           <div className="space-y-2 pt-2 border-t border-border">
-            {/* Timestamp */}
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span>{formattedTime}</span>
-            </div>
-
             {/* Activity */}
             {image.activity_name && (
               <div className="flex items-center gap-2 text-sm">
