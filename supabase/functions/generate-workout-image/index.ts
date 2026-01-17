@@ -117,43 +117,59 @@ serve(async (req) => {
       }
 
       // For admin test or when not provided, fetch random location from database
-      // Use user's enabled locations if available
+      // Use user's enabled location packs to filter available locations
       if (isAdminTest || !location) {
-        // First, get user's enabled locations
-        const { data: userLocationPrefs } = await supabase
-          .from("user_workout_locations")
-          .select("location_id, is_enabled")
+        // Get user's owned/enabled location packs
+        const { data: userPacks } = await supabase
+          .from("user_workout_location_packs")
+          .select("pack_id, is_enabled")
           .eq("user_id", user.id);
         
-        // Build the query for locations
+        // Get all free packs (these are always available)
+        const { data: freePacks } = await supabase
+          .from("workout_location_packs")
+          .select("id")
+          .eq("is_active", true)
+          .eq("is_free", true);
+        
+        const freePackIds = (freePacks || []).map(p => p.id);
+        
+        // Build list of enabled pack IDs
+        // Include free packs (default enabled) and user-owned packs that are enabled
+        const enabledPackIds = new Set<string>(freePackIds);
+        
+        if (userPacks && userPacks.length > 0) {
+          for (const up of userPacks) {
+            if (up.is_enabled) {
+              enabledPackIds.add(up.pack_id);
+            } else {
+              // If user explicitly disabled a free pack, remove it
+              enabledPackIds.delete(up.pack_id);
+            }
+          }
+        }
+        
+        // Query locations from enabled packs
         let locationsQuery = supabase
           .from("workout_locations")
           .select("id, name, prompt_text, pack_id")
           .eq("is_active", true);
         
-        // If user has location preferences, filter to only enabled ones
-        if (userLocationPrefs && userLocationPrefs.length > 0) {
-          const enabledLocationIds = userLocationPrefs
-            .filter(pref => pref.is_enabled)
-            .map(pref => pref.location_id);
-          
-          // If user has explicitly disabled all locations, use all active ones
-          if (enabledLocationIds.length > 0) {
-            locationsQuery = locationsQuery.in("id", enabledLocationIds);
-          }
+        if (enabledPackIds.size > 0) {
+          locationsQuery = locationsQuery.in("pack_id", Array.from(enabledPackIds));
         }
         
         const { data: locations, error: locationsError } = await locationsQuery;
         
         if (locationsError || !locations || locations.length === 0) {
           console.error("No locations found:", locationsError);
-          throw new Error("No workout locations found in database");
+          throw new Error("No workout locations found in database. Enable some location packs first!");
         }
         
         const randomLocation = locations[Math.floor(Math.random() * locations.length)];
         selectedLocation = randomLocation.prompt_text;
         selectedLocationName = randomLocation.name;
-        console.log("Selected random location:", selectedLocationName, "-", selectedLocation);
+        console.log("Selected random location from pack:", selectedLocationName, "-", selectedLocation);
       } else {
         selectedLocation = location;
         selectedLocationName = location;

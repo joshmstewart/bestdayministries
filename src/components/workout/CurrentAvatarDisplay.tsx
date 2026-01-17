@@ -17,32 +17,35 @@ export const CurrentAvatarDisplay = ({ userId, className }: CurrentAvatarDisplay
   const { data: selectedAvatar, isLoading: loadingAvatar } = useQuery({
     queryKey: ["user-selected-fitness-avatar", userId],
     queryFn: async () => {
+      // First, check if user has explicitly selected an avatar
       const { data, error } = await supabase
         .from("user_fitness_avatars")
         .select("avatar_id, fitness_avatars(*)")
         .eq("user_id", userId)
         .eq("is_selected", true)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        // Check for free avatars if no selection
-        const { data: freeAvatar } = await supabase
-          .from("fitness_avatars")
-          .select("*")
-          .eq("is_free", true)
-          .order("display_order")
-          .limit(1)
-          .single();
-        
-        return freeAvatar;
+      if (!error && data?.fitness_avatars) {
+        return data.fitness_avatars;
       }
       
-      return data?.fitness_avatars;
+      // If no selection, get the first free avatar as default
+      const { data: freeAvatar, error: freeError } = await supabase
+        .from("fitness_avatars")
+        .select("*")
+        .eq("is_active", true)
+        .eq("is_free", true)
+        .order("display_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (freeError) throw freeError;
+      return freeAvatar;
     },
     enabled: !!userId,
   });
 
-  // Get today's most recent generated image for this user
+  // Get today's most recent generated image for this user (must be their own image)
   const { data: todayImage, isLoading: loadingImage } = useQuery({
     queryKey: ["workout-image-today", userId, today],
     queryFn: async () => {
@@ -53,7 +56,7 @@ export const CurrentAvatarDisplay = ({ userId, className }: CurrentAvatarDisplay
 
       const { data, error } = await supabase
         .from("workout_generated_images")
-        .select("*, workout_locations:location_name")
+        .select("*")
         .eq("user_id", userId)
         .gte("created_at", startOfDay.toISOString())
         .lte("created_at", endOfDay.toISOString())
@@ -77,7 +80,7 @@ export const CurrentAvatarDisplay = ({ userId, className }: CurrentAvatarDisplay
     );
   }
 
-  // If there's a generated image for today, show it
+  // If there's a generated image for today BY THIS USER, show it
   if (todayImage?.image_url) {
     return (
       <Card className={cn("overflow-hidden", className)}>

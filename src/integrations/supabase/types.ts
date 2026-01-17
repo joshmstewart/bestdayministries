@@ -8608,18 +8608,21 @@ export type Database = {
       user_workout_location_packs: {
         Row: {
           id: string
+          is_enabled: boolean
           pack_id: string
           purchased_at: string
           user_id: string
         }
         Insert: {
           id?: string
+          is_enabled?: boolean
           pack_id: string
           purchased_at?: string
           user_id: string
         }
         Update: {
           id?: string
+          is_enabled?: boolean
           pack_id?: string
           purchased_at?: string
           user_id?: string

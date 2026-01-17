@@ -11,15 +11,23 @@ import { FeaturedVideo } from "@/components/workout/FeaturedVideo";
 import { FitnessAvatarPicker } from "@/components/workout/FitnessAvatarPicker";
 import { WorkoutImageGallery } from "@/components/workout/WorkoutImageGallery";
 import { CurrentAvatarDisplay } from "@/components/workout/CurrentAvatarDisplay";
-import { LocationPicker } from "@/components/workout/LocationPicker";
+import { LocationPackPicker } from "@/components/workout/LocationPackPicker";
 import { AvatarNewsFeed } from "@/components/workout/AvatarNewsFeed";
-import { Dumbbell, Video, Sparkles, Image as ImageIcon, MapPin } from "lucide-react";
+import { Dumbbell, Video, Sparkles, Image as ImageIcon, MapPin, Package } from "lucide-react";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const WorkoutTracker = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("workout");
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+  const [locationsDialogOpen, setLocationsDialogOpen] = useState(false);
 
   return (
     <>
@@ -91,14 +99,28 @@ const WorkoutTracker = () => {
               </TabsContent>
 
               <TabsContent value="avatar" className="space-y-4 mt-0">
-                {/* Avatar Picker */}
-                <FitnessAvatarPicker userId={user.id} />
-                
-                {/* Location Picker */}
-                <LocationPicker userId={user.id} />
-                
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    className="h-auto py-4 flex flex-col items-center gap-2"
+                    onClick={() => setAvatarDialogOpen(true)}
+                  >
+                    <Sparkles className="h-6 w-6 text-primary" />
+                    <span className="text-sm font-medium">Select Avatar</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto py-4 flex flex-col items-center gap-2"
+                    onClick={() => setLocationsDialogOpen(true)}
+                  >
+                    <Package className="h-6 w-6 text-primary" />
+                    <span className="text-sm font-medium">Location Packs</span>
+                  </Button>
+                </div>
+
                 <p className="text-xs text-muted-foreground text-center">
-                  Select an avatar and enable locations to customize your workout images!
+                  Select an avatar and enable location packs to customize your workout images!
                 </p>
 
                 {/* Avatar News Feed - Previous images grouped by day */}
@@ -123,6 +145,39 @@ const WorkoutTracker = () => {
         </div>
       </main>
       <Footer />
+
+      {/* Avatar Selection Dialog */}
+      {user && (
+        <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Choose Your Avatar
+              </DialogTitle>
+            </DialogHeader>
+            <FitnessAvatarPicker 
+              userId={user.id} 
+              onAvatarSelected={() => setAvatarDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Locations Dialog */}
+      {user && (
+        <Dialog open={locationsDialogOpen} onOpenChange={setLocationsDialogOpen}>
+          <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                Location Packs
+              </DialogTitle>
+            </DialogHeader>
+            <LocationPackPicker userId={user.id} />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };
