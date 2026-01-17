@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 
 const WorkoutTracker = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState("workout");
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [locationsDialogOpen, setLocationsDialogOpen] = useState(false);
@@ -132,7 +132,7 @@ const WorkoutTracker = () => {
                 </p>
 
                 {/* Avatar News Feed - Previous images grouped by day */}
-                <AvatarNewsFeed userId={user.id} />
+                <AvatarNewsFeed userId={user.id} userName={profile?.display_name} />
               </TabsContent>
 
               <TabsContent value="gallery" className="mt-0">
