@@ -55,6 +55,15 @@ serve(async (req) => {
 
     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
 
+    // Get recently used words to avoid duplicates (last 90 days)
+    const { data: recentWords } = await supabase
+      .from("wordle_daily_words")
+      .select("word")
+      .gte("word_date", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      .order("word_date", { ascending: false });
+
+    const usedWordsList = recentWords?.map(w => w.word.toUpperCase()).join(", ") || "";
+
     // Generate a word using AI
     if (!lovableApiKey) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -63,9 +72,10 @@ serve(async (req) => {
     const prompt = `Generate a single 5-letter English word related to the theme "${randomTheme.name}" (${randomTheme.description}). 
 The word must:
 - Be exactly 5 letters long
-- Be a common, recognizable English word
-- Be appropriate for all ages
+- Be a common, recognizable English word that most people would know
+- Be appropriate for all ages (family-friendly)
 - Be related to the theme "${randomTheme.name}"
+- NOT be any of these recently used words: ${usedWordsList || "none yet"}
 
 Also provide a short hint (1 sentence, max 10 words) that gives a clue about the word without being too obvious.
 
