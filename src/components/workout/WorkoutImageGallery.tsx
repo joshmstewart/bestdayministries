@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { 
@@ -44,7 +43,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
   const queryClient = useQueryClient();
   const [selectedImage, setSelectedImage] = useState<WorkoutImage | null>(null);
   const [deleteImage, setDeleteImage] = useState<WorkoutImage | null>(null);
-  const [activeTab, setActiveTab] = useState("my-images");
+  // Gallery now only shows community images (My Images is redundant with Avatar tab)
 
   // Fetch user's auto-share setting
   const { data: autoShareEnabled = true } = useQuery({
@@ -81,22 +80,6 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     },
   });
 
-  // Fetch user's images (exclude test images)
-  const { data: myImages = [], isLoading: loadingMy } = useQuery({
-    queryKey: ["workout-images", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("workout_generated_images")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("is_test", false)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data as WorkoutImage[];
-    },
-    enabled: !!userId,
-  });
 
   // Fetch community images (exclude test images)
   const { data: communityImages = [], isLoading: loadingCommunity } = useQuery({
@@ -336,7 +319,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     );
   };
 
-  const isLoading = loadingMy || loadingCommunity;
+  const isLoading = loadingCommunity;
 
   return (
     <>
@@ -344,8 +327,8 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <ImageIcon className="h-5 w-5 text-primary" />
-              Workout Gallery
+              <Users className="h-5 w-5 text-primary" />
+              Community Gallery
             </CardTitle>
             <div className="flex items-center gap-2">
               <Label htmlFor="auto-share" className="text-xs text-muted-foreground">
@@ -361,59 +344,21 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full mb-4">
-              <TabsTrigger value="my-images" className="flex-1 gap-1.5">
-                <ImageIcon className="h-4 w-4" />
-                My Images
-                {myImages.length > 0 && (
-                  <span className="text-xs bg-primary/20 px-1.5 rounded-full">
-                    {myImages.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="community" className="flex-1 gap-1.5">
-                <Users className="h-4 w-4" />
-                Community
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="my-images" className="mt-0">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : myImages.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No images yet!</p>
-                  <p className="text-xs">Log an activity to generate your first image</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {myImages.map((image) => renderImageCard(image))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="community" className="mt-0">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : communityImages.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No community images yet!</p>
-                  <p className="text-xs">Be the first to share</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {communityImages.map((image) => renderImageCard(image))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : communityImages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No community images yet!</p>
+              <p className="text-xs">Be the first to share</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {communityImages.map((image) => renderImageCard(image))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
