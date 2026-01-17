@@ -144,21 +144,9 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
       imageType: "activity",
       workoutLogId,
     });
-
-    // Check if user just met their weekly goal
-    if (weeklyProgress && !celebrationGenerated) {
-      const newCompleted = (weeklyProgress.completed || 0) + 1;
-      if (newCompleted >= weeklyProgress.goal) {
-        // Generate celebration image too!
-        setTimeout(async () => {
-          toast.info("🎉 You met your weekly goal! Generating celebration image...");
-          await generateImageMutation.mutateAsync({
-            avatarId: selectedAvatar.id,
-            imageType: "celebration",
-          });
-        }, 2000);
-      }
-    }
+    
+    // Note: Celebration images can be manually generated via generateCelebrationImage()
+    // We no longer auto-generate them to avoid double image generation
   };
 
   const hasSelectedAvatar = !!selectedAvatar?.id;
