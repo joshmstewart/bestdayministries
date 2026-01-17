@@ -138,8 +138,9 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
   });
 
   const generateActivityImage = async (activityName: string, workoutLogId?: string) => {
+    // Silently skip image generation if no avatar selected
     if (!selectedAvatar?.id) {
-      toast.error("Please select a fitness avatar first!");
+      console.log("No avatar selected, skipping image generation");
       return;
     }
 
@@ -166,11 +167,14 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
     }
   };
 
+  const hasSelectedAvatar = !!selectedAvatar?.id;
+
   return {
     selectedAvatar,
     isGenerating,
     weeklyProgress,
     celebrationGenerated,
+    hasSelectedAvatar,
     generateActivityImage,
     generateCelebrationImage: () => {
       if (!selectedAvatar?.id) {

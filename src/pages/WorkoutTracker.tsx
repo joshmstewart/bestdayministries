@@ -68,8 +68,12 @@ const WorkoutTracker = () => {
               </TabsList>
 
               <TabsContent value="workout" className="space-y-4 mt-0">
-                {/* Current Avatar Display - Shows today's image or default, with loading state */}
-                <CurrentAvatarDisplay userId={user.id} isGenerating={isGeneratingImage} />
+                {/* Current Avatar Display - Shows today's image or prompt to pick avatar */}
+                <CurrentAvatarDisplay 
+                  userId={user.id} 
+                  isGenerating={isGeneratingImage}
+                  onSelectAvatarClick={() => setAvatarDialogOpen(true)}
+                />
 
                 {/* Streak & Goal Row */}
                 <div className="grid gap-4 grid-cols-2">
