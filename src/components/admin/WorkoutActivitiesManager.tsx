@@ -151,11 +151,11 @@ export const WorkoutActivitiesManager = () => {
               Add Activity
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingActivity ? "Edit Activity" : "Add Activity"}</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 pb-4">
               <div>
                 <Label>Name</Label>
                 <Input
