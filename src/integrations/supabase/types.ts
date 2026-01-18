@@ -8841,6 +8841,60 @@ export type Database = {
           },
         ]
       }
+      vendor_story_media: {
+        Row: {
+          caption: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          media_type: string
+          media_url: string
+          updated_at: string
+          vendor_id: string
+          youtube_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          media_type: string
+          media_url: string
+          updated_at?: string
+          vendor_id: string
+          youtube_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url?: string
+          updated_at?: string
+          vendor_id?: string
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_story_media_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_earnings"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "vendor_story_media_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_team_members: {
         Row: {
           accepted_at: string | null

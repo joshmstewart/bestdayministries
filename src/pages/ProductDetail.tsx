@@ -13,6 +13,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
+import { VendorBrandBanner } from "@/components/vendor/VendorBrandBanner";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 import { useCartSession } from "@/hooks/useCartSession";
 import { useProductViewTracking } from "@/hooks/useProductViewTracking";
@@ -79,6 +80,22 @@ const ProductDetail = () => {
       return data;
     },
     enabled: !!productId,
+  });
+
+  // Fetch vendor info for brand banner
+  const { data: vendor } = useQuery({
+    queryKey: ['product-vendor', product?.vendor_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendors')
+        .select('id, business_name, logo_url, banner_image_url, description')
+        .eq('id', product?.vendor_id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!product?.vendor_id,
   });
 
   // Fetch custom color images for this product
@@ -634,6 +651,13 @@ const ProductDetail = () => {
                 <Badge variant="destructive" className="w-full justify-center py-2">
                   Out of Stock
                 </Badge>
+              )}
+
+              {/* Vendor Brand Banner */}
+              {vendor && (
+                <div className="pt-4 border-t">
+                  <VendorBrandBanner vendor={vendor} variant="compact" />
+                </div>
               )}
             </div>
           </div>

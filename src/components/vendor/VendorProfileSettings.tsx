@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Upload, Loader2, ExternalLink } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
+import { VendorStoryMediaManager } from "./VendorStoryMediaManager";
 
 interface VendorProfileSettingsProps {
   vendorId: string;
@@ -311,6 +312,18 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Story</CardTitle>
+          <CardDescription>
+            Add photos and videos to tell your story and show yourself creating
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VendorStoryMediaManager vendorId={vendorId} />
         </CardContent>
       </Card>
 
