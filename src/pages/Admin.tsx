@@ -514,12 +514,11 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="earn-coins" className="space-y-4">
-                  <TabsList className="inline-flex flex-wrap h-auto">
+                  <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
                     <TabsTrigger value="earn-coins">Earn Coins</TabsTrigger>
                     <TabsTrigger value="coins">Manage Coins</TabsTrigger>
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
                     <TabsTrigger value="store-items">Store Items</TabsTrigger>
-                    
                     <TabsTrigger value="beat-pad">Beat Pad</TabsTrigger>
                     <TabsTrigger value="memory-match">Memory Match</TabsTrigger>
                     <TabsTrigger value="jokes">Jokes</TabsTrigger>
