@@ -100,7 +100,7 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
         </Button>
       </div>
 
-      {/* Beat cells - using onPointerDown for reliable mobile touch handling */}
+      {/* Beat cells - using onClick with touch-manipulation for reliable mobile taps */}
       {Array.from({ length: STEPS }).map((_, step) => {
         const isActive = stepPattern[step] ?? false;
         const isCurrentStep = isPlaying && currentStep === step;
@@ -109,7 +109,7 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
           <button
             key={step}
             type="button"
-            onPointerDown={(e) => handleCellTap(step, e)}
+            onClick={() => onToggleCell(step)}
             className={cn(
               "flex-1 aspect-square rounded-lg border-2 transition-colors",
               "active:scale-95 touch-manipulation select-none",
