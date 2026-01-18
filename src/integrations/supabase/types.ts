@@ -10053,6 +10053,7 @@ export type Database = {
         Returns: boolean
       }
       increment_beat_plays: { Args: { beat_id: string }; Returns: undefined }
+      is_admin_or_owner: { Args: never; Returns: boolean }
       is_guardian_of: {
         Args: { _bestie_id: string; _guardian_id: string }
         Returns: boolean
@@ -10080,6 +10081,10 @@ export type Database = {
       }
       promote_collections_to_ga: { Args: never; Returns: undefined }
       update_featured_collections: { Args: never; Returns: undefined }
+      user_can_manage_vendor: {
+        Args: { p_vendor_id: string }
+        Returns: boolean
+      }
       user_owns_vendor: { Args: { p_vendor_id: string }; Returns: boolean }
     }
     Enums: {
