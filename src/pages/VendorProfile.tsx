@@ -11,6 +11,7 @@ import { ProductCard } from "@/components/marketplace/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { VendorBestieAssetDisplay } from "@/components/vendor/VendorBestieAssetDisplay";
+import { VendorStoryGallery } from "@/components/vendor/VendorStoryGallery";
 import ImageLightbox from "@/components/ImageLightbox";
 
 interface Vendor {
@@ -38,6 +39,7 @@ const VendorProfile = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [featuredBestie, setFeaturedBestie] = useState<FeaturedBestie | null>(null);
   const [bestieAssets, setBestieAssets] = useState<any[]>([]);
+  const [storyMedia, setStoryMedia] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -137,6 +139,16 @@ const VendorProfile = () => {
         
         setBestieAssets(enrichedAssets);
       }
+
+      // Fetch vendor story media
+      const { data: storyData } = await supabase
+        .from("vendor_story_media")
+        .select("*")
+        .eq("vendor_id", id)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      setStoryMedia(storyData || []);
 
       // Fetch vendor's active products
       const { data: productsData, error: productsError } = await supabase
@@ -314,6 +326,9 @@ const VendorProfile = () => {
 
           {/* Bestie Assets Gallery */}
           <VendorBestieAssetDisplay assets={bestieAssets} />
+
+          {/* Story Media Gallery */}
+          <VendorStoryGallery media={storyMedia} vendorName={vendor.business_name} />
 
           {/* Featured Bestie Section */}
           {featuredBestie && (
