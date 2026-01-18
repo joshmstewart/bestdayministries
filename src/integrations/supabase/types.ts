@@ -10080,6 +10080,7 @@ export type Database = {
       }
       promote_collections_to_ga: { Args: never; Returns: undefined }
       update_featured_collections: { Args: never; Returns: undefined }
+      user_owns_vendor: { Args: { p_vendor_id: string }; Returns: boolean }
     }
     Enums: {
       avatar_category: "humans" | "animals" | "monsters" | "shapes"
