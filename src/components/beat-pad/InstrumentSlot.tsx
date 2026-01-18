@@ -41,12 +41,32 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
   onSelectSound,
   slotIndex,
 }) => {
-  // Use callback to prevent event propagation issues on mobile
+  // Track pointer start position to distinguish taps from scrolls
   const lastPointerUpAtRef = useRef(0);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleCellPointerDown = useCallback((e: React.PointerEvent) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
 
   const handleCellPointerUp = useCallback(
-    (step: number, e: React.PointerEvent | React.MouseEvent) => {
+    (step: number, e: React.PointerEvent) => {
       e.stopPropagation();
+      
+      // Check if this was a scroll (finger moved significantly) vs a tap
+      if (pointerStartRef.current) {
+        const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+        const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+        const SCROLL_THRESHOLD = 10; // pixels
+        
+        if (dx > SCROLL_THRESHOLD || dy > SCROLL_THRESHOLD) {
+          // This was a scroll, not a tap - ignore
+          pointerStartRef.current = null;
+          return;
+        }
+      }
+      
+      pointerStartRef.current = null;
       lastPointerUpAtRef.current = Date.now();
       onToggleCell(step);
     },
@@ -113,6 +133,7 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
           <button
             key={step}
             type="button"
+            onPointerDown={handleCellPointerDown}
             onPointerUp={(e) => handleCellPointerUp(step, e)}
             onClick={() => {
               // Some iOS Safari taps fire both pointer + click; avoid double-toggle.
