@@ -38,3 +38,7 @@ Beat Pad (`/games/beat-pad`) is a step-sequencer game that lets users create bea
 - `src/hooks/useBeatLoopPlayer.ts`
   - Ensures only one beat loop plays globally across lists (My Beats / Community).
   - Starting a second beat stops the first.
+
+## Mobile Scroll + Touch (CRITICAL)
+- Avoid `touch-pan-x` on large beat-grid containers: it can **block vertical page scrolling on iOS**.
+- Prefer `touch-manipulation` on the grid wrapper so taps feel responsive *and* the user can still scroll the page.

@@ -46,7 +46,6 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
 
   const handleCellPointerUp = useCallback(
     (step: number, e: React.PointerEvent | React.MouseEvent) => {
-      e.preventDefault();
       e.stopPropagation();
       lastPointerUpAtRef.current = Date.now();
       onToggleCell(step);
@@ -55,7 +54,6 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
   );
 
   const handlePlaySound = useCallback((e: React.PointerEvent | React.MouseEvent) => {
-    e.preventDefault();
     e.stopPropagation();
     onPlaySound();
   }, [onPlaySound]);
