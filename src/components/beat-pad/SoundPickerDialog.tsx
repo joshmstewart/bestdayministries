@@ -187,8 +187,8 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-1">
+            <div className="flex-1 min-h-0 overflow-y-auto touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-1 pb-4">
                 {filteredSounds.map(sound => (
                   <div
                     key={sound.id}
@@ -228,7 +228,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                   No sounds found
                 </div>
               )}
-            </ScrollArea>
+            </div>
           )}
         </div>
       </DialogContent>
