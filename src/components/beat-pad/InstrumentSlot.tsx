@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -42,11 +42,17 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
   slotIndex,
 }) => {
   // Use callback to prevent event propagation issues on mobile
-  const handleCellTap = useCallback((step: number, e: React.PointerEvent | React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onToggleCell(step);
-  }, [onToggleCell]);
+  const lastPointerUpAtRef = useRef(0);
+
+  const handleCellPointerUp = useCallback(
+    (step: number, e: React.PointerEvent | React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      lastPointerUpAtRef.current = Date.now();
+      onToggleCell(step);
+    },
+    [onToggleCell]
+  );
 
   const handlePlaySound = useCallback((e: React.PointerEvent | React.MouseEvent) => {
     e.preventDefault();
@@ -85,7 +91,7 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
       <div className="relative">
         <button
           onPointerDown={handlePlaySound}
-          className="w-24 md:w-32 flex items-center gap-2 px-2 py-2 rounded-lg bg-card border border-border hover:bg-accent transition-colors text-left h-12 touch-manipulation select-none"
+          className="w-24 md:w-32 flex items-center gap-2 px-2 py-2 rounded-lg bg-card border border-border md:hover:bg-accent transition-colors text-left h-12 touch-manipulation select-none"
         >
           <span className="text-xl">{sound.emoji}</span>
           <span className="text-xs md:text-sm font-medium truncate flex-1">{sound.name}</span>
@@ -94,13 +100,13 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
           variant="ghost"
           size="icon"
           onClick={onRemove}
-          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity touch-manipulation"
+          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity touch-manipulation"
         >
           <X className="h-3 w-3" />
         </Button>
       </div>
 
-      {/* Beat cells - using onClick with touch-manipulation for reliable mobile taps */}
+      {/* Beat cells - pointerup for iOS, click fallback */}
       {Array.from({ length: STEPS }).map((_, step) => {
         const isActive = stepPattern[step] ?? false;
         const isCurrentStep = isPlaying && currentStep === step;
@@ -109,7 +115,12 @@ export const InstrumentSlot: React.FC<InstrumentSlotProps> = ({
           <button
             key={step}
             type="button"
-            onClick={() => onToggleCell(step)}
+            onPointerUp={(e) => handleCellPointerUp(step, e)}
+            onClick={() => {
+              // Some iOS Safari taps fire both pointer + click; avoid double-toggle.
+              if (Date.now() - lastPointerUpAtRef.current < 500) return;
+              onToggleCell(step);
+            }}
             className={cn(
               "flex-1 aspect-square rounded-lg border-2 transition-colors",
               "active:scale-95 touch-manipulation select-none",
