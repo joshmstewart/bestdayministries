@@ -176,7 +176,7 @@ export const CustomizableBeatGrid: React.FC<CustomizableBeatGridProps> = ({
 
   return (
     <div className="w-full overflow-x-auto overscroll-x-contain">
-      <div className="min-w-[700px] space-y-2 touch-pan-x">
+      <div className="min-w-[700px] space-y-2 touch-manipulation">
         {/* Step indicators */}
         <div className="flex items-center gap-1 pl-24 md:pl-32">
           {Array.from({ length: STEPS }).map((_, step) => (
