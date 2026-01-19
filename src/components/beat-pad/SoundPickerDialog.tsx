@@ -142,95 +142,101 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-full h-[80vh] max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Choose a Sound</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl w-full max-h-[80vh] overflow-hidden p-0">
+        <ScrollArea className="max-h-[80vh]">
+          <div className="p-6">
+            <DialogHeader>
+              <DialogTitle>Choose a Sound</DialogTitle>
+            </DialogHeader>
 
-        <div className="flex flex-col gap-4 min-h-0">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search sounds..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+            <div className="flex flex-col gap-4 mt-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search sounds..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-          {/* Category filters */}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={selectedCategory === null ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory(null)}
-            >
-              All
-            </Button>
-            {categories.map(cat => (
-              <Button
-                key={cat}
-                variant={selectedCategory === cat ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory(cat)}
-                className="capitalize"
-              >
-                {cat.replace(/_/g, ' ')}
-              </Button>
-            ))}
-          </div>
-
-          {/* Sound grid */}
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0 overflow-y-auto touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-1 pb-4">
-                {filteredSounds.map(sound => (
-                  <div
-                    key={sound.id}
-                    className={cn(
-                      "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border",
-                      "hover:border-primary hover:bg-accent transition-all cursor-pointer",
-                      "active:scale-95"
-                    )}
-                    onClick={() => handleSelect(sound)}
+              {/* Category filters */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectedCategory === null ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCategory(null)}
+                >
+                  All
+                </Button>
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={selectedCategory === cat ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory(cat)}
+                    className="capitalize"
                   >
-                    {/* Preview button */}
-                    <button
-                      onClick={(e) => playSound(sound, e)}
-                      className={cn(
-                        "absolute top-2 right-2 p-1.5 rounded-full transition-all",
-                        "bg-primary/10 hover:bg-primary/20",
-                        playingId === sound.id && "bg-primary text-primary-foreground animate-pulse"
-                      )}
-                      title="Preview sound"
-                    >
-                      <Volume2 className="h-3.5 w-3.5" />
-                    </button>
-                    
-                    <span className="text-3xl">{sound.emoji}</span>
-                    <span className="text-sm font-medium text-center truncate w-full">
-                      {sound.name}
-                    </span>
-                    <div
-                      className="h-2 w-full rounded-full"
-                      style={{ backgroundColor: sound.color }}
-                    />
-                  </div>
+                    {cat.replace(/_/g, ' ')}
+                  </Button>
                 ))}
               </div>
-              {filteredSounds.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  No sounds found
+
+              {/* Sound grid */}
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-1 pb-4 touch-manipulation">
+                    {filteredSounds.map((sound) => (
+                      <div
+                        key={sound.id}
+                        className={cn(
+                          "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border",
+                          "hover:border-primary hover:bg-accent transition-all cursor-pointer",
+                          "active:scale-95"
+                        )}
+                        onClick={() => handleSelect(sound)}
+                      >
+                        {/* Preview button */}
+                        <button
+                          onClick={(e) => playSound(sound, e)}
+                          className={cn(
+                            "absolute top-2 right-2 p-1.5 rounded-full transition-all",
+                            "bg-primary/10 hover:bg-primary/20",
+                            playingId === sound.id &&
+                              "bg-primary text-primary-foreground animate-pulse"
+                          )}
+                          title="Preview sound"
+                        >
+                          <Volume2 className="h-3.5 w-3.5" />
+                        </button>
+
+                        <span className="text-3xl">{sound.emoji}</span>
+                        <span className="text-sm font-medium text-center truncate w-full">
+                          {sound.name}
+                        </span>
+                        <div
+                          className="h-2 w-full rounded-full"
+                          style={{ backgroundColor: sound.color }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {filteredSounds.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No sounds found
+                    </div>
+                  )}
+                </>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
