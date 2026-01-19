@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { showErrorToastWithCopy } from '@/lib/errorToast';
 import { SoundConfig } from './InstrumentSlot';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface BeatCoverImageProps {
   beatId?: string;
@@ -30,10 +31,12 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Update when prop changes
   React.useEffect(() => {
     setCurrentImageUrl(imageUrl);
+    setImageLoaded(false); // Reset loaded state when URL changes
   }, [imageUrl]);
 
   const hasPattern = Object.values(pattern).some(steps => steps.some(Boolean));
@@ -104,10 +107,19 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
       <div className="relative">
         {currentImageUrl ? (
           <div className="relative group">
+            {/* Skeleton placeholder while loading */}
+            {!imageLoaded && (
+              <Skeleton className="absolute inset-0 w-full aspect-square rounded-xl" />
+            )}
             <img
               src={currentImageUrl}
               alt={beatName}
-              className="w-full aspect-square object-cover rounded-xl border border-border"
+              loading="lazy"
+              onLoad={() => setImageLoaded(true)}
+              className={cn(
+                "w-full aspect-square object-cover rounded-xl border border-border transition-opacity duration-300",
+                imageLoaded ? "opacity-100" : "opacity-0"
+              )}
             />
             <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
               <Button
