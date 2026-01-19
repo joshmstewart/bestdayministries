@@ -62,60 +62,76 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
     oscillator.stop(ctx.currentTime + (sound.decay || 0.3));
   };
 
-  const playSound = (sound: SoundConfig, e: React.MouseEvent | React.TouchEvent) => {
+  const playSound = (
+    sound: SoundConfig,
+    e: React.SyntheticEvent
+  ) => {
     e.stopPropagation();
-    e.preventDefault();
-    
+    // Prevent scrolling/"ghost click" behaviors on iOS, and keep this as a direct user gesture.
+    if ("preventDefault" in e) e.preventDefault();
+
     // Stop any playing beat when previewing a sound
     onPreviewStart?.();
-    
-    setPlayingId(sound.id);
-    
-    // Get/create AudioContext synchronously in user gesture
-    const ctx = getAudioContext();
-    
-    // Resume synchronously if suspended (iOS requirement)
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
 
-    // Check if we have a cached audio buffer
-    const cachedBuffer = audioBuffersRef.current.get(sound.id);
-    
-    if (cachedBuffer) {
-      // Play cached audio immediately
-      const source = ctx.createBufferSource();
-      source.buffer = cachedBuffer;
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 0.7;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      source.start();
-      setTimeout(() => setPlayingId(null), 300);
+    setPlayingId(sound.id);
+
+    const ctx = getAudioContext();
+
+    const startPlayback = () => {
+      // Check if we have a cached audio buffer
+      const cachedBuffer = audioBuffersRef.current.get(sound.id);
+
+      if (cachedBuffer) {
+        const source = ctx.createBufferSource();
+        source.buffer = cachedBuffer;
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = 0.7;
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.start(ctx.currentTime);
+        return;
+      }
+
+      // If we have an audio_url but no cached buffer, play synthesized first then load
+      if (sound.audio_url) {
+        playSynthesizedSound(ctx, sound);
+
+        // Load the audio buffer in background for next time
+        fetch(sound.audio_url)
+          .then((response) => response.arrayBuffer())
+          .then((arrayBuffer) => ctx.decodeAudioData(arrayBuffer))
+          .then((buffer) => {
+            audioBuffersRef.current.set(sound.id, buffer);
+          })
+          .catch((err) => {
+            console.warn('Failed to load audio buffer:', err);
+          });
+      } else {
+        playSynthesizedSound(ctx, sound);
+      }
+    };
+
+    // iOS/Safari: resuming is async; starting audio *before* resume completes can be silent.
+    if (ctx.state === 'suspended') {
+      ctx
+        .resume()
+        .then(() => {
+          startPlayback();
+        })
+        .catch((err) => {
+          console.warn('Failed to resume AudioContext for preview:', err);
+        })
+        .finally(() => {
+          setTimeout(() => setPlayingId(null), 300);
+        });
       return;
     }
 
-    // If we have an audio_url but no cached buffer, play synthesized first then load
-    if (sound.audio_url) {
-      // Play synthesized sound immediately so user hears something
-      playSynthesizedSound(ctx, sound);
-      
-      // Load the audio buffer in background for next time
-      fetch(sound.audio_url)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => ctx.decodeAudioData(arrayBuffer))
-        .then(buffer => {
-          audioBuffersRef.current.set(sound.id, buffer);
-        })
-        .catch(err => {
-          console.warn('Failed to load audio buffer:', err);
-        });
-    } else {
-      // No audio URL, just play synthesized
-      playSynthesizedSound(ctx, sound);
+    try {
+      startPlayback();
+    } finally {
+      setTimeout(() => setPlayingId(null), 300);
     }
-    
-    setTimeout(() => setPlayingId(null), 300);
   };
 
   useEffect(() => {
@@ -219,7 +235,8 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                       >
                         {/* Preview button */}
                         <button
-                          onClick={(e) => playSound(sound, e)}
+                          type="button"
+                          onPointerDown={(e) => playSound(sound, e)}
                           className={cn(
                             "absolute top-2 right-2 p-1.5 rounded-full transition-all",
                             "bg-primary/10 hover:bg-primary/20",
