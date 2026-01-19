@@ -237,6 +237,10 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                         <button
                           type="button"
                           onPointerDown={(e) => playSound(sound, e)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
                           className={cn(
                             "absolute top-2 right-2 p-1.5 rounded-full transition-all",
                             "bg-primary/10 hover:bg-primary/20",
