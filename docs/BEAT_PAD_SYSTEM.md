@@ -42,8 +42,9 @@ Beat Pad (`/games/beat-pad`) is a step-sequencer game that lets users create bea
 ## Mobile Scroll + Touch (CRITICAL)
 - Avoid `touch-pan-x` on large beat-grid containers: it can **block vertical page scrolling on iOS**.
 - Prefer `touch-manipulation` on the grid wrapper so taps feel responsive *and* the user can still scroll the page.
-- If using `ScrollArea` (Radix), the root must have an explicit height (`h-*`/`h-full`). `max-h-*` alone can result in **no scrolling** because the viewport uses `h-full`.
+- For tall dialogs on iOS/Safari, avoid relying on `DialogContent`'s default `display:grid`. Use: `DialogContent` = `flex flex-col overflow-hidden`, and a child wrapper = `flex-1 min-h-0 overflow-y-auto [-webkit-overflow-scrolling:touch]`.
 
 ## Mobile Audio Preview (iOS/Safari)
-- For the "preview" button in the sound picker, trigger playback from `onPointerDown` (not just `onClick`).
+- Trigger playback from `onPointerDown` (not just `onClick`).
+- If `AudioContext.state === 'suspended'`, call `ctx.resume()` **without awaiting** and start nodes immediately inside the user gesture; playback will begin once the context resumes.
 - If `AudioContext.state === 'suspended'`, call `ctx.resume()` and **start playback only after the resume promise resolves**; starting oscillators/buffers before resume completes can be silent on iOS.
