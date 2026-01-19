@@ -48,15 +48,25 @@ export const useBeatLoopPlayer = () => {
     return audioContextRef.current;
   }, []);
 
+
+  const primeAudioContext = useCallback((ctx: AudioContext) => {
+    try {
+      // A tiny silent blip helps keep Safari/iOS “unlocked” for subsequent scheduled sounds.
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.01);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // IMPORTANT: must be called from a direct user gesture BEFORE any awaits/interval playback.
   const ensureAudioContextRunning = useCallback(async () => {
-    let ctx = getAudioContext();
-
-    // If context is closed, we need a fresh one
-    if (ctx.state === 'closed') {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      ctx = audioContextRef.current;
-    }
+    const ctx = getAudioContext();
 
     if (ctx.state === 'suspended') {
       try {
@@ -66,8 +76,12 @@ export const useBeatLoopPlayer = () => {
       }
     }
 
+    if (ctx.state === 'running') {
+      primeAudioContext(ctx);
+    }
+
     return ctx;
-  }, [getAudioContext]);
+  }, [getAudioContext, primeAudioContext]);
 
   const loadAudioBuffer = useCallback(async (url: string, key: string): Promise<AudioBuffer | null> => {
     if (audioBuffersRef.current.has(key)) {
@@ -181,6 +195,14 @@ export const useBeatLoopPlayer = () => {
 
   const playSound = useCallback((instrument: string) => {
     const ctx = getAudioContext();
+
+    // If Safari/iOS suspends between interactions, resume without blocking playback scheduling.
+    if (ctx.state === 'suspended') {
+      void ctx.resume().catch((error) => {
+        console.warn('Failed to resume AudioContext (playSound):', error);
+      });
+    }
+
     const config = soundConfigsRef.current[instrument] || DEFAULT_SOUNDS[instrument] || DEFAULT_SOUNDS['kick'];
     if (!config) return;
 
@@ -278,16 +300,17 @@ export const useBeatLoopPlayer = () => {
     globalPlayingBeatId = beatId;
     globalStopCallback = stopBeat;
 
-    // Ensure AudioContext is running (Safari/iOS requires this to happen in a user gesture).
-    await ensureAudioContextRunning();
+    // Kick off AudioContext resume/unlock without waiting (iOS/Safari is very gesture-sensitive).
+    void ensureAudioContextRunning();
 
     // Get all instrument keys from the pattern
     const instrumentKeys = Object.keys(pattern);
-    
-    // Load any missing sound configs by UUID before starting playback
-    await loadSoundsByUUID(instrumentKeys);
 
-    // Check if user clicked stop/another beat while we were loading sounds
+    // Load missing sound configs/buffers in the background.
+    // Playback starts immediately with synthesized fallback so the first click always makes sound.
+    void loadSoundsByUUID(instrumentKeys);
+
+    // If user clicked stop/another beat immediately, don't start an interval.
     if (globalPlayingBeatId !== beatId) {
       return;
     }
@@ -335,9 +358,23 @@ export const useBeatLoopPlayer = () => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
+
+      // If this hook instance was the global controller, clear global state.
+      if (globalStopCallback === stopBeat) {
+        globalStopCallback = null;
+        globalPlayingBeatId = null;
+      }
+
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+
+      audioBuffersRef.current.clear();
     };
-  }, []);
+  }, [stopBeat]);
 
   return {
     playBeat,
