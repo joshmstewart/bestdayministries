@@ -87,6 +87,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
     setPlayingId(sound.id);
 
     const ctx = getAudioContext();
+    console.log('[SoundPickerDialog] ctx state', ctx.state);
 
     const startPlayback = () => {
       // Check if we have a cached audio buffer
@@ -122,19 +123,19 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
       }
     };
 
-    // iOS/Safari: resuming is async; starting audio *before* resume completes can be silent.
+    // iOS/Safari: resuming is async; but we must *start* audio from within the user gesture.
+    // Starting nodes while suspended will queue and should play once resume succeeds.
     if (ctx.state === 'suspended') {
-      ctx
-        .resume()
-        .then(() => {
-          startPlayback();
-        })
-        .catch((err) => {
-          console.warn('Failed to resume AudioContext for preview:', err);
-        })
-        .finally(() => {
-          setTimeout(() => setPlayingId(null), 300);
-        });
+      // Kick off resume, but don't wait for it.
+      ctx.resume().catch((err) => {
+        console.warn('Failed to resume AudioContext for preview:', err);
+      });
+
+      try {
+        startPlayback();
+      } finally {
+        setTimeout(() => setPlayingId(null), 300);
+      }
       return;
     }
 
@@ -150,6 +151,8 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
     const now = Date.now();
     if (now - lastPreviewTriggerAtRef.current < 250) return;
     lastPreviewTriggerAtRef.current = now;
+
+    console.log('[SoundPickerDialog] preview', { id: sound.id, type: e.type });
     playSound(sound, e);
   };
 
