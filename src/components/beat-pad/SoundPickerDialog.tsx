@@ -38,6 +38,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
   const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
   const suppressSelectRef = useRef(false);
   const lastPreviewAtRef = useRef<number>(0);
+  const lastPreviewTriggerAtRef = useRef<number>(0);
 
   const getAudioContext = () => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
@@ -142,6 +143,14 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
     } finally {
       setTimeout(() => setPlayingId(null), 300);
     }
+  };
+
+  const handlePreview = (sound: SoundConfig, e: React.SyntheticEvent) => {
+    // Some devices fire multiple events (pointer + touch + click). Guard against double triggers.
+    const now = Date.now();
+    if (now - lastPreviewTriggerAtRef.current < 250) return;
+    lastPreviewTriggerAtRef.current = now;
+    playSound(sound, e);
   };
 
   useEffect(() => {
@@ -253,11 +262,8 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                         <button
                           type="button"
                           data-preview-button="true"
-                          onPointerDown={(e) => playSound(sound, e)}
-                          onPointerUp={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
+                          onPointerDown={(e) => handlePreview(sound, e)}
+                          onTouchStart={(e) => handlePreview(sound, e)}
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
