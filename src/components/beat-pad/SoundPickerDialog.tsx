@@ -196,8 +196,8 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-full max-h-[80vh] overflow-hidden p-0">
-        <ScrollArea className="max-h-[80vh]">
+      <DialogContent className="max-w-2xl w-full h-[80vh] max-h-[80vh] overflow-hidden p-0">
+        <ScrollArea className="h-full">
           <div className="p-6">
             <DialogHeader>
               <DialogTitle>Choose a Sound</DialogTitle>
