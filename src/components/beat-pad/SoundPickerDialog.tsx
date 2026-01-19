@@ -38,52 +38,14 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
   const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
 
   const getAudioContext = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
-    }
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
+    if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     return audioContextRef.current;
   };
 
-  const playSound = async (sound: SoundConfig, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // Stop any playing beat when previewing a sound
-    onPreviewStart?.();
-    
-    setPlayingId(sound.id);
-    
-    const ctx = getAudioContext();
-    
-    // Try to play audio URL first
-    if (sound.audio_url) {
-      try {
-        let buffer = audioBuffersRef.current.get(sound.id);
-        if (!buffer) {
-          const response = await fetch(sound.audio_url);
-          const arrayBuffer = await response.arrayBuffer();
-          buffer = await ctx.decodeAudioData(arrayBuffer);
-          audioBuffersRef.current.set(sound.id, buffer);
-        }
-        
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        const gainNode = ctx.createGain();
-        gainNode.gain.value = 0.7;
-        source.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        source.start();
-        
-        setTimeout(() => setPlayingId(null), 300);
-        return;
-      } catch (err) {
-        console.warn('Failed to play audio URL, falling back to synthesized:', err);
-      }
-    }
-    
-    // Fallback to synthesized sound
+  // Play synthesized sound immediately (keeps iOS audio unlocked)
+  const playSynthesizedSound = (ctx: AudioContext, sound: SoundConfig) => {
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
@@ -98,6 +60,60 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
     
     oscillator.start();
     oscillator.stop(ctx.currentTime + (sound.decay || 0.3));
+  };
+
+  const playSound = (sound: SoundConfig, e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // Stop any playing beat when previewing a sound
+    onPreviewStart?.();
+    
+    setPlayingId(sound.id);
+    
+    // Get/create AudioContext synchronously in user gesture
+    const ctx = getAudioContext();
+    
+    // Resume synchronously if suspended (iOS requirement)
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    // Check if we have a cached audio buffer
+    const cachedBuffer = audioBuffersRef.current.get(sound.id);
+    
+    if (cachedBuffer) {
+      // Play cached audio immediately
+      const source = ctx.createBufferSource();
+      source.buffer = cachedBuffer;
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 0.7;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      source.start();
+      setTimeout(() => setPlayingId(null), 300);
+      return;
+    }
+
+    // If we have an audio_url but no cached buffer, play synthesized first then load
+    if (sound.audio_url) {
+      // Play synthesized sound immediately so user hears something
+      playSynthesizedSound(ctx, sound);
+      
+      // Load the audio buffer in background for next time
+      fetch(sound.audio_url)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => ctx.decodeAudioData(arrayBuffer))
+        .then(buffer => {
+          audioBuffersRef.current.set(sound.id, buffer);
+        })
+        .catch(err => {
+          console.warn('Failed to load audio buffer:', err);
+        });
+    } else {
+      // No audio URL, just play synthesized
+      playSynthesizedSound(ctx, sound);
+    }
     
     setTimeout(() => setPlayingId(null), 300);
   };
