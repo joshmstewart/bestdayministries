@@ -42,3 +42,7 @@ Beat Pad (`/games/beat-pad`) is a step-sequencer game that lets users create bea
 ## Mobile Scroll + Touch (CRITICAL)
 - Avoid `touch-pan-x` on large beat-grid containers: it can **block vertical page scrolling on iOS**.
 - Prefer `touch-manipulation` on the grid wrapper so taps feel responsive *and* the user can still scroll the page.
+
+## Mobile Audio Preview (iOS/Safari)
+- For the "preview" button in the sound picker, trigger playback from `onPointerDown` (not just `onClick`).
+- If `AudioContext.state === 'suspended'`, call `ctx.resume()` and **start playback only after the resume promise resolves**; starting oscillators/buffers before resume completes can be silent on iOS.

@@ -1348,4 +1348,5 @@ PATTERN:beat_pad_creations.pattern→keys=beat_pad_sounds.id(UUID) [preferred]; 
 LOADING:BeatPad.handleLoadBeat→detect-UUID-vs-sound_type→query-sounds→normalize-to-slot-indexed-pattern(0..19) for grid
 PLAYBACK:useBeatLoopPlayer→global-single-loop→starting-new-beat-stops-previous
 MOBILE:avoid touch-pan-x on large grids (blocks vertical scroll on iOS); use touch-manipulation
+AUDIO-PREVIEW:iOS/Safari sound preview should use onPointerDown + resume-then-play (don’t start audio before ctx.resume() resolves)
 ERRORS:unsupported-pattern-format→showErrorToastWithCopy(persistent+copy)
