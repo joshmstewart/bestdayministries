@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Wand2, Music } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +7,7 @@ import { showErrorToastWithCopy } from '@/lib/errorToast';
 import { SoundConfig } from './InstrumentSlot';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNetworkQuality, getOptimizedImageUrl } from '@/hooks/useNetworkQuality';
 
 interface BeatCoverImageProps {
   beatId?: string;
@@ -32,12 +33,44 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [displayQuality, setDisplayQuality] = useState<'optimized' | 'full'>('optimized');
+  const loadStartRef = useRef<number>(0);
+  
+  const { quality: networkQuality } = useNetworkQuality();
 
   // Update when prop changes
   React.useEffect(() => {
     setCurrentImageUrl(imageUrl);
-    setImageLoaded(false); // Reset loaded state when URL changes
+    setImageLoaded(false);
+    setDisplayQuality('optimized'); // Reset to optimized on URL change
   }, [imageUrl]);
+
+  // Get the optimized URL based on network quality
+  const optimizedUrl = currentImageUrl 
+    ? getOptimizedImageUrl(currentImageUrl, networkQuality)
+    : null;
+  
+  // Determine which URL to display
+  const displayUrl = displayQuality === 'full' ? currentImageUrl : optimizedUrl;
+
+  // Track load time and upgrade to full quality if connection is fast
+  const handleImageLoadStart = useCallback(() => {
+    loadStartRef.current = performance.now();
+  }, []);
+
+  const handleImageLoad = useCallback(() => {
+    setImageLoaded(true);
+    
+    // If we loaded the optimized version quickly, upgrade to full quality
+    if (displayQuality === 'optimized' && loadStartRef.current > 0) {
+      const loadTime = performance.now() - loadStartRef.current;
+      // If optimized image loaded in under 500ms, upgrade to full quality
+      if (loadTime < 500 && networkQuality !== 'slow') {
+        setDisplayQuality('full');
+        setImageLoaded(false); // Reset to show loading for full image
+      }
+    }
+  }, [displayQuality, networkQuality]);
 
   const hasPattern = Object.values(pattern).some(steps => steps.some(Boolean));
 
@@ -112,10 +145,11 @@ export const BeatCoverImage: React.FC<BeatCoverImageProps> = ({
               <Skeleton className="absolute inset-0 w-full aspect-square rounded-xl" />
             )}
             <img
-              src={currentImageUrl}
+              src={displayUrl || ''}
               alt={beatName}
               loading="lazy"
-              onLoad={() => setImageLoaded(true)}
+              onLoadStart={handleImageLoadStart}
+              onLoad={handleImageLoad}
               className={cn(
                 "w-full aspect-square object-cover rounded-xl border border-border transition-opacity duration-300",
                 imageLoaded ? "opacity-100" : "opacity-0"
