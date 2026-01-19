@@ -36,6 +36,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
+  const suppressSelectRef = useRef(false);
 
   const getAudioContext = () => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
@@ -69,6 +70,13 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
     e.stopPropagation();
     // Prevent scrolling/"ghost click" behaviors on iOS, and keep this as a direct user gesture.
     if ("preventDefault" in e) e.preventDefault();
+
+    // Some mobile browsers may still dispatch a click to the parent tile after the preview tap.
+    // We suppress tile selection briefly after previewing.
+    suppressSelectRef.current = true;
+    window.setTimeout(() => {
+      suppressSelectRef.current = false;
+    }, 400);
 
     // Stop any playing beat when previewing a sound
     onPreviewStart?.();
@@ -231,11 +239,17 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                           "hover:border-primary hover:bg-accent transition-all cursor-pointer",
                           "active:scale-95"
                         )}
-                        onClick={() => handleSelect(sound)}
+                        onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (suppressSelectRef.current) return;
+                          if (target?.closest?.('[data-preview-button="true"]')) return;
+                          handleSelect(sound);
+                        }}
                       >
                         {/* Preview button */}
                         <button
                           type="button"
+                          data-preview-button="true"
                           onPointerDown={(e) => playSound(sound, e)}
                           onClick={(e) => {
                             e.stopPropagation();
