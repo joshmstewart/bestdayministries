@@ -37,6 +37,7 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioBuffersRef = useRef<Map<string, AudioBuffer>>(new Map());
   const suppressSelectRef = useRef(false);
+  const lastPreviewAtRef = useRef<number>(0);
 
   const getAudioContext = () => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
@@ -73,10 +74,11 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
 
     // Some mobile browsers may still dispatch a click to the parent tile after the preview tap.
     // We suppress tile selection briefly after previewing.
+    lastPreviewAtRef.current = Date.now();
     suppressSelectRef.current = true;
     window.setTimeout(() => {
       suppressSelectRef.current = false;
-    }, 400);
+    }, 1500);
 
     // Stop any playing beat when previewing a sound
     onPreviewStart?.();
@@ -241,7 +243,8 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                         )}
                         onClick={(e) => {
                           const target = e.target as HTMLElement;
-                          if (suppressSelectRef.current) return;
+                          const msSincePreview = Date.now() - lastPreviewAtRef.current;
+                          if (suppressSelectRef.current || msSincePreview < 1500) return;
                           if (target?.closest?.('[data-preview-button="true"]')) return;
                           handleSelect(sound);
                         }}
@@ -251,6 +254,10 @@ export const SoundPickerDialog: React.FC<SoundPickerDialogProps> = ({
                           type="button"
                           data-preview-button="true"
                           onPointerDown={(e) => playSound(sound, e)}
+                          onPointerUp={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
