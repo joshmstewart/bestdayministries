@@ -39,15 +39,24 @@ export const useBeatLoopPlayer = () => {
   }, [soundConfigs]);
 
   const getAudioContext = useCallback(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // Check if context exists and is still usable
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      return audioContextRef.current;
     }
+    // Create new context if none exists or if the old one was closed
+    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     return audioContextRef.current;
   }, []);
 
   // IMPORTANT: must be called from a direct user gesture BEFORE any awaits/interval playback.
   const ensureAudioContextRunning = useCallback(async () => {
-    const ctx = getAudioContext();
+    let ctx = getAudioContext();
+
+    // If context is closed, we need a fresh one
+    if (ctx.state === 'closed') {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      ctx = audioContextRef.current;
+    }
 
     if (ctx.state === 'suspended') {
       try {
