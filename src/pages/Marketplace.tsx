@@ -438,40 +438,21 @@ const Marketplace = () => {
                     </PopoverContent>
                   </Popover>
                   
-                  {/* Sort Popover */}
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon">
-                        <ArrowUpDown className="h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-48 p-2 bg-background border z-50" align="end">
-                      <div className="space-y-1">
-                        <span className="text-sm font-medium px-2 pb-1 block border-b mb-2">Sort By</span>
-                        {[
-                          { value: 'popular', label: 'Most Popular' },
-                          { value: 'newest', label: 'Newest First' },
-                          { value: 'oldest', label: 'Oldest First' },
-                          { value: 'price-low', label: 'Price: Low to High' },
-                          { value: 'price-high', label: 'Price: High to Low' },
-                          { value: 'name-az', label: 'Name: A to Z' },
-                          { value: 'name-za', label: 'Name: Z to A' },
-                        ].map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => setSortBy(option.value)}
-                            className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${
-                              sortBy === option.value 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'hover:bg-muted'
-                            }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  {/* Sort Select */}
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="popular">Most Popular</SelectItem>
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                      <SelectItem value="price-low">Price: Low to High</SelectItem>
+                      <SelectItem value="price-high">Price: High to Low</SelectItem>
+                      <SelectItem value="name-az">Name: A to Z</SelectItem>
+                      <SelectItem value="name-za">Name: Z to A</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               
