@@ -51,9 +51,28 @@ export const ProductGrid = ({ category, sortBy = "newest" }: ProductGridProps) =
         );
       }
       
+      // Get view counts for popularity sorting
+      let viewCountsMap: Record<string, number> = {};
+      if (sortBy === 'popular') {
+        const productIds = vendorReadyProducts.map(p => p.id);
+        if (productIds.length > 0) {
+          const { data: viewData } = await supabase
+            .from('product_views')
+            .select('product_id')
+            .in('product_id', productIds);
+          
+          // Count views per product
+          viewData?.forEach(view => {
+            viewCountsMap[view.product_id] = (viewCountsMap[view.product_id] || 0) + 1;
+          });
+        }
+      }
+      
       // Sort products based on sortBy option
       const sortedProducts = [...vendorReadyProducts].sort((a, b) => {
         switch (sortBy) {
+          case 'popular':
+            return (viewCountsMap[b.id] || 0) - (viewCountsMap[a.id] || 0);
           case 'newest':
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           case 'oldest':
