@@ -41,7 +41,7 @@ interface FeedItemProps {
 const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string; route: string }> = {
   beat: { label: "Beat", icon: Music, color: "bg-purple-500/10 text-purple-500 border-purple-500/20", route: "/games/beat-pad" },
   card: { label: "Card", icon: Image, color: "bg-pink-500/10 text-pink-500 border-pink-500/20", route: "/games/card-creator" },
-  coloring: { label: "Coloring", icon: Palette, color: "bg-orange-500/10 text-orange-500 border-orange-500/20", route: "/games/coloring" },
+  coloring: { label: "Coloring", icon: Palette, color: "bg-orange-500/10 text-orange-500 border-orange-500/20", route: "/games/coloring-book" },
   post: { label: "Post", icon: MessageSquare, color: "bg-blue-500/10 text-blue-500 border-blue-500/20", route: "/discussions" },
   album: { label: "Album", icon: FolderOpen, color: "bg-green-500/10 text-green-500 border-green-500/20", route: "/gallery" },
   chore_art: { label: "Chore Art", icon: Trophy, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", route: "/games/chore-challenge" },
