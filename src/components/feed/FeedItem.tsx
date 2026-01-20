@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { 
   Heart, Share2, Music, Palette, Image, MessageSquare, 
-  FolderOpen, Trophy, Play, Square, ExternalLink,
+  FolderOpen, Trophy, Play, Square, ArrowRight,
   Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -404,8 +404,8 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
                 className={cn("h-8 gap-1.5 border-0", config.buttonColor)}
               >
                 <Link to={getItemRoute(item.item_type, item.id)}>
-                  <Icon className="h-3 w-3" />
                   <span className="text-xs font-medium">{config.appName}</span>
+                  <ArrowRight className="h-3 w-3" />
                 </Link>
               </Button>
             </div>
