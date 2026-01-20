@@ -6,11 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface ProductGridProps {
   category?: string | null;
   sortBy?: string;
+  searchQuery?: string;
+  categoryFilters?: string[];
 }
 
-export const ProductGrid = ({ category, sortBy = "newest" }: ProductGridProps) => {
+export const ProductGrid = ({ category, sortBy = "newest", searchQuery = "", categoryFilters = [] }: ProductGridProps) => {
   const { data: products, isLoading } = useQuery({
-    queryKey: ['products', category, sortBy],
+    queryKey: ['products', category, sortBy, searchQuery, categoryFilters],
     queryFn: async () => {
       const query = supabase
         .from('products')
@@ -36,19 +38,36 @@ export const ProductGrid = ({ category, sortBy = "newest" }: ProductGridProps) =
         return vendor.stripe_charges_enabled === true;
       }) || [];
       
-      // Filter based on category
+      // Filter based on category tab (merch vs handmade)
       if (category === 'merch') {
-        // Show Printify products OR products from house vendor
         vendorReadyProducts = vendorReadyProducts.filter(p => 
           p.is_printify_product === true || 
           (p.vendor as any)?.is_house_vendor === true
         );
       } else if (category === 'handmade') {
-        // Show vendor products that are NOT from house vendor
         vendorReadyProducts = vendorReadyProducts.filter(p => 
           p.vendor_id !== null && 
           (p.vendor as any)?.is_house_vendor !== true
         );
+      }
+      
+      // Apply search filter (name and tags)
+      if (searchQuery.trim()) {
+        const searchLower = searchQuery.toLowerCase().trim();
+        vendorReadyProducts = vendorReadyProducts.filter(p => {
+          const nameMatch = p.name?.toLowerCase().includes(searchLower);
+          const tagsArray = p.tags as string[] | null;
+          const tagsMatch = tagsArray?.some(tag => tag?.toLowerCase().includes(searchLower));
+          return nameMatch || tagsMatch;
+        });
+      }
+      
+      // Apply category filters (product category, not tab category)
+      if (categoryFilters.length > 0) {
+        vendorReadyProducts = vendorReadyProducts.filter(p => {
+          const productCategory = p.category?.trim();
+          return productCategory && categoryFilters.includes(productCategory);
+        });
       }
       
       // Get view counts for popularity sorting

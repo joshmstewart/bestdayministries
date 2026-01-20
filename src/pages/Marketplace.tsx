@@ -4,7 +4,11 @@ import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Package, Store, Lock, ArrowUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ShoppingCart, Package, Store, Lock, ArrowUpDown, Filter, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -21,6 +25,39 @@ const Marketplace = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>("newest");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoryFilterOpen, setCategoryFilterOpen] = useState(false);
+
+  // Fetch available categories
+  const { data: availableCategories } = useQuery({
+    queryKey: ['product-categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('category')
+        .eq('is_active', true)
+        .not('category', 'is', null);
+      
+      if (error) throw error;
+      
+      // Get unique categories and trim whitespace
+      const uniqueCategories = [...new Set(data?.map(p => p.category?.trim()).filter(Boolean))] as string[];
+      return uniqueCategories.sort();
+    }
+  });
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const clearCategoryFilters = () => {
+    setSelectedCategories([]);
+  };
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
 
@@ -322,35 +359,127 @@ const Marketplace = () => {
                   </TabsList>
                 )}
                 
-                <div className="flex items-center gap-2 sm:ml-auto">
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="popular">Most Popular</SelectItem>
-                      <SelectItem value="newest">Newest First</SelectItem>
-                      <SelectItem value="oldest">Oldest First</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                      <SelectItem value="name-az">Name: A to Z</SelectItem>
-                      <SelectItem value="name-za">Name: Z to A</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {/* Search and Filter Controls */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:ml-auto w-full sm:w-auto">
+                  {/* Search Bar */}
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search products..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-9"
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Category Multi-Select */}
+                  <Popover open={categoryFilterOpen} onOpenChange={setCategoryFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="gap-2 min-w-[140px]">
+                        <Filter className="h-4 w-4" />
+                        Categories
+                        {selectedCategories.length > 0 && (
+                          <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                            {selectedCategories.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-3 bg-background border z-50" align="end">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between pb-2 border-b">
+                          <span className="text-sm font-medium">Filter by Category</span>
+                          {selectedCategories.length > 0 && (
+                            <button 
+                              onClick={clearCategoryFilters}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Clear all
+                            </button>
+                          )}
+                        </div>
+                        {availableCategories?.map((category) => (
+                          <label 
+                            key={category} 
+                            className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted cursor-pointer"
+                          >
+                            <Checkbox 
+                              checked={selectedCategories.includes(category)}
+                              onCheckedChange={() => toggleCategory(category)}
+                            />
+                            <span className="text-sm">{category}</span>
+                          </label>
+                        ))}
+                        {(!availableCategories || availableCategories.length === 0) && (
+                          <p className="text-sm text-muted-foreground py-2">No categories available</p>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="popular">Most Popular</SelectItem>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="oldest">Oldest First</SelectItem>
+                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                        <SelectItem value="name-az">Name: A to Z</SelectItem>
+                        <SelectItem value="name-za">Name: Z to A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
               
+              {/* Selected Category Badges */}
+              {selectedCategories.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mt-4 mb-2">
+                  <span className="text-sm text-muted-foreground">Filtering:</span>
+                  {selectedCategories.map((category) => (
+                    <Badge 
+                      key={category} 
+                      variant="secondary" 
+                      className="gap-1 cursor-pointer hover:bg-destructive/20"
+                      onClick={() => toggleCategory(category)}
+                    >
+                      {category}
+                      <X className="h-3 w-3" />
+                    </Badge>
+                  ))}
+                  <button 
+                    onClick={clearCategoryFilters}
+                    className="text-xs text-primary hover:underline ml-2"
+                  >
+                    Clear all
+                  </button>
+                </div>
+              )}
+              
               <TabsContent value="all">
-                <ProductGrid category={null} sortBy={sortBy} />
+                <ProductGrid category={null} sortBy={sortBy} searchQuery={searchQuery} categoryFilters={selectedCategories} />
               </TabsContent>
               
               <TabsContent value="merch">
-                <ProductGrid category="merch" sortBy={sortBy} />
+                <ProductGrid category="merch" sortBy={sortBy} searchQuery={searchQuery} categoryFilters={selectedCategories} />
               </TabsContent>
               
               <TabsContent value="handmade">
-                <ProductGrid category="handmade" sortBy={sortBy} />
+                <ProductGrid category="handmade" sortBy={sortBy} searchQuery={searchQuery} categoryFilters={selectedCategories} />
               </TabsContent>
             </Tabs>
           </div>
