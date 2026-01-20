@@ -130,6 +130,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
             data = result.data;
             break;
           }
+          case 'joke': {
+            const result = await supabase
+              .from('joke_likes')
+              .select('id')
+              .eq('joke_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
           default:
             return;
         }
@@ -191,6 +201,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
           } else {
             await supabase.from('custom_drink_likes').insert({ drink_id: item.id, user_id: user.id });
             await supabase.from('custom_drinks').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+          }
+          break;
+        }
+        case 'joke': {
+          if (isLiked) {
+            await supabase.from('joke_likes').delete().eq('joke_id', item.id).eq('user_id', user.id);
+            // likes_count is updated by database trigger
+          } else {
+            await supabase.from('joke_likes').insert({ joke_id: item.id, user_id: user.id });
+            // likes_count is updated by database trigger
           }
           break;
         }
