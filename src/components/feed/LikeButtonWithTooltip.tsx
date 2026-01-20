@@ -101,9 +101,9 @@ export function LikeButtonWithTooltip({
       }
 
       if (userIds.length > 0) {
-        // Fetch profile names
+        // Fetch public profile names (safe for tooltip)
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('id, display_name')
           .in('id', userIds);
 
