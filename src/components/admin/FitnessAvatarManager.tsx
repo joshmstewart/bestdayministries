@@ -373,11 +373,46 @@ export function FitnessAvatarManager() {
       : randomTemplate.character_type === 'superhero' ? '🦸 Superhero' 
       : '👤 Human';
     
+    // Generate diverse demographic traits for non-animal characters
+    let demographicSuffix = "";
+    if (randomTemplate.character_type !== 'animal') {
+      const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+      
+      const skinTone = pick([
+        "deep dark skin",
+        "dark brown skin",
+        "medium brown skin",
+        "olive skin",
+        "light skin",
+      ]);
+      
+      const genderPresentation = pick([
+        "feminine-presenting",
+        "masculine-presenting",
+        "androgynous-presenting",
+      ]);
+      
+      const hairColor = pick(["black", "blonde", "red", "auburn", "silver", "blue", "purple", "pink"]);
+      const hairStyle = pick([
+        "curly hair",
+        "coily hair",
+        "wavy hair",
+        "straight hair",
+        "braids",
+        "locs",
+        "short hair",
+        "long hair",
+        "bald head",
+      ]);
+      
+      demographicSuffix = `. Character has ${skinTone}, ${genderPresentation}, with ${hairColor} ${hairStyle}`;
+    }
+    
     setFormData(prev => ({
       ...prev,
       name: randomTemplate.name,
       description: `A ${randomTemplate.character_type === 'animal' ? 'friendly animal' : randomTemplate.character_type === 'superhero' ? 'heroic' : 'friendly'} character who loves fitness and can do any sport!`,
-      character_prompt: randomTemplate.prompt,
+      character_prompt: randomTemplate.prompt + demographicSuffix,
       character_type: randomTemplate.character_type, // Track the type for image generation
       display_order: avatars?.length || 0,
     }));
