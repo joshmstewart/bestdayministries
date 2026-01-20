@@ -7,6 +7,7 @@ import { useCommunityFeed, ItemType } from "@/hooks/useCommunityFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useUnseenFeedCount } from "@/hooks/useUnseenFeedCount";
+import { useBatchLikeStatus } from "@/hooks/useBatchLikeStatus";
 
 // Estimated height for feed items (for virtual scroll optimization)
 const ESTIMATED_ITEM_HEIGHT = 400;
@@ -16,6 +17,7 @@ export function CommunityFeed() {
   const { items, loading, loadingMore, hasMore, loadMore, refresh } = useCommunityFeed({ typeFilters });
   const { isAuthenticated } = useAuth();
   const { markAsSeen } = useUnseenFeedCount();
+  const { isLiked, setLiked } = useBatchLikeStatus(items);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -159,7 +161,13 @@ export function CommunityFeed() {
       {/* Feed items grid - single column on mobile, 2 on larger screens */}
       <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {items.map((item) => (
-          <FeedItem key={`${item.item_type}-${item.id}`} item={item} onRefresh={refresh} />
+          <FeedItem 
+            key={`${item.item_type}-${item.id}`} 
+            item={item} 
+            onRefresh={refresh}
+            isLikedInitial={isLiked(item.item_type, item.id)}
+            onLikeChange={(liked) => setLiked(item.item_type, item.id, liked)}
+          />
         ))}
       </div>
 
