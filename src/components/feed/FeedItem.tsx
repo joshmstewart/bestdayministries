@@ -156,6 +156,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             data = result.data;
             break;
           }
+          case 'workout': {
+            const result = await supabase
+              .from('workout_image_likes')
+              .select('id')
+              .eq('image_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
           default:
             return;
         }
@@ -227,6 +237,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
           } else {
             await supabase.from('joke_likes').insert({ joke_id: item.id, user_id: user.id });
             // likes_count is updated by database trigger
+          }
+          break;
+        }
+        case 'workout': {
+          if (isLiked) {
+            await supabase.from('workout_image_likes').delete().eq('image_id', item.id).eq('user_id', user.id);
+            await supabase.from('workout_generated_images').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+          } else {
+            await supabase.from('workout_image_likes').insert({ image_id: item.id, user_id: user.id });
+            await supabase.from('workout_generated_images').update({ likes_count: likesCount + 1 }).eq('id', item.id);
           }
           break;
         }

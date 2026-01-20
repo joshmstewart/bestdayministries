@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke';
+type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout';
 
 interface LikeStatusMap {
   [key: string]: boolean; // key format: "itemType:itemId"
@@ -32,6 +32,7 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       const coloringIds: string[] = [];
       const drinkIds: string[] = [];
       const jokeIds: string[] = [];
+      const workoutIds: string[] = [];
 
       items.forEach(item => {
         switch (item.item_type) {
@@ -40,10 +41,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           case 'coloring': coloringIds.push(item.id); break;
           case 'drink': drinkIds.push(item.id); break;
           case 'joke': jokeIds.push(item.id); break;
+          case 'workout': workoutIds.push(item.id); break;
         }
       });
 
-      // Fetch all like statuses in parallel (max 5 queries instead of N queries)
+      // Fetch all like statuses in parallel (max 6 queries instead of N queries)
       const results = await Promise.all([
         beatIds.length > 0 
           ? supabase.from('beat_pad_likes').select('creation_id').eq('user_id', user.id).in('creation_id', beatIds)
@@ -59,6 +61,9 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           : Promise.resolve({ data: [] }),
         jokeIds.length > 0 
           ? supabase.from('joke_likes').select('joke_id').eq('user_id', user.id).in('joke_id', jokeIds)
+          : Promise.resolve({ data: [] }),
+        workoutIds.length > 0 
+          ? supabase.from('workout_image_likes').select('image_id').eq('user_id', user.id).in('image_id', workoutIds)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -87,6 +92,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       // Process joke likes
       results[4].data?.forEach((like: any) => {
         newStatusMap[`joke:${like.joke_id}`] = true;
+      });
+
+      // Process workout likes
+      results[5].data?.forEach((like: any) => {
+        newStatusMap[`workout:${like.image_id}`] = true;
       });
 
       setLikeStatusMap(newStatusMap);
