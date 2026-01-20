@@ -537,7 +537,7 @@ export default function MoneyCounting() {
       
       <main className="pt-20 pb-8 px-4 flex-1">
         <div className="container mx-auto max-w-6xl">
-          <BackButton to="/community" label="Back to Community" className="mb-4" />
+          <BackButton to="/community" className="mb-4" />
           <div className="mb-4">
             <h1 className="text-2xl font-bold">💵 Cash Register</h1>
             <p className="text-muted-foreground text-sm">Make correct change for customers!</p>

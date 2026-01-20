@@ -46,7 +46,7 @@ const WorkoutTracker = () => {
       <UnifiedHeader />
       <main className="min-h-screen bg-background pt-24 pb-8">
         <div className="container max-w-lg mx-auto px-4">
-          <BackButton to="/community" label="Back to Community" />
+          <BackButton to="/community" />
           {/* Header */}
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-1">
