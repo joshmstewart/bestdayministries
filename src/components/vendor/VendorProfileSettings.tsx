@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, Loader2, ExternalLink } from "lucide-react";
+import { Upload, Loader2, ExternalLink, X } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
 import { VendorStoryMediaManager } from "./VendorStoryMediaManager";
@@ -257,11 +257,22 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
             <Label>Store Logo</Label>
             <div className="flex items-center gap-4">
               {formData.logo_url && (
-                <img 
-                  src={formData.logo_url} 
-                  alt="Logo preview"
-                  className="w-16 h-16 rounded-full object-cover"
-                />
+                <div className="relative">
+                  <img 
+                    src={formData.logo_url} 
+                    alt="Logo preview"
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={() => setFormData(prev => ({ ...prev, logo_url: '' }))}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               )}
               <div>
                 <Input
@@ -287,11 +298,22 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
             <Label>Profile Banner</Label>
             <div className="space-y-2">
               {formData.banner_image_url && (
-                <img 
-                  src={formData.banner_image_url} 
-                  alt="Banner preview"
-                  className="w-full h-32 rounded-lg object-cover"
-                />
+                <div className="relative">
+                  <img 
+                    src={formData.banner_image_url} 
+                    alt="Banner preview"
+                    className="w-full h-32 rounded-lg object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-6 w-6"
+                    onClick={() => setFormData(prev => ({ ...prev, banner_image_url: '' }))}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               )}
               <div>
                 <Input
