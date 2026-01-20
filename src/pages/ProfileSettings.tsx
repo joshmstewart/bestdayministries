@@ -36,16 +36,6 @@ interface Profile {
   custom_avatar_url?: string | null;
   custom_avatar_type?: string | null;
 }
-  id: string;
-  display_name: string;
-  bio?: string;
-  avatar_url?: string;
-  avatar_number?: number;
-  role: string;
-  tts_voice?: string;
-  tts_enabled?: boolean;
-  friend_code?: string | null;
-}
 
 const ProfileSettings = () => {
   const navigate = useNavigate();
