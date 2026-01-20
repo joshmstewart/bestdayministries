@@ -60,6 +60,7 @@ const Community = () => {
   const [quickLinksLoaded, setQuickLinksLoaded] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<Array<{key: string, visible: boolean}>>([]);
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
+  const [feedVisibleToRoles, setFeedVisibleToRoles] = useState<string[] | null>(null);
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const [effectiveRole, setEffectiveRole] = useState<UserRole | null>(null);
 
@@ -119,13 +120,19 @@ const Community = () => {
     try {
       const { data, error } = await supabase
         .from("community_sections")
-        .select("section_key, is_visible")
+        .select("section_key, is_visible, visible_to_roles")
         .order("display_order", { ascending: true });
 
       if (error) throw error;
       
       if (data) {
-      setSectionOrder(data.map(s => ({ key: s.section_key, visible: s.is_visible })));
+        setSectionOrder(data.map(s => ({ key: s.section_key, visible: s.is_visible })));
+        
+        // Extract feed visibility roles
+        const newsfeedSection = data.find(s => s.section_key === 'newsfeed');
+        if (newsfeedSection) {
+          setFeedVisibleToRoles(newsfeedSection.visible_to_roles as string[] | null);
+        }
       }
     } catch (error) {
       console.error("Error loading section order:", error);
@@ -143,6 +150,15 @@ const Community = () => {
         { key: 'quick_links', visible: true },
       ]);
     }
+  };
+  
+  // Check if current user's role can access the Feed tab
+  const canAccessFeed = (): boolean => {
+    // If no role restrictions set, everyone can access
+    if (!feedVisibleToRoles || feedVisibleToRoles.length === 0) return true;
+    // Check if user's effective role is in the allowed list
+    if (!effectiveRole) return false;
+    return feedVisibleToRoles.includes(effectiveRole);
   };
 
   const markSectionLoaded = (sectionKey: string) => {
@@ -310,30 +326,34 @@ const Community = () => {
             onValueChange={(value) => setSearchParams({ tab: value })}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto overflow-visible">
-              <TabsTrigger value="community" className="gap-2">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Community</span>
-                <span className="sm:hidden">Community</span>
-              </TabsTrigger>
-              <TabsTrigger value="feed" className="gap-2 relative overflow-visible">
-                <Rss className="w-4 h-4" />
-                <span>Feed</span>
-                {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
-                  >
-                    {unseenCount > 99 ? '99+' : unseenCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
+            {canAccessFeed() ? (
+              <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto overflow-visible">
+                <TabsTrigger value="community" className="gap-2">
+                  <Users className="w-4 h-4" />
+                  <span className="hidden sm:inline">Community</span>
+                  <span className="sm:hidden">Community</span>
+                </TabsTrigger>
+                <TabsTrigger value="feed" className="gap-2 relative overflow-visible">
+                  <Rss className="w-4 h-4" />
+                  <span>Feed</span>
+                  {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
+                    >
+                      {unseenCount > 99 ? '99+' : unseenCount}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            ) : null}
 
-            {/* What's New Feed Tab */}
-            <TabsContent value="feed" className="mt-6">
-              <CommunityFeed />
-            </TabsContent>
+            {/* What's New Feed Tab - only render if user has access */}
+            {canAccessFeed() && (
+              <TabsContent value="feed" className="mt-6">
+                <CommunityFeed />
+              </TabsContent>
+            )}
 
             {/* Community Tab - existing content */}
             <TabsContent value="community" className="mt-6 space-y-6">
