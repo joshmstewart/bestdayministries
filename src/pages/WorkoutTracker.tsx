@@ -14,6 +14,7 @@ import { CurrentAvatarDisplay } from "@/components/workout/CurrentAvatarDisplay"
 import { LocationPackPicker } from "@/components/workout/LocationPackPicker";
 import { AvatarNewsFeed } from "@/components/workout/AvatarNewsFeed";
 import { Dumbbell, Video, Sparkles, Image as ImageIcon, MapPin, Package, Info } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +46,7 @@ const WorkoutTracker = () => {
       <UnifiedHeader />
       <main className="min-h-screen bg-background pt-24 pb-8">
         <div className="container max-w-lg mx-auto px-4">
+          <BackButton to="/community" label="Back to Community" />
           {/* Header */}
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-1">

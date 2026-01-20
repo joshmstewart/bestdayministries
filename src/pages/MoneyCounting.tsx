@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RotateCcw, Trophy, Store, ChevronDown } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
@@ -536,6 +537,7 @@ export default function MoneyCounting() {
       
       <main className="pt-20 pb-8 px-4 flex-1">
         <div className="container mx-auto max-w-6xl">
+          <BackButton to="/community" label="Back to Community" className="mb-4" />
           <div className="mb-4">
             <h1 className="text-2xl font-bold">💵 Cash Register</h1>
             <p className="text-muted-foreground text-sm">Make correct change for customers!</p>

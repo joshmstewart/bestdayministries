@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Volume2, Copy, RefreshCw, Bell, Mail, Lock } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
@@ -539,6 +540,7 @@ const ProfileSettings = () => {
       <UnifiedHeader />
       
       <main className="container mx-auto px-4 pt-20 pb-12">
+        <BackButton to="/community" label="Back to Community" />
         <div className="max-w-2xl mx-auto space-y-8">
           <div>
             <h1 className="text-4xl font-black text-foreground">

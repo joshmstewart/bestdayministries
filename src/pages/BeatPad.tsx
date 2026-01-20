@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Music, Users, X, ShoppingBag, Save, Wand2, Loader2, Shuffle } from 'lucide-react';
+import { Music, Users, X, ShoppingBag, Save, Wand2, Loader2, Shuffle, ArrowLeft } from 'lucide-react';
+import { BackButton } from '@/components/BackButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -707,6 +708,8 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
 
       {/* Main content */}
       <main className="flex-1 container mx-auto px-4 py-6">
+        <BackButton to="/community" label="Back to Community" className="mb-4" />
+        
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">
             <TabsTrigger value="create" className="flex items-center gap-2">

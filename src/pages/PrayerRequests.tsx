@@ -4,6 +4,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, HandHeart, BookOpen, Sparkles } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { MyPrayers } from "@/components/prayer-requests/MyPrayers";
 import { CommunityPrayers } from "@/components/prayer-requests/CommunityPrayers";
 import { AnsweredPrayersGallery } from "@/components/prayer-requests/AnsweredPrayersGallery";
@@ -24,6 +25,7 @@ const PrayerRequests = () => {
       <UnifiedHeader />
       <main className="pt-24 pb-12">
         <div className="container mx-auto px-4 max-w-4xl">
+          <BackButton to="/community" label="Back to Community" />
           <div className="space-y-6">
             {/* Header */}
             <div className="text-center space-y-2">
