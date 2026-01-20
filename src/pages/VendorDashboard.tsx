@@ -450,34 +450,34 @@ const VendorDashboard = () => {
             <CartInsights vendorId={selectedVendorId} />
 
             <Tabs defaultValue="products" className="w-full">
-              <TabsList className="inline-flex flex-wrap h-auto gap-2 bg-transparent p-0">
+              <TabsList className="inline-flex flex-wrap h-auto gap-2 bg-muted/50 p-1.5 rounded-lg mb-6">
                 <TabsTrigger 
                   value="products" 
-                  className="whitespace-nowrap px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm"
+                  className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
                   Products
                 </TabsTrigger>
                 <TabsTrigger 
                   value="orders" 
-                  className="whitespace-nowrap px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm"
+                  className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
                   Orders
                 </TabsTrigger>
                 <TabsTrigger 
                   value="earnings" 
-                  className="whitespace-nowrap px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm"
+                  className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
                   Earnings
                 </TabsTrigger>
                 <TabsTrigger 
                   value="payments" 
-                  className="whitespace-nowrap px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm"
+                  className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
                   Payments
                 </TabsTrigger>
                 <TabsTrigger 
                   value="settings" 
-                  className="whitespace-nowrap px-4 py-2 rounded-lg border border-border bg-card hover:bg-accent data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary shadow-sm"
+                  className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
                   Settings
                 </TabsTrigger>
