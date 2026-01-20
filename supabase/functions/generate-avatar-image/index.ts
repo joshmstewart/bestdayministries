@@ -82,6 +82,17 @@ CRITICAL ANIMAL CHARACTER REQUIREMENT:
 - NEVER show animal characters on all fours or in a natural animal stance
 - Animal characters should look like cartoon mascots (think Zootopia, Animal Crossing style)
 
+AGE DEMOGRAPHIC PREFERENCE:
+- STRONGLY prefer young adult and adult characters (ages 18-40 appearance)
+- We already have many child characters, so lean toward mature but friendly adult representations
+- Adults can still be cute and cartoon-style while looking like grown-ups
+- For superhero characters: can be any age but default to adult unless specified
+
+SUPERHERO VARIETY (if character is a superhero type):
+- Embrace diverse superhero styles: classic caped heroes, tech-suited heroes, elemental powers, cosmic heroes, speedsters, strength-based heroes, flying heroes, ninja/stealth heroes, magical heroes, armored heroes
+- Superheroes should have distinctive costumes, emblems, or visual powers
+- Keep the friendly, approachable cartoon style even for superhero characters
+
 Style requirements:
 - Bright, cheerful cartoon/animated art style similar to modern mobile games
 - Character should be standing in a confident, friendly pose
