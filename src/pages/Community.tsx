@@ -314,7 +314,7 @@ const Community = () => {
               </TabsTrigger>
               <TabsTrigger value="feed" className="gap-2">
                 <Rss className="w-4 h-4" />
-                What's New
+                Feed
               </TabsTrigger>
             </TabsList>
 
