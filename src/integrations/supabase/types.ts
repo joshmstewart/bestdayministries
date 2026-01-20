@@ -3861,6 +3861,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fitness_avatar_templates: {
+        Row: {
+          archived_at: string | null
+          character_type: string
+          created_at: string
+          id: string
+          is_archived: boolean
+          name: string
+          prompt: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          character_type: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name: string
+          prompt: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          character_type?: string
+          created_at?: string
+          id?: string
+          is_archived?: boolean
+          name?: string
+          prompt?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fitness_avatars: {
         Row: {
           character_prompt: string
