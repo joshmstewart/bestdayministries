@@ -40,19 +40,19 @@ interface FeedItemProps {
   onRefresh?: () => void;
 }
 
-const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string; routeBase: string; idParam: string }> = {
-  beat: { label: "Beat", icon: Music, color: "bg-purple-500/10 text-purple-500 border-purple-500/20", routeBase: "/games/beat-pad", idParam: "id" },
-  card: { label: "Card", icon: Image, color: "bg-pink-500/10 text-pink-500 border-pink-500/20", routeBase: "/games/card-creator", idParam: "id" },
-  coloring: { label: "Coloring", icon: Palette, color: "bg-orange-500/10 text-orange-500 border-orange-500/20", routeBase: "/games/coloring-book", idParam: "id" },
-  post: { label: "Post", icon: MessageSquare, color: "bg-blue-500/10 text-blue-500 border-blue-500/20", routeBase: "/discussions", idParam: "post" },
-  album: { label: "Album", icon: FolderOpen, color: "bg-green-500/10 text-green-500 border-green-500/20", routeBase: "/gallery", idParam: "album" },
-  chore_art: { label: "Chore Art", icon: Trophy, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", routeBase: "/games/chore-challenge", idParam: "gallery" },
-  event: { label: "Event", icon: Calendar, color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20", routeBase: "/events", idParam: "event" },
-  prayer: { label: "Prayer", icon: HandHeart, color: "bg-rose-500/10 text-rose-500 border-rose-500/20", routeBase: "/prayer-requests", idParam: "id" },
-  workout: { label: "Workout", icon: Dumbbell, color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", routeBase: "/workout-tracker", idParam: "image" },
-  recipe: { label: "Recipe", icon: ChefHat, color: "bg-amber-500/10 text-amber-500 border-amber-500/20", routeBase: "/games/recipe-gallery", idParam: "recipe" },
-  drink: { label: "Drink", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", routeBase: "/games/drink-creator", idParam: "drink" },
-  joke: { label: "Joke", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", routeBase: "/games/joke-generator", idParam: "joke" },
+const typeConfig: Record<string, { label: string; appName: string; icon: React.ElementType; color: string; buttonColor: string; routeBase: string; idParam: string }> = {
+  beat: { label: "Beat", appName: "Beat Pad", icon: Music, color: "bg-purple-500/10 text-purple-500 border-purple-500/20", buttonColor: "bg-purple-500 hover:bg-purple-600 text-white", routeBase: "/games/beat-pad", idParam: "id" },
+  card: { label: "Card", appName: "Card Creator", icon: Image, color: "bg-pink-500/10 text-pink-500 border-pink-500/20", buttonColor: "bg-pink-500 hover:bg-pink-600 text-white", routeBase: "/games/card-creator", idParam: "id" },
+  coloring: { label: "Coloring", appName: "Coloring Book", icon: Palette, color: "bg-orange-500/10 text-orange-500 border-orange-500/20", buttonColor: "bg-orange-500 hover:bg-orange-600 text-white", routeBase: "/games/coloring-book", idParam: "id" },
+  post: { label: "Post", appName: "Discussions", icon: MessageSquare, color: "bg-blue-500/10 text-blue-500 border-blue-500/20", buttonColor: "bg-blue-500 hover:bg-blue-600 text-white", routeBase: "/discussions", idParam: "post" },
+  album: { label: "Album", appName: "Gallery", icon: FolderOpen, color: "bg-green-500/10 text-green-500 border-green-500/20", buttonColor: "bg-green-500 hover:bg-green-600 text-white", routeBase: "/gallery", idParam: "album" },
+  chore_art: { label: "Chore Art", appName: "Chore Challenge", icon: Trophy, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", buttonColor: "bg-yellow-500 hover:bg-yellow-600 text-white", routeBase: "/games/chore-challenge", idParam: "gallery" },
+  event: { label: "Event", appName: "Events", icon: Calendar, color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20", buttonColor: "bg-indigo-500 hover:bg-indigo-600 text-white", routeBase: "/events", idParam: "event" },
+  prayer: { label: "Prayer", appName: "Prayers", icon: HandHeart, color: "bg-rose-500/10 text-rose-500 border-rose-500/20", buttonColor: "bg-rose-500 hover:bg-rose-600 text-white", routeBase: "/prayer-requests", idParam: "id" },
+  workout: { label: "Workout", appName: "Workout Tracker", icon: Dumbbell, color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", buttonColor: "bg-emerald-500 hover:bg-emerald-600 text-white", routeBase: "/workout-tracker", idParam: "image" },
+  recipe: { label: "Recipe", appName: "Recipe Gallery", icon: ChefHat, color: "bg-amber-500/10 text-amber-500 border-amber-500/20", buttonColor: "bg-amber-500 hover:bg-amber-600 text-white", routeBase: "/games/recipe-gallery", idParam: "recipe" },
+  drink: { label: "Drink", appName: "Drink Creator", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", buttonColor: "bg-cyan-500 hover:bg-cyan-600 text-white", routeBase: "/games/drink-creator", idParam: "drink" },
+  joke: { label: "Joke", appName: "Joke Generator", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", buttonColor: "bg-lime-500 hover:bg-lime-600 text-white", routeBase: "/games/joke-generator", idParam: "joke" },
 };
 
 const getItemRoute = (itemType: string, itemId: string) => {
@@ -399,14 +399,13 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
 
               {/* Open in app button */}
               <Button
-                variant="outline"
                 size="sm"
                 asChild
-                className="h-8 gap-1"
+                className={cn("h-8 gap-1.5 border-0", config.buttonColor)}
               >
                 <Link to={getItemRoute(item.item_type, item.id)}>
-                  <ExternalLink className="h-3 w-3" />
-                  <span className="text-xs">Open</span>
+                  <Icon className="h-3 w-3" />
+                  <span className="text-xs font-medium">{config.appName}</span>
                 </Link>
               </Button>
             </div>
