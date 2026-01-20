@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
-  Heart, Download, Loader2, X, EyeOff, Play, Square, 
+  Download, Loader2, X, EyeOff, Play, Square, 
   ExternalLink, Palette, Music
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemData } from "./FeedItem";
+import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 
 interface IngredientWithCategory {
   name: string;
@@ -330,20 +331,14 @@ export function FeedItemDialog({
                 </Button>
               )}
 
-              {/* Like button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onToggleLike}
-              >
-                <Heart
-                  className={cn(
-                    "h-4 w-4 mr-1",
-                    isLiked && "fill-red-500 text-red-500"
-                  )}
-                />
-                {likesCount}
-              </Button>
+              {/* Like button with tooltip */}
+              <LikeButtonWithTooltip
+                itemId={item.id}
+                itemType={item.item_type}
+                isLiked={isLiked}
+                likesCount={likesCount}
+                onLike={onToggleLike}
+              />
 
 
               {/* Download - for image types */}
