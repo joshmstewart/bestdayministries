@@ -146,15 +146,27 @@ serve(async (req) => {
     // For non-human characters (animals, monsters), demographicConstraint stays empty
 
     // Build the prompt for a friendly, cartoon-style fitness avatar
-    const nonHumanInstructions = isNonHumanCharacter ? `
-CRITICAL NON-HUMAN CHARACTER REQUIREMENT:
-- This is a ${characterType === 'monster' ? 'FRIENDLY MONSTER' : 'ANIMAL'} character - NOT a human
-- They MUST be anthropomorphic, standing UPRIGHT on their HIND LEGS like a human
-- They should have a humanoid posture: standing on two legs, arms at their sides or in a friendly pose
-- NEVER show them on all fours or in a natural animal stance
-- They should look like cartoon mascots (think Monsters Inc, Zootopia, Animal Crossing style)
-- Do NOT add human demographic traits like skin tone or hair - use fur, scales, or monster features instead
+    const nonHumanInstructions = isNonHumanCharacter ? (characterType === 'monster' ? `
+CRITICAL MONSTERS INC.-STYLE MONSTER REQUIREMENTS:
+- This is a FRIENDLY MONSTER character - NOT a human, NOT a real animal
+- Monsters are UNIQUE FANTASY CREATURES with imaginative features like:
+  * Multiple eyes, horns, tentacles, unusual body proportions
+  * Fur, scales, bumpy skin, or fantastical textures in bright/unusual colors
+  * Big friendly smiles with fangs or silly teeth
+  * Round bellies, long arms, stubby legs, or other cartoon monster proportions
+- Think Sulley, Mike Wazowski, Art, or other Monsters Inc. characters
+- Do NOT make them look like real animals (no tigers, bears, cats, dogs)
+- Do NOT make them look like humans with face paint or costumes
+- They should be standing UPRIGHT on two legs in a humanoid pose
+- Make them CUTE and APPROACHABLE despite being "monsters"
 ` : `
+CRITICAL ANIMAL CHARACTER REQUIREMENT:
+- This is an ANIMAL character - they MUST be anthropomorphic
+- Standing UPRIGHT on their HIND LEGS like a human
+- Humanoid posture: standing on two legs, arms at their sides or in a friendly pose
+- NEVER show them on all fours or in a natural animal stance
+- Think Zootopia or Animal Crossing style cartoon mascots
+`) : `
 CHARACTER TYPE NOTE:
 - This is a HUMAN or SUPERHERO character - do NOT make them look like an animal or monster
 - Follow the character description exactly as written
