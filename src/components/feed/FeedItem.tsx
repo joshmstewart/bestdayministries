@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { 
-  Heart, Share2, Music, Palette, Image, MessageSquare, 
+  Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
   Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh
 } from "lucide-react";
@@ -395,26 +395,6 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
                   <span className="text-xs">{likesCount}</span>
                 </Button>
 
-                {/* Share button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const url = `${window.location.origin}${getItemRoute(item.item_type, item.id)}`;
-                    if (navigator.share) {
-                      try {
-                        await navigator.share({ title: item.title, url });
-                      } catch {}
-                    } else {
-                      await navigator.clipboard.writeText(url);
-                      toast.success("Link copied!");
-                    }
-                  }}
-                  className="h-8"
-                >
-                  <Share2 className="h-4 w-4" />
-                </Button>
               </div>
 
               {/* Open in app button */}
