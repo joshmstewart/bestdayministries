@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Send, Image as ImageIcon, X, Edit, Search, ArrowUpDown, Calendar, Crop } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { compressImage } from "@/lib/imageUtils";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -784,6 +785,7 @@ const Discussions = () => {
       <UnifiedHeader />
       
       <main className="container mx-auto px-4 pt-20 pb-12">
+        <BackButton to="/community" label="Back to Community" />
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">

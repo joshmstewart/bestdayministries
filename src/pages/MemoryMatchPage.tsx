@@ -2,6 +2,7 @@ import { useState } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { MemoryMatch } from "@/components/games/MemoryMatch";
 import Footer from "@/components/Footer";
+import { BackButton } from "@/components/BackButton";
 
 const MemoryMatchPage = () => {
   const [backgroundColor, setBackgroundColor] = useState<string>('#F97316');
@@ -14,6 +15,7 @@ const MemoryMatchPage = () => {
         style={{ backgroundColor }}
       >
         <div className="container max-w-4xl mx-auto">
+          <BackButton to="/community" label="Back to Community" />
           <MemoryMatch onBackgroundColorChange={setBackgroundColor} />
         </div>
       </main>

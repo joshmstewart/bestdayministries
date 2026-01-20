@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Image, Users, Eye } from "lucide-react";
+import { CreditCard, Image, Users, Eye, ArrowLeft } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -300,6 +301,7 @@ export default function CardCreator() {
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
         <div className="container max-w-6xl mx-auto px-4">
+          <BackButton to="/community" label="Back to Community" />
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
               <CreditCard className="w-8 h-8" />

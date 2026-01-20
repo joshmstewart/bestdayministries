@@ -54,7 +54,7 @@ const typeConfig: Record<string, { label: string; appName: string; icon: React.E
   workout: { label: "Workout", appName: "Workout Tracker", icon: Dumbbell, color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", buttonColor: "bg-emerald-500 hover:bg-emerald-600 text-white", routeBase: "/workout-tracker", idParam: "image" },
   recipe: { label: "Recipe", appName: "Recipe Gallery", icon: ChefHat, color: "bg-amber-500/10 text-amber-500 border-amber-500/20", buttonColor: "bg-amber-500 hover:bg-amber-600 text-white", routeBase: "/games/recipe-gallery", idParam: "recipe" },
   drink: { label: "Drink", appName: "Drink Creator", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", buttonColor: "bg-cyan-500 hover:bg-cyan-600 text-white", routeBase: "/games/drink-creator", idParam: "drink" },
-  joke: { label: "Joke", appName: "Joke Generator", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", buttonColor: "bg-lime-500 hover:bg-lime-600 text-white", routeBase: "/games/joke-generator", idParam: "joke" },
+  joke: { label: "Joke", appName: "Joke Generator", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", buttonColor: "bg-lime-500 hover:bg-lime-600 text-white", routeBase: "/games/jokes", idParam: "joke" },
 };
 
 const getItemRoute = (itemType: string, itemId: string) => {

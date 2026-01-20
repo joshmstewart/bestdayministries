@@ -1,6 +1,7 @@
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { Match3 } from "@/components/games/Match3";
 import Footer from "@/components/Footer";
+import { BackButton } from "@/components/BackButton";
 
 const Match3Page = () => {
   return (
@@ -8,6 +9,7 @@ const Match3Page = () => {
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
         <div className="container max-w-4xl mx-auto px-4">
+          <BackButton to="/community" label="Back to Community" />
           <h1 className="text-4xl font-bold text-center mb-8 gradient-text">
             Brew Blast
           </h1>
