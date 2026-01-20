@@ -123,25 +123,19 @@ export function FeedItemDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden mt-8">
-        <div className="relative pt-6">
-          {/* Close button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          
+      <DialogContent 
+        className="max-w-2xl p-0 max-h-[90vh] overflow-hidden" 
+        hideCloseButton
+        aria-describedby={undefined}
+      >
+        <div className="overflow-y-auto max-h-[90vh] -webkit-overflow-scrolling-touch">
           {/* Image */}
           {item.image_url ? (
             <div className="relative">
               <img
                 src={item.image_url}
                 alt={item.title}
-                className="w-full h-auto max-h-[70vh] object-contain"
+                className="w-full h-auto max-h-[60vh] object-contain"
               />
               {/* Beat play overlay */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
@@ -170,7 +164,7 @@ export function FeedItemDialog({
           
           {/* Info panel */}
           <div className="p-4 bg-background">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-semibold truncate">{item.title}</h2>
@@ -189,6 +183,17 @@ export function FeedItemDialog({
                   <p className="text-sm text-muted-foreground mt-2">{item.description}</p>
                 )}
               </div>
+              
+              {/* Close button - following DIALOG_BUTTON_STANDARD */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="flex-shrink-0 hover:bg-accent"
+                onClick={onClose}
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </Button>
             </div>
             
             {/* Actions */}
