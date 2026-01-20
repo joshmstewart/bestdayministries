@@ -318,8 +318,8 @@ const Community = () => {
       <UnifiedHeader />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 pt-20 pb-12">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <main className="container mx-auto px-4 pt-16 pb-12">
+        <div className="max-w-6xl mx-auto space-y-4">
           {/* Community Tabs */}
           <Tabs 
             value={activeTab} 
@@ -327,19 +327,19 @@ const Community = () => {
             className="w-full"
           >
             {canAccessFeed() ? (
-              <TabsList className="grid w-full max-w-xs grid-cols-2 mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible">
+              <TabsList className="grid w-full max-w-[200px] grid-cols-2 mx-auto mb-1 gap-0.5 bg-muted/50 p-1 rounded-lg overflow-visible">
                 <TabsTrigger 
                   value="community" 
-                  className="gap-2 px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  className="gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
-                  <Users className="w-4 h-4" />
+                  <Users className="w-3.5 h-3.5" />
                   Community
                 </TabsTrigger>
                 <TabsTrigger 
                   value="feed" 
-                  className="gap-2 relative px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                  className="gap-1.5 relative px-3 py-1.5 text-xs font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
                 >
-                  <Rss className="w-4 h-4" />
+                  <Rss className="w-3.5 h-3.5" />
                   Feed
                   {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
                     <Badge 
@@ -383,20 +383,20 @@ const Community = () => {
                       </div>
                     )}
                     
-                    <div className="text-center space-y-4">
-                      <h1 className="text-4xl md:text-5xl font-black text-foreground">
+                    <div className="text-center space-y-2">
+                      <h1 className="text-3xl md:text-4xl font-black text-foreground">
                         Welcome to Your{" "}
                         <span className="bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                           Best Day Ministries
                         </span>{" "}
                         Community
                       </h1>
-                      <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                      <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                         Connect, share, and grow with our amazing community
                       </p>
                       
                       {/* Home of section */}
-                      <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
+                      <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                         <span className="text-sm text-muted-foreground">Home of...</span>
                         <Button
                           variant="outline"
