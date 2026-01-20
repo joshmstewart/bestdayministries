@@ -223,16 +223,16 @@ const avatarTemplates: AvatarTemplate[] = [
   { name: 'Curl Cathy', character_type: 'monster', prompt: 'A monster with curly tentacle hair, each curl a different color, wearing headband' },
   { name: 'Glow Gina', character_type: 'monster', prompt: 'A bioluminescent monster that glows softly, wearing reflective running gear' },
   { name: 'Munch Mike', character_type: 'monster', prompt: 'A one-eyed green monster with big smile, compact body, wearing MU sweatshirt' },
-  { name: 'Jelly James', character_type: 'monster', prompt: 'A jellyfish-like floating monster, translucent blue, wearing swim goggles' },
-  { name: 'Moss Morgan', character_type: 'monster', prompt: 'A mossy green nature monster, leaves growing from fur, wearing eco-friendly gym clothes' },
-  { name: 'Zigzag Zara', character_type: 'monster', prompt: 'A monster with zigzag patterned body, electric personality, wearing sprint gear' },
-  { name: 'Bubble Benny', character_type: 'monster', prompt: 'A bubble-blowing monster with soap-like skin, cheerful, wearing swim trunks' },
-  { name: 'Crystal Claire', character_type: 'monster', prompt: 'A crystalline monster with gem-like protrusions, wearing sparkly gymnastics outfit' },
-  { name: 'Shadow Shane', character_type: 'monster', prompt: 'A friendly shadow monster, dark purple, wearing glow-in-dark workout stripes' },
-  { name: 'Squish Sophia', character_type: 'monster', prompt: 'A squishy stress-ball-like pink monster, very huggable, wearing comfy athleisure' },
-  { name: 'Antler Andy', character_type: 'monster', prompt: 'A furry monster with majestic antlers, forest green, wearing hiking gear' },
-  { name: 'Webby Wanda', character_type: 'monster', prompt: 'A spider-like friendly monster with many legs, wearing ballet slippers on each' },
-  { name: 'Crest Calvin', character_type: 'monster', prompt: 'A dinosaur-like monster with colorful head crest, wearing prehistoric gym outfit' },
+  { name: 'Jelly James', character_type: 'monster', prompt: 'A jellyfish-like monster with two stubby legs, translucent blue body, wearing swim goggles' },
+  { name: 'Moss Morgan', character_type: 'monster', prompt: 'A mossy green bipedal nature monster, leaves growing from fur, wearing eco-friendly gym clothes' },
+  { name: 'Zigzag Zara', character_type: 'monster', prompt: 'A bipedal monster with zigzag patterned body, electric personality, two arms two legs, wearing sprint gear' },
+  { name: 'Bubble Benny', character_type: 'monster', prompt: 'A bubble-blowing bipedal monster with soap-like skin, cheerful, wearing swim trunks' },
+  { name: 'Crystal Claire', character_type: 'monster', prompt: 'A crystalline bipedal monster with gem-like protrusions, two arms two legs, wearing sparkly gymnastics outfit' },
+  { name: 'Shadow Shane', character_type: 'monster', prompt: 'A friendly shadow monster standing upright, dark purple, two arms two legs, wearing glow-in-dark workout stripes' },
+  { name: 'Squish Sophia', character_type: 'monster', prompt: 'A squishy stress-ball-like pink bipedal monster, very huggable, wearing comfy athleisure' },
+  { name: 'Antler Andy', character_type: 'monster', prompt: 'A furry bipedal monster with majestic antlers, forest green, two arms two legs, wearing hiking gear' },
+  { name: 'Twinkle Tina', character_type: 'monster', prompt: 'A sparkly star-shaped bipedal monster, glowing yellow, two arms two stubby legs, wearing tutu' },
+  { name: 'Crest Calvin', character_type: 'monster', prompt: 'A dinosaur-like bipedal monster with colorful head crest, two arms two legs, wearing prehistoric gym outfit' },
   { name: 'Vapor Vicky', character_type: 'monster', prompt: 'A misty cloud-like monster, soft and fluffy, wearing cozy workout sweater' },
   { name: 'Twist Tony', character_type: 'monster', prompt: 'A pretzel-shaped flexible monster, stretchy, wearing contortionist outfit' },
   { name: 'Marble Mary', character_type: 'monster', prompt: 'A smooth marble-textured monster with swirl patterns, wearing elegant dancewear' },
@@ -665,26 +665,33 @@ export function FitnessAvatarManager() {
       : randomTemplate.character_type === 'superhero' ? '🦸 Superhero' 
       : '👤 Human';
     
-    // Generate diverse demographic traits for non-animal characters
+    // Generate diverse demographic traits for HUMAN characters only (not animals or monsters)
     let demographicSuffix = "";
-    if (randomTemplate.character_type !== 'animal') {
+    if (randomTemplate.character_type === 'human' || randomTemplate.character_type === 'superhero') {
       const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
       
+      // Realistic skin tones - weighted toward common demographics
       const skinTone = pick([
-        "deep dark skin", "dark brown skin", "medium brown skin", "olive skin", "light skin",
+        "light skin", "light skin", "medium skin", "tan skin", "olive skin", 
+        "brown skin", "brown skin", "dark brown skin",
       ]);
       
+      // Realistic gender presentation - no androgynous
       const genderPresentation = pick([
-        "feminine-presenting", "masculine-presenting", "androgynous-presenting",
+        "feminine-presenting", "feminine-presenting", "masculine-presenting", "masculine-presenting",
       ]);
       
-      const hairColor = pick(["black", "blonde", "red", "auburn", "silver", "blue", "purple", "pink"]);
+      // Realistic hair colors only - no fantasy colors
+      const hairColor = pick([
+        "black", "black", "brown", "brown", "brown", "blonde", "red", "auburn", "gray",
+      ]);
       const hairStyle = pick([
-        "curly hair", "coily hair", "wavy hair", "straight hair", "braids", "locs", "short hair", "long hair", "bald head",
+        "curly hair", "wavy hair", "straight hair", "short hair", "short hair", "long hair",
       ]);
       
       demographicSuffix = `. Character has ${skinTone}, ${genderPresentation}, with ${hairColor} ${hairStyle}`;
     }
+    // For animals and monsters - no demographic suffix added
     
     const categoryMap: Record<string, string> = {
       'animal': 'animals',
