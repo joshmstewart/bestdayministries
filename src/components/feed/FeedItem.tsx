@@ -302,12 +302,34 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
             </div>
           </div>
 
-          {/* Image - clicking opens dialog */}
+          {/* Image or Joke Display - clicking opens dialog */}
           <div 
             className="cursor-pointer"
             onClick={() => setDialogOpen(true)}
           >
-            {item.image_url ? (
+            {/* Special display for jokes */}
+            {item.item_type === 'joke' && item.extra_data?.question ? (
+              <div className="p-4 bg-gradient-to-br from-lime-500/10 via-yellow-500/10 to-amber-500/10 border-y border-lime-500/20">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-lime-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-lg">🤔</span>
+                    </div>
+                    <p className="text-foreground font-medium text-base leading-relaxed">
+                      {item.extra_data.question}
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-lg">😂</span>
+                    </div>
+                    <p className="text-primary font-semibold text-base leading-relaxed">
+                      {item.extra_data.answer}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : item.image_url ? (
               <div className="relative aspect-square overflow-hidden bg-muted">
                 <img
                   src={item.image_url}
