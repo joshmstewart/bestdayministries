@@ -2216,6 +2216,7 @@ export type Database = {
           section_key: string
           section_name: string
           updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
         }
         Insert: {
           content?: Json | null
@@ -2226,6 +2227,7 @@ export type Database = {
           section_key: string
           section_name: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Update: {
           content?: Json | null
@@ -2236,6 +2238,7 @@ export type Database = {
           section_key?: string
           section_name?: string
           updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
         }
         Relationships: []
       }

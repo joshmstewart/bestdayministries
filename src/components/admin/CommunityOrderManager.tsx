@@ -3,7 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { GripVertical, Eye, EyeOff } from "lucide-react";
+import { GripVertical, Eye, EyeOff, Settings } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DndContext,
   closestCenter,
@@ -29,14 +38,18 @@ interface CommunitySection {
   display_order: number;
   is_visible: boolean;
   content: Record<string, any>;
+  visible_to_roles: string[] | null;
 }
+
+const ALL_ROLES = ['supporter', 'bestie', 'caregiver', 'moderator', 'admin', 'owner'] as const;
 
 interface SortableItemProps {
   section: CommunitySection;
   onToggleVisibility: (id: string, visible: boolean) => void;
+  onConfigureRoles: (section: CommunitySection) => void;
 }
 
-const SortableItem = ({ section, onToggleVisibility }: SortableItemProps) => {
+const SortableItem = ({ section, onToggleVisibility, onConfigureRoles }: SortableItemProps) => {
   const {
     attributes,
     listeners,
@@ -51,6 +64,8 @@ const SortableItem = ({ section, onToggleVisibility }: SortableItemProps) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const showRoleConfig = section.section_key === 'newsfeed';
 
   return (
     <div
@@ -71,7 +86,23 @@ const SortableItem = ({ section, onToggleVisibility }: SortableItemProps) => {
       <div className="flex-1">
         <p className="font-medium">{section.section_name}</p>
         <p className="text-sm text-muted-foreground">{section.section_key}</p>
+        {showRoleConfig && section.visible_to_roles && section.visible_to_roles.length > 0 && (
+          <p className="text-xs text-primary mt-1">
+            Visible to: {section.visible_to_roles.join(', ')}
+          </p>
+        )}
       </div>
+
+      {showRoleConfig && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => onConfigureRoles(section)}
+          title="Configure role access"
+        >
+          <Settings className="w-4 h-4" />
+        </Button>
+      )}
 
       <Button
         variant="outline"
@@ -94,6 +125,9 @@ const CommunityOrderManager = () => {
   const [sections, setSections] = useState<CommunitySection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<CommunitySection | null>(null);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -117,7 +151,8 @@ const CommunityOrderManager = () => {
       if (error) throw error;
       setSections((data || []).map(section => ({
         ...section,
-        content: (section.content as Record<string, any>) || {}
+        content: (section.content as Record<string, any>) || {},
+        visible_to_roles: section.visible_to_roles as string[] | null
       })));
     } catch (error) {
       console.error("Error fetching sections:", error);
@@ -172,6 +207,59 @@ const CommunityOrderManager = () => {
     }
   };
 
+  const handleConfigureRoles = (section: CommunitySection) => {
+    setSelectedSection(section);
+    setSelectedRoles(section.visible_to_roles || []);
+    setRoleDialogOpen(true);
+  };
+
+  const handleRoleToggle = (role: string) => {
+    setSelectedRoles(prev => 
+      prev.includes(role) 
+        ? prev.filter(r => r !== role)
+        : [...prev, role]
+    );
+  };
+
+  const handleSaveRoles = async () => {
+    if (!selectedSection) return;
+
+    try {
+      // Empty array means all roles can access (save as null)
+      const rolesToSave = selectedRoles.length === 0 
+        ? null 
+        : selectedRoles as ("admin" | "bestie" | "caregiver" | "owner" | "supporter" | "vendor")[];
+      
+      const { error } = await supabase
+        .from("community_sections")
+        .update({ visible_to_roles: rolesToSave })
+        .eq("id", selectedSection.id);
+
+      if (error) throw error;
+
+      setSections((prev) =>
+        prev.map((section) =>
+          section.id === selectedSection.id 
+            ? { ...section, visible_to_roles: rolesToSave } 
+            : section
+        )
+      );
+
+      toast({
+        title: "Success",
+        description: "Role access updated",
+      });
+      setRoleDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating roles:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update role access",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSaveOrder = async () => {
     setSaving(true);
     try {
@@ -211,45 +299,94 @@ const CommunityOrderManager = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Community Page Section Order</CardTitle>
-        <CardDescription>
-          Drag sections to reorder them. Click the eye icon to show/hide sections.
-          Changes are saved when you click "Save Order".
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={sections.map((s) => s.id)}
-            strategy={verticalListSortingStrategy}
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Community Page Section Order</CardTitle>
+          <CardDescription>
+            Drag sections to reorder them. Click the eye icon to show/hide sections.
+            For the Feed tab, click the settings icon to control which roles can access it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <div className="space-y-2">
-              {sections.map((section) => (
-                <SortableItem
-                  key={section.id}
-                  section={section}
-                  onToggleVisibility={handleToggleVisibility}
-                />
+            <SortableContext
+              items={sections.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-2">
+                {sections.map((section) => (
+                  <SortableItem
+                    key={section.id}
+                    section={section}
+                    onToggleVisibility={handleToggleVisibility}
+                    onConfigureRoles={handleConfigureRoles}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          <Button
+            onClick={handleSaveOrder}
+            disabled={saving}
+            className="w-full"
+          >
+            {saving ? "Saving..." : "Save Order"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Role Configuration Dialog */}
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configure Feed Access</DialogTitle>
+            <DialogDescription>
+              Select which roles can see the Feed tab. If no roles are selected, 
+              all authenticated users can access the Feed.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              {ALL_ROLES.map(role => (
+                <div key={role} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`role-${role}`}
+                    checked={selectedRoles.includes(role)}
+                    onCheckedChange={() => handleRoleToggle(role)}
+                  />
+                  <Label htmlFor={`role-${role}`} className="capitalize cursor-pointer">
+                    {role}
+                  </Label>
+                </div>
               ))}
             </div>
-          </SortableContext>
-        </DndContext>
+            
+            <p className="text-sm text-muted-foreground">
+              {selectedRoles.length === 0 
+                ? "Currently: All roles can access the Feed"
+                : `Currently: Only ${selectedRoles.join(', ')} can access the Feed`
+              }
+            </p>
+          </div>
 
-        <Button
-          onClick={handleSaveOrder}
-          disabled={saving}
-          className="w-full"
-        >
-          {saving ? "Saving..." : "Save Order"}
-        </Button>
-      </CardContent>
-    </Card>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveRoles}>
+              Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
