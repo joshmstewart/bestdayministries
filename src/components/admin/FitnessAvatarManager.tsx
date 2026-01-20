@@ -14,46 +14,26 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell, Download, Upload, Eraser } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell, Download, Upload, Eraser, Archive, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import ImageLightbox from "@/components/ImageLightbox";
+
+interface AvatarTemplate {
+  id: string;
+  name: string;
+  character_type: string;
+  prompt: string;
+  is_archived: boolean;
+  archived_at: string | null;
+  created_at: string;
+}
 
 const defaultFormData = {
   name: "", description: "", preview_image_url: "", character_prompt: "",
   is_free: false, price_coins: 100, display_order: 0, is_active: true,
 };
-
-// Character types for randomization - mix of animals and humans
-const characterTypes = [
-  // Animals
-  { type: "animal", name: "Sporty Cat", prompt: "A friendly orange tabby cat with an athletic build, wearing a colorful headband and wristbands" },
-  { type: "animal", name: "Power Panda", prompt: "A strong black and white panda bear with a muscular build, wearing athletic shorts and a tank top" },
-  { type: "animal", name: "Flash Fox", prompt: "An energetic red fox with sleek fur, wearing running shoes and a tracksuit" },
-  { type: "animal", name: "Mighty Mouse", prompt: "A small but determined gray mouse with big ears, wearing tiny workout gloves and sneakers" },
-  { type: "animal", name: "Bounce Bunny", prompt: "A fluffy white rabbit with pink ears, athletic build, wearing a sports jersey" },
-  { type: "animal", name: "Strong Bear", prompt: "A friendly brown bear with powerful arms, wearing gym clothes and lifting gloves" },
-  { type: "animal", name: "Swift Deer", prompt: "A graceful spotted deer with long legs, wearing a runner's outfit" },
-  { type: "animal", name: "Flex Frog", prompt: "A bright green frog with strong legs, wearing athletic shorts and wristbands" },
-  { type: "animal", name: "Dash Dog", prompt: "A golden retriever with a friendly face, wearing a sports bandana and running shoes" },
-  { type: "animal", name: "Owl Coach", prompt: "A wise brown owl with big eyes, wearing a coach's whistle and cap" },
-  { type: "animal", name: "Tiger Trainer", prompt: "An orange tiger with black stripes, athletic build, wearing training gear" },
-  { type: "animal", name: "Penguin Pal", prompt: "A cheerful black and white penguin, wearing a tiny workout headband" },
-  
-  // Humans - diverse and inclusive
-  { type: "human", name: "Coach Casey", prompt: "A friendly adult coach with short hair, warm smile, wearing athletic polo and whistle around neck" },
-  { type: "human", name: "Zara Zoom", prompt: "A young Black girl with curly hair in puffs, athletic build, wearing bright colored activewear" },
-  { type: "human", name: "Marcus Move", prompt: "A young Latino boy with wavy hair, enthusiastic expression, wearing basketball jersey" },
-  { type: "human", name: "Kim Kick", prompt: "A young Asian girl with straight black hair in ponytail, wearing martial arts outfit" },
-  { type: "human", name: "Super Sam", prompt: "A young boy with Down syndrome, big smile, wearing a superhero cape over workout clothes" },
-  { type: "human", name: "Wheels Wendy", prompt: "A young girl in a sporty wheelchair, brown pigtails, wearing athletic gear, confident expression" },
-  { type: "human", name: "Jumping Jack", prompt: "A young boy with red hair and freckles, energetic pose, wearing gym clothes" },
-  { type: "human", name: "Yoga Yara", prompt: "A young South Asian girl with long braided hair, peaceful expression, wearing yoga attire" },
-  { type: "human", name: "Dancing Devon", prompt: "A young nonbinary child with short colorful hair, wearing dance outfit with leg warmers" },
-  { type: "human", name: "Swimmer Sofia", prompt: "A young girl with swim cap and goggles on head, athletic swimsuit, confident pose" },
-  { type: "human", name: "Runner Ray", prompt: "A young African American boy with short hair, wearing running gear and race number" },
-  { type: "human", name: "Gymnast Grace", prompt: "A young girl with hair in bun, wearing a sparkly leotard, graceful pose" },
-];
 
 export function FitnessAvatarManager() {
   const queryClient = useQueryClient();
@@ -182,6 +162,20 @@ export function FitnessAvatarManager() {
     },
   });
 
+  // Fetch avatar templates from database
+  const { data: avatarTemplates, isLoading: templatesLoading } = useQuery({
+    queryKey: ["avatar-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fitness_avatar_templates")
+        .select("*")
+        .order("character_type")
+        .order("name");
+      if (error) throw error;
+      return data as AvatarTemplate[];
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData & { id?: string }) => {
       const payload = {
@@ -281,6 +275,25 @@ export function FitnessAvatarManager() {
     },
   });
 
+  // Archive/unarchive template mutation
+  const toggleArchiveMutation = useMutation({
+    mutationFn: async ({ id, is_archived }: { id: string; is_archived: boolean }) => {
+      const { error } = await supabase
+        .from("fitness_avatar_templates")
+        .update({ 
+          is_archived, 
+          archived_at: is_archived ? new Date().toISOString() : null 
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["avatar-templates"] });
+      toast.success(variables.is_archived ? "Template archived" : "Template restored");
+    },
+    onError: (error) => showErrorToastWithCopy("Failed to update template", error),
+  });
+
   const handleTestWorkoutImage = (avatar: any) => {
     if (!avatar.character_prompt) {
       toast.error("Character prompt is required");
@@ -333,23 +346,35 @@ export function FitnessAvatarManager() {
   };
 
   const handleRandomize = () => {
-    // Filter out characters already used
-    const usedNames = new Set(avatars?.map(a => a.name.toLowerCase()) || []);
-    const availableCharacters = characterTypes.filter(c => !usedNames.has(c.name.toLowerCase()));
-    const pool = availableCharacters.length > 0 ? availableCharacters : characterTypes;
+    // Get active (non-archived) templates from database
+    const activeTemplates = avatarTemplates?.filter(t => !t.is_archived) || [];
     
-    const randomChar = pool[Math.floor(Math.random() * pool.length)];
+    if (activeTemplates.length === 0) {
+      toast.error("No available templates. Add or unarchive some templates first.");
+      return;
+    }
+    
+    // Filter out templates already used as avatars
+    const usedNames = new Set(avatars?.map(a => a.name.toLowerCase()) || []);
+    const availableTemplates = activeTemplates.filter(t => !usedNames.has(t.name.toLowerCase()));
+    const pool = availableTemplates.length > 0 ? availableTemplates : activeTemplates;
+    
+    const randomTemplate = pool[Math.floor(Math.random() * pool.length)];
+    
+    const typeEmoji = randomTemplate.character_type === 'animal' ? '🐾 Animal' 
+      : randomTemplate.character_type === 'superhero' ? '🦸 Superhero' 
+      : '👤 Human';
     
     setFormData(prev => ({
       ...prev,
-      name: randomChar.name,
-      description: `A ${randomChar.type === 'animal' ? 'friendly animal' : 'friendly human'} character who loves fitness and can do any sport!`,
-      character_prompt: randomChar.prompt,
+      name: randomTemplate.name,
+      description: `A ${randomTemplate.character_type === 'animal' ? 'friendly animal' : randomTemplate.character_type === 'superhero' ? 'heroic' : 'friendly'} character who loves fitness and can do any sport!`,
+      character_prompt: randomTemplate.prompt,
       display_order: avatars?.length || 0,
     }));
     
-    toast.success(`Randomized: ${randomChar.name}`, { 
-      description: `${randomChar.type === 'animal' ? '🐾 Animal' : '👤 Human'} character` 
+    toast.success(`Randomized: ${randomTemplate.name}`, { 
+      description: typeEmoji
     });
   };
 
@@ -432,14 +457,27 @@ export function FitnessAvatarManager() {
 
   if (isLoading) return <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
+  const activeTemplatesCount = avatarTemplates?.filter(t => !t.is_archived).length || 0;
+  const archivedTemplatesCount = avatarTemplates?.filter(t => t.is_archived).length || 0;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Fitness Avatars</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Mix of animal and human characters for workouts</p>
-          </div>
+    <Tabs defaultValue="avatars" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="avatars">Avatars ({avatars?.length || 0})</TabsTrigger>
+        <TabsTrigger value="templates">
+          <Sparkles className="w-3 h-3 mr-1" />
+          Idea Templates ({activeTemplatesCount})
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="avatars">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Fitness Avatars</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">Mix of animal, human, and superhero characters for workouts</p>
+              </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" onClick={() => { setEditingAvatar(null); setFormData(defaultFormData); }}>
@@ -803,5 +841,77 @@ export function FitnessAvatarManager() {
         </DialogContent>
       </Dialog>
     </Card>
+      </TabsContent>
+
+      {/* Templates Tab */}
+      <TabsContent value="templates">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              Avatar Idea Templates
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">Archive ideas to stop them from appearing in randomization</p>
+          </CardHeader>
+          <CardContent>
+            {templatesLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <span>Active: {activeTemplatesCount}</span>
+                  <span>Archived: {archivedTemplatesCount}</span>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {avatarTemplates?.map((template) => (
+                      <TableRow key={template.id} className={template.is_archived ? "opacity-50" : ""}>
+                        <TableCell>
+                          <p className="font-medium">{template.name}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[300px]">{template.prompt}</p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {template.character_type === 'animal' ? '🐾' : template.character_type === 'superhero' ? '🦸' : '👤'} {template.character_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {template.is_archived ? (
+                            <Badge variant="secondary">Archived</Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleArchiveMutation.mutate({ id: template.id, is_archived: !template.is_archived })}
+                          >
+                            {template.is_archived ? (
+                              <><RotateCcw className="w-3 h-3 mr-1" />Restore</>
+                            ) : (
+                              <><Archive className="w-3 h-3 mr-1" />Archive</>
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 }
