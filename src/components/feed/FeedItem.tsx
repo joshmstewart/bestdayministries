@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { 
-  Heart, MessageCircle, Share2, Bookmark, Music, Palette, Image, MessageSquare, 
-  FolderOpen, Trophy, MoreHorizontal, Play, Square, Copy, EyeOff, Loader2, Pencil,
+  Heart, Share2, Music, Palette, Image, MessageSquare, 
+  FolderOpen, Trophy, Play, Square, ExternalLink,
   Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,15 +14,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { FeedItemDialog } from "./FeedItemDialog";
 
 export interface FeedItemData {
   id: string;
@@ -34,10 +28,8 @@ export interface FeedItemData {
   image_url: string | null;
   likes_count: number;
   comments_count: number | null;
-  // Joined from profiles
   author_name?: string;
   author_avatar?: number;
-  // Additional data for specific types
   extra_data?: any;
 }
 
@@ -70,8 +62,7 @@ const getItemRoute = (itemType: string, itemId: string) => {
   const params = new URLSearchParams();
   params.set(config.idParam, itemId);
 
-  // Feed clicks should land on the Community tab for apps that have one
-  if (itemType === "beat" || itemType === "coloring") {
+  if (itemType === "beat" || itemType === "coloring" || itemType === "card") {
     params.set("tab", "community");
   }
 
@@ -81,9 +72,8 @@ const getItemRoute = (itemType: string, itemId: string) => {
 export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
-  const [isUnsharing, setIsUnsharing] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
   const isOwner = user?.id === item.author_id;
@@ -142,9 +132,9 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
     checkLikeStatus();
   }, [user, item.id, item.item_type]);
 
-  const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleLike = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     
     if (!user) {
       toast.error("Please sign in to like");
@@ -195,48 +185,8 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
     }
   };
 
-  const handleSave = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!user) {
-      toast.error("Please sign in to save");
-      return;
-    }
-
-    setIsSaved(!isSaved);
-    onSave?.(item.id, item.item_type);
-    toast.success(isSaved ? "Removed from saved" : "Saved to collection");
-  };
-
-  const handleShare = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const url = `${window.location.origin}${getItemRoute(item.item_type, item.id)}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: item.title,
-          url,
-        });
-      } catch {
-        // User cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard");
-    }
-  };
-
-  const handleUnshare = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const handleUnshare = async () => {
     if (!user || !isOwner) return;
-    
-    setIsUnsharing(true);
     
     try {
       switch (item.item_type) {
@@ -270,9 +220,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
             .delete()
             .eq('id', item.id);
           if (error) throw error;
-          toast.success("Removed from community gallery");
-          onRefresh?.();
-          return;
+          break;
         }
         default:
           toast.error("Cannot unshare this type of content");
@@ -283,8 +231,6 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
       onRefresh?.();
     } catch (error: any) {
       toast.error(error.message || "Failed to unshare");
-    } finally {
-      setIsUnsharing(false);
     }
   };
 
@@ -301,235 +247,186 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
     }
   };
 
-  const handleRemix = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Navigate to the appropriate page with remix/copy intent
-    const route = getItemRoute(item.item_type, item.id);
-    window.location.href = route + "&action=remix";
-  };
-
   const timeAgo = formatDistanceToNow(new Date(item.created_at), { addSuffix: true });
   const isBeatPlaying = item.item_type === 'beat' && isPlaying(item.id);
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 bg-card border-border">
-      <CardContent className="p-0">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 pb-2">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-primary/20">
-              <AvatarImage 
-                src={item.author_avatar ? `/avatars/composite-${item.author_avatar}.png` : undefined} 
-                alt={item.author_name || "User"} 
-              />
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {(item.author_name || "U").charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-medium text-foreground text-sm">
-                {item.author_name || "Community Member"}
-              </span>
-              <span className="text-xs text-muted-foreground">{timeAgo}</span>
+    <>
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 bg-card border-border">
+        <CardContent className="p-0">
+          {/* Header */}
+          <div className="flex items-center justify-between p-3 pb-2">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-8 w-8 border-2 border-primary/20">
+                <AvatarImage 
+                  src={item.author_avatar ? `/avatars/composite-${item.author_avatar}.png` : undefined} 
+                  alt={item.author_name || "User"} 
+                />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {(item.author_name || "U").charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-medium text-foreground text-sm">
+                  {item.author_name || "Community Member"}
+                </span>
+                <span className="text-xs text-muted-foreground">{timeAgo}</span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isOwner && (
-              <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
-                Yours
-              </Badge>
-            )}
-            <Badge variant="outline" className={cn("gap-1 text-xs", config.color)}>
-              <Icon className="h-3 w-3" />
-              {config.label}
-            </Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSave}>
-                  <Bookmark className="h-4 w-4 mr-2" />
-                  {isSaved ? "Unsave" : "Save"}
-                </DropdownMenuItem>
-                {/* Type-specific actions */}
-                {(item.item_type === 'coloring' || item.item_type === 'beat' || item.item_type === 'card') && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to={getItemRoute(item.item_type, item.id) + "&action=copy"}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        {item.item_type === 'beat' ? 'Remix' : 'Make My Own Copy'}
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                {isOwner && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to={getItemRoute(item.item_type, item.id) + "&action=edit"}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={handleUnshare}
-                      disabled={isUnsharing}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      {isUnsharing ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <EyeOff className="h-4 w-4 mr-2" />
-                      )}
-                      Unshare
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Image */}
-        {item.image_url && (
-          <Link to={getItemRoute(item.item_type, item.id)} className="block">
-            <div className="relative aspect-square sm:aspect-video overflow-hidden bg-muted">
-              <img
-                src={item.image_url}
-                alt={item.title}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-              />
-              {/* Beat play overlay */}
-              {item.item_type === 'beat' && (
-                <button
-                  onClick={handlePlayBeat}
-                  className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
-                >
-                  <div className={cn(
-                    "w-16 h-16 rounded-full flex items-center justify-center",
-                    isBeatPlaying ? "bg-primary" : "bg-primary/80"
-                  )}>
-                    {isBeatPlaying ? (
-                      <Square className="h-6 w-6 text-primary-foreground" />
-                    ) : (
-                      <Play className="h-6 w-6 text-primary-foreground ml-1" />
-                    )}
-                  </div>
-                </button>
-              )}
-            </div>
-          </Link>
-        )}
-
-        {/* Content */}
-        <div className="p-4 pt-3 space-y-3">
-          <div>
             <div className="flex items-center gap-2">
-              <Link 
-                to={getItemRoute(item.item_type, item.id)}
-                className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-1 flex-1"
+              {isOwner && (
+                <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
+                  Yours
+                </Badge>
+              )}
+              <Badge variant="outline" className={cn("gap-1 text-xs", config.color)}>
+                <Icon className="h-3 w-3" />
+                {config.label}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Image - clicking opens dialog */}
+          <div 
+            className="cursor-pointer"
+            onClick={() => setDialogOpen(true)}
+          >
+            {item.image_url ? (
+              <div className="relative aspect-square overflow-hidden bg-muted">
+                <img
+                  src={item.image_url}
+                  alt={item.title}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+                {/* Beat play overlay */}
+                {item.item_type === 'beat' && item.extra_data?.pattern && (
+                  <button
+                    onClick={handlePlayBeat}
+                    className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
+                  >
+                    <div className={cn(
+                      "w-16 h-16 rounded-full flex items-center justify-center",
+                      isBeatPlaying ? "bg-primary" : "bg-primary/80"
+                    )}>
+                      {isBeatPlaying ? (
+                        <Square className="h-6 w-6 text-primary-foreground" />
+                      ) : (
+                        <Play className="h-6 w-6 text-primary-foreground ml-1" />
+                      )}
+                    </div>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                <Icon className="h-16 w-16 text-muted-foreground/50" />
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <h3 
+                className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-1 flex-1 cursor-pointer"
+                onClick={() => setDialogOpen(true)}
               >
                 {item.title}
-              </Link>
+              </h3>
               <TextToSpeech 
                 text={`${item.title}${item.description ? `. ${item.description}` : ''}`} 
                 size="sm"
               />
             </div>
             {item.description && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-sm text-muted-foreground line-clamp-2">
                 {item.description}
               </p>
             )}
-          </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "gap-1.5 h-9 px-3",
-                  isLiked && "text-red-500 hover:text-red-600"
+            {/* Action buttons row */}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center gap-1">
+                {/* Play button for beats */}
+                {item.item_type === 'beat' && item.extra_data?.pattern && (
+                  <Button
+                    variant={isBeatPlaying ? "default" : "ghost"}
+                    size="sm"
+                    onClick={handlePlayBeat}
+                    className="h-8"
+                  >
+                    {isBeatPlaying ? (
+                      <Square className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                  </Button>
                 )}
-                onClick={handleLike}
-              >
-                <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
-                <span className="text-sm">{likesCount}</span>
-              </Button>
-
-              {item.comments_count !== null && (
-                <Button variant="ghost" size="sm" className="gap-1.5 h-9 px-3" asChild>
-                  <Link to={getItemRoute(item.item_type, item.id)}>
-                    <MessageCircle className="h-4 w-4" />
-                    <span className="text-sm">{item.comments_count}</span>
-                  </Link>
-                </Button>
-              )}
-
-              {/* Beat play button */}
-              {item.item_type === 'beat' && item.extra_data?.pattern && (
-                <Button
-                  variant={isBeatPlaying ? "default" : "ghost"}
-                  size="sm"
-                  className="gap-1.5 h-9 px-3"
-                  onClick={handlePlayBeat}
-                >
-                  {isBeatPlaying ? (
-                    <Square className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1">
-              {/* Quick copy/remix button for supported types */}
-              {(item.item_type === 'coloring' || item.item_type === 'beat') && (
+                
+                {/* Like button */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-9 px-3"
-                  asChild
+                  onClick={handleLike}
+                  className="h-8 gap-1"
                 >
-                  <Link to={getItemRoute(item.item_type, item.id) + "&action=copy"}>
-                    <Copy className="h-4 w-4" />
-                  </Link>
+                  <Heart className={cn("h-4 w-4", isLiked && "fill-red-500 text-red-500")} />
+                  <span className="text-xs">{likesCount}</span>
                 </Button>
-              )}
+
+                {/* Share button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const url = `${window.location.origin}${getItemRoute(item.item_type, item.id)}`;
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({ title: item.title, url });
+                      } catch {}
+                    } else {
+                      await navigator.clipboard.writeText(url);
+                      toast.success("Link copied!");
+                    }
+                  }}
+                  className="h-8"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Open in app button */}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-9 px-3"
-                onClick={handleShare}
+                asChild
+                className="h-8 gap-1"
               >
-                <Share2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn("h-9 px-3", isSaved && "text-primary")}
-                onClick={handleSave}
-              >
-                <Bookmark className={cn("h-4 w-4", isSaved && "fill-current")} />
+                <Link to={getItemRoute(item.item_type, item.id)}>
+                  <ExternalLink className="h-3 w-3" />
+                  <span className="text-xs">Open</span>
+                </Link>
               </Button>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Detail Dialog */}
+      <FeedItemDialog
+        item={item}
+        isOpen={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        isLiked={isLiked}
+        likesCount={likesCount}
+        onToggleLike={handleLike}
+        onUnshare={handleUnshare}
+        onRefresh={onRefresh}
+        routeBase={config.routeBase}
+        idParam={config.idParam}
+      />
+    </>
   );
 }
