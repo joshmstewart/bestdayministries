@@ -29,7 +29,7 @@ import ImageLightbox from "@/components/ImageLightbox";
 // ============================================================================
 interface AvatarTemplate {
   name: string;
-  character_type: 'animal' | 'human' | 'superhero';
+  character_type: 'animal' | 'human' | 'superhero' | 'monster';
   prompt: string;
 }
 
@@ -189,6 +189,58 @@ const avatarTemplates: AvatarTemplate[] = [
   { name: 'Quake Queen', character_type: 'superhero', prompt: 'An earthquake-causing hero with cracked ground effects, brown costume' },
   { name: 'Rocket Ranger', character_type: 'superhero', prompt: 'A jetpack hero with flight gear, goggles, adventurous expression' },
   { name: 'Storm Sage', character_type: 'superhero', prompt: 'A weather-controlling hero with lightning and clouds, flowing cape' },
+
+  // ========== MONSTERS (50) - Friendly Monsters Inc. style ==========
+  { name: 'Sulley Stretch', character_type: 'monster', prompt: 'A large furry blue monster with purple spots, big friendly smile, wearing workout headband and gym shorts' },
+  { name: 'Fuzzy Phil', character_type: 'monster', prompt: 'A round orange furry monster with multiple eyes, cheerful expression, wearing a tiny tank top' },
+  { name: 'Blobby Bob', character_type: 'monster', prompt: 'A green gelatinous blob monster with one big eye, happy smile, wearing sweatbands on tentacles' },
+  { name: 'Spike Sprint', character_type: 'monster', prompt: 'A purple monster with friendly spikes down back, four arms, wearing running shoes on all feet' },
+  { name: 'Googly Gary', character_type: 'monster', prompt: 'A tall skinny green monster with five googly eyes, long arms, wearing basketball jersey' },
+  { name: 'Fluff Flex', character_type: 'monster', prompt: 'A pink cotton candy-like monster, fluffy all over, wearing tiny gym gloves' },
+  { name: 'Chomper Charlie', character_type: 'monster', prompt: 'A round blue monster with huge friendly teeth, wearing a coach whistle and cap' },
+  { name: 'Tentacle Tim', character_type: 'monster', prompt: 'A yellow monster with eight tentacle arms, each holding different gym equipment, cheerful' },
+  { name: 'Scales Sally', character_type: 'monster', prompt: 'A turquoise scaled monster with big doe eyes, wearing yoga pants and sports bra' },
+  { name: 'Horns Henry', character_type: 'monster', prompt: 'A red monster with two curved horns, kind expression, wearing weightlifting belt' },
+  { name: 'Glob Gordon', character_type: 'monster', prompt: 'A translucent gooey monster in shades of purple, wearing visible workout clothes inside body' },
+  { name: 'Fang Fiona', character_type: 'monster', prompt: 'A teal monster with cute underbite fangs, long ears, wearing dance leotard' },
+  { name: 'Bumpy Boris', character_type: 'monster', prompt: 'A lumpy orange monster covered in friendly bumps, wearing hiking boots' },
+  { name: 'Wings Wendy', character_type: 'monster', prompt: 'A small purple monster with bat-like wings, wearing aerobics outfit, mid-flutter' },
+  { name: 'Patch Pete', character_type: 'monster', prompt: 'A patchwork monster with different colored fur patches, wearing mix-matched gym clothes' },
+  { name: 'Snaggle Sam', character_type: 'monster', prompt: 'A green monster with one snaggletooth, three eyes, wearing karate gi' },
+  { name: 'Twirl Tina', character_type: 'monster', prompt: 'A spiral-patterned pink and purple monster, wearing figure skating dress' },
+  { name: 'Bounce Barry', character_type: 'monster', prompt: 'A round bouncy yellow monster like a ball, wearing springy shoes, mid-bounce' },
+  { name: 'Noodle Nancy', character_type: 'monster', prompt: 'A long noodle-shaped blue monster, very flexible, in yoga pretzel pose' },
+  { name: 'Grin Greg', character_type: 'monster', prompt: 'A wide monster thats mostly a huge friendly grin, tiny body, wearing running bib' },
+  { name: 'Dot Diana', character_type: 'monster', prompt: 'A lavender monster covered in polka dots, each dot a different color, wearing tennis outfit' },
+  { name: 'Claws Carlos', character_type: 'monster', prompt: 'A friendly monster with oversized fuzzy claws, wearing boxing gloves over claws' },
+  { name: 'Stripe Stella', character_type: 'monster', prompt: 'A tiger-striped monster in orange and pink, wearing athletic stripes to match' },
+  { name: 'Pudge Paul', character_type: 'monster', prompt: 'A chubby lovable green monster, determined expression, wearing workout gear' },
+  { name: 'Float Felicia', character_type: 'monster', prompt: 'A ghost-like translucent monster who floats, wearing ethereal workout attire' },
+  { name: 'Rock Randy', character_type: 'monster', prompt: 'A monster made of friendly rounded rocks, wearing a climbing harness' },
+  { name: 'Shimmer Shelly', character_type: 'monster', prompt: 'A sparkly iridescent monster that shimmers, wearing glittery dance costume' },
+  { name: 'Trunk Trevor', character_type: 'monster', prompt: 'A monster with a long trunk-like nose, using it to lift weights, cheerful' },
+  { name: 'Ear Eddie', character_type: 'monster', prompt: 'A small monster with enormous floppy ears, using them as wings, wearing pilot goggles' },
+  { name: 'Curl Cathy', character_type: 'monster', prompt: 'A monster with curly tentacle hair, each curl a different color, wearing headband' },
+  { name: 'Glow Gina', character_type: 'monster', prompt: 'A bioluminescent monster that glows softly, wearing reflective running gear' },
+  { name: 'Munch Mike', character_type: 'monster', prompt: 'A one-eyed green monster with big smile, compact body, wearing MU sweatshirt' },
+  { name: 'Jelly James', character_type: 'monster', prompt: 'A jellyfish-like floating monster, translucent blue, wearing swim goggles' },
+  { name: 'Moss Morgan', character_type: 'monster', prompt: 'A mossy green nature monster, leaves growing from fur, wearing eco-friendly gym clothes' },
+  { name: 'Zigzag Zara', character_type: 'monster', prompt: 'A monster with zigzag patterned body, electric personality, wearing sprint gear' },
+  { name: 'Bubble Benny', character_type: 'monster', prompt: 'A bubble-blowing monster with soap-like skin, cheerful, wearing swim trunks' },
+  { name: 'Crystal Claire', character_type: 'monster', prompt: 'A crystalline monster with gem-like protrusions, wearing sparkly gymnastics outfit' },
+  { name: 'Shadow Shane', character_type: 'monster', prompt: 'A friendly shadow monster, dark purple, wearing glow-in-dark workout stripes' },
+  { name: 'Squish Sophia', character_type: 'monster', prompt: 'A squishy stress-ball-like pink monster, very huggable, wearing comfy athleisure' },
+  { name: 'Antler Andy', character_type: 'monster', prompt: 'A furry monster with majestic antlers, forest green, wearing hiking gear' },
+  { name: 'Webby Wanda', character_type: 'monster', prompt: 'A spider-like friendly monster with many legs, wearing ballet slippers on each' },
+  { name: 'Crest Calvin', character_type: 'monster', prompt: 'A dinosaur-like monster with colorful head crest, wearing prehistoric gym outfit' },
+  { name: 'Vapor Vicky', character_type: 'monster', prompt: 'A misty cloud-like monster, soft and fluffy, wearing cozy workout sweater' },
+  { name: 'Twist Tony', character_type: 'monster', prompt: 'A pretzel-shaped flexible monster, stretchy, wearing contortionist outfit' },
+  { name: 'Marble Mary', character_type: 'monster', prompt: 'A smooth marble-textured monster with swirl patterns, wearing elegant dancewear' },
+  { name: 'Fuzz Felix', character_type: 'monster', prompt: 'An extremely fuzzy monster, cant see eyes through fur, wearing visible headband' },
+  { name: 'Snore Stanley', character_type: 'monster', prompt: 'A sleepy-looking monster with droopy eyes, determined to stay awake for workout' },
+  { name: 'Giggle Grace', character_type: 'monster', prompt: 'A monster who cant stop giggling, pink cheeks, wearing cheerleader outfit' },
+  { name: 'Warts Walter', character_type: 'monster', prompt: 'A warty toad-like monster, friendly bumps, wearing swim team speedo' },
+  { name: 'Swirl Susie', character_type: 'monster', prompt: 'A hypnotic swirl-patterned monster in blues and greens, wearing spiral-design leggings' },
 ];
 
 // ============================================================================
@@ -243,6 +295,7 @@ const AVATAR_CATEGORIES = [
   { value: "animals", label: "Animals", emoji: "🐾" },
   { value: "superheroes", label: "Superheroes", emoji: "🦸" },
   { value: "humans", label: "Humans", emoji: "👤" },
+  { value: "monsters", label: "Monsters", emoji: "👹" },
 ] as const;
 
 const defaultFormData = {
@@ -778,6 +831,7 @@ export function FitnessAvatarManager() {
                     <SelectItem value="animal">🐾 Animals</SelectItem>
                     <SelectItem value="human">👤 Humans</SelectItem>
                     <SelectItem value="superhero">🦸 Superheroes</SelectItem>
+                    <SelectItem value="monster">👹 Monsters</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
