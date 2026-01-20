@@ -327,24 +327,24 @@ const Community = () => {
             className="w-full"
           >
             {canAccessFeed() ? (
-              <TabsList className="grid w-full max-w-[200px] grid-cols-2 mx-auto mb-1 gap-0.5 bg-muted/50 p-1 rounded-lg overflow-visible">
+              <TabsList className="grid w-full max-w-[320px] grid-cols-2 mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible">
                 <TabsTrigger 
                   value="community" 
-                  className="gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
-                  <Users className="w-3.5 h-3.5" />
+                  <Users className="w-4 h-4" />
                   Community
                 </TabsTrigger>
                 <TabsTrigger 
                   value="feed" 
-                  className="gap-1.5 relative px-3 py-1.5 text-xs font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                  className="gap-2 relative px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
                 >
-                  <Rss className="w-3.5 h-3.5" />
+                  <Rss className="w-4 h-4" />
                   Feed
                   {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
                     <Badge 
                       variant="destructive" 
-                      className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
+                      className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
                     >
                       {unseenCount > 99 ? '99+' : unseenCount}
                     </Badge>
