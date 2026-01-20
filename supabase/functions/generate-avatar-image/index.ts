@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { avatarId, characterPrompt, name } = await req.json();
+    const { avatarId, characterPrompt, name, characterType } = await req.json();
 
     if (!avatarId || !characterPrompt) {
       return new Response(
@@ -20,6 +20,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const isAnimalCharacter = characterType === 'animal';
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -70,18 +72,25 @@ serve(async (req) => {
     console.log(`Generating avatar image for: ${name}`);
 
     // Build the prompt for a friendly, cartoon-style fitness avatar
+    // Only include animal-specific instructions if this is actually an animal character
+    const animalInstructions = isAnimalCharacter ? `
+CRITICAL ANIMAL CHARACTER REQUIREMENT:
+- This IS an animal character - they MUST be anthropomorphic, standing UPRIGHT on their HIND LEGS like a human
+- Animal characters should have a humanoid posture: standing on two legs, arms/front paws at their sides or in a friendly pose
+- NEVER show animal characters on all fours or in a natural animal stance
+- Animal characters should look like cartoon mascots (think Zootopia, Animal Crossing style)
+` : `
+CHARACTER TYPE NOTE:
+- This is a HUMAN or SUPERHERO character - do NOT make them look like an animal
+- Follow the character description exactly as written
+`;
+
     const imagePrompt = `Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${characterPrompt}. 
 
 CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
 - The character should be isolated on a pure white background for easy integration into app interfaces
-
-CRITICAL ANIMAL CHARACTER REQUIREMENT:
-- If the character is an animal (dog, cat, bear, rabbit, etc.), they MUST be anthropomorphic - standing UPRIGHT on their HIND LEGS like a human
-- Animal characters should have a humanoid posture: standing on two legs, arms/front paws at their sides or in a friendly pose
-- NEVER show animal characters on all fours or in a natural animal stance
-- Animal characters should look like cartoon mascots (think Zootopia, Animal Crossing style)
-
+${animalInstructions}
 AGE DEMOGRAPHIC PREFERENCE:
 - STRONGLY prefer young adult and adult characters (ages 18-40 appearance)
 - We already have many child characters, so lean toward mature but friendly adult representations
