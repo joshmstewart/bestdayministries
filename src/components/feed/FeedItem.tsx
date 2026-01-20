@@ -50,7 +50,16 @@ const typeConfig: Record<string, { label: string; icon: React.ElementType; color
 const getItemRoute = (itemType: string, itemId: string) => {
   const config = typeConfig[itemType];
   if (!config) return "#";
-  return `${config.routeBase}?${config.idParam}=${itemId}`;
+
+  const params = new URLSearchParams();
+  params.set(config.idParam, itemId);
+
+  // Feed clicks should land on the Community tab for apps that have one
+  if (itemType === "beat" || itemType === "coloring") {
+    params.set("tab", "community");
+  }
+
+  return `${config.routeBase}?${params.toString()}`;
 };
 
 export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
