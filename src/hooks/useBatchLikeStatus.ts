@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -16,6 +16,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
   const { user } = useAuth();
   const [likeStatusMap, setLikeStatusMap] = useState<LikeStatusMap>({});
   const [loading, setLoading] = useState(false);
+
+  // Memoize the items key to prevent unnecessary refetches
+  const itemsKey = useMemo(() => {
+    return items.map(i => `${i.item_type}:${i.id}`).join(',');
+  }, [items]);
 
   const fetchLikeStatuses = useCallback(async () => {
     if (!user || items.length === 0) {
@@ -105,18 +110,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
     } finally {
       setLoading(false);
     }
-  }, [user, items.map(i => `${i.item_type}:${i.id}`).join(',')]);
+  }, [user?.id, itemsKey]);
 
   useEffect(() => {
-    // Use requestIdleCallback for non-blocking fetch after initial render
-    if ('requestIdleCallback' in window) {
-      const idleId = requestIdleCallback(() => fetchLikeStatuses(), { timeout: 2000 });
-      return () => cancelIdleCallback(idleId);
-    } else {
-      // Fallback: defer with setTimeout
-      const timeoutId = setTimeout(fetchLikeStatuses, 100);
-      return () => clearTimeout(timeoutId);
-    }
+    // Fetch immediately - like status should show as soon as possible
+    fetchLikeStatuses();
   }, [fetchLikeStatuses]);
 
   const isLiked = useCallback((itemType: string, itemId: string) => {

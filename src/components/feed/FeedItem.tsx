@@ -18,6 +18,7 @@ import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemDialog } from "./FeedItemDialog";
 import { useFeedRepost } from "@/hooks/useFeedRepost";
+import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 
 export interface FeedItemData {
   id: string;
@@ -491,16 +492,14 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 </Button>
               )}
               
-              {/* Like button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLike}
-                className="h-8 gap-1"
-              >
-                <Heart className={cn("h-4 w-4", isLiked && "fill-red-500 text-red-500")} />
-                <span className="text-xs">{likesCount}</span>
-              </Button>
+              {/* Like button with tooltip showing who liked */}
+              <LikeButtonWithTooltip
+                itemId={item.id}
+                itemType={item.item_type}
+                isLiked={isLiked}
+                likesCount={likesCount}
+                onLike={handleLike}
+              />
 
               {/* Unshare button for owner */}
               {isOwner && ['beat', 'coloring', 'card', 'chore_art'].includes(item.item_type) && (
