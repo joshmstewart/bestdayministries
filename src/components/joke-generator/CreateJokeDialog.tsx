@@ -116,14 +116,20 @@ export function CreateJokeDialog({
     try {
       if (isEditing && editingJoke) {
         // Update existing joke
+        // Set shared_at when newly sharing, keep existing if already shared
+        const updateData: Record<string, unknown> = {
+          question: question.trim(),
+          answer: answer.trim(),
+          category: category,
+          is_public: shareWithCommunity,
+        };
+        // Only set shared_at if sharing for the first time (wasn't public before but is now)
+        if (shareWithCommunity && !editingJoke.is_public) {
+          updateData.shared_at = new Date().toISOString();
+        }
         const { error } = await supabase
           .from("saved_jokes")
-          .update({
-            question: question.trim(),
-            answer: answer.trim(),
-            category: category,
-            is_public: shareWithCommunity,
-          })
+          .update(updateData)
           .eq("id", editingJoke.id);
 
         if (error) throw error;
@@ -136,6 +142,7 @@ export function CreateJokeDialog({
           answer: answer.trim(),
           category: category,
           is_public: shareWithCommunity,
+          shared_at: shareWithCommunity ? new Date().toISOString() : null,
           is_user_created: true,
         });
 
