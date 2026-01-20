@@ -9739,6 +9739,7 @@ export type Database = {
           comments_count: number | null
           created_at: string | null
           description: string | null
+          extra_data: Json | null
           id: string | null
           image_url: string | null
           item_type: string | null
