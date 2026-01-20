@@ -9733,6 +9733,20 @@ export type Database = {
         }
         Relationships: []
       }
+      community_feed_items: {
+        Row: {
+          author_id: string | null
+          comments_count: number | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          item_type: string | null
+          likes_count: number | null
+          title: string | null
+        }
+        Relationships: []
+      }
       donations_missing_receipts: {
         Row: {
           amount: number | null

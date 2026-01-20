@@ -20,6 +20,7 @@ import { DailyScratchCard } from "@/components/DailyScratchCard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isProblematicIOSVersion } from "@/lib/browserDetection";
 import { useAuth } from "@/contexts/AuthContext";
+import { CommunityFeed } from "@/components/feed/CommunityFeed";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -116,12 +117,13 @@ const Community = () => {
       if (error) throw error;
       
       if (data) {
-        setSectionOrder(data.map(s => ({ key: s.section_key, visible: s.is_visible })));
+      setSectionOrder(data.map(s => ({ key: s.section_key, visible: s.is_visible })));
       }
     } catch (error) {
       console.error("Error loading section order:", error);
       // Use default order if database fetch fails
       setSectionOrder([
+        { key: 'newsfeed', visible: true },
         { key: 'welcome', visible: true },
         { key: 'featured_item', visible: true },
         { key: 'featured_bestie', visible: true },
@@ -298,6 +300,19 @@ const Community = () => {
             if (!visible) return null;
 
             switch (key) {
+              case 'newsfeed':
+                return (
+                  <section key={key} className="space-y-4" data-tour-target="newsfeed">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-6 h-6 text-primary" />
+                        <h2 className="text-2xl font-bold text-foreground">What's New</h2>
+                      </div>
+                    </div>
+                    <CommunityFeed />
+                  </section>
+                );
+
               case 'welcome':
                 return (
                   <div key={key} className="relative" data-tour-target="welcome-section">
