@@ -4,9 +4,9 @@ import { FeedItemData } from "@/components/feed/FeedItem";
 
 const PAGE_SIZE = 12;
 
-type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art';
+type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke';
 
-const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art'];
+const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke'];
 
 export function useCommunityFeed() {
   const [items, setItems] = useState<FeedItemData[]>([]);
