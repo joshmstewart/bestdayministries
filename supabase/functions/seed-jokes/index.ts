@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAiUsage } from "../_shared/ai-usage-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -155,6 +156,13 @@ No other text, just the JSON array.`
         inserted++;
       }
     }
+
+    // Log AI usage
+    await logAiUsage({
+      functionName: "seed-jokes",
+      model: "google/gemini-2.5-flash",
+      metadata: { requestedCount: count, generated: jokes.length, inserted, duplicates: duplicates + (jokes.length - newJokes.length), category },
+    });
 
     return new Response(JSON.stringify({
       success: true,

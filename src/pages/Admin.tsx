@@ -100,6 +100,7 @@ import { WorkoutManager } from "@/components/admin/WorkoutManager";
 import { CardManager } from "@/components/admin/CardManager";
 import { GuardianResourcesManager } from "@/components/admin/GuardianResourcesManager";
 import JoyHouseStoresManager from "@/components/admin/JoyHouseStoresManager";
+import { AiUsageManager } from "@/components/admin/AiUsageManager";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -344,6 +345,7 @@ const Admin = () => {
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="page-visits">Page Visits</TabsTrigger>
                     <TabsTrigger value="user-activity">User Activity</TabsTrigger>
+                    <TabsTrigger value="ai-usage">AI Usage</TabsTrigger>
                   </TabsList>
                   <TabsContent value="overview">
                     <AnalyticsDashboard />
@@ -353,6 +355,9 @@ const Admin = () => {
                   </TabsContent>
                   <TabsContent value="user-activity">
                     <UserActivityAnalytics />
+                  </TabsContent>
+                  <TabsContent value="ai-usage">
+                    <AiUsageManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>

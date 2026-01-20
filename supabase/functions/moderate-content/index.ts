@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { logAiUsage } from "../_shared/ai-usage-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,6 +133,13 @@ Examples:
     const result = JSON.parse(data.choices[0].message.content);
     
     console.log("Moderation result:", result);
+
+    // Log AI usage
+    await logAiUsage({
+      functionName: "moderate-content",
+      model: "google/gemini-2.5-flash",
+      metadata: { contentType, contentLength: content.length, approved: result.approved },
+    });
 
     return new Response(
       JSON.stringify(result),
