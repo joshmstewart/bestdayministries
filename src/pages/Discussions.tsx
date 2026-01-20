@@ -785,7 +785,7 @@ const Discussions = () => {
       <UnifiedHeader />
       
       <main className="container mx-auto px-4 pt-20 pb-12">
-        <BackButton to="/community" />
+        <BackButton />
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">

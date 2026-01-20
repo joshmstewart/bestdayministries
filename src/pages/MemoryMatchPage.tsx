@@ -15,7 +15,7 @@ const MemoryMatchPage = () => {
         style={{ backgroundColor }}
       >
         <div className="container max-w-4xl mx-auto">
-          <BackButton to="/community" />
+          <BackButton />
           <MemoryMatch onBackgroundColorChange={setBackgroundColor} />
         </div>
       </main>
