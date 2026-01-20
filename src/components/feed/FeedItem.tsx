@@ -420,7 +420,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
                   size="sm"
                 />
               </div>
-              {item.description && (
+              {item.description && item.item_type !== 'prayer' && (
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {item.description}
                 </p>
