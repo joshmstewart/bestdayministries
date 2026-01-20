@@ -386,6 +386,11 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
                   </button>
                 )}
               </div>
+            ) : item.item_type === 'prayer' ? (
+              // Compact display for prayers without images
+              <div className="p-4 bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20 flex items-center justify-center">
+                <Icon className="h-8 w-8 text-rose-400/70" />
+              </div>
             ) : (
               <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                 <Icon className="h-16 w-16 text-muted-foreground/50" />
