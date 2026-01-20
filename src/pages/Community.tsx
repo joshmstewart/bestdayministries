@@ -22,12 +22,15 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isProblematicIOSVersion } from "@/lib/browserDetection";
 import { useAuth } from "@/contexts/AuthContext";
 import { CommunityFeed } from "@/components/feed/CommunityFeed";
+import { Badge } from "@/components/ui/badge";
+import { useUnseenFeedCount } from "@/hooks/useUnseenFeedCount";
 
 const Community = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, profile: authProfile, role, loading: authLoading, isAuthenticated } = useAuth();
+  const { unseenCount, showBadge } = useUnseenFeedCount();
   
   // Tab state from URL params
   const activeTab = searchParams.get("tab") || "community";
@@ -312,9 +315,17 @@ const Community = () => {
                 <Users className="w-4 h-4" />
                 Community
               </TabsTrigger>
-              <TabsTrigger value="feed" className="gap-2">
+              <TabsTrigger value="feed" className="gap-2 relative">
                 <Rss className="w-4 h-4" />
                 Feed
+                {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
+                  >
+                    {unseenCount > 99 ? '99+' : unseenCount}
+                  </Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 

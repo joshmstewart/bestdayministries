@@ -94,6 +94,9 @@ const ProfileSettings = () => {
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
   
+  // Feed badge preference
+  const [showFeedBadge, setShowFeedBadge] = useState(true);
+  
   // Track user's relationships for conditional notification display
   const [isSponsor, setIsSponsor] = useState(false);
   const [isBeingSponsored, setIsBeingSponsored] = useState(false);
@@ -218,6 +221,7 @@ const ProfileSettings = () => {
     setBio(profile.bio || "");
     setSelectedVoice(profile.tts_voice || "Aria");
     setTtsEnabled(profile.tts_enabled ?? true);
+    setShowFeedBadge(profileData.show_feed_badge ?? true);
     
     // Set avatar number directly from the database
     if (profile.avatar_number) {
@@ -228,6 +232,35 @@ const ProfileSettings = () => {
       if (!isNaN(avatarNum)) {
         setSelectedAvatar(avatarNum);
       }
+    }
+  };
+
+  // Handle feed badge preference change
+  const handleFeedBadgeChange = async (checked: boolean) => {
+    if (!user) return;
+    
+    setShowFeedBadge(checked);
+    
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ show_feed_badge: checked })
+        .eq("id", user.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Preference saved",
+        description: checked ? "Feed badge enabled" : "Feed badge disabled",
+      });
+    } catch (error: any) {
+      // Revert on error
+      setShowFeedBadge(!checked);
+      toast({
+        title: "Error saving preference",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -1354,6 +1387,23 @@ const ProfileSettings = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Feed Badge Settings */}
+                  <div className="space-y-3 pt-4 border-t">
+                    <Label className="text-base">Feed Badge</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">Show unseen count badge</Label>
+                          <p className="text-xs text-muted-foreground">Display a badge on the Feed tab showing how many new items you haven't seen</p>
+                        </div>
+                        <Switch
+                          checked={showFeedBadge}
+                          onCheckedChange={handleFeedBadgeChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Email Digest Settings */}
                   <div className="space-y-3 pt-4 border-t">
