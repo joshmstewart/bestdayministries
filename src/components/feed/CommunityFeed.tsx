@@ -164,18 +164,26 @@ export function CommunityFeed() {
       </div>
 
       {/* Load more trigger */}
-      <div ref={loadMoreRef} className="py-4 flex justify-center">
-        {loadingMore && (
+      <div ref={loadMoreRef} className="py-4 flex flex-col items-center gap-3">
+        {loadingMore ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
             <span className="text-sm">Loading more...</span>
           </div>
-        )}
-        {!hasMore && items.length > 0 && (
+        ) : hasMore ? (
+          <Button
+            onClick={loadMore}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            Load More
+          </Button>
+        ) : items.length > 0 ? (
           <p className="text-sm text-muted-foreground">
             You've reached the end of the feed
           </p>
-        )}
+        ) : null}
       </div>
     </PullToRefresh>
   );
