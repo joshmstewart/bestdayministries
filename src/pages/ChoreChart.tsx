@@ -15,6 +15,7 @@ import { ChoreWeeklyView } from "@/components/chores/ChoreWeeklyView";
 import { ChoreStreakDisplay } from "@/components/chores/ChoreStreakDisplay";
 import { MonthlyChallengeCard } from "@/components/chores/MonthlyChallengeCard";
 import { ChallengeGallery } from "@/components/chores/ChallengeGallery";
+import { ChoreCelebrationDialog } from "@/components/chores/ChoreCelebrationDialog";
 import { useChoreStreaks } from "@/hooks/useChoreStreaks";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -84,6 +85,8 @@ export default function ChoreChart() {
   const [earnedBadge, setEarnedBadge] = useState<import("@/lib/choreBadgeDefinitions").BadgeDefinition | null>(null);
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
+  const [showCelebrationDialog, setShowCelebrationDialog] = useState(false);
+  const [lastCompletedChore, setLastCompletedChore] = useState<string>("");
 
   const { mstDate: today } = getMSTInfo();
   const dayOfWeek = new Date().getDay();
@@ -273,6 +276,12 @@ export default function ChoreChart() {
         // Award coins for completing a chore
         await awardCoinReward(targetUserId, 'chore_complete', 'Completed a chore');
 
+        // Track the completed chore title for celebration
+        const completedChore = chores.find(c => c.id === choreId);
+        if (completedChore) {
+          setLastCompletedChore(completedChore.title);
+        }
+
         // Check if all chores are now completed - update streak
         const newCompletedIds = new Set(newCompletions.map(c => c.chore_id));
         const allNowCompleted = applicableChores.length > 0 && 
@@ -305,6 +314,9 @@ export default function ChoreChart() {
                 );
               });
             }
+          } else {
+            // No badges earned but still show celebration dialog
+            setTimeout(() => setShowCelebrationDialog(true), 1000);
           }
         }
       }
@@ -709,6 +721,14 @@ export default function ChoreChart() {
         <ChallengeGallery
           open={showGallery}
           onOpenChange={setShowGallery}
+        />
+
+        {/* Chore Celebration Dialog */}
+        <ChoreCelebrationDialog
+          open={showCelebrationDialog}
+          onOpenChange={setShowCelebrationDialog}
+          userId={targetUserId || user?.id || ""}
+          completedChoreTitle={lastCompletedChore}
         />
       </div>
     </main>

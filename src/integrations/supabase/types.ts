@@ -1343,6 +1343,44 @@ export type Database = {
         }
         Relationships: []
       }
+      chore_celebration_images: {
+        Row: {
+          activity_category: string
+          avatar_id: string | null
+          completion_date: string
+          created_at: string
+          id: string
+          image_url: string
+          user_id: string
+        }
+        Insert: {
+          activity_category: string
+          avatar_id?: string | null
+          completion_date: string
+          created_at?: string
+          id?: string
+          image_url: string
+          user_id: string
+        }
+        Update: {
+          activity_category?: string
+          avatar_id?: string | null
+          completion_date?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_celebration_images_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chore_challenge_daily_completions: {
         Row: {
           completion_date: string
@@ -6283,6 +6321,8 @@ export type Database = {
           coin_balance: number
           coins: number
           created_at: string
+          custom_avatar_type: string | null
+          custom_avatar_url: string | null
           display_name: string
           email: string | null
           feed_last_seen_at: string | null
@@ -6304,6 +6344,8 @@ export type Database = {
           coin_balance?: number
           coins?: number
           created_at?: string
+          custom_avatar_type?: string | null
+          custom_avatar_url?: string | null
           display_name: string
           email?: string | null
           feed_last_seen_at?: string | null
@@ -6325,6 +6367,8 @@ export type Database = {
           coin_balance?: number
           coins?: number
           created_at?: string
+          custom_avatar_type?: string | null
+          custom_avatar_url?: string | null
           display_name?: string
           email?: string | null
           feed_last_seen_at?: string | null

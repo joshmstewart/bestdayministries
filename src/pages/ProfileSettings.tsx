@@ -13,6 +13,7 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { CustomAvatarPicker } from "@/components/profile/CustomAvatarPicker";
 import { NewsletterPreferences } from "@/components/profile/NewsletterPreferences";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +24,18 @@ import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmoj
 import { profileSchema, validateInput } from "@/lib/validation";
 
 interface Profile {
+  id: string;
+  display_name: string;
+  bio?: string;
+  avatar_url?: string;
+  avatar_number?: number;
+  role: string;
+  tts_voice?: string;
+  tts_enabled?: boolean;
+  friend_code?: string | null;
+  custom_avatar_url?: string | null;
+  custom_avatar_type?: string | null;
+}
   id: string;
   display_name: string;
   bio?: string;
