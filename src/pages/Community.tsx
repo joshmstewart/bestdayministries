@@ -327,7 +327,7 @@ const Community = () => {
             className="w-full"
           >
             {canAccessFeed() ? (
-              <TabsList className="inline-flex w-auto mx-auto mb-2 gap-2 bg-muted/50 p-1.5 rounded-lg overflow-visible">
+              <TabsList className="grid w-full max-w-xs grid-cols-2 mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible">
                 <TabsTrigger 
                   value="community" 
                   className="gap-2 px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
