@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageCircle, Share2, Bookmark, Music, Palette, Image, MessageSquare, FolderOpen, Trophy, MoreHorizontal } from "lucide-react";
+import { 
+  Heart, MessageCircle, Share2, Bookmark, Music, Palette, Image, MessageSquare, 
+  FolderOpen, Trophy, MoreHorizontal, Play, Square, Copy, EyeOff, Loader2, Pencil
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,8 +17,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 
 export interface FeedItemData {
   id: string;
@@ -30,12 +35,15 @@ export interface FeedItemData {
   // Joined from profiles
   author_name?: string;
   author_avatar?: number;
+  // Additional data for specific types
+  extra_data?: any;
 }
 
 interface FeedItemProps {
   item: FeedItemData;
   onLike?: (itemId: string, itemType: string) => void;
   onSave?: (itemId: string, itemType: string) => void;
+  onRefresh?: () => void;
 }
 
 const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string; routeBase: string; idParam: string }> = {
@@ -62,14 +70,69 @@ const getItemRoute = (itemType: string, itemId: string) => {
   return `${config.routeBase}?${params.toString()}`;
 };
 
-export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
+export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
+  const [isUnsharing, setIsUnsharing] = useState(false);
+  const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
+  const isOwner = user?.id === item.author_id;
   const config = typeConfig[item.item_type] || typeConfig.post;
   const Icon = config.icon;
+
+  // Check if user already liked this item
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      if (!user) return;
+      
+      try {
+        let data = null;
+        
+        switch (item.item_type) {
+          case 'beat': {
+            const result = await supabase
+              .from('beat_pad_likes')
+              .select('id')
+              .eq('creation_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
+          case 'coloring': {
+            const result = await supabase
+              .from('coloring_likes')
+              .select('id')
+              .eq('coloring_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
+          case 'card': {
+            const result = await supabase
+              .from('card_likes')
+              .select('id')
+              .eq('card_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
+          default:
+            return;
+        }
+        
+        setIsLiked(!!data);
+      } catch (error) {
+        console.error('Error checking like status:', error);
+      }
+    };
+    
+    checkLikeStatus();
+  }, [user, item.id, item.item_type]);
 
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -80,11 +143,48 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
       return;
     }
 
-    // Optimistic update
-    setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
-
-    onLike?.(item.id, item.item_type);
+    try {
+      switch (item.item_type) {
+        case 'beat': {
+          if (isLiked) {
+            await supabase.from('beat_pad_likes').delete().eq('creation_id', item.id).eq('user_id', user.id);
+            await supabase.from('beat_pad_creations').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+          } else {
+            await supabase.from('beat_pad_likes').insert({ creation_id: item.id, user_id: user.id });
+            await supabase.from('beat_pad_creations').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+          }
+          break;
+        }
+        case 'coloring': {
+          if (isLiked) {
+            await supabase.from('coloring_likes').delete().eq('coloring_id', item.id).eq('user_id', user.id);
+            await supabase.from('user_colorings').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+          } else {
+            await supabase.from('coloring_likes').insert({ coloring_id: item.id, user_id: user.id });
+            await supabase.from('user_colorings').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+          }
+          break;
+        }
+        case 'card': {
+          if (isLiked) {
+            await supabase.from('card_likes').delete().eq('card_id', item.id).eq('user_id', user.id);
+            await supabase.from('user_cards').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+          } else {
+            await supabase.from('card_likes').insert({ card_id: item.id, user_id: user.id });
+            await supabase.from('user_cards').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+          }
+          break;
+        }
+        default:
+          onLike?.(item.id, item.item_type);
+          return;
+      }
+      
+      setIsLiked(!isLiked);
+      setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update like");
+    }
   };
 
   const handleSave = (e: React.MouseEvent) => {
@@ -122,7 +222,88 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
     }
   };
 
+  const handleUnshare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user || !isOwner) return;
+    
+    setIsUnsharing(true);
+    
+    try {
+      switch (item.item_type) {
+        case 'beat': {
+          const { error } = await supabase
+            .from('beat_pad_creations')
+            .update({ is_public: false })
+            .eq('id', item.id);
+          if (error) throw error;
+          break;
+        }
+        case 'coloring': {
+          const { error } = await supabase
+            .from('user_colorings')
+            .update({ is_public: false })
+            .eq('id', item.id);
+          if (error) throw error;
+          break;
+        }
+        case 'card': {
+          const { error } = await supabase
+            .from('user_cards')
+            .update({ is_public: false })
+            .eq('id', item.id);
+          if (error) throw error;
+          break;
+        }
+        case 'chore_art': {
+          const { error } = await supabase
+            .from('chore_challenge_gallery')
+            .delete()
+            .eq('id', item.id);
+          if (error) throw error;
+          toast.success("Removed from community gallery");
+          onRefresh?.();
+          return;
+        }
+        default:
+          toast.error("Cannot unshare this type of content");
+          return;
+      }
+      
+      toast.success("Removed from community - now private");
+      onRefresh?.();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to unshare");
+    } finally {
+      setIsUnsharing(false);
+    }
+  };
+
+  const handlePlayBeat = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (item.item_type !== 'beat' || !item.extra_data?.pattern) return;
+    
+    if (isPlaying(item.id)) {
+      stopBeat();
+    } else {
+      playBeat(item.id, item.extra_data.pattern, item.extra_data.tempo || 120);
+    }
+  };
+
+  const handleRemix = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Navigate to the appropriate page with remix/copy intent
+    const route = getItemRoute(item.item_type, item.id);
+    window.location.href = route + "&action=remix";
+  };
+
   const timeAgo = formatDistanceToNow(new Date(item.created_at), { addSuffix: true });
+  const isBeatPlaying = item.item_type === 'beat' && isPlaying(item.id);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 bg-card border-border">
@@ -147,6 +328,11 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {isOwner && (
+              <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
+                Yours
+              </Badge>
+            )}
             <Badge variant="outline" className={cn("gap-1 text-xs", config.color)}>
               <Icon className="h-3 w-3" />
               {config.label}
@@ -166,6 +352,41 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
                   <Bookmark className="h-4 w-4 mr-2" />
                   {isSaved ? "Unsave" : "Save"}
                 </DropdownMenuItem>
+                {/* Type-specific actions */}
+                {(item.item_type === 'coloring' || item.item_type === 'beat' || item.item_type === 'card') && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to={getItemRoute(item.item_type, item.id) + "&action=copy"}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        {item.item_type === 'beat' ? 'Remix' : 'Make My Own Copy'}
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {isOwner && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to={getItemRoute(item.item_type, item.id) + "&action=edit"}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={handleUnshare}
+                      disabled={isUnsharing}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      {isUnsharing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 mr-2" />
+                      )}
+                      Unshare
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -181,6 +402,24 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 loading="lazy"
               />
+              {/* Beat play overlay */}
+              {item.item_type === 'beat' && (
+                <button
+                  onClick={handlePlayBeat}
+                  className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
+                >
+                  <div className={cn(
+                    "w-16 h-16 rounded-full flex items-center justify-center",
+                    isBeatPlaying ? "bg-primary" : "bg-primary/80"
+                  )}>
+                    {isBeatPlaying ? (
+                      <Square className="h-6 w-6 text-primary-foreground" />
+                    ) : (
+                      <Play className="h-6 w-6 text-primary-foreground ml-1" />
+                    )}
+                  </div>
+                </button>
+              )}
             </div>
           </Link>
         )}
@@ -225,9 +464,38 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
                   </Link>
                 </Button>
               )}
+
+              {/* Beat play button */}
+              {item.item_type === 'beat' && item.extra_data?.pattern && (
+                <Button
+                  variant={isBeatPlaying ? "default" : "ghost"}
+                  size="sm"
+                  className="gap-1.5 h-9 px-3"
+                  onClick={handlePlayBeat}
+                >
+                  {isBeatPlaying ? (
+                    <Square className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
 
             <div className="flex items-center gap-1">
+              {/* Quick copy/remix button for supported types */}
+              {(item.item_type === 'coloring' || item.item_type === 'beat') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 px-3"
+                  asChild
+                >
+                  <Link to={getItemRoute(item.item_type, item.id) + "&action=copy"}>
+                    <Copy className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
