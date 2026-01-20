@@ -3760,6 +3760,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_reposts: {
+        Row: {
+          created_at: string
+          id: string
+          original_item_id: string
+          original_item_type: string
+          reposted_at: string
+          reposted_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_item_id: string
+          original_item_type: string
+          reposted_at?: string
+          reposted_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_item_id?: string
+          original_item_type?: string
+          reposted_at?: string
+          reposted_by?: string | null
+        }
+        Relationships: []
+      }
       fitness_avatars: {
         Row: {
           character_prompt: string
@@ -9753,6 +9780,7 @@ export type Database = {
           image_url: string | null
           item_type: string | null
           likes_count: number | null
+          repost_id: string | null
           title: string | null
         }
         Relationships: []
