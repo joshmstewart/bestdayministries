@@ -294,35 +294,26 @@ const Marketplace = () => {
           <div className="container mx-auto px-4">
             <Tabs defaultValue="all" className="w-full">
               {activeCategoryCount > 1 && (
-                <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8 gap-2">
-                  <TabsTrigger value="all" onClick={() => setSelectedCategory(null)} className="whitespace-nowrap flex items-center gap-2 px-4">
-                    {categoryStatus?.allImages && categoryStatus.allImages.length > 0 && (
-                      <div className="flex -space-x-2">
-                        {categoryStatus.allImages.slice(0, 3).map((img, i) => (
-                          <img key={i} src={img} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-background" />
-                        ))}
-                      </div>
-                    )}
+                <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8 gap-2 bg-muted/50 p-1.5 rounded-lg">
+                  <TabsTrigger 
+                    value="all" 
+                    onClick={() => setSelectedCategory(null)} 
+                    className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  >
                     All Products
                   </TabsTrigger>
-                  <TabsTrigger value="handmade" onClick={() => setSelectedCategory('handmade')} className="flex items-center gap-2 px-4">
-                    {categoryStatus?.handmadeImages && categoryStatus.handmadeImages.length > 0 && (
-                      <div className="flex -space-x-2">
-                        {categoryStatus.handmadeImages.slice(0, 3).map((img, i) => (
-                          <img key={i} src={img} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-background" />
-                        ))}
-                      </div>
-                    )}
+                  <TabsTrigger 
+                    value="handmade" 
+                    onClick={() => setSelectedCategory('handmade')} 
+                    className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  >
                     Artisan-Made
                   </TabsTrigger>
-                  <TabsTrigger value="merch" onClick={() => setSelectedCategory('merch')} className="whitespace-nowrap flex items-center gap-2 px-4">
-                    {categoryStatus?.merchImages && categoryStatus.merchImages.length > 0 && (
-                      <div className="flex -space-x-2">
-                        {categoryStatus.merchImages.slice(0, 3).map((img, i) => (
-                          <img key={i} src={img} alt="" className="w-6 h-6 rounded-full object-cover border-2 border-background" />
-                        ))}
-                      </div>
-                    )}
+                  <TabsTrigger 
+                    value="merch" 
+                    onClick={() => setSelectedCategory('merch')} 
+                    className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  >
                     Official Merch
                   </TabsTrigger>
                 </TabsList>
