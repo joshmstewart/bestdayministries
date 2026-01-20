@@ -3,7 +3,8 @@ import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Package, Store, Lock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ShoppingCart, Package, Store, Lock, ArrowUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +20,7 @@ const Marketplace = () => {
   const navigate = useNavigate();
   const [cartOpen, setCartOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>("newest");
   const shopifyCartItems = useShopifyCartStore(state => state.getTotalItems);
   const { getCartFilter, isAuthenticated, isLoading: cartSessionLoading } = useCartSession();
 
@@ -293,42 +295,61 @@ const Marketplace = () => {
         <section className="py-12">
           <div className="container mx-auto px-4">
             <Tabs defaultValue="all" className="w-full">
-              {activeCategoryCount > 1 && (
-                <TabsList className="inline-flex flex-wrap h-auto mx-auto mb-8 gap-2 bg-muted/50 p-1.5 rounded-lg">
-                  <TabsTrigger 
-                    value="all" 
-                    onClick={() => setSelectedCategory(null)} 
-                    className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                  >
-                    All Products
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="handmade" 
-                    onClick={() => setSelectedCategory('handmade')} 
-                    className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                  >
-                    Artisan-Made
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="merch" 
-                    onClick={() => setSelectedCategory('merch')} 
-                    className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                  >
-                    Official Merch
-                  </TabsTrigger>
-                </TabsList>
-              )}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+                {activeCategoryCount > 1 && (
+                  <TabsList className="inline-flex flex-wrap h-auto gap-2 bg-muted/50 p-1.5 rounded-lg">
+                    <TabsTrigger 
+                      value="all" 
+                      onClick={() => setSelectedCategory(null)} 
+                      className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                    >
+                      All Products
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="handmade" 
+                      onClick={() => setSelectedCategory('handmade')} 
+                      className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                    >
+                      Artisan-Made
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="merch" 
+                      onClick={() => setSelectedCategory('merch')} 
+                      className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                    >
+                      Official Merch
+                    </TabsTrigger>
+                  </TabsList>
+                )}
+                
+                <div className="flex items-center gap-2 sm:ml-auto">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="newest">Newest First</SelectItem>
+                      <SelectItem value="oldest">Oldest First</SelectItem>
+                      <SelectItem value="price-low">Price: Low to High</SelectItem>
+                      <SelectItem value="price-high">Price: High to Low</SelectItem>
+                      <SelectItem value="name-az">Name: A to Z</SelectItem>
+                      <SelectItem value="name-za">Name: Z to A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               
               <TabsContent value="all">
-                <ProductGrid category={null} />
+                <ProductGrid category={null} sortBy={sortBy} />
               </TabsContent>
               
               <TabsContent value="merch">
-                <ProductGrid category="merch" />
+                <ProductGrid category="merch" sortBy={sortBy} />
               </TabsContent>
               
               <TabsContent value="handmade">
-                <ProductGrid category="handmade" />
+                <ProductGrid category="handmade" sortBy={sortBy} />
               </TabsContent>
             </Tabs>
           </div>

@@ -5,11 +5,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductGridProps {
   category?: string | null;
+  sortBy?: string;
 }
 
-export const ProductGrid = ({ category }: ProductGridProps) => {
+export const ProductGrid = ({ category, sortBy = "newest" }: ProductGridProps) => {
   const { data: products, isLoading } = useQuery({
-    queryKey: ['products', category],
+    queryKey: ['products', category, sortBy],
     queryFn: async () => {
       const query = supabase
         .from('products')
@@ -17,15 +18,14 @@ export const ProductGrid = ({ category }: ProductGridProps) => {
           *,
           vendor:vendors(business_name, user_id, is_house_vendor, stripe_charges_enabled)
         `)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .eq('is_active', true);
 
       const { data, error } = await query;
       if (error) throw error;
       
       // Filter out products from vendors who haven't completed Stripe setup
       // House vendors and Printify products don't need Stripe Connect
-      const vendorReadyProducts = data?.filter(p => {
+      let vendorReadyProducts = data?.filter(p => {
         const vendor = p.vendor as any;
         if (!vendor) return false;
         // House vendors don't need Stripe Connect (platform handles payments)
@@ -39,19 +39,39 @@ export const ProductGrid = ({ category }: ProductGridProps) => {
       // Filter based on category
       if (category === 'merch') {
         // Show Printify products OR products from house vendor
-        return vendorReadyProducts.filter(p => 
+        vendorReadyProducts = vendorReadyProducts.filter(p => 
           p.is_printify_product === true || 
           (p.vendor as any)?.is_house_vendor === true
         );
       } else if (category === 'handmade') {
         // Show vendor products that are NOT from house vendor
-        return vendorReadyProducts.filter(p => 
+        vendorReadyProducts = vendorReadyProducts.filter(p => 
           p.vendor_id !== null && 
           (p.vendor as any)?.is_house_vendor !== true
         );
       }
       
-      return vendorReadyProducts;
+      // Sort products based on sortBy option
+      const sortedProducts = [...vendorReadyProducts].sort((a, b) => {
+        switch (sortBy) {
+          case 'newest':
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          case 'oldest':
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          case 'price-low':
+            return (a.price || 0) - (b.price || 0);
+          case 'price-high':
+            return (b.price || 0) - (a.price || 0);
+          case 'name-az':
+            return (a.name || '').localeCompare(b.name || '');
+          case 'name-za':
+            return (b.name || '').localeCompare(a.name || '');
+          default:
+            return 0;
+        }
+      });
+      
+      return sortedProducts;
     }
   });
 
