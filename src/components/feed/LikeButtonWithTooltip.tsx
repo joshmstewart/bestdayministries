@@ -132,10 +132,7 @@ export function LikeButtonWithTooltip({
       size="sm"
       onClick={onLike}
       disabled={disabled}
-      className={cn(
-        "gap-1.5 px-2",
-        isLiked && "text-red-500"
-      )}
+      className="gap-1.5 px-2"
     >
       <Heart
         className={cn(
@@ -143,7 +140,7 @@ export function LikeButtonWithTooltip({
           isLiked && "fill-red-500 text-red-500"
         )}
       />
-      <span className="text-sm">{likesCount}</span>
+      <span className="text-sm text-foreground">{likesCount}</span>
     </Button>
   );
 
