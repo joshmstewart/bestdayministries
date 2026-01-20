@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -30,10 +31,18 @@ interface AvatarTemplate {
   created_at: string;
 }
 
+const AVATAR_CATEGORIES = [
+  { value: "free", label: "Free Tier", emoji: "🆓" },
+  { value: "animals", label: "Animals", emoji: "🐾" },
+  { value: "superheroes", label: "Superheroes", emoji: "🦸" },
+  { value: "humans", label: "Humans", emoji: "👤" },
+] as const;
+
 const defaultFormData = {
   name: "", description: "", preview_image_url: "", character_prompt: "",
   is_free: false, price_coins: 100, display_order: 0, is_active: true,
   character_type: "human" as string, // Track character type for image generation
+  category: "free" as string, // Display category for grouping
 };
 
 export function FitnessAvatarManager() {
@@ -184,6 +193,7 @@ export function FitnessAvatarManager() {
         preview_image_url: data.preview_image_url || null, character_prompt: data.character_prompt,
         is_free: data.is_free, price_coins: data.is_free ? 0 : data.price_coins,
         display_order: data.display_order, is_active: data.is_active,
+        category: data.category || "free",
       };
       if (data.id) {
         const { error } = await supabase.from("fitness_avatars").update(payload).eq("id", data.id);
@@ -322,6 +332,7 @@ export function FitnessAvatarManager() {
       display_order: avatar.display_order, 
       is_active: avatar.is_active,
       character_type: "human", // Default for existing avatars
+      category: avatar.category || "free", // Display category
     });
     setDialogOpen(true);
   };
@@ -408,12 +419,20 @@ export function FitnessAvatarManager() {
       demographicSuffix = `. Character has ${skinTone}, ${genderPresentation}, with ${hairColor} ${hairStyle}`;
     }
     
+    // Map character_type to category
+    const categoryMap: Record<string, string> = {
+      'animal': 'animals',
+      'superhero': 'superheroes',
+      'human': 'humans',
+    };
+    
     setFormData(prev => ({
       ...prev,
       name: randomTemplate.name,
       description: `A ${randomTemplate.character_type === 'animal' ? 'friendly animal' : randomTemplate.character_type === 'superhero' ? 'heroic' : 'friendly'} character who loves fitness and can do any sport!`,
       character_prompt: randomTemplate.prompt + demographicSuffix,
       character_type: randomTemplate.character_type, // Track the type for image generation
+      category: categoryMap[randomTemplate.character_type] || 'humans', // Auto-set category based on type
       display_order: avatars?.length || 0,
     }));
     
@@ -621,6 +640,27 @@ export function FitnessAvatarManager() {
                   </p>
                 </div>
                 
+                {/* Category Selector */}
+                <div className="space-y-2">
+                  <Label>Category (Display Group)</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AVATAR_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.emoji} {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Choose which group this avatar appears in</p>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Display Order</Label>
@@ -678,6 +718,7 @@ export function FitnessAvatarManager() {
             <TableRow>
               <TableHead>Avatar</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -704,6 +745,12 @@ export function FitnessAvatarManager() {
                 <TableCell>
                   <p className="font-medium">{avatar.name}</p>
                   <p className="text-xs text-muted-foreground truncate max-w-[200px]">{avatar.character_prompt}</p>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {AVATAR_CATEGORIES.find(c => c.value === avatar.category)?.emoji || '📁'}{' '}
+                    {AVATAR_CATEGORIES.find(c => c.value === avatar.category)?.label || avatar.category || 'Uncategorized'}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   {avatar.is_free ? (

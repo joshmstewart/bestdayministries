@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, Lock, Coins, Sparkles } from "lucide-react";
+import { Loader2, Check, Lock, Coins, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCoins } from "@/hooks/useCoins";
@@ -18,6 +18,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface FitnessAvatarPickerProps {
   userId: string;
@@ -33,12 +38,23 @@ interface FitnessAvatar {
   is_free: boolean;
   price_coins: number;
   display_order: number;
+  category: string | null;
 }
+
+const AVATAR_CATEGORIES = [
+  { value: "free", label: "Free Tier", emoji: "🆓", defaultOpen: true },
+  { value: "animals", label: "Animals", emoji: "🐾", defaultOpen: true },
+  { value: "superheroes", label: "Superheroes", emoji: "🦸", defaultOpen: true },
+  { value: "humans", label: "Humans", emoji: "👤", defaultOpen: false },
+];
 
 export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarPickerProps) => {
   const queryClient = useQueryClient();
   const { coins, deductCoins } = useCoins();
   const [purchaseAvatar, setPurchaseAvatar] = useState<FitnessAvatar | null>(null);
+  const [openCategories, setOpenCategories] = useState<Set<string>>(
+    new Set(AVATAR_CATEGORIES.filter(c => c.defaultOpen).map(c => c.value))
+  );
 
   // Fetch all available avatars
   const { data: avatars = [], isLoading: loadingAvatars } = useQuery({
@@ -72,6 +88,41 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
 
   const ownedAvatarIds = ownedAvatars.map((a) => a.avatar_id);
   const selectedAvatarId = ownedAvatars.find((a) => a.is_selected)?.avatar_id;
+
+  // Group avatars by category
+  const groupedAvatars = AVATAR_CATEGORIES.map(category => {
+    const categoryAvatars = avatars.filter(a => (a.category || 'free') === category.value);
+    return {
+      ...category,
+      avatars: categoryAvatars.sort((a, b) => {
+        const aOwned = ownedAvatarIds.includes(a.id);
+        const bOwned = ownedAvatarIds.includes(b.id);
+        
+        // Owned avatars first within category
+        if (aOwned && !bOwned) return -1;
+        if (!aOwned && bOwned) return 1;
+        
+        // Then by price
+        if (!aOwned && !bOwned) {
+          return a.price_coins - b.price_coins;
+        }
+        
+        return a.display_order - b.display_order;
+      }),
+    };
+  }).filter(group => group.avatars.length > 0);
+
+  const toggleCategory = (categoryValue: string) => {
+    setOpenCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryValue)) {
+        newSet.delete(categoryValue);
+      } else {
+        newSet.add(categoryValue);
+      }
+      return newSet;
+    });
+  };
 
   // Select an avatar
   const selectMutation = useMutation({
@@ -183,106 +234,110 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
             Choose Your Fitness Buddy
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            {[...avatars]
-              .sort((a, b) => {
-                const aOwned = ownedAvatarIds.includes(a.id);
-                const bOwned = ownedAvatarIds.includes(b.id);
-                
-                // 1. Free avatars first
-                if (a.is_free && !b.is_free) return -1;
-                if (!a.is_free && b.is_free) return 1;
-                
-                // 2. Purchased (owned, non-free) avatars second
-                if (!a.is_free && !b.is_free) {
-                  if (aOwned && !bOwned) return -1;
-                  if (!aOwned && bOwned) return 1;
-                }
-                
-                // 3. Locked avatars sorted by price ascending
-                if (!a.is_free && !b.is_free && !aOwned && !bOwned) {
-                  return a.price_coins - b.price_coins;
-                }
-                
-                // Keep original order within same category
-                return a.display_order - b.display_order;
-              })
-              .map((avatar) => {
-              const isOwned = ownedAvatarIds.includes(avatar.id) || avatar.is_free;
-              const isSelected = selectedAvatarId === avatar.id;
-              
-              return (
-                <button
-                  key={avatar.id}
-                  onClick={() => handleAvatarClick(avatar)}
-                  disabled={selectMutation.isPending || purchaseMutation.isPending}
-                  className={cn(
-                    "relative flex flex-col items-center p-4 rounded-xl transition-all border-2",
-                    isSelected
-                      ? "border-primary bg-primary/10 ring-2 ring-primary ring-offset-2"
-                      : isOwned
-                      ? "border-border hover:border-primary/50 hover:bg-accent"
-                      : "border-dashed border-muted-foreground/30 hover:border-primary/50 bg-muted/30"
-                  )}
+        <CardContent className="space-y-4">
+          {groupedAvatars.map((group) => (
+            <Collapsible
+              key={group.value}
+              open={openCategories.has(group.value)}
+              onOpenChange={() => toggleCategory(group.value)}
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between px-2 py-1 h-auto"
                 >
-                  {/* Avatar Preview */}
-                  <div className={cn(
-                    "w-24 h-24 rounded-full flex items-center justify-center text-3xl mb-2 overflow-hidden",
-                    avatar.preview_image_url 
-                      ? "bg-white" 
-                      : isOwned 
-                        ? "bg-gradient-to-br from-primary/20 to-accent" 
-                        : "bg-muted"
-                  )}>
-                    {avatar.preview_image_url ? (
-                      <img 
-                        src={avatar.preview_image_url} 
-                        alt={avatar.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      // Emoji placeholder based on avatar name
-                      <span>
-                        {avatar.name.includes("Runner") ? "🏃" :
-                         avatar.name.includes("Lifter") ? "💪" :
-                         avatar.name.includes("Yogi") ? "🧘" :
-                         avatar.name.includes("Swimmer") ? "🏊" :
-                         avatar.name.includes("Dancer") ? "💃" :
-                         avatar.name.includes("Climber") ? "🧗" :
-                         avatar.name.includes("Cyclist") ? "🚴" :
-                         avatar.name.includes("Boxer") ? "🥊" :
-                         avatar.name.includes("Athlete") ? "🏆" : "⭐"}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Name */}
-                  <span className="text-xs font-medium text-center leading-tight line-clamp-2">
-                    {avatar.name}
-                  </span>
-
-                  {/* Status indicators */}
-                  {isSelected && (
-                    <div className="absolute top-1 right-1">
-                      <Check className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-
-                  {!isOwned && (
-                    <Badge variant="secondary" className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5">
-                      <Coins className="h-3 w-3" />
-                      {avatar.price_coins}
+                  <span className="flex items-center gap-2 font-semibold text-sm">
+                    {group.emoji} {group.label}
+                    <Badge variant="secondary" className="text-xs">
+                      {group.avatars.length}
                     </Badge>
+                  </span>
+                  {openCategories.has(group.value) ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
                   )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                <div className="grid grid-cols-2 gap-3">
+                  {group.avatars.map((avatar) => {
+                    const isOwned = ownedAvatarIds.includes(avatar.id) || avatar.is_free;
+                    const isSelected = selectedAvatarId === avatar.id;
+                    
+                    return (
+                      <button
+                        key={avatar.id}
+                        onClick={() => handleAvatarClick(avatar)}
+                        disabled={selectMutation.isPending || purchaseMutation.isPending}
+                        className={cn(
+                          "relative flex flex-col items-center p-3 rounded-xl transition-all border-2",
+                          isSelected
+                            ? "border-primary bg-primary/10 ring-2 ring-primary ring-offset-2"
+                            : isOwned
+                            ? "border-border hover:border-primary/50 hover:bg-accent"
+                            : "border-dashed border-muted-foreground/30 hover:border-primary/50 bg-muted/30"
+                        )}
+                      >
+                        {/* Avatar Preview */}
+                        <div className={cn(
+                          "w-20 h-20 rounded-full flex items-center justify-center text-2xl mb-2 overflow-hidden",
+                          avatar.preview_image_url 
+                            ? "bg-white" 
+                            : isOwned 
+                              ? "bg-gradient-to-br from-primary/20 to-accent" 
+                              : "bg-muted"
+                        )}>
+                          {avatar.preview_image_url ? (
+                            <img 
+                              src={avatar.preview_image_url} 
+                              alt={avatar.name}
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <span>
+                              {avatar.name.includes("Runner") ? "🏃" :
+                               avatar.name.includes("Lifter") ? "💪" :
+                               avatar.name.includes("Yogi") ? "🧘" :
+                               avatar.name.includes("Swimmer") ? "🏊" :
+                               avatar.name.includes("Dancer") ? "💃" :
+                               avatar.name.includes("Climber") ? "🧗" :
+                               avatar.name.includes("Cyclist") ? "🚴" :
+                               avatar.name.includes("Boxer") ? "🥊" :
+                               avatar.name.includes("Athlete") ? "🏆" : "⭐"}
+                            </span>
+                          )}
+                        </div>
 
-                  {!isOwned && (
-                    <Lock className="absolute bottom-1 right-1 h-3 w-3 text-muted-foreground" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                        {/* Name */}
+                        <span className="text-xs font-medium text-center leading-tight line-clamp-2">
+                          {avatar.name}
+                        </span>
+
+                        {/* Status indicators */}
+                        {isSelected && (
+                          <div className="absolute top-1 right-1">
+                            <Check className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
+
+                        {!isOwned && (
+                          <Badge variant="secondary" className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5">
+                            <Coins className="h-3 w-3" />
+                            {avatar.price_coins}
+                          </Badge>
+                        )}
+
+                        {!isOwned && (
+                          <Lock className="absolute bottom-1 right-1 h-3 w-3 text-muted-foreground" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
 
           {!selectedAvatarId && (
             <p className="text-xs text-muted-foreground text-center mt-3">

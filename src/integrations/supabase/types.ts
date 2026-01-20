@@ -3896,6 +3896,7 @@ export type Database = {
       }
       fitness_avatars: {
         Row: {
+          category: string | null
           character_prompt: string
           created_at: string
           description: string | null
@@ -3910,6 +3911,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           character_prompt: string
           created_at?: string
           description?: string | null
@@ -3924,6 +3926,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           character_prompt?: string
           created_at?: string
           description?: string | null
