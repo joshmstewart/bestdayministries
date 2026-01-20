@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
@@ -14,6 +14,11 @@ import { toast } from "sonner";
 import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemData } from "./FeedItem";
+
+interface IngredientWithCategory {
+  name: string;
+  category: string;
+}
 
 interface FeedItemDialogProps {
   item: FeedItemData | null;
@@ -43,7 +48,49 @@ export function FeedItemDialog({
   const { user } = useAuth();
   const [unsharing, setUnsharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [drinkIngredients, setDrinkIngredients] = useState<IngredientWithCategory[]>([]);
+  const [loadingIngredients, setLoadingIngredients] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
+
+  // Fetch drink ingredients when a drink item is opened
+  useEffect(() => {
+    const fetchDrinkIngredients = async () => {
+      if (!item || item.item_type !== 'drink' || !isOpen) {
+        setDrinkIngredients([]);
+        return;
+      }
+
+      setLoadingIngredients(true);
+      try {
+        // First, get the drink's ingredient IDs
+        const { data: drink } = await supabase
+          .from('custom_drinks')
+          .select('ingredients')
+          .eq('id', item.id)
+          .single();
+
+        if (drink?.ingredients && drink.ingredients.length > 0) {
+          // Then fetch the ingredient details
+          const { data: ingredients } = await supabase
+            .from('drink_ingredients')
+            .select('id, name, category')
+            .in('id', drink.ingredients);
+
+          if (ingredients) {
+            setDrinkIngredients(
+              ingredients.map(i => ({ name: i.name, category: i.category }))
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching drink ingredients:', error);
+      } finally {
+        setLoadingIngredients(false);
+      }
+    };
+
+    fetchDrinkIngredients();
+  }, [item?.id, item?.item_type, isOpen]);
 
   if (!item) return null;
 
@@ -96,7 +143,6 @@ export function FeedItemDialog({
     }
   };
 
-
   const handlePlayBeat = () => {
     if (item.item_type !== 'beat' || !item.extra_data?.pattern) return;
     
@@ -105,6 +151,22 @@ export function FeedItemDialog({
     } else {
       playBeat(item.id, item.extra_data.pattern, item.extra_data.tempo || 120);
     }
+  };
+
+  // Group drink ingredients by category for display
+  const groupedIngredients = drinkIngredients.reduce((acc, ing) => {
+    const cat = ing.category || 'other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(ing.name);
+    return acc;
+  }, {} as Record<string, string[]>);
+
+  const categoryLabels: Record<string, string> = {
+    base: 'Base',
+    milk: 'Milk',
+    flavor: 'Flavors',
+    topping: 'Toppings',
+    other: 'Other',
   };
 
   return (
@@ -164,7 +226,11 @@ export function FeedItemDialog({
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-semibold truncate">{item.title}</h2>
               <TextToSpeech 
-                text={`${item.title}${item.description ? `. ${item.description}` : ''}`} 
+                text={
+                  item.item_type === 'drink' && drinkIngredients.length > 0
+                    ? `${item.title}. ${item.description || ''} Made with ${drinkIngredients.map(i => i.name).join(', ')}.`
+                    : `${item.title}${item.description ? `. ${item.description}` : ''}`
+                }
                 size="sm"
               />
             </div>
@@ -175,9 +241,72 @@ export function FeedItemDialog({
               Created {format(new Date(item.created_at), "MMM d, yyyy")}
             </p>
             {item.description && (
-              <p className="text-sm text-muted-foreground mt-2">{item.description}</p>
+              <p className="text-sm text-muted-foreground mt-2 italic">{item.description}</p>
             )}
             
+            {/* Drink Ingredients - organized by category */}
+            {item.item_type === 'drink' && drinkIngredients.length > 0 && (
+              <div className="space-y-3 mt-4">
+                <h3 className="text-sm font-medium">Ingredients</h3>
+                {loadingIngredients ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading ingredients...
+                  </div>
+                ) : (
+                  Object.entries(groupedIngredients).map(([category, items]) => (
+                    <div key={category}>
+                      <p className="text-xs text-muted-foreground mb-1.5">{categoryLabels[category] || category}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {items.map((name, idx) => (
+                          <span 
+                            key={idx}
+                            className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Recipe Ingredients and Steps */}
+            {item.item_type === 'recipe' && item.extra_data && (
+              <div className="space-y-4 mt-4">
+                {/* Recipe Ingredients */}
+                {item.extra_data.ingredients && item.extra_data.ingredients.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Ingredients</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.extra_data.ingredients.map((ingredient: string, idx: number) => (
+                        <span 
+                          key={idx}
+                          className="px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium"
+                        >
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Recipe Steps */}
+                {item.extra_data.steps && item.extra_data.steps.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Steps</h3>
+                    <ol className="list-decimal list-inside space-y-1.5 text-sm text-muted-foreground">
+                      {item.extra_data.steps.map((step: string, idx: number) => (
+                        <li key={idx}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex items-center gap-2 mt-4 flex-wrap">
               {/* Play button for beats */}
