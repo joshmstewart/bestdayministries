@@ -310,18 +310,19 @@ const Community = () => {
             onValueChange={(value) => setSearchParams({ tab: value })}
             className="w-full"
           >
-            <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
+            <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto overflow-visible">
               <TabsTrigger value="community" className="gap-2">
                 <Users className="w-4 h-4" />
-                Community
+                <span className="hidden sm:inline">Community</span>
+                <span className="sm:hidden">Community</span>
               </TabsTrigger>
-              <TabsTrigger value="feed" className="gap-2 relative">
+              <TabsTrigger value="feed" className="gap-2 relative overflow-visible">
                 <Rss className="w-4 h-4" />
-                Feed
+                <span>Feed</span>
                 {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
+                    className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
                   >
                     {unseenCount > 99 ? '99+' : unseenCount}
                   </Badge>
