@@ -132,7 +132,7 @@ export function CommunityFeed() {
       </div>
 
       {/* Feed items grid - single column on mobile, 2 on larger screens */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {items.map((item) => (
           <FeedItem key={`${item.item_type}-${item.id}`} item={item} onRefresh={refresh} />
         ))}
