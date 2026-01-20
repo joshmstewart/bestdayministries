@@ -281,9 +281,22 @@ All colors MUST be HSL.
     box-shadow: var(--shadow-card);
   }
   
-  .bg-gradient-warm {
-    background: var(--gradient-warm);
-  }
+.bg-gradient-warm {
+  background: var(--gradient-warm);
+}
+
+/* Named Feed Card Gradients */
+.bg-gradient-prayer-glow {
+  @apply bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20;
+}
+
+.bg-gradient-joke-question {
+  @apply bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30;
+}
+
+.bg-gradient-joke-punchline {
+  @apply bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30;
+}
   
   .bg-gradient-card {
     background: var(--gradient-card);
