@@ -38,13 +38,19 @@ interface FeedItemProps {
   onSave?: (itemId: string, itemType: string) => void;
 }
 
-const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string; route: string }> = {
-  beat: { label: "Beat", icon: Music, color: "bg-purple-500/10 text-purple-500 border-purple-500/20", route: "/games/beat-pad" },
-  card: { label: "Card", icon: Image, color: "bg-pink-500/10 text-pink-500 border-pink-500/20", route: "/games/card-creator" },
-  coloring: { label: "Coloring", icon: Palette, color: "bg-orange-500/10 text-orange-500 border-orange-500/20", route: "/games/coloring-book" },
-  post: { label: "Post", icon: MessageSquare, color: "bg-blue-500/10 text-blue-500 border-blue-500/20", route: "/discussions" },
-  album: { label: "Album", icon: FolderOpen, color: "bg-green-500/10 text-green-500 border-green-500/20", route: "/gallery" },
-  chore_art: { label: "Chore Art", icon: Trophy, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", route: "/games/chore-challenge" },
+const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string; routeBase: string; idParam: string }> = {
+  beat: { label: "Beat", icon: Music, color: "bg-purple-500/10 text-purple-500 border-purple-500/20", routeBase: "/games/beat-pad", idParam: "id" },
+  card: { label: "Card", icon: Image, color: "bg-pink-500/10 text-pink-500 border-pink-500/20", routeBase: "/games/card-creator", idParam: "id" },
+  coloring: { label: "Coloring", icon: Palette, color: "bg-orange-500/10 text-orange-500 border-orange-500/20", routeBase: "/games/coloring-book", idParam: "id" },
+  post: { label: "Post", icon: MessageSquare, color: "bg-blue-500/10 text-blue-500 border-blue-500/20", routeBase: "/discussions", idParam: "post" },
+  album: { label: "Album", icon: FolderOpen, color: "bg-green-500/10 text-green-500 border-green-500/20", routeBase: "/gallery", idParam: "album" },
+  chore_art: { label: "Chore Art", icon: Trophy, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", routeBase: "/games/chore-challenge", idParam: "gallery" },
+};
+
+const getItemRoute = (itemType: string, itemId: string) => {
+  const config = typeConfig[itemType];
+  if (!config) return "#";
+  return `${config.routeBase}?${config.idParam}=${itemId}`;
 };
 
 export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
@@ -90,7 +96,7 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    const url = `${window.location.origin}${config.route}?id=${item.id}`;
+    const url = `${window.location.origin}${getItemRoute(item.item_type, item.id)}`;
     
     if (navigator.share) {
       try {
@@ -158,7 +164,7 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
 
         {/* Image */}
         {item.image_url && (
-          <Link to={`${config.route}?id=${item.id}`} className="block">
+          <Link to={getItemRoute(item.item_type, item.id)} className="block">
             <div className="relative aspect-square sm:aspect-video overflow-hidden bg-muted">
               <img
                 src={item.image_url}
@@ -174,7 +180,7 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
         <div className="p-4 pt-3 space-y-3">
           <div>
             <Link 
-              to={`${config.route}?id=${item.id}`}
+              to={getItemRoute(item.item_type, item.id)}
               className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-1"
             >
               {item.title}
@@ -204,7 +210,7 @@ export function FeedItem({ item, onLike, onSave }: FeedItemProps) {
 
               {item.comments_count !== null && (
                 <Button variant="ghost" size="sm" className="gap-1.5 h-9 px-3" asChild>
-                  <Link to={`${config.route}?id=${item.id}`}>
+                  <Link to={getItemRoute(item.item_type, item.id)}>
                     <MessageCircle className="h-4 w-4" />
                     <span className="text-sm">{item.comments_count}</span>
                   </Link>
