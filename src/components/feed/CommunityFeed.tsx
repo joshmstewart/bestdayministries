@@ -1,18 +1,36 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedItem } from "./FeedItem";
 import { FeedTypeFilter } from "./FeedTypeFilter";
 import { useCommunityFeed, ItemType } from "@/hooks/useCommunityFeed";
 import { useAuth } from "@/contexts/AuthContext";
+import { PullToRefresh } from "@/components/PullToRefresh";
+import { useUnseenFeedCount } from "@/hooks/useUnseenFeedCount";
+
+// Estimated height for feed items (for virtual scroll optimization)
+const ESTIMATED_ITEM_HEIGHT = 400;
 
 export function CommunityFeed() {
   const [typeFilters, setTypeFilters] = useState<ItemType[]>([]);
   const { items, loading, loadingMore, hasMore, loadMore, refresh } = useCommunityFeed({ typeFilters });
   const { isAuthenticated } = useAuth();
+  const { markAsSeen } = useUnseenFeedCount();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Mark feed as seen when user views it
+  useEffect(() => {
+    if (isAuthenticated && items.length > 0) {
+      markAsSeen();
+    }
+  }, [isAuthenticated, items.length, markAsSeen]);
+
+  // Pull to refresh handler
+  const handleRefresh = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
   // Infinite scroll observer
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -114,7 +132,7 @@ export function CommunityFeed() {
   }
 
   return (
-    <div className="space-y-4">
+    <PullToRefresh onRefresh={handleRefresh} className="space-y-4">
       {/* Type filter */}
       <FeedTypeFilter selectedTypes={typeFilters} onTypesChange={setTypeFilters} />
 
@@ -132,7 +150,7 @@ export function CommunityFeed() {
       </div>
 
       {/* Feed items grid - single column on mobile, 2 on larger screens */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+      <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {items.map((item) => (
           <FeedItem key={`${item.item_type}-${item.id}`} item={item} onRefresh={refresh} />
         ))}
@@ -152,6 +170,6 @@ export function CommunityFeed() {
           </p>
         )}
       </div>
-    </div>
+    </PullToRefresh>
   );
 }
