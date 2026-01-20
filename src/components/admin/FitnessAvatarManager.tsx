@@ -439,18 +439,30 @@ export function FitnessAvatarManager() {
       }
     }
     
-    // Get available templates: not rejected AND not already used as avatars
-    const usedNames = new Set(avatars?.map(a => a.name.toLowerCase().trim()) || []);
-    const rejectedNamesLower = new Set(rejectedTemplates.map(n => n.toLowerCase()));
-    
-    const availableTemplates = avatarTemplates.filter(t => 
-      !usedNames.has(t.name.toLowerCase().trim()) && 
-      !rejectedNamesLower.has(t.name.toLowerCase())
+    // Prefer unused templates, but NEVER get stuck at "no templates left".
+    // If all templates already exist as avatars, we fall back to allowing repeats
+    // (like location packs never "run out").
+    const usedNames = new Set((avatars || []).map((a) => (a.name || "").toLowerCase().trim()));
+    const rejectedNamesLower = new Set(rejectedTemplates.map((n) => n.toLowerCase().trim()));
+
+    const nonRejectedTemplates = avatarTemplates.filter(
+      (t) => !rejectedNamesLower.has(t.name.toLowerCase().trim())
     );
-    
+
+    const unusedTemplates = nonRejectedTemplates.filter(
+      (t) => !usedNames.has(t.name.toLowerCase().trim())
+    );
+
+    const usingFallbackRepeats = unusedTemplates.length === 0;
+    const availableTemplates = usingFallbackRepeats ? nonRejectedTemplates : unusedTemplates;
+
     if (availableTemplates.length === 0) {
-      toast.error("No available templates!", {
-        description: `All templates are either used or rejected. ${rejectedTemplates.length > 0 ? `${rejectedTemplates.length} rejected - click "Rejected" to restore.` : ""}`,
+      // Only happens if user rejected EVERYTHING.
+      toast.error("No templates available", {
+        description:
+          rejectedTemplates.length > 0
+            ? `All ${avatarTemplates.length} templates are rejected. Click the restore button (archive icon) to bring some back.`
+            : "No templates are configured.",
       });
       return;
     }
@@ -511,8 +523,8 @@ export function FitnessAvatarManager() {
     setPreviousTemplateName(randomTemplate.name);
     
     const remaining = availableTemplates.length - 1;
-    toast.success(`Randomized: ${randomTemplate.name}`, { 
-      description: `${typeEmoji} • ${remaining} unused left • ${rejectedTemplates.length} rejected`
+    toast.success(`Randomized: ${randomTemplate.name}`, {
+      description: `${typeEmoji} • ${remaining} left${usingFallbackRepeats ? " (repeats allowed)" : " unused"} • ${rejectedTemplates.length} rejected`,
     });
   };
 
