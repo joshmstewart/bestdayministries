@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { 
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, EyeOff
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, EyeOff
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
   const isOwner = user?.id === item.author_id;
@@ -309,24 +310,33 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
           >
             {/* Special display for jokes */}
             {item.item_type === 'joke' && item.extra_data?.question ? (
-              <div className="p-4 bg-gradient-to-br from-lime-500/10 via-yellow-500/10 to-amber-500/10 border-y border-lime-500/20">
+              <div className="p-4 bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30">
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-lime-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-lg">🤔</span>
-                    </div>
-                    <p className="text-foreground font-medium text-base leading-relaxed">
-                      {item.extra_data.question}
-                    </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-lg font-medium text-center">{item.extra_data.question}</p>
+                    <TextToSpeech text={item.extra_data.question} size="icon" />
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-lg">😂</span>
+                  
+                  {!showAnswer ? (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAnswer(true);
+                      }}
+                      variant="outline"
+                      className="w-full gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Reveal Answer
+                    </Button>
+                  ) : (
+                    <div className="bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg p-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <p className="text-lg font-semibold text-center">{item.extra_data.answer}</p>
+                        <TextToSpeech text={item.extra_data.answer} size="icon" />
+                      </div>
                     </div>
-                    <p className="text-primary font-semibold text-base leading-relaxed">
-                      {item.extra_data.answer}
-                    </p>
-                  </div>
+                  )}
                 </div>
               </div>
             ) : item.image_url ? (
@@ -363,82 +373,84 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
             )}
           </div>
 
-          {/* Content */}
-          <div className="p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <h3 
-                className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-1 flex-1 cursor-pointer"
-                onClick={() => setDialogOpen(true)}
-              >
-                {item.title}
-              </h3>
-              <TextToSpeech 
-                text={`${item.title}${item.description ? `. ${item.description}` : ''}`} 
-                size="sm"
-              />
+          {/* Content - hide for jokes since it's displayed above */}
+          {item.item_type !== 'joke' && (
+            <div className="p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <h3 
+                  className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-1 flex-1 cursor-pointer"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  {item.title}
+                </h3>
+                <TextToSpeech 
+                  text={`${item.title}${item.description ? `. ${item.description}` : ''}`} 
+                  size="sm"
+                />
+              </div>
+              {item.description && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {item.description}
+                </p>
+              )}
             </div>
-            {item.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {item.description}
-              </p>
-            )}
+          )}
 
-            {/* Action buttons row */}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <div className="flex items-center gap-1">
-                {/* Play button for beats */}
-                {item.item_type === 'beat' && item.extra_data?.pattern && (
-                  <Button
-                    variant={isBeatPlaying ? "default" : "ghost"}
-                    size="sm"
-                    onClick={handlePlayBeat}
-                    className="h-8"
-                  >
-                    {isBeatPlaying ? (
-                      <Square className="h-4 w-4" />
-                    ) : (
-                      <Play className="h-4 w-4" />
-                    )}
-                  </Button>
-                )}
-                
-                {/* Like button */}
+          {/* Action buttons row */}
+          <div className="flex items-center justify-between p-3 pt-2 border-t border-border">
+            <div className="flex items-center gap-1">
+              {/* Play button for beats */}
+              {item.item_type === 'beat' && item.extra_data?.pattern && (
+                <Button
+                  variant={isBeatPlaying ? "default" : "ghost"}
+                  size="sm"
+                  onClick={handlePlayBeat}
+                  className="h-8"
+                >
+                  {isBeatPlaying ? (
+                    <Square className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              
+              {/* Like button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLike}
+                className="h-8 gap-1"
+              >
+                <Heart className={cn("h-4 w-4", isLiked && "fill-red-500 text-red-500")} />
+                <span className="text-xs">{likesCount}</span>
+              </Button>
+
+              {/* Unshare button for owner */}
+              {isOwner && ['beat', 'coloring', 'card', 'chore_art'].includes(item.item_type) && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleLike}
-                  className="h-8 gap-1"
+                  onClick={handleUnshare}
+                  className="h-8 gap-1 text-muted-foreground hover:text-destructive"
+                  title="Remove from community feed"
                 >
-                  <Heart className={cn("h-4 w-4", isLiked && "fill-red-500 text-red-500")} />
-                  <span className="text-xs">{likesCount}</span>
+                  <EyeOff className="h-4 w-4" />
                 </Button>
-
-                {/* Unshare button for owner */}
-                {isOwner && ['beat', 'coloring', 'card', 'chore_art'].includes(item.item_type) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleUnshare}
-                    className="h-8 gap-1 text-muted-foreground hover:text-destructive"
-                    title="Remove from community feed"
-                  >
-                    <EyeOff className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Open in app button */}
-              <Button
-                size="sm"
-                asChild
-                className={cn("h-8 gap-1.5 border-0", config.buttonColor)}
-              >
-                <Link to={getItemRoute(item.item_type, item.id)}>
-                  <span className="text-xs font-medium">{config.appName}</span>
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </Button>
+              )}
             </div>
+
+            {/* Open in app button */}
+            <Button
+              size="sm"
+              asChild
+              className={cn("h-8 gap-1.5 border-0", config.buttonColor)}
+            >
+              <Link to={getItemRoute(item.item_type, item.id)}>
+                <span className="text-xs font-medium">{config.appName}</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
