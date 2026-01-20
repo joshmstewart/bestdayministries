@@ -16,7 +16,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell, Download, Upload, Eraser, Archive, RotateCcw, Sparkles } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell, Download, Upload, Eraser, Archive, RotateCcw, Sparkles, ArchiveRestore } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import ImageLightbox from "@/components/ImageLightbox";
@@ -63,6 +67,11 @@ export function FitnessAvatarManager() {
   const [workoutTestDialogOpen, setWorkoutTestDialogOpen] = useState(false);
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [removingBgFor, setRemovingBgFor] = useState<string | null>(null);
+  
+  // Track which template was last shown during randomize (for auto-archive on re-randomize)
+  const [previousTemplateName, setPreviousTemplateName] = useState<string | null>(null);
+  // Dialog to restore archived templates
+  const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
 
   const handleImageClick = (imageUrl: string) => {
     setLightboxImage(imageUrl);
@@ -365,11 +374,24 @@ export function FitnessAvatarManager() {
   };
 
   const handleRandomize = () => {
+    // If there was a previous template shown and user clicks randomize again, auto-archive it
+    if (previousTemplateName && formData.name === previousTemplateName) {
+      const previousTemplate = avatarTemplates?.find(t => t.name.toLowerCase() === previousTemplateName.toLowerCase());
+      if (previousTemplate && !previousTemplate.is_archived) {
+        toggleArchiveMutation.mutate({ id: previousTemplate.id, is_archived: true });
+        toast.info(`"${previousTemplateName}" archived`, {
+          description: "It won't be suggested again. Click 'Archived' to restore.",
+        });
+      }
+    }
+    
     // Get active (non-archived) templates from database
     const activeTemplates = avatarTemplates?.filter(t => !t.is_archived) || [];
     
     if (activeTemplates.length === 0) {
-      toast.error("No available templates. Add or unarchive some templates first.");
+      toast.error("No available templates!", {
+        description: "Click 'Archived' to restore some templates",
+      });
       return;
     }
     
@@ -436,8 +458,13 @@ export function FitnessAvatarManager() {
       display_order: avatars?.length || 0,
     }));
     
+    // Track this template name so if user clicks randomize again, we auto-archive it
+    setPreviousTemplateName(randomTemplate.name);
+    
+    const remaining = activeTemplates.length - 1;
+    const archivedCount = avatarTemplates?.filter(t => t.is_archived).length || 0;
     toast.success(`Randomized: ${randomTemplate.name}`, { 
-      description: typeEmoji
+      description: `${typeEmoji} • ${remaining} more available • ${archivedCount} archived`
     });
   };
 
@@ -558,16 +585,32 @@ export function FitnessAvatarManager() {
                 <DialogTitle>{editingAvatar ? "Edit Avatar" : "Create Avatar"}</DialogTitle>
               </DialogHeader>
               
-              {/* Randomize Button */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleRandomize}
-                className="w-full"
-              >
-                <Shuffle className="w-4 h-4 mr-2" />
-                Randomize Character (Fill All Details)
-              </Button>
+              {/* Randomize Button with Archived button */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleRandomize}
+                  className="flex-1"
+                >
+                  <Shuffle className="w-4 h-4 mr-2" />
+                  Randomize Character
+                </Button>
+                {archivedTemplatesCount > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setArchivedDialogOpen(true)}
+                    className="px-3"
+                    title={`${archivedTemplatesCount} archived templates`}
+                  >
+                    <ArchiveRestore className="w-4 h-4" />
+                    <Badge variant="secondary" className="ml-1.5 text-xs">
+                      {archivedTemplatesCount}
+                    </Badge>
+                  </Button>
+                )}
+              </div>
               
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -940,15 +983,28 @@ export function FitnessAvatarManager() {
     </Card>
       </TabsContent>
 
-      {/* Templates Tab */}
+      {/* Templates Tab - Only show active templates */}
       <TabsContent value="templates">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              Avatar Idea Templates
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">Archive ideas to stop them from appearing in randomization</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  Avatar Idea Templates
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">Active ideas available for randomization</p>
+              </div>
+              {archivedTemplatesCount > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setArchivedDialogOpen(true)}
+                >
+                  <ArchiveRestore className="w-4 h-4 mr-2" />
+                  Archived ({archivedTemplatesCount})
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {templatesLoading ? (
@@ -959,56 +1015,105 @@ export function FitnessAvatarManager() {
                   <span>Active: {activeTemplatesCount}</span>
                   <span>Archived: {archivedTemplatesCount}</span>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {avatarTemplates?.map((template) => (
-                      <TableRow key={template.id} className={template.is_archived ? "opacity-50" : ""}>
-                        <TableCell>
-                          <p className="font-medium">{template.name}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[300px]">{template.prompt}</p>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {template.character_type === 'animal' ? '🐾' : template.character_type === 'superhero' ? '🦸' : '👤'} {template.character_type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {template.is_archived ? (
-                            <Badge variant="secondary">Archived</Badge>
-                          ) : (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleArchiveMutation.mutate({ id: template.id, is_archived: !template.is_archived })}
-                          >
-                            {template.is_archived ? (
-                              <><RotateCcw className="w-3 h-3 mr-1" />Restore</>
-                            ) : (
-                              <><Archive className="w-3 h-3 mr-1" />Archive</>
-                            )}
-                          </Button>
-                        </TableCell>
+                {activeTemplatesCount === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Archive className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p className="font-medium">No active templates</p>
+                    <p className="text-sm">Click "Archived" to restore some templates</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {avatarTemplates?.filter(t => !t.is_archived).map((template) => (
+                        <TableRow key={template.id}>
+                          <TableCell>
+                            <p className="font-medium">{template.name}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[300px]">{template.prompt}</p>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {template.character_type === 'animal' ? '🐾' : template.character_type === 'superhero' ? '🦸' : '👤'} {template.character_type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => toggleArchiveMutation.mutate({ id: template.id, is_archived: true })}
+                            >
+                              <Archive className="w-3 h-3 mr-1" />Archive
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </div>
             )}
           </CardContent>
         </Card>
       </TabsContent>
+
+      {/* Archived Templates Dialog */}
+      <Dialog open={archivedDialogOpen} onOpenChange={setArchivedDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArchiveRestore className="w-5 h-5" />
+              Archived Templates ({archivedTemplatesCount})
+            </DialogTitle>
+          </DialogHeader>
+          
+          {archivedTemplatesCount === 0 ? (
+            <p className="text-center text-muted-foreground py-4">
+              No archived templates
+            </p>
+          ) : (
+            <>
+              <ScrollArea className="max-h-[400px]">
+                <div className="space-y-2 pr-4">
+                  {avatarTemplates?.filter(t => t.is_archived).map((template) => (
+                    <div
+                      key={template.id}
+                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium">{template.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {template.character_type === 'animal' ? '🐾' : template.character_type === 'superhero' ? '🦸' : '👤'} {template.character_type}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          toggleArchiveMutation.mutate({ id: template.id, is_archived: false });
+                        }}
+                      >
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setArchivedDialogOpen(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Tabs>
   );
 }
