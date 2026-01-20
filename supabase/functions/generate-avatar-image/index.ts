@@ -71,6 +71,51 @@ serve(async (req) => {
 
     console.log(`Generating avatar image for: ${name}`);
 
+    // --- Diversity enforcement ---
+    // The model tends to default to a narrow demographic when not explicitly guided.
+    // To avoid repeated “white male with brown hair” outputs, we inject a concrete
+    // demographic descriptor (unless the user prompt already specifies one).
+    const lowerPrompt = String(characterPrompt || "").toLowerCase();
+    const hasExplicitGender = /\b(woman|female|girl|man|male|boy|non[-\s]?binary|enby|androgynous)\b/i.test(lowerPrompt);
+    const hasExplicitSkinOrEthnicity = /\b(black|african|brown[-\s]?skinned|dark[-\s]?skinned|latina|latino|hispanic|asian|south asian|indian|middle eastern|arab|native|indigenous)\b/i.test(lowerPrompt);
+    const hasExplicitHair = /\b(blonde|blond|redhead|red hair|ginger|auburn|gray hair|grey hair|white hair|silver hair|pink hair|blue hair|purple hair|bald|shaved|braids|locs|dreads|afro|curly|coily)\b/i.test(lowerPrompt);
+
+    const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+    // Weighted away from defaults: only one “light skin” option.
+    const skinTone = hasExplicitSkinOrEthnicity
+      ? null
+      : pick([
+          "deep dark skin",
+          "dark brown skin",
+          "medium brown skin",
+          "olive skin",
+          "light skin",
+        ]);
+
+    const genderPresentation = hasExplicitGender
+      ? null
+      : pick(["feminine-presenting", "masculine-presenting", "androgynous-presenting"]);
+
+    const hairDescription = hasExplicitHair
+      ? null
+      : `${pick(["black", "blonde", "red", "auburn", "silver", "blue", "purple"])} ${pick([
+          "curly hair",
+          "coily hair",
+          "wavy hair",
+          "straight hair",
+          "braids",
+          "locs",
+          "short hair",
+          "long hair",
+          "bald head",
+        ])}`;
+
+    const forcedDemographic = [genderPresentation, skinTone, hairDescription].filter(Boolean).join(", ");
+    const demographicConstraint = forcedDemographic
+      ? `\nDEMOGRAPHIC DIVERSITY (MANDATORY):\n- For THIS generation, depict the character as: ${forcedDemographic}.\n- Do NOT default to a white male with brown hair unless explicitly requested.\n`
+      : `\nDEMOGRAPHIC DIVERSITY (MANDATORY):\n- Do NOT default to a white male with brown hair unless explicitly requested.\n`;
+
     // Build the prompt for a friendly, cartoon-style fitness avatar
     // Only include animal-specific instructions if this is actually an animal character
     const animalInstructions = isAnimalCharacter ? `
@@ -91,6 +136,7 @@ CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
 - The character should be isolated on a pure white background for easy integration into app interfaces
 ${animalInstructions}
+${demographicConstraint}
 AGE DEMOGRAPHIC PREFERENCE:
 - STRONGLY prefer young adult and adult characters (ages 18-40 appearance)
 - We already have many child characters, so lean toward mature but friendly adult representations
