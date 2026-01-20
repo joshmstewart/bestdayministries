@@ -97,6 +97,14 @@ AGE DEMOGRAPHIC PREFERENCE:
 - Adults can still be cute and cartoon-style while looking like grown-ups
 - For superhero characters: can be any age but default to adult unless specified
 
+DEMOGRAPHIC DIVERSITY (CRITICAL):
+- Vary skin tones across the full human spectrum: light, medium, olive, tan, brown, dark brown, deep black
+- Vary hair colors beyond brown: black, blonde, red, auburn, gray, white, colorful dyed (pink, blue, purple, silver)
+- Vary hair textures and styles: straight, wavy, curly, coily, locs, braids, short, long, bald, mohawk, etc.
+- Include diverse genders: masculine, feminine, androgynous presentations
+- For this specific character, randomly select diverse features rather than defaulting to "standard" appearances
+- AVOID repeatedly generating the same demographic (white male with brown hair)
+
 SUPERHERO VARIETY (if character is a superhero type):
 - Embrace diverse superhero styles: classic caped heroes, tech-suited heroes, elemental powers, cosmic heroes, speedsters, strength-based heroes, flying heroes, ninja/stealth heroes, magical heroes, armored heroes
 - Superheroes should have distinctive costumes, emblems, or visual powers
