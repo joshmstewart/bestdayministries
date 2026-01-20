@@ -73,48 +73,58 @@ serve(async (req) => {
 
     // --- Diversity enforcement ---
     // The model tends to default to a narrow demographic when not explicitly guided.
-    // To avoid repeated “white male with brown hair” outputs, we inject a concrete
-    // demographic descriptor (unless the user prompt already specifies one).
+    // We inject diversity ONLY when the user hasn't specified demographics.
     const lowerPrompt = String(characterPrompt || "").toLowerCase();
-    const hasExplicitGender = /\b(woman|female|girl|man|male|boy|non[-\s]?binary|enby|androgynous)\b/i.test(lowerPrompt);
-    const hasExplicitSkinOrEthnicity = /\b(black|african|brown[-\s]?skinned|dark[-\s]?skinned|latina|latino|hispanic|asian|south asian|indian|middle eastern|arab|native|indigenous)\b/i.test(lowerPrompt);
-    const hasExplicitHair = /\b(blonde|blond|redhead|red hair|ginger|auburn|gray hair|grey hair|white hair|silver hair|pink hair|blue hair|purple hair|bald|shaved|braids|locs|dreads|afro|curly|coily)\b/i.test(lowerPrompt);
+    
+    // Expanded detection patterns to respect user-specified demographics
+    const hasExplicitGender = /\b(woman|female|girl|man|male|boy|non[-\s]?binary|enby|androgynous|feminine|masculine)\b/i.test(lowerPrompt);
+    
+    // Include ALL skin tone descriptions including light/fair/pale
+    const hasExplicitSkinOrEthnicity = /\b(black|african|brown[-\s]?skin|dark[-\s]?skin|light[-\s]?skin|fair[-\s]?skin|pale[-\s]?skin|olive[-\s]?skin|tan[-\s]?skin|medium[-\s]?skin|latina|latino|hispanic|asian|south asian|indian|middle eastern|arab|native|indigenous|caucasian|white|european)\b/i.test(lowerPrompt);
+    
+    // Include ALL hair color and style descriptions including long/short + color combos
+    const hasExplicitHair = /\b(blonde|blond|brunette|redhead|red hair|ginger|auburn|gray hair|grey hair|white hair|silver hair|pink hair|blue hair|purple hair|black hair|brown hair|bald|shaved|braids|locs|dreads|afro|curly|coily|wavy|straight|long hair|short hair)\b/i.test(lowerPrompt);
 
     const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
-    // Weighted away from defaults: only one “light skin” option.
-    const skinTone = hasExplicitSkinOrEthnicity
-      ? null
-      : pick([
-          "deep dark skin",
-          "dark brown skin",
-          "medium brown skin",
-          "olive skin",
-          "light skin",
-        ]);
+    // Only inject diversity if the user didn't specify demographics
+    // If ANY demographic is specified, respect the user's full prompt
+    const hasAnyExplicitDemographic = hasExplicitGender || hasExplicitSkinOrEthnicity || hasExplicitHair;
+    
+    console.log(`Demographic detection - Gender: ${hasExplicitGender}, Skin: ${hasExplicitSkinOrEthnicity}, Hair: ${hasExplicitHair}`);
+    
+    let demographicConstraint = "";
+    
+    if (!hasAnyExplicitDemographic && !isAnimalCharacter) {
+      // No user-specified demographics - inject random diversity
+      const skinTone = pick([
+        "deep dark skin",
+        "dark brown skin", 
+        "medium brown skin",
+        "olive skin",
+        "light skin",
+      ]);
+      const genderPresentation = pick(["feminine-presenting", "masculine-presenting", "androgynous-presenting"]);
+      const hairDescription = `${pick(["black", "blonde", "red", "auburn", "silver", "blue", "purple"])} ${pick([
+        "curly hair",
+        "coily hair",
+        "wavy hair",
+        "straight hair",
+        "braids",
+        "locs",
+        "short hair",
+        "long hair",
+        "bald head",
+      ])}`;
 
-    const genderPresentation = hasExplicitGender
-      ? null
-      : pick(["feminine-presenting", "masculine-presenting", "androgynous-presenting"]);
-
-    const hairDescription = hasExplicitHair
-      ? null
-      : `${pick(["black", "blonde", "red", "auburn", "silver", "blue", "purple"])} ${pick([
-          "curly hair",
-          "coily hair",
-          "wavy hair",
-          "straight hair",
-          "braids",
-          "locs",
-          "short hair",
-          "long hair",
-          "bald head",
-        ])}`;
-
-    const forcedDemographic = [genderPresentation, skinTone, hairDescription].filter(Boolean).join(", ");
-    const demographicConstraint = forcedDemographic
-      ? `\nDEMOGRAPHIC DIVERSITY (MANDATORY):\n- For THIS generation, depict the character as: ${forcedDemographic}.\n- Do NOT default to a white male with brown hair unless explicitly requested.\n`
-      : `\nDEMOGRAPHIC DIVERSITY (MANDATORY):\n- Do NOT default to a white male with brown hair unless explicitly requested.\n`;
+      const forcedDemographic = [genderPresentation, skinTone, hairDescription].join(", ");
+      demographicConstraint = `\nDEMOGRAPHIC DIVERSITY (AUTO-GENERATED since no demographics were specified):\n- For THIS generation, depict the character as: ${forcedDemographic}.\n`;
+      console.log(`Auto-generated demographics: ${forcedDemographic}`);
+    } else if (hasAnyExplicitDemographic) {
+      // User specified demographics - respect them completely
+      demographicConstraint = `\nIMPORTANT: The user has specified explicit demographic details in the prompt. Follow these EXACTLY as written. Do NOT override or change the specified skin tone, hair color, hair style, or gender presentation.\n`;
+      console.log(`Respecting user-specified demographics in prompt`);
+    }
 
     // Build the prompt for a friendly, cartoon-style fitness avatar
     // Only include animal-specific instructions if this is actually an animal character
@@ -142,14 +152,6 @@ AGE DEMOGRAPHIC PREFERENCE:
 - We already have many child characters, so lean toward mature but friendly adult representations
 - Adults can still be cute and cartoon-style while looking like grown-ups
 - For superhero characters: can be any age but default to adult unless specified
-
-DEMOGRAPHIC DIVERSITY (CRITICAL):
-- Vary skin tones across the full human spectrum: light, medium, olive, tan, brown, dark brown, deep black
-- Vary hair colors beyond brown: black, blonde, red, auburn, gray, white, colorful dyed (pink, blue, purple, silver)
-- Vary hair textures and styles: straight, wavy, curly, coily, locs, braids, short, long, bald, mohawk, etc.
-- Include diverse genders: masculine, feminine, androgynous presentations
-- For this specific character, randomly select diverse features rather than defaulting to "standard" appearances
-- AVOID repeatedly generating the same demographic (white male with brown hair)
 
 SUPERHERO VARIETY (if character is a superhero type):
 - Embrace diverse superhero styles: classic caped heroes, tech-suited heroes, elemental powers, cosmic heroes, speedsters, strength-based heroes, flying heroes, ninja/stealth heroes, magical heroes, armored heroes
