@@ -70,17 +70,22 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
         return;
       }
 
-      // Get unique author IDs
+      // Get unique author IDs and fetch profiles IN PARALLEL with processing
       const authorIds = [...new Set(feedItems.map(item => item.author_id).filter(Boolean))];
 
-      // Fetch author profiles
-      const { data: profiles } = await supabase
-        .from("profiles_public")
-        .select("id, display_name, avatar_number")
-        .in("id", authorIds);
+      // Fetch profiles - this runs while we prepare the data structure
+      const profilesPromise = authorIds.length > 0 
+        ? supabase
+            .from("profiles_public")
+            .select("id, display_name, avatar_number")
+            .in("id", authorIds)
+        : Promise.resolve({ data: [] });
 
-      const profileMap = new Map(
-        profiles?.map(p => [p.id, { name: p.display_name, avatar: p.avatar_number }]) || []
+      // Wait for profiles
+      const { data: profiles } = await profilesPromise;
+
+      const profileMap = new Map<string, { name: string; avatar: number | null }>(
+        profiles?.map(p => [p.id, { name: p.display_name, avatar: p.avatar_number }] as [string, { name: string; avatar: number | null }]) || []
       );
 
       // Merge profile data with feed items, filtering invalid types

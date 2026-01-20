@@ -40,6 +40,8 @@ interface FeedItemProps {
   onLike?: (itemId: string, itemType: string) => void;
   onSave?: (itemId: string, itemType: string) => void;
   onRefresh?: () => void;
+  isLikedInitial?: boolean;
+  onLikeChange?: (liked: boolean) => void;
 }
 
 const typeConfig: Record<string, { label: string; appName: string; icon: React.ElementType; color: string; buttonColor: string; routeBase: string; idParam: string }> = {
@@ -71,9 +73,9 @@ const getItemRoute = (itemType: string, itemId: string) => {
   return `${config.routeBase}?${params.toString()}`;
 };
 
-export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
+export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLikeChange }: FeedItemProps) {
   const { user, isAdmin } = useAuth();
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(isLikedInitial ?? false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -85,8 +87,18 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
   const config = typeConfig[item.item_type] || typeConfig.post;
   const Icon = config.icon;
 
-  // Check if user already liked this item
+  // Sync with parent-provided like status when it changes
   useEffect(() => {
+    if (isLikedInitial !== undefined) {
+      setIsLiked(isLikedInitial);
+    }
+  }, [isLikedInitial]);
+
+  // Individual like status check - only runs if isLikedInitial is not provided (fallback)
+  useEffect(() => {
+    // Skip if batch like status is provided from parent
+    if (isLikedInitial !== undefined) return;
+    
     const checkLikeStatus = async () => {
       if (!user) return;
       
@@ -155,7 +167,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
     };
     
     checkLikeStatus();
-  }, [user, item.id, item.item_type]);
+  }, [user, item.id, item.item_type, isLikedInitial]);
 
   const handleLike = async (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -223,8 +235,10 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
           return;
       }
       
-      setIsLiked(!isLiked);
+      const newLikedState = !isLiked;
+      setIsLiked(newLikedState);
       setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
+      onLikeChange?.(newLikedState);
     } catch (error: any) {
       toast.error(error.message || "Failed to update like");
     }
