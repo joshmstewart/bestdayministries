@@ -330,9 +330,9 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
           >
             {/* Special display for jokes */}
             {item.item_type === 'joke' && item.extra_data?.question ? (
-              <div className="p-4 bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-2">
+              <div className="p-6 py-8 bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30">
+                <div className="space-y-5">
+                  <div className="flex items-center justify-center gap-2 py-2">
                     <p className="text-lg font-medium text-center">{item.extra_data.question}</p>
                     <TextToSpeech text={item.extra_data.question} size="icon" />
                   </div>
@@ -350,7 +350,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
                       Reveal Answer
                     </Button>
                   ) : (
-                    <div className="bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg p-4">
+                    <div className="bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-lg p-4 py-6">
                       <div className="flex items-center justify-center gap-2">
                         <p className="text-lg font-semibold text-center">{item.extra_data.answer}</p>
                         <TextToSpeech text={item.extra_data.answer} size="icon" />
