@@ -21,7 +21,7 @@ serve(async (req) => {
       );
     }
 
-    const isAnimalCharacter = characterType === 'animal';
+    const isNonHumanCharacter = characterType === 'animal' || characterType === 'monster';
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -95,26 +95,44 @@ serve(async (req) => {
     
     let demographicConstraint = "";
     
-    if (!hasAnyExplicitDemographic && !isAnimalCharacter) {
-      // No user-specified demographics - inject random diversity
+    if (!hasAnyExplicitDemographic && !isNonHumanCharacter) {
+      // No user-specified demographics - inject realistic diversity for HUMAN characters only
+      // Weighted toward common demographics, not unusual ones
       const skinTone = pick([
-        "deep dark skin",
-        "dark brown skin", 
-        "medium brown skin",
-        "olive skin",
         "light skin",
+        "light skin",
+        "medium skin",
+        "tan skin",
+        "olive skin",
+        "brown skin",
+        "brown skin", 
+        "dark brown skin",
+        "deep dark skin",
       ]);
-      const genderPresentation = pick(["feminine-presenting", "masculine-presenting", "androgynous-presenting"]);
-      const hairDescription = `${pick(["black", "blonde", "red", "auburn", "silver", "blue", "purple"])} ${pick([
+      const genderPresentation = pick([
+        "feminine-presenting",
+        "feminine-presenting",
+        "masculine-presenting",
+        "masculine-presenting",
+      ]);
+      const hairDescription = `${pick([
+        "black",
+        "black",
+        "brown",
+        "brown",
+        "brown",
+        "blonde",
+        "red",
+        "auburn",
+        "gray",
+      ])} ${pick([
+        "short hair",
+        "short hair",
+        "long hair",
         "curly hair",
-        "coily hair",
         "wavy hair",
         "straight hair",
         "braids",
-        "locs",
-        "short hair",
-        "long hair",
-        "bald head",
       ])}`;
 
       const forcedDemographic = [genderPresentation, skinTone, hairDescription].join(", ");
@@ -125,18 +143,20 @@ serve(async (req) => {
       demographicConstraint = `\nIMPORTANT: The user has specified explicit demographic details in the prompt. Follow these EXACTLY as written. Do NOT override or change the specified skin tone, hair color, hair style, or gender presentation.\n`;
       console.log(`Respecting user-specified demographics in prompt`);
     }
+    // For non-human characters (animals, monsters), demographicConstraint stays empty
 
     // Build the prompt for a friendly, cartoon-style fitness avatar
-    // Only include animal-specific instructions if this is actually an animal character
-    const animalInstructions = isAnimalCharacter ? `
-CRITICAL ANIMAL CHARACTER REQUIREMENT:
-- This IS an animal character - they MUST be anthropomorphic, standing UPRIGHT on their HIND LEGS like a human
-- Animal characters should have a humanoid posture: standing on two legs, arms/front paws at their sides or in a friendly pose
-- NEVER show animal characters on all fours or in a natural animal stance
-- Animal characters should look like cartoon mascots (think Zootopia, Animal Crossing style)
+    const nonHumanInstructions = isNonHumanCharacter ? `
+CRITICAL NON-HUMAN CHARACTER REQUIREMENT:
+- This is a ${characterType === 'monster' ? 'FRIENDLY MONSTER' : 'ANIMAL'} character - NOT a human
+- They MUST be anthropomorphic, standing UPRIGHT on their HIND LEGS like a human
+- They should have a humanoid posture: standing on two legs, arms at their sides or in a friendly pose
+- NEVER show them on all fours or in a natural animal stance
+- They should look like cartoon mascots (think Monsters Inc, Zootopia, Animal Crossing style)
+- Do NOT add human demographic traits like skin tone or hair - use fur, scales, or monster features instead
 ` : `
 CHARACTER TYPE NOTE:
-- This is a HUMAN or SUPERHERO character - do NOT make them look like an animal
+- This is a HUMAN or SUPERHERO character - do NOT make them look like an animal or monster
 - Follow the character description exactly as written
 `;
 
@@ -145,7 +165,7 @@ CHARACTER TYPE NOTE:
 CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
 - The character should be isolated on a pure white background for easy integration into app interfaces
-${animalInstructions}
+${nonHumanInstructions}
 ${demographicConstraint}
 AGE DEMOGRAPHIC PREFERENCE:
 - STRONGLY prefer young adult and adult characters (ages 18-40 appearance)
