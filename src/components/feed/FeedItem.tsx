@@ -389,10 +389,10 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
             ) : item.item_type === 'prayer' ? (
               // Prayer display with icon and content on gradient
               <div className="p-5 bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20">
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-4">
                   <Icon className="h-10 w-10 text-rose-400" />
                   {(item.description || item.title) && (
-                    <p className="text-center text-foreground/80 line-clamp-4 text-sm leading-relaxed">
+                    <p className="text-center text-foreground/80 line-clamp-4 text-base leading-relaxed my-2">
                       {item.description || item.title}
                     </p>
                   )}
