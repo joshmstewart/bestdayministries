@@ -48,3 +48,9 @@ Beat Pad (`/games/beat-pad`) is a step-sequencer game that lets users create bea
 - Trigger playback from `onPointerDown` (not just `onClick`).
 - If `AudioContext.state === 'suspended'`, call `ctx.resume()` **without awaiting** and start nodes immediately inside the user gesture; playback will begin once the context resumes.
 - If `AudioContext.state === 'suspended'`, call `ctx.resume()` and **start playback only after the resume promise resolves**; starting oscillators/buffers before resume completes can be silent on iOS.
+
+## Deep Linking (Tabs)
+Beat Pad supports opening directly to a tab via URL:
+- `/games/beat-pad?tab=community` (Community tab)
+- `/games/beat-pad?tab=my-beats` (My Beats tab)
+- `/games/beat-pad` (defaults to Create tab)

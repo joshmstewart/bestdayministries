@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,7 +30,7 @@ import useCustomBeatAudio from '@/hooks/useCustomBeatAudio';
 import { SoundConfig } from '@/components/beat-pad/InstrumentSlot';
 import { UnifiedHeader } from '@/components/UnifiedHeader';
 import Footer from '@/components/Footer';
-
+import { useSearchParams } from 'react-router-dom';
 
 const STEPS = 16;
 

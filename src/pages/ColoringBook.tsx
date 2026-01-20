@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,13 +40,41 @@ interface ColoringBook {
 export default function ColoringBook() {
   const queryClient = useQueryClient();
   const { user, isAuthenticated, loading } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { coins, refetch: refetchCoins } = useCoins();
   const [selectedPage, setSelectedPage] = useState<any>(null);
   const [selectedBook, setSelectedBook] = useState<ColoringBook | null>(null);
-  const [activeTab, setActiveTab] = useState("books");
+
+  const urlTab = searchParams.get("tab");
+  const initialTab =
+    urlTab === "books" || urlTab === "community" || urlTab === "gallery" ? urlTab : "books";
+
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [bookToPurchase, setBookToPurchase] = useState<ColoringBook | null>(null);
   const [previewBook, setPreviewBook] = useState<ColoringBook | null>(null);
+
+  // If the URL changes (back/forward), keep the selected tab in sync
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if ((tab === "books" || tab === "community" || tab === "gallery") && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams, activeTab]);
+
+  // Keep the URL in sync when the user switches tabs in the UI
+  useEffect(() => {
+    const currentTab = searchParams.get("tab");
+    const desiredTab = activeTab === "books" ? null : activeTab;
+
+    if (currentTab === desiredTab) return;
+
+    const next = new URLSearchParams(searchParams);
+    if (desiredTab) next.set("tab", desiredTab);
+    else next.delete("tab");
+
+    setSearchParams(next, { replace: true });
+  }, [activeTab, searchParams, setSearchParams]);
 
   // Fetch pages for preview
   const { data: previewPages, isLoading: previewLoading } = useQuery({

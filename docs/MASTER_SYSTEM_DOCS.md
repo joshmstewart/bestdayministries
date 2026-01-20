@@ -1349,4 +1349,9 @@ LOADING:BeatPad.handleLoadBeat→detect-UUID-vs-sound_type→query-sounds→norm
 PLAYBACK:useBeatLoopPlayer→global-single-loop→starting-new-beat-stops-previous
 MOBILE:avoid touch-pan-x on large grids (blocks vertical scroll on iOS); use touch-manipulation
 AUDIO-PREVIEW:iOS/Safari sound preview should use onPointerDown + resume-then-play (don’t start audio before ctx.resume() resolves)
+DEEP-LINK:TAB-PARAM→/games/beat-pad?tab=community|?tab=my-beats|default=create
 ERRORS:unsupported-pattern-format→showErrorToastWithCopy(persistent+copy)
+
+## COLORING_BOOK|/games/coloring-book|game
+TABS:books|community|gallery
+DEEP-LINK:TAB-PARAM→/games/coloring-book?tab=community|?tab=gallery|default=books
