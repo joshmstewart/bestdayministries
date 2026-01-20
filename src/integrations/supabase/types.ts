@@ -92,6 +92,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_gateway_usage_log: {
+        Row: {
+          created_at: string
+          estimated_cost: number | null
+          function_name: string
+          id: string
+          input_tokens: number | null
+          metadata: Json | null
+          model: string | null
+          output_tokens: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimated_cost?: number | null
+          function_name: string
+          id?: string
+          input_tokens?: number | null
+          metadata?: Json | null
+          model?: string | null
+          output_tokens?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimated_cost?: number | null
+          function_name?: string
+          id?: string
+          input_tokens?: number | null
+          metadata?: Json | null
+          model?: string | null
+          output_tokens?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       album_images: {
         Row: {
           album_id: string

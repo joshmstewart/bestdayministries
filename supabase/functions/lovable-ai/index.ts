@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logAiUsage } from "../_shared/ai-usage-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +51,13 @@ serve(async (req) => {
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
+
+    // Log AI usage
+    await logAiUsage({
+      functionName: "lovable-ai",
+      model,
+      metadata: { messageCount: messages?.length || 0 },
+    });
 
     return new Response(
       JSON.stringify({ content }),

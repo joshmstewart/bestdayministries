@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logAiUsage } from "../_shared/ai-usage-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -165,6 +166,13 @@ serve(async (req) => {
       console.log('All retries exhausted, generating final joke without review');
       joke = await generateJoke(LOVABLE_API_KEY, categoryPrompt);
     }
+
+    // Log AI usage (2 calls per attempt: generate + review)
+    await logAiUsage({
+      functionName: "generate-joke",
+      model: "google/gemini-2.5-flash",
+      metadata: { attempts, category: category || 'random' },
+    });
 
     return new Response(JSON.stringify(joke), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
