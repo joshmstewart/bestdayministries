@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Heart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,12 @@ export function LikeButtonWithTooltip({
   const [likers, setLikers] = useState<LikerInfo[]>([]);
   const [loadingLikers, setLoadingLikers] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+
+  // If the count changes (e.g. user just liked/unliked), refetch on next hover.
+  useEffect(() => {
+    setHasFetched(false);
+    setLikers([]);
+  }, [itemId, itemType, likesCount]);
 
   const fetchLikers = useCallback(async () => {
     if (likesCount === 0 || hasFetched) return;

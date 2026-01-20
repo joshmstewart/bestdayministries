@@ -193,61 +193,111 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
       switch (item.item_type) {
         case 'beat': {
           if (isLiked) {
-            await supabase.from('beat_pad_likes').delete().eq('creation_id', item.id).eq('user_id', user.id);
-            await supabase.from('beat_pad_creations').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+            const { error } = await supabase
+              .from('beat_pad_likes')
+              .delete()
+              .eq('creation_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
           } else {
-            await supabase.from('beat_pad_likes').insert({ creation_id: item.id, user_id: user.id });
-            await supabase.from('beat_pad_creations').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+            const { error } = await supabase
+              .from('beat_pad_likes')
+              .insert({ creation_id: item.id, user_id: user.id });
+            if (error) throw error;
           }
           break;
         }
         case 'coloring': {
           if (isLiked) {
-            await supabase.from('coloring_likes').delete().eq('coloring_id', item.id).eq('user_id', user.id);
-            await supabase.from('user_colorings').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+            const { error } = await supabase
+              .from('coloring_likes')
+              .delete()
+              .eq('coloring_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
           } else {
-            await supabase.from('coloring_likes').insert({ coloring_id: item.id, user_id: user.id });
-            await supabase.from('user_colorings').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+            const { error } = await supabase
+              .from('coloring_likes')
+              .insert({ coloring_id: item.id, user_id: user.id });
+            if (error) throw error;
           }
           break;
         }
         case 'card': {
           if (isLiked) {
-            await supabase.from('card_likes').delete().eq('card_id', item.id).eq('user_id', user.id);
-            await supabase.from('user_cards').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+            const { error: unlikeError } = await supabase
+              .from('card_likes')
+              .delete()
+              .eq('card_id', item.id)
+              .eq('user_id', user.id);
+            if (unlikeError) throw unlikeError;
+
+            const { error: countError } = await supabase
+              .from('user_cards')
+              .update({ likes_count: Math.max(0, likesCount - 1) })
+              .eq('id', item.id);
+            if (countError) throw countError;
           } else {
-            await supabase.from('card_likes').insert({ card_id: item.id, user_id: user.id });
-            await supabase.from('user_cards').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+            const { error: likeError } = await supabase
+              .from('card_likes')
+              .insert({ card_id: item.id, user_id: user.id });
+            if (likeError) throw likeError;
+
+            const { error: countError } = await supabase
+              .from('user_cards')
+              .update({ likes_count: likesCount + 1 })
+              .eq('id', item.id);
+            if (countError) throw countError;
           }
           break;
         }
         case 'drink': {
           if (isLiked) {
-            await supabase.from('custom_drink_likes').delete().eq('drink_id', item.id).eq('user_id', user.id);
-            await supabase.from('custom_drinks').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+            const { error } = await supabase
+              .from('custom_drink_likes')
+              .delete()
+              .eq('drink_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
           } else {
-            await supabase.from('custom_drink_likes').insert({ drink_id: item.id, user_id: user.id });
-            await supabase.from('custom_drinks').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+            const { error } = await supabase
+              .from('custom_drink_likes')
+              .insert({ drink_id: item.id, user_id: user.id });
+            if (error) throw error;
           }
           break;
         }
         case 'joke': {
           if (isLiked) {
-            await supabase.from('joke_likes').delete().eq('joke_id', item.id).eq('user_id', user.id);
+            const { error } = await supabase
+              .from('joke_likes')
+              .delete()
+              .eq('joke_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
             // likes_count is updated by database trigger
           } else {
-            await supabase.from('joke_likes').insert({ joke_id: item.id, user_id: user.id });
+            const { error } = await supabase
+              .from('joke_likes')
+              .insert({ joke_id: item.id, user_id: user.id });
+            if (error) throw error;
             // likes_count is updated by database trigger
           }
           break;
         }
         case 'workout': {
           if (isLiked) {
-            await supabase.from('workout_image_likes').delete().eq('image_id', item.id).eq('user_id', user.id);
-            await supabase.from('workout_generated_images').update({ likes_count: Math.max(0, likesCount - 1) }).eq('id', item.id);
+            const { error } = await supabase
+              .from('workout_image_likes')
+              .delete()
+              .eq('image_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
           } else {
-            await supabase.from('workout_image_likes').insert({ image_id: item.id, user_id: user.id });
-            await supabase.from('workout_generated_images').update({ likes_count: likesCount + 1 }).eq('id', item.id);
+            const { error } = await supabase
+              .from('workout_image_likes')
+              .insert({ image_id: item.id, user_id: user.id });
+            if (error) throw error;
           }
           break;
         }
