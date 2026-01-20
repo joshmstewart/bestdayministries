@@ -24,6 +24,7 @@ import { PageLoadingState } from "@/components/common";
 
 interface Vendor {
   id: string;
+  user_id: string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   business_name: string;
   stripe_charges_enabled?: boolean;
@@ -36,6 +37,7 @@ const VendorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [productRefreshTrigger, setProductRefreshTrigger] = useState(0);
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -44,6 +46,7 @@ const VendorDashboard = () => {
   });
 
   const selectedVendor = vendors.find(v => v.id === selectedVendorId);
+  const isVendorOwner = selectedVendor && currentUserId ? selectedVendor.user_id === currentUserId : false;
 
   useEffect(() => {
     checkVendorStatus();
@@ -68,6 +71,8 @@ const VendorDashboard = () => {
         navigate('/auth');
         return;
       }
+      
+      setCurrentUserId(user.id);
 
       // Check if user is admin/owner
       const { data: roleData } = await supabase
@@ -84,7 +89,7 @@ const VendorDashboard = () => {
         // Admins/owners can see ALL approved vendors
         const { data, error } = await supabase
           .from('vendors')
-          .select('id, status, business_name, stripe_charges_enabled')
+          .select('id, user_id, status, business_name, stripe_charges_enabled')
           .eq('status', 'approved')
           .order('business_name', { ascending: true });
         
@@ -95,7 +100,7 @@ const VendorDashboard = () => {
         // Regular users see their own vendors AND vendors they're team members of
         const { data: ownedVendors } = await supabase
           .from('vendors')
-          .select('id, status, business_name, stripe_charges_enabled')
+          .select('id, user_id, status, business_name, stripe_charges_enabled')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
@@ -112,7 +117,7 @@ const VendorDashboard = () => {
         if (teamVendorIds.length > 0) {
           const { data } = await supabase
             .from('vendors')
-            .select('id, status, business_name, stripe_charges_enabled')
+            .select('id, user_id, status, business_name, stripe_charges_enabled')
             .in('id', teamVendorIds)
             .eq('status', 'approved');
           
@@ -482,7 +487,7 @@ const VendorDashboard = () => {
               
               <TabsContent value="payments" className="space-y-6">
                 <h2 className="text-2xl font-semibold">Payment Settings</h2>
-                <StripeConnectOnboarding vendorId={selectedVendorId} />
+                <StripeConnectOnboarding vendorId={selectedVendorId} readOnly={!isVendorOwner} />
                 
                 {/* 1099 Tax Information */}
                 <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
