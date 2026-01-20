@@ -33,6 +33,7 @@ interface AvatarTemplate {
 const defaultFormData = {
   name: "", description: "", preview_image_url: "", character_prompt: "",
   is_free: false, price_coins: 100, display_order: 0, is_active: true,
+  character_type: "human" as string, // Track character type for image generation
 };
 
 export function FitnessAvatarManager() {
@@ -220,9 +221,14 @@ export function FitnessAvatarManager() {
   });
 
   const generateImageMutation = useMutation({
-    mutationFn: async (avatar: { id: string; name: string; character_prompt: string }) => {
+    mutationFn: async (avatar: { id: string; name: string; character_prompt: string; character_type?: string }) => {
       const { data, error } = await supabase.functions.invoke("generate-avatar-image", {
-        body: { avatarId: avatar.id, characterPrompt: avatar.character_prompt, name: avatar.name },
+        body: { 
+          avatarId: avatar.id, 
+          characterPrompt: avatar.character_prompt, 
+          name: avatar.name,
+          characterType: avatar.character_type || 'human' // Default to human if not specified
+        },
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
@@ -314,7 +320,8 @@ export function FitnessAvatarManager() {
       is_free: avatar.is_free, 
       price_coins: avatar.price_coins,
       display_order: avatar.display_order, 
-      is_active: avatar.is_active 
+      is_active: avatar.is_active,
+      character_type: "human", // Default for existing avatars
     });
     setDialogOpen(true);
   };
@@ -340,7 +347,8 @@ export function FitnessAvatarManager() {
       generateImageMutation.mutate({ 
         id: result.id, 
         name: formData.name, 
-        character_prompt: formData.character_prompt 
+        character_prompt: formData.character_prompt,
+        character_type: formData.character_type,
       });
     }
   };
@@ -370,6 +378,7 @@ export function FitnessAvatarManager() {
       name: randomTemplate.name,
       description: `A ${randomTemplate.character_type === 'animal' ? 'friendly animal' : randomTemplate.character_type === 'superhero' ? 'heroic' : 'friendly'} character who loves fitness and can do any sport!`,
       character_prompt: randomTemplate.prompt,
+      character_type: randomTemplate.character_type, // Track the type for image generation
       display_order: avatars?.length || 0,
     }));
     
@@ -385,7 +394,11 @@ export function FitnessAvatarManager() {
     }
     setGeneratingImageFor(avatar.id);
     toast.info("✨ Generating avatar image...", { description: "This may take a moment." });
-    generateImageMutation.mutate({ id: avatar.id, name: avatar.name, character_prompt: avatar.character_prompt });
+    // Try to infer character type from the prompt
+    const inferredType = avatar.character_prompt?.toLowerCase().includes('animal') || 
+                         avatar.character_prompt?.toLowerCase().match(/\b(dog|cat|bear|rabbit|fox|lion|tiger|panda|koala|owl|penguin|dolphin|elephant|giraffe|monkey)\b/)
+                         ? 'animal' : 'human';
+    generateImageMutation.mutate({ id: avatar.id, name: avatar.name, character_prompt: avatar.character_prompt, character_type: inferredType });
   };
 
   const handleGenerateImageInDialog = async () => {
@@ -405,7 +418,8 @@ export function FitnessAvatarManager() {
     generateImageMutation.mutate({ 
       id: editingAvatar.id, 
       name: formData.name, 
-      character_prompt: formData.character_prompt 
+      character_prompt: formData.character_prompt,
+      character_type: formData.character_type,
     });
   };
 
@@ -448,6 +462,7 @@ export function FitnessAvatarManager() {
         id: newAvatar.id,
         name: formData.name,
         character_prompt: formData.character_prompt,
+        character_type: formData.character_type,
       });
     } catch (error) {
       setGeneratingInDialog(false);
