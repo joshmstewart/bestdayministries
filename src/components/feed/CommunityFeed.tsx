@@ -43,14 +43,21 @@ export function CommunityFeed() {
   );
 
   useEffect(() => {
+    const currentLoadMoreRef = loadMoreRef.current;
+    
+    // Disconnect previous observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+    
     observerRef.current = new IntersectionObserver(handleObserver, {
       root: null,
-      rootMargin: "100px",
-      threshold: 0.1,
+      rootMargin: "200px",
+      threshold: 0,
     });
 
-    if (loadMoreRef.current) {
-      observerRef.current.observe(loadMoreRef.current);
+    if (currentLoadMoreRef) {
+      observerRef.current.observe(currentLoadMoreRef);
     }
 
     return () => {
