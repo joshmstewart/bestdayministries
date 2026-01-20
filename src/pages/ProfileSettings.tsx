@@ -540,7 +540,7 @@ const ProfileSettings = () => {
       <UnifiedHeader />
       
       <main className="container mx-auto px-4 pt-20 pb-12">
-        <BackButton to="/community" label="Back to Community" />
+        <BackButton to="/community" />
         <div className="max-w-2xl mx-auto space-y-8">
           <div>
             <h1 className="text-4xl font-black text-foreground">

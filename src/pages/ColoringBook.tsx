@@ -314,7 +314,7 @@ export default function ColoringBook() {
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
         <div className="container max-w-6xl mx-auto px-4">
-          <BackButton to="/community" label="Back to Community" />
+          <BackButton to="/community" />
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
             <Palette className="w-8 h-8" />

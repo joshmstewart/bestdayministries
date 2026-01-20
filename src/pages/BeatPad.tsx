@@ -708,7 +708,7 @@ Make it groovy and rhythmically interesting! At ${tempo} BPM.`;
 
       {/* Main content */}
       <main className="flex-1 container mx-auto px-4 py-6">
-        <BackButton to="/community" label="Back to Community" className="mb-4" />
+        <BackButton to="/community" className="mb-4" />
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">

@@ -9,7 +9,7 @@ const Match3Page = () => {
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
         <div className="container max-w-4xl mx-auto px-4">
-          <BackButton to="/community" label="Back to Community" />
+          <BackButton to="/community" />
           <h1 className="text-4xl font-bold text-center mb-8 gradient-text">
             Brew Blast
           </h1>
