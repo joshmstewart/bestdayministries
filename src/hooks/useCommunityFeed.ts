@@ -99,6 +99,7 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
           author_name: profileMap.get(item.author_id)?.name || undefined,
           author_avatar: profileMap.get(item.author_id)?.avatar || undefined,
           extra_data: item.extra_data,
+          repost_id: (item as any).repost_id || null,
         }));
 
       if (append) {

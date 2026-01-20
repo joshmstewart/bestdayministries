@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { 
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, EyeOff
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, EyeOff, Repeat2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemDialog } from "./FeedItemDialog";
+import { useFeedRepost } from "@/hooks/useFeedRepost";
 
 export interface FeedItemData {
   id: string;
@@ -31,6 +32,7 @@ export interface FeedItemData {
   author_name?: string;
   author_avatar?: number;
   extra_data?: any;
+  repost_id?: string | null;
 }
 
 interface FeedItemProps {
@@ -70,14 +72,16 @@ const getItemRoute = (itemType: string, itemId: string) => {
 };
 
 export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
+  const { repostToFeed, removeRepost, isReposting } = useFeedRepost();
 
   const isOwner = user?.id === item.author_id;
+  const isRepost = item.extra_data?.is_repost === true;
   const config = typeConfig[item.item_type] || typeConfig.post;
   const Icon = config.icon;
 
@@ -311,6 +315,12 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isRepost && (
+                <Badge variant="outline" className="gap-1 text-xs bg-muted text-muted-foreground border-muted-foreground/20">
+                  <Repeat2 className="h-3 w-3" />
+                  Repost
+                </Badge>
+              )}
               {isOwner && (
                 <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
                   Yours
@@ -468,6 +478,42 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
                   title="Remove from community feed"
                 >
                   <EyeOff className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Repost button for admins on events */}
+              {isAdmin && item.item_type === 'event' && !isRepost && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const success = await repostToFeed('event', item.id);
+                    if (success) onRefresh?.();
+                  }}
+                  disabled={isReposting}
+                  className="h-8 gap-1 text-muted-foreground hover:text-primary"
+                  title="Repost to top of feed"
+                >
+                  <Repeat2 className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Remove repost button for admins */}
+              {isAdmin && isRepost && item.repost_id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const success = await removeRepost(item.repost_id!);
+                    if (success) onRefresh?.();
+                  }}
+                  disabled={isReposting}
+                  className="h-8 gap-1 text-destructive hover:text-destructive"
+                  title="Remove this repost"
+                >
+                  <Repeat2 className="h-4 w-4" />
                 </Button>
               )}
             </div>
