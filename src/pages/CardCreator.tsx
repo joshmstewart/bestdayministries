@@ -301,7 +301,7 @@ export default function CardCreator() {
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
         <div className="container max-w-6xl mx-auto px-4">
-          <BackButton to="/community" />
+          <BackButton />
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary flex items-center justify-center gap-2">
               <CreditCard className="w-8 h-8" />
