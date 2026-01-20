@@ -320,10 +320,7 @@ const Marketplace = () => {
               )}
               
               <TabsContent value="all">
-                <div className="space-y-12">
-                  <ProductSection category="handmade" title="By Our Artisans" />
-                  <ProductSection category="merch" title="Official Merch" />
-                </div>
+                <ProductGrid category={null} />
               </TabsContent>
               
               <TabsContent value="merch">
