@@ -34,7 +34,7 @@ interface AvatarTemplate {
 }
 
 const avatarTemplates: AvatarTemplate[] = [
-  // Animals
+  // ========== ANIMALS (50) ==========
   { name: 'Sporty Cat', character_type: 'animal', prompt: 'A friendly orange tabby cat with an athletic build, wearing a colorful headband and wristbands' },
   { name: 'Power Panda', character_type: 'animal', prompt: 'A strong black and white panda bear with a muscular build, wearing athletic shorts and a tank top' },
   { name: 'Flash Fox', character_type: 'animal', prompt: 'An energetic red fox with sleek fur, wearing running shoes and a tracksuit' },
@@ -47,7 +47,46 @@ const avatarTemplates: AvatarTemplate[] = [
   { name: 'Owl Coach', character_type: 'animal', prompt: 'A wise brown owl with big eyes, wearing a coach\'s whistle and cap' },
   { name: 'Tiger Trainer', character_type: 'animal', prompt: 'An orange tiger with black stripes, athletic build, wearing training gear' },
   { name: 'Penguin Pal', character_type: 'animal', prompt: 'A cheerful black and white penguin, wearing a tiny workout headband' },
-  // Humans
+  { name: 'Kangaroo Kick', character_type: 'animal', prompt: 'A muscular kangaroo with boxing gloves, athletic stance, wearing workout shorts' },
+  { name: 'Gorilla Grip', character_type: 'animal', prompt: 'A strong silverback gorilla with kind eyes, wearing weightlifting belt and wristbands' },
+  { name: 'Cheetah Chase', character_type: 'animal', prompt: 'A sleek cheetah with spotted fur, wearing racing gear and speed goggles' },
+  { name: 'Elephant Effort', character_type: 'animal', prompt: 'A gentle gray elephant with a determined look, wearing a workout headband' },
+  { name: 'Dolphin Dive', character_type: 'animal', prompt: 'A playful dolphin with a swimmer\'s build, wearing goggles on forehead' },
+  { name: 'Lion Leader', character_type: 'animal', prompt: 'A majestic lion with flowing mane, wearing a coach jersey and whistle' },
+  { name: 'Koala Calm', character_type: 'animal', prompt: 'A peaceful koala doing yoga pose, wearing zen workout attire' },
+  { name: 'Hippo Hustle', character_type: 'animal', prompt: 'A surprisingly agile hippo in dance workout clothes, mid-move' },
+  { name: 'Raccoon Run', character_type: 'animal', prompt: 'A sneaky raccoon with athletic build, wearing night-runner gear' },
+  { name: 'Giraffe Glide', character_type: 'animal', prompt: 'A tall giraffe with long neck, wearing basketball jersey' },
+  { name: 'Zebra Zoom', character_type: 'animal', prompt: 'A striped zebra in running pose, wearing track outfit' },
+  { name: 'Rhino Rush', character_type: 'animal', prompt: 'A powerful rhino with protective gear, football stance' },
+  { name: 'Sloth Stretch', character_type: 'animal', prompt: 'A relaxed sloth doing stretches, wearing cozy yoga clothes' },
+  { name: 'Otter Athlete', character_type: 'animal', prompt: 'A playful otter with sleek fur, wearing swim gear and cap' },
+  { name: 'Hawk Hover', character_type: 'animal', prompt: 'A sharp-eyed hawk with powerful wings, wearing aviator workout gear' },
+  { name: 'Turtle Trek', character_type: 'animal', prompt: 'A determined turtle with hiking gear, wearing a tiny backpack' },
+  { name: 'Wolf Warrior', character_type: 'animal', prompt: 'A fierce gray wolf with intense eyes, wearing martial arts gi' },
+  { name: 'Monkey Move', character_type: 'animal', prompt: 'An agile monkey swinging through gymnastics rings, wearing leotard' },
+  { name: 'Parrot Power', character_type: 'animal', prompt: 'A colorful parrot with vibrant feathers, wearing dance outfit' },
+  { name: 'Seal Spin', character_type: 'animal', prompt: 'A playful seal balancing a ball, wearing aquatic workout gear' },
+  { name: 'Badger Boost', character_type: 'animal', prompt: 'A tough badger with determined expression, wearing boxing shorts' },
+  { name: 'Flamingo Flex', character_type: 'animal', prompt: 'A graceful pink flamingo in yoga tree pose, wearing leggings' },
+  { name: 'Hedgehog Hustle', character_type: 'animal', prompt: 'A cute hedgehog with tiny sneakers, wearing a jogger outfit' },
+  { name: 'Lemur Leap', character_type: 'animal', prompt: 'A ring-tailed lemur mid-jump, wearing acrobatic costume' },
+  { name: 'Moose Muscle', character_type: 'animal', prompt: 'A large moose with impressive antlers, wearing lifting gear' },
+  { name: 'Peacock Pose', character_type: 'animal', prompt: 'A beautiful peacock with spread tail, in yoga warrior pose' },
+  { name: 'Jaguar Jab', character_type: 'animal', prompt: 'A spotted jaguar in boxing stance, wearing gloves and shorts' },
+  { name: 'Crocodile Crunch', character_type: 'animal', prompt: 'A muscular crocodile doing crunches, wearing workout tank' },
+  { name: 'Squirrel Sprint', character_type: 'animal', prompt: 'A quick squirrel in racing position, wearing tiny running shoes' },
+  { name: 'Polar Power', character_type: 'animal', prompt: 'A white polar bear with immense strength, wearing wrestling singlet' },
+  { name: 'Bat Balance', character_type: 'animal', prompt: 'A friendly bat hanging upside down in yoga pose, wearing stretchy clothes' },
+  { name: 'Beaver Build', character_type: 'animal', prompt: 'A hardworking beaver with strong arms, wearing construction-style workout gear' },
+  { name: 'Crab Cardio', character_type: 'animal', prompt: 'A red crab doing sideways exercises, wearing beach workout attire' },
+  { name: 'Duck Dash', character_type: 'animal', prompt: 'A yellow duck waddling fast, wearing a racing bib and sneakers' },
+  { name: 'Eagle Eye', character_type: 'animal', prompt: 'A majestic bald eagle with sharp focus, wearing archery gear' },
+  { name: 'Ferret Fast', character_type: 'animal', prompt: 'A quick ferret zooming around, wearing speed skating outfit' },
+  { name: 'Goat Climb', character_type: 'animal', prompt: 'A mountain goat on rocky terrain, wearing climbing gear' },
+  { name: 'Husky Hero', character_type: 'animal', prompt: 'A fluffy husky with bright blue eyes, wearing sled-racing harness' },
+
+  // ========== HUMANS (50) ==========
   { name: 'Coach Casey', character_type: 'human', prompt: 'A friendly adult coach with short hair, warm smile, wearing athletic polo and whistle around neck' },
   { name: 'Zara Zoom', character_type: 'human', prompt: 'A young Black girl with curly hair in puffs, athletic build, wearing bright colored activewear' },
   { name: 'Marcus Move', character_type: 'human', prompt: 'A young Latino boy with wavy hair, enthusiastic expression, wearing basketball jersey' },
@@ -60,7 +99,46 @@ const avatarTemplates: AvatarTemplate[] = [
   { name: 'Swimmer Sofia', character_type: 'human', prompt: 'A young girl with swim cap and goggles on head, athletic swimsuit, confident pose' },
   { name: 'Runner Ray', character_type: 'human', prompt: 'A young African American boy with short hair, wearing running gear and race number' },
   { name: 'Gymnast Grace', character_type: 'human', prompt: 'A young girl with hair in bun, wearing a sparkly leotard, graceful pose' },
-  // Superheroes
+  { name: 'Archer Aiden', character_type: 'human', prompt: 'A focused young boy with steady hands, wearing archery vest and arm guard' },
+  { name: 'Boxer Bella', character_type: 'human', prompt: 'A determined young girl with boxing braids, wearing gloves and shorts' },
+  { name: 'Climber Cole', character_type: 'human', prompt: 'An adventurous young boy with chalk on hands, wearing climbing harness' },
+  { name: 'Diver Diana', character_type: 'human', prompt: 'A young girl on diving board, wearing competition swimsuit, focused expression' },
+  { name: 'Fencer Felix', character_type: 'human', prompt: 'A young boy in fencing gear, mask lifted, épée in hand' },
+  { name: 'Goalie Gina', character_type: 'human', prompt: 'A young girl in goalkeeper gear, ready stance, wearing gloves' },
+  { name: 'Hockey Hunter', character_type: 'human', prompt: 'A young boy in hockey gear, stick ready, on ice skates' },
+  { name: 'Ice Skater Ivy', character_type: 'human', prompt: 'A young girl in figure skating dress, graceful spin pose' },
+  { name: 'Judoka Jasmine', character_type: 'human', prompt: 'A young girl in judo gi, black belt, confident bow' },
+  { name: 'Karate Kai', character_type: 'human', prompt: 'A young person in karate uniform, mid-kick, focused expression' },
+  { name: 'Lacrosse Leo', character_type: 'human', prompt: 'A young boy with lacrosse stick, wearing helmet and pads' },
+  { name: 'Marathon Maya', character_type: 'human', prompt: 'A young girl crossing finish line, arms raised, wearing marathon bib' },
+  { name: 'Ninja Nate', character_type: 'human', prompt: 'A young boy in ninja warrior course, climbing obstacle' },
+  { name: 'Olympian Olivia', character_type: 'human', prompt: 'A young girl on medal podium, wearing tracksuit, holding torch' },
+  { name: 'Pitcher Pablo', character_type: 'human', prompt: 'A young Latino boy in baseball uniform, winding up to pitch' },
+  { name: 'Quarterback Quinn', character_type: 'human', prompt: 'A young person in football uniform, throwing spiral pass' },
+  { name: 'Rower Rosa', character_type: 'human', prompt: 'A young girl in rowing shell, pulling oars, determined face' },
+  { name: 'Skater Shane', character_type: 'human', prompt: 'A young boy on skateboard, mid-trick, wearing helmet and pads' },
+  { name: 'Tennis Tara', character_type: 'human', prompt: 'A young girl swinging tennis racket, wearing white outfit' },
+  { name: 'Ultimate Uma', character_type: 'human', prompt: 'A young person catching frisbee, diving catch, wearing jersey' },
+  { name: 'Volleyball Victor', character_type: 'human', prompt: 'A young boy spiking volleyball, jumping high, beach setting' },
+  { name: 'Wrestler Willow', character_type: 'human', prompt: 'A young girl in wrestling singlet, ready stance, headgear on' },
+  { name: 'Xtreme Xavier', character_type: 'human', prompt: 'A young boy on BMX bike, mid-air trick, wearing safety gear' },
+  { name: 'Yogi Yolanda', character_type: 'human', prompt: 'A young girl in lotus pose, peaceful expression, outdoor setting' },
+  { name: 'Zumba Zoe', character_type: 'human', prompt: 'A young girl dancing zumba, colorful outfit, big smile' },
+  { name: 'Balance Ben', character_type: 'human', prompt: 'A young boy on balance beam, arms out, focused concentration' },
+  { name: 'Cheerleader Chloe', character_type: 'human', prompt: 'A young girl in cheerleading uniform, mid-jump split, pom-poms' },
+  { name: 'Dancer Dante', character_type: 'human', prompt: 'A young boy in hip-hop dance pose, wearing streetwear' },
+  { name: 'Equestrian Emma', character_type: 'human', prompt: 'A young girl in riding gear, with helmet, next to horse' },
+  { name: 'Fitness Finn', character_type: 'human', prompt: 'A young boy with resistance bands, wearing workout clothes' },
+  { name: 'Golf Gabby', character_type: 'human', prompt: 'A young girl swinging golf club, wearing polo and visor' },
+  { name: 'Hiker Henry', character_type: 'human', prompt: 'A young boy with hiking poles, backpack, on trail' },
+  { name: 'Inline Izzy', character_type: 'human', prompt: 'A young person on inline skates, wearing protective gear' },
+  { name: 'Jump Rope Jada', character_type: 'human', prompt: 'A young girl mid-jump rope, double-dutch style' },
+  { name: 'Kickball Kelly', character_type: 'human', prompt: 'A young person kicking red playground ball, playground setting' },
+  { name: 'Lifeguard Logan', character_type: 'human', prompt: 'A young person in lifeguard uniform, rescue buoy, poolside' },
+  { name: 'Martial Max', character_type: 'human', prompt: 'A young boy practicing tai chi, peaceful park setting' },
+  { name: 'Netball Nina', character_type: 'human', prompt: 'A young girl shooting netball, wearing team uniform' },
+
+  // ========== SUPERHEROES (50) ==========
   { name: 'Captain Flex', character_type: 'superhero', prompt: 'An adult superhero with a cape and star emblem, athletic build, friendly smile, wearing red and blue costume' },
   { name: 'Thunder Strike', character_type: 'superhero', prompt: 'A young adult hero with lightning bolt patterns on costume, electric aura, dynamic pose' },
   { name: 'Iron Guardian', character_type: 'superhero', prompt: 'An armored hero with sleek tech suit, glowing chest piece, protective stance' },
@@ -71,6 +149,46 @@ const avatarTemplates: AvatarTemplate[] = [
   { name: 'Terra Titan', character_type: 'superhero', prompt: 'A strength hero with earth tones, rocky accents on costume, powerful stance' },
   { name: 'Wind Warrior', character_type: 'superhero', prompt: 'A flying hero with wing-like cape, wind swirl effects, soaring pose' },
   { name: 'Mystic Mage', character_type: 'superhero', prompt: 'A magical hero with glowing staff, mystical runes, flowing robes with athletic cut' },
+  { name: 'Aqua Ace', character_type: 'superhero', prompt: 'An ocean-powered hero with scales, trident, water effects swirling' },
+  { name: 'Solar Surge', character_type: 'superhero', prompt: 'A sun-powered hero with golden costume, radiating light, warm smile' },
+  { name: 'Night Blade', character_type: 'superhero', prompt: 'A stealthy hero in midnight blue, twin daggers, crouched ready' },
+  { name: 'Volt Vanguard', character_type: 'superhero', prompt: 'An electric hero with crackling energy, yellow and black costume' },
+  { name: 'Stone Sentinel', character_type: 'superhero', prompt: 'A rock-armored hero with granite skin, protective stance' },
+  { name: 'Phoenix Fury', character_type: 'superhero', prompt: 'A fire-winged hero rising from flames, orange and red costume' },
+  { name: 'Crystal Champion', character_type: 'superhero', prompt: 'A gem-powered hero with crystalline armor, prismatic effects' },
+  { name: 'Gravity Guardian', character_type: 'superhero', prompt: 'A hero controlling gravity, floating debris, purple aura' },
+  { name: 'Jungle Justice', character_type: 'superhero', prompt: 'A nature hero with vine patterns, green costume, leaf cape' },
+  { name: 'Metal Master', character_type: 'superhero', prompt: 'A hero controlling metal, chrome costume, floating metal objects' },
+  { name: 'Psychic Protector', character_type: 'superhero', prompt: 'A telepathic hero with glowing temples, mind wave effects' },
+  { name: 'Quantum Quest', character_type: 'superhero', prompt: 'A reality-warping hero with shifting costume, dimensional effects' },
+  { name: 'Radiant Ray', character_type: 'superhero', prompt: 'A light-projecting hero with luminous costume, bright energy beams' },
+  { name: 'Sonic Siren', character_type: 'superhero', prompt: 'A sound-wave hero with audio equipment aesthetic, soundwave effects' },
+  { name: 'Tech Titan', character_type: 'superhero', prompt: 'A gadget hero with holographic displays, cyber armor, drones' },
+  { name: 'Ultra Unity', character_type: 'superhero', prompt: 'A team-leader hero with linked emblems, inspiring pose, rainbow accents' },
+  { name: 'Vortex Victor', character_type: 'superhero', prompt: 'A tornado-creating hero with spiral costume, wind funnel effects' },
+  { name: 'Wave Warden', character_type: 'superhero', prompt: 'An ocean-surf hero riding wave, blue and white costume' },
+  { name: 'Xenon Xtreme', character_type: 'superhero', prompt: 'An alien hero with otherworldly features, glowing suit, cosmic background' },
+  { name: 'Yonder Youth', character_type: 'superhero', prompt: 'A young sidekick hero, eager expression, colorful costume, ready to help' },
+  { name: 'Zephyr Zero', character_type: 'superhero', prompt: 'An air-current hero with invisible force effects, light flowing costume' },
+  { name: 'Atomic Avenger', character_type: 'superhero', prompt: 'A nuclear-powered hero with atomic symbol, glowing core, protective suit' },
+  { name: 'Blitz Bolt', character_type: 'superhero', prompt: 'A super-speed hero with blur effects, aerodynamic costume, motion lines' },
+  { name: 'Comet Crusader', character_type: 'superhero', prompt: 'A space-traveling hero with meteor trail, starry cape, cosmic helm' },
+  { name: 'Diamond Defender', character_type: 'superhero', prompt: 'An unbreakable hero with diamond-hard skin, crystalline costume' },
+  { name: 'Echo Elite', character_type: 'superhero', prompt: 'A sound-duplicating hero with multiple echo images, vibrant costume' },
+  { name: 'Force Field', character_type: 'superhero', prompt: 'A barrier-creating hero with visible shield dome, protective stance' },
+  { name: 'Geo Giant', character_type: 'superhero', prompt: 'A size-changing hero at large scale, friendly giant pose, brown costume' },
+  { name: 'Hyper Hawk', character_type: 'superhero', prompt: 'A winged hero with feathered armor, sharp eyes, taloned gloves' },
+  { name: 'Illusion Idol', character_type: 'superhero', prompt: 'A reality-bending hero with shifting appearances, mysterious aura' },
+  { name: 'Jet Justice', character_type: 'superhero', prompt: 'A rocket-powered hero with jet boots, exhaust trail, helmet visor' },
+  { name: 'Kinetic Kid', character_type: 'superhero', prompt: 'A young hero absorbing energy, glowing fists, eager stance' },
+  { name: 'Laser Legend', character_type: 'superhero', prompt: 'A beam-shooting hero with visor, red and white costume, precision aim' },
+  { name: 'Magnet Maven', character_type: 'superhero', prompt: 'A magnetic hero with floating metal debris, purple and silver costume' },
+  { name: 'Nova Knight', character_type: 'superhero', prompt: 'A star-born hero with armor, celestial sword, stellar effects' },
+  { name: 'Omega Oracle', character_type: 'superhero', prompt: 'A future-seeing hero with all-seeing eyes, mystical symbols, robes' },
+  { name: 'Plasma Paladin', character_type: 'superhero', prompt: 'An energy-sword hero with plasma blade, futuristic armor' },
+  { name: 'Quake Queen', character_type: 'superhero', prompt: 'An earthquake-causing hero with cracked ground effects, brown costume' },
+  { name: 'Rocket Ranger', character_type: 'superhero', prompt: 'A jetpack hero with flight gear, goggles, adventurous expression' },
+  { name: 'Storm Sage', character_type: 'superhero', prompt: 'A weather-controlling hero with lightning and clouds, flowing cape' },
 ];
 
 // ============================================================================
@@ -158,6 +276,7 @@ export function FitnessAvatarManager() {
   const [recentTemplates, setRecentTemplates] = useState<string[]>(() => readRecentTemplates());
   const [previousTemplateName, setPreviousTemplateName] = useState<string | null>(null);
   const [rejectedDialogOpen, setRejectedDialogOpen] = useState(false);
+  const [randomizeCategoryFilter, setRandomizeCategoryFilter] = useState<'all' | 'animal' | 'human' | 'superhero'>('all');
 
   const handleImageClick = (imageUrl: string) => {
     setLightboxImage(imageUrl);
@@ -439,13 +558,23 @@ export function FitnessAvatarManager() {
       }
     }
     
+    // Filter by selected category first
+    const categoryFilteredTemplates = randomizeCategoryFilter === 'all'
+      ? avatarTemplates
+      : avatarTemplates.filter(t => t.character_type === randomizeCategoryFilter);
+
+    if (categoryFilteredTemplates.length === 0) {
+      toast.error("No templates in this category");
+      return;
+    }
+
     // Prefer unused templates, but NEVER get stuck at "no templates left".
     // If all templates already exist as avatars, we fall back to allowing repeats
     // (like location packs never "run out").
     const usedNames = new Set((avatars || []).map((a) => (a.name || "").toLowerCase().trim()));
     const rejectedNamesLower = new Set(rejectedTemplates.map((n) => n.toLowerCase().trim()));
 
-    const nonRejectedTemplates = avatarTemplates.filter(
+    const nonRejectedTemplates = categoryFilteredTemplates.filter(
       (t) => !rejectedNamesLower.has(t.name.toLowerCase().trim())
     );
 
@@ -635,8 +764,22 @@ export function FitnessAvatarManager() {
                 <DialogTitle>{editingAvatar ? "Edit Avatar" : "Create Avatar"}</DialogTitle>
               </DialogHeader>
               
-              {/* Randomize Button with Rejected button */}
-              <div className="flex gap-2">
+              {/* Category Filter + Randomize Button + Rejected button */}
+              <div className="flex gap-2 items-center">
+                <Select
+                  value={randomizeCategoryFilter}
+                  onValueChange={(val) => setRandomizeCategoryFilter(val as 'all' | 'animal' | 'human' | 'superhero')}
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">🎲 All Types</SelectItem>
+                    <SelectItem value="animal">🐾 Animals</SelectItem>
+                    <SelectItem value="human">👤 Humans</SelectItem>
+                    <SelectItem value="superhero">🦸 Superheroes</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   type="button"
                   variant="outline"
@@ -644,7 +787,7 @@ export function FitnessAvatarManager() {
                   className="flex-1"
                 >
                   <Shuffle className="w-4 h-4 mr-2" />
-                  Randomize Character
+                  Randomize
                 </Button>
                 {rejectedTemplates.length > 0 && (
                   <Button
