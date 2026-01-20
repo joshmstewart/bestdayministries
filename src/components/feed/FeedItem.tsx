@@ -387,9 +387,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
                 )}
               </div>
             ) : item.item_type === 'prayer' ? (
-              // Compact display for prayers without images
-              <div className="p-4 bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20 flex items-center justify-center">
-                <Icon className="h-8 w-8 text-rose-400/70" />
+              // Prayer display with icon and content on gradient
+              <div className="p-5 bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/20 dark:to-orange-900/20">
+                <div className="flex flex-col items-center gap-3">
+                  <Icon className="h-10 w-10 text-rose-400" />
+                  {(item.description || item.title) && (
+                    <p className="text-center text-foreground/80 line-clamp-4 text-sm leading-relaxed">
+                      {item.description || item.title}
+                    </p>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
