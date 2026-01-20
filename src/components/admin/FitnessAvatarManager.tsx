@@ -15,8 +15,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell, Download, Upload, Eraser, Archive, RotateCcw, Sparkles, ArchiveRestore } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Coins, Eye, EyeOff, Wand2, Shuffle, RefreshCw, Dumbbell, Download, Upload, Eraser, ArchiveRestore } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DialogFooter,
@@ -25,15 +24,101 @@ import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import ImageLightbox from "@/components/ImageLightbox";
 
+// ============================================================================
+// HARDCODED AVATAR TEMPLATES (like packThemes in WorkoutLocationsManager)
+// ============================================================================
 interface AvatarTemplate {
-  id: string;
   name: string;
-  character_type: string;
+  character_type: 'animal' | 'human' | 'superhero';
   prompt: string;
-  is_archived: boolean;
-  archived_at: string | null;
-  created_at: string;
 }
+
+const avatarTemplates: AvatarTemplate[] = [
+  // Animals
+  { name: 'Sporty Cat', character_type: 'animal', prompt: 'A friendly orange tabby cat with an athletic build, wearing a colorful headband and wristbands' },
+  { name: 'Power Panda', character_type: 'animal', prompt: 'A strong black and white panda bear with a muscular build, wearing athletic shorts and a tank top' },
+  { name: 'Flash Fox', character_type: 'animal', prompt: 'An energetic red fox with sleek fur, wearing running shoes and a tracksuit' },
+  { name: 'Mighty Mouse', character_type: 'animal', prompt: 'A small but determined gray mouse with big ears, wearing tiny workout gloves and sneakers' },
+  { name: 'Bounce Bunny', character_type: 'animal', prompt: 'A fluffy white rabbit with pink ears, athletic build, wearing a sports jersey' },
+  { name: 'Strong Bear', character_type: 'animal', prompt: 'A friendly brown bear with powerful arms, wearing gym clothes and lifting gloves' },
+  { name: 'Swift Deer', character_type: 'animal', prompt: 'A graceful spotted deer with long legs, wearing a runner\'s outfit' },
+  { name: 'Flex Frog', character_type: 'animal', prompt: 'A bright green frog with strong legs, wearing athletic shorts and wristbands' },
+  { name: 'Dash Dog', character_type: 'animal', prompt: 'A golden retriever with a friendly face, wearing a sports bandana and running shoes' },
+  { name: 'Owl Coach', character_type: 'animal', prompt: 'A wise brown owl with big eyes, wearing a coach\'s whistle and cap' },
+  { name: 'Tiger Trainer', character_type: 'animal', prompt: 'An orange tiger with black stripes, athletic build, wearing training gear' },
+  { name: 'Penguin Pal', character_type: 'animal', prompt: 'A cheerful black and white penguin, wearing a tiny workout headband' },
+  // Humans
+  { name: 'Coach Casey', character_type: 'human', prompt: 'A friendly adult coach with short hair, warm smile, wearing athletic polo and whistle around neck' },
+  { name: 'Zara Zoom', character_type: 'human', prompt: 'A young Black girl with curly hair in puffs, athletic build, wearing bright colored activewear' },
+  { name: 'Marcus Move', character_type: 'human', prompt: 'A young Latino boy with wavy hair, enthusiastic expression, wearing basketball jersey' },
+  { name: 'Kim Kick', character_type: 'human', prompt: 'A young Asian girl with straight black hair in ponytail, wearing martial arts outfit' },
+  { name: 'Super Sam', character_type: 'human', prompt: 'A young boy with Down syndrome, big smile, wearing a superhero cape over workout clothes' },
+  { name: 'Wheels Wendy', character_type: 'human', prompt: 'A young girl in a sporty wheelchair, brown pigtails, wearing athletic gear, confident expression' },
+  { name: 'Jumping Jack', character_type: 'human', prompt: 'A young boy with red hair and freckles, energetic pose, wearing gym clothes' },
+  { name: 'Yoga Yara', character_type: 'human', prompt: 'A young South Asian girl with long braided hair, peaceful expression, wearing yoga attire' },
+  { name: 'Dancing Devon', character_type: 'human', prompt: 'A young nonbinary child with short colorful hair, wearing dance outfit with leg warmers' },
+  { name: 'Swimmer Sofia', character_type: 'human', prompt: 'A young girl with swim cap and goggles on head, athletic swimsuit, confident pose' },
+  { name: 'Runner Ray', character_type: 'human', prompt: 'A young African American boy with short hair, wearing running gear and race number' },
+  { name: 'Gymnast Grace', character_type: 'human', prompt: 'A young girl with hair in bun, wearing a sparkly leotard, graceful pose' },
+  // Superheroes
+  { name: 'Captain Flex', character_type: 'superhero', prompt: 'An adult superhero with a cape and star emblem, athletic build, friendly smile, wearing red and blue costume' },
+  { name: 'Thunder Strike', character_type: 'superhero', prompt: 'A young adult hero with lightning bolt patterns on costume, electric aura, dynamic pose' },
+  { name: 'Iron Guardian', character_type: 'superhero', prompt: 'An armored hero with sleek tech suit, glowing chest piece, protective stance' },
+  { name: 'Blaze Runner', character_type: 'superhero', prompt: 'A speedster hero with flame trail effects, streamlined costume, running pose' },
+  { name: 'Cosmic Star', character_type: 'superhero', prompt: 'A cosmic hero with starfield patterns on costume, floating slightly, serene expression' },
+  { name: 'Shadow Swift', character_type: 'superhero', prompt: 'A ninja-style hero in dark outfit, athletic and agile, confident stance' },
+  { name: 'Frost Shield', character_type: 'superhero', prompt: 'An ice-powered hero with cool blue costume, ice crystal effects around hands' },
+  { name: 'Terra Titan', character_type: 'superhero', prompt: 'A strength hero with earth tones, rocky accents on costume, powerful stance' },
+  { name: 'Wind Warrior', character_type: 'superhero', prompt: 'A flying hero with wing-like cape, wind swirl effects, soaring pose' },
+  { name: 'Mystic Mage', character_type: 'superhero', prompt: 'A magical hero with glowing staff, mystical runes, flowing robes with athletic cut' },
+];
+
+// ============================================================================
+// localStorage helpers for rejected templates (like locations pattern)
+// ============================================================================
+const REJECTED_AVATAR_TEMPLATES_KEY = "fitness_avatar_rejected_templates_v1";
+const RECENT_AVATAR_TEMPLATES_KEY = "fitness_avatar_recent_templates_v1";
+const MAX_RECENT_TEMPLATES = 8;
+
+const readRejectedTemplates = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(REJECTED_AVATAR_TEMPLATES_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeRejectedTemplates = (names: string[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(REJECTED_AVATAR_TEMPLATES_KEY, JSON.stringify(names));
+  } catch {
+    // ignore
+  }
+};
+
+const readRecentTemplates = (): string[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(RECENT_AVATAR_TEMPLATES_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeRecentTemplates = (names: string[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(RECENT_AVATAR_TEMPLATES_KEY, JSON.stringify(names));
+  } catch {
+    // ignore
+  }
+};
 
 const AVATAR_CATEGORIES = [
   { value: "free", label: "Free Tier", emoji: "🆓" },
@@ -45,8 +130,8 @@ const AVATAR_CATEGORIES = [
 const defaultFormData = {
   name: "", description: "", preview_image_url: "", character_prompt: "",
   is_free: false, price_coins: 100, display_order: 0, is_active: true,
-  character_type: "human" as string, // Track character type for image generation
-  category: "free" as string, // Display category for grouping
+  character_type: "human" as string,
+  category: "free" as string,
 };
 
 export function FitnessAvatarManager() {
@@ -68,10 +153,11 @@ export function FitnessAvatarManager() {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [removingBgFor, setRemovingBgFor] = useState<string | null>(null);
   
-  // Track which template was last shown during randomize (for auto-archive on re-randomize)
+  // localStorage-backed rejected templates (like locations pattern)
+  const [rejectedTemplates, setRejectedTemplates] = useState<string[]>(() => readRejectedTemplates());
+  const [recentTemplates, setRecentTemplates] = useState<string[]>(() => readRecentTemplates());
   const [previousTemplateName, setPreviousTemplateName] = useState<string | null>(null);
-  // Dialog to restore archived templates
-  const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
+  const [rejectedDialogOpen, setRejectedDialogOpen] = useState(false);
 
   const handleImageClick = (imageUrl: string) => {
     setLightboxImage(imageUrl);
@@ -154,7 +240,6 @@ export function FitnessAvatarManager() {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
       
-      // Update the avatar with the new image
       const { error: updateError } = await supabase
         .from("fitness_avatars")
         .update({ preview_image_url: data.imageUrl })
@@ -181,20 +266,6 @@ export function FitnessAvatarManager() {
     },
   });
 
-  // Fetch avatar templates from database
-  const { data: avatarTemplates, isLoading: templatesLoading } = useQuery({
-    queryKey: ["avatar-templates"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("fitness_avatar_templates")
-        .select("*")
-        .order("character_type")
-        .order("name");
-      if (error) throw error;
-      return data as AvatarTemplate[];
-    },
-  });
-
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData & { id?: string }) => {
       const payload = {
@@ -214,7 +285,7 @@ export function FitnessAvatarManager() {
         return { id: newAvatar.id, isNew: true };
       }
     },
-    onSuccess: (result, variables) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-fitness-avatars"] });
       toast.success(editingAvatar ? "Avatar updated!" : "Avatar created!");
       handleCloseDialog();
@@ -246,7 +317,7 @@ export function FitnessAvatarManager() {
           avatarId: avatar.id, 
           characterPrompt: avatar.character_prompt, 
           name: avatar.name,
-          characterType: avatar.character_type || 'human' // Default to human if not specified
+          characterType: avatar.character_type || 'human'
         },
       });
       if (error) throw error;
@@ -256,7 +327,6 @@ export function FitnessAvatarManager() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-fitness-avatars"] });
       toast.success("Avatar image generated!", { description: "The preview has been updated." });
-      // Update form data with new image URL if in dialog
       if (data.imageUrl) {
         setFormData(prev => ({ ...prev, preview_image_url: data.imageUrl }));
       }
@@ -300,25 +370,6 @@ export function FitnessAvatarManager() {
     },
   });
 
-  // Archive/unarchive template mutation
-  const toggleArchiveMutation = useMutation({
-    mutationFn: async ({ id, is_archived }: { id: string; is_archived: boolean }) => {
-      const { error } = await supabase
-        .from("fitness_avatar_templates")
-        .update({ 
-          is_archived, 
-          archived_at: is_archived ? new Date().toISOString() : null 
-        })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["avatar-templates"] });
-      toast.success(variables.is_archived ? "Template archived" : "Template restored");
-    },
-    onError: (error) => showErrorToastWithCopy("Failed to update template", error),
-  });
-
   const handleTestWorkoutImage = (avatar: any) => {
     if (!avatar.character_prompt) {
       toast.error("Character prompt is required");
@@ -340,8 +391,8 @@ export function FitnessAvatarManager() {
       price_coins: avatar.price_coins,
       display_order: avatar.display_order, 
       is_active: avatar.is_active,
-      character_type: "human", // Default for existing avatars
-      category: avatar.category || "free", // Display category
+      character_type: "human",
+      category: avatar.category || "free",
     });
     setDialogOpen(true);
   };
@@ -361,7 +412,6 @@ export function FitnessAvatarManager() {
     
     const result = await saveMutation.mutateAsync({ ...formData, id: editingAvatar?.id });
     
-    // If it's a new avatar and we have a character prompt but no image, auto-generate
     if (result.isNew && !formData.preview_image_url && formData.character_prompt) {
       toast.info("✨ Generating avatar image...", { description: "This may take a moment." });
       generateImageMutation.mutate({ 
@@ -373,42 +423,49 @@ export function FitnessAvatarManager() {
     }
   };
 
+  // ============================================================================
+  // RANDOMIZE - matches locations pattern exactly
+  // ============================================================================
   const handleRandomize = () => {
-    // If there was a previous template shown and user clicks randomize again, auto-archive it
+    // If previous template was shown and user clicks randomize again, auto-reject it
     if (previousTemplateName && formData.name === previousTemplateName) {
-      const previousTemplate = avatarTemplates?.find(t => t.name.toLowerCase() === previousTemplateName.toLowerCase());
-      if (previousTemplate && !previousTemplate.is_archived) {
-        toggleArchiveMutation.mutate({ id: previousTemplate.id, is_archived: true });
-        toast.info(`"${previousTemplateName}" archived`, {
-          description: "It won't be suggested again. Click 'Archived' to restore.",
+      if (!rejectedTemplates.includes(previousTemplateName)) {
+        const newRejected = [...rejectedTemplates, previousTemplateName];
+        setRejectedTemplates(newRejected);
+        writeRejectedTemplates(newRejected);
+        toast.info(`"${previousTemplateName}" rejected`, {
+          description: "It won't be suggested again. Click 'Rejected' to restore.",
         });
       }
     }
     
-    // Get active (non-archived) templates from database
-    const activeTemplates = avatarTemplates?.filter(t => !t.is_archived) || [];
-    
-    if (activeTemplates.length === 0) {
-      toast.error("No available templates!", {
-        description: "Click 'Archived' to restore some templates",
-      });
-      return;
-    }
-    
-    // Filter out templates that already have avatars with matching names (case-insensitive)
+    // Get available templates: not rejected AND not already used as avatars
     const usedNames = new Set(avatars?.map(a => a.name.toLowerCase().trim()) || []);
-    const availableTemplates = activeTemplates.filter(t => !usedNames.has(t.name.toLowerCase().trim()));
+    const rejectedNamesLower = new Set(rejectedTemplates.map(n => n.toLowerCase()));
     
-    // NEVER fall back to used templates - if all are used, show error
+    const availableTemplates = avatarTemplates.filter(t => 
+      !usedNames.has(t.name.toLowerCase().trim()) && 
+      !rejectedNamesLower.has(t.name.toLowerCase())
+    );
+    
     if (availableTemplates.length === 0) {
-      const archivedCount = avatarTemplates?.filter(t => t.is_archived).length || 0;
-      toast.error("All templates already have avatars!", {
-        description: `${activeTemplates.length} active templates are all used. ${archivedCount > 0 ? `${archivedCount} archived available to restore.` : "Add more templates."}`,
+      toast.error("No available templates!", {
+        description: `All templates are either used or rejected. ${rejectedTemplates.length > 0 ? `${rejectedTemplates.length} rejected - click "Rejected" to restore.` : ""}`,
       });
       return;
     }
     
-    const randomTemplate = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];
+    // Pick random template, avoiding recently shown
+    const recentNamesLower = new Set(recentTemplates.map(n => n.toLowerCase()));
+    let pool = availableTemplates.filter(t => !recentNamesLower.has(t.name.toLowerCase()));
+    if (pool.length === 0) pool = availableTemplates;
+    
+    const randomTemplate = pool[Math.floor(Math.random() * pool.length)];
+    
+    // Update recent templates
+    const newRecent = [randomTemplate.name, ...recentTemplates.filter(n => n !== randomTemplate.name)].slice(0, MAX_RECENT_TEMPLATES);
+    setRecentTemplates(newRecent);
+    writeRecentTemplates(newRecent);
     
     const typeEmoji = randomTemplate.character_type === 'animal' ? '🐾 Animal' 
       : randomTemplate.character_type === 'superhero' ? '🦸 Superhero' 
@@ -420,36 +477,21 @@ export function FitnessAvatarManager() {
       const pick = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
       
       const skinTone = pick([
-        "deep dark skin",
-        "dark brown skin",
-        "medium brown skin",
-        "olive skin",
-        "light skin",
+        "deep dark skin", "dark brown skin", "medium brown skin", "olive skin", "light skin",
       ]);
       
       const genderPresentation = pick([
-        "feminine-presenting",
-        "masculine-presenting",
-        "androgynous-presenting",
+        "feminine-presenting", "masculine-presenting", "androgynous-presenting",
       ]);
       
       const hairColor = pick(["black", "blonde", "red", "auburn", "silver", "blue", "purple", "pink"]);
       const hairStyle = pick([
-        "curly hair",
-        "coily hair",
-        "wavy hair",
-        "straight hair",
-        "braids",
-        "locs",
-        "short hair",
-        "long hair",
-        "bald head",
+        "curly hair", "coily hair", "wavy hair", "straight hair", "braids", "locs", "short hair", "long hair", "bald head",
       ]);
       
       demographicSuffix = `. Character has ${skinTone}, ${genderPresentation}, with ${hairColor} ${hairStyle}`;
     }
     
-    // Map character_type to category
     const categoryMap: Record<string, string> = {
       'animal': 'animals',
       'superhero': 'superheroes',
@@ -461,19 +503,25 @@ export function FitnessAvatarManager() {
       name: randomTemplate.name,
       description: `A ${randomTemplate.character_type === 'animal' ? 'friendly animal' : randomTemplate.character_type === 'superhero' ? 'heroic' : 'friendly'} character who loves fitness and can do any sport!`,
       character_prompt: randomTemplate.prompt + demographicSuffix,
-      character_type: randomTemplate.character_type, // Track the type for image generation
-      category: categoryMap[randomTemplate.character_type] || 'humans', // Auto-set category based on type
+      character_type: randomTemplate.character_type,
+      category: categoryMap[randomTemplate.character_type] || 'humans',
       display_order: avatars?.length || 0,
     }));
     
-    // Track this template name so if user clicks randomize again, we auto-archive it
     setPreviousTemplateName(randomTemplate.name);
     
     const remaining = availableTemplates.length - 1;
-    const archivedCount = avatarTemplates?.filter(t => t.is_archived).length || 0;
     toast.success(`Randomized: ${randomTemplate.name}`, { 
-      description: `${typeEmoji} • ${remaining} unused left • ${archivedCount} archived`
+      description: `${typeEmoji} • ${remaining} unused left • ${rejectedTemplates.length} rejected`
     });
+  };
+
+  // Restore a rejected template
+  const handleRestoreTemplate = (name: string) => {
+    const newRejected = rejectedTemplates.filter(n => n !== name);
+    setRejectedTemplates(newRejected);
+    writeRejectedTemplates(newRejected);
+    toast.success(`"${name}" restored`);
   };
 
   const handleGenerateImage = (avatar: any) => {
@@ -483,7 +531,6 @@ export function FitnessAvatarManager() {
     }
     setGeneratingImageFor(avatar.id);
     toast.info("✨ Generating avatar image...", { description: "This may take a moment." });
-    // Try to infer character type from the prompt
     const inferredType = avatar.character_prompt?.toLowerCase().includes('animal') || 
                          avatar.character_prompt?.toLowerCase().match(/\b(dog|cat|bear|rabbit|fox|lion|tiger|panda|koala|owl|penguin|dolphin|elephant|giraffe|monkey)\b/)
                          ? 'animal' : 'human';
@@ -497,7 +544,6 @@ export function FitnessAvatarManager() {
     }
     
     if (!editingAvatar?.id) {
-      // Need to save first
       toast.error("Please save the avatar first, then generate an image");
       return;
     }
@@ -521,7 +567,6 @@ export function FitnessAvatarManager() {
     setGeneratingInDialog(true);
     
     try {
-      // Save the avatar first
       const payload = {
         name: formData.name,
         description: formData.description || null,
@@ -541,12 +586,10 @@ export function FitnessAvatarManager() {
       
       if (error) throw error;
       
-      // Set as editing so subsequent generates work
       setEditingAvatar(newAvatar);
       queryClient.invalidateQueries({ queryKey: ["admin-fitness-avatars"] });
       toast.success("Avatar created! Now generating image...");
       
-      // Now generate the image
       generateImageMutation.mutate({
         id: newAvatar.id,
         name: formData.name,
@@ -561,27 +604,14 @@ export function FitnessAvatarManager() {
 
   if (isLoading) return <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
-  const activeTemplatesCount = avatarTemplates?.filter(t => !t.is_archived).length || 0;
-  const archivedTemplatesCount = avatarTemplates?.filter(t => t.is_archived).length || 0;
-
   return (
-    <Tabs defaultValue="avatars" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="avatars">Avatars ({avatars?.length || 0})</TabsTrigger>
-        <TabsTrigger value="templates">
-          <Sparkles className="w-3 h-3 mr-1" />
-          Idea Templates ({activeTemplatesCount})
-        </TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="avatars">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Fitness Avatars</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">Mix of animal, human, and superhero characters for workouts</p>
-              </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Fitness Avatars</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Mix of animal, human, and superhero characters for workouts</p>
+          </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" onClick={() => { setEditingAvatar(null); setFormData(defaultFormData); }}>
@@ -593,7 +623,7 @@ export function FitnessAvatarManager() {
                 <DialogTitle>{editingAvatar ? "Edit Avatar" : "Create Avatar"}</DialogTitle>
               </DialogHeader>
               
-              {/* Randomize Button with Archived button */}
+              {/* Randomize Button with Rejected button */}
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -604,17 +634,17 @@ export function FitnessAvatarManager() {
                   <Shuffle className="w-4 h-4 mr-2" />
                   Randomize Character
                 </Button>
-                {archivedTemplatesCount > 0 && (
+                {rejectedTemplates.length > 0 && (
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setArchivedDialogOpen(true)}
+                    onClick={() => setRejectedDialogOpen(true)}
                     className="px-3"
-                    title={`${archivedTemplatesCount} archived templates`}
+                    title={`${rejectedTemplates.length} rejected templates`}
                   >
                     <ArchiveRestore className="w-4 h-4" />
                     <Badge variant="secondary" className="ml-1.5 text-xs">
-                      {archivedTemplatesCount}
+                      {rejectedTemplates.length}
                     </Badge>
                   </Button>
                 )}
@@ -827,7 +857,6 @@ export function FitnessAvatarManager() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1 flex-wrap">
-                    {/* Download button */}
                     <Button 
                       size="icon" 
                       variant="outline" 
@@ -838,7 +867,6 @@ export function FitnessAvatarManager() {
                       <Download className="h-4 w-4 text-blue-600" />
                     </Button>
                     
-                    {/* Upload button */}
                     <Button 
                       size="icon" 
                       variant="outline" 
@@ -864,7 +892,6 @@ export function FitnessAvatarManager() {
                       }}
                     />
                     
-                    {/* Remove background button */}
                     <Button 
                       size="icon" 
                       variant="outline" 
@@ -930,7 +957,7 @@ export function FitnessAvatarManager() {
             ))}
             {avatars?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No avatars yet. Click "Add Avatar" and use "Randomize Character" to get started!
                 </TableCell>
               </TableRow>
@@ -988,133 +1015,55 @@ export function FitnessAvatarManager() {
           )}
         </DialogContent>
       </Dialog>
-    </Card>
-      </TabsContent>
 
-      {/* Templates Tab - Only show active templates */}
-      <TabsContent value="templates">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  Avatar Idea Templates
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">Active ideas available for randomization</p>
-              </div>
-              {archivedTemplatesCount > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => setArchivedDialogOpen(true)}
-                >
-                  <ArchiveRestore className="w-4 h-4 mr-2" />
-                  Archived ({archivedTemplatesCount})
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {templatesLoading ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex gap-4 text-sm text-muted-foreground">
-                  <span>Active: {activeTemplatesCount}</span>
-                  <span>Archived: {archivedTemplatesCount}</span>
-                </div>
-                {activeTemplatesCount === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Archive className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="font-medium">No active templates</p>
-                    <p className="text-sm">Click "Archived" to restore some templates</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {avatarTemplates?.filter(t => !t.is_archived).map((template) => (
-                        <TableRow key={template.id}>
-                          <TableCell>
-                            <p className="font-medium">{template.name}</p>
-                            <p className="text-xs text-muted-foreground truncate max-w-[300px]">{template.prompt}</p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {template.character_type === 'animal' ? '🐾' : template.character_type === 'superhero' ? '🦸' : '👤'} {template.character_type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => toggleArchiveMutation.mutate({ id: template.id, is_archived: true })}
-                            >
-                              <Archive className="w-3 h-3 mr-1" />Archive
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      {/* Archived Templates Dialog */}
-      <Dialog open={archivedDialogOpen} onOpenChange={setArchivedDialogOpen}>
+      {/* Rejected Templates Dialog (localStorage-backed, like locations) */}
+      <Dialog open={rejectedDialogOpen} onOpenChange={setRejectedDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArchiveRestore className="w-5 h-5" />
-              Archived Templates ({archivedTemplatesCount})
+              Rejected Templates ({rejectedTemplates.length})
             </DialogTitle>
           </DialogHeader>
           
-          {archivedTemplatesCount === 0 ? (
+          {rejectedTemplates.length === 0 ? (
             <p className="text-center text-muted-foreground py-4">
-              No archived templates
+              No rejected templates
             </p>
           ) : (
             <>
               <ScrollArea className="max-h-[400px]">
                 <div className="space-y-2 pr-4">
-                  {avatarTemplates?.filter(t => t.is_archived).map((template) => (
-                    <div
-                      key={template.id}
-                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">{template.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {template.character_type === 'animal' ? '🐾' : template.character_type === 'superhero' ? '🦸' : '👤'} {template.character_type}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          toggleArchiveMutation.mutate({ id: template.id, is_archived: false });
-                        }}
+                  {rejectedTemplates.map((name) => {
+                    const template = avatarTemplates.find(t => t.name === name);
+                    return (
+                      <div
+                        key={name}
+                        className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/50 transition-colors"
                       >
-                        Restore
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{name}</p>
+                          {template && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {template.character_type === 'animal' ? '🐾' : template.character_type === 'superhero' ? '🦸' : '👤'} {template.character_type}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRestoreTemplate(name)}
+                        >
+                          Restore
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
               </ScrollArea>
               
               <DialogFooter>
-                <Button variant="outline" onClick={() => setArchivedDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setRejectedDialogOpen(false)}>
                   Close
                 </Button>
               </DialogFooter>
@@ -1122,6 +1071,6 @@ export function FitnessAvatarManager() {
           )}
         </DialogContent>
       </Dialog>
-    </Tabs>
+    </Card>
   );
 }
