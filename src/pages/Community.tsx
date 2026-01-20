@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight, Rss } from "lucide-react";
 import * as Icons from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
@@ -24,8 +25,12 @@ import { CommunityFeed } from "@/components/feed/CommunityFeed";
 
 const Community = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, profile: authProfile, role, loading: authLoading, isAuthenticated } = useAuth();
+  
+  // Tab state from URL params
+  const activeTab = searchParams.get("tab") || "community";
 
   // Extract YouTube video ID from various URL formats
   const getYouTubeVideoId = (url: string): string | null => {
@@ -296,22 +301,34 @@ const Community = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-20 pb-12">
         <div className="max-w-6xl mx-auto space-y-6">
+          {/* Community Tabs */}
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(value) => setSearchParams({ tab: value })}
+            className="w-full"
+          >
+            <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
+              <TabsTrigger value="community" className="gap-2">
+                <Users className="w-4 h-4" />
+                Community
+              </TabsTrigger>
+              <TabsTrigger value="feed" className="gap-2">
+                <Rss className="w-4 h-4" />
+                What's New
+              </TabsTrigger>
+            </TabsList>
+
+            {/* What's New Feed Tab */}
+            <TabsContent value="feed" className="mt-6">
+              <CommunityFeed />
+            </TabsContent>
+
+            {/* Community Tab - existing content */}
+            <TabsContent value="community" className="mt-6 space-y-6">
           {sectionOrder.map(({ key, visible }) => {
-            if (!visible) return null;
+            if (!visible || key === 'newsfeed') return null;
 
             switch (key) {
-              case 'newsfeed':
-                return (
-                  <section key={key} className="space-y-4" data-tour-target="newsfeed">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-bold text-foreground">What's New</h2>
-                      </div>
-                    </div>
-                    <CommunityFeed />
-                  </section>
-                );
 
               case 'welcome':
                 return (
@@ -655,6 +672,8 @@ const Community = () => {
                 return null;
             }
           })}
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       
