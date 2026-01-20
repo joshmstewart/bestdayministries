@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { 
   Heart, MessageCircle, Share2, Bookmark, Music, Palette, Image, MessageSquare, 
-  FolderOpen, Trophy, MoreHorizontal, Play, Square, Copy, EyeOff, Loader2, Pencil
+  FolderOpen, Trophy, MoreHorizontal, Play, Square, Copy, EyeOff, Loader2, Pencil,
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 
 export interface FeedItemData {
   id: string;
-  item_type: 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art';
+  item_type: 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke';
   title: string;
   description: string | null;
   author_id: string;
@@ -53,6 +54,12 @@ const typeConfig: Record<string, { label: string; icon: React.ElementType; color
   post: { label: "Post", icon: MessageSquare, color: "bg-blue-500/10 text-blue-500 border-blue-500/20", routeBase: "/discussions", idParam: "post" },
   album: { label: "Album", icon: FolderOpen, color: "bg-green-500/10 text-green-500 border-green-500/20", routeBase: "/gallery", idParam: "album" },
   chore_art: { label: "Chore Art", icon: Trophy, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", routeBase: "/games/chore-challenge", idParam: "gallery" },
+  event: { label: "Event", icon: Calendar, color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20", routeBase: "/events", idParam: "event" },
+  prayer: { label: "Prayer", icon: HandHeart, color: "bg-rose-500/10 text-rose-500 border-rose-500/20", routeBase: "/prayer-requests", idParam: "id" },
+  workout: { label: "Workout", icon: Dumbbell, color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", routeBase: "/workout-tracker", idParam: "image" },
+  recipe: { label: "Recipe", icon: ChefHat, color: "bg-amber-500/10 text-amber-500 border-amber-500/20", routeBase: "/games/recipe-gallery", idParam: "recipe" },
+  drink: { label: "Drink", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", routeBase: "/games/drink-creator", idParam: "drink" },
+  joke: { label: "Joke", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", routeBase: "/games/joke-generator", idParam: "joke" },
 };
 
 const getItemRoute = (itemType: string, itemId: string) => {
