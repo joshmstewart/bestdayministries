@@ -280,6 +280,7 @@ const JokeGenerator: React.FC = () => {
           answer: joke.answer,
           category: 'mixed', // Multi-select doesn't track individual category
           is_public: shareWithCommunity,
+          shared_at: shareWithCommunity ? new Date().toISOString() : null,
         });
 
       if (error) throw error;

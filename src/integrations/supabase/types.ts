@@ -6926,6 +6926,7 @@ export type Database = {
           is_user_created: boolean | null
           likes_count: number | null
           question: string
+          shared_at: string | null
           times_shared: number | null
           updated_at: string
           user_id: string
@@ -6939,6 +6940,7 @@ export type Database = {
           is_user_created?: boolean | null
           likes_count?: number | null
           question: string
+          shared_at?: string | null
           times_shared?: number | null
           updated_at?: string
           user_id: string
@@ -6952,6 +6954,7 @@ export type Database = {
           is_user_created?: boolean | null
           likes_count?: number | null
           question?: string
+          shared_at?: string | null
           times_shared?: number | null
           updated_at?: string
           user_id?: string
