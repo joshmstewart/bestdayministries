@@ -24,16 +24,19 @@ export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
 };
 
 interface UseCommunityFeedOptions {
-  typeFilter?: ItemType | null;
+  typeFilters?: ItemType[];
 }
 
 export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
-  const { typeFilter } = options;
+  const { typeFilters = [] } = options;
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+
+  // Create a stable key for typeFilters to use in dependencies
+  const typeFiltersKey = typeFilters.sort().join(',');
 
   const fetchFeedItems = useCallback(async (pageNum: number, append = false) => {
     try {
@@ -52,9 +55,9 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      // Apply type filter if specified
-      if (typeFilter) {
-        query = query.eq("item_type", typeFilter);
+      // Apply type filters if specified (multi-select)
+      if (typeFilters.length > 0) {
+        query = query.in("item_type", typeFilters);
       }
 
       const { data: feedItems, error } = await query.range(from, to);
@@ -111,7 +114,7 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [typeFilter]);
+  }, [typeFiltersKey]);
 
   const loadMore = useCallback(() => {
     if (!loadingMore && hasMore) {
@@ -132,7 +135,7 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
     setPage(0);
     setHasMore(true);
     fetchFeedItems(0);
-  }, [fetchFeedItems, typeFilter]);
+  }, [fetchFeedItems, typeFiltersKey]);
 
   return {
     items,

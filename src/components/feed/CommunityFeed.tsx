@@ -7,8 +7,8 @@ import { useCommunityFeed, ItemType } from "@/hooks/useCommunityFeed";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function CommunityFeed() {
-  const [typeFilter, setTypeFilter] = useState<ItemType | null>(null);
-  const { items, loading, loadingMore, hasMore, loadMore, refresh } = useCommunityFeed({ typeFilter });
+  const [typeFilters, setTypeFilters] = useState<ItemType[]>([]);
+  const { items, loading, loadingMore, hasMore, loadMore, refresh } = useCommunityFeed({ typeFilters });
   const { isAuthenticated } = useAuth();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -92,16 +92,16 @@ export function CommunityFeed() {
     return (
       <div className="space-y-4">
         {/* Type filter */}
-        <FeedTypeFilter selectedType={typeFilter} onTypeChange={setTypeFilter} />
+        <FeedTypeFilter selectedTypes={typeFilters} onTypesChange={setTypeFilters} />
 
         <div className="text-center py-12 bg-card/50 rounded-xl border border-border">
           <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">
-            {typeFilter ? `No ${typeFilter} posts yet` : "No activity yet"}
+            {typeFilters.length > 0 ? `No matching posts yet` : "No activity yet"}
           </h3>
           <p className="text-muted-foreground max-w-md mx-auto mb-4">
-            {typeFilter 
-              ? "Try selecting a different category or be the first to share!" 
+            {typeFilters.length > 0 
+              ? "Try selecting different categories or be the first to share!" 
               : "Be the first to share something with the community!"}
           </p>
           <Button onClick={refresh} variant="outline" size="sm" className="gap-2">
@@ -116,7 +116,7 @@ export function CommunityFeed() {
   return (
     <div className="space-y-4">
       {/* Type filter */}
-      <FeedTypeFilter selectedType={typeFilter} onTypeChange={setTypeFilter} />
+      <FeedTypeFilter selectedTypes={typeFilters} onTypesChange={setTypeFilters} />
 
       {/* Refresh button */}
       <div className="flex justify-end">

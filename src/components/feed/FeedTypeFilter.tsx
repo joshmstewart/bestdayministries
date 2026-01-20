@@ -1,16 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Music, Palette, Image, MessageSquare, FolderOpen, Trophy,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, X
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Filter, X
 } from "lucide-react";
 import { ItemType, ITEM_TYPE_LABELS } from "@/hooks/useCommunityFeed";
 import { cn } from "@/lib/utils";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface FeedTypeFilterProps {
-  selectedType: ItemType | null;
-  onTypeChange: (type: ItemType | null) => void;
+  selectedTypes: ItemType[];
+  onTypesChange: (types: ItemType[]) => void;
 }
 
 const typeIcons: Record<ItemType, React.ElementType> = {
@@ -29,18 +34,18 @@ const typeIcons: Record<ItemType, React.ElementType> = {
 };
 
 const typeColors: Record<ItemType, string> = {
-  beat: "bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20",
-  card: "bg-pink-500/10 text-pink-500 border-pink-500/20 hover:bg-pink-500/20",
-  coloring: "bg-orange-500/10 text-orange-500 border-orange-500/20 hover:bg-orange-500/20",
-  post: "bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20",
-  album: "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20",
-  chore_art: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20",
-  event: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20 hover:bg-indigo-500/20",
-  prayer: "bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20",
-  workout: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20",
-  recipe: "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20",
-  drink: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20 hover:bg-cyan-500/20",
-  joke: "bg-lime-500/10 text-lime-500 border-lime-500/20 hover:bg-lime-500/20",
+  beat: "text-purple-500",
+  card: "text-pink-500",
+  coloring: "text-orange-500",
+  post: "text-blue-500",
+  album: "text-green-500",
+  chore_art: "text-yellow-500",
+  event: "text-indigo-500",
+  prayer: "text-rose-500",
+  workout: "text-emerald-500",
+  recipe: "text-amber-500",
+  drink: "text-cyan-500",
+  joke: "text-lime-500",
 };
 
 const FILTER_ORDER: ItemType[] = [
@@ -48,58 +53,124 @@ const FILTER_ORDER: ItemType[] = [
   'recipe', 'drink', 'joke', 'prayer', 'workout', 'chore_art'
 ];
 
-export function FeedTypeFilter({ selectedType, onTypeChange }: FeedTypeFilterProps) {
-  return (
-    <div className="relative">
-      <ScrollArea className="w-full whitespace-nowrap">
-        <div className="flex items-center gap-2 pb-2">
-          {/* All button */}
-          <Button
-            variant={selectedType === null ? "default" : "outline"}
-            size="sm"
-            onClick={() => onTypeChange(null)}
-            className="shrink-0"
-          >
-            All
-          </Button>
+export function FeedTypeFilter({ selectedTypes, onTypesChange }: FeedTypeFilterProps) {
+  const handleTypeToggle = (type: ItemType) => {
+    if (selectedTypes.includes(type)) {
+      onTypesChange(selectedTypes.filter(t => t !== type));
+    } else {
+      onTypesChange([...selectedTypes, type]);
+    }
+  };
 
-          {/* Type filter buttons */}
-          {FILTER_ORDER.map((type) => {
-            const Icon = typeIcons[type];
-            const isSelected = selectedType === type;
-            
-            return (
-              <Button
-                key={type}
-                variant="outline"
-                size="sm"
-                onClick={() => onTypeChange(isSelected ? null : type)}
-                className={cn(
-                  "shrink-0 gap-1.5",
-                  isSelected && typeColors[type],
-                  isSelected && "border-2"
-                )}
+  const handleClearAll = () => {
+    onTypesChange([]);
+  };
+
+  const handleSelectAll = () => {
+    onTypesChange([...FILTER_ORDER]);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 relative"
+          >
+            <Filter className="h-4 w-4" />
+            Filter
+            {selectedTypes.length > 0 && (
+              <Badge 
+                variant="secondary" 
+                className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
               >
-                <Icon className="h-3.5 w-3.5" />
+                {selectedTypes.length}
+              </Badge>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-64 p-3 bg-popover border border-border z-50" 
+          align="start"
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Filter by type</span>
+              <div className="flex gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs"
+                  onClick={handleSelectAll}
+                >
+                  All
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 px-2 text-xs"
+                  onClick={handleClearAll}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-1 max-h-64 overflow-y-auto">
+              {FILTER_ORDER.map((type) => {
+                const Icon = typeIcons[type];
+                const isSelected = selectedTypes.includes(type);
+                
+                return (
+                  <label
+                    key={type}
+                    className={cn(
+                      "flex items-center gap-3 px-2 py-1.5 rounded-md cursor-pointer transition-colors",
+                      "hover:bg-accent",
+                      isSelected && "bg-accent/50"
+                    )}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => handleTypeToggle(type)}
+                      className="h-4 w-4"
+                    />
+                    <Icon className={cn("h-4 w-4", typeColors[type])} />
+                    <span className="text-sm">{ITEM_TYPE_LABELS[type]}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Show selected types as chips */}
+      {selectedTypes.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {selectedTypes.slice(0, 3).map((type) => {
+            const Icon = typeIcons[type];
+            return (
+              <Badge
+                key={type}
+                variant="secondary"
+                className="gap-1 cursor-pointer hover:bg-destructive/20"
+                onClick={() => handleTypeToggle(type)}
+              >
+                <Icon className={cn("h-3 w-3", typeColors[type])} />
                 {ITEM_TYPE_LABELS[type]}
-                {isSelected && (
-                  <X className="h-3 w-3 ml-1" />
-                )}
-              </Button>
+                <X className="h-3 w-3 ml-0.5" />
+              </Badge>
             );
           })}
+          {selectedTypes.length > 3 && (
+            <Badge variant="secondary">
+              +{selectedTypes.length - 3} more
+            </Badge>
+          )}
         </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-
-      {/* Active filter indicator */}
-      {selectedType && (
-        <Badge 
-          variant="secondary" 
-          className="absolute -top-2 -right-2 text-xs px-1.5"
-        >
-          1
-        </Badge>
       )}
     </div>
   );
