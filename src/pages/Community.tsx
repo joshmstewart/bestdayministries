@@ -327,15 +327,20 @@ const Community = () => {
             className="w-full"
           >
             {canAccessFeed() ? (
-              <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto overflow-visible">
-                <TabsTrigger value="community" className="gap-2">
+              <TabsList className="inline-flex w-auto mx-auto mb-2 gap-2 bg-muted/50 p-1.5 rounded-lg overflow-visible">
+                <TabsTrigger 
+                  value="community" 
+                  className="gap-2 px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                >
                   <Users className="w-4 h-4" />
-                  <span className="hidden sm:inline">Community</span>
-                  <span className="sm:hidden">Community</span>
+                  Community
                 </TabsTrigger>
-                <TabsTrigger value="feed" className="gap-2 relative overflow-visible">
+                <TabsTrigger 
+                  value="feed" 
+                  className="gap-2 relative px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                >
                   <Rss className="w-4 h-4" />
-                  <span>Feed</span>
+                  Feed
                   {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
                     <Badge 
                       variant="destructive" 
