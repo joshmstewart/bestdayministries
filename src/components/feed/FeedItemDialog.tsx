@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
-  Heart, Share2, Download, Loader2, X, EyeOff, Copy, Play, Square, 
+  Heart, Download, Loader2, X, EyeOff, Play, Square, 
   ExternalLink, Palette, Music
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -96,20 +96,6 @@ export function FeedItemDialog({
     }
   };
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}${getItemRoute()}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: item.title, url });
-      } catch {
-        // User cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard");
-    }
-  };
 
   const handlePlayBeat = () => {
     if (item.item_type !== 'beat' || !item.extra_data?.pattern) return;
@@ -230,11 +216,6 @@ export function FeedItemDialog({
                 {likesCount}
               </Button>
 
-              {/* Share */}
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                <Share2 className="h-4 w-4 mr-1" />
-                Share
-              </Button>
 
               {/* Download - for image types */}
               {item.image_url && (
