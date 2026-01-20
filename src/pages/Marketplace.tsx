@@ -329,6 +329,7 @@ const Marketplace = () => {
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="popular">Most Popular</SelectItem>
                       <SelectItem value="newest">Newest First</SelectItem>
                       <SelectItem value="oldest">Oldest First</SelectItem>
                       <SelectItem value="price-low">Price: Low to High</SelectItem>
