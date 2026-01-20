@@ -4,11 +4,31 @@ import { FeedItemData } from "@/components/feed/FeedItem";
 
 const PAGE_SIZE = 12;
 
-type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke';
+export type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke';
 
-const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke'];
+export const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke'];
 
-export function useCommunityFeed() {
+export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
+  beat: 'Beats',
+  card: 'Cards',
+  coloring: 'Colorings',
+  post: 'Posts',
+  album: 'Albums',
+  chore_art: 'Chore Art',
+  event: 'Events',
+  prayer: 'Prayers',
+  workout: 'Workouts',
+  recipe: 'Recipes',
+  drink: 'Drinks',
+  joke: 'Jokes',
+};
+
+interface UseCommunityFeedOptions {
+  typeFilter?: ItemType | null;
+}
+
+export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
+  const { typeFilter } = options;
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -26,12 +46,18 @@ export function useCommunityFeed() {
       const from = pageNum * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      // Fetch feed items from the view
-      const { data: feedItems, error } = await supabase
+      // Build query
+      let query = supabase
         .from("community_feed_items")
         .select("*")
-        .order("created_at", { ascending: false })
-        .range(from, to);
+        .order("created_at", { ascending: false });
+
+      // Apply type filter if specified
+      if (typeFilter) {
+        query = query.eq("item_type", typeFilter);
+      }
+
+      const { data: feedItems, error } = await query.range(from, to);
 
       if (error) throw error;
 
@@ -69,6 +95,7 @@ export function useCommunityFeed() {
           comments_count: item.comments_count,
           author_name: profileMap.get(item.author_id)?.name || undefined,
           author_avatar: profileMap.get(item.author_id)?.avatar || undefined,
+          extra_data: item.extra_data,
         }));
 
       if (append) {
@@ -84,7 +111,7 @@ export function useCommunityFeed() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [typeFilter]);
 
   const loadMore = useCallback(() => {
     if (!loadingMore && hasMore) {
@@ -100,9 +127,12 @@ export function useCommunityFeed() {
     fetchFeedItems(0, false);
   }, [fetchFeedItems]);
 
+  // Reload when filter changes
   useEffect(() => {
+    setPage(0);
+    setHasMore(true);
     fetchFeedItems(0);
-  }, [fetchFeedItems]);
+  }, [fetchFeedItems, typeFilter]);
 
   return {
     items,
