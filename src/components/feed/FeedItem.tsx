@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -277,15 +277,11 @@ export function FeedItem({ item, onLike, onSave, onRefresh }: FeedItemProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-3 pb-2">
             <div className="flex items-center gap-3">
-              <Avatar className="h-8 w-8 border-2 border-primary/20">
-                <AvatarImage 
-                  src={item.author_avatar ? `/avatars/composite-${item.author_avatar}.png` : undefined} 
-                  alt={item.author_name || "User"} 
-                />
-                <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                  {(item.author_name || "U").charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarDisplay 
+                avatarNumber={item.author_avatar || null} 
+                displayName={item.author_name || "User"}
+                size="sm"
+              />
               <div className="flex flex-col">
                 <span className="font-medium text-foreground text-sm">
                   {item.author_name || "Community Member"}
