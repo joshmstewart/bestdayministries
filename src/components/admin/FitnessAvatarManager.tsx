@@ -395,12 +395,20 @@ export function FitnessAvatarManager() {
       return;
     }
     
-    // Filter out templates already used as avatars
-    const usedNames = new Set(avatars?.map(a => a.name.toLowerCase()) || []);
-    const availableTemplates = activeTemplates.filter(t => !usedNames.has(t.name.toLowerCase()));
-    const pool = availableTemplates.length > 0 ? availableTemplates : activeTemplates;
+    // Filter out templates that already have avatars with matching names (case-insensitive)
+    const usedNames = new Set(avatars?.map(a => a.name.toLowerCase().trim()) || []);
+    const availableTemplates = activeTemplates.filter(t => !usedNames.has(t.name.toLowerCase().trim()));
     
-    const randomTemplate = pool[Math.floor(Math.random() * pool.length)];
+    // NEVER fall back to used templates - if all are used, show error
+    if (availableTemplates.length === 0) {
+      const archivedCount = avatarTemplates?.filter(t => t.is_archived).length || 0;
+      toast.error("All templates already have avatars!", {
+        description: `${activeTemplates.length} active templates are all used. ${archivedCount > 0 ? `${archivedCount} archived available to restore.` : "Add more templates."}`,
+      });
+      return;
+    }
+    
+    const randomTemplate = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];
     
     const typeEmoji = randomTemplate.character_type === 'animal' ? '🐾 Animal' 
       : randomTemplate.character_type === 'superhero' ? '🦸 Superhero' 
@@ -461,10 +469,10 @@ export function FitnessAvatarManager() {
     // Track this template name so if user clicks randomize again, we auto-archive it
     setPreviousTemplateName(randomTemplate.name);
     
-    const remaining = activeTemplates.length - 1;
+    const remaining = availableTemplates.length - 1;
     const archivedCount = avatarTemplates?.filter(t => t.is_archived).length || 0;
     toast.success(`Randomized: ${randomTemplate.name}`, { 
-      description: `${typeEmoji} • ${remaining} more available • ${archivedCount} archived`
+      description: `${typeEmoji} • ${remaining} unused left • ${archivedCount} archived`
     });
   };
 
