@@ -129,9 +129,20 @@ export function FeedItemDialog({
         aria-describedby={undefined}
       >
         <div className="overflow-y-auto max-h-[90vh] -webkit-overflow-scrolling-touch">
+          {/* Close button - top right of card */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full"
+            onClick={onClose}
+            title="Close"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          
           {/* Image */}
           {item.image_url ? (
-            <div className="relative">
+            <div className="relative pt-4">
               <img
                 src={item.image_url}
                 alt={item.title}
@@ -141,7 +152,7 @@ export function FeedItemDialog({
               {item.item_type === 'beat' && item.extra_data?.pattern && (
                 <button
                   onClick={handlePlayBeat}
-                  className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
+                  className="absolute inset-0 top-4 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
                 >
                   <div className={cn(
                     "w-20 h-20 rounded-full flex items-center justify-center",
@@ -157,44 +168,29 @@ export function FeedItemDialog({
               )}
             </div>
           ) : (
-            <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+            <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mt-4">
               <span className="text-8xl">🎨</span>
             </div>
           )}
           
           {/* Info panel */}
           <div className="p-4 bg-background">
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold truncate">{item.title}</h2>
-                  <TextToSpeech 
-                    text={`${item.title}${item.description ? `. ${item.description}` : ''}`} 
-                    size="sm"
-                  />
-                </div>
-                {item.author_name && (
-                  <p className="text-sm text-muted-foreground">by {item.author_name}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Created {format(new Date(item.created_at), "MMM d, yyyy")}
-                </p>
-                {item.description && (
-                  <p className="text-sm text-muted-foreground mt-2">{item.description}</p>
-                )}
-              </div>
-              
-              {/* Close button - following DIALOG_BUTTON_STANDARD */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="flex-shrink-0 hover:bg-accent"
-                onClick={onClose}
-                title="Close"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold truncate">{item.title}</h2>
+              <TextToSpeech 
+                text={`${item.title}${item.description ? `. ${item.description}` : ''}`} 
+                size="sm"
+              />
             </div>
+            {item.author_name && (
+              <p className="text-sm text-muted-foreground">by {item.author_name}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Created {format(new Date(item.created_at), "MMM d, yyyy")}
+            </p>
+            {item.description && (
+              <p className="text-sm text-muted-foreground mt-2">{item.description}</p>
+            )}
             
             {/* Actions */}
             <div className="flex items-center gap-2 mt-4 flex-wrap">
