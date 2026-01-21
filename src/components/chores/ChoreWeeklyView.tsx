@@ -49,8 +49,14 @@ export function ChoreWeeklyView({
   // Get chores applicable for a specific date
   const getChoresForDate = (date: Date) => {
     const dayOfWeek = getDay(date); // 0 = Sunday, 6 = Saturday
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const isTodayDate = dateStr === today;
+    
     return chores.filter(chore => {
       switch (chore.recurrence_type) {
+        case 'once':
+          // "Today Only" chores should only appear on today
+          return isTodayDate;
         case 'daily':
           return true;
         case 'weekly':
