@@ -270,10 +270,33 @@ Style requirements:
     const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (!imageData) {
+      const choice = aiData?.choices?.[0];
+      const finishReason =
+        choice?.native_finish_reason ||
+        choice?.finish_reason ||
+        choice?.message?.native_finish_reason ||
+        "unknown";
+
       console.error("No image in AI response:", JSON.stringify(aiData));
+
+      // The AI gateway can return an IMAGE_SAFETY block with no images.
+      if (String(finishReason).toUpperCase().includes("IMAGE_SAFETY")) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Image generation was blocked by the safety filter. Please adjust the prompt and try again.",
+            reason: "IMAGE_SAFETY",
+          }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: "No image generated. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "No image was returned by the image model. Please try again.",
+          reason: finishReason,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
