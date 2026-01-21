@@ -200,19 +200,27 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
 
     const urls: Record<number, string> = {};
     
+    // Group avatars by their database category
     data.forEach((avatar: AvatarData) => {
-      if (categories[avatar.category]) {
-        categories[avatar.category].avatars.push(avatar.avatar_number);
+      const categoryKey = avatar.category;
+      
+      // Initialize category if it doesn't exist yet
+      if (!categories[categoryKey]) {
+        // Create a label from the category key
+        const label = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
+        categories[categoryKey] = { label, avatars: [] };
+      }
+      
+      categories[categoryKey].avatars.push(avatar.avatar_number);
+      
+      // Load storage URL for uploaded avatars (49+)
+      if (avatar.avatar_number >= 49) {
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(`avatar-${avatar.avatar_number}.png`);
         
-        // Load storage URL for uploaded avatars (49+)
-        if (avatar.avatar_number >= 49) {
-          const { data: urlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(`avatar-${avatar.avatar_number}.png`);
-          
-          if (urlData) {
-            urls[avatar.avatar_number] = urlData.publicUrl;
-          }
+        if (urlData) {
+          urls[avatar.avatar_number] = urlData.publicUrl;
         }
       }
     });
