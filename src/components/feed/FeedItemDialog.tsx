@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
-  Download, Loader2, X, EyeOff, Play, Square, 
+  Download, Loader2, X, Lock, Play, Square, 
   ExternalLink, Palette, Music
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -397,7 +397,7 @@ export function FeedItemDialog({
                   {unsharing ? (
                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                   ) : (
-                    <EyeOff className="h-4 w-4 mr-1" />
+                    <Lock className="h-4 w-4 mr-1" />
                   )}
                   Unshare
                 </Button>

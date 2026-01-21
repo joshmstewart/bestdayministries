@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Square, Trash2, Save, Share2, Sparkles, Loader2, Wand2, Shuffle, EyeOff } from 'lucide-react';
+import { Play, Pause, Square, Trash2, Save, Share2, Sparkles, Loader2, Wand2, Shuffle, Lock } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -177,7 +177,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           {isUnsharing ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
-            <EyeOff className="h-4 w-4 mr-2" />
+            <Lock className="h-4 w-4 mr-2" />
           )}
           {isUnsharing ? 'Unsharing...' : 'Unshare'}
         </Button>
