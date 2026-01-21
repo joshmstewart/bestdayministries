@@ -84,66 +84,25 @@ export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions =
             </div>
           </div>
 
-          {/* Badges Row */}
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between mb-2">
+          {/* Badges Button */}
+          <div className="border-t pt-3">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowBadgeCollection(true)}
+              className="w-full justify-between"
+            >
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Badges</span>
+                <span>Badges</span>
+              </div>
+              <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
                   {badges.length}/{badgeDefinitions.length || 8}
                 </Badge>
+                <ChevronRight className="h-4 w-4" />
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowBadgeCollection(true)}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                View All <ChevronRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-            
-            {badges.length > 0 ? (
-              <TooltipProvider>
-                <div className="flex flex-wrap gap-2">
-                  {badges.slice(0, 4).map((badge) => {
-                    const badgeDef = getBadgeDefinition(badge.badge_type);
-                    return (
-                      <Tooltip key={badge.id}>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 border border-primary/20 cursor-help hover:bg-primary/20 transition-colors">
-                            {badgeDef?.imageUrl ? (
-                              <img src={badgeDef.imageUrl} alt={badge.badge_name} className="w-6 h-6 object-contain" />
-                            ) : (
-                              <span className="text-lg">{badge.badge_icon}</span>
-                            )}
-                            <span className="text-xs font-medium">{badge.badge_name}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{badge.badge_description}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                  {badges.length > 4 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setShowBadgeCollection(true)}
-                    >
-                      +{badges.length - 4} more
-                    </Button>
-                  )}
-                </div>
-              </TooltipProvider>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Complete all your chores to earn badges! 🎯
-              </p>
-            )}
+            </Button>
           </div>
         </CardContent>
       </Card>
