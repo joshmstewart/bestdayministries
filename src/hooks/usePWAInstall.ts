@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,6 +14,7 @@ interface PWAInstallState {
   promptInstall: () => Promise<void>;
   dismiss: (days?: number) => void;
   isInstalled: boolean;
+  isNativeApp: boolean;
 }
 
 const STORAGE_KEY = 'pwa-install-dismissed';
@@ -25,7 +27,17 @@ export function usePWAInstall(): PWAInstallState {
   const [isStandalone, setIsStandalone] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
 
+  // Check if running as a native Capacitor app
+  const isNativeApp = Capacitor.isNativePlatform();
+
   useEffect(() => {
+    // If running as native app, never show install prompt
+    if (isNativeApp) {
+      setShowPrompt(false);
+      setIsStandalone(true);
+      return;
+    }
+
     // Detect platform
     const userAgent = navigator.userAgent.toLowerCase();
     const isIOS = /ipad|iphone|ipod/.test(userAgent) && !(window as any).MSStream;
@@ -82,7 +94,7 @@ export function usePWAInstall(): PWAInstallState {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isNativeApp]);
 
   const promptInstall = async () => {
     if (!deferredPrompt) return;
@@ -117,6 +129,7 @@ export function usePWAInstall(): PWAInstallState {
     showPrompt,
     promptInstall,
     dismiss,
-    isInstalled: isStandalone,
+    isInstalled: isStandalone || isNativeApp,
+    isNativeApp,
   };
 }
