@@ -738,10 +738,14 @@ export function FitnessAvatarManager() {
     }
     setGeneratingImageFor(avatar.id);
     toast.info("✨ Generating avatar image...", { description: "This may take a moment." });
-    const inferredType = avatar.character_prompt?.toLowerCase().includes('animal') || 
-                         avatar.character_prompt?.toLowerCase().match(/\b(dog|cat|bear|rabbit|fox|lion|tiger|panda|koala|owl|penguin|dolphin|elephant|giraffe|monkey)\b/)
-                         ? 'animal' : 'human';
-    generateImageMutation.mutate({ id: avatar.id, name: avatar.name, character_prompt: avatar.character_prompt, character_type: inferredType });
+    // Use the avatar's actual character_type from the database, not inferred type
+    // This fixes the bug where monsters were being generated as humans from the list view
+    generateImageMutation.mutate({ 
+      id: avatar.id, 
+      name: avatar.name, 
+      character_prompt: avatar.character_prompt, 
+      character_type: avatar.character_type || 'human' 
+    });
   };
 
   const handleGenerateImageInDialog = async () => {
