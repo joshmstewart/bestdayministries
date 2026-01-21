@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft, Gift, List, CalendarDays, ImageIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import { ChoreFormDialog } from "@/components/chores/ChoreFormDialog";
@@ -16,6 +16,7 @@ import { ChoreStreakDisplay } from "@/components/chores/ChoreStreakDisplay";
 import { MonthlyChallengeCard } from "@/components/chores/MonthlyChallengeCard";
 import { ChallengeGallery } from "@/components/chores/ChallengeGallery";
 import { ChoreCelebrationDialog } from "@/components/chores/ChoreCelebrationDialog";
+import { MissedChoresSection } from "@/components/chores/MissedChoresSection";
 import { useChoreStreaks } from "@/hooks/useChoreStreaks";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -24,6 +25,12 @@ import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { BadgeEarnedDialog } from "@/components/chores/BadgeEarnedDialog";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { awardCoinReward } from "@/utils/awardCoinReward";
+
+interface MissedChore {
+  chore: Chore;
+  missedDate: string;
+}
+
 interface Chore {
   id: string;
   title: string;
@@ -71,6 +78,7 @@ export default function ChoreChart() {
   const { user, isAuthenticated, loading: authLoading, isGuardian, isAdmin, isOwner } = useAuth();
   const [chores, setChores] = useState<Chore[]>([]);
   const [completions, setCompletions] = useState<ChoreCompletion[]>([]);
+  const [missedChores, setMissedChores] = useState<MissedChore[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -144,6 +152,58 @@ export default function ChoreChart() {
 
       if (completionsError) throw completionsError;
       setCompletions(completionsData || []);
+
+      // Load missed chores from past 7 days
+      const loadedChores = choresData || [];
+      const missedList: MissedChore[] = [];
+      
+      // Check past 7 days for incomplete chores
+      for (let i = 1; i <= 7; i++) {
+        const mstNow = new Date();
+        const mstOffsetMinutes = -7 * 60;
+        const utc = mstNow.getTime() + mstNow.getTimezoneOffset() * 60000;
+        const mstTime = new Date(utc + mstOffsetMinutes * 60000);
+        const pastDate = subDays(mstTime, i);
+        const pastDateStr = format(pastDate, 'yyyy-MM-dd');
+        const pastDayOfWeek = pastDate.getDay();
+
+        // Get completions for that day
+        const { data: pastCompletions } = await supabase
+          .from('chore_completions')
+          .select('chore_id')
+          .eq('completed_date', pastDateStr)
+          .eq('user_id', targetUserId);
+
+        const completedIds = new Set((pastCompletions || []).map(c => c.chore_id));
+
+        // Find applicable chores for that day that weren't completed
+        loadedChores.forEach(chore => {
+          let wasApplicable = false;
+          
+          switch (chore.recurrence_type) {
+            case 'daily':
+              wasApplicable = true;
+              break;
+            case 'weekly':
+              wasApplicable = chore.day_of_week === pastDayOfWeek;
+              break;
+            case 'every_x_days':
+              wasApplicable = true;
+              break;
+            case 'every_x_weeks':
+              wasApplicable = chore.day_of_week === pastDayOfWeek;
+              break;
+            default:
+              wasApplicable = false;
+          }
+
+          if (wasApplicable && !completedIds.has(chore.id)) {
+            missedList.push({ chore, missedDate: pastDateStr });
+          }
+        });
+      }
+
+      setMissedChores(missedList);
 
       // Check if daily reward already claimed
       const { data: rewardData } = await supabase
@@ -390,6 +450,41 @@ export default function ChoreChart() {
     setEditingChore(null);
   };
 
+  const handleAddMissedChoreToToday = async (choreId: string) => {
+    if (!user) return;
+
+    const targetUserId = canManageChores && selectedBestieId ? selectedBestieId : user.id;
+    
+    try {
+      // Add completion for today
+      const { data, error } = await supabase
+        .from('chore_completions')
+        .insert({
+          chore_id: choreId,
+          user_id: targetUserId,
+          completed_date: today
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setCompletions(prev => [...prev, data]);
+      
+      // Remove from missed chores list (all instances of this chore)
+      setMissedChores(prev => prev.filter(m => m.chore.id !== choreId));
+      
+      fireConfetti();
+      toast.success('Chore added to today and marked complete! 🎉');
+      
+      // Award coins
+      await awardCoinReward(targetUserId, 'chore_complete', 'Completed a missed chore');
+    } catch (error) {
+      console.error('Error adding missed chore:', error);
+      toast.error('Failed to add chore');
+    }
+  };
+
   const getRecurrenceLabel = (chore: Chore) => {
     switch (chore.recurrence_type) {
       case 'daily':
@@ -603,6 +698,14 @@ export default function ChoreChart() {
           loading={streakLoading}
           badgeDefinitions={badgeDefinitions}
         />
+
+        {/* Missed Chores Section */}
+        {viewMode === 'list' && (
+          <MissedChoresSection 
+            missedChores={missedChores}
+            onAddToToday={handleAddMissedChoreToToday}
+          />
+        )}
 
         {/* View content */}
         {viewMode === 'week' ? (
