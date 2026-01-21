@@ -54,8 +54,8 @@ export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions =
     <>
       <Card className="mb-6 overflow-hidden">
         <CardContent className="py-4">
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          {/* Stats Grid - 2x2 */}
+          <div className="grid grid-cols-2 gap-3">
             {/* Current Streak */}
             <div className="text-center p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
               <div className="flex items-center justify-center gap-1 mb-1">
@@ -82,27 +82,18 @@ export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions =
               </div>
               <p className="text-xs text-muted-foreground font-medium">Total Days</p>
             </div>
-          </div>
 
-          {/* Badges Button */}
-          <div className="border-t pt-3">
-            <Button 
-              variant="outline" 
-              size="sm"
+            {/* Badges Button */}
+            <button 
               onClick={() => setShowBadgeCollection(true)}
-              className="w-full justify-between"
+              className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:bg-primary/15 transition-colors"
             >
-              <div className="flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-primary" />
-                <span>Badges</span>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Trophy className="h-5 w-5 text-primary" />
+                <span className="text-2xl font-bold text-primary">{badges.length}/{badgeDefinitions.length || 8}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {badges.length}/{badgeDefinitions.length || 8}
-                </Badge>
-                <ChevronRight className="h-4 w-4" />
-              </div>
-            </Button>
+              <p className="text-xs text-muted-foreground font-medium">Badges</p>
+            </button>
           </div>
         </CardContent>
       </Card>
