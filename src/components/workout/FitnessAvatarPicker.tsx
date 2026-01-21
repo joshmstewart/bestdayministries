@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,20 +41,43 @@ interface FitnessAvatar {
   category: string | null;
 }
 
-const AVATAR_CATEGORIES = [
-  { value: "free", label: "Free Tier", emoji: "🆓", defaultOpen: true },
-  { value: "animals", label: "Animals", emoji: "🐾", defaultOpen: true },
-  { value: "superheroes", label: "Superheroes", emoji: "🦸", defaultOpen: true },
-  { value: "humans", label: "Humans", emoji: "👤", defaultOpen: false },
-];
+const KNOWN_CATEGORY_META: Record<
+  string,
+  { label: string; emoji: string; defaultOpen: boolean; sortOrder: number }
+> = {
+  free: { label: "Free Tier", emoji: "🆓", defaultOpen: true, sortOrder: 0 },
+  animals: { label: "Animals", emoji: "🐾", defaultOpen: true, sortOrder: 1 },
+  superheroes: { label: "Superheroes", emoji: "🦸", defaultOpen: true, sortOrder: 2 },
+  monsters: { label: "Monsters", emoji: "👾", defaultOpen: true, sortOrder: 3 },
+  humans: { label: "Humans", emoji: "👤", defaultOpen: false, sortOrder: 4 },
+};
+
+const toTitleCase = (value: string) =>
+  value
+    .replace(/[_-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+const getCategoryMeta = (value: string) => {
+  const known = KNOWN_CATEGORY_META[value];
+  if (known) return known;
+
+  return {
+    label: toTitleCase(value),
+    emoji: "✨",
+    defaultOpen: false,
+    sortOrder: 999,
+  };
+};
 
 export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarPickerProps) => {
   const queryClient = useQueryClient();
   const { coins, deductCoins } = useCoins();
   const [purchaseAvatar, setPurchaseAvatar] = useState<FitnessAvatar | null>(null);
-  const [openCategories, setOpenCategories] = useState<Set<string>>(
-    new Set(AVATAR_CATEGORIES.filter(c => c.defaultOpen).map(c => c.value))
-  );
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
+  const didInitOpenCategories = useRef(false);
 
   // Fetch all available avatars
   const { data: avatars = [], isLoading: loadingAvatars } = useQuery({
@@ -89,28 +112,58 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
   const ownedAvatarIds = ownedAvatars.map((a) => a.avatar_id);
   const selectedAvatarId = ownedAvatars.find((a) => a.is_selected)?.avatar_id;
 
-  // Group avatars by category
-  const groupedAvatars = AVATAR_CATEGORIES.map(category => {
-    const categoryAvatars = avatars.filter(a => (a.category || 'free') === category.value);
-    return {
-      ...category,
-      avatars: categoryAvatars.sort((a, b) => {
-        const aOwned = ownedAvatarIds.includes(a.id);
-        const bOwned = ownedAvatarIds.includes(b.id);
-        
-        // Owned avatars first within category
-        if (aOwned && !bOwned) return -1;
-        if (!aOwned && bOwned) return 1;
-        
-        // Then by price
-        if (!aOwned && !bOwned) {
-          return a.price_coins - b.price_coins;
-        }
-        
-        return a.display_order - b.display_order;
-      }),
-    };
-  }).filter(group => group.avatars.length > 0);
+  // Initialize collapsible open state once we know which categories exist.
+  useEffect(() => {
+    if (didInitOpenCategories.current) return;
+    if (!avatars.length) return;
+
+    const availableCategoryValues = Array.from(
+      new Set(avatars.map((a) => a.category ?? "free"))
+    );
+
+    const defaultOpen = availableCategoryValues
+      .filter((value) => getCategoryMeta(value).defaultOpen);
+
+    setOpenCategories(new Set(defaultOpen));
+    didInitOpenCategories.current = true;
+  }, [avatars]);
+
+  // Group avatars by category (dynamic: show every category that has avatars)
+  const categoryValues = Array.from(new Set(avatars.map((a) => a.category ?? "free")))
+    .sort((a, b) => {
+      const aMeta = getCategoryMeta(a);
+      const bMeta = getCategoryMeta(b);
+      if (aMeta.sortOrder !== bMeta.sortOrder) return aMeta.sortOrder - bMeta.sortOrder;
+      return a.localeCompare(b);
+    });
+
+  const groupedAvatars = categoryValues
+    .map((value) => {
+      const meta = getCategoryMeta(value);
+      const categoryAvatars = avatars.filter((a) => (a.category ?? "free") === value);
+      return {
+        value,
+        label: meta.label,
+        emoji: meta.emoji,
+        defaultOpen: meta.defaultOpen,
+        avatars: categoryAvatars.sort((a, b) => {
+          const aOwned = ownedAvatarIds.includes(a.id);
+          const bOwned = ownedAvatarIds.includes(b.id);
+
+          // Owned avatars first within category
+          if (aOwned && !bOwned) return -1;
+          if (!aOwned && bOwned) return 1;
+
+          // Then by price
+          if (!aOwned && !bOwned) {
+            return a.price_coins - b.price_coins;
+          }
+
+          return a.display_order - b.display_order;
+        }),
+      };
+    })
+    .filter((group) => group.avatars.length > 0);
 
   const toggleCategory = (categoryValue: string) => {
     setOpenCategories(prev => {

@@ -29,6 +29,13 @@ Implementation:
 - Prefer the first row where `image_type === 'activity'`
 - Fall back to the most recent image if no activity image exists
 
+## Fitness Avatar Picker Categories
+
+The workout avatar chooser (`FitnessAvatarPicker`) must render **every category that has at least one active avatar** in the `fitness_avatars` catalog.
+
+- Categories are derived dynamically from `fitness_avatars.category` (with `null` treated as `free`).
+- This prevents categories like `monsters` from silently disappearing when new catalog rows are added.
+
 ## Image Generation Function
 
 Function:
