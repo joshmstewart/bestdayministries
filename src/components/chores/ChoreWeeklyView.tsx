@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { format, startOfWeek, addDays, isSameDay } from "date-fns";
+import { format, addDays, getDay } from "date-fns";
 import { TextToSpeech } from "@/components/TextToSpeech";
 
 interface Chore {
@@ -40,26 +40,26 @@ export function ChoreWeeklyView({
 }: ChoreWeeklyViewProps) {
   const completedChoreIds = new Set(completions.map(c => c.chore_id));
 
-  // Generate days of the current week (Sunday to Saturday)
+  // Generate 7 days starting from today
   const weekDays = useMemo(() => {
     const now = new Date();
-    const start = startOfWeek(now, { weekStartsOn: 0 }); // Sunday
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    return Array.from({ length: 7 }, (_, i) => addDays(now, i));
   }, []);
 
-  // Get chores applicable for a specific day of week (0-6)
-  const getChoresForDay = (dayIndex: number) => {
+  // Get chores applicable for a specific date
+  const getChoresForDate = (date: Date) => {
+    const dayOfWeek = getDay(date); // 0 = Sunday, 6 = Saturday
     return chores.filter(chore => {
       switch (chore.recurrence_type) {
         case 'daily':
           return true;
         case 'weekly':
-          return chore.day_of_week === dayIndex;
+          return chore.day_of_week === dayOfWeek;
         case 'every_x_days':
           // Show on all days for simplicity
           return true;
         case 'every_x_weeks':
-          return chore.day_of_week === dayIndex;
+          return chore.day_of_week === dayOfWeek;
         default:
           return true;
       }
@@ -80,7 +80,7 @@ export function ChoreWeeklyView({
     <div className="overflow-x-auto -mx-4 px-4 pb-4">
       <div className="flex gap-3 min-w-max lg:grid lg:grid-cols-7 lg:min-w-max">
       {weekDays.map((date, index) => {
-        const dayChores = getChoresForDay(index);
+        const dayChores = getChoresForDate(date);
         const todayHighlight = isToday(date);
         const pastDay = isPast(date);
 
