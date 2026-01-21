@@ -155,9 +155,41 @@ export default function ChoreChart() {
 
       // Load missed chores from past 7 days
       const loadedChores = choresData || [];
-      const missedList: MissedChore[] = [];
+      // Map to track the most recent missed date per chore ID
+      const missedByChoreId = new Map<string, MissedChore>();
       
-      // Check past 7 days for incomplete chores
+      // Get today's day of week for checking if chore is due today
+      const todayDayOfWeek = new Date().getDay();
+      
+      // Build a set of chores that are applicable TODAY (these shouldn't show as missed)
+      const applicableTodayIds = new Set<string>();
+      loadedChores.forEach(chore => {
+        let isApplicableToday = false;
+        switch (chore.recurrence_type) {
+          case 'daily':
+            isApplicableToday = true;
+            break;
+          case 'weekly':
+            isApplicableToday = chore.day_of_week === todayDayOfWeek;
+            break;
+          case 'every_x_days':
+            isApplicableToday = true;
+            break;
+          case 'every_x_weeks':
+            isApplicableToday = chore.day_of_week === todayDayOfWeek;
+            break;
+          case 'once':
+            // One-time chores are due on the day they were created
+            const choreCreatedDate = format(new Date(chore.created_at), 'yyyy-MM-dd');
+            isApplicableToday = choreCreatedDate === today;
+            break;
+        }
+        if (isApplicableToday) {
+          applicableTodayIds.add(chore.id);
+        }
+      });
+      
+      // Check past 7 days for incomplete chores (from most recent to oldest)
       for (let i = 1; i <= 7; i++) {
         const mstNow = new Date();
         const mstOffsetMinutes = -7 * 60;
@@ -178,6 +210,16 @@ export default function ChoreChart() {
 
         // Find applicable chores for that day that weren't completed
         loadedChores.forEach(chore => {
+          // Skip if this chore is applicable today (it's on today's list, not missed)
+          if (applicableTodayIds.has(chore.id)) {
+            return;
+          }
+          
+          // Skip if we already have a more recent missed entry for this chore
+          if (missedByChoreId.has(chore.id)) {
+            return;
+          }
+          
           let wasApplicable = false;
           
           switch (chore.recurrence_type) {
@@ -195,7 +237,6 @@ export default function ChoreChart() {
               break;
             case 'once':
               // One-time chores are only applicable on the day they were created
-              // Check if chore was created on this past date
               const choreCreatedDate = format(new Date(chore.created_at), 'yyyy-MM-dd');
               wasApplicable = choreCreatedDate === pastDateStr;
               break;
@@ -204,12 +245,14 @@ export default function ChoreChart() {
           }
 
           if (wasApplicable && !completedIds.has(chore.id)) {
-            missedList.push({ chore, missedDate: pastDateStr });
+            // Store this as the most recent missed date for this chore
+            missedByChoreId.set(chore.id, { chore, missedDate: pastDateStr });
           }
         });
       }
 
-      setMissedChores(missedList);
+      // Convert map to array
+      setMissedChores(Array.from(missedByChoreId.values()));
 
       // Check if daily reward already claimed
       const { data: rewardData } = await supabase
