@@ -244,7 +244,9 @@ export const AvatarPicker = ({ selectedAvatar, onSelectAvatar }: AvatarPickerPro
       </CollapsibleTrigger>
       
       <CollapsibleContent className="space-y-4">
-        {Object.entries(avatarsByCategory).map(([key, category]) => (
+        {Object.entries(avatarsByCategory)
+          .filter(([_, category]) => category.avatars.length > 0)
+          .map(([key, category]) => (
           <div key={key} className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">{category.label}</h3>
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 p-4 border rounded-lg bg-muted/20">
