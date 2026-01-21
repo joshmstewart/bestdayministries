@@ -146,38 +146,45 @@ serve(async (req) => {
     // For non-human characters (animals, monsters), demographicConstraint stays empty
 
     // Build the prompt for a friendly, cartoon-style fitness avatar
-    const nonHumanInstructions = isNonHumanCharacter ? (characterType === 'monster' ? `
+    // Character type instructions - only ONE section applies based on type
+    let characterTypeInstructions = "";
+    
+    if (characterType === 'monster') {
+      characterTypeInstructions = `
 CRITICAL MONSTERS INC.-STYLE MONSTER REQUIREMENTS:
-- This is a FRIENDLY MONSTER character - NOT a human, NOT a real animal
-- Monsters are UNIQUE FANTASY CREATURES with imaginative features like:
-  * Multiple eyes, horns, tentacles, unusual body proportions
-  * Fur, scales, bumpy skin, or fantastical textures in bright/unusual colors
-  * Big friendly smiles with fangs or silly teeth
-  * Round bellies, long arms, stubby legs, or other cartoon monster proportions
+- This is a FRIENDLY MONSTER character - a unique fantasy creature
+- Monsters have imaginative features like multiple eyes, horns, unusual body proportions
+- Fur, scales, bumpy skin, or fantastical textures in bright/unusual colors
+- Big friendly smiles with fangs or silly teeth
+- Round bellies, long arms, stubby legs, or other cartoon monster proportions
 - Think Sulley, Mike Wazowski, Art, or other Monsters Inc. characters
-- Do NOT make them look like real animals (no tigers, bears, cats, dogs)
-- Do NOT make them look like humans with face paint or costumes
-- They should be standing UPRIGHT on two legs in a humanoid pose
+- Do NOT make them look like real animals or humans
+- They should be standing UPRIGHT in a humanoid pose with two arms and two legs
 - Make them CUTE and APPROACHABLE despite being "monsters"
-` : `
+`;
+    } else if (characterType === 'animal') {
+      characterTypeInstructions = `
 CRITICAL ANIMAL CHARACTER REQUIREMENT:
 - This is an ANIMAL character - they MUST be anthropomorphic
 - Standing UPRIGHT on their HIND LEGS like a human
 - Humanoid posture: standing on two legs, arms at their sides or in a friendly pose
 - NEVER show them on all fours or in a natural animal stance
 - Think Zootopia or Animal Crossing style cartoon mascots
-`) : `
+`;
+    } else {
+      characterTypeInstructions = `
 CHARACTER TYPE NOTE:
-- This is a HUMAN or SUPERHERO character - do NOT make them look like an animal or monster
+- This is a HUMAN or SUPERHERO character
 - Follow the character description exactly as written
 `;
+    }
 
     const imagePrompt = `Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${characterPrompt}. 
 
 CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
 - The character should be isolated on a pure white background for easy integration into app interfaces
-${nonHumanInstructions}
+${characterTypeInstructions}
 ${demographicConstraint}
 AGE DEMOGRAPHIC PREFERENCE:
 - STRONGLY prefer young adult and adult characters (ages 18-40 appearance)
