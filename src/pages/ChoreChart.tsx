@@ -18,7 +18,7 @@ import { ChallengeGallery } from "@/components/chores/ChallengeGallery";
 import { ChoreCelebrationDialog } from "@/components/chores/ChoreCelebrationDialog";
 import { MissedChoresSection } from "@/components/chores/MissedChoresSection";
 import { useChoreStreaks } from "@/hooks/useChoreStreaks";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
@@ -75,6 +75,7 @@ function getMSTInfo(): MSTInfo {
 }
 
 export default function ChoreChart() {
+  const navigate = useNavigate();
   const { user, isAuthenticated, loading: authLoading, isGuardian, isAdmin, isOwner } = useAuth();
   const [chores, setChores] = useState<Chore[]>([]);
   const [completions, setCompletions] = useState<ChoreCompletion[]>([]);
@@ -574,8 +575,8 @@ export default function ChoreChart() {
         <UnifiedHeader />
         <main className="min-h-screen bg-background pt-24">
           <div className="container mx-auto px-4 max-w-4xl">
-            <Button variant="outline" size="sm" className="mb-6" asChild>
-              <Link to="/community"><ArrowLeft className="h-4 w-4 mr-2" />Back to Community</Link>
+            <Button variant="outline" size="sm" className="mb-6" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />Back
             </Button>
             <Card>
               <CardContent className="py-12 text-center">
@@ -594,8 +595,8 @@ export default function ChoreChart() {
       <UnifiedHeader />
       <main className="min-h-screen bg-background pt-24 pb-12">
       <div className="container mx-auto px-4 max-w-4xl">
-        <Button variant="outline" size="sm" className="mb-6" asChild>
-          <Link to="/community"><ArrowLeft className="h-4 w-4 mr-2" />Back to Community</Link>
+        <Button variant="outline" size="sm" className="mb-6" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />Back
         </Button>
         
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

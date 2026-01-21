@@ -16,11 +16,11 @@ const StickerAlbumPage = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => navigate('/community')}
+            onClick={() => navigate(-1)}
             className="mb-6"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Community
+            Back
           </Button>
           <StickerAlbum />
         </div>
