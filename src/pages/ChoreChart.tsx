@@ -401,6 +401,8 @@ export default function ChoreChart() {
         return `Every ${chore.recurrence_value} days`;
       case 'every_x_weeks':
         return `Every ${chore.recurrence_value} weeks`;
+      case 'once':
+        return 'Just Once';
       default:
         return '';
     }
@@ -665,14 +667,16 @@ export default function ChoreChart() {
                                 text={`${chore.title}${chore.description ? `. ${chore.description}` : ''}`}
                                 size="icon"
                               />
-                              <Badge variant="outline" className="text-xs">
-                                {getRecurrenceLabel(chore)}
-                              </Badge>
+                              {getRecurrenceLabel(chore) && (
+                                <Badge variant="outline" className="text-xs">
+                                  {getRecurrenceLabel(chore)}
+                                </Badge>
+                              )}
                               {isCompleted && (
                                 <span className="text-xl">✅</span>
                               )}
                             </div>
-                            {chore.description && (
+                            {chore.description && chore.description.trim() && (
                               <p className={`text-sm mt-1 ${isCompleted ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
                                 {chore.description}
                               </p>
@@ -683,6 +687,16 @@ export default function ChoreChart() {
                     </Card>
                   );
                 })}
+                
+                {/* Add Chore button at bottom of list */}
+                <Button 
+                  variant="outline" 
+                  className="w-full border-dashed"
+                  onClick={() => setFormOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Chore
+                </Button>
               </div>
             )}
           </>
