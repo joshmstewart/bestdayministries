@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.609caef2e036416ba2bcd1430e40b6ba',
+  appId: 'org.bestdayministries.app',
   appName: 'Best Day Ministries',
   webDir: 'dist',
   server: {
