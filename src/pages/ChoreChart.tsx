@@ -732,13 +732,16 @@ export default function ChoreChart() {
         {/* Monthly Challenge Card */}
         <MonthlyChallengeCard userId={targetUserId || undefined} />
 
-        {/* Gallery Button */}
-        <div className="flex justify-end mb-4">
-          <Button variant="outline" onClick={() => setShowGallery(true)}>
-            <ImageIcon className="h-4 w-4 mr-2" />
-            Community Creations
-          </Button>
-        </div>
+        {/* Gallery Button - Admin Only */}
+        {(isAdmin || isOwner) && (
+          <div className="flex justify-end mb-4">
+            <Button variant="outline" onClick={() => setShowGallery(true)}>
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Community Creations
+              <Badge variant="secondary" className="ml-2 text-xs">Admin</Badge>
+            </Button>
+          </div>
+        )}
 
         {/* Streak and Badges Display */}
         <ChoreStreakDisplay 
