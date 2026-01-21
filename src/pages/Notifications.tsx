@@ -232,10 +232,10 @@ export default function Notifications() {
             variant="outline"
             size="sm"
             className="mb-6"
-            onClick={() => navigate("/community")}
+            onClick={() => navigate(-1)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Community
+            Back
           </Button>
 
           <div className="mb-6">

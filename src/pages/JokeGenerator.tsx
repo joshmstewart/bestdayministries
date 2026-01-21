@@ -27,7 +27,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { JokeGallery } from '@/components/joke-generator/JokeGallery';
 import { JokeCommunityGallery } from '@/components/joke-generator/JokeCommunityGallery';
 import { JokeCategorySelector } from '@/components/joke-generator/JokeCategorySelector';
@@ -43,6 +43,7 @@ interface Joke {
 }
 
 const JokeGenerator: React.FC = () => {
+  const navigate = useNavigate();
   const { user, isAuthenticated, loading, isAdmin, isOwner } = useAuth();
   const isAdminOrOwner = isAdmin || isOwner;
   const [joke, setJoke] = useState<Joke | null>(null);
@@ -305,12 +306,10 @@ const JokeGenerator: React.FC = () => {
       <UnifiedHeader />
       <main className="flex-1 pt-24 pb-12">
         <div className="container max-w-2xl mx-auto px-4 space-y-6">
-          <Link to="/community">
-            <Button variant="outline" size="sm" className="gap-2 mb-4">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Community
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm" className="gap-2 mb-4" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
           
           {/* Header */}
           <div className="text-center space-y-2">

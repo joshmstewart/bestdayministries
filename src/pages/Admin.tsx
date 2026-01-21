@@ -203,11 +203,11 @@ const Admin = () => {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate("/community")}
+            onClick={() => navigate(-1)}
             className="mb-4 gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Community
+            Back
           </Button>
           <h1 className="text-4xl font-black text-foreground flex items-center gap-2">
             <Shield className="w-8 h-8 text-primary" />

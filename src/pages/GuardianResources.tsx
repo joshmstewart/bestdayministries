@@ -116,11 +116,11 @@ export default function GuardianResources() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/community")}
+            onClick={() => navigate(-1)}
             className="mb-6"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Community
+            Back
           </Button>
 
           <div className="mb-8">
