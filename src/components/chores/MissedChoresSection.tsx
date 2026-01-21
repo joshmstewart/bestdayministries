@@ -36,7 +36,7 @@ export function MissedChoresSection({
   onAddToToday,
   loading = false 
 }: MissedChoresSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   if (loading || missedChores.length === 0) {
     return null;
