@@ -609,11 +609,13 @@ export default function ChoreChart() {
                 <CardContent className="py-12 text-center">
                   <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-2">No chores for today!</h3>
-                  <p className="text-muted-foreground">
-                    {canManageChores 
-                      ? "Add some chores to get started." 
-                      : "Your guardian hasn't added any chores yet."}
+                  <p className="text-muted-foreground mb-4">
+                    Add some chores to get started and track your daily tasks!
                   </p>
+                  <Button onClick={() => setFormOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Chore
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
