@@ -145,6 +145,17 @@ serve(async (req) => {
     }
     // For non-human characters (animals, monsters), demographicConstraint stays empty
 
+    // CRITICAL: For monsters, add explicit anti-human constraint
+    if (characterType === 'monster') {
+      demographicConstraint = `\nMONSTER-SPECIFIC ENFORCEMENT:
+- This character MUST NOT have any human features whatsoever
+- NO human skin tones (fair, tan, brown, etc.) - use fantasy colors only (purple, green, blue, orange, etc.)
+- NO human hair styles or colors - use monster features like spikes, antennae, or unusual textures
+- NO human facial structure - use exaggerated monster features
+- The end result must be immediately recognizable as a fantasy creature, not a person
+`;
+    }
+
     // Build the prompt for a friendly, cartoon-style fitness avatar
     // Character type instructions - only ONE section applies based on type
     let characterTypeInstructions = "";
@@ -152,15 +163,19 @@ serve(async (req) => {
     if (characterType === 'monster') {
       characterTypeInstructions = `
 CRITICAL MONSTERS INC.-STYLE MONSTER REQUIREMENTS:
-- This is a FRIENDLY MONSTER character - a unique fantasy creature
-- Monsters have imaginative features like multiple eyes, horns, unusual body proportions
-- Fur, scales, bumpy skin, or fantastical textures in bright/unusual colors
-- Big friendly smiles with fangs or silly teeth
-- Round bellies, long arms, stubby legs, or other cartoon monster proportions
-- Think Sulley, Mike Wazowski, Art, or other Monsters Inc. characters
-- Do NOT make them look like real animals or humans
+- This is a FRIENDLY FANTASY MONSTER - NOT A HUMAN in costume or with makeup
+- CRITICAL: NO human faces, NO human skin tones, NO human hair, NO human body proportions
+- REQUIRED MONSTER FEATURES (must have several):
+  * Multiple eyes (2+ eyes, unusual placement, different sizes)
+  * Horns, antennae, tentacles, or unusual appendages
+  * Non-human body proportions (round belly, stubby legs, long arms, tiny body with big head)
+  * Fantastical skin textures: fur patches, scales, bumpy, spiky, or mixed textures
+  * Unusual colors: bright purple, green, blue, orange, multi-colored patterns
+  * Monster facial features: fangs, big silly teeth, missing teeth, wide mouth
+- BODY STRUCTURE: cartoon monster body shape like Sulley, Mike Wazowski, Art from Monsters Inc.
+- NEVER create a human face or body - this must be clearly a fantasy creature
 - They should be standing UPRIGHT in a humanoid pose with two arms and two legs
-- Make them CUTE and APPROACHABLE despite being "monsters"
+- Make them CUTE and APPROACHABLE while being obviously NON-HUMAN monsters
 `;
     } else if (characterType === 'animal') {
       characterTypeInstructions = `
