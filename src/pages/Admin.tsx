@@ -262,15 +262,15 @@ const Admin = () => {
         {/* Admin Tabs */}
         <Tabs defaultValue={defaultTab} className="space-y-4">
           <TabsList className="flex flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="analytics" className="text-xs px-2.5 py-1.5">Analytics</TabsTrigger>
-            <TabsTrigger value="users" className="text-xs px-2.5 py-1.5">Users</TabsTrigger>
-            <TabsTrigger value="media" className="text-xs px-2.5 py-1.5">Media</TabsTrigger>
-            <TabsTrigger value="events" className="text-xs px-2.5 py-1.5">Events</TabsTrigger>
-            <TabsTrigger value="albums" className="text-xs px-2.5 py-1.5">Albums</TabsTrigger>
-            <TabsTrigger value="featured" className="text-xs px-2.5 py-1.5">Besties</TabsTrigger>
-            <TabsTrigger value="sponsorships" className="text-xs px-2.5 py-1.5">Donations</TabsTrigger>
-            <TabsTrigger value="games" className="text-xs px-2.5 py-1.5">Games</TabsTrigger>
-            <TabsTrigger value="resources" className="relative text-xs px-2.5 py-1.5">
+            <TabsTrigger value="analytics" className="text-sm px-2.5 py-1.5">Analytics</TabsTrigger>
+            <TabsTrigger value="users" className="text-sm px-2.5 py-1.5">Users</TabsTrigger>
+            <TabsTrigger value="media" className="text-sm px-2.5 py-1.5">Media</TabsTrigger>
+            <TabsTrigger value="events" className="text-sm px-2.5 py-1.5">Events</TabsTrigger>
+            <TabsTrigger value="albums" className="text-sm px-2.5 py-1.5">Albums</TabsTrigger>
+            <TabsTrigger value="featured" className="text-sm px-2.5 py-1.5">Besties</TabsTrigger>
+            <TabsTrigger value="sponsorships" className="text-sm px-2.5 py-1.5">Donations</TabsTrigger>
+            <TabsTrigger value="games" className="text-sm px-2.5 py-1.5">Games</TabsTrigger>
+            <TabsTrigger value="resources" className="relative text-sm px-2.5 py-1.5">
               Resources
               {unmatchedItemsCount > 0 && (
                 <Badge 
@@ -281,7 +281,7 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="vendors" className="relative text-xs px-2.5 py-1.5">
+            <TabsTrigger value="vendors" className="relative text-sm px-2.5 py-1.5">
               Store
               {pendingVendorsCount > 0 && (
                 <Badge 
@@ -292,9 +292,9 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="newsletter" className="text-xs px-2.5 py-1.5">Newsletter</TabsTrigger>
-            <TabsTrigger value="format-pages" className="text-xs px-2.5 py-1.5">Format</TabsTrigger>
-            <TabsTrigger value="moderation" className="relative text-xs px-2.5 py-1.5">
+            <TabsTrigger value="newsletter" className="text-sm px-2.5 py-1.5">Newsletter</TabsTrigger>
+            <TabsTrigger value="format-pages" className="text-sm px-2.5 py-1.5">Format</TabsTrigger>
+            <TabsTrigger value="moderation" className="relative text-sm px-2.5 py-1.5">
               Moderation
               {(moderationCount + messageModerationCount) > 0 && (
                 <Badge 
@@ -305,16 +305,16 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-1.5 text-xs px-2.5 py-1.5">
+            <TabsTrigger value="notifications" className="gap-1.5 text-sm px-2.5 py-1.5">
               <Bell className="w-3 h-3" />
               Notifs
             </TabsTrigger>
-            <TabsTrigger value="updates" className="gap-1.5 text-xs px-2.5 py-1.5">
+            <TabsTrigger value="updates" className="gap-1.5 text-sm px-2.5 py-1.5">
               <Megaphone className="w-3 h-3" />
               Updates
             </TabsTrigger>
-            <TabsTrigger value="testing" className="text-xs px-2.5 py-1.5">Testing</TabsTrigger>
-            <TabsTrigger value="messages" className="relative text-xs px-2.5 py-1.5">
+            <TabsTrigger value="testing" className="text-sm px-2.5 py-1.5">Testing</TabsTrigger>
+            <TabsTrigger value="messages" className="relative text-sm px-2.5 py-1.5">
               Messages
               {messagesCount > 0 && (
                 <Badge 
@@ -325,12 +325,12 @@ const Admin = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="help" className="gap-1.5 text-xs px-2.5 py-1.5">
+            <TabsTrigger value="help" className="gap-1.5 text-sm px-2.5 py-1.5">
               <HelpCircle className="w-3 h-3" />
               Help
             </TabsTrigger>
-            <TabsTrigger value="issues" className="text-xs px-2.5 py-1.5">Issues</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs px-2.5 py-1.5">Settings</TabsTrigger>
+            <TabsTrigger value="issues" className="text-sm px-2.5 py-1.5">Issues</TabsTrigger>
+            <TabsTrigger value="settings" className="text-sm px-2.5 py-1.5">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics">
