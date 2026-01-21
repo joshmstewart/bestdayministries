@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -252,7 +253,7 @@ const Auth = () => {
           return;
         }
 
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabasePersistent.auth.signUp({
           email,
           password,
           options: {
@@ -333,7 +334,7 @@ const Auth = () => {
           description: "Your account has been created successfully.",
         });
       } else {
-        const { error, data } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabasePersistent.auth.signInWithPassword({
           email,
           password,
         });

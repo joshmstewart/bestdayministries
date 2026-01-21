@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -257,7 +258,7 @@ const VendorAuth = () => {
 
     try {
       // Create user account with role and avatar
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabasePersistent.auth.signUp({
         email,
         password,
         options: {
@@ -395,7 +396,7 @@ const VendorAuth = () => {
     setLoading(true);
 
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabasePersistent.auth.signInWithPassword({
         email,
         password,
       });

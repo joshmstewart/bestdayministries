@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { User, Session } from "@supabase/supabase-js";
 
 type UserRole = "supporter" | "bestie" | "caregiver" | "moderator" | "admin" | "owner";
@@ -77,17 +78,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session
+    // Get initial session - use persistent client for better iOS PWA support
     const initAuth = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // Try persistent storage first (IndexedDB), fall back to regular client
+        let session = null;
+        try {
+          const { data } = await supabasePersistent.auth.getSession();
+          session = data.session;
+        } catch {
+          // Fallback to regular client
+          const { data } = await supabase.auth.getSession();
+          session = data.session;
+        }
         
         if (!mounted) return;
 
-        if (currentSession?.user) {
-          setSession(currentSession);
-          setUser(currentSession.user);
-          await fetchUserData(currentSession.user);
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          await fetchUserData(session.user);
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -100,8 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    // Listen for auth changes - use persistent client
+    const { data: { subscription } } = supabasePersistent.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
 
