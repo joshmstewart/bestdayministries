@@ -101,9 +101,7 @@ export function FeedItemDialog({
   const getItemRoute = () => {
     const params = new URLSearchParams();
     params.set(idParam, item.id);
-    if (item.item_type === "beat" || item.item_type === "coloring" || item.item_type === "card") {
-      params.set("tab", "community");
-    }
+    // Don't set tab=community - let items open to their app's default first tab
     return `${routeBase}?${params.toString()}`;
   };
 
