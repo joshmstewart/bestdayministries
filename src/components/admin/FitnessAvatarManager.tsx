@@ -446,6 +446,7 @@ export function FitnessAvatarManager() {
         is_free: data.is_free, price_coins: data.is_free ? 0 : data.price_coins,
         display_order: data.display_order, is_active: data.is_active,
         category: data.category || "free",
+        character_type: data.character_type || "human",
       };
       if (data.id) {
         const { error } = await supabase.from("fitness_avatars").update(payload).eq("id", data.id);
@@ -788,6 +789,7 @@ export function FitnessAvatarManager() {
         display_order: formData.display_order,
         is_active: formData.is_active,
         category: formData.category || "free",
+        character_type: formData.character_type || "human",
       };
       
       const { data: newAvatar, error } = await supabase
