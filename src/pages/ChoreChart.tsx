@@ -783,38 +783,29 @@ export default function ChoreChart() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {applicableChores.map(chore => {
-                  const isCompleted = completedChoreIds.has(chore.id);
-                  
-                  return (
+                {/* Incomplete chores first */}
+                {applicableChores
+                  .filter(chore => !completedChoreIds.has(chore.id))
+                  .map(chore => (
                     <Card 
                       key={chore.id}
-                      className={`transition-all duration-300 cursor-pointer ${
-                        isCompleted 
-                          ? 'bg-primary/10 border-primary/30' 
-                          : 'hover:border-primary/50 hover:shadow-md'
-                      }`}
+                      className="transition-all duration-300 cursor-pointer hover:border-primary/50 hover:shadow-md"
                       onClick={() => handleEditChore(chore)}
                     >
                       <CardContent className="py-4">
                         <div className="flex items-center gap-4">
-                          {/* Large checkbox on the far left */}
                           <Checkbox
-                            checked={isCompleted}
+                            checked={false}
                             onCheckedChange={() => toggleChoreCompletion(chore.id)}
                             onClick={(e) => e.stopPropagation()}
                             className="h-8 w-8 shrink-0"
                           />
-                          
-                          {/* Large emoji */}
                           <div className="flex items-center justify-center text-5xl shrink-0">
                             {chore.icon}
                           </div>
-                          
-                          {/* Content to the right */}
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className={`text-lg font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
+                              <h3 className="text-lg font-medium">
                                 {chore.title}
                               </h3>
                               <div onClick={(e) => e.stopPropagation()}>
@@ -828,12 +819,9 @@ export default function ChoreChart() {
                                   {getRecurrenceLabel(chore)}
                                 </Badge>
                               )}
-                              {isCompleted && (
-                                <span className="text-xl">✅</span>
-                              )}
                             </div>
                             {chore.description && chore.description.trim() && (
-                              <p className={`text-sm mt-1 ${isCompleted ? 'text-muted-foreground line-through' : 'text-muted-foreground'}`}>
+                              <p className="text-sm mt-1 text-muted-foreground">
                                 {chore.description}
                               </p>
                             )}
@@ -841,10 +829,9 @@ export default function ChoreChart() {
                         </div>
                       </CardContent>
                     </Card>
-                  );
-                })}
+                  ))}
                 
-                {/* Add Chore button at bottom of list */}
+                {/* Add Chore button at bottom of incomplete list */}
                 <Button 
                   variant="outline" 
                   className="w-full border-dashed"
@@ -853,6 +840,69 @@ export default function ChoreChart() {
                   <Plus className="h-4 w-4 mr-2" />
                   Add Chore
                 </Button>
+
+                {/* Completed section */}
+                {applicableChores.some(chore => completedChoreIds.has(chore.id)) && (
+                  <div className="pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                        <Trophy className="h-4 w-4" />
+                        Completed
+                      </span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+                    <div className="space-y-3">
+                      {applicableChores
+                        .filter(chore => completedChoreIds.has(chore.id))
+                        .map(chore => (
+                          <Card 
+                            key={chore.id}
+                            className="transition-all duration-300 cursor-pointer bg-primary/10 border-primary/30"
+                            onClick={() => handleEditChore(chore)}
+                          >
+                            <CardContent className="py-4">
+                              <div className="flex items-center gap-4">
+                                <Checkbox
+                                  checked={true}
+                                  onCheckedChange={() => toggleChoreCompletion(chore.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="h-8 w-8 shrink-0"
+                                />
+                                <div className="flex items-center justify-center text-5xl shrink-0">
+                                  {chore.icon}
+                                </div>
+                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-lg font-medium line-through text-muted-foreground">
+                                      {chore.title}
+                                    </h3>
+                                    <div onClick={(e) => e.stopPropagation()}>
+                                      <TextToSpeech 
+                                        text={`${chore.title}${chore.description ? `. ${chore.description}` : ''}`}
+                                        size="icon"
+                                      />
+                                    </div>
+                                    {getRecurrenceLabel(chore) && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {getRecurrenceLabel(chore)}
+                                      </Badge>
+                                    )}
+                                    <span className="text-xl">✅</span>
+                                  </div>
+                                  {chore.description && chore.description.trim() && (
+                                    <p className="text-sm mt-1 text-muted-foreground line-through">
+                                      {chore.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
