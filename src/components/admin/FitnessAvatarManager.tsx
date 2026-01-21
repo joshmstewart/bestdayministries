@@ -697,15 +697,21 @@ export function FitnessAvatarManager() {
       'animal': 'animals',
       'superhero': 'superheroes',
       'human': 'humans',
+      'monster': 'monsters',
     };
+    
+    // If user selected a specific category filter (not "all"), use that for the display category
+    const displayCategory = randomizeCategoryFilter !== 'all' 
+      ? categoryMap[randomizeCategoryFilter] || 'humans'
+      : categoryMap[randomTemplate.character_type] || 'humans';
     
     setFormData(prev => ({
       ...prev,
       name: randomTemplate.name,
-      description: `A ${randomTemplate.character_type === 'animal' ? 'friendly animal' : randomTemplate.character_type === 'superhero' ? 'heroic' : 'friendly'} character who loves fitness and can do any sport!`,
+      description: `A ${randomTemplate.character_type === 'animal' ? 'friendly animal' : randomTemplate.character_type === 'superhero' ? 'heroic' : randomTemplate.character_type === 'monster' ? 'friendly monster' : 'friendly'} character who loves fitness and can do any sport!`,
       character_prompt: randomTemplate.prompt + demographicSuffix,
       character_type: randomTemplate.character_type,
-      category: categoryMap[randomTemplate.character_type] || 'humans',
+      category: displayCategory,
       display_order: avatars?.length || 0,
     }));
     
