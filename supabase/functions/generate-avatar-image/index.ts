@@ -161,20 +161,93 @@ serve(async (req) => {
     let characterTypeInstructions = "";
     
     if (characterType === 'monster') {
+      // Randomly select a monster archetype for variety
+      const monsterArchetypes = [
+        {
+          bodyType: "round, blob-like body with tiny stubby legs",
+          skinTexture: "smooth rubbery skin",
+          colors: "bright lime green with yellow spots",
+          eyeStyle: "one giant cyclops eye taking up most of the face",
+          mouthStyle: "wide friendly grin with a single snaggletooth",
+          extras: "small antenna on top of head"
+        },
+        {
+          bodyType: "tall and lanky with noodle-like arms",
+          skinTexture: "fuzzy fur all over",
+          colors: "electric blue and teal stripes",
+          eyeStyle: "two big googly eyes on stalks",
+          mouthStyle: "tiny beak-like mouth",
+          extras: "floppy ears and a curly tail"
+        },
+        {
+          bodyType: "short and squat like a cube with rounded edges",
+          skinTexture: "bumpy toad-like skin",
+          colors: "hot pink with purple polka dots",
+          eyeStyle: "three small eyes in a triangle formation",
+          mouthStyle: "no visible mouth, just a happy expression",
+          extras: "four tiny wings on back"
+        },
+        {
+          bodyType: "pear-shaped with a huge head and tiny body",
+          skinTexture: "shimmery scales",
+          colors: "sunset orange fading to yellow",
+          eyeStyle: "two friendly eyes with thick eyebrows",
+          mouthStyle: "big toothy smile with fangs",
+          extras: "two small horns and a fluffy mane"
+        },
+        {
+          bodyType: "wide and flat like a pancake standing upright",
+          skinTexture: "soft velvety texture",
+          colors: "deep purple with glowing turquoise patterns",
+          eyeStyle: "many tiny eyes scattered across face",
+          mouthStyle: "zigzag smile like a jack-o-lantern",
+          extras: "tentacle-like appendages instead of arms"
+        },
+        {
+          bodyType: "spherical bouncy body with spring-like legs",
+          skinTexture: "smooth with geometric patterns",
+          colors: "coral red and cream",
+          eyeStyle: "two half-closed sleepy eyes",
+          mouthStyle: "small 'o' shaped mouth",
+          extras: "floating crystals orbiting around head"
+        },
+        {
+          bodyType: "long snake-like body standing on a coiled tail",
+          skinTexture: "iridescent feathers",
+          colors: "rainbow gradient from head to tail",
+          eyeStyle: "large almond-shaped eyes with star pupils",
+          mouthStyle: "gentle smile with no teeth",
+          extras: "feathered crest on head"
+        },
+        {
+          bodyType: "mushroom-shaped with a dome head and stem body",
+          skinTexture: "spongy mushroom texture",
+          colors: "spotted red and white cap, brown stem",
+          eyeStyle: "two dots for eyes under the cap",
+          mouthStyle: "small curved smile",
+          extras: "tiny spores floating around"
+        }
+      ];
+      
+      const archetype = pick(monsterArchetypes);
+      
       characterTypeInstructions = `
 CRITICAL MONSTERS INC.-STYLE MONSTER REQUIREMENTS:
 - This is a FRIENDLY FANTASY MONSTER - NOT A HUMAN in costume or with makeup
 - CRITICAL: NO human faces, NO human skin tones, NO human hair, NO human body proportions
-- REQUIRED MONSTER FEATURES (must have several):
-  * Multiple eyes (2+ eyes, unusual placement, different sizes)
-  * Horns, antennae, tentacles, or unusual appendages
-  * Non-human body proportions (round belly, stubby legs, long arms, tiny body with big head)
-  * Fantastical skin textures: fur patches, scales, bumpy, spiky, or mixed textures
-  * Unusual colors: bright purple, green, blue, orange, multi-colored patterns
-  * Monster facial features: fangs, big silly teeth, missing teeth, wide mouth
-- BODY STRUCTURE: cartoon monster body shape like Sulley, Mike Wazowski, Art from Monsters Inc.
+
+SPECIFIC MONSTER DESIGN FOR THIS CHARACTER:
+- BODY SHAPE: ${archetype.bodyType}
+- SKIN/TEXTURE: ${archetype.skinTexture}
+- COLORS: ${archetype.colors}
+- EYES: ${archetype.eyeStyle}
+- MOUTH: ${archetype.mouthStyle}
+- UNIQUE FEATURES: ${archetype.extras}
+
+STYLE NOTES:
+- Think Monsters Inc., Trolls, or Lilo & Stitch style creatures
 - NEVER create a human face or body - this must be clearly a fantasy creature
-- They should be standing UPRIGHT in a humanoid pose with two arms and two legs
+- They should be standing UPRIGHT in a humanoid pose ready for fitness activities
 - Make them CUTE and APPROACHABLE while being obviously NON-HUMAN monsters
 `;
     } else if (characterType === 'animal') {
