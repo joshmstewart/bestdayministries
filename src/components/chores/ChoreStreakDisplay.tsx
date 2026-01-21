@@ -86,13 +86,14 @@ export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions =
             {/* Badges Button */}
             <button 
               onClick={() => setShowBadgeCollection(true)}
-              className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:bg-primary/15 transition-colors"
+              className="text-center p-3 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-center gap-1 mb-1">
                 <Trophy className="h-5 w-5 text-primary" />
                 <span className="text-2xl font-bold text-primary">{badges.length}/{badgeDefinitions.length || 8}</span>
+                <ChevronRight className="h-4 w-4 text-primary/60 group-hover:translate-x-0.5 transition-transform" />
               </div>
-              <p className="text-xs text-muted-foreground font-medium">Badges</p>
+              <p className="text-xs text-muted-foreground font-medium">Tap to View</p>
             </button>
           </div>
         </CardContent>
