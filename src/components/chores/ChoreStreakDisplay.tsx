@@ -54,8 +54,8 @@ export function ChoreStreakDisplay({ streak, badges, loading, badgeDefinitions =
     <>
       <Card className="mb-6 overflow-hidden">
         <CardContent className="py-4">
-          {/* Stats Grid - 2x2 */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Stats Row - 4 columns */}
+          <div className="grid grid-cols-4 gap-2">
             {/* Current Streak */}
             <div className="text-center p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/20">
               <div className="flex items-center justify-center gap-1 mb-1">
