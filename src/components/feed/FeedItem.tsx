@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { 
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, EyeOff, Repeat2
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -560,7 +560,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   className="h-8 gap-1 text-muted-foreground hover:text-destructive"
                   title="Remove from community feed"
                 >
-                  <EyeOff className="h-4 w-4" />
+                  <Lock className="h-4 w-4" />
                 </Button>
               )}
 
