@@ -193,6 +193,12 @@ export default function ChoreChart() {
             case 'every_x_weeks':
               wasApplicable = chore.day_of_week === pastDayOfWeek;
               break;
+            case 'once':
+              // One-time chores are only applicable on the day they were created
+              // Check if chore was created on this past date
+              const choreCreatedDate = format(new Date(chore.created_at), 'yyyy-MM-dd');
+              wasApplicable = choreCreatedDate === pastDateStr;
+              break;
             default:
               wasApplicable = false;
           }
