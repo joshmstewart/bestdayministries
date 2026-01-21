@@ -26,7 +26,7 @@ interface Chore {
   title: string;
   description: string | null;
   icon: string;
-  recurrence_type: 'daily' | 'weekly' | 'every_x_days' | 'every_x_weeks';
+  recurrence_type: 'once' | 'daily' | 'weekly' | 'every_x_days' | 'every_x_weeks';
   recurrence_value: number | null;
   day_of_week: number | null;
   is_active: boolean;
@@ -137,7 +137,7 @@ export function ChoreFormDialog({ open, onOpenChange, chore, bestieId, onSuccess
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('✅');
-  const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'every_x_days' | 'every_x_weeks'>('daily');
+  const [recurrenceType, setRecurrenceType] = useState<'once' | 'daily' | 'weekly' | 'every_x_days' | 'every_x_weeks'>('once');
   const [recurrenceValue, setRecurrenceValue] = useState(1);
   const [dayOfWeek, setDayOfWeek] = useState(0);
 
@@ -153,7 +153,7 @@ export function ChoreFormDialog({ open, onOpenChange, chore, bestieId, onSuccess
       setTitle('');
       setDescription('');
       setIcon('✅');
-      setRecurrenceType('daily');
+      setRecurrenceType('once');
       setRecurrenceValue(1);
       setDayOfWeek(new Date().getDay());
     }
@@ -298,6 +298,7 @@ export function ChoreFormDialog({ open, onOpenChange, chore, bestieId, onSuccess
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="once">Just Once</SelectItem>
                 <SelectItem value="daily">Every Day</SelectItem>
                 <SelectItem value="weekly">Once a Week</SelectItem>
                 <SelectItem value="every_x_days">Every X Days</SelectItem>
