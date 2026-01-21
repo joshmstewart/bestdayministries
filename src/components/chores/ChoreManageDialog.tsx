@@ -27,7 +27,7 @@ interface Chore {
   title: string;
   description: string | null;
   icon: string;
-  recurrence_type: 'daily' | 'weekly' | 'every_x_days' | 'every_x_weeks';
+  recurrence_type: 'once' | 'daily' | 'weekly' | 'every_x_days' | 'every_x_weeks';
   recurrence_value: number | null;
   day_of_week: number | null;
   is_active: boolean;
@@ -91,6 +91,8 @@ export function ChoreManageDialog({ open, onOpenChange, chores, onEdit, onRefres
 
   const getRecurrenceLabel = (chore: Chore) => {
     switch (chore.recurrence_type) {
+      case 'once':
+        return 'Just Once';
       case 'daily':
         return 'Daily';
       case 'weekly':

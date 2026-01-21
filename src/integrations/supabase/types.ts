@@ -10268,6 +10268,7 @@ export type Database = {
         | "weekly"
         | "every_x_days"
         | "every_x_weeks"
+        | "once"
       fulfillment_status:
         | "pending"
         | "in_production"
@@ -10447,6 +10448,7 @@ export const Constants = {
         "weekly",
         "every_x_days",
         "every_x_weeks",
+        "once",
       ],
       fulfillment_status: [
         "pending",
