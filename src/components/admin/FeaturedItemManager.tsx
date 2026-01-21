@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Pencil, Trash2, Eye, EyeOff, Upload, X, Info, Crop } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
-
+import { INTERNAL_PAGES } from "@/lib/internalPages";
 interface FeaturedItem {
   id: string;
   title: string;
@@ -105,6 +105,17 @@ export const FeaturedItemManager = () => {
         link_url: "/sponsor-bestie",
         link_text: "Become a Sponsor"
       });
+      return;
+    }
+    
+    if (type === "page" && id) {
+      const page = INTERNAL_PAGES.find(p => p.value === id);
+      if (page) {
+        setFormData({
+          ...formData,
+          link_url: page.value,
+        });
+      }
       return;
     }
     
@@ -282,6 +293,8 @@ export const FeaturedItemManager = () => {
       setLinkType("post");
     } else if (item.link_url === "/sponsor-bestie") {
       setLinkType("sponsorship");
+    } else if (INTERNAL_PAGES.some(p => p.value === item.link_url)) {
+      setLinkType("page");
     } else {
       setLinkType("custom");
     }
@@ -430,6 +443,7 @@ export const FeaturedItemManager = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="custom">Custom URL</SelectItem>
+                  <SelectItem value="page">Internal Page</SelectItem>
                   <SelectItem value="event">Event</SelectItem>
                   <SelectItem value="album">Album</SelectItem>
                   <SelectItem value="post">Post</SelectItem>
@@ -437,6 +451,27 @@ export const FeaturedItemManager = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {linkType === "page" && (
+              <div>
+                <Label>Select Page</Label>
+                <Select
+                  value={formData.link_url || ""}
+                  onValueChange={(value) => handleLinkSelection("page", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a page" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERNAL_PAGES.map((page) => (
+                      <SelectItem key={page.value} value={page.value}>
+                        {page.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {linkType === "custom" && (
               <div>
