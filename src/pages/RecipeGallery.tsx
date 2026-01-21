@@ -308,7 +308,7 @@ const RecipeGallery = () => {
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Community
+          Back
         </Button>
 
         <div className="text-center mb-8">
