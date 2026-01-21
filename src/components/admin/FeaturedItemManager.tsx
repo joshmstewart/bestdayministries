@@ -203,7 +203,10 @@ export const FeaturedItemManager = () => {
     // Validate link based on type
     if (linkType === "sponsorship") {
       setFormData({ ...formData, link_url: "/sponsor-bestie" });
-    } else if (linkType !== "custom" && !formData.link_url.includes(":")) {
+    } else if (linkType === "page" && !formData.link_url) {
+      toast.error("Please select a page");
+      return;
+    } else if (linkType !== "custom" && linkType !== "page" && !formData.link_url.includes(":")) {
       toast.error(`Please select a ${linkType}`);
       return;
     }
