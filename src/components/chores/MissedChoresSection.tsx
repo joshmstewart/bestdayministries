@@ -63,9 +63,9 @@ export function MissedChoresSection({
           <AlertCircle className="h-5 w-5 text-accent-foreground" />
           <span className="text-accent-foreground">Missed Chores ({missedChores.length})</span>
           {isExpanded ? (
-            <ChevronUp className="h-4 w-4" />
+            <ChevronUp className="h-5 w-5" />
           ) : (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-5 w-5" />
           )}
         </CardTitle>
       </CardHeader>
