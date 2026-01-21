@@ -3898,6 +3898,7 @@ export type Database = {
         Row: {
           category: string | null
           character_prompt: string
+          character_type: string | null
           created_at: string
           description: string | null
           display_order: number
@@ -3913,6 +3914,7 @@ export type Database = {
         Insert: {
           category?: string | null
           character_prompt: string
+          character_type?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -3928,6 +3930,7 @@ export type Database = {
         Update: {
           category?: string | null
           character_prompt?: string
+          character_type?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
