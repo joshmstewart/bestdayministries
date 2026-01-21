@@ -57,20 +57,16 @@ export function MissedChoresSection({
     <Card className="mb-6 border-accent/50 bg-accent/5">
       <CardHeader className="pb-2">
         <CardTitle 
-          className="text-base font-medium flex items-center justify-between cursor-pointer"
+          className="text-base font-medium flex items-center justify-center gap-2 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-          <div className="flex items-center gap-2 text-accent-foreground">
-            <AlertCircle className="h-5 w-5" />
-            <span>Missed Chores ({missedChores.length})</span>
-          </div>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
+          <AlertCircle className="h-5 w-5 text-accent-foreground" />
+          <span className="text-accent-foreground">Missed Chores ({missedChores.length})</span>
+          {isExpanded ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
         </CardTitle>
       </CardHeader>
       
