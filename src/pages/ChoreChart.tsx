@@ -115,8 +115,9 @@ export default function ChoreChart() {
             display_name: (l.profiles as any)?.display_name || 'Unknown'
           }));
           setLinkedBesties(besties);
+          // Default to user's own chores if not already set
           if (!selectedBestieId) {
-            setSelectedBestieId(besties[0].id);
+            setSelectedBestieId(user.id);
           }
         }
       }
@@ -501,9 +502,17 @@ export default function ChoreChart() {
           </div>
         </div>
 
-        {/* Bestie selector for guardians */}
-        {canManageChores && linkedBesties.length > 1 && (
+        {/* Bestie selector for guardians - always show if guardian with any besties, plus "My Chores" option */}
+        {canManageChores && linkedBesties.length > 0 && (
           <div className="flex gap-2 mb-6 flex-wrap">
+            {/* My Chores tab - shows the logged-in user's own chores */}
+            <Button
+              variant={selectedBestieId === user?.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedBestieId(user?.id || null)}
+            >
+              My Chores
+            </Button>
             {linkedBesties.map(bestie => (
               <Button
                 key={bestie.id}
