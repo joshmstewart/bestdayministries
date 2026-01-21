@@ -55,7 +55,7 @@ export function MissedChoresSection({
 
   return (
     <Card className="mb-6 border-accent/50 bg-accent/5">
-      <CardHeader className="pb-2">
+      <CardHeader className="flex flex-row items-center justify-center space-y-0 py-3">
         <CardTitle 
           className="text-base font-medium flex items-center justify-center gap-2 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
