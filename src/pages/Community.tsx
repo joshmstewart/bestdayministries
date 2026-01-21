@@ -333,7 +333,7 @@ const Community = () => {
                   className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
                   <Users className="w-4 h-4" />
-                  Community
+                  Home
                 </TabsTrigger>
                 <TabsTrigger 
                   value="feed" 
