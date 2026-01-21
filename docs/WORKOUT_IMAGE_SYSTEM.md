@@ -64,3 +64,19 @@ Key implementation details:
 2. **Avatar consistency issues**
    - If `image_url` is null and the function falls back to text-only prompts, the character may drift.
    - Always use the avatar’s preview image for image-to-image when available.
+
+## Avatar Catalog Image Generation (Admin)
+
+There is a separate admin-only function used to generate/update the **preview image** for entries in `fitness_avatars`.
+
+Function:
+- `supabase/functions/generate-avatar-image`
+
+Key requirement (type persistence):
+- The admin UI needs a persisted character type (`human | animal | superhero | monster`) so list-view “Regenerate” can apply the right prompt rules.
+- If the `fitness_avatars` table does **not** currently store this type, the list view will default to `human` and monsters can be regenerated as humans.
+- Fix: add a `character_type` column (or equivalent) to the backend schema and store it on create/update.
+
+Safety behavior:
+- The image model may sometimes return **no image** with an `IMAGE_SAFETY` reason.
+  - In that case, the function returns a non-200 response and the UI should show an error toast (not crash).

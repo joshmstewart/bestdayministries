@@ -787,6 +787,7 @@ export function FitnessAvatarManager() {
         price_coins: formData.is_free ? 0 : formData.price_coins,
         display_order: formData.display_order,
         is_active: formData.is_active,
+        category: formData.category || "free",
       };
       
       const { data: newAvatar, error } = await supabase
