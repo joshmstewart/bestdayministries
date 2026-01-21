@@ -740,11 +740,12 @@ export default function ChoreChart() {
                   return (
                     <Card 
                       key={chore.id}
-                      className={`transition-all duration-300 ${
+                      className={`transition-all duration-300 cursor-pointer ${
                         isCompleted 
                           ? 'bg-primary/10 border-primary/30' 
-                          : 'hover:border-primary/50'
+                          : 'hover:border-primary/50 hover:shadow-md'
                       }`}
+                      onClick={() => handleEditChore(chore)}
                     >
                       <CardContent className="py-4">
                         <div className="flex items-center gap-4">
@@ -752,6 +753,7 @@ export default function ChoreChart() {
                           <Checkbox
                             checked={isCompleted}
                             onCheckedChange={() => toggleChoreCompletion(chore.id)}
+                            onClick={(e) => e.stopPropagation()}
                             className="h-8 w-8 shrink-0"
                           />
                           
@@ -766,10 +768,12 @@ export default function ChoreChart() {
                               <h3 className={`text-lg font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                                 {chore.title}
                               </h3>
-                              <TextToSpeech 
-                                text={`${chore.title}${chore.description ? `. ${chore.description}` : ''}`}
-                                size="icon"
-                              />
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <TextToSpeech 
+                                  text={`${chore.title}${chore.description ? `. ${chore.description}` : ''}`}
+                                  size="icon"
+                                />
+                              </div>
                               {getRecurrenceLabel(chore) && (
                                 <Badge variant="outline" className="text-xs">
                                   {getRecurrenceLabel(chore)}
