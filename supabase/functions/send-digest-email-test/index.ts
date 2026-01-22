@@ -115,7 +115,20 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("setting_key", "logo_url")
       .maybeSingle();
 
-    const logoUrl = appSettings?.setting_value || "";
+    // Handle setting_value which is stored as JSON - could be a string or object
+    let logoUrl = "";
+    if (appSettings?.setting_value) {
+      const val = appSettings.setting_value;
+      if (typeof val === 'string') {
+        // Remove any surrounding quotes if present (JSON string storage)
+        logoUrl = val.replace(/^"|"$/g, '');
+      } else if (typeof val === 'object' && val !== null) {
+        // Handle object format
+        logoUrl = (val as any).url || (val as any).value || JSON.stringify(val);
+      }
+    }
+    
+    console.log("Logo URL resolved:", logoUrl);
 
     // Build HTML email
     const emailHtml = buildDigestEmail(notifications as Notification[], frequency, logoUrl);
@@ -199,6 +212,11 @@ function buildDigestEmail(
     event_update: "Event Updates",
     comment_on_post: "Comments on Your Posts",
     comment_on_thread: "Comments on Discussions",
+    content_like: "Content Likes",
+    product_update: "Product Updates",
+    vendor_application: "Vendor Applications",
+    moderation_needed: "Moderation Needed",
+    prayer_request: "Prayer Requests",
   };
 
   let notificationSections = "";
