@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,12 +9,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox, MoreVertical, Filter, X } from "lucide-react";
+import { Loader2, Trash2, Eye, Reply, RefreshCw, Mail, MailOpen, Globe, Inbox, MoreVertical, Filter, X, UserPlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 
+interface AdminUser {
+  id: string;
+  display_name: string;
+}
 interface Submission {
   id: string;
   name: string;
@@ -28,10 +33,12 @@ interface Submission {
   reply_message: string | null;
   admin_notes: string | null;
   cc_emails: string[] | null;
+  assigned_to: string | null;
   reply_count?: number;
   unread_user_replies?: number;
   source?: string;
   latest_activity_date?: string;
+  assigned_admin_name?: string;
 }
 
 interface Reply {
@@ -55,6 +62,7 @@ const STATUS_OPTIONS = [
 
 export default function ContactSubmissions() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -70,9 +78,11 @@ export default function ContactSubmissions() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
 
   useEffect(() => {
     loadSubmissions();
+    loadAdminUsers();
     
     const submissionsChannel = supabase
       .channel('contact_submissions')
@@ -94,6 +104,25 @@ export default function ContactSubmissions() {
     };
   }, []);
 
+  const loadAdminUsers = async () => {
+    // Get all admin and owner role users
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["admin", "owner"]);
+    
+    if (roles && roles.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", roles.map(r => r.user_id));
+      
+      if (profiles) {
+        setAdminUsers(profiles.map(p => ({ id: p.id, display_name: p.display_name || "Unknown" })));
+      }
+    }
+  };
+
   const loadSubmissions = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     
@@ -105,15 +134,28 @@ export default function ContactSubmissions() {
 
     if (data) {
       const submissionIds = data.map(s => s.id);
-      const { data: allReplies } = await supabase
-        .from("contact_form_replies")
-        .select("submission_id, sender_type, created_at")
-        .in("submission_id", submissionIds);
+      const assignedUserIds = data.map(s => s.assigned_to).filter(Boolean) as string[];
+      
+      // Fetch replies and assigned admin names in parallel
+      const [repliesResult, profilesResult] = await Promise.all([
+        supabase
+          .from("contact_form_replies")
+          .select("submission_id, sender_type, created_at")
+          .in("submission_id", submissionIds),
+        assignedUserIds.length > 0 
+          ? supabase.from("profiles").select("id, display_name").in("id", assignedUserIds)
+          : Promise.resolve({ data: [] as { id: string; display_name: string | null }[] })
+      ]);
+      
+      const allReplies = repliesResult.data || [];
+      const assignedProfiles = new Map(
+        (profilesResult.data || []).map(p => [p.id, p.display_name || "Unknown"])
+      );
       
       const replyCounts = new Map<string, { total: number; unread: number; latestDate: string }>();
       
       data.forEach(submission => {
-        const submissionReplies = allReplies?.filter(r => r.submission_id === submission.id) || [];
+        const submissionReplies = allReplies.filter(r => r.submission_id === submission.id) || [];
         const repliedAt = submission.replied_at || "1970-01-01";
         const unreadUserReplies = submissionReplies.filter(
           r => r.sender_type === "user" && r.created_at >= repliedAt
@@ -137,7 +179,8 @@ export default function ContactSubmissions() {
         ...submission,
         reply_count: replyCounts.get(submission.id)?.total || 0,
         unread_user_replies: replyCounts.get(submission.id)?.unread || 0,
-        latest_activity_date: replyCounts.get(submission.id)?.latestDate || submission.created_at
+        latest_activity_date: replyCounts.get(submission.id)?.latestDate || submission.created_at,
+        assigned_admin_name: submission.assigned_to ? assignedProfiles.get(submission.assigned_to) : undefined
       }));
       
       // Sort by latest activity date
@@ -150,6 +193,31 @@ export default function ContactSubmissions() {
     
     setLoading(false);
     setRefreshing(false);
+  };
+
+  const assignSubmission = async (id: string, assignedTo: string | null) => {
+    const { error } = await supabase
+      .from("contact_form_submissions")
+      .update({ assigned_to: assignedTo })
+      .eq("id", id);
+    
+    if (error) {
+      toast({ title: "Failed to assign", variant: "destructive" });
+      return;
+    }
+    
+    const adminName = assignedTo ? adminUsers.find(a => a.id === assignedTo)?.display_name : null;
+    
+    // Update local state immediately
+    setSubmissions(prev => 
+      prev.map(sub => 
+        sub.id === id 
+          ? { ...sub, assigned_to: assignedTo, assigned_admin_name: adminName || undefined } 
+          : sub
+      )
+    );
+    
+    toast({ title: assignedTo ? `Assigned to ${adminName}` : "Unassigned" });
   };
 
   const loadReplies = async (submissionId: string) => {
@@ -440,6 +508,7 @@ export default function ContactSubmissions() {
                   <TableHead>Date</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Subject</TableHead>
+                  <TableHead>Assigned</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Source</TableHead>
                   <TableHead>Status</TableHead>
@@ -457,7 +526,7 @@ export default function ContactSubmissions() {
                       <input type="checkbox" checked={selectedIds.has(sub.id)} onChange={() => toggleSelection(sub.id)} />
                     </TableCell>
                     <TableCell>
-                      {(sub.status === 'new' || sub.unread_user_replies! > 0) && <div className="w-2 h-2 rounded-full bg-red-500" />}
+                      {(sub.status === 'new' || sub.unread_user_replies! > 0) && <div className="w-2 h-2 rounded-full bg-destructive" />}
                     </TableCell>
                     <TableCell>{format(new Date(sub.latest_activity_date || sub.created_at), 'M/d/yy')}</TableCell>
                     <TableCell>{sub.name}</TableCell>
@@ -465,6 +534,22 @@ export default function ContactSubmissions() {
                       <div className="max-w-[200px] truncate" title={sub.subject || undefined}>
                         {sub.subject || <span className="text-muted-foreground italic">No subject</span>}
                       </div>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {sub.assigned_admin_name ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="secondary" className="cursor-pointer" onClick={() => assignSubmission(sub.id, null)}>
+                                {sub.assigned_admin_name}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>Click to unassign</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{sub.message_type?.replace(/_/g, ' ') || 'general'}</Badge>
@@ -514,6 +599,26 @@ export default function ContactSubmissions() {
                               View Message
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            <DropdownMenuLabel className="text-xs">Assign To</DropdownMenuLabel>
+                            <DropdownMenuItem 
+                              onClick={() => assignSubmission(sub.id, null)}
+                              disabled={!sub.assigned_to}
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              Unassigned
+                            </DropdownMenuItem>
+                            {adminUsers.map(admin => (
+                              <DropdownMenuItem 
+                                key={admin.id} 
+                                onClick={() => assignSubmission(sub.id, admin.id)}
+                                disabled={sub.assigned_to === admin.id}
+                              >
+                                <UserPlus className="w-4 h-4 mr-2" />
+                                {admin.display_name}
+                                {admin.id === user?.id && " (me)"}
+                              </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs">Change Status</DropdownMenuLabel>
                             {STATUS_OPTIONS.map(option => (
                               <DropdownMenuItem 
@@ -551,28 +656,52 @@ export default function ContactSubmissions() {
             <div className="space-y-6 overflow-y-auto flex-1 pr-2">
               {/* Original Message */}
               <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="text-sm text-muted-foreground">
                     {format(new Date(selectedSubmission.created_at), 'PPpp')}
                   </div>
-                  <Select 
-                    value={selectedSubmission.status} 
-                    onValueChange={(newStatus) => {
-                      updateStatus(selectedSubmission.id, newStatus);
-                      setSelectedSubmission({ ...selectedSubmission, status: newStatus });
-                    }}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select 
+                      value={selectedSubmission.assigned_to || "unassigned"} 
+                      onValueChange={(value) => {
+                        const newAssignedTo = value === "unassigned" ? null : value;
+                        assignSubmission(selectedSubmission.id, newAssignedTo);
+                        const adminName = newAssignedTo ? adminUsers.find(a => a.id === newAssignedTo)?.display_name : undefined;
+                        setSelectedSubmission({ ...selectedSubmission, assigned_to: newAssignedTo, assigned_admin_name: adminName });
+                      }}
+                    >
+                      <SelectTrigger className="w-[160px]">
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Assign to..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {adminUsers.map(admin => (
+                          <SelectItem key={admin.id} value={admin.id}>
+                            {admin.display_name}{admin.id === user?.id && " (me)"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select 
+                      value={selectedSubmission.status} 
+                      onValueChange={(newStatus) => {
+                        updateStatus(selectedSubmission.id, newStatus);
+                        setSelectedSubmission({ ...selectedSubmission, status: newStatus });
+                      }}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 {selectedSubmission.subject && (
                   <div><strong>Subject:</strong> {selectedSubmission.subject}</div>

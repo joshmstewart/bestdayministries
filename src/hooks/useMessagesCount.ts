@@ -3,12 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const useMessagesCount = () => {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, loading: authLoading, user } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchCount = useCallback(async () => {
-    if (!isAdmin) {
+    if (!isAdmin || !user) {
       setCount(0);
       setLoading(false);
       return;
@@ -19,7 +19,7 @@ export const useMessagesCount = () => {
       const [submissionsResult, repliesResult] = await Promise.all([
         supabase
           .from("contact_form_submissions")
-          .select("id, status, replied_at"),
+          .select("id, status, replied_at, assigned_to"),
         supabase
           .from("contact_form_replies")
           .select("submission_id, sender_type, created_at")
@@ -45,6 +45,11 @@ export const useMessagesCount = () => {
       let totalCount = 0;
 
       submissions.forEach(submission => {
+        // Only count if unassigned OR assigned to current user
+        const isRelevant = !submission.assigned_to || submission.assigned_to === user.id;
+        
+        if (!isRelevant) return;
+        
         // Count new submissions
         if (submission.status === "new") {
           totalCount++;
@@ -68,7 +73,7 @@ export const useMessagesCount = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, user]);
 
   useEffect(() => {
     if (authLoading) return;

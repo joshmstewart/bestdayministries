@@ -24,12 +24,25 @@ The contact form system provides a comprehensive solution for managing user inqu
 - `message` - Text (required)
 - `message_type` - Text (general | bug_report | feature_request)
 - `image_url` - Text (optional attachment)
-- `status` - Text (new | read)
+- `status` - Text (new | read | backlog | in_progress | done | wont_fix)
+- `assigned_to` - UUID (admin user this message is assigned to, nullable)
 - `replied_at` - Timestamp (first reply time)
 - `replied_by` - UUID (admin who first replied)
 - `reply_message` - Text (first reply message for backward compatibility)
 - `admin_notes` - Text (internal notes)
 - `created_at` - Timestamp
+
+### Message Assignment Feature
+**Purpose:** Allow admins to assign messages to specific team members for handling
+
+**Behavior:**
+- Messages can be assigned to any admin/owner user
+- The notification badge count only shows messages that are:
+  - Unassigned (visible to all admins), OR
+  - Assigned to the current admin user
+- When a message is assigned to another admin, it no longer contributes to other admins' badge counts
+- Assignment can be changed from the list view (dropdown menu) or detail dialog
+- Clicking the assigned badge in the list view unassigns the message
 
 ### contact_form_replies (NEW - Added 2025-01-14)
 **Purpose:** Store threaded conversation history for back-and-forth communication
