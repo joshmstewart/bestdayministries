@@ -1,6 +1,21 @@
-import { Package, Check, ShoppingCart, Sparkles } from "lucide-react";
-import { PriceRibbon } from "@/components/ui/price-ribbon";
+import { useState } from "react";
+import { Package, Check, ShoppingCart, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCoins } from "@/hooks/useCoins";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CoinIcon } from "@/components/CoinIcon";
 
 interface Pack {
   id: string;
@@ -22,6 +37,7 @@ interface PackCarouselProps {
   onSelectPack: (packId: string | null) => void;
   canUsePack: (pack: Pack) => boolean;
   onPurchasePack?: (pack: Pack) => void;
+  onPackPurchased?: () => void;
   className?: string;
 }
 
@@ -31,8 +47,15 @@ export function PackCarousel({
   onSelectPack,
   canUsePack,
   onPurchasePack,
+  onPackPurchased,
   className,
 }: PackCarouselProps) {
+  const { user } = useAuth();
+  const { coins, deductCoins, refetch: refetchCoins } = useCoins();
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [packToPurchase, setPackToPurchase] = useState<Pack | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+
   // Sort packs: usable first, then purchasable
   const sortedPacks = [...packs].sort((a, b) => {
     const aCanUse = canUsePack(a);
@@ -48,6 +71,71 @@ export function PackCarousel({
     : sortedPacks.find((p) => p.is_default);
 
   const featuredPack = selectedPack || sortedPacks[0];
+
+  const handlePurchaseClick = (pack: Pack) => {
+    if (!user) {
+      toast.error("Please sign in to purchase packs");
+      return;
+    }
+    setPackToPurchase(pack);
+    setPurchaseDialogOpen(true);
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!packToPurchase || !user) return;
+
+    if (coins < packToPurchase.price_coins) {
+      toast.error("Not enough coins!");
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      // Deduct coins
+      const success = await deductCoins(
+        packToPurchase.price_coins,
+        `Purchased Memory Match pack: ${packToPurchase.name}`,
+        packToPurchase.id
+      );
+      if (!success) {
+        throw new Error("Failed to deduct coins");
+      }
+
+      // Record purchase
+      const { error: purchaseError } = await supabase
+        .from("user_memory_match_packs")
+        .insert({
+          user_id: user.id,
+          pack_id: packToPurchase.id,
+        });
+
+      if (purchaseError) throw purchaseError;
+
+      // Record transaction
+      await supabase.from("coin_transactions").insert({
+        user_id: user.id,
+        amount: -packToPurchase.price_coins,
+        transaction_type: "store_purchase",
+        description: `Memory Match pack purchase: ${packToPurchase.name}`,
+        related_item_id: packToPurchase.id,
+      });
+
+      await refetchCoins();
+      onPackPurchased?.();
+      
+      // Auto-select the newly purchased pack
+      onSelectPack(packToPurchase.id);
+
+      toast.success(`Unlocked ${packToPurchase.name}! 🎉`);
+      setPurchaseDialogOpen(false);
+      setPackToPurchase(null);
+    } catch (error) {
+      console.error("Error purchasing pack:", error);
+      toast.error("Failed to purchase pack");
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
 
   if (packs.length === 0 || !featuredPack) return null;
 
@@ -79,8 +167,8 @@ export function PackCarousel({
         onClick={() => {
           if (canUseFeatured) {
             onSelectPack(featuredPack.is_default ? null : featuredPack.id);
-          } else if (featuredPack.is_purchasable && onPurchasePack) {
-            onPurchasePack(featuredPack);
+          } else if (featuredPack.is_purchasable) {
+            handlePurchaseClick(featuredPack);
           }
         }}
       >
@@ -104,7 +192,7 @@ export function PackCarousel({
             {/* Price badge for purchasable */}
             {!canUseFeatured && featuredPack.is_purchasable && (
               <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                <span>🪙</span>
+                <CoinIcon size={10} />
                 <span>{featuredPack.price_coins}</span>
               </div>
             )}
@@ -133,7 +221,7 @@ export function PackCarousel({
                     <Check className="w-3 h-3 text-primary-foreground" />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-full">
+                  <div className="flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full">
                     <ShoppingCart className="w-3 h-3" />
                     <span className="text-[10px]">Buy</span>
                   </div>
@@ -144,72 +232,146 @@ export function PackCarousel({
         </div>
       </div>
 
-      {/* Thumbnail Strip */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      {/* Thumbnail Strip with Names */}
+      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {sortedPacks.map((pack) => {
           const canUse = canUsePack(pack);
-          const isSelected = pack.is_default
-            ? selectedPackId === null
-            : selectedPackId === pack.id;
           const isFeatured = pack.id === featuredPack.id;
           const previewImage =
             pack.preview_image_url || pack.images[0]?.image_url;
 
           return (
-            <button
-              key={pack.id}
-              onClick={() => {
-                if (canUse) {
-                  onSelectPack(pack.is_default ? null : pack.id);
-                } else if (pack.is_purchasable && onPurchasePack) {
-                  onPurchasePack(pack);
-                }
-              }}
-              className={cn(
-                "relative flex-shrink-0 rounded-lg border-2 overflow-hidden transition-all duration-200",
-                "w-16 h-16 sm:w-20 sm:h-20",
-                "focus:outline-none focus:ring-2 focus:ring-primary/50",
-                isFeatured
-                  ? "border-primary ring-2 ring-primary/50 scale-105"
-                  : canUse
-                  ? "border-border hover:border-primary/50"
-                  : "border-border/50 opacity-70 hover:opacity-90"
-              )}
-            >
-              {/* Thumbnail Image */}
-              {previewImage ? (
-                <img
-                  src={previewImage}
-                  alt={pack.name}
-                  className={cn(
-                    "w-full h-full object-cover",
-                    !canUse && "grayscale-[40%]"
+            <div key={pack.id} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+              <button
+                onClick={() => {
+                  if (canUse) {
+                    onSelectPack(pack.is_default ? null : pack.id);
+                  } else if (pack.is_purchasable) {
+                    handlePurchaseClick(pack);
+                  }
+                }}
+                className={cn(
+                  "relative rounded-lg border-2 transition-all duration-200",
+                  "w-16 h-16 sm:w-20 sm:h-20",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  isFeatured
+                    ? "border-primary ring-2 ring-primary/30"
+                    : canUse
+                    ? "border-border hover:border-primary/50"
+                    : "border-border/50 opacity-70 hover:opacity-90"
+                )}
+              >
+                {/* Thumbnail Image */}
+                <div className="w-full h-full rounded-md overflow-hidden">
+                  {previewImage ? (
+                    <img
+                      src={previewImage}
+                      alt={pack.name}
+                      className={cn(
+                        "w-full h-full object-cover",
+                        !canUse && "grayscale-[40%]"
+                      )}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <Package className="w-5 h-5 text-muted-foreground" />
+                    </div>
                   )}
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted">
-                  <Package className="w-5 h-5 text-muted-foreground" />
                 </div>
-              )}
 
-              {/* Selected Indicator */}
-              {isFeatured && (
-                <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5 shadow">
-                  <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                </div>
-              )}
+                {/* Selected Indicator */}
+                {isFeatured && (
+                  <div className="absolute -top-1 -right-1 bg-primary rounded-full p-0.5 shadow border-2 border-background">
+                    <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                  </div>
+                )}
 
-              {/* Lock indicator for unpurchased packs */}
-              {!canUse && (
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <span className="text-sm">🔒</span>
-                </div>
-              )}
-            </button>
+                {/* Lock indicator for unpurchased packs */}
+                {!canUse && (
+                  <div className="absolute inset-0 rounded-md bg-black/30 flex items-center justify-center">
+                    <span className="text-sm">🔒</span>
+                  </div>
+                )}
+              </button>
+              
+              {/* Pack Name */}
+              <span className={cn(
+                "text-[10px] text-center max-w-16 sm:max-w-20 truncate",
+                isFeatured ? "font-semibold text-primary" : "text-muted-foreground"
+              )}>
+                {pack.name}
+              </span>
+            </div>
           );
         })}
       </div>
+
+      {/* Purchase Confirmation Dialog */}
+      <AlertDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              Unlock {packToPurchase?.name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This pack contains unique memory cards for you to enjoy!
+                </p>
+                <div className="flex flex-col gap-2 p-3 bg-muted rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Price:</span>
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <CoinIcon size={16} />
+                      <span>{packToPurchase?.price_coins}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Your Balance:</span>
+                    <div className="flex items-center gap-1.5 font-semibold">
+                      <CoinIcon size={16} />
+                      <span>{coins}</span>
+                    </div>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between items-center">
+                    <span className="text-muted-foreground">After Purchase:</span>
+                    <div className={cn(
+                      "flex items-center gap-1.5 font-semibold",
+                      coins < (packToPurchase?.price_coins || 0) && "text-destructive"
+                    )}>
+                      <CoinIcon size={16} />
+                      <span>{coins - (packToPurchase?.price_coins || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+                {coins < (packToPurchase?.price_coins || 0) && (
+                  <p className="text-destructive text-sm">
+                    You don't have enough coins. Earn more by completing activities!
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPurchasing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmPurchase}
+              disabled={coins < (packToPurchase?.price_coins || 0) || isPurchasing}
+            >
+              {isPurchasing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Purchasing...
+                </>
+              ) : (
+                "Purchase"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
