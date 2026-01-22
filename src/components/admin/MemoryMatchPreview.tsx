@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -44,6 +44,11 @@ export const MemoryMatchPreview = ({
   const [gameCompleted, setGameCompleted] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Refs for iOS touch handling and processing lock
+  const isProcessingRef = useRef(false);
+  const lastPointerUpAtRef = useRef(0);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Filter to only images with valid URLs
   const validImages = images.filter(img => img.image_url);
@@ -96,45 +101,75 @@ export const MemoryMatchPreview = ({
     setElapsedTime(0);
   };
 
-  const handleCardClick = (cardId: number) => {
+  const handleCardClick = useCallback((cardId: number) => {
+    // Block if we're still processing a previous non-match
+    if (isProcessingRef.current) return;
     if (flippedCards.length === 2 || flippedCards.includes(cardId)) return;
-    if (cards[cardId].isMatched) return;
+    if (cards[cardId]?.isMatched) return;
 
     const newFlipped = [...flippedCards, cardId];
     setFlippedCards(newFlipped);
 
-    setCards(cards.map(card =>
+    setCards(prevCards => prevCards.map(card =>
       card.id === cardId ? { ...card, isFlipped: true } : card
     ));
 
     if (newFlipped.length === 2) {
-      setMoves(moves + 1);
+      setMoves(prev => prev + 1);
       const [first, second] = newFlipped;
 
-      if (cards[first].imageUrl === cards[second].imageUrl) {
-        setCards(cards.map(card =>
+      if (cards[first]?.imageUrl === cards[second]?.imageUrl) {
+        setCards(prevCards => prevCards.map(card =>
           card.id === first || card.id === second
-            ? { ...card, isMatched: true }
+            ? { ...card, isMatched: true, isFlipped: true }
             : card
         ));
-        setMatchedPairs(matchedPairs + 1);
+        setMatchedPairs(prev => {
+          const newCount = prev + 1;
+          if (newCount === pairCount) {
+            setGameCompleted(true);
+          }
+          return newCount;
+        });
         setFlippedCards([]);
-
-        if (matchedPairs + 1 === pairCount) {
-          setGameCompleted(true);
-        }
       } else {
+        // No match - lock processing, flip cards back after delay
+        isProcessingRef.current = true;
         setTimeout(() => {
-          setCards(cards.map(card =>
+          setCards(prevCards => prevCards.map(card =>
             card.id === first || card.id === second
               ? { ...card, isFlipped: false }
               : card
           ));
           setFlippedCards([]);
+          isProcessingRef.current = false; // Unlock
         }, 1000);
       }
     }
-  };
+  }, [cards, flippedCards, pairCount]);
+
+  // Pointer event handlers for iOS/Safari compatibility
+  const handleCardPointerDown = useCallback((e: React.PointerEvent) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleCardPointerUp = useCallback((cardId: number, e: React.PointerEvent) => {
+    e.stopPropagation();
+    
+    // Check if this was a scroll vs tap (10px threshold)
+    if (pointerStartRef.current) {
+      const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+      const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+      if (dx > 10 || dy > 10) {
+        pointerStartRef.current = null;
+        return; // Was scrolling, not tapping
+      }
+    }
+    
+    pointerStartRef.current = null;
+    lastPointerUpAtRef.current = Date.now();
+    handleCardClick(cardId);
+  }, [handleCardClick]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -239,12 +274,19 @@ export const MemoryMatchPreview = ({
               {cards.map((card) => (
                 <button
                   key={card.id}
-                  onClick={() => handleCardClick(card.id)}
-                  className={`aspect-square rounded-xl flex items-center justify-center cursor-pointer transition-all transform hover:scale-105 overflow-hidden border-2 ${
+                  onPointerDown={handleCardPointerDown}
+                  onPointerUp={(e) => handleCardPointerUp(card.id, e)}
+                  onClick={() => {
+                    // Fallback for non-pointer devices, prevent double-trigger
+                    if (Date.now() - lastPointerUpAtRef.current < 500) return;
+                    handleCardClick(card.id);
+                  }}
+                  className={`aspect-square rounded-xl flex items-center justify-center cursor-pointer transition-all transform hover:scale-105 overflow-hidden border-2 touch-manipulation select-none ${
                     card.isFlipped || card.isMatched
                       ? 'bg-gradient-warm border-primary'
                       : 'bg-secondary hover:bg-secondary/80 border-border'
                   } ${card.isMatched ? 'opacity-50 cursor-default' : ''}`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                   disabled={card.isMatched || flippedCards.includes(card.id)}
                   aria-label={`Card ${card.id + 1}${card.isFlipped || card.isMatched ? `: ${card.imageName}` : ''}`}
                 >
