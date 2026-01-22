@@ -9147,6 +9147,7 @@ export type Database = {
           stripe_connect_id: string | null
           stripe_onboarding_complete: boolean | null
           stripe_payouts_enabled: boolean | null
+          theme_color: string | null
           updated_at: string
           user_id: string
         }
@@ -9178,6 +9179,7 @@ export type Database = {
           stripe_connect_id?: string | null
           stripe_onboarding_complete?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          theme_color?: string | null
           updated_at?: string
           user_id: string
         }
@@ -9209,6 +9211,7 @@ export type Database = {
           stripe_connect_id?: string | null
           stripe_onboarding_complete?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          theme_color?: string | null
           updated_at?: string
           user_id?: string
         }
