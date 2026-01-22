@@ -347,57 +347,70 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
   const handleCardClick = useCallback((cardId: number) => {
     // Block if we're still processing a previous non-match
     if (isProcessingRef.current) return;
-    if (flippedCards.length === 2 || flippedCards.includes(cardId)) return;
     
-    const clickedCard = cards.find(c => c.id === cardId);
-    if (!clickedCard || clickedCard.isMatched) return;
-
-    const newFlipped = [...flippedCards, cardId];
-    setFlippedCards(newFlipped);
-
-    // Flip the clicked card
-    setCards(prevCards => prevCards.map(card =>
-      card.id === cardId ? { ...card, isFlipped: true } : card
-    ));
-
-    if (newFlipped.length === 2) {
-      setMoves(prev => prev + 1);
-      const [firstId, secondId] = newFlipped;
-
-      // Get the card data from current state (before the flip update)
-      const firstCard = cards.find(c => c.id === firstId);
-      const secondCard = cardId === secondId ? clickedCard : cards.find(c => c.id === secondId);
-
-      if (firstCard && secondCard && firstCard.imageUrl === secondCard.imageUrl) {
-        // Match found
-        setCards(prevCards => prevCards.map(card =>
-          card.id === firstId || card.id === secondId
-            ? { ...card, isMatched: true, isFlipped: true }
-            : card
-        ));
-        setMatchedPairs(prev => {
-          const newCount = prev + 1;
-          if (newCount === DIFFICULTY_CONFIG[difficulty].pairs) {
-            completeGame();
-          }
-          return newCount;
-        });
-        setFlippedCards([]);
-      } else {
-        // No match - lock processing, flip cards back after delay
-        isProcessingRef.current = true;
-        setTimeout(() => {
-          setCards(prevCards => prevCards.map(card =>
-            card.id === firstId || card.id === secondId
-              ? { ...card, isFlipped: false }
-              : card
-          ));
-          setFlippedCards([]);
-          isProcessingRef.current = false; // Unlock
-        }, 600); // Faster flip-back for better game flow
+    setFlippedCards(prevFlipped => {
+      if (prevFlipped.length === 2 || prevFlipped.includes(cardId)) {
+        return prevFlipped; // No change
       }
-    }
-  }, [cards, flippedCards, difficulty, DIFFICULTY_CONFIG]);
+      
+      setCards(prevCards => {
+        const clickedCard = prevCards.find(c => c.id === cardId);
+        if (!clickedCard || clickedCard.isMatched) {
+          return prevCards; // No change
+        }
+        
+        const newFlipped = [...prevFlipped, cardId];
+        const updatedCards = prevCards.map(card =>
+          card.id === cardId ? { ...card, isFlipped: true } : card
+        );
+        
+        if (newFlipped.length === 2) {
+          setMoves(prev => prev + 1);
+          const [firstId, secondId] = newFlipped;
+          const firstCard = prevCards.find(c => c.id === firstId);
+          const secondCard = prevCards.find(c => c.id === secondId);
+          
+          if (firstCard && secondCard && firstCard.imageUrl === secondCard.imageUrl) {
+            // Match found - update cards to matched state
+            setMatchedPairs(prev => {
+              const newCount = prev + 1;
+              if (newCount === DIFFICULTY_CONFIG[difficulty].pairs) {
+                completeGame();
+              }
+              return newCount;
+            });
+            // Clear flipped after this render
+            setTimeout(() => setFlippedCards([]), 0);
+            return updatedCards.map(card =>
+              card.id === firstId || card.id === secondId
+                ? { ...card, isMatched: true, isFlipped: true }
+                : card
+            );
+          } else {
+            // No match - lock processing, flip back after delay
+            isProcessingRef.current = true;
+            setTimeout(() => {
+              setCards(pc => pc.map(card =>
+                card.id === firstId || card.id === secondId
+                  ? { ...card, isFlipped: false }
+                  : card
+              ));
+              setFlippedCards([]);
+              isProcessingRef.current = false;
+            }, 600);
+          }
+        }
+        
+        return updatedCards;
+      });
+      
+      // Return new flipped state
+      if (prevFlipped.length < 2 && !prevFlipped.includes(cardId)) {
+        return [...prevFlipped, cardId];
+      }
+      return prevFlipped;
+    });
+  }, [difficulty, DIFFICULTY_CONFIG]);
 
   // Pointer event handlers for iOS/Safari compatibility
   const handleCardPointerDown = useCallback((e: React.PointerEvent) => {
