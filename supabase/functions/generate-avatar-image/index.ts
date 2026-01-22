@@ -267,7 +267,9 @@ CHARACTER TYPE NOTE:
 `;
     }
 
-    const imagePrompt = `Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${characterPrompt}. 
+    const imagePrompt = `GENERATE AN IMAGE NOW. Do not describe the image - actually create and return it.
+
+Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${characterPrompt}. 
 
 CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
@@ -295,54 +297,70 @@ Style requirements:
 - Vibrant colors and clean lines
 - Do NOT emphasize muscles, abs, or exaggerated athletic physiques - keep the body proportions natural and cute
 - No text, logos, or decorative elements in the image
-- No shadows on the background`;
+- No shadows on the background
 
-    // Call Lovable AI to generate the image
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: imagePrompt,
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+OUTPUT: Generate the image immediately.`;
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI API error:", aiResponse.status, errorText);
-      
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    console.log("AI response received");
-
-    // Extract image from response
-    const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    // Call Lovable AI to generate the image with retry logic
+    const MAX_RETRIES = 3;
+    let imageData: string | undefined;
+    let lastError: string = "unknown";
     
-    if (!imageData) {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`Image generation attempt ${attempt}/${MAX_RETRIES}`);
+      
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: imagePrompt,
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error(`AI API error (attempt ${attempt}):`, aiResponse.status, errorText);
+        
+        if (aiResponse.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (aiResponse.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        lastError = `AI API error: ${aiResponse.status}`;
+        continue; // Retry on other errors
+      }
+
+      const aiData = await aiResponse.json();
+      console.log(`AI response received (attempt ${attempt})`);
+
+      // Extract image from response
+      const extractedImage = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      
+      if (extractedImage) {
+        imageData = extractedImage;
+        console.log(`Successfully extracted image on attempt ${attempt}`);
+        break; // Success!
+      }
+
+      // No image - check for safety block
       const choice = aiData?.choices?.[0];
       const finishReason =
         choice?.native_finish_reason ||
@@ -350,9 +368,9 @@ Style requirements:
         choice?.message?.native_finish_reason ||
         "unknown";
 
-      console.error("No image in AI response:", JSON.stringify(aiData));
+      console.error(`No image in AI response (attempt ${attempt}):`, JSON.stringify(aiData));
 
-      // The AI gateway can return an IMAGE_SAFETY block with no images.
+      // The AI gateway can return an IMAGE_SAFETY block with no images - don't retry this
       if (String(finishReason).toUpperCase().includes("IMAGE_SAFETY")) {
         return new Response(
           JSON.stringify({
@@ -364,10 +382,21 @@ Style requirements:
         );
       }
 
+      lastError = `No image returned (reason: ${finishReason})`;
+      
+      // Small delay before retry
+      if (attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    // If we exhausted all retries without getting an image
+    if (!imageData) {
+      console.error(`Failed to generate image after ${MAX_RETRIES} attempts: ${lastError}`);
       return new Response(
         JSON.stringify({
-          error: "No image was returned by the image model. Please try again.",
-          reason: finishReason,
+          error: "Failed to generate image after multiple attempts. Please try again.",
+          reason: lastError,
         }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
