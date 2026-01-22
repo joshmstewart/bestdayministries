@@ -588,13 +588,14 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       return;
     }
 
-    // Don't fill very dark pixels (the outlines) - threshold of 60
-    const isDark = (r: number, g: number, b: number) => r < 60 && g < 60 && b < 60;
+    // Don't fill very dark pixels (the outlines) - increased threshold to catch anti-aliased edges
+    const isDark = (r: number, g: number, b: number) => r < 90 && g < 90 && b < 90;
     if (isDark(startColor.r, startColor.g, startColor.b)) {
       return;
     }
 
-    const tolerance = 40;
+    // Increased tolerance to catch more similar-colored pixels including anti-aliased edges
+    const tolerance = 60;
 
     const colorMatch = (x: number, y: number): boolean => {
       if (x < 0 || x >= width || y < 0 || y >= height) return false;
@@ -649,6 +650,43 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           stack.push([i, y + 1]);
         }
       }
+    }
+
+    // === POST-FILL EDGE FEATHERING PASS ===
+    // Catch anti-aliased pixels along outlines that were missed by the main fill
+    // Run multiple passes to ensure all edge artifacts are colored
+    for (let pass = 0; pass < 3; pass++) {
+      let changed = false;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          const pos = idx * 4;
+          const pixel = { r: data[pos], g: data[pos + 1], b: data[pos + 2] };
+          
+          // Skip if already filled or if it's a dark outline pixel
+          if (visited[idx] || isDark(pixel.r, pixel.g, pixel.b)) continue;
+          
+          // Check if this unfilled pixel is adjacent to a filled pixel
+          const hasFilledNeighbor = 
+            (x > 0 && visited[y * width + (x - 1)]) ||
+            (x < width - 1 && visited[y * width + (x + 1)]) ||
+            (y > 0 && visited[(y - 1) * width + x]) ||
+            (y < height - 1 && visited[(y + 1) * width + x]);
+          
+          // If adjacent to filled area and is a light/mid gray (anti-alias artifact), fill it
+          // These are pixels that are lighter than the dark threshold but weren't matched by tolerance
+          if (hasFilledNeighbor && pixel.r > 120 && pixel.g > 120 && pixel.b > 120) {
+            data[pos] = fillRGB.r;
+            data[pos + 1] = fillRGB.g;
+            data[pos + 2] = fillRGB.b;
+            data[pos + 3] = 255;
+            visited[idx] = 1;
+            changed = true;
+          }
+        }
+      }
+      // If no pixels changed in this pass, no need for more passes
+      if (!changed) break;
     }
 
     ctx.putImageData(imageData, 0, 0);
