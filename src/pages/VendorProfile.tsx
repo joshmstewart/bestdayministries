@@ -210,7 +210,7 @@ const VendorProfile = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       
-      <main className="flex-1 pt-14">
+      <main className="flex-1 pt-14" style={{ backgroundColor: theme.sectionBg }}>
         {/* Banner Section */}
         <div
           className="h-32 relative"
