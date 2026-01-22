@@ -68,23 +68,32 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No email found for user");
     }
 
-    // Fetch user's unread notifications (or create sample if none)
+    // Calculate time frame based on frequency
+    const now = new Date();
+    let timeFrameStart: Date;
+    if (frequency === 'daily') {
+      timeFrameStart = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Last 24 hours
+    } else {
+      timeFrameStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Last 7 days
+    }
+
+    // Fetch ALL notifications within the time frame (not just unread) for realistic test preview
     let { data: notifications, error: notifError } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
-      .eq("is_read", false)
+      .gte("created_at", timeFrameStart.toISOString())
       .order("created_at", { ascending: false })
       .limit(50);
 
-    // If no unread notifications, use sample data
+    // If no notifications in time frame, use sample data
     if (!notifications || notifications.length === 0) {
       notifications = [
         {
           id: "sample-1",
           type: "comment_on_post",
           title: "Sample Notification",
-          message: "This is a test digest email. You have no unread notifications, so this sample is shown.",
+          message: `This is a test ${frequency} digest email. You have no notifications from the past ${frequency === 'daily' ? '24 hours' : '7 days'}, so this sample is shown.`,
           link: null,
           created_at: new Date().toISOString(),
         },

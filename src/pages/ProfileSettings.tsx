@@ -1522,7 +1522,7 @@ const ProfileSettings = () => {
                             </Button>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Send a test digest to yourself (uses your unread notifications or sample data)
+                            Send a test digest to yourself (includes all notifications from the time frame, or sample data if none)
                           </p>
                         </div>
                       )}
