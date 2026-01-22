@@ -47,6 +47,14 @@ export default function ColoringBook() {
   const [selectedPage, setSelectedPage] = useState<any>(null);
   const [selectedBook, setSelectedBook] = useState<ColoringBook | null>(null);
 
+  // Wrapper to select a page and scroll to top
+  const handleSelectPage = (page: any) => {
+    setSelectedPage(page);
+    if (page) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const urlTab = searchParams.get("tab");
   const initialTab =
     urlTab === "books" || urlTab === "community" || urlTab === "gallery" ? urlTab : "books";
@@ -265,7 +273,7 @@ export default function ColoringBook() {
             <Card
               key={page.id}
               className="cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
-              onClick={() => setSelectedPage(page)}
+              onClick={() => handleSelectPage(page)}
             >
               <CardContent className="p-0">
                 <img
@@ -432,7 +440,7 @@ export default function ColoringBook() {
               <ColoringCommunityGallery
                 userId={user.id}
                 onSelectColoring={(page) => {
-                  setSelectedPage(page);
+                  handleSelectPage(page);
                   setActiveTab("books");
                 }}
               />
@@ -441,7 +449,7 @@ export default function ColoringBook() {
 
           <TabsContent value="gallery">
             <ColoringGallery onSelectColoring={(page, _, book) => {
-              setSelectedPage(page);
+              handleSelectPage(page);
               if (book) {
                 setSelectedBook(book);
               }
