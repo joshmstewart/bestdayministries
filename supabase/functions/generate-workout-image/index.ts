@@ -252,13 +252,18 @@ serve(async (req) => {
       }
 
       // Check for character-specific enhancements
-      const isBubbleBenny = avatar.name?.toLowerCase().includes("bubble benny");
+      const lowerName = String(avatar.name || "").toLowerCase();
+      const isBubbleBenny = lowerName.includes("bubble benny");
+      const isXeroxXander = lowerName.includes("xerox xander");
       
       // Build character-specific additions
       let characterEnhancements = "";
       if (isBubbleBenny) {
         // Bubble Benny should always have soap bubbles on him
         characterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating around them and soap-bubble texture on their skin. If the activity allows (not swimming/underwater), they should also be holding a bubble wand and blowing a big soap bubble while doing the activity.";
+      } else if (isXeroxXander) {
+        // Xerox Xander's whole concept is that he copied himself - always show 2 identical characters
+        characterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side doing the workout TOGETHER. Both copies should look exactly the same - same outfit, same pose (or mirrored), same expression. The twins should be doing the activity together like workout buddies.";
       }
 
       prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character COMPLETELY identical - same gender, face, hair, art style, AND MOST IMPORTANTLY their thematic identity/costume style (e.g., if they're a mage they should wear mage-themed athletic wear, if they're a superhero they should wear superhero-themed gear, if they're in fantasy armor they should have fantasy-styled workout clothes, etc.). The outfit should be adapted for the activity but PRESERVE the character's signature look/theme/vibe.${characterEnhancements} Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
@@ -284,11 +289,15 @@ serve(async (req) => {
       }
 
       // Check for character-specific enhancements (celebration)
-      const isBubbleBenny = avatar.name?.toLowerCase().includes("bubble benny");
+      const celebLowerName = String(avatar.name || "").toLowerCase();
+      const isBubbleBennyCelebration = celebLowerName.includes("bubble benny");
+      const isXeroxXanderCelebration = celebLowerName.includes("xerox xander");
       
       let celebrationCharacterEnhancements = "";
-      if (isBubbleBenny) {
+      if (isBubbleBennyCelebration) {
         celebrationCharacterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating all around them and soap-bubble texture on their skin. They should also be holding a bubble wand and blowing a big celebratory soap bubble.";
+      } else if (isXeroxXanderCelebration) {
+        celebrationCharacterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side celebrating together. Both copies should look exactly the same and be doing the same celebration pose or mirrored poses. Show the twins high-fiving, jumping together, or doing synchronized celebration moves.";
       }
 
       prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (preserve their signature look like mage robes, superhero cape, fantasy elements, etc. but adapted for celebration).${celebrationCharacterEnhancements} Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
