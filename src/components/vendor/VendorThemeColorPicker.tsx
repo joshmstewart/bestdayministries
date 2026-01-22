@@ -1,6 +1,7 @@
-import { vendorThemePresets, VendorThemePreset } from "@/lib/vendorThemePresets";
+import { vendorThemePresets } from "@/lib/vendorThemePresets";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { VendorThemePreview } from "./VendorThemePreview";
 
 interface VendorThemeColorPickerProps {
   value: string;
@@ -43,6 +44,9 @@ export const VendorThemeColorPicker = ({ value, onChange }: VendorThemeColorPick
           </button>
         ))}
       </div>
+      
+      {/* Live theme preview */}
+      <VendorThemePreview themeKey={value} />
     </div>
   );
 };

@@ -1,24 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Upload, Loader2, ExternalLink, X } from "lucide-react";
+import { Loader2, ExternalLink, X, Eye } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
 import { VendorStoryMediaManager } from "./VendorStoryMediaManager";
 import { VendorThemeColorPicker } from "./VendorThemeColorPicker";
-
+import { getVendorTheme } from "@/lib/vendorThemePresets";
 interface VendorProfileSettingsProps {
   vendorId: string;
 }
 
 export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<'logo' | 'banner' | null>(null);
   const [formData, setFormData] = useState({
@@ -143,17 +144,22 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
     }
   };
 
+  // Get current theme for dashboard styling
+  const theme = useMemo(() => getVendorTheme(formData.theme_color), [formData.theme_color]);
+
+  // Handle preview with current unsaved settings
+  const handlePreviewStore = () => {
+    // Encode current form state to pass to preview
+    const previewParams = new URLSearchParams({
+      preview: 'true',
+      theme: formData.theme_color,
+      business_name: formData.business_name,
+    });
+    window.open(`/vendors/${vendorId}?${previewParams.toString()}`, '_blank');
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Preview Store Link */}
-      <div className="flex justify-end">
-        <Button variant="outline" asChild>
-          <Link to={`/vendors/${vendorId}`} target="_blank">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Preview Store Page
-          </Link>
-        </Button>
-      </div>
 
       <Card>
         <CardHeader>
@@ -424,12 +430,40 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
       </Card>
 
       {/* Spacer for sticky button */}
-      <div className="h-20" />
+      <div className="h-24" />
 
-      {/* Sticky save button */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="max-w-4xl mx-auto flex justify-end">
-          <Button type="submit" disabled={loading} size="lg" className="shadow-lg">
+      {/* Sticky save button bar */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-50 p-4 backdrop-blur-sm border-t"
+        style={{ 
+          backgroundColor: `color-mix(in srgb, ${theme.sectionBg} 95%, transparent)`,
+          borderColor: theme.cardBorder 
+        }}
+      >
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <Button 
+            type="button"
+            variant="outline" 
+            onClick={handlePreviewStore}
+            className="shadow-sm"
+            style={{ 
+              borderColor: theme.accent,
+              color: theme.accent 
+            }}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Preview Store
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading} 
+            size="lg" 
+            className="shadow-lg"
+            style={{ 
+              backgroundColor: theme.accent,
+              color: theme.accentText 
+            }}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

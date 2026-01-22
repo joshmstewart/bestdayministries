@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Globe, Instagram, Facebook, Store, Heart, Star } from "lucide-react";
+import { ArrowLeft, Globe, Instagram, Facebook, Store, Heart, Star, AlertTriangle } from "lucide-react";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -38,6 +38,7 @@ interface FeaturedBestie {
 const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [theme, setTheme] = useState<VendorThemePreset>(getVendorTheme('orange'));
   const [featuredBestie, setFeaturedBestie] = useState<FeaturedBestie | null>(null);
@@ -47,6 +48,11 @@ const VendorProfile = () => {
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Check for preview mode parameters
+  const isPreviewMode = searchParams.get('preview') === 'true';
+  const previewTheme = searchParams.get('theme');
+  const previewBusinessName = searchParams.get('business_name');
 
   useEffect(() => {
     loadVendorProfile();
@@ -73,7 +79,13 @@ const VendorProfile = () => {
       }
 
       setVendor(vendorData);
-      setTheme(getVendorTheme((vendorData as any).theme_color));
+      
+      // Use preview theme if in preview mode, otherwise use saved theme
+      if (isPreviewMode && previewTheme) {
+        setTheme(getVendorTheme(previewTheme));
+      } else {
+        setTheme(getVendorTheme((vendorData as any).theme_color));
+      }
 
       // If vendor has a featured bestie, fetch their details and role
       let featuredBestieData = null;
@@ -211,6 +223,20 @@ const VendorProfile = () => {
       <UnifiedHeader />
       
       <main className="flex-1 pt-14" style={{ backgroundColor: theme.sectionBg }}>
+        {/* Preview Mode Banner */}
+        {isPreviewMode && (
+          <div 
+            className="sticky top-14 z-40 py-2 px-4 flex items-center justify-center gap-2"
+            style={{ 
+              backgroundColor: theme.banner,
+              color: theme.bannerText 
+            }}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span className="text-sm font-medium">Preview Mode - Changes not saved yet</span>
+          </div>
+        )}
+        
         {/* Banner Section */}
         <div
           className="h-32 relative"
@@ -272,10 +298,10 @@ const VendorProfile = () => {
 
                 {/* Vendor Details */}
                 <div className="flex-1">
+                  {/* Use preview business name if in preview mode */}
                   <h1 className="font-heading text-4xl font-bold mb-2">
-                    {vendor.business_name}
+                    {isPreviewMode && previewBusinessName ? previewBusinessName : vendor.business_name}
                   </h1>
-                  
                   {vendor.description && (
                     <p className="text-muted-foreground mb-4 whitespace-pre-wrap">
                       {vendor.description}
