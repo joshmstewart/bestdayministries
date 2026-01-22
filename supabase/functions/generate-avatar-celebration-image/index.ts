@@ -84,12 +84,16 @@ serve(async (req) => {
 
     // Check for character-specific enhancements
     const isBubbleBenny = avatar.name?.toLowerCase().includes("bubble benny");
+    const isXeroxXander = avatar.name?.toLowerCase().includes("xerox xander");
     
     // Build character-specific additions
     let characterEnhancements = "";
     if (isBubbleBenny) {
       // Bubble Benny should always have soap bubbles on him and be blowing bubbles when celebrating
       characterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating all around them and soap-bubble texture on their skin. They should also be holding a bubble wand and blowing a big celebratory soap bubble.";
+    } else if (isXeroxXander) {
+      // Xerox Xander's whole concept is that he copied himself - always show 2 identical characters
+      characterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side celebrating together. Both copies should look exactly the same and be doing the same celebration pose or mirrored poses. Show the twins high-fiving, jumping together, or doing synchronized celebration moves.";
     }
 
     const prompt = `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, body shape, outfit details, accessories, and art style, preserving their thematic identity/costume style exactly as shown in the reference.${characterEnhancements}
