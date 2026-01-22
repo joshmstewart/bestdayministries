@@ -641,6 +641,7 @@ DESIGN:Documentary[outline-white]|BDE[solid-brown-NO-gradient-HSL]
 ## ADMIN_DASH
 ROUTE:/admin|ACCESS:admin-owner|REDIRECT:non-admins→/community
 TABS:Analytics|Users|Events|Albums|Videos|Besties[subs:Featured+Sponsors+Page+Content+Receipts+Trans+YE-Settings+History]|Partners|Donations|Featured|Vendors[badge-subs:Vendors+Products+Orders]|Format[subs:Homepage+Community+About+Footer+Quick+Nav+Locations]|Moderation[badge-subs:Content+Messages+Policies]|Contact[badge]|Help[subs:Tours+Guides+FAQs]|Updates|Notifications|Settings[subs:App+Stripe-Mode+Social-Sharing+Static-Meta+Avatars+TTS+Coins+Store+Pet-Types+Locations+Impersonation]
+SETTINGS-APP:AppSettingsManager includes download helper for current mobile splash background → file src/assets/splash-background.png
 STRIPE-MODE:Settings→Stripe-Mode-tab→StripeModeSwitcher[test|live-toggle]|MOVED-from[/guardian-links+/sponsor-bestie]
 CONTENT-MODERATION:Posts-tab[posts-only]|Comments-tab[comments-only]|cascade-delete-warnings[posts→comments]
 DOC:CONTENT_MODERATION_CASCADE_DELETES.md
