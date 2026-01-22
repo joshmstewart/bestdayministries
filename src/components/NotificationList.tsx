@@ -1,6 +1,6 @@
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
-import { Bell, Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Bell, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Card } from "./ui/card";
@@ -8,24 +8,17 @@ import { Badge } from "./ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { useState } from "react";
 
-export const NotificationList = () => {
+interface NotificationListProps {
+  newlySeenIds?: Set<string>;
+}
+
+export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListProps) => {
   const { 
     groupedNotifications, 
     loading, 
-    markAsRead,
-    markAllAsRead,
     deleteNotification,
     handleNotificationClick 
   } = useNotifications();
-  
-  // Mark all notifications in a group as read
-  const markGroupAsRead = async (notifications: any[]) => {
-    for (const notification of notifications) {
-      if (!notification.is_read) {
-        await markAsRead(notification.id);
-      }
-    }
-  };
   
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   
@@ -41,21 +34,15 @@ export const NotificationList = () => {
     });
   };
 
+  // Check if any notification in a group is newly seen
+  const isGroupNewlySeen = (notifications: any[]) => {
+    return notifications.some(n => newlySeenIds.has(n.id));
+  };
+
   return (
     <div className="w-full overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b gap-2">
         <h2 className="text-lg font-semibold">Notifications</h2>
-        {groupedNotifications.length > 0 && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={markAllAsRead}
-            className="text-xs"
-          >
-            <Check className="h-3 w-3 mr-1" />
-            Mark all read
-          </Button>
-        )}
       </div>
 
       <ScrollArea className="h-[400px]">
@@ -73,6 +60,7 @@ export const NotificationList = () => {
             {groupedNotifications.map((group) => {
               const isExpanded = expandedGroups.has(group.id);
               const showExpand = group.count > 1;
+              const isNew = isGroupNewlySeen(group.notifications);
               
               return (
                 <Collapsible
@@ -82,7 +70,7 @@ export const NotificationList = () => {
                 >
                   <Card
                     className={`p-4 transition-colors group relative border-0 rounded-none cursor-pointer ${
-                      !group.is_read 
+                      isNew 
                         ? "bg-primary/5" 
                         : group.auto_resolved 
                           ? "opacity-75 bg-muted/20" 
@@ -91,15 +79,14 @@ export const NotificationList = () => {
                     onClick={() => {
                       if (!showExpand) {
                         handleNotificationClick(group.notifications[0]);
-                      } else if (!group.is_read) {
-                        // Mark all notifications in this group as read
-                        markGroupAsRead(group.notifications);
+                      } else {
+                        toggleGroup(group.id);
                       }
                     }}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`p-2 rounded-full ${
-                        !group.is_read ? "bg-primary/10" : "bg-muted"
+                        isNew ? "bg-primary/10" : "bg-muted"
                       }`}>
                         <Bell className="h-4 w-4" />
                       </div>
@@ -108,7 +95,12 @@ export const NotificationList = () => {
                           <p className="font-medium text-sm break-words flex-1">{group.title}</p>
                           {showExpand && (
                             <CollapsibleTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-6 w-6 p-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {isExpanded ? (
                                   <ChevronUp className="h-3 w-3" />
                                 ) : (
@@ -127,7 +119,7 @@ export const NotificationList = () => {
                               ✓
                             </Badge>
                           )}
-                          {!group.is_read && !group.auto_resolved && (
+                          {isNew && !group.auto_resolved && (
                             <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                           )}
                         </div>
@@ -151,8 +143,13 @@ export const NotificationList = () => {
                               {group.notifications.map((notification: any) => (
                                 <div
                                   key={notification.id}
-                                  className="p-2 rounded-md border bg-card hover:bg-muted cursor-pointer text-sm group/item relative"
-                                  onClick={() => handleNotificationClick(notification)}
+                                  className={`p-2 rounded-md border hover:bg-muted cursor-pointer text-sm group/item relative ${
+                                    newlySeenIds.has(notification.id) ? "bg-primary/5" : "bg-card"
+                                  }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNotificationClick(notification);
+                                  }}
                                 >
                                   <p className="font-medium text-xs mb-1 pr-6">{notification.title}</p>
                                   <p className="text-xs text-muted-foreground line-clamp-1 mb-1">

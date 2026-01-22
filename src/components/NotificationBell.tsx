@@ -9,13 +9,38 @@ import { Badge } from "@/components/ui/badge";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationList } from "./NotificationList";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 
 export const NotificationBell = () => {
-  const { unreadCount } = useNotifications();
+  const { unreadCount, markAllAsRead, notifications } = useNotifications();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [newlySeenIds, setNewlySeenIds] = useState<Set<string>>(new Set());
+  const hasMarkedRead = useRef(false);
+
+  // When popover opens, capture current unread IDs for visual indicator and mark all as read
+  useEffect(() => {
+    if (open && !hasMarkedRead.current) {
+      // Capture IDs that were unread when opened (for visual "new" indicator)
+      const unreadIds = new Set(
+        notifications.filter(n => !n.is_read).map(n => n.id)
+      );
+      setNewlySeenIds(unreadIds);
+      
+      // Mark all as read (clears badge)
+      if (unreadIds.size > 0) {
+        markAllAsRead();
+      }
+      hasMarkedRead.current = true;
+    } else if (!open) {
+      // Reset when closed
+      hasMarkedRead.current = false;
+      setNewlySeenIds(new Set());
+    }
+  }, [open, notifications, markAllAsRead]);
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -39,13 +64,16 @@ export const NotificationBell = () => {
         align="end"
         sideOffset={8}
       >
-        <NotificationList />
+        <NotificationList newlySeenIds={newlySeenIds} />
         <div className="border-t p-2">
           <Button
             variant="ghost"
             className="w-full justify-center"
             size="sm"
-            onClick={() => navigate('/notifications')}
+            onClick={() => {
+              setOpen(false);
+              navigate('/notifications');
+            }}
           >
             View All Notifications
             <ArrowRight className="ml-2 h-4 w-4" />
