@@ -87,7 +87,7 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
                   className="relative cursor-pointer"
                   onClick={() => openVideoLightbox(item)}
                 >
-                  <AspectRatio ratio={16/9}>
+                  <AspectRatio ratio={4/3}>
                     <video 
                       src={item.media_url} 
                       className="w-full h-full object-cover"
@@ -112,7 +112,7 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
                   className="relative cursor-pointer"
                   onClick={() => openVideoLightbox(item)}
                 >
-                  <AspectRatio ratio={16/9}>
+                  <AspectRatio ratio={4/3}>
                     <img 
                       src={`https://img.youtube.com/vi/${extractYoutubeId(item.media_url)}/maxresdefault.jpg`}
                       alt={item.caption || "Video thumbnail"}
