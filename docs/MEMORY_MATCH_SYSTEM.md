@@ -3,6 +3,12 @@
 ## Overview
 Memory Match is a card-matching game with optional, database-driven image packs. Packs are managed in Admin and can be previewed directly from the pack manager.
 
+### UX / Performance Notes (Frontend)
+- The game **warms (preloads)** pack card-face images and the card-back image when packs are loaded/selected and when a round is dealt. This prevents:
+  - The **slow first flip** (waiting on the first card-face image download)
+  - The "**second card never showed**" effect (image loads so late that the non-match flip-back timer finishes before the image paints)
+- Non-matching pairs flip back down after a short delay (currently ~600ms), guarded by an interaction lock (`isProcessingRef`) to prevent extra taps during the flip-back window.
+
 ## Routes
 - `/games/memory-match` 
   Main Memory Match game

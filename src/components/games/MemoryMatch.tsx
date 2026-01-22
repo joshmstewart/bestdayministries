@@ -107,6 +107,17 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     hard: DEFAULT_DIFFICULTY_CONFIG.hard.coins,
   });
 
+  // Image preloading (prevents slow first flip / "never saw second card" when images load late)
+  const preloadedImageUrlsRef = useRef<Set<string>>(new Set());
+  const warmImage = useCallback((url: string | null | undefined) => {
+    if (!url) return;
+    if (preloadedImageUrlsRef.current.has(url)) return;
+    preloadedImageUrlsRef.current.add(url);
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+  }, []);
+
   // Refs for iOS touch handling and processing lock
   const isProcessingRef = useRef(false);
   const lastPointerUpAtRef = useRef(0);
@@ -184,6 +195,22 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     // Notify parent of background color change
     onBackgroundColorChange?.(newBackgroundColor);
   }, [selectedPackId, availablePacks, onBackgroundColorChange]);
+
+  // Warm pack assets as soon as we know them (helps before the user starts a game)
+  useEffect(() => {
+    // Limit to keep it lightweight even if a pack has many images
+    const urlsToWarm = currentImages.slice(0, 30).map((i) => i.image_url);
+    urlsToWarm.forEach(warmImage);
+    // Card back is separately preloaded before being displayed, but warming also helps
+    warmImage(currentCardBackUrl);
+  }, [currentImages, currentCardBackUrl, warmImage]);
+
+  // Warm ONLY the images used in the current game ASAP after dealing the cards
+  useEffect(() => {
+    if (!gameStarted) return;
+    const uniqueUrls = Array.from(new Set(cards.map((c) => c.imageUrl)));
+    uniqueUrls.forEach(warmImage);
+  }, [cards, gameStarted, warmImage]);
 
   const loadImagePacks = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -324,6 +351,11 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     // Randomly select images from the available set
     const shuffledImages = [...currentImages].sort(() => Math.random() - 0.5);
     const selectedImages = shuffledImages.slice(0, pairCount);
+
+    // Start loading the exact face images for this round before the first flip
+    selectedImages.forEach((img) => warmImage(img.image_url));
+    warmImage(currentCardBackUrl);
+
     const gameCards = [...selectedImages, ...selectedImages]
       .sort(() => Math.random() - 0.5)
       .map((img, index) => ({
@@ -786,12 +818,16 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                     <img 
                       src={card.imageUrl} 
                       alt={card.imageName}
+                      loading="eager"
+                      decoding="async"
                       className="w-full h-full object-contain p-2"
                     />
                   ) : currentCardBackUrl && cardBackLoaded ? (
                     <img 
                       src={currentCardBackUrl}
                       alt="Card back"
+                      loading="eager"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : (
