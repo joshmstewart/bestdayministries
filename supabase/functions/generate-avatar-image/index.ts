@@ -267,10 +267,25 @@ CHARACTER TYPE NOTE:
 `;
     }
 
+    // Check for character-specific requirements
+    const lowerName = String(name || "").toLowerCase();
+    const isXeroxXander = lowerName.includes("xerox xander");
+    
+    let characterSpecificRequirements = "";
+    if (isXeroxXander) {
+      characterSpecificRequirements = `
+CRITICAL CHARACTER-SPECIFIC REQUIREMENT:
+- This character is 'Xerox Xander' whose superpower is that he COPIED/DUPLICATED himself
+- You MUST show TWO IDENTICAL versions of this character standing side by side
+- Both copies should look exactly the same - same outfit, same pose (or mirrored), same expression
+- The twins could be standing next to each other, high-fiving, or in mirrored poses
+`;
+    }
+
     const imagePrompt = `GENERATE AN IMAGE NOW. Do not describe the image - actually create and return it.
 
 Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${characterPrompt}. 
-
+${characterSpecificRequirements}
 CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
 - The character should be isolated on a pure white background for easy integration into app interfaces
