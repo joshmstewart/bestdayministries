@@ -25,10 +25,10 @@ const MemoryMatchPage = () => {
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
       <main 
-        className="flex-1 pt-24 pb-12 px-2 sm:px-4 transition-colors duration-300"
+        className="flex-1 pt-20 pb-6 px-1 sm:px-4 transition-colors duration-300"
         style={{ backgroundColor }}
       >
-        <div className="container max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <BackButton 
             onClick={handleBackClick} 
             label={gameStarted ? "Back to Selection" : "Back to Community"} 

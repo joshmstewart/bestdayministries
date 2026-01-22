@@ -730,27 +730,27 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto space-y-2 sm:space-y-6">
       <Card className="shadow-lg" style={{ backgroundColor: currentColors.module }}>
-        <CardHeader>
+        <CardHeader className="px-2 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Star className="h-6 w-6 text-yellow-500" />
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Star className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500" />
               Memory Match - {DIFFICULTY_CONFIG[difficulty].label}
             </CardTitle>
           </div>
-          <div className="flex gap-4 text-sm">
-            <Badge variant="secondary" className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
+          <div className="flex gap-2 sm:gap-4 text-sm">
+            <Badge variant="secondary" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4" />
               Moves: {moves}
             </Badge>
-            <Badge variant="secondary" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
+            <Badge variant="secondary" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
               {formatTime(elapsedTime)}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="px-3 sm:px-6">
+        <CardContent className="px-1.5 pb-2 sm:px-6 sm:pb-6">
           {gameCompleted ? (
             <div className="text-center space-y-4 py-4">
               <GameCelebrationDisplay userId={currentUserId} fallbackEmoji="🎉" />
@@ -872,9 +872,9 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
               </Dialog>
             </div>
           ) : (
-            <div className={`grid gap-1.5 sm:gap-3 ${
+            <div className={`grid gap-1 sm:gap-3 ${
               difficulty === 'easy' ? 'grid-cols-3 sm:grid-cols-4' :
-              difficulty === 'medium' ? 'grid-cols-4' :
+              difficulty === 'medium' ? 'grid-cols-3 sm:grid-cols-4' :
               'grid-cols-4 sm:grid-cols-5'
             }`}>
               {cards.map((card) => (
