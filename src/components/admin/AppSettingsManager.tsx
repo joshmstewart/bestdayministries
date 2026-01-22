@@ -6,7 +6,70 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Settings } from "lucide-react";
-import splashBackground from "@/assets/splash-background.png";
+
+const getCssVar = (name: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+type GradientExportOptions = {
+  width: number;
+  height: number;
+  filename: string;
+};
+
+const exportCssGradientToPng = async ({ width, height, filename }: GradientExportOptions) => {
+  // Resolve the exact runtime values from the design system.
+  const gradient = getCssVar("--gradient-warm");
+  const primaryHsl = getCssVar("--primary");
+  const baseColor = primaryHsl ? `hsl(${primaryHsl})` : "transparent";
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml"
+      style="width:${width}px;height:${height}px;background:${gradient};background-color:${baseColor};">
+    </div>
+  </foreignObject>
+</svg>`;
+
+  const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const img = new Image();
+    img.decoding = "async";
+
+    const loaded = new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Failed to render gradient image"));
+    });
+
+    img.src = svgUrl;
+    await loaded;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas rendering not supported in this browser");
+
+    ctx.drawImage(img, 0, 0);
+
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Failed to create PNG"))), "image/png");
+    });
+
+    const downloadUrl = URL.createObjectURL(pngBlob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(downloadUrl);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+};
 
 export const AppSettingsManager = () => {
   const { toast } = useToast();
@@ -193,6 +256,27 @@ export const AppSettingsManager = () => {
     );
   }
 
+  const handleDownloadSplash = async () => {
+    try {
+      await exportCssGradientToPng({
+        width: 1242,
+        height: 1920,
+        filename: "splash-background-sunburst.png",
+      });
+      toast({
+        title: "Downloaded",
+        description: "Generated from your live sunburst gradient (bg-gradient-warm).",
+      });
+    } catch (error: any) {
+      console.error("Splash gradient export failed:", error);
+      toast({
+        title: "Download failed",
+        description: error?.message || "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -209,27 +293,20 @@ export const AppSettingsManager = () => {
         <div className="space-y-3">
           <Label>Mobile Splash Background</Label>
           <p className="text-sm text-muted-foreground">
-            Download the current splash background image.
+            Download a PNG generated from your actual sunburst gradient (the same <code className="bg-muted px-1 py-0.5 rounded">bg-gradient-warm</code> token used across the app).
           </p>
 
           <div className="border rounded-lg p-4 bg-muted/50">
-            <img
-              src={splashBackground}
-              alt="Splash background preview"
-              className="w-full max-w-sm rounded-md border border-border object-cover"
-              loading="lazy"
+            <div
+              aria-label="Splash background preview"
+              className="w-full max-w-sm aspect-[9/16] rounded-md border border-border bg-gradient-warm shadow-warm"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
-              <a href={splashBackground} download="splash-background.png">
-                Download splash background
-              </a>
+            <Button variant="outline" onClick={handleDownloadSplash}>
+              Download sunburst splash (PNG)
             </Button>
-            <p className="text-xs text-muted-foreground">
-              File: <code className="bg-muted px-1 py-0.5 rounded">src/assets/splash-background.png</code>
-            </p>
           </div>
         </div>
 
