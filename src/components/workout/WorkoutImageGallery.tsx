@@ -93,7 +93,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
         .select("*")
         .eq("is_shared_to_community", true)
         .eq("is_test", false)
-        .order("likes_count", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(50);
 
       if (error) throw error;
