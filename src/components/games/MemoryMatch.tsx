@@ -872,10 +872,10 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
               </Dialog>
             </div>
           ) : (
-            <div className={`grid gap-3 ${
-              difficulty === 'easy' ? 'grid-cols-4' :
+            <div className={`grid gap-2 sm:gap-3 ${
+              difficulty === 'easy' ? 'grid-cols-3 sm:grid-cols-4' :
               difficulty === 'medium' ? 'grid-cols-4' :
-              'grid-cols-5'
+              'grid-cols-4 sm:grid-cols-5'
             }`}>
               {cards.map((card) => (
                 <button
