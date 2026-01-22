@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Pause, Play, ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { format } from "date-fns";
 
 interface FeaturedItemData {
@@ -46,6 +45,7 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
   const [isPaused, setIsPaused] = useState(false);
   const [eventDetails, setEventDetails] = useState<EventDetails | null>(null);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const autoAdvanceRef = useRef(false);
 
   useEffect(() => {
@@ -194,19 +194,11 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
 
   const currentItem = items[currentIndex];
   const isExternalLink = resolvedUrl.startsWith("http");
-  
-  // Parse aspect ratio safely (e.g., "16:9" -> 16/9)
-  const parseAspectRatio = (ratio: string): number => {
-    const parts = ratio.split(':').map(Number);
-    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[1] !== 0) {
-      return parts[0] / parts[1];
-    }
-    return 16 / 9; // Default fallback
+
+  // Reset image loaded state when switching items
+  const handleImageLoad = () => {
+    setImageLoaded(true);
   };
-  
-  const aspectRatioValue = currentItem.aspect_ratio 
-    ? parseAspectRatio(currentItem.aspect_ratio)
-    : 16 / 9;
 
   return (
     <Card className="mb-8 overflow-hidden border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
@@ -215,13 +207,12 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
           <div className="flex flex-col md:flex-row gap-6 items-center">
             {currentItem.image_url && (
               <div className="w-full md:w-5/12 flex-shrink-0">
-                <AspectRatio ratio={aspectRatioValue}>
-                  <img
-                    src={currentItem.image_url}
-                    alt={currentItem.title}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                </AspectRatio>
+                <img
+                  src={currentItem.image_url}
+                  alt={currentItem.title}
+                  className="w-full h-auto rounded-lg"
+                  onLoad={handleImageLoad}
+                />
               </div>
             )}
             <div className="flex-1 text-center md:text-left">
