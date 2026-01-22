@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PasswordChangeDialog } from "@/components/PasswordChangeDialog";
 import { PicturePasswordManager } from "@/components/auth/PicturePasswordManager";
+import { DeleteAccountSection } from "@/components/profile/DeleteAccountSection";
 import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmojis";
 import { profileSchema, validateInput } from "@/lib/validation";
 
@@ -1501,6 +1502,9 @@ const ProfileSettings = () => {
               {user && (
                 <PicturePasswordManager userId={user.id} />
               )}
+
+              {/* Delete Account Section */}
+              <DeleteAccountSection />
             </TabsContent>
           </Tabs>
         </div>
