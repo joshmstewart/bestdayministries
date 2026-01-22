@@ -21,6 +21,24 @@ interface IngredientWithCategory {
   category: string;
 }
 
+interface BeatInstrument {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+}
+
+// Helper to count active steps in a beat pattern
+const countBeatNotes = (pattern: Record<string, boolean[]>): number => {
+  if (!pattern || typeof pattern !== 'object') return 0;
+  return Object.values(pattern).reduce((total, steps) => {
+    if (Array.isArray(steps)) {
+      return total + steps.filter(Boolean).length;
+    }
+    return total;
+  }, 0);
+};
+
 interface FeedItemDialogProps {
   item: FeedItemData | null;
   isOpen: boolean;
@@ -51,6 +69,8 @@ export function FeedItemDialog({
   const [downloading, setDownloading] = useState(false);
   const [drinkIngredients, setDrinkIngredients] = useState<IngredientWithCategory[]>([]);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
+  const [beatInstruments, setBeatInstruments] = useState<BeatInstrument[]>([]);
+  const [loadingBeatInstruments, setLoadingBeatInstruments] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
 
   // Fetch drink ingredients when a drink item is opened
@@ -92,6 +112,63 @@ export function FeedItemDialog({
 
     fetchDrinkIngredients();
   }, [item?.id, item?.item_type, isOpen]);
+
+  // Fetch beat instruments when a beat item is opened
+  useEffect(() => {
+    const fetchBeatInstruments = async () => {
+      if (!item || item.item_type !== 'beat' || !isOpen || !item.extra_data?.pattern) {
+        setBeatInstruments([]);
+        return;
+      }
+
+      setLoadingBeatInstruments(true);
+      try {
+        const pattern = item.extra_data.pattern as Record<string, boolean[]>;
+        const instrumentKeys = Object.keys(pattern);
+        
+        if (instrumentKeys.length === 0) {
+          setBeatInstruments([]);
+          return;
+        }
+
+        // Check if keys are UUIDs or sound_type strings
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const firstKey = instrumentKeys[0];
+        
+        let query;
+        if (isUUID.test(firstKey)) {
+          // Keys are UUIDs
+          query = supabase
+            .from('beat_pad_sounds')
+            .select('id, name, emoji, color')
+            .in('id', instrumentKeys);
+        } else {
+          // Keys are sound_type strings (legacy)
+          query = supabase
+            .from('beat_pad_sounds')
+            .select('id, name, emoji, color, sound_type')
+            .in('sound_type', instrumentKeys);
+        }
+        
+        const { data: sounds } = await query;
+        
+        if (sounds) {
+          setBeatInstruments(sounds.map(s => ({
+            id: s.id,
+            name: s.name,
+            emoji: s.emoji,
+            color: s.color
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching beat instruments:', error);
+      } finally {
+        setLoadingBeatInstruments(false);
+      }
+    };
+
+    fetchBeatInstruments();
+  }, [item?.id, item?.item_type, isOpen, item?.extra_data?.pattern]);
 
   if (!item) return null;
 
@@ -236,10 +313,24 @@ export function FeedItemDialog({
             {item.author_name && (
               <p className="text-sm text-muted-foreground">by {item.author_name}</p>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              Created {format(new Date(item.created_at), "MMM d, yyyy")}
-            </p>
-            {item.description && (
+            
+            {/* Beat stats: BPM, notes, plays */}
+            {item.item_type === 'beat' && item.extra_data && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {item.extra_data.tempo && <span className="font-medium">{item.extra_data.tempo} BPM</span>}
+                {item.extra_data.tempo && item.extra_data.pattern && <span className="mx-2">•</span>}
+                {item.extra_data.pattern && (
+                  <span>{countBeatNotes(item.extra_data.pattern)} notes • {item.extra_data.plays_count || 0} loop plays</span>
+                )}
+              </p>
+            )}
+            
+            {item.item_type !== 'beat' && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Created {format(new Date(item.created_at), "MMM d, yyyy")}
+              </p>
+            )}
+            {item.description && item.item_type !== 'beat' && (
               <p className="text-sm text-muted-foreground mt-2 italic">{item.description}</p>
             )}
             
@@ -268,6 +359,36 @@ export function FeedItemDialog({
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            )}
+
+            {/* Beat Instruments */}
+            {item.item_type === 'beat' && beatInstruments.length > 0 && (
+              <div className="space-y-2 mt-4">
+                <h3 className="text-sm font-medium">Instruments Used</h3>
+                {loadingBeatInstruments ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading instruments...
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {beatInstruments.map((instrument) => (
+                      <div 
+                        key={instrument.id}
+                        className="flex items-center gap-3 py-1.5"
+                      >
+                        <span 
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                          style={{ backgroundColor: instrument.color }}
+                        >
+                          {instrument.emoji}
+                        </span>
+                        <span className="text-sm">{instrument.name}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
