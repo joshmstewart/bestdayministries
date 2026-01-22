@@ -6,12 +6,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle, AlertCircle, CreditCard, ExternalLink } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
+
 interface StripeConnectOnboardingProps {
   vendorId: string;
   readOnly?: boolean;
+  theme?: VendorThemePreset;
 }
 
-export const StripeConnectOnboarding = ({ vendorId, readOnly = false }: StripeConnectOnboardingProps) => {
+export const StripeConnectOnboarding = ({ vendorId, readOnly = false, theme }: StripeConnectOnboardingProps) => {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [managingAccount, setManagingAccount] = useState(false);
@@ -104,7 +107,14 @@ export const StripeConnectOnboarding = ({ vendorId, readOnly = false }: StripeCo
 
   if (checking) {
     return (
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardContent className="pt-6 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin" />
         </CardContent>
@@ -113,10 +123,17 @@ export const StripeConnectOnboarding = ({ vendorId, readOnly = false }: StripeCo
   }
 
   return (
-    <Card>
+    <Card
+      className="border-2"
+      style={theme ? { 
+        backgroundColor: theme.cardBg,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardGlow
+      } : undefined}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5" />
+          <CreditCard className="h-5 w-5" style={theme ? { color: theme.accent } : undefined} />
           Stripe Connect Status
         </CardTitle>
         <CardDescription>

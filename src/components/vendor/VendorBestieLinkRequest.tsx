@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, Heart } from "lucide-react";
 import { FRIEND_CODE_EMOJIS } from "@/lib/friendCodeEmojis";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 const BESTIE_ROLES = [
   { value: "Maker", label: "Maker" },
@@ -16,9 +17,10 @@ const BESTIE_ROLES = [
 
 interface VendorBestieLinkRequestProps {
   vendorId: string;
+  theme?: VendorThemePreset;
 }
 
-export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestProps) => {
+export const VendorBestieLinkRequest = ({ vendorId, theme }: VendorBestieLinkRequestProps) => {
   const [emoji1, setEmoji1] = useState("");
   const [emoji2, setEmoji2] = useState("");
   const [emoji3, setEmoji3] = useState("");
@@ -107,7 +109,14 @@ export const VendorBestieLinkRequest = ({ vendorId }: VendorBestieLinkRequestPro
   };
 
   return (
-    <Card>
+    <Card
+      className="border-2"
+      style={theme ? { 
+        backgroundColor: theme.cardBg,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardGlow
+      } : undefined}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Heart className="h-5 w-5 text-primary" />

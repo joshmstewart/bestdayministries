@@ -19,11 +19,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface ProductListProps {
   vendorId: string;
   refreshTrigger?: number;
   stripeChargesEnabled?: boolean;
+  theme?: VendorThemePreset;
 }
 
 export interface ProductListRef {
@@ -31,7 +33,7 @@ export interface ProductListRef {
 }
 
 export const ProductList = forwardRef<ProductListRef, ProductListProps>(
-  ({ vendorId, refreshTrigger, stripeChargesEnabled = true }, ref) => {
+  ({ vendorId, refreshTrigger, stripeChargesEnabled = true, theme }, ref) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +118,14 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
 
   if (loading) {
     return (
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardContent className="py-12">
           <div className="text-center text-muted-foreground">
             <p>Loading products...</p>
@@ -128,7 +137,14 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
 
   if (products.length === 0) {
     return (
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardContent className="py-12">
           <div className="text-center text-muted-foreground">
             <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -153,7 +169,15 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {products.map((product) => (
-        <Card key={product.id} className="overflow-hidden">
+        <Card 
+          key={product.id} 
+          className="overflow-hidden border-2"
+          style={theme ? { 
+            backgroundColor: theme.cardBg,
+            borderColor: theme.cardBorder,
+            boxShadow: theme.cardGlow
+          } : undefined}
+        >
           <div className="aspect-square relative">
             {product.images && product.images.length > 0 ? (
               <img

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Heart, Star, Loader2, X, Edit } from "lucide-react";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface LinkedBestie {
   id: string;
@@ -26,9 +27,10 @@ interface LinkedBestie {
 
 interface VendorLinkedBestiesProps {
   vendorId: string;
+  theme?: VendorThemePreset;
 }
 
-export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
+export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProps) => {
   const [besties, setBesties] = useState<LinkedBestie[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,7 +234,14 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
 
   if (loading) {
     return (
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardContent className="py-8">
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -246,7 +255,14 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
     <div className="space-y-6">
       {/* Pending Requests */}
       {pendingRequests.length > 0 && (
-        <Card>
+        <Card
+          className="border-2"
+          style={theme ? { 
+            backgroundColor: theme.cardBg,
+            borderColor: theme.cardBorder,
+            boxShadow: theme.cardGlow
+          } : undefined}
+        >
           <CardHeader>
             <CardTitle>Pending Link Requests</CardTitle>
             <CardDescription>
@@ -294,7 +310,14 @@ export const VendorLinkedBesties = ({ vendorId }: VendorLinkedBestiesProps) => {
       )}
 
       {/* Linked Besties */}
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle>Linked Besties</CardTitle>
           <CardDescription>
