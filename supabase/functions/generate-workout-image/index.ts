@@ -251,7 +251,17 @@ serve(async (req) => {
         selectedLocationName = location;
       }
 
-      prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character COMPLETELY identical - same gender, face, hair, art style, AND MOST IMPORTANTLY their thematic identity/costume style (e.g., if they're a mage they should wear mage-themed athletic wear, if they're a superhero they should wear superhero-themed gear, if they're in fantasy armor they should have fantasy-styled workout clothes, etc.). The outfit should be adapted for the activity but PRESERVE the character's signature look/theme/vibe. Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
+      // Check for character-specific enhancements
+      const isBubbleBenny = avatar.name?.toLowerCase().includes("bubble benny");
+      
+      // Build character-specific additions
+      let characterEnhancements = "";
+      if (isBubbleBenny) {
+        // Bubble Benny should always have soap bubbles on him
+        characterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating around them and soap-bubble texture on their skin. If the activity allows (not swimming/underwater), they should also be holding a bubble wand and blowing a big soap bubble while doing the activity.";
+      }
+
+      prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character COMPLETELY identical - same gender, face, hair, art style, AND MOST IMPORTANTLY their thematic identity/costume style (e.g., if they're a mage they should wear mage-themed athletic wear, if they're a superhero they should wear superhero-themed gear, if they're in fantasy armor they should have fantasy-styled workout clothes, etc.). The outfit should be adapted for the activity but PRESERVE the character's signature look/theme/vibe.${characterEnhancements} Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
     } else if (imageType === "celebration") {
       // For celebration, also use real location if in admin test
       if (isAdminTest || !location) {
@@ -273,7 +283,15 @@ serve(async (req) => {
         selectedLocationName = location;
       }
 
-      prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (preserve their signature look like mage robes, superhero cape, fantasy elements, etc. but adapted for celebration). Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
+      // Check for character-specific enhancements (celebration)
+      const isBubbleBenny = avatar.name?.toLowerCase().includes("bubble benny");
+      
+      let celebrationCharacterEnhancements = "";
+      if (isBubbleBenny) {
+        celebrationCharacterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating all around them and soap-bubble texture on their skin. They should also be holding a bubble wand and blowing a big celebratory soap bubble.";
+      }
+
+      prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (preserve their signature look like mage robes, superhero cape, fantasy elements, etc. but adapted for celebration).${celebrationCharacterEnhancements} Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
     } else {
       throw new Error("Invalid imageType");
     }
