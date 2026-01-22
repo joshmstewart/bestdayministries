@@ -44,7 +44,7 @@ export const useAppManifest = () => {
         const manifest = {
           name: appName,
           short_name: appName.split(' ').slice(0, 2).join(' '),
-          description: 'Spreading Joy Through Special Needs Community',
+          description: 'Faith-based community empowering individuals with disabilities. Donations support Best Day Ministries (508(c)(1)(A)). Shop Joy House Store (501(c)(3)) for handmade goods.',
           start_url: '/',
           display: 'standalone',
           background_color: '#ffffff',
