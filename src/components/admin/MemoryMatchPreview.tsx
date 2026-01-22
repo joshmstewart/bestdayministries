@@ -104,49 +104,68 @@ export const MemoryMatchPreview = ({
   const handleCardClick = useCallback((cardId: number) => {
     // Block if we're still processing a previous non-match
     if (isProcessingRef.current) return;
-    if (flippedCards.length === 2 || flippedCards.includes(cardId)) return;
-    if (cards[cardId]?.isMatched) return;
-
-    const newFlipped = [...flippedCards, cardId];
-    setFlippedCards(newFlipped);
-
-    setCards(prevCards => prevCards.map(card =>
-      card.id === cardId ? { ...card, isFlipped: true } : card
-    ));
-
-    if (newFlipped.length === 2) {
-      setMoves(prev => prev + 1);
-      const [first, second] = newFlipped;
-
-      if (cards[first]?.imageUrl === cards[second]?.imageUrl) {
-        setCards(prevCards => prevCards.map(card =>
-          card.id === first || card.id === second
-            ? { ...card, isMatched: true, isFlipped: true }
-            : card
-        ));
-        setMatchedPairs(prev => {
-          const newCount = prev + 1;
-          if (newCount === pairCount) {
-            setGameCompleted(true);
-          }
-          return newCount;
-        });
-        setFlippedCards([]);
-      } else {
-        // No match - lock processing, flip cards back after delay
-        isProcessingRef.current = true;
-        setTimeout(() => {
-          setCards(prevCards => prevCards.map(card =>
-            card.id === first || card.id === second
-              ? { ...card, isFlipped: false }
-              : card
-          ));
-          setFlippedCards([]);
-          isProcessingRef.current = false; // Unlock
-        }, 600); // Faster flip-back for better game flow
+    
+    setFlippedCards(prevFlipped => {
+      if (prevFlipped.length === 2 || prevFlipped.includes(cardId)) {
+        return prevFlipped;
       }
-    }
-  }, [cards, flippedCards, pairCount]);
+      
+      setCards(prevCards => {
+        const clickedCard = prevCards.find(c => c.id === cardId);
+        if (!clickedCard || clickedCard.isMatched) {
+          return prevCards;
+        }
+        
+        const newFlipped = [...prevFlipped, cardId];
+        const updatedCards = prevCards.map(card =>
+          card.id === cardId ? { ...card, isFlipped: true } : card
+        );
+        
+        if (newFlipped.length === 2) {
+          setMoves(prev => prev + 1);
+          const [firstId, secondId] = newFlipped;
+          const firstCard = prevCards.find(c => c.id === firstId);
+          const secondCard = prevCards.find(c => c.id === secondId);
+          
+          if (firstCard && secondCard && firstCard.imageUrl === secondCard.imageUrl) {
+            // Match found
+            setMatchedPairs(prev => {
+              const newCount = prev + 1;
+              if (newCount === pairCount) {
+                setGameCompleted(true);
+              }
+              return newCount;
+            });
+            setTimeout(() => setFlippedCards([]), 0);
+            return updatedCards.map(card =>
+              card.id === firstId || card.id === secondId
+                ? { ...card, isMatched: true, isFlipped: true }
+                : card
+            );
+          } else {
+            // No match - flip back after delay
+            isProcessingRef.current = true;
+            setTimeout(() => {
+              setCards(pc => pc.map(card =>
+                card.id === firstId || card.id === secondId
+                  ? { ...card, isFlipped: false }
+                  : card
+              ));
+              setFlippedCards([]);
+              isProcessingRef.current = false;
+            }, 600);
+          }
+        }
+        
+        return updatedCards;
+      });
+      
+      if (prevFlipped.length < 2 && !prevFlipped.includes(cardId)) {
+        return [...prevFlipped, cardId];
+      }
+      return prevFlipped;
+    });
+  }, [pairCount]);
 
   // Pointer event handlers for iOS/Safari compatibility
   const handleCardPointerDown = useCallback((e: React.PointerEvent) => {
