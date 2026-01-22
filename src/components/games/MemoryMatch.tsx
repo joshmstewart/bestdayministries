@@ -744,10 +744,6 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
               <Clock className="h-4 w-4" />
               {formatTime(elapsedTime)}
             </Badge>
-            <Badge variant="secondary" className="flex items-center gap-2">
-              <Trophy className="h-4 w-4" />
-              {matchedPairs}/{DIFFICULTY_CONFIG[difficulty].pairs}
-            </Badge>
           </div>
         </CardHeader>
         <CardContent>
