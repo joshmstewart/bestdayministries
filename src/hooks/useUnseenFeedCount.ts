@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeedBadgeStore } from '@/stores/feedBadgeStore';
 
 interface UseUnseenFeedCountReturn {
   unseenCount: number;
@@ -14,21 +15,32 @@ const unseenCountCache = new Map<string, { count: number; timestamp: number }>()
 const CACHE_TTL = 30000; // 30 seconds
 
 export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
-  const { user, profile } = useAuth();
-  const [unseenCount, setUnseenCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [showBadge, setShowBadge] = useState(true);
-  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
+  const { user } = useAuth();
+  const {
+    unseenCount,
+    lastSeenAt,
+    showBadge,
+    loading,
+    setUnseenCount,
+    setLastSeenAt,
+    setShowBadge,
+    setLoading,
+    markAsSeen: markAsSeenInStore,
+  } = useFeedBadgeStore();
   const fetchInProgress = useRef(false);
+  const hasFetchedPrefs = useRef(false);
 
-  // Fetch user's preference and last seen timestamp
-  // Note: AuthContext profile doesn't include feed_last_seen_at/show_feed_badge, so we always fetch
+  // Fetch user's preference and last seen timestamp (only once per user)
   useEffect(() => {
     async function fetchUserPrefs() {
       if (!user?.id) {
         setLoading(false);
         return;
       }
+
+      // Skip if we've already fetched for this user
+      if (hasFetchedPrefs.current) return;
+      hasFetchedPrefs.current = true;
 
       try {
         const { data, error } = await supabase
@@ -47,7 +59,7 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
     }
 
     fetchUserPrefs();
-  }, [user?.id]);
+  }, [user?.id, setShowBadge, setLastSeenAt, setLoading]);
 
   // Fetch unseen count from community_feed_items view
   useEffect(() => {
@@ -102,7 +114,7 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
     }
 
     fetchUnseenCount();
-  }, [user?.id, showBadge, lastSeenAt]);
+  }, [user?.id, showBadge, lastSeenAt, setUnseenCount, setLoading]);
 
   // Mark feed as seen (update last_seen_at to now)
   const markAsSeen = useCallback(async () => {
@@ -119,7 +131,7 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
       if (error) throw error;
 
       setLastSeenAt(now);
-      setUnseenCount(0);
+      markAsSeenInStore(); // This updates the global store, clearing badge everywhere
       
       // Clear cache for this user
       unseenCountCache.forEach((_, key) => {
@@ -130,7 +142,7 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
     } catch (err) {
       console.error('Error marking feed as seen:', err);
     }
-  }, [user?.id]);
+  }, [user?.id, setLastSeenAt, markAsSeenInStore]);
 
   return {
     unseenCount,
