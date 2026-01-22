@@ -3499,6 +3499,48 @@ export type Database = {
           },
         ]
       }
+      event_email_queue: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_date: string | null
+          event_id: string
+          event_location: string | null
+          event_title: string
+          id: string
+          processed: boolean | null
+          processed_at: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_date?: string | null
+          event_id: string
+          event_location?: string | null
+          event_title: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_date?: string | null
+          event_id?: string
+          event_location?: string | null
+          event_title?: string
+          id?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           allow_admin_edit: boolean
