@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Heart, Loader2 } from "lucide-react";
+import { Heart, Loader2, HandHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   HoverCard,
@@ -104,6 +104,15 @@ export function LikeButtonWithTooltip({
           userIds = data?.map(d => d.user_id) || [];
           break;
         }
+        case 'prayer': {
+          const { data } = await supabase
+            .from('prayer_request_likes')
+            .select('user_id')
+            .eq('prayer_request_id', itemId)
+            .limit(10);
+          userIds = data?.map(d => d.user_id) || [];
+          break;
+        }
       }
 
       if (userIds.length > 0) {
@@ -132,6 +141,11 @@ export function LikeButtonWithTooltip({
     }
   };
 
+  // Prayer uses different icon and label
+  const isPrayer = itemType === 'prayer';
+  const Icon = isPrayer ? HandHeart : Heart;
+  const activeColor = isPrayer ? "fill-primary text-primary" : "fill-red-500 text-red-500";
+  
   const buttonContent = (
     <Button
       variant="ghost"
@@ -140,13 +154,18 @@ export function LikeButtonWithTooltip({
       disabled={disabled}
       className="gap-1.5 px-2"
     >
-      <Heart
+      <Icon
         className={cn(
           "h-4 w-4 transition-all",
-          isLiked && "fill-red-500 text-red-500"
+          isLiked && activeColor
         )}
       />
-      <span className="text-sm text-foreground">{likesCount}</span>
+      <span className="text-sm text-foreground">
+        {isPrayer 
+          ? (likesCount > 0 ? `${likesCount} praying` : "Pray for this")
+          : likesCount
+        }
+      </span>
     </Button>
   );
 
@@ -167,7 +186,9 @@ export function LikeButtonWithTooltip({
           </div>
         ) : likers.length > 0 ? (
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Liked by</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">
+              {isPrayer ? "Praying" : "Liked by"}
+            </p>
             {likers.map((liker) => (
               <p key={liker.id} className="text-sm truncate">
                 {liker.display_name || "Community Member"}
