@@ -167,6 +167,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             data = result.data;
             break;
           }
+          case 'prayer': {
+            const result = await supabase
+              .from('prayer_request_likes')
+              .select('id')
+              .eq('prayer_request_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
           default:
             return;
         }
@@ -298,6 +308,33 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               .from('workout_image_likes')
               .insert({ image_id: item.id, user_id: user.id });
             if (error) throw error;
+          }
+          break;
+        }
+        case 'prayer': {
+          if (isLiked) {
+            const { error } = await supabase
+              .from('prayer_request_likes')
+              .delete()
+              .eq('prayer_request_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
+            // Update likes_count on prayer_requests
+            await supabase
+              .from('prayer_requests')
+              .update({ likes_count: Math.max(0, likesCount - 1) })
+              .eq('id', item.id);
+          } else {
+            const { error } = await supabase
+              .from('prayer_request_likes')
+              .insert({ prayer_request_id: item.id, user_id: user.id });
+            if (error) throw error;
+            // Update likes_count on prayer_requests
+            await supabase
+              .from('prayer_requests')
+              .update({ likes_count: likesCount + 1 })
+              .eq('id', item.id);
+            toast.success("Praying with you 🙏");
           }
           break;
         }
