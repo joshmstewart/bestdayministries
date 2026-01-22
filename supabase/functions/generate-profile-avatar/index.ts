@@ -59,8 +59,8 @@ serve(async (req) => {
       throw new Error("Avatar has no image to use");
     }
 
-    // Build the prompt for a profile-worthy image
-    const prompt = `Use the EXACT same character from the reference image. Create a profile picture/avatar showing them ${sceneDescription}. Keep the character identical (same gender, face, hair, and art style). The image should be suitable as a profile picture - centered on the character with a simple, complementary background. High quality cartoon illustration, vibrant colors, friendly expression.`;
+    // Build the prompt for a profile-worthy image that preserves character identity
+    const prompt = `Use the EXACT same character from the reference image. Create a profile picture/avatar showing them ${sceneDescription}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (e.g., if they're a mage preserve their mystical/wizard aesthetic, if a superhero keep their heroic look, if fantasy-themed preserve those elements - adapt the outfit for the scene but keep the signature style/vibe). The image should be suitable as a profile picture - centered on the character with a simple, complementary background. High quality cartoon illustration, vibrant colors, friendly expression.`;
 
     console.log("Generating profile avatar with scene:", sceneDescription);
     console.log("Avatar image URL:", avatarImageUrl);
