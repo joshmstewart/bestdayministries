@@ -339,6 +339,11 @@ export default function EventManagement() {
           .from("event_dates")
           .delete()
           .eq("event_id", editingEvent.id);
+        
+        // Process event update notification emails (the database trigger already populated the queue)
+        setTimeout(() => {
+          supabase.functions.invoke("process-event-update-email-queue", {});
+        }, 500);
           
         toast.success(`Event updated successfully${location ? ' with location: ' + location : ''}`);
       } else {
