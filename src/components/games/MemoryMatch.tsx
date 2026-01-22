@@ -798,10 +798,6 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
               <Star className="h-6 w-6 text-yellow-500" />
               Memory Match - {DIFFICULTY_CONFIG[difficulty].label}
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={() => setGameStarted(false)}>
-              <Home className="h-4 w-4 mr-2" />
-              Exit
-            </Button>
           </div>
           <div className="flex gap-4 text-sm">
             <Badge variant="secondary" className="flex items-center gap-2">
@@ -839,10 +835,6 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                 <Button variant="outline" onClick={() => setGameStarted(false)}>
                   <Package className="h-4 w-4 mr-2" />
                   Change Pack
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/games')}>
-                  <Home className="h-4 w-4 mr-2" />
-                  Back to Games
                 </Button>
               </div>
             </div>
