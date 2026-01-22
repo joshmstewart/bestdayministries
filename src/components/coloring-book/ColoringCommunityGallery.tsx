@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Heart, Loader2, X, Palette, EyeOff } from "lucide-react";
+import { Heart, Loader2, X, Palette, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -455,7 +455,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                       }}
                       disabled={unsharing}
                     >
-                      {unsharing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <EyeOff className="h-4 w-4 mr-1" />}
+                      {unsharing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Lock className="h-4 w-4 mr-1" />}
                       Unshare
                     </Button>
                   )}

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
   Download, Loader2, X, Lock, Play, Square, 
-  ExternalLink, Palette, Music
+  Palette, Music
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -339,58 +339,62 @@ export function FeedItemDialog({
               />
 
 
-              {/* Download - for image types */}
-              {item.image_url && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDownload}
-                  disabled={downloading}
-                >
-                  {downloading ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-1" />
+              {/* Owner-only actions */}
+              {isOwner && (
+                <>
+                  {/* Edit - owner only */}
+                  <Button variant="default" size="sm" asChild>
+                    <Link to={getItemRoute()}>
+                      <Palette className="h-4 w-4 mr-1" />
+                      Edit
+                    </Link>
+                  </Button>
+
+                  {/* Download - owner only */}
+                  {item.image_url && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleDownload}
+                      disabled={downloading}
+                    >
+                      {downloading ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1" />
+                      )}
+                      Download
+                    </Button>
                   )}
-                  Download
-                </Button>
+                </>
               )}
 
-              {/* Open in App link */}
-              <Button variant="outline" size="sm" asChild>
-                <Link to={getItemRoute()}>
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  Open in App
-                </Link>
-              </Button>
-
-              {/* Copy/Remix - for applicable types */}
+              {/* Start New Copy - for applicable types (everyone can copy) */}
               {(item.item_type === 'coloring' || item.item_type === 'beat' || item.item_type === 'card') && (
-                <Button variant="outline" size="sm" asChild>
+                <Button variant={isOwner ? "outline" : "default"} size="sm" asChild>
                   <Link to={getItemRoute() + "&action=copy"}>
                     {item.item_type === 'beat' ? (
                       <>
                         <Music className="h-4 w-4 mr-1" />
-                        Remix
+                        {isOwner ? "Remix" : "Start New Copy"}
                       </>
                     ) : (
                       <>
                         <Palette className="h-4 w-4 mr-1" />
-                        Make My Copy
+                        Start New Copy
                       </>
                     )}
                   </Link>
                 </Button>
               )}
 
-              {/* Owner actions */}
+              {/* Unshare - owner only */}
               {isOwner && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleUnshare}
                   disabled={unsharing}
-                  className="text-destructive hover:text-destructive"
                 >
                   {unsharing ? (
                     <Loader2 className="h-4 w-4 mr-1 animate-spin" />
