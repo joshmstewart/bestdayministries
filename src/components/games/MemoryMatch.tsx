@@ -98,11 +98,12 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [hasHardMode, setHasHardMode] = useState(false);
-  const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number; time: number } | null>>({
+const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number; time: number } | null>>({
     easy: null,
     medium: null,
     hard: null,
   });
+  const [completionCount, setCompletionCount] = useState(0);
   const [pbRewards, setPbRewards] = useState<Record<Difficulty, number>>({
     easy: 50,
     medium: 75,
@@ -371,6 +372,9 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
       .order('time_seconds', { ascending: true });
 
     if (data) {
+      // Set total completion count
+      setCompletionCount(data.length);
+      
       const scores: Record<Difficulty, { moves: number; time: number } | null> = {
         easy: null,
         medium: null,
@@ -748,7 +752,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
         </CardHeader>
         <CardContent>
           {gameCompleted ? (
-            <div className="text-center space-y-6 py-8">
+            <div className="text-center space-y-4 py-4">
               <GameCelebrationDisplay userId={currentUserId} fallbackEmoji="🎉" />
               <div>
                 <h3 className="text-2xl font-bold mb-2">Congratulations!</h3>
@@ -757,6 +761,9 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                 </p>
                 <p className="text-lg font-semibold text-primary mt-2">
                   +{DIFFICULTY_CONFIG[difficulty].coins} coins earned!
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Total completions: {completionCount}
                 </p>
               </div>
               <div className="flex flex-wrap gap-3 justify-center">
