@@ -82,7 +82,17 @@ serve(async (req) => {
     const prompts = celebrationPrompts[celebrationType] || celebrationPrompts.game_win;
     const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
 
-    const prompt = `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style. The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition. IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image - purely visual celebration only.`;
+    // Check for character-specific enhancements
+    const isBubbleBenny = avatar.name?.toLowerCase().includes("bubble benny");
+    
+    // Build character-specific additions
+    let characterEnhancements = "";
+    if (isBubbleBenny) {
+      // Bubble Benny should always have soap bubbles on him and be blowing bubbles when celebrating
+      characterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating all around them and soap-bubble texture on their skin. They should also be holding a bubble wand and blowing a big celebratory soap bubble.";
+    }
+
+    const prompt = `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style.${characterEnhancements} The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition. IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image - purely visual celebration only.`;
 
     console.log("Generating celebration image for avatar:", avatar.name);
     console.log("Using prompt:", prompt);
