@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { 
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2, Copy
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,17 @@ const typeConfig: Record<string, { label: string; appName: string; icon: React.E
   recipe: { label: "Recipe", appName: "Recipe Gallery", icon: ChefHat, color: "bg-amber-500/10 text-amber-500 border-amber-500/20", buttonColor: "bg-amber-500 hover:bg-amber-600 text-white", routeBase: "/games/recipe-gallery", idParam: "recipe" },
   drink: { label: "Drink", appName: "Drink Creator", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", buttonColor: "bg-cyan-500 hover:bg-cyan-600 text-white", routeBase: "/games/drink-creator", idParam: "drink" },
   joke: { label: "Joke", appName: "Joke Generator", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", buttonColor: "bg-lime-500 hover:bg-lime-600 text-white", routeBase: "/games/jokes", idParam: "joke" },
+};
+
+// Helper to count active steps in a beat pattern
+const countBeatNotes = (pattern: Record<string, boolean[]>): number => {
+  if (!pattern || typeof pattern !== 'object') return 0;
+  return Object.values(pattern).reduce((total, steps) => {
+    if (Array.isArray(steps)) {
+      return total + steps.filter(Boolean).length;
+    }
+    return total;
+  }, 0);
 };
 
 const getItemRoute = (itemType: string, itemId: string) => {
@@ -547,12 +558,24 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 >
                   {item.title}
                 </h3>
+                {/* Beat BPM badge */}
+                {item.item_type === 'beat' && item.extra_data?.tempo && (
+                  <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+                    {item.extra_data.tempo} BPM
+                  </span>
+                )}
                 <TextToSpeech 
                   text={`${item.title}${item.description ? `. ${item.description}` : ''}`} 
                   size="sm"
                 />
               </div>
-              {item.description && item.item_type !== 'prayer' && (
+              {/* Beat stats: notes and plays */}
+              {item.item_type === 'beat' && item.extra_data?.pattern && (
+                <p className="text-xs text-muted-foreground">
+                  {countBeatNotes(item.extra_data.pattern)} notes • {item.extra_data.plays_count || 0} loop plays
+                </p>
+              )}
+              {item.description && item.item_type !== 'prayer' && item.item_type !== 'beat' && (
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {item.description}
                 </p>
@@ -587,6 +610,21 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 likesCount={likesCount}
                 onLike={handleLike}
               />
+
+              {/* Remix button for beats */}
+              {item.item_type === 'beat' && item.extra_data?.pattern && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1"
+                  asChild
+                >
+                  <Link to={`/games/beat-pad?remix=${item.id}`}>
+                    <Copy className="h-3.5 w-3.5" />
+                    <span className="text-xs">Remix</span>
+                  </Link>
+                </Button>
+              )}
 
               {/* Unshare button for owner */}
               {isOwner && ['beat', 'coloring', 'card', 'chore_art'].includes(item.item_type) && (
