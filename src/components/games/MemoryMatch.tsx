@@ -730,8 +730,8 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Card style={{ backgroundColor: currentColors.module }}>
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+      <Card className="shadow-lg" style={{ backgroundColor: currentColors.module }}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
@@ -750,7 +750,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           {gameCompleted ? (
             <div className="text-center space-y-4 py-4">
               <GameCelebrationDisplay userId={currentUserId} fallbackEmoji="🎉" />
@@ -872,7 +872,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
               </Dialog>
             </div>
           ) : (
-            <div className={`grid gap-2 sm:gap-3 ${
+            <div className={`grid gap-1.5 sm:gap-3 ${
               difficulty === 'easy' ? 'grid-cols-3 sm:grid-cols-4' :
               difficulty === 'medium' ? 'grid-cols-4' :
               'grid-cols-4 sm:grid-cols-5'
