@@ -480,7 +480,7 @@ const VendorDashboard = () => {
             </div>
 
             {/* Cart Insights */}
-            <CartInsights vendorId={selectedVendorId} />
+            <CartInsights vendorId={selectedVendorId} theme={theme} />
 
             <Tabs defaultValue="products" className="w-full">
               <TabsList className="inline-flex flex-wrap h-auto gap-2 bg-muted/50 p-1.5 rounded-lg mb-6">

@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, TrendingUp, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface CartInsightsProps {
   vendorId: string;
+  theme?: VendorThemePreset;
 }
 
 interface ProductCartData {
@@ -16,7 +18,7 @@ interface ProductCartData {
   cartCount: number;
 }
 
-export const CartInsights = ({ vendorId }: CartInsightsProps) => {
+export const CartInsights = ({ vendorId, theme }: CartInsightsProps) => {
   const { data, isLoading } = useQuery({
     queryKey: ['vendor-cart-insights', vendorId],
     queryFn: async () => {
@@ -99,10 +101,17 @@ export const CartInsights = ({ vendorId }: CartInsightsProps) => {
   const { totalItems = 0, totalCarts = 0, productData = [] } = data || {};
 
   return (
-    <Card>
+    <Card 
+      className="border-2"
+      style={theme ? { 
+        backgroundColor: theme.cardBg,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardGlow
+      } : undefined}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShoppingCart className="h-5 w-5" />
+          <ShoppingCart className="h-5 w-5" style={theme ? { color: theme.accent } : undefined} />
           Cart Insights
         </CardTitle>
         <CardDescription>
@@ -113,11 +122,11 @@ export const CartInsights = ({ vendorId }: CartInsightsProps) => {
         {/* Summary Stats */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-primary">{totalItems}</div>
+            <div className="text-3xl font-bold" style={theme ? { color: theme.accent } : undefined}>{totalItems}</div>
             <div className="text-sm text-muted-foreground">Items in Carts</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-primary">{totalCarts}</div>
+            <div className="text-3xl font-bold" style={theme ? { color: theme.accent } : undefined}>{totalCarts}</div>
             <div className="text-sm text-muted-foreground">Active Carts</div>
           </div>
         </div>
