@@ -143,7 +143,7 @@ export const MemoryMatchPreview = ({
           ));
           setFlippedCards([]);
           isProcessingRef.current = false; // Unlock
-        }, 1000);
+        }, 600); // Faster flip-back for better game flow
       }
     }
   }, [cards, flippedCards, pairCount]);
