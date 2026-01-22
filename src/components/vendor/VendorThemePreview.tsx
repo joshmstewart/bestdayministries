@@ -1,7 +1,6 @@
 import { getVendorTheme } from "@/lib/vendorThemePresets";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingBag, Star, Heart } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
 interface VendorThemePreviewProps {
   themeKey: string;
@@ -11,20 +10,20 @@ export const VendorThemePreview = ({ themeKey }: VendorThemePreviewProps) => {
   const theme = getVendorTheme(themeKey);
 
   return (
-    <div className="space-y-4 mt-6">
-      <p className="text-sm font-medium text-muted-foreground">Preview how your theme looks:</p>
+    <div className="mt-4">
+      <p className="text-xs font-medium text-muted-foreground mb-2">Theme preview:</p>
       
-      <div className="space-y-4">
-        {/* Banner preview */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Mini banner */}
         <div 
-          className="rounded-lg p-4 flex items-center gap-3"
+          className="rounded px-2 py-1 flex items-center gap-1.5"
           style={{ 
             backgroundColor: theme.banner,
             color: theme.bannerText 
           }}
         >
           <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg"
+            className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
             style={{ 
               backgroundColor: 'rgba(255,255,255,0.2)',
               color: theme.bannerText 
@@ -32,96 +31,61 @@ export const VendorThemePreview = ({ themeKey }: VendorThemePreviewProps) => {
           >
             S
           </div>
-          <div>
-            <p className="font-semibold">Your Store Banner</p>
-            <p className="text-sm opacity-80">This is how your header will appear</p>
-          </div>
+          <span className="text-[10px] font-medium">Banner</span>
         </div>
 
-        {/* Example product cards */}
+        {/* Mini product card */}
         <div 
-          className="rounded-lg p-4"
-          style={{ backgroundColor: theme.sectionBg }}
+          className="rounded p-1.5 flex items-center gap-1"
+          style={{ 
+            borderColor: theme.cardBorder,
+            borderWidth: '1px',
+            backgroundColor: theme.cardBg,
+            boxShadow: theme.cardGlow
+          }}
         >
-          <div className="grid grid-cols-2 gap-3">
-            {/* Product card 1 */}
-            <Card 
-              className="overflow-hidden"
-              style={{ 
-                borderColor: theme.cardBorder,
-                borderWidth: '2px',
-                backgroundColor: theme.cardBg,
-                boxShadow: theme.cardGlow
-              }}
-            >
-              <CardContent className="p-3">
-                <div 
-                  className="aspect-square rounded-md mb-2 flex items-center justify-center"
-                  style={{ backgroundColor: theme.sectionBg }}
-                >
-                  <ShoppingBag 
-                    className="w-8 h-8" 
-                    style={{ color: theme.accent }} 
-                  />
-                </div>
-                <p className="text-sm font-medium truncate">Product Name</p>
-                <p className="text-xs text-muted-foreground">$24.99</p>
-              </CardContent>
-            </Card>
-
-            {/* Product card 2 */}
-            <Card 
-              className="overflow-hidden"
-              style={{ 
-                borderColor: theme.cardBorder,
-                borderWidth: '2px',
-                backgroundColor: theme.cardBg,
-                boxShadow: theme.cardGlow
-              }}
-            >
-              <CardContent className="p-3">
-                <div 
-                  className="aspect-square rounded-md mb-2 flex items-center justify-center"
-                  style={{ backgroundColor: theme.sectionBg }}
-                >
-                  <Heart 
-                    className="w-8 h-8" 
-                    style={{ color: theme.accent }} 
-                  />
-                </div>
-                <p className="text-sm font-medium truncate">Another Item</p>
-                <p className="text-xs text-muted-foreground">$19.99</p>
-              </CardContent>
-            </Card>
+          <div 
+            className="w-5 h-5 rounded flex items-center justify-center"
+            style={{ backgroundColor: theme.sectionBg }}
+          >
+            <ShoppingBag className="w-3 h-3" style={{ color: theme.accent }} />
           </div>
+          <span className="text-[9px]">Card</span>
         </div>
 
-        {/* Button examples */}
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            type="button"
-            size="sm"
-            style={{ 
-              backgroundColor: theme.accent,
-              color: theme.accentText 
-            }}
-          >
-            <ShoppingBag className="w-4 h-4 mr-1.5" />
-            Add to Cart
-          </Button>
-          <Button 
-            type="button"
-            variant="outline"
-            size="sm"
-            style={{ 
-              borderColor: theme.accent,
-              color: theme.accent 
-            }}
-          >
-            <Star className="w-4 h-4 mr-1.5" />
-            View Details
-          </Button>
-        </div>
+        {/* Mini accent button */}
+        <Button 
+          type="button"
+          size="sm"
+          className="h-5 px-2 text-[9px]"
+          style={{ 
+            backgroundColor: theme.accent,
+            color: theme.accentText 
+          }}
+        >
+          Button
+        </Button>
+
+        {/* Mini outline button */}
+        <Button 
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-5 px-2 text-[9px]"
+          style={{ 
+            borderColor: theme.accent,
+            color: theme.accent 
+          }}
+        >
+          Outline
+        </Button>
+
+        {/* Section bg swatch */}
+        <div 
+          className="w-5 h-5 rounded border"
+          style={{ backgroundColor: theme.sectionBg }}
+          title="Section Background"
+        />
       </div>
     </div>
   );
