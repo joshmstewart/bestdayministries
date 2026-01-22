@@ -39,6 +39,10 @@ Beat Pad (`/games/beat-pad`) is a step-sequencer game that lets users create bea
   - Ensures only one beat loop plays globally across lists (My Beats / Community).
   - Starting a second beat stops the first.
 
+## Beat Gallery: Sounds Info Popup
+- Beat cards include an info button that opens a “Sounds in …” popup.
+- UI requirements: instrument list uses a compact **2-column grid** and the popup body is **scrollable** for long instrument lists.
+
 ## Mobile Scroll + Touch (CRITICAL)
 - Avoid `touch-pan-x` on large beat-grid containers: it can **block vertical page scrolling on iOS**.
 - Prefer `touch-manipulation` on the grid wrapper so taps feel responsive *and* the user can still scroll the page.
