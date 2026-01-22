@@ -22,17 +22,11 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
   const fetchInProgress = useRef(false);
 
   // Fetch user's preference and last seen timestamp
+  // Note: AuthContext profile doesn't include feed_last_seen_at/show_feed_badge, so we always fetch
   useEffect(() => {
     async function fetchUserPrefs() {
       if (!user?.id) {
         setLoading(false);
-        return;
-      }
-
-      // Use profile from context if available
-      if (profile) {
-        setShowBadge((profile as any).show_feed_badge ?? true);
-        setLastSeenAt((profile as any).feed_last_seen_at ?? null);
         return;
       }
 
@@ -53,7 +47,7 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
     }
 
     fetchUserPrefs();
-  }, [user?.id, profile]);
+  }, [user?.id]);
 
   // Fetch unseen count from community_feed_items view
   useEffect(() => {
