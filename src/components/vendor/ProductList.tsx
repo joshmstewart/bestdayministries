@@ -162,7 +162,7 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Your products are not visible in the store until you complete Stripe setup. 
-            Go to the <strong>Payments</strong> tab to connect your Stripe account.
+            Go to the <strong>Payments</strong> tab to set up payments (no existing Stripe account needed).
           </AlertDescription>
         </Alert>
       )}

@@ -137,7 +137,7 @@ export const StripeConnectOnboarding = ({ vendorId, readOnly = false, theme }: S
           Stripe Connect Status
         </CardTitle>
         <CardDescription>
-          Connect your Stripe account to receive payments from orders
+          Set up payments to receive earnings from your orders (no existing Stripe account needed)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
