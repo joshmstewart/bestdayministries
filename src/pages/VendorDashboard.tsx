@@ -604,6 +604,7 @@ const VendorDashboard = () => {
                   <h2 className="text-2xl font-semibold mb-6">Store Settings</h2>
                   <VendorProfileSettings 
                     vendorId={selectedVendorId} 
+                    theme={theme}
                     onThemeSaved={(themeColor) => {
                       // Update vendor theme in local state so dashboard updates immediately
                       setVendors(prev => prev.map(v => 

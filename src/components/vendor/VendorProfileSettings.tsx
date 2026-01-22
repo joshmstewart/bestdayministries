@@ -13,13 +13,15 @@ import { compressImage } from "@/lib/imageUtils";
 import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
 import { VendorStoryMediaManager } from "./VendorStoryMediaManager";
 import { VendorThemeColorPicker } from "./VendorThemeColorPicker";
-import { getVendorTheme } from "@/lib/vendorThemePresets";
+import { getVendorTheme, VendorThemePreset } from "@/lib/vendorThemePresets";
+
 interface VendorProfileSettingsProps {
   vendorId: string;
+  theme?: VendorThemePreset;
   onThemeSaved?: (themeColor: string) => void;
 }
 
-export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileSettingsProps) => {
+export const VendorProfileSettings = ({ vendorId, theme, onThemeSaved }: VendorProfileSettingsProps) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<'logo' | 'banner' | null>(null);
@@ -153,7 +155,7 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
   };
 
   // Use SAVED theme for dashboard styling (sticky bar), not form state
-  const theme = useMemo(() => getVendorTheme(savedTheme), [savedTheme]);
+  const stickyBarTheme = useMemo(() => getVendorTheme(savedTheme), [savedTheme]);
 
   // Handle preview with current unsaved settings
   const handlePreviewStore = () => {
@@ -169,7 +171,14 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
 
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle>Business Information</CardTitle>
           <CardDescription>
@@ -263,7 +272,14 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
         </CardContent>
       </Card>
 
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle>Store Theme</CardTitle>
           <CardDescription>
@@ -278,7 +294,14 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
         </CardContent>
       </Card>
 
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle>Images</CardTitle>
           <CardDescription>
@@ -370,7 +393,14 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
         </CardContent>
       </Card>
 
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle>Your Story</CardTitle>
           <CardDescription>
@@ -378,11 +408,18 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <VendorStoryMediaManager vendorId={vendorId} />
+          <VendorStoryMediaManager vendorId={vendorId} theme={theme} />
         </CardContent>
       </Card>
 
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle>Bestie Content</CardTitle>
           <CardDescription>
@@ -390,11 +427,18 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <VendorBestieAssetManager vendorId={vendorId} />
+          <VendorBestieAssetManager vendorId={vendorId} theme={theme} />
         </CardContent>
       </Card>
 
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle>Social Links</CardTitle>
           <CardDescription>
@@ -444,8 +488,8 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
       <div 
         className="fixed bottom-0 left-0 right-0 z-50 p-4 backdrop-blur-sm border-t"
         style={{ 
-          backgroundColor: `color-mix(in srgb, ${theme.sectionBg} 95%, transparent)`,
-          borderColor: theme.cardBorder 
+          backgroundColor: `color-mix(in srgb, ${stickyBarTheme.sectionBg} 95%, transparent)`,
+          borderColor: stickyBarTheme.cardBorder 
         }}
       >
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
@@ -455,8 +499,8 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
             onClick={handlePreviewStore}
             className="shadow-sm"
             style={{ 
-              borderColor: theme.accent,
-              color: theme.accent 
+              borderColor: stickyBarTheme.accent,
+              color: stickyBarTheme.accent 
             }}
           >
             <Eye className="mr-2 h-4 w-4" />
@@ -468,8 +512,8 @@ export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileS
             size="lg" 
             className="shadow-lg"
             style={{ 
-              backgroundColor: theme.accent,
-              color: theme.accentText 
+              backgroundColor: stickyBarTheme.accent,
+              color: stickyBarTheme.accentText 
             }}
           >
             {loading ? (

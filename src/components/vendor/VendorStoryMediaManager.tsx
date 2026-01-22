@@ -13,6 +13,7 @@ import { compressImage } from "@/lib/imageUtils";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface StoryMedia {
   id: string;
@@ -26,6 +27,7 @@ interface StoryMedia {
 
 interface VendorStoryMediaManagerProps {
   vendorId: string;
+  theme?: VendorThemePreset;
 }
 
 const SortableMediaItem = ({ 
@@ -105,7 +107,7 @@ const SortableMediaItem = ({
   );
 };
 
-export const VendorStoryMediaManager = ({ vendorId }: VendorStoryMediaManagerProps) => {
+export const VendorStoryMediaManager = ({ vendorId, theme }: VendorStoryMediaManagerProps) => {
   const [media, setMedia] = useState<StoryMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -409,7 +411,14 @@ export const VendorStoryMediaManager = ({ vendorId }: VendorStoryMediaManagerPro
       </div>
 
       {media.length === 0 ? (
-        <Card>
+        <Card 
+          className="border-2"
+          style={theme ? { 
+            backgroundColor: theme.cardBg,
+            borderColor: theme.cardBorder,
+            boxShadow: theme.cardGlow
+          } : undefined}
+        >
           <CardContent className="py-8 text-center text-muted-foreground">
             <p>No story media yet. Add photos and videos to show customers who you are!</p>
           </CardContent>
