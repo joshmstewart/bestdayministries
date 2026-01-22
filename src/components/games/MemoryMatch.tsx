@@ -95,6 +95,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [currentImages, setCurrentImages] = useState(DEFAULT_IMAGES);
   const [currentCardBackUrl, setCurrentCardBackUrl] = useState<string | null>(null);
+  const [cardBackLoaded, setCardBackLoaded] = useState(false);
   const [currentColors, setCurrentColors] = useState<{ background: string; module: string }>({
     background: '#F97316',
     module: '#FFFFFF',
@@ -128,6 +129,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
   // Update current images and colors when pack selection changes
   useEffect(() => {
     let newBackgroundColor = '#F97316';
+    let newCardBackUrl: string | null = null;
     
     if (selectedPackId) {
       const pack = availablePacks.find(p => p.id === selectedPackId);
@@ -138,7 +140,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
           background: newBackgroundColor,
           module: pack.module_color || '#FFFFFF',
         });
-        setCurrentCardBackUrl(pack.card_back_url);
+        newCardBackUrl = pack.card_back_url;
       }
     } else {
       // Use the default pack from the database if available
@@ -150,15 +152,33 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
           background: newBackgroundColor,
           module: defaultPack.module_color || '#FFFFFF',
         });
-        setCurrentCardBackUrl(defaultPack.card_back_url);
+        newCardBackUrl = defaultPack.card_back_url;
       } else {
         setCurrentImages(DEFAULT_IMAGES);
         setCurrentColors({
           background: '#F97316',
           module: '#FFFFFF',
         });
-        setCurrentCardBackUrl(null);
+        newCardBackUrl = null;
       }
+    }
+    
+    // Preload card back image before showing it
+    setCardBackLoaded(false);
+    if (newCardBackUrl) {
+      const img = new Image();
+      img.onload = () => {
+        setCurrentCardBackUrl(newCardBackUrl);
+        setCardBackLoaded(true);
+      };
+      img.onerror = () => {
+        setCurrentCardBackUrl(null);
+        setCardBackLoaded(true);
+      };
+      img.src = newCardBackUrl;
+    } else {
+      setCurrentCardBackUrl(null);
+      setCardBackLoaded(true);
     }
     
     // Notify parent of background color change
@@ -374,7 +394,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
           ));
           setFlippedCards([]);
           isProcessingRef.current = false; // Unlock
-        }, 1000);
+        }, 600); // Faster flip-back for better game flow
       }
     }
   }, [cards, flippedCards, difficulty, DIFFICULTY_CONFIG]);
@@ -709,13 +729,18 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                   +{DIFFICULTY_CONFIG[difficulty].coins} coins earned!
                 </p>
               </div>
-              <div className="flex gap-4 justify-center">
+              <div className="flex flex-wrap gap-3 justify-center">
                 <Button onClick={() => initializeGame()}>
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Play Again
                 </Button>
                 <Button variant="outline" onClick={() => setGameStarted(false)}>
-                  Change Difficulty
+                  <Package className="h-4 w-4 mr-2" />
+                  Change Pack
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/games')}>
+                  <Home className="h-4 w-4 mr-2" />
+                  Back to Games
                 </Button>
               </div>
             </div>
@@ -750,9 +775,9 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                       alt={card.imageName}
                       className="w-full h-full object-contain p-2"
                     />
-                  ) : currentCardBackUrl ? (
+                  ) : currentCardBackUrl && cardBackLoaded ? (
                     <img 
-                      src={`${currentCardBackUrl}?t=${Date.now()}`}
+                      src={currentCardBackUrl}
                       alt="Card back"
                       className="w-full h-full object-cover"
                     />
