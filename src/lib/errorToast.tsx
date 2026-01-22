@@ -22,7 +22,7 @@ export function showErrorToastWithCopy(context: string, error: unknown) {
     title: context,
     description: (
       <div className="mt-2 space-y-2">
-        <pre className="max-h-40 overflow-auto rounded bg-black/20 p-2 text-xs whitespace-pre-wrap break-all text-white/90">
+        <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap break-all text-foreground">
           {fullText}
         </pre>
         <button
@@ -34,7 +34,7 @@ export function showErrorToastWithCopy(context: string, error: unknown) {
               duration: 2000,
             });
           }}
-          className="text-xs underline hover:no-underline text-white/80 hover:text-white"
+          className="text-xs underline hover:no-underline text-foreground/80 hover:text-foreground"
         >
           Copy error details
         </button>
@@ -55,7 +55,7 @@ export function showErrorToast(message: string) {
     title: "Error",
     description: (
       <div className="mt-2 space-y-2">
-        <pre className="max-h-40 overflow-auto rounded bg-black/20 p-2 text-xs whitespace-pre-wrap break-all text-white/90">
+        <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap break-all text-foreground">
           {message}
         </pre>
         <button
@@ -67,7 +67,7 @@ export function showErrorToast(message: string) {
               duration: 2000,
             });
           }}
-          className="text-xs underline hover:no-underline text-white/80 hover:text-white"
+          className="text-xs underline hover:no-underline text-foreground/80 hover:text-foreground"
         >
           Copy error details
         </button>
