@@ -468,11 +468,11 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to insert reply: ${insertError.message}`);
     }
     
-    // Reset replied_at to null so the new user reply shows as unread
-    // This ensures the badge count logic in useMessagesCount detects the new reply
+    // Reset status to 'new' and replied_at to null so the thread shows as unread
+    // This ensures admins always see there's a new message requiring attention
     const { error: updateError } = await supabase
       .from('contact_form_submissions')
-      .update({ replied_at: null })
+      .update({ replied_at: null, status: 'new' })
       .eq('id', matchedSubmission.id);
     
     if (updateError) {
