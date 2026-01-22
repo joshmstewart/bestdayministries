@@ -423,17 +423,23 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Changes'
-          )}
-        </Button>
+      {/* Spacer for sticky button */}
+      <div className="h-20" />
+
+      {/* Sticky save button */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-sm border-t border-border">
+        <div className="max-w-4xl mx-auto flex justify-end">
+          <Button type="submit" disabled={loading} size="lg" className="shadow-lg">
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );
