@@ -570,6 +570,45 @@ export type Database = {
         }
         Relationships: []
       }
+      badge_earned_email_queue: {
+        Row: {
+          badge_description: string | null
+          badge_icon: string | null
+          badge_name: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          recipient_user_id: string
+        }
+        Insert: {
+          badge_description?: string | null
+          badge_icon?: string | null
+          badge_name: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_user_id: string
+        }
+        Update: {
+          badge_description?: string | null
+          badge_icon?: string | null
+          badge_name?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_user_id?: string
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           badge_type: string
@@ -2453,6 +2492,48 @@ export type Database = {
           source?: string | null
           status?: string
           subject?: string | null
+        }
+        Relationships: []
+      }
+      content_like_email_queue: {
+        Row: {
+          content_link: string | null
+          content_title: string | null
+          content_type: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          liker_name: string
+          processed_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          recipient_user_id: string
+        }
+        Insert: {
+          content_link?: string | null
+          content_title?: string | null
+          content_type: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          liker_name: string
+          processed_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          recipient_user_id: string
+        }
+        Update: {
+          content_link?: string | null
+          content_title?: string | null
+          content_type?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          liker_name?: string
+          processed_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          recipient_user_id?: string
         }
         Relationships: []
       }
@@ -10406,6 +10487,16 @@ export type Database = {
         Returns: boolean
       }
       promote_collections_to_ga: { Args: never; Returns: undefined }
+      queue_content_like_email: {
+        Args: {
+          p_content_link: string
+          p_content_title: string
+          p_content_type: string
+          p_liker_user_id: string
+          p_recipient_user_id: string
+        }
+        Returns: undefined
+      }
       update_featured_collections: { Args: never; Returns: undefined }
       user_can_manage_vendor: {
         Args: { p_vendor_id: string }
