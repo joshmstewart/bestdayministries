@@ -1529,10 +1529,20 @@ const ProfileSettings = () => {
                     </div>
                   </div>
 
+                </CardContent>
+              </Card>
+              
+              {/* Spacer for sticky button */}
+              <div className="h-20" />
+              
+              {/* Sticky save button bar */}
+              <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-sm border-t">
+                <div className="max-w-4xl mx-auto">
                   <Button
                     onClick={saveNotificationPreferences}
                     disabled={savingNotifications}
                     className="w-full gap-2"
+                    size="lg"
                   >
                     {savingNotifications ? (
                       <>
@@ -1546,8 +1556,8 @@ const ProfileSettings = () => {
                       </>
                     )}
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
 
             {/* Newsletter Tab */}
