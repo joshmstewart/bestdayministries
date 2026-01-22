@@ -40,21 +40,31 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
     queryKey: ["user-colorings", user?.id],
     queryFn: async () => {
       if (!user) return [];
+      // Only fetch the fields we need - exclude canvas_data for listing to avoid timeout
       const { data, error } = await supabase
         .from("user_colorings")
         .select(`
-          *,
+          id,
+          thumbnail_url,
+          is_public,
+          updated_at,
+          coloring_page_id,
           coloring_page:coloring_pages(
-            *,
+            id,
+            title,
+            image_url,
+            book_id,
             book:coloring_books(id, title, cover_image_url, description, coin_price, is_free)
           )
         `)
         .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
+        .order("updated_at", { ascending: false })
+        .limit(100);
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+    staleTime: 30000, // Cache for 30 seconds to prevent re-fetching on tab switches
   });
 
   const toggleShareMutation = useMutation({
@@ -116,12 +126,24 @@ export function ColoringGallery({ onSelectColoring }: ColoringGalleryProps) {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedColoring) {
+      // Fetch canvas_data only when user clicks "Edit" - lazy load
+      const { data: coloringData, error } = await supabase
+        .from("user_colorings")
+        .select("canvas_data")
+        .eq("id", selectedColoring.id)
+        .single();
+      
+      if (error) {
+        toast.error("Failed to load coloring data");
+        return;
+      }
+      
       // Pass the saved data along with the page, including is_public status and book info
       const pageWithSavedData = {
         ...selectedColoring.coloring_page,
-        savedCanvasData: selectedColoring.canvas_data,
+        savedCanvasData: coloringData?.canvas_data,
         isPublic: selectedColoring.is_public,
       };
       onSelectColoring(pageWithSavedData, true, selectedColoring.coloring_page?.book);

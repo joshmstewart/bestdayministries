@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,7 +84,6 @@ interface PublicColoring {
   page_title: string | null;
   coloring_page_id: string;
   coloring_page: { id: string; title: string; image_url: string; book_id: string | null } | null;
-  canvas_data: any | null; // Only loaded for own colorings
   is_public: boolean;
 }
 
@@ -93,96 +93,95 @@ interface ColoringCommunityGalleryProps {
 }
 
 export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringCommunityGalleryProps) => {
-  const [colorings, setColorings] = useState<PublicColoring[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [likingColoring, setLikingColoring] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [selectedColoring, setSelectedColoring] = useState<PublicColoring | null>(null);
   const [unsharing, setUnsharing] = useState(false);
 
+  // Fetch colorings with React Query - exclude canvas_data to avoid timeout
+  const { data: colorings = [], isLoading: loading } = useQuery({
+    queryKey: ["community-colorings", sortBy],
+    queryFn: async () => {
+      const query = supabase
+        .from("user_colorings")
+        .select(`
+          id,
+          thumbnail_url,
+          likes_count,
+          created_at,
+          updated_at,
+          user_id,
+          coloring_page_id,
+          is_public,
+          coloring_page:coloring_pages(id, title, image_url, book_id)
+        `)
+        .eq("is_public", true)
+        .limit(50);
+
+      if (sortBy === "newest") {
+        query.order("created_at", { ascending: false });
+      } else {
+        query.order("likes_count", { ascending: false });
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        return [];
+      }
+
+      // Fetch creator names separately
+      const creatorIds = [...new Set(data.map((c) => c.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", creatorIds);
+
+      const profileMap = new Map(profiles?.map((p) => [p.id, p.display_name]) || []);
+
+      return data.map((coloring) => ({
+        id: coloring.id,
+        thumbnail_url: coloring.thumbnail_url,
+        likes_count: coloring.likes_count || 0,
+        created_at: coloring.created_at,
+        updated_at: coloring.updated_at,
+        user_id: coloring.user_id,
+        creator_name: profileMap.get(coloring.user_id) || null,
+        page_title: (coloring.coloring_page as any)?.title || null,
+        coloring_page_id: coloring.coloring_page_id,
+        coloring_page: coloring.coloring_page,
+        is_public: coloring.is_public,
+      })) as PublicColoring[];
+    },
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  // Fetch user's likes
+  const { data: userLikesData } = useQuery({
+    queryKey: ["user-coloring-likes", userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("coloring_likes")
+        .select("coloring_id")
+        .eq("user_id", userId);
+      return data?.map((l) => l.coloring_id) || [];
+    },
+    enabled: !!userId,
+    staleTime: 30000,
+  });
+
+  // Update userLikes set when data changes
   useEffect(() => {
-    loadColorings();
-    loadUserLikes();
-  }, [userId, sortBy]);
-
-  const loadColorings = async () => {
-    setLoading(true);
-    const query = supabase
-      .from("user_colorings")
-      .select(`
-        id,
-        thumbnail_url,
-        likes_count,
-        created_at,
-        updated_at,
-        user_id,
-        coloring_page_id,
-        canvas_data,
-        is_public,
-        coloring_page:coloring_pages(id, title, image_url, book_id)
-      `)
-      .eq("is_public", true)
-      .limit(50);
-
-    if (sortBy === "newest") {
-      query.order("created_at", { ascending: false });
-    } else {
-      query.order("likes_count", { ascending: false });
+    if (userLikesData) {
+      setUserLikes(new Set(userLikesData));
     }
-
-    const { data, error } = await query;
-
-    if (error) {
-      toast.error(`Error loading gallery: ${error.message}`);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      setColorings([]);
-      setLoading(false);
-      return;
-    }
-
-    // Fetch creator names separately
-    const creatorIds = [...new Set(data.map((c) => c.user_id))];
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name")
-      .in("id", creatorIds);
-
-    const profileMap = new Map(profiles?.map((p) => [p.id, p.display_name]) || []);
-
-    const coloringsWithCreators = data.map((coloring) => ({
-      id: coloring.id,
-      thumbnail_url: coloring.thumbnail_url,
-      likes_count: coloring.likes_count || 0,
-      created_at: coloring.created_at,
-      updated_at: coloring.updated_at,
-      user_id: coloring.user_id,
-      creator_name: profileMap.get(coloring.user_id) || null,
-      page_title: (coloring.coloring_page as any)?.title || null,
-      coloring_page_id: coloring.coloring_page_id,
-      coloring_page: coloring.coloring_page,
-      // Only include canvas_data for own colorings (for privacy)
-      canvas_data: coloring.user_id === userId ? coloring.canvas_data : null,
-      is_public: coloring.is_public,
-    }));
-
-    setColorings(coloringsWithCreators as PublicColoring[]);
-    setLoading(false);
-  };
-
-  const loadUserLikes = async () => {
-    const { data } = await supabase
-      .from("coloring_likes")
-      .select("coloring_id")
-      .eq("user_id", userId);
-
-    if (data) {
-      setUserLikes(new Set(data.map((l) => l.coloring_id)));
-    }
-  };
+  }, [userLikesData]);
 
   const toggleLike = async (coloringId: string) => {
     setLikingColoring(coloringId);
@@ -208,14 +207,11 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
           next.delete(coloringId);
           return next;
         });
-        setColorings((prev) =>
-          prev.map((c) =>
-            c.id === coloringId ? { ...c, likes_count: Math.max(0, c.likes_count - 1) } : c
-          )
-        );
         if (selectedColoring?.id === coloringId) {
           setSelectedColoring(prev => prev ? { ...prev, likes_count: Math.max(0, prev.likes_count - 1) } : null);
         }
+        // Invalidate query to refresh likes count
+        queryClient.invalidateQueries({ queryKey: ["community-colorings"] });
       } else {
         await supabase.from("coloring_likes").insert({
           coloring_id: coloringId,
@@ -229,20 +225,42 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
           .eq("id", coloringId);
 
         setUserLikes((prev) => new Set([...prev, coloringId]));
-        setColorings((prev) =>
-          prev.map((c) =>
-            c.id === coloringId ? { ...c, likes_count: c.likes_count + 1 } : c
-          )
-        );
         if (selectedColoring?.id === coloringId) {
           setSelectedColoring(prev => prev ? { ...prev, likes_count: prev.likes_count + 1 } : null);
         }
+        // Invalidate query to refresh likes count
+        queryClient.invalidateQueries({ queryKey: ["community-colorings"] });
       }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLikingColoring(null);
     }
+  };
+
+  // Lazy load canvas_data for editing
+  const handleEdit = async () => {
+    if (!selectedColoring || !onSelectColoring) return;
+    
+    // Fetch canvas_data only when needed
+    const { data, error } = await supabase
+      .from("user_colorings")
+      .select("canvas_data")
+      .eq("id", selectedColoring.id)
+      .single();
+    
+    if (error || !data?.canvas_data) {
+      toast.error("Failed to load coloring data");
+      return;
+    }
+    
+    const pageWithSavedData = {
+      ...selectedColoring.coloring_page,
+      savedCanvasData: data.canvas_data,
+      isPublic: selectedColoring.is_public,
+    };
+    onSelectColoring(pageWithSavedData, true);
+    setSelectedColoring(null);
   };
 
   if (loading) {
@@ -391,18 +409,10 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                     {selectedColoring.likes_count}
                   </Button>
                   {/* Edit button - only for owner */}
-                  {onSelectColoring && selectedColoring.coloring_page && selectedColoring.user_id === userId && selectedColoring.canvas_data && (
+                  {onSelectColoring && selectedColoring.coloring_page && selectedColoring.user_id === userId && (
                     <Button
                       size="sm"
-                      onClick={() => {
-                        const pageWithSavedData = {
-                          ...selectedColoring.coloring_page,
-                          savedCanvasData: selectedColoring.canvas_data,
-                          isPublic: selectedColoring.is_public,
-                        };
-                        onSelectColoring(pageWithSavedData, true);
-                        setSelectedColoring(null);
-                      }}
+                      onClick={handleEdit}
                     >
                       <Palette className="h-4 w-4 mr-1" />
                       Edit
@@ -411,7 +421,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                   {/* Color This Template - for everyone */}
                   {onSelectColoring && selectedColoring.coloring_page && (
                     <Button
-                      variant={selectedColoring.user_id === userId && selectedColoring.canvas_data ? "outline" : "default"}
+                      variant={selectedColoring.user_id === userId ? "outline" : "default"}
                       size="sm"
                       onClick={() => {
                         onSelectColoring(selectedColoring.coloring_page, false);
@@ -434,7 +444,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
                             .update({ is_public: false })
                             .eq("id", selectedColoring.id);
                           if (error) throw error;
-                          setColorings(prev => prev.filter(c => c.id !== selectedColoring.id));
+                          queryClient.invalidateQueries({ queryKey: ["community-colorings"] });
                           setSelectedColoring(null);
                           toast.success("Drawing unshared - now private");
                         } catch (error: any) {
