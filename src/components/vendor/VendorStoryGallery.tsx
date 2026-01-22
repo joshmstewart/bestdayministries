@@ -4,6 +4,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Play, Youtube } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
 import VideoLightbox from "@/components/VideoLightbox";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface StoryMedia {
   id: string;
@@ -16,9 +17,10 @@ interface StoryMedia {
 interface VendorStoryGalleryProps {
   media: StoryMedia[];
   vendorName: string;
+  theme?: VendorThemePreset;
 }
 
-export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProps) => {
+export const VendorStoryGallery = ({ media, vendorName, theme }: VendorStoryGalleryProps) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [videoLightbox, setVideoLightbox] = useState<{
@@ -54,13 +56,24 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
     return match ? match[1] : null;
   };
 
+  // Card styles based on theme
+  const cardStyle = theme ? {
+    borderColor: theme.cardBorder,
+    backgroundColor: theme.cardBg,
+    boxShadow: theme.cardGlow,
+  } : {};
+
   return (
     <div className="pb-8">
       <h2 className="font-heading text-2xl font-bold mb-4">Our Story</h2>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {media.map((item, index) => (
-          <Card key={item.id} className="overflow-hidden group">
+          <Card 
+            key={item.id} 
+            className="overflow-hidden group border-2 transition-all duration-300 hover:scale-[1.02]"
+            style={cardStyle}
+          >
             <CardContent className="p-0">
               {item.media_type === 'image' && (
                 <div 
@@ -94,8 +107,11 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
                       muted
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                      <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-                        <Play className="h-8 w-8 text-primary ml-1" fill="currentColor" />
+                      <div 
+                        className="w-16 h-16 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: theme?.accent || 'hsl(var(--primary))' }}
+                      >
+                        <Play className="h-8 w-8 text-white ml-1" fill="currentColor" />
                       </div>
                     </div>
                   </AspectRatio>

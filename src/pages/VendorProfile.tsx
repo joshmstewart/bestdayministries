@@ -240,10 +240,11 @@ const VendorProfile = () => {
           <div className="max-w-6xl mx-auto">
             <div className="relative -mt-8 mb-6">
             <div 
-              className="rounded-lg shadow-lg p-6 border"
+              className="rounded-lg p-6 border-2"
               style={{ 
                 backgroundColor: theme.cardBg,
-                borderColor: theme.cardBorder 
+                borderColor: theme.cardBorder,
+                boxShadow: theme.cardGlow
               }}
             >
               <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -343,7 +344,7 @@ const VendorProfile = () => {
           <VendorBestieAssetDisplay assets={bestieAssets} />
 
           {/* Story Media Gallery */}
-          <VendorStoryGallery media={storyMedia} vendorName={vendor.business_name} />
+          <VendorStoryGallery media={storyMedia} vendorName={vendor.business_name} theme={theme} />
 
           {/* Featured Bestie Section */}
           {featuredBestie && (
