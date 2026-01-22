@@ -218,6 +218,8 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
     );
   }
 
+  const selectedBeatSounds = selectedBeat ? getSoundsForBeat(selectedBeat.pattern) : [];
+
   return (
     <div className="space-y-4">
       {/* Sort Controls */}
@@ -366,39 +368,40 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
 
       {/* Sounds Info Dialog */}
       <Dialog open={!!selectedBeat} onOpenChange={() => setSelectedBeat(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md max-h-[80vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
             <DialogTitle className="flex items-center gap-2">
               <Music className="h-5 w-5" />
               Sounds in "{selectedBeat?.name}"
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            {selectedBeat && getSoundsForBeat(selectedBeat.pattern).length > 0 ? (
-              <div className="grid gap-2">
-                {getSoundsForBeat(selectedBeat.pattern).map((sound) => (
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 [-webkit-overflow-scrolling:touch]">
+            {selectedBeatSounds.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {selectedBeatSounds.map((sound) => (
                   <div
                     key={sound.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                    className="flex items-center gap-2 rounded-lg bg-muted/50 p-2"
+                    title={sound.name}
                   >
                     <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                      className="h-9 w-9 rounded-lg flex items-center justify-center text-lg shrink-0"
                       style={{ backgroundColor: sound.color }}
                     >
                       {sound.emoji}
                     </div>
-                    <span className="font-medium">{sound.name}</span>
+                    <span className="text-sm font-medium truncate">{sound.name}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-4">
+              <p className="text-muted-foreground text-center py-6">
                 No sound information available for this beat.
               </p>
             )}
-            <div className="pt-2 border-t text-xs text-muted-foreground">
-              <p>{selectedBeat?.tempo} BPM • {selectedBeat ? countActiveSteps(selectedBeat.pattern) : 0} notes</p>
-            </div>
+          </div>
+          <div className="px-4 py-3 border-t text-xs text-muted-foreground">
+            <p>{selectedBeat?.tempo} BPM • {selectedBeat ? countActiveSteps(selectedBeat.pattern) : 0} notes</p>
           </div>
         </DialogContent>
       </Dialog>
