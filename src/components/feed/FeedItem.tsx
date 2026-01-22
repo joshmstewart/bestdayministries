@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemDialog } from "./FeedItemDialog";
@@ -216,7 +217,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
     e?.stopPropagation();
     
     if (!user) {
-      toast.error("Please sign in to like");
+      showErrorToastWithCopy("Like", "Please sign in to like");
       return;
     }
 
@@ -397,7 +398,8 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
       setLikesCount(prev => isLiked ? Math.max(0, prev - 1) : prev + 1);
       onLikeChange?.(newLikedState);
     } catch (error: any) {
-      toast.error(error.message || "Failed to update like");
+      console.error("Error updating like:", error);
+      showErrorToastWithCopy(`Failed to update like (${item.item_type})`, error);
     }
   };
 
@@ -439,14 +441,15 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
           break;
         }
         default:
-          toast.error("Cannot unshare this type of content");
+          showErrorToastWithCopy("Unshare", "Cannot unshare this type of content");
           return;
       }
       
       toast.success("Removed from community - now private");
       onRefresh?.();
     } catch (error: any) {
-      toast.error(error.message || "Failed to unshare");
+      console.error("Error unsharing:", error);
+      showErrorToastWithCopy(`Failed to unshare (${item.item_type})`, error);
     }
   };
 
