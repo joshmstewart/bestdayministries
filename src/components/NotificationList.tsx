@@ -81,13 +81,21 @@ export const NotificationList = () => {
                   onOpenChange={() => showExpand && toggleGroup(group.id)}
                 >
                   <Card
-                    className={`p-4 transition-colors group relative border-0 rounded-none ${
+                    className={`p-4 transition-colors group relative border-0 rounded-none cursor-pointer ${
                       !group.is_read 
                         ? "bg-primary/5" 
                         : group.auto_resolved 
                           ? "opacity-75 bg-muted/20" 
                           : ""
                     }`}
+                    onClick={() => {
+                      if (!showExpand) {
+                        handleNotificationClick(group.notifications[0]);
+                      } else if (!group.is_read) {
+                        // Mark all notifications in this group as read
+                        markGroupAsRead(group.notifications);
+                      }
+                    }}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`p-2 rounded-full ${
@@ -96,17 +104,7 @@ export const NotificationList = () => {
                         <Bell className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0 pr-8">
-                        <div 
-                          className={`flex items-center gap-2 ${showExpand ? 'cursor-pointer' : 'cursor-pointer'}`}
-                          onClick={() => {
-                            if (!showExpand) {
-                              handleNotificationClick(group.notifications[0]);
-                            } else if (!group.is_read) {
-                              // Mark all notifications in this group as read
-                              markGroupAsRead(group.notifications);
-                            }
-                          }}
-                        >
+                        <div className="flex items-center gap-2">
                           <p className="font-medium text-sm break-words flex-1">{group.title}</p>
                           {showExpand && (
                             <CollapsibleTrigger asChild>
