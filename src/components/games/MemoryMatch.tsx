@@ -9,6 +9,13 @@ import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { CoinIcon } from "@/components/CoinIcon";
 import { PriceRibbon } from "@/components/ui/price-ribbon";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Default coffee shop theme images
 import croissantImg from "@/assets/games/memory-match/croissant.png";
@@ -111,6 +118,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     medium: DEFAULT_DIFFICULTY_CONFIG.medium.coins,
     hard: DEFAULT_DIFFICULTY_CONFIG.hard.coins,
   });
+  const [changePackDialogOpen, setChangePackDialogOpen] = useState(false);
 
   // Image preloading (prevents slow first flip / "never saw second card" when images load late)
   const preloadedImageUrlsRef = useRef<Set<string>>(new Set());
@@ -832,11 +840,105 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Play Again
                 </Button>
-                <Button variant="outline" onClick={() => setGameStarted(false)}>
+                <Button variant="outline" onClick={() => setChangePackDialogOpen(true)}>
                   <Package className="h-4 w-4 mr-2" />
                   Change Pack
                 </Button>
               </div>
+
+              {/* Change Pack Dialog */}
+              <Dialog open={changePackDialogOpen} onOpenChange={setChangePackDialogOpen}>
+                <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      Choose Your Pack
+                    </DialogTitle>
+                    <DialogDescription>
+                      Select a pack and click Play Again to start a new game
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid grid-cols-3 gap-3 mt-4">
+                    {availablePacks
+                      .filter(p => p.images.length >= 10)
+                      .sort((a, b) => {
+                        const aCanUse = canUsePack(a);
+                        const bCanUse = canUsePack(b);
+                        if (aCanUse && !bCanUse) return -1;
+                        if (!aCanUse && bCanUse) return 1;
+                        return 0;
+                      })
+                      .map((pack) => {
+                        const canUse = canUsePack(pack);
+                        const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
+                        const previewImage = pack.preview_image_url || pack.images[0]?.image_url;
+                        
+                        return (
+                          <div
+                            key={pack.id}
+                            onClick={() => {
+                              if (canUse) {
+                                setSelectedPackId(pack.is_default ? null : pack.id);
+                              } else if (pack.is_purchasable) {
+                                navigate('/store');
+                                setChangePackDialogOpen(false);
+                              }
+                            }}
+                            className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all ${
+                              isSelected 
+                                ? 'border-primary ring-2 ring-primary/50 scale-105' 
+                                : canUse 
+                                  ? 'border-border hover:border-primary/50'
+                                  : 'border-border hover:border-yellow-500/50'
+                            }`}
+                          >
+                            {!canUse && pack.is_purchasable && (
+                              <PriceRibbon price={pack.price_coins} position="top-right" size="sm" />
+                            )}
+                            
+                            <div className="aspect-square bg-muted">
+                              {previewImage ? (
+                                <img 
+                                  src={previewImage} 
+                                  alt={pack.name}
+                                  className={`w-full h-full object-cover ${!canUse ? 'grayscale-[30%]' : ''}`}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-6 h-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-white truncate">
+                                  {pack.name}
+                                </span>
+                                {!canUse && <span className="text-xs">🔒</span>}
+                              </div>
+                            </div>
+                            
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5 z-20">
+                                <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <div className="flex justify-end mt-4">
+                    <Button onClick={() => {
+                      setChangePackDialogOpen(false);
+                      initializeGame();
+                    }}>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Play Again
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           ) : (
             <div className={`grid gap-3 ${
