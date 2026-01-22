@@ -50,9 +50,30 @@ export const MemoryMatchPreview = ({
   const lastPointerUpAtRef = useRef(0);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Preload (keeps preview responsive like the main game)
+  const preloadedImageUrlsRef = useRef<Set<string>>(new Set());
+  const warmImage = useCallback((url: string | null | undefined) => {
+    if (!url) return;
+    if (preloadedImageUrlsRef.current.has(url)) return;
+    preloadedImageUrlsRef.current.add(url);
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+  }, []);
+
   // Filter to only images with valid URLs
   const validImages = images.filter(img => img.image_url);
   const pairCount = Math.min(6, Math.floor(validImages.length)); // Use up to 6 pairs for preview
+
+  useEffect(() => {
+    validImages.slice(0, 24).forEach((i) => warmImage(i.image_url));
+    warmImage(cardBackUrl);
+  }, [validImages, cardBackUrl, warmImage]);
+
+  useEffect(() => {
+    const uniqueUrls = Array.from(new Set(cards.map((c) => c.imageUrl)));
+    uniqueUrls.forEach(warmImage);
+  }, [cards, warmImage]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -313,12 +334,16 @@ export const MemoryMatchPreview = ({
                     <img 
                       src={card.imageUrl} 
                       alt={card.imageName}
+                      loading="eager"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : cardBackUrl ? (
                     <img 
                       src={cardBackUrl} 
                       alt="Card back"
+                      loading="eager"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : (
