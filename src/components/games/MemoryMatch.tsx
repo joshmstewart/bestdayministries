@@ -88,6 +88,11 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     medium: null,
     hard: null,
   });
+  const [pbRewards, setPbRewards] = useState<Record<Difficulty, number>>({
+    easy: 50,
+    medium: 75,
+    hard: 100,
+  });
   
   // Image pack state
   const [availablePacks, setAvailablePacks] = useState<ImagePack[]>([]);
@@ -259,7 +264,10 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     const { data } = await supabase
       .from('coin_rewards_settings')
       .select('reward_key, coins_amount, is_active')
-      .in('reward_key', ['memory_match_easy', 'memory_match_medium', 'memory_match_hard']);
+      .in('reward_key', [
+        'memory_match_easy', 'memory_match_medium', 'memory_match_hard',
+        'memory_match_pb_easy', 'memory_match_pb_medium', 'memory_match_pb_hard'
+      ]);
     
     if (data) {
       const rewards: Record<Difficulty, number> = {
@@ -267,16 +275,25 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
         medium: DEFAULT_DIFFICULTY_CONFIG.medium.coins,
         hard: DEFAULT_DIFFICULTY_CONFIG.hard.coins,
       };
+      const pbRewardsData: Record<Difficulty, number> = {
+        easy: 50,
+        medium: 75,
+        hard: 100,
+      };
       
       data.forEach(reward => {
         if (reward.is_active) {
           if (reward.reward_key === 'memory_match_easy') rewards.easy = reward.coins_amount;
           if (reward.reward_key === 'memory_match_medium') rewards.medium = reward.coins_amount;
           if (reward.reward_key === 'memory_match_hard') rewards.hard = reward.coins_amount;
+          if (reward.reward_key === 'memory_match_pb_easy') pbRewardsData.easy = reward.coins_amount;
+          if (reward.reward_key === 'memory_match_pb_medium') pbRewardsData.medium = reward.coins_amount;
+          if (reward.reward_key === 'memory_match_pb_hard') pbRewardsData.hard = reward.coins_amount;
         }
       });
       
       setCoinRewards(rewards);
+      setPbRewards(pbRewardsData);
     }
   };
 
@@ -309,7 +326,7 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
       .select('difficulty, moves_count, time_seconds')
       .eq('user_id', user.id)
       .eq('game_type', 'memory_match')
-      .order('moves_count', { ascending: true });
+      .order('time_seconds', { ascending: true });
 
     if (data) {
       const scores: Record<Difficulty, { moves: number; time: number } | null> = {
@@ -318,9 +335,10 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
         hard: null,
       };
 
+      // Track best time per difficulty (primary metric for PB)
       data.forEach(session => {
         const diff = session.difficulty as Difficulty;
-        if (!scores[diff] || session.moves_count < scores[diff]!.moves) {
+        if (!scores[diff] || session.time_seconds < scores[diff]!.time) {
           scores[diff] = {
             moves: session.moves_count,
             time: session.time_seconds,
@@ -470,12 +488,25 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
   const completeGame = async () => {
     setGameCompleted(true);
     const finalTime = Math.floor((Date.now() - startTime) / 1000);
-    const coinsEarned = DIFFICULTY_CONFIG[difficulty].coins;
+    let coinsEarned = DIFFICULTY_CONFIG[difficulty].coins;
     const score = Math.max(1000 - (moves * 10) - finalTime, 100);
+    
+    // Check for personal best (beat previous best time)
+    const previousBest = bestScores[difficulty];
+    const isNewPersonalBest = !previousBest || finalTime < previousBest.time;
+    const isFirstCompletion = !previousBest;
+    
+    // Award PB bonus (only if beating a previous record, not first completion)
+    let pbBonus = 0;
+    if (isNewPersonalBest && !isFirstCompletion) {
+      pbBonus = pbRewards[difficulty];
+      coinsEarned += pbBonus;
+    }
 
+    // Bigger confetti for personal best!
     confetti({
-      particleCount: 100,
-      spread: 70,
+      particleCount: isNewPersonalBest && !isFirstCompletion ? 200 : 100,
+      spread: isNewPersonalBest && !isFirstCompletion ? 100 : 70,
       origin: { y: 0.6 }
     });
 
@@ -508,20 +539,41 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
         .update({ coins: (profile.coins || 0) + coinsEarned })
         .eq('id', user.id);
 
+      // Log base game reward
       await supabase
         .from('coin_transactions')
         .insert({
           user_id: user.id,
-          amount: coinsEarned,
+          amount: DIFFICULTY_CONFIG[difficulty].coins,
           transaction_type: 'game_reward',
           description: `Memory Match ${DIFFICULTY_CONFIG[difficulty].label} completed`,
         });
+      
+      // Log PB bonus separately if earned
+      if (pbBonus > 0) {
+        await supabase
+          .from('coin_transactions')
+          .insert({
+            user_id: user.id,
+            amount: pbBonus,
+            transaction_type: 'game_reward',
+            description: `🏆 Memory Match ${DIFFICULTY_CONFIG[difficulty].label} - New Personal Best!`,
+          });
+      }
     }
 
-    toast({
-      title: "🎉 Awesome Job!",
-      description: `You earned ${coinsEarned} coins! Moves: ${moves + 1}, Time: ${finalTime}s`,
-    });
+    // Show appropriate toast
+    if (isNewPersonalBest && !isFirstCompletion) {
+      toast({
+        title: "🏆 NEW PERSONAL BEST!",
+        description: `You beat your record by ${previousBest.time - finalTime}s! +${pbBonus} bonus coins! Total: ${coinsEarned} coins`,
+      });
+    } else {
+      toast({
+        title: "🎉 Awesome Job!",
+        description: `You earned ${coinsEarned} coins! Time: ${formatTime(finalTime)}${previousBest ? ` (Best: ${formatTime(previousBest.time)})` : ''}`,
+      });
+    }
 
     loadBestScores();
   };
@@ -699,6 +751,11 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                       </CardTitle>
                       <CardDescription>
                         {config.pairs} pairs • {config.coins} coins
+                        {best && (
+                          <span className="block text-primary font-medium">
+                            Beat {formatTime(best.time)} for +{pbRewards[diff]} bonus!
+                          </span>
+                        )}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -706,12 +763,12 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
                         <div className="space-y-1 text-sm">
                           <p className="text-muted-foreground">Your Best:</p>
                           <p className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-blue-500" />
+                            <span className="font-semibold">{formatTime(best.time)}</span>
+                          </p>
+                          <p className="flex items-center gap-2 text-muted-foreground">
                             <Trophy className="h-4 w-4 text-yellow-500" />
                             {best.moves} moves
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-blue-500" />
-                            {formatTime(best.time)}
                           </p>
                         </div>
                       )}
