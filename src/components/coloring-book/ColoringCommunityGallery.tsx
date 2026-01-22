@@ -187,20 +187,23 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
     setLikingColoring(coloringId);
     const isLiked = userLikes.has(coloringId);
     const currentLikes = colorings.find(c => c.id === coloringId)?.likes_count || 0;
+    const nextLikes = isLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1;
 
     try {
       if (isLiked) {
-        await supabase
+        const { error: deleteError } = await supabase
           .from("coloring_likes")
           .delete()
           .eq("coloring_id", coloringId)
           .eq("user_id", userId);
+        if (deleteError) throw deleteError;
 
         // Update likes count in user_colorings
-        await supabase
+        const { error: updateError } = await supabase
           .from("user_colorings")
-          .update({ likes_count: Math.max(0, currentLikes - 1) })
+          .update({ likes_count: nextLikes })
           .eq("id", coloringId);
+        if (updateError) throw updateError;
 
         setUserLikes((prev) => {
           const next = new Set(prev);
@@ -210,29 +213,42 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
         if (selectedColoring?.id === coloringId) {
           setSelectedColoring(prev => prev ? { ...prev, likes_count: Math.max(0, prev.likes_count - 1) } : null);
         }
-        // Invalidate query to refresh likes count
-        queryClient.invalidateQueries({ queryKey: ["community-colorings"] });
+
+        // Update cached list immediately so the count changes right away
+        queryClient.setQueryData<PublicColoring[]>(
+          ["community-colorings", sortBy],
+          (prev) => (prev || []).map((c) => (c.id === coloringId ? { ...c, likes_count: nextLikes } : c))
+        );
       } else {
-        await supabase.from("coloring_likes").insert({
+        const { error: insertError } = await supabase.from("coloring_likes").insert({
           coloring_id: coloringId,
           user_id: userId,
         });
+        if (insertError) throw insertError;
 
         // Update likes count in user_colorings
-        await supabase
+        const { error: updateError } = await supabase
           .from("user_colorings")
-          .update({ likes_count: currentLikes + 1 })
+          .update({ likes_count: nextLikes })
           .eq("id", coloringId);
+        if (updateError) throw updateError;
 
         setUserLikes((prev) => new Set([...prev, coloringId]));
         if (selectedColoring?.id === coloringId) {
           setSelectedColoring(prev => prev ? { ...prev, likes_count: prev.likes_count + 1 } : null);
         }
-        // Invalidate query to refresh likes count
-        queryClient.invalidateQueries({ queryKey: ["community-colorings"] });
+
+        // Update cached list immediately so the count changes right away
+        queryClient.setQueryData<PublicColoring[]>(
+          ["community-colorings", sortBy],
+          (prev) => (prev || []).map((c) => (c.id === coloringId ? { ...c, likes_count: nextLikes } : c))
+        );
       }
+
+      // Also mark other sort variant stale so switching sort stays consistent
+      queryClient.invalidateQueries({ queryKey: ["community-colorings"], refetchType: "none" });
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error?.message || "Failed to update like");
     } finally {
       setLikingColoring(null);
     }
