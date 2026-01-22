@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Settings } from "lucide-react";
+import splashBackground from "@/assets/splash-background.png";
 
 export const AppSettingsManager = () => {
   const { toast } = useToast();
@@ -204,6 +205,34 @@ export const AppSettingsManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Splash Background (download helper) */}
+        <div className="space-y-3">
+          <Label>Mobile Splash Background</Label>
+          <p className="text-sm text-muted-foreground">
+            Download the current splash background image.
+          </p>
+
+          <div className="border rounded-lg p-4 bg-muted/50">
+            <img
+              src={splashBackground}
+              alt="Splash background preview"
+              className="w-full max-w-sm rounded-md border border-border object-cover"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <a href={splashBackground} download="splash-background.png">
+                Download splash background
+              </a>
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              File: <code className="bg-muted px-1 py-0.5 rounded">src/assets/splash-background.png</code>
+            </p>
+          </div>
+        </div>
+
         {/* Header Logo */}
         <div className="space-y-3">
           <Label>Header Logo</Label>
