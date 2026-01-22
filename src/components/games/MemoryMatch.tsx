@@ -11,6 +11,7 @@ import { CoinIcon } from "@/components/CoinIcon";
 import { PriceRibbon } from "@/components/ui/price-ribbon";
 import { PackCarousel } from "@/components/games/PackCarousel";
 import { GameCelebrationDisplay } from "@/components/games/GameCelebrationDisplay";
+import { useCelebrationImagePreloader } from "@/hooks/useCelebrationImagePreloader";
 import {
   Dialog,
   DialogContent,
@@ -129,7 +130,9 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
   });
   const [changePackDialogOpen, setChangePackDialogOpen] = useState(false);
 
-  // Image preloading (prevents slow first flip / "never saw second card" when images load late)
+  // Preload celebration images as soon as component mounts (before game completion)
+  useCelebrationImagePreloader(currentUserId);
+
   const preloadedImageUrlsRef = useRef<Set<string>>(new Set());
   const warmImage = useCallback((url: string | null | undefined) => {
     if (!url) return;
