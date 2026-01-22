@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface GameCelebrationDisplayProps {
   userId: string | null;
@@ -14,10 +14,14 @@ export function GameCelebrationDisplay({
   className = "",
 }: GameCelebrationDisplayProps) {
   const [imageError, setImageError] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const hasSelectedImage = useRef(false);
 
-  // Reset error state when userId changes
+  // Reset state when userId changes
   useEffect(() => {
     setImageError(false);
+    setSelectedImageUrl(null);
+    hasSelectedImage.current = false;
   }, [userId]);
 
   // Get user's selected fitness avatar
@@ -62,22 +66,30 @@ export function GameCelebrationDisplay({
     enabled: !!selectedAvatar?.avatar_id,
   });
 
-  // Pick a random celebration image
-  const randomImage = celebrationImages && celebrationImages.length > 0
-    ? celebrationImages[Math.floor(Math.random() * celebrationImages.length)]
-    : null;
+  // Pick a random celebration image ONCE when data loads
+  useEffect(() => {
+    if (celebrationImages && celebrationImages.length > 0 && !hasSelectedImage.current) {
+      const randomImage = celebrationImages[Math.floor(Math.random() * celebrationImages.length)];
+      setSelectedImageUrl(randomImage.image_url);
+      hasSelectedImage.current = true;
+    }
+  }, [celebrationImages]);
 
   // If no avatar selected, no celebration images, or image failed to load, show emoji
-  if (!selectedAvatar || !randomImage || imageError) {
-    return <div className={`text-6xl ${className}`}>{fallbackEmoji}</div>;
+  if (!selectedAvatar || !selectedImageUrl || imageError) {
+    return (
+      <div className={`flex justify-center ${className}`}>
+        <div className="text-8xl">{fallbackEmoji}</div>
+      </div>
+    );
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`flex justify-center ${className}`}>
       <img
-        src={randomImage.image_url}
+        src={selectedImageUrl}
         alt="Celebration"
-        className="w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-xl shadow-lg"
+        className="w-48 h-48 sm:w-56 sm:h-56 object-cover rounded-2xl shadow-xl"
         onError={() => setImageError(true)}
       />
     </div>
