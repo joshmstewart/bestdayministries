@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Volume2, Copy, RefreshCw, Bell, Mail, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Save, Volume2, Copy, RefreshCw, Bell, Mail, Lock, Send, Loader2 } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -42,6 +43,7 @@ interface Profile {
 const ProfileSettings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,7 @@ const ProfileSettings = () => {
   const [selectedVoice, setSelectedVoice] = useState<string>("Aria");
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [sendingTestDigest, setSendingTestDigest] = useState<'daily' | 'weekly' | null>(null);
   
   // Notification preferences state
   const [notificationPrefs, setNotificationPrefs] = useState({
@@ -522,6 +525,40 @@ const ProfileSettings = () => {
         description: error.message || "Failed to generate speech",
         variant: "destructive",
       });
+    }
+  };
+
+  const sendTestDigestEmail = async (frequency: 'daily' | 'weekly') => {
+    if (!user) return;
+    
+    setSendingTestDigest(frequency);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke('send-digest-email-test', {
+        body: { frequency },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to send digest");
+
+      toast({
+        title: "Test digest sent!",
+        description: `A test ${frequency} digest email has been sent to your email address.`,
+      });
+    } catch (error: any) {
+      console.error('Error sending test digest:', error);
+      toast({
+        title: "Error sending test digest",
+        description: error.message || "Failed to send test digest email",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingTestDigest(null);
     }
   };
 
@@ -1436,6 +1473,56 @@ const ProfileSettings = () => {
                           <p>
                             📧 You'll receive a {notificationPrefs.digest_frequency} summary email with all your unread notifications 
                             instead of individual notification emails.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Admin Test Digest Buttons */}
+                      {isAdmin && (
+                        <div className="pt-3 border-t border-border/50 space-y-2">
+                          <Label className="text-xs text-muted-foreground font-medium">Admin: Test Digest Emails</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => sendTestDigestEmail('daily')}
+                              disabled={sendingTestDigest !== null}
+                              className="flex-1"
+                            >
+                              {sendingTestDigest === 'daily' ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Test Daily
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => sendTestDigestEmail('weekly')}
+                              disabled={sendingTestDigest !== null}
+                              className="flex-1"
+                            >
+                              {sendingTestDigest === 'weekly' ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Test Weekly
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Send a test digest to yourself (uses your unread notifications or sample data)
                           </p>
                         </div>
                       )}
