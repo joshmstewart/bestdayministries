@@ -56,27 +56,32 @@ export default function ColoringBook() {
   const [bookToPurchase, setBookToPurchase] = useState<ColoringBook | null>(null);
   const [previewBook, setPreviewBook] = useState<ColoringBook | null>(null);
 
-  // If the URL changes (back/forward), keep the selected tab in sync
+  // Single effect to handle tab <-> URL sync (avoids race condition between two effects)
   useEffect(() => {
-    const tab = searchParams.get("tab");
-    if ((tab === "books" || tab === "community" || tab === "gallery") && tab !== activeTab) {
-      setActiveTab(tab);
+    const urlTabValue = searchParams.get("tab");
+    const normalizedUrlTab = urlTabValue === "books" || urlTabValue === "community" || urlTabValue === "gallery" 
+      ? urlTabValue 
+      : "books";
+    
+    // Only sync URL -> state if the URL was changed externally (back/forward navigation)
+    // We detect this by checking if the URL tab doesn't match activeTab
+    if (normalizedUrlTab !== activeTab) {
+      // URL changed externally, sync state to URL
+      setActiveTab(normalizedUrlTab);
     }
-  }, [searchParams, activeTab]);
+  }, [searchParams]); // Only depend on searchParams, not activeTab
 
-  // Keep the URL in sync when the user switches tabs in the UI
-  useEffect(() => {
-    const currentTab = searchParams.get("tab");
-    const desiredTab = activeTab === "books" ? null : activeTab;
-
-    if (currentTab === desiredTab) return;
-
+  // Separate effect to update URL when tab changes via UI click
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
     const next = new URLSearchParams(searchParams);
-    if (desiredTab) next.set("tab", desiredTab);
-    else next.delete("tab");
-
+    if (newTab === "books") {
+      next.delete("tab");
+    } else {
+      next.set("tab", newTab);
+    }
     setSearchParams(next, { replace: true });
-  }, [activeTab, searchParams, setSearchParams]);
+  };
 
   // Fetch pages for preview
   const { data: previewPages, isLoading: previewLoading } = useQuery({
@@ -328,7 +333,7 @@ export default function ColoringBook() {
           </p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-6">
             <TabsTrigger value="books" className="gap-2">
               <BookOpen className="w-4 h-4" />
