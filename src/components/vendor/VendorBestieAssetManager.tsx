@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Image, AlertCircle } from "lucide-react";
 import { VendorBestieAssetSelector } from "./VendorBestieAssetSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface LinkedBestie {
   id: string;
@@ -21,9 +22,10 @@ interface LinkedBestie {
 
 interface VendorBestieAssetManagerProps {
   vendorId: string;
+  theme?: VendorThemePreset;
 }
 
-export const VendorBestieAssetManager = ({ vendorId }: VendorBestieAssetManagerProps) => {
+export const VendorBestieAssetManager = ({ vendorId, theme }: VendorBestieAssetManagerProps) => {
   const [besties, setBesties] = useState<LinkedBestie[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBestie, setSelectedBestie] = useState<LinkedBestie | null>(null);
@@ -106,7 +108,14 @@ export const VendorBestieAssetManager = ({ vendorId }: VendorBestieAssetManagerP
 
   if (loading) {
     return (
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardContent className="py-8">
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -118,7 +127,14 @@ export const VendorBestieAssetManager = ({ vendorId }: VendorBestieAssetManagerP
 
   if (besties.length === 0) {
     return (
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image className="h-5 w-5" />
@@ -142,7 +158,14 @@ export const VendorBestieAssetManager = ({ vendorId }: VendorBestieAssetManagerP
 
   return (
     <>
-      <Card>
+      <Card 
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image className="h-5 w-5" />
