@@ -9,38 +9,40 @@ import { Badge } from "@/components/ui/badge";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationList } from "./NotificationList";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 
 export const NotificationBell = () => {
   const { unreadCount, markAllAsRead, notifications } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  // IDs that were unread when popover opened - shown with visual highlight until popover closes
   const [newlySeenIds, setNewlySeenIds] = useState<Set<string>>(new Set());
   const hasMarkedRead = useRef(false);
 
-  // When popover opens, capture current unread IDs for visual indicator and mark all as read
-  useEffect(() => {
-    if (open && !hasMarkedRead.current) {
-      // Capture IDs that were unread when opened (for visual "new" indicator)
-      const unreadIds = new Set(
+  // Handle popover open/close - Facebook-style: mark all read on open, visual indicator until close
+  const handleOpenChange = useCallback((isOpen: boolean) => {
+    if (isOpen && !hasMarkedRead.current) {
+      // Capture IDs that are currently unread BEFORE marking them read
+      const currentUnreadIds = new Set(
         notifications.filter(n => !n.is_read).map(n => n.id)
       );
-      setNewlySeenIds(unreadIds);
+      setNewlySeenIds(currentUnreadIds);
       
-      // Mark all as read (clears badge)
-      if (unreadIds.size > 0) {
+      // Mark all as read immediately (clears badge count)
+      if (currentUnreadIds.size > 0) {
         markAllAsRead();
       }
       hasMarkedRead.current = true;
-    } else if (!open) {
-      // Reset when closed
+    } else if (!isOpen) {
+      // When closing, reset the visual indicator and allow fresh mark on next open
       hasMarkedRead.current = false;
       setNewlySeenIds(new Set());
     }
-  }, [open, notifications, markAllAsRead]);
+    setOpen(isOpen);
+  }, [notifications, markAllAsRead]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
