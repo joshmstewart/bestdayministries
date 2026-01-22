@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Play, Youtube } from "lucide-react";
 import ImageLightbox from "@/components/ImageLightbox";
-import { YouTubeEmbed } from "@/components/YouTubeEmbed";
+import VideoLightbox from "@/components/VideoLightbox";
 
 interface StoryMedia {
   id: string;
@@ -21,7 +21,12 @@ interface VendorStoryGalleryProps {
 export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProps) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [videoLightbox, setVideoLightbox] = useState<{
+    open: boolean;
+    url: string;
+    type: 'video' | 'youtube';
+    caption: string | null;
+  }>({ open: false, url: '', type: 'video', caption: null });
 
   if (!media || media.length === 0) return null;
 
@@ -33,6 +38,15 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
       setLightboxIndex(imageIndex);
       setLightboxOpen(true);
     }
+  };
+
+  const openVideoLightbox = (item: StoryMedia) => {
+    setVideoLightbox({
+      open: true,
+      url: item.media_url,
+      type: item.media_type as 'video' | 'youtube',
+      caption: item.caption
+    });
   };
 
   const extractYoutubeId = (url: string): string | null => {
@@ -69,34 +83,23 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
               )}
 
               {item.media_type === 'video' && (
-                <div className="relative">
+                <div 
+                  className="relative cursor-pointer"
+                  onClick={() => openVideoLightbox(item)}
+                >
                   <AspectRatio ratio={16/9}>
-                    {playingVideo === item.id ? (
-                      <video 
-                        src={item.media_url} 
-                        controls 
-                        autoPlay
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div 
-                        className="relative cursor-pointer"
-                        onClick={() => setPlayingVideo(item.id)}
-                      >
-                        <video 
-                          src={item.media_url} 
-                          className="w-full h-full object-cover"
-                          muted
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-                            <Play className="h-8 w-8 text-primary ml-1" fill="currentColor" />
-                          </div>
-                        </div>
+                    <video 
+                      src={item.media_url} 
+                      className="w-full h-full object-cover"
+                      muted
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                      <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+                        <Play className="h-8 w-8 text-primary ml-1" fill="currentColor" />
                       </div>
-                    )}
+                    </div>
                   </AspectRatio>
-                  {item.caption && !playingVideo && (
+                  {item.caption && (
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                       <p className="text-white text-sm">{item.caption}</p>
                     </div>
@@ -105,35 +108,26 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
               )}
 
               {item.media_type === 'youtube' && (
-                <div className="relative">
+                <div 
+                  className="relative cursor-pointer"
+                  onClick={() => openVideoLightbox(item)}
+                >
                   <AspectRatio ratio={16/9}>
-                    {playingVideo === item.id ? (
-                      <YouTubeEmbed 
-                        url={item.media_url} 
-                        autoplay={true}
-                      />
-                    ) : (
-                      <div 
-                        className="relative cursor-pointer"
-                        onClick={() => setPlayingVideo(item.id)}
-                      >
-                        <img 
-                          src={`https://img.youtube.com/vi/${extractYoutubeId(item.media_url)}/maxresdefault.jpg`}
-                          alt={item.caption || "Video thumbnail"}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://img.youtube.com/vi/${extractYoutubeId(item.media_url)}/hqdefault.jpg`;
-                          }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                          <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center">
-                            <Youtube className="h-8 w-8 text-white" />
-                          </div>
-                        </div>
+                    <img 
+                      src={`https://img.youtube.com/vi/${extractYoutubeId(item.media_url)}/maxresdefault.jpg`}
+                      alt={item.caption || "Video thumbnail"}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = `https://img.youtube.com/vi/${extractYoutubeId(item.media_url)}/hqdefault.jpg`;
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                      <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center">
+                        <Youtube className="h-8 w-8 text-white" />
                       </div>
-                    )}
+                    </div>
                   </AspectRatio>
-                  {item.caption && !playingVideo && (
+                  {item.caption && (
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
                       <p className="text-white text-sm">{item.caption}</p>
                     </div>
@@ -158,6 +152,14 @@ export const VendorStoryGallery = ({ media, vendorName }: VendorStoryGalleryProp
           onNext={() => setLightboxIndex(prev => prev < images.length - 1 ? prev + 1 : 0)}
         />
       )}
+
+      <VideoLightbox
+        isOpen={videoLightbox.open}
+        onClose={() => setVideoLightbox(prev => ({ ...prev, open: false }))}
+        videoUrl={videoLightbox.url}
+        videoType={videoLightbox.type}
+        caption={videoLightbox.caption}
+      />
     </div>
   );
 };
