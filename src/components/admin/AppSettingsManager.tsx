@@ -7,68 +7,53 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Settings } from "lucide-react";
 
-const getCssVar = (name: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+// Draws the sunburst gradient directly on canvas (avoids tainted-canvas issues)
+const exportSunburstGradientToPng = async (width: number, height: number, filename: string) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D not supported");
 
-type GradientExportOptions = {
-  width: number;
-  height: number;
-  filename: string;
-};
+  // Base burnt-orange fill (hsl 24 85% 56%)
+  ctx.fillStyle = "hsl(24, 85%, 56%)";
+  ctx.fillRect(0, 0, width, height);
 
-const exportCssGradientToPng = async ({ width, height, filename }: GradientExportOptions) => {
-  // Resolve the exact runtime values from the design system.
-  const gradient = getCssVar("--gradient-warm");
-  const primaryHsl = getCssVar("--primary");
-  const baseColor = primaryHsl ? `hsl(${primaryHsl})` : "transparent";
+  // Radial mustard "spots" matching --gradient-warm
+  const spots: { cx: number; cy: number; r: number; alpha: number }[] = [
+    { cx: 0.20, cy: 0.30, r: 0.25, alpha: 0.25 },
+    { cx: 0.75, cy: 0.20, r: 0.30, alpha: 0.20 },
+    { cx: 0.85, cy: 0.70, r: 0.25, alpha: 0.28 },
+    { cx: 0.40, cy: 0.80, r: 0.35, alpha: 0.18 },
+    { cx: 0.15, cy: 0.85, r: 0.28, alpha: 0.15 },
+  ];
 
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <foreignObject width="100%" height="100%">
-    <div xmlns="http://www.w3.org/1999/xhtml"
-      style="width:${width}px;height:${height}px;background:${gradient};background-color:${baseColor};">
-    </div>
-  </foreignObject>
-</svg>`;
+  for (const spot of spots) {
+    const cx = spot.cx * width;
+    const cy = spot.cy * height;
+    const r = spot.r * Math.max(width, height);
 
-  const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const svgUrl = URL.createObjectURL(svgBlob);
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    // mustard hsl(46 95% 55%) with varying alpha
+    grad.addColorStop(0, `hsla(46, 95%, 55%, ${spot.alpha})`);
+    grad.addColorStop(1, "transparent");
 
-  try {
-    const img = new Image();
-    img.decoding = "async";
-
-    const loaded = new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Failed to render gradient image"));
-    });
-
-    img.src = svgUrl;
-    await loaded;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas rendering not supported in this browser");
-
-    ctx.drawImage(img, 0, 0);
-
-    const pngBlob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Failed to create PNG"))), "image/png");
-    });
-
-    const downloadUrl = URL.createObjectURL(pngBlob);
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(downloadUrl);
-  } finally {
-    URL.revokeObjectURL(svgUrl);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
   }
+
+  const pngBlob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+  });
+
+  const url = URL.createObjectURL(pngBlob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 };
 
 export const AppSettingsManager = () => {
@@ -258,11 +243,7 @@ export const AppSettingsManager = () => {
 
   const handleDownloadSplash = async () => {
     try {
-      await exportCssGradientToPng({
-        width: 1242,
-        height: 1920,
-        filename: "splash-background-sunburst.png",
-      });
+      await exportSunburstGradientToPng(1242, 1920, "splash-background-sunburst.png");
       toast({
         title: "Downloaded",
         description: "Generated from your live sunburst gradient (bg-gradient-warm).",
