@@ -89,7 +89,7 @@ export function GameCelebrationDisplay({
       <img
         src={selectedImageUrl}
         alt="Celebration"
-        className="w-48 h-48 sm:w-56 sm:h-56 object-cover rounded-2xl shadow-xl"
+        className="w-56 h-56 sm:w-64 sm:h-64 object-cover rounded-2xl shadow-xl"
         onError={() => setImageError(true)}
       />
     </div>
