@@ -110,11 +110,37 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
         });
       }
 
+      // For beat items, fetch live plays_count from beat_pad_creations
+      const beatItems = feedItems.filter(item => item.item_type === 'beat');
+      const beatPlaysMap = new Map<string, number>();
+      
+      if (beatItems.length > 0) {
+        const beatIds = beatItems.map(item => item.id);
+        const { data: beatData } = await supabase
+          .from("beat_pad_creations")
+          .select("id, plays_count")
+          .in("id", beatIds);
+        
+        beatData?.forEach(beat => {
+          beatPlaysMap.set(beat.id, beat.plays_count || 0);
+        });
+      }
+
       // Merge profile data with feed items, filtering invalid types
       const enrichedItems: FeedItemData[] = feedItems
         .filter(item => VALID_ITEM_TYPES.includes(item.item_type as ItemType))
         .map(item => {
           const profile = profileCache.get(item.author_id);
+          
+          // For beats, inject live plays_count into extra_data
+          let extraData = item.extra_data;
+          if (item.item_type === 'beat' && beatPlaysMap.has(item.id)) {
+            extraData = {
+              ...(typeof extraData === 'object' && extraData !== null ? extraData : {}),
+              plays_count: beatPlaysMap.get(item.id),
+            };
+          }
+          
           return {
             id: item.id,
             item_type: item.item_type as ItemType,
@@ -127,7 +153,7 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
             comments_count: item.comments_count,
             author_name: profile?.name || undefined,
             author_avatar: profile?.avatar || undefined,
-            extra_data: item.extra_data,
+            extra_data: extraData,
             repost_id: (item as any).repost_id || null,
           };
         });
