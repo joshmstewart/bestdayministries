@@ -16,12 +16,14 @@ import { VendorThemeColorPicker } from "./VendorThemeColorPicker";
 import { getVendorTheme } from "@/lib/vendorThemePresets";
 interface VendorProfileSettingsProps {
   vendorId: string;
+  onThemeSaved?: (themeColor: string) => void;
 }
 
-export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) => {
+export const VendorProfileSettings = ({ vendorId, onThemeSaved }: VendorProfileSettingsProps) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<'logo' | 'banner' | null>(null);
+  const [savedTheme, setSavedTheme] = useState('orange'); // Theme from database
   const [formData, setFormData] = useState({
     business_name: '',
     description: '',
@@ -53,6 +55,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
 
       if (data) {
         const socialLinks = data.social_links as any;
+        const themeColor = (data as any).theme_color || 'orange';
         setFormData({
           business_name: data.business_name || '',
           description: data.description || '',
@@ -65,8 +68,9 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           estimated_processing_days: data.estimated_processing_days ?? 3,
           contact_email: data.contact_email || '',
           disable_free_shipping: data.disable_free_shipping ?? false,
-          theme_color: (data as any).theme_color || 'orange',
+          theme_color: themeColor,
         });
+        setSavedTheme(themeColor);
       }
     } catch (error) {
       console.error('Error loading vendor data:', error);
@@ -135,6 +139,10 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
 
       if (error) throw error;
 
+      // Update saved theme so dashboard updates
+      setSavedTheme(formData.theme_color);
+      onThemeSaved?.(formData.theme_color);
+
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -144,8 +152,8 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
     }
   };
 
-  // Get current theme for dashboard styling
-  const theme = useMemo(() => getVendorTheme(formData.theme_color), [formData.theme_color]);
+  // Use SAVED theme for dashboard styling (sticky bar), not form state
+  const theme = useMemo(() => getVendorTheme(savedTheme), [savedTheme]);
 
   // Handle preview with current unsaved settings
   const handlePreviewStore = () => {

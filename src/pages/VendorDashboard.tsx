@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -21,6 +21,7 @@ import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 import { VendorTeamManager } from "@/components/vendor/VendorTeamManager";
 import { CartInsights } from "@/components/vendor/CartInsights";
 import { PageLoadingState } from "@/components/common";
+import { getVendorTheme } from "@/lib/vendorThemePresets";
 
 interface Vendor {
   id: string;
@@ -28,6 +29,7 @@ interface Vendor {
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
   business_name: string;
   stripe_charges_enabled?: boolean;
+  theme_color?: string;
 }
 
 const VendorDashboard = () => {
@@ -47,6 +49,9 @@ const VendorDashboard = () => {
 
   const selectedVendor = vendors.find(v => v.id === selectedVendorId);
   const isVendorOwner = selectedVendor && currentUserId ? selectedVendor.user_id === currentUserId : false;
+  
+  // Get theme from saved vendor data (only updates when vendor data is reloaded)
+  const theme = useMemo(() => getVendorTheme(selectedVendor?.theme_color), [selectedVendor?.theme_color]);
 
   useEffect(() => {
     checkVendorStatus();
@@ -89,7 +94,7 @@ const VendorDashboard = () => {
         // Admins/owners can see ALL approved vendors
         const { data, error } = await supabase
           .from('vendors')
-          .select('id, user_id, status, business_name, stripe_charges_enabled')
+          .select('id, user_id, status, business_name, stripe_charges_enabled, theme_color')
           .eq('status', 'approved')
           .order('business_name', { ascending: true });
         
@@ -100,7 +105,7 @@ const VendorDashboard = () => {
         // Regular users see their own vendors AND vendors they're team members of
         const { data: ownedVendors } = await supabase
           .from('vendors')
-          .select('id, user_id, status, business_name, stripe_charges_enabled')
+          .select('id, user_id, status, business_name, stripe_charges_enabled, theme_color')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
         
@@ -117,7 +122,7 @@ const VendorDashboard = () => {
         if (teamVendorIds.length > 0) {
           const { data } = await supabase
             .from('vendors')
-            .select('id, user_id, status, business_name, stripe_charges_enabled')
+            .select('id, user_id, status, business_name, stripe_charges_enabled, theme_color')
             .in('id', teamVendorIds)
             .eq('status', 'approved');
           
@@ -383,7 +388,10 @@ const VendorDashboard = () => {
         )}
 
         {selectedVendor?.status === 'approved' && selectedVendorId && (
-          <div className="space-y-6">
+          <div 
+            className="space-y-6 p-6 rounded-xl -mx-4 sm:-mx-0"
+            style={{ backgroundColor: theme.sectionBg }}
+          >
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground uppercase tracking-wide">Vendor Account</p>
               <div className="flex justify-between items-center">
@@ -403,6 +411,10 @@ const VendorDashboard = () => {
                   </Button>
                   <Button 
                     onClick={() => navigate(`/vendors/${selectedVendorId}`)}
+                    style={{ 
+                      backgroundColor: theme.accent,
+                      color: theme.accentText 
+                    }}
                   >
                     <Store className="mr-2 h-4 w-4" />
                     View My Store
@@ -412,35 +424,56 @@ const VendorDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
+              <Card 
+                className="border-2"
+                style={{ 
+                  backgroundColor: theme.cardBg,
+                  borderColor: theme.cardBorder,
+                  boxShadow: theme.cardGlow
+                }}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <Package className="h-4 w-4" style={{ color: theme.accent }} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalProducts}</div>
+                  <div className="text-2xl font-bold" style={{ color: theme.accent }}>{stats.totalProducts}</div>
                   <p className="text-xs text-muted-foreground">Active listings</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className="border-2"
+                style={{ 
+                  backgroundColor: theme.cardBg,
+                  borderColor: theme.cardBorder,
+                  boxShadow: theme.cardGlow
+                }}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <DollarSign className="h-4 w-4" style={{ color: theme.accent }} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${stats.totalSales.toFixed(2)}</div>
+                  <div className="text-2xl font-bold" style={{ color: theme.accent }}>${stats.totalSales.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">This month</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className="border-2"
+                style={{ 
+                  backgroundColor: theme.cardBg,
+                  borderColor: theme.cardBorder,
+                  boxShadow: theme.cardGlow
+                }}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <Package className="h-4 w-4" style={{ color: theme.accent }} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+                  <div className="text-2xl font-bold" style={{ color: theme.accent }}>{stats.pendingOrders}</div>
                   <p className="text-xs text-muted-foreground">Awaiting shipment</p>
                 </CardContent>
               </Card>
@@ -561,7 +594,17 @@ const VendorDashboard = () => {
               <TabsContent value="settings" className="space-y-8">
                 <div>
                   <h2 className="text-2xl font-semibold mb-6">Store Settings</h2>
-                  <VendorProfileSettings vendorId={selectedVendorId} />
+                  <VendorProfileSettings 
+                    vendorId={selectedVendorId} 
+                    onThemeSaved={(themeColor) => {
+                      // Update vendor theme in local state so dashboard updates immediately
+                      setVendors(prev => prev.map(v => 
+                        v.id === selectedVendorId 
+                          ? { ...v, theme_color: themeColor } 
+                          : v
+                      ));
+                    }}
+                  />
                 </div>
                 
                 <div>
