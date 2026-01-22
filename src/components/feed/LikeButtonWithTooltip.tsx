@@ -113,6 +113,15 @@ export function LikeButtonWithTooltip({
           userIds = data?.map(d => d.user_id) || [];
           break;
         }
+        case 'recipe': {
+          const { data } = await supabase
+            .from('public_recipe_likes')
+            .select('user_id')
+            .eq('recipe_id', itemId)
+            .limit(10);
+          userIds = data?.map(d => d.user_id) || [];
+          break;
+        }
       }
 
       if (userIds.length > 0) {

@@ -188,6 +188,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             data = result.data;
             break;
           }
+          case 'recipe': {
+            const result = await supabase
+              .from('public_recipe_likes')
+              .select('id')
+              .eq('recipe_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
           default:
             return;
         }
@@ -346,6 +356,34 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               .update({ likes_count: likesCount + 1 })
               .eq('id', item.id);
             toast.success("Praying with you 🙏");
+          }
+          break;
+        }
+        case 'recipe': {
+          if (isLiked) {
+            const { error: unlikeError } = await supabase
+              .from('public_recipe_likes')
+              .delete()
+              .eq('recipe_id', item.id)
+              .eq('user_id', user.id);
+            if (unlikeError) throw unlikeError;
+
+            const { error: countError } = await supabase
+              .from('public_recipes')
+              .update({ likes_count: Math.max(0, likesCount - 1) })
+              .eq('id', item.id);
+            if (countError) throw countError;
+          } else {
+            const { error: likeError } = await supabase
+              .from('public_recipe_likes')
+              .insert({ recipe_id: item.id, user_id: user.id });
+            if (likeError) throw likeError;
+
+            const { error: countError } = await supabase
+              .from('public_recipes')
+              .update({ likes_count: likesCount + 1 })
+              .eq('id', item.id);
+            if (countError) throw countError;
           }
           break;
         }
