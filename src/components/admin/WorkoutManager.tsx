@@ -5,7 +5,8 @@ import { WorkoutActivitiesManager } from "./WorkoutActivitiesManager";
 import { WorkoutCategoriesManager } from "./WorkoutCategoriesManager";
 import { FitnessAvatarManager } from "./FitnessAvatarManager";
 import { WorkoutLocationsManager } from "./WorkoutLocationsManager";
-import { Play, ListChecks, FolderOpen, Sparkles, MapPin } from "lucide-react";
+import { AvatarCelebrationImagesManager } from "./AvatarCelebrationImagesManager";
+import { Play, ListChecks, FolderOpen, Sparkles, MapPin, PartyPopper } from "lucide-react";
 
 export const WorkoutManager = () => {
   const [activeTab, setActiveTab] = useState("videos");
@@ -41,6 +42,10 @@ export const WorkoutManager = () => {
             <MapPin className="h-4 w-4" />
             Locations
           </TabsTrigger>
+          <TabsTrigger value="celebrations" className="flex items-center gap-2">
+            <PartyPopper className="h-4 w-4" />
+            Celebrations
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="videos" className="mt-6">
@@ -61,6 +66,10 @@ export const WorkoutManager = () => {
 
         <TabsContent value="locations" className="mt-6">
           <WorkoutLocationsManager />
+        </TabsContent>
+
+        <TabsContent value="celebrations" className="mt-6">
+          <AvatarCelebrationImagesManager />
         </TabsContent>
       </Tabs>
     </div>
