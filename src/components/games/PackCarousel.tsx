@@ -68,13 +68,13 @@ export function PackCarousel({
         </span>
       </div>
 
-      {/* Featured Pack Display */}
+      {/* Featured Pack Display - Compact Side-by-Side */}
       <div
         className={cn(
-          "relative rounded-2xl border-2 overflow-hidden transition-all duration-300",
+          "relative rounded-xl border-2 overflow-hidden transition-all duration-300 cursor-pointer",
           canUseFeatured
-            ? "border-primary ring-2 ring-primary/30 shadow-lg"
-            : "border-border"
+            ? "border-primary ring-2 ring-primary/30 shadow-md"
+            : "border-border hover:border-primary/30"
         )}
         onClick={() => {
           if (canUseFeatured) {
@@ -84,60 +84,62 @@ export function PackCarousel({
           }
         }}
       >
-        {/* Price Ribbon for purchasable packs */}
-        {!canUseFeatured && featuredPack.is_purchasable && (
-          <PriceRibbon
-            price={featuredPack.price_coins}
-            position="top-right"
-            size="sm"
-          />
-        )}
-
-        {/* Featured Image - Compact */}
-        <div className="aspect-[3/1] bg-muted max-h-32">
-          {featuredPreviewImage ? (
-            <img
-              src={featuredPreviewImage}
-              alt={featuredPack.name}
-              className={cn(
-                "w-full h-full object-cover transition-all",
-                !canUseFeatured && "grayscale-[30%] opacity-80"
-              )}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="w-16 h-16 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-
-        {/* Featured Pack Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 pt-10">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
-                <h4 className="font-semibold text-white truncate">
-                  {featuredPack.name}
-                </h4>
-              </div>
-              {featuredPack.description && (
-                <p className="text-xs text-white/70 mt-1 line-clamp-2">
-                  {featuredPack.description}
-                </p>
-              )}
-            </div>
-            {!canUseFeatured && (
-              <div className="flex items-center gap-1 bg-yellow-500 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                <ShoppingCart className="w-3.5 h-3.5" />
-                Buy
+        <div className="flex">
+          {/* Featured Image - Left Side */}
+          <div className="relative w-28 h-24 sm:w-36 sm:h-28 flex-shrink-0 bg-muted">
+            {featuredPreviewImage ? (
+              <img
+                src={featuredPreviewImage}
+                alt={featuredPack.name}
+                className={cn(
+                  "w-full h-full object-cover",
+                  !canUseFeatured && "grayscale-[30%] opacity-80"
+                )}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Package className="w-10 h-10 text-muted-foreground" />
               </div>
             )}
-            {canUseFeatured && (
-              <div className="bg-primary rounded-full p-1.5 shadow-lg">
-                <Check className="w-4 h-4 text-primary-foreground" />
+            {/* Price badge for purchasable */}
+            {!canUseFeatured && featuredPack.is_purchasable && (
+              <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                <span>🪙</span>
+                <span>{featuredPack.price_coins}</span>
               </div>
             )}
+          </div>
+
+          {/* Pack Info - Right Side */}
+          <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <h4 className="font-semibold text-sm truncate">
+                    {featuredPack.name}
+                  </h4>
+                </div>
+                {featuredPack.description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {featuredPack.description}
+                  </p>
+                )}
+              </div>
+              {/* Status indicator */}
+              <div className="flex-shrink-0">
+                {canUseFeatured ? (
+                  <div className="bg-primary rounded-full p-1">
+                    <Check className="w-3 h-3 text-primary-foreground" />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 bg-accent text-accent-foreground text-xs font-bold px-2 py-1 rounded-full">
+                    <ShoppingCart className="w-3 h-3" />
+                    <span className="text-[10px]">Buy</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
