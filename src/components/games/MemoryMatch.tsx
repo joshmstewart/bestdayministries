@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,9 +75,14 @@ const DEFAULT_DIFFICULTY_CONFIG = {
 
 interface MemoryMatchProps {
   onBackgroundColorChange?: (color: string) => void;
+  onGameStartedChange?: (started: boolean) => void;
 }
 
-export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
+export interface MemoryMatchRef {
+  resetToSelection: () => void;
+}
+
+export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBackgroundColorChange, onGameStartedChange }, ref) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
@@ -149,6 +154,27 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
     loadImagePacks();
     loadCoinRewards();
   }, []);
+
+  // Notify parent when gameStarted changes
+  useEffect(() => {
+    onGameStartedChange?.(gameStarted);
+  }, [gameStarted, onGameStartedChange]);
+
+  // Reset game to pack/difficulty selection screen
+  const resetToSelection = useCallback(() => {
+    setGameStarted(false);
+    setGameCompleted(false);
+    setCards([]);
+    setFlippedCards([]);
+    setMoves(0);
+    setMatchedPairs(0);
+    setElapsedTime(0);
+  }, []);
+
+  // Expose reset function via ref
+  useImperativeHandle(ref, () => ({
+    resetToSelection,
+  }), [resetToSelection]);
 
   // Update current images and colors when pack selection changes
   useEffect(() => {
@@ -992,4 +1018,6 @@ export const MemoryMatch = ({ onBackgroundColorChange }: MemoryMatchProps) => {
       </Card>
     </div>
   );
-};
+});
+
+MemoryMatch.displayName = 'MemoryMatch';

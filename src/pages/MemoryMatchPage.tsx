@@ -1,11 +1,25 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
-import { MemoryMatch } from "@/components/games/MemoryMatch";
+import { MemoryMatch, MemoryMatchRef } from "@/components/games/MemoryMatch";
 import Footer from "@/components/Footer";
 import { BackButton } from "@/components/BackButton";
+import { useNavigate } from "react-router-dom";
 
 const MemoryMatchPage = () => {
   const [backgroundColor, setBackgroundColor] = useState<string>('#F97316');
+  const [gameStarted, setGameStarted] = useState(false);
+  const gameRef = useRef<MemoryMatchRef>(null);
+  const navigate = useNavigate();
+
+  const handleBackClick = () => {
+    if (gameStarted) {
+      // If in game, go back to pack/difficulty selection
+      gameRef.current?.resetToSelection();
+    } else {
+      // If on selection screen, go back to community
+      navigate('/community');
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -15,8 +29,15 @@ const MemoryMatchPage = () => {
         style={{ backgroundColor }}
       >
         <div className="container max-w-4xl mx-auto">
-          <BackButton to="/games/memory-match" label="Back to Memory Match" />
-          <MemoryMatch onBackgroundColorChange={setBackgroundColor} />
+          <BackButton 
+            onClick={handleBackClick} 
+            label={gameStarted ? "Back to Selection" : "Back to Community"} 
+          />
+          <MemoryMatch 
+            ref={gameRef}
+            onBackgroundColorChange={setBackgroundColor} 
+            onGameStartedChange={setGameStarted}
+          />
         </div>
       </main>
       <Footer />
