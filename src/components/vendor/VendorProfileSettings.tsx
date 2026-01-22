@@ -12,6 +12,7 @@ import { Upload, Loader2, ExternalLink, X } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
 import { VendorStoryMediaManager } from "./VendorStoryMediaManager";
+import { VendorThemeColorPicker } from "./VendorThemeColorPicker";
 
 interface VendorProfileSettingsProps {
   vendorId: string;
@@ -32,6 +33,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
     estimated_processing_days: 3,
     contact_email: '',
     disable_free_shipping: false,
+    theme_color: 'orange',
   });
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           estimated_processing_days: data.estimated_processing_days ?? 3,
           contact_email: data.contact_email || '',
           disable_free_shipping: data.disable_free_shipping ?? false,
+          theme_color: (data as any).theme_color || 'orange',
         });
       }
     } catch (error) {
@@ -120,12 +123,13 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
           disable_free_shipping: formData.disable_free_shipping,
           estimated_processing_days: formData.estimated_processing_days,
           contact_email: formData.contact_email || null,
+          theme_color: formData.theme_color,
           social_links: {
             website: formData.website || undefined,
             instagram: formData.instagram || undefined,
             facebook: formData.facebook || undefined,
           }
-        })
+        } as any)
         .eq('id', vendorId);
 
       if (error) throw error;
@@ -242,6 +246,21 @@ export const VendorProfileSettings = ({ vendorId }: VendorProfileSettingsProps) 
               Email address buyers can use to contact you about order issues.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Store Theme</CardTitle>
+          <CardDescription>
+            Customize the look and feel of your store page
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VendorThemeColorPicker
+            value={formData.theme_color}
+            onChange={(color) => setFormData(prev => ({ ...prev, theme_color: color }))}
+          />
         </CardContent>
       </Card>
 

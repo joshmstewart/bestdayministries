@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { VendorBestieAssetDisplay } from "@/components/vendor/VendorBestieAssetDisplay";
 import { VendorStoryGallery } from "@/components/vendor/VendorStoryGallery";
 import ImageLightbox from "@/components/ImageLightbox";
+import { getVendorTheme, VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface Vendor {
   id: string;
@@ -22,6 +23,7 @@ interface Vendor {
   banner_image_url: string | null;
   social_links: any;
   featured_bestie_id: string | null;
+  theme_color?: string;
 }
 
 interface FeaturedBestie {
@@ -37,6 +39,7 @@ const VendorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [theme, setTheme] = useState<VendorThemePreset>(getVendorTheme('orange'));
   const [featuredBestie, setFeaturedBestie] = useState<FeaturedBestie | null>(null);
   const [bestieAssets, setBestieAssets] = useState<any[]>([]);
   const [storyMedia, setStoryMedia] = useState<any[]>([]);
@@ -70,6 +73,7 @@ const VendorProfile = () => {
       }
 
       setVendor(vendorData);
+      setTheme(getVendorTheme((vendorData as any).theme_color));
 
       // If vendor has a featured bestie, fetch their details and role
       let featuredBestieData = null;
@@ -209,12 +213,14 @@ const VendorProfile = () => {
       <main className="flex-1 pt-14">
         {/* Banner Section */}
         <div
-          className="h-32 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 relative"
+          className="h-32 relative"
           style={vendor.banner_image_url ? {
             backgroundImage: `url(${vendor.banner_image_url})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
-          } : {}}
+          } : {
+            background: `linear-gradient(135deg, ${theme.banner} 0%, ${theme.accent} 100%)`
+          }}
         >
           <div className="container mx-auto px-4 h-full flex items-center">
             <Button
@@ -233,7 +239,13 @@ const VendorProfile = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="relative -mt-8 mb-6">
-            <div className="bg-background rounded-lg shadow-lg p-6 border">
+            <div 
+              className="rounded-lg shadow-lg p-6 border"
+              style={{ 
+                backgroundColor: theme.cardBg,
+                borderColor: theme.cardBorder 
+              }}
+            >
               <div className="flex flex-col md:flex-row gap-6 items-start">
                 {/* Logo */}
                 <div className="flex-shrink-0">
@@ -248,8 +260,11 @@ const VendorProfile = () => {
                       }}
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-4 border-background shadow-md">
-                      <Store className="w-12 h-12 text-primary" />
+                    <div 
+                      className="w-24 h-24 rounded-full flex items-center justify-center border-4 border-background shadow-md"
+                      style={{ backgroundColor: `${theme.accent}20` }}
+                    >
+                      <Store className="w-12 h-12" style={{ color: theme.accent }} />
                     </div>
                   )}
                 </div>
@@ -333,11 +348,19 @@ const VendorProfile = () => {
           {/* Featured Bestie Section */}
           {featuredBestie && (
             <div className="pb-8">
-              <Card className="border-2 border-primary/20">
+              <Card 
+                className="border-2"
+                style={{ borderColor: `${theme.accent}40`, backgroundColor: theme.cardBg }}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-3xl overflow-hidden">
+                      <div 
+                        className="w-20 h-20 rounded-full flex items-center justify-center text-3xl overflow-hidden"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${theme.accent}30 0%, ${theme.cardBorder} 100%)` 
+                        }}
+                      >
                         {featuredBestie.avatar_url ? (
                           <img 
                             src={featuredBestie.avatar_url} 
@@ -348,7 +371,10 @@ const VendorProfile = () => {
                           <span>{featuredBestie.display_name.slice(0, 2).toUpperCase()}</span>
                         )}
                       </div>
-                      <Heart className="absolute -top-1 -right-1 h-6 w-6 text-primary fill-current" />
+                      <Heart 
+                        className="absolute -top-1 -right-1 h-6 w-6 fill-current" 
+                        style={{ color: theme.accent }}
+                      />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -386,7 +412,10 @@ const VendorProfile = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-muted/30 rounded-lg">
+              <div 
+                className="text-center py-12 rounded-lg"
+                style={{ backgroundColor: theme.sectionBg }}
+              >
                 <p className="text-muted-foreground">
                   This vendor hasn't listed any products yet
                 </p>

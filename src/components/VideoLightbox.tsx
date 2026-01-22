@@ -1,7 +1,8 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface VideoLightboxProps {
   isOpen: boolean;
@@ -21,6 +22,9 @@ export default function VideoLightbox({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!max-w-[95vw] md:!max-w-[80vw] lg:!max-w-[900px] !max-h-[90vh] p-0 overflow-hidden border-0 bg-black">
+        <VisuallyHidden>
+          <DialogTitle>Video Player</DialogTitle>
+        </VisuallyHidden>
         <div className="relative flex flex-col items-center justify-center w-full">
           {/* Close Button */}
           <Button
