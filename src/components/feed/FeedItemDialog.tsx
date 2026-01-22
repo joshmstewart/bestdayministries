@@ -350,8 +350,8 @@ export function FeedItemDialog({
                     </Link>
                   </Button>
 
-                  {/* Download - owner only */}
-                  {item.image_url && (
+                  {/* Download - owner only, not for colorings */}
+                  {item.image_url && item.item_type !== 'coloring' && (
                     <Button 
                       variant="outline" 
                       size="sm" 
