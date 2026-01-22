@@ -95,14 +95,14 @@ export default function ColoringBook() {
     enabled: !!previewBook?.id,
   });
 
-  // Fetch all books with page count
+  // Fetch all books with page count - cached for 30 seconds to prevent tab flickering
   const { data: coloringBooks, isLoading: booksLoading } = useQuery({
     queryKey: ["coloring-books"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("coloring_books")
         .select(`
-          *,
+          id, title, description, cover_image_url, coin_price, is_free, display_order,
           coloring_pages(count)
         `)
         .eq("is_active", true)
@@ -112,9 +112,10 @@ export default function ColoringBook() {
       if (error) throw error;
       return data as (ColoringBook & { coloring_pages: { count: number }[] })[];
     },
+    staleTime: 30000, // Cache for 30 seconds to prevent refetch on tab switch
   });
 
-  // Fetch user's purchased books
+  // Fetch user's purchased books - cached for 30 seconds
   const { data: purchasedBooks } = useQuery({
     queryKey: ["user-coloring-books", user?.id],
     queryFn: async () => {
@@ -127,16 +128,17 @@ export default function ColoringBook() {
       return data.map(p => p.book_id);
     },
     enabled: !!user?.id,
+    staleTime: 30000,
   });
 
-  // Fetch pages for selected book
+  // Fetch pages for selected book - exclude heavy fields, cached
   const { data: bookPages, isLoading: pagesLoading } = useQuery({
     queryKey: ["coloring-pages", selectedBook?.id],
     queryFn: async () => {
       if (!selectedBook?.id) return [];
       const { data, error } = await supabase
         .from("coloring_pages")
-        .select("*")
+        .select("id, title, image_url, book_id, display_order, difficulty, description")
         .eq("book_id", selectedBook.id)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
@@ -144,6 +146,7 @@ export default function ColoringBook() {
       return data;
     },
     enabled: !!selectedBook?.id,
+    staleTime: 30000,
   });
 
   const purchaseMutation = useMutation({
