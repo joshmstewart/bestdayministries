@@ -60,6 +60,8 @@ const STATUS_OPTIONS = [
   { value: 'wont_fix', label: "Won't Fix", variant: 'outline' as const },
 ];
 
+type AssignmentFilter = 'all' | 'mine' | 'unassigned' | string; // string for specific user ID
+
 export default function ContactSubmissions() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -78,6 +80,7 @@ export default function ContactSubmissions() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set());
+  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('all');
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
 
   useEffect(() => {
@@ -195,7 +198,9 @@ export default function ContactSubmissions() {
     setRefreshing(false);
   };
 
-  const assignSubmission = async (id: string, assignedTo: string | null) => {
+  const assignSubmission = async (id: string, assignedTo: string | null, submission?: Submission) => {
+    const previousAssignedTo = submission?.assigned_to;
+    
     const { error } = await supabase
       .from("contact_form_submissions")
       .update({ assigned_to: assignedTo })
@@ -218,6 +223,20 @@ export default function ContactSubmissions() {
     );
     
     toast({ title: assignedTo ? `Assigned to ${adminName}` : "Unassigned" });
+    
+    // Send notification if assigning to someone new (not unassigning, not same person)
+    if (assignedTo && assignedTo !== previousAssignedTo && user) {
+      const targetSubmission = submission || submissions.find(s => s.id === id);
+      supabase.functions.invoke('notify-admin-assignment', {
+        body: {
+          submissionId: id,
+          assignedToUserId: assignedTo,
+          assignedByUserId: user.id,
+          submissionSubject: targetSubmission?.subject,
+          senderName: targetSubmission?.name || "Unknown",
+        },
+      }).catch(err => console.error("Failed to send assignment notification:", err));
+    }
   };
 
   const loadReplies = async (submissionId: string) => {
@@ -312,9 +331,37 @@ export default function ContactSubmissions() {
     setStatusFilter(newFilter);
   };
 
-  const filteredSubmissions = statusFilter.size > 0 
-    ? submissions.filter(sub => statusFilter.has(sub.status))
-    : submissions;
+  // Apply both status and assignment filters
+  const filteredSubmissions = submissions.filter(sub => {
+    // Status filter
+    if (statusFilter.size > 0 && !statusFilter.has(sub.status)) {
+      return false;
+    }
+    
+    // Assignment filter
+    if (assignmentFilter === 'mine' && sub.assigned_to !== user?.id) {
+      return false;
+    }
+    if (assignmentFilter === 'unassigned' && sub.assigned_to !== null) {
+      return false;
+    }
+    // If it's a specific user ID (not 'all', 'mine', or 'unassigned')
+    if (assignmentFilter !== 'all' && assignmentFilter !== 'mine' && assignmentFilter !== 'unassigned') {
+      if (sub.assigned_to !== assignmentFilter) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
+  const getAssignmentFilterLabel = () => {
+    if (assignmentFilter === 'all') return 'All';
+    if (assignmentFilter === 'mine') return 'Mine';
+    if (assignmentFilter === 'unassigned') return 'Unassigned';
+    const admin = adminUsers.find(a => a.id === assignmentFilter);
+    return admin?.display_name || 'Unknown';
+  };
 
   const deleteSubmission = async (id: string) => {
     await supabase.from("contact_form_submissions").delete().eq("id", id);
@@ -454,6 +501,51 @@ export default function ContactSubmissions() {
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      {getAssignmentFilterLabel()}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>Filter by Assignment</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={assignmentFilter === 'all'}
+                      onCheckedChange={() => setAssignmentFilter('all')}
+                    >
+                      All
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={assignmentFilter === 'mine'}
+                      onCheckedChange={() => setAssignmentFilter('mine')}
+                    >
+                      Assigned to Me
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={assignmentFilter === 'unassigned'}
+                      onCheckedChange={() => setAssignmentFilter('unassigned')}
+                    >
+                      Unassigned
+                    </DropdownMenuCheckboxItem>
+                    {adminUsers.filter(a => a.id !== user?.id).length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel className="text-xs">Other Admins</DropdownMenuLabel>
+                        {adminUsers.filter(a => a.id !== user?.id).map(admin => (
+                          <DropdownMenuCheckboxItem
+                            key={admin.id}
+                            checked={assignmentFilter === admin.id}
+                            onCheckedChange={() => setAssignmentFilter(admin.id)}
+                          >
+                            {admin.display_name}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button onClick={() => loadSubmissions(true)} disabled={refreshing} variant="outline" size="sm">
                   <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                   Refresh
@@ -491,7 +583,7 @@ export default function ContactSubmissions() {
         <CardContent>
           {filteredSubmissions.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {statusFilter.size > 0 ? 'No messages match the selected filters' : 'No submissions yet'}
+              {statusFilter.size > 0 || assignmentFilter !== 'all' ? 'No messages match the selected filters' : 'No submissions yet'}
             </div>
           ) : (
             <Table>
@@ -540,7 +632,7 @@ export default function ContactSubmissions() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Badge variant="secondary" className="cursor-pointer" onClick={() => assignSubmission(sub.id, null)}>
+                              <Badge variant="secondary" className="cursor-pointer" onClick={() => assignSubmission(sub.id, null, sub)}>
                                 {sub.assigned_admin_name}
                               </Badge>
                             </TooltipTrigger>
@@ -601,7 +693,7 @@ export default function ContactSubmissions() {
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs">Assign To</DropdownMenuLabel>
                             <DropdownMenuItem 
-                              onClick={() => assignSubmission(sub.id, null)}
+                              onClick={() => assignSubmission(sub.id, null, sub)}
                               disabled={!sub.assigned_to}
                             >
                               <X className="w-4 h-4 mr-2" />
@@ -610,7 +702,7 @@ export default function ContactSubmissions() {
                             {adminUsers.map(admin => (
                               <DropdownMenuItem 
                                 key={admin.id} 
-                                onClick={() => assignSubmission(sub.id, admin.id)}
+                                onClick={() => assignSubmission(sub.id, admin.id, sub)}
                                 disabled={sub.assigned_to === admin.id}
                               >
                                 <UserPlus className="w-4 h-4 mr-2" />
@@ -665,7 +757,7 @@ export default function ContactSubmissions() {
                       value={selectedSubmission.assigned_to || "unassigned"} 
                       onValueChange={(value) => {
                         const newAssignedTo = value === "unassigned" ? null : value;
-                        assignSubmission(selectedSubmission.id, newAssignedTo);
+                        assignSubmission(selectedSubmission.id, newAssignedTo, selectedSubmission);
                         const adminName = newAssignedTo ? adminUsers.find(a => a.id === newAssignedTo)?.display_name : undefined;
                         setSelectedSubmission({ ...selectedSubmission, assigned_to: newAssignedTo, assigned_admin_name: adminName });
                       }}
