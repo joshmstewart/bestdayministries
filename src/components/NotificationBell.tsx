@@ -12,34 +12,23 @@ import { useNavigate } from "react-router-dom";
 import { useState, useRef, useCallback } from "react";
 
 export const NotificationBell = () => {
-  const { unreadCount, markAllAsRead, notifications } = useNotifications();
+  const { unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  // IDs that were unread when popover opened - shown with visual highlight until popover closes
-  const [newlySeenIds, setNewlySeenIds] = useState<Set<string>>(new Set());
   const hasMarkedRead = useRef(false);
 
-  // Handle popover open/close - Facebook-style: mark all read on open, visual indicator until close
+  // Mark all as read when opening (orange highlight should be based ONLY on unread/read)
   const handleOpenChange = useCallback((isOpen: boolean) => {
     if (isOpen && !hasMarkedRead.current) {
-      // Capture IDs that are currently unread BEFORE marking them read
-      const currentUnreadIds = new Set(
-        notifications.filter(n => !n.is_read).map(n => n.id)
-      );
-      setNewlySeenIds(currentUnreadIds);
-      
-      // Mark all as read immediately (clears badge count)
-      if (currentUnreadIds.size > 0) {
+      if (unreadCount > 0) {
         markAllAsRead();
       }
       hasMarkedRead.current = true;
     } else if (!isOpen) {
-      // When closing, reset the visual indicator and allow fresh mark on next open
       hasMarkedRead.current = false;
-      setNewlySeenIds(new Set());
     }
     setOpen(isOpen);
-  }, [notifications, markAllAsRead]);
+  }, [unreadCount, markAllAsRead]);
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -66,7 +55,7 @@ export const NotificationBell = () => {
         align="end"
         sideOffset={8}
       >
-        <NotificationList newlySeenIds={newlySeenIds} />
+        <NotificationList />
         <div className="border-t p-2">
           <Button
             variant="ghost"

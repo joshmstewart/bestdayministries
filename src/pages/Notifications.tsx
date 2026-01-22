@@ -90,8 +90,6 @@ export default function Notifications() {
         className={`p-4 transition-all hover:shadow-md group relative border ${
           !group.is_read
             ? "bg-primary/5 border-primary/20"
-            : group.auto_resolved
-            ? "opacity-75 bg-muted/20"
             : ""
         }`}
       >
@@ -136,7 +134,7 @@ export default function Notifications() {
                     ✓ Resolved
                   </Badge>
                 )}
-                {!group.is_read && !group.auto_resolved && (
+                {!group.is_read && (
                   <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                 )}
               </div>

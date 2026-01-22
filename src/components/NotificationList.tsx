@@ -8,11 +8,7 @@ import { Badge } from "./ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { useState } from "react";
 
-interface NotificationListProps {
-  newlySeenIds?: Set<string>;
-}
-
-export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListProps) => {
+export const NotificationList = () => {
   const { 
     groupedNotifications, 
     loading, 
@@ -32,11 +28,6 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
       }
       return next;
     });
-  };
-
-  // Check if any notification in a group is newly seen
-  const isGroupNewlySeen = (notifications: any[]) => {
-    return notifications.some(n => newlySeenIds.has(n.id));
   };
 
   return (
@@ -60,7 +51,7 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
             {groupedNotifications.map((group) => {
               const isExpanded = expandedGroups.has(group.id);
               const showExpand = group.count > 1;
-              const isNew = isGroupNewlySeen(group.notifications);
+              const isUnread = !group.is_read;
               
               return (
                 <Collapsible
@@ -70,11 +61,7 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
                 >
                   <Card
                     className={`p-4 transition-colors group relative border-0 rounded-none cursor-pointer ${
-                      group.auto_resolved 
-                        ? "opacity-75 bg-muted/20" 
-                        : isNew 
-                          ? "bg-primary/5" 
-                          : ""
+                      isUnread ? "bg-primary/5" : ""
                     }`}
                     onClick={() => {
                       if (!showExpand) {
@@ -86,7 +73,7 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
                   >
                     <div className="flex items-start gap-3">
                       <div className={`p-2 rounded-full ${
-                        isNew ? "bg-primary/10" : "bg-muted"
+                        isUnread ? "bg-primary/10" : "bg-muted"
                       }`}>
                         <Bell className="h-4 w-4" />
                       </div>
@@ -119,7 +106,7 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
                               ✓
                             </Badge>
                           )}
-                          {isNew && !group.auto_resolved && (
+                           {isUnread && (
                             <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                           )}
                         </div>
@@ -144,11 +131,7 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
                                 <div
                                   key={notification.id}
                                   className={`p-2 rounded-md border hover:bg-muted cursor-pointer text-sm group/item relative ${
-                                    notification.auto_resolved 
-                                      ? "opacity-75 bg-muted/20" 
-                                      : newlySeenIds.has(notification.id) 
-                                        ? "bg-primary/5" 
-                                        : "bg-card"
+                                    !notification.is_read ? "bg-primary/5" : "bg-card"
                                   }`}
                                   onClick={(e) => {
                                     e.stopPropagation();
