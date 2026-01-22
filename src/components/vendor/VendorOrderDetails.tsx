@@ -9,14 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, ArrowLeft, Package, MapPin, Truck, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface VendorOrderDetailsProps {
   orderId: string;
   vendorId: string;
+  theme?: VendorThemePreset;
   onBack: () => void;
 }
 
-export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDetailsProps) => {
+export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorOrderDetailsProps) => {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -152,7 +154,14 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
 
   if (!order) {
     return (
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardContent className="py-12 text-center">
           <p className="text-muted-foreground">Order not found</p>
         </CardContent>
@@ -167,7 +176,14 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
         Back to Orders
       </Button>
 
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
@@ -217,7 +233,14 @@ export const VendorOrderDetails = ({ orderId, vendorId, onBack }: VendorOrderDet
             </h3>
             <div className="space-y-4">
               {order.items.map((item: any) => (
-                <Card key={item.id}>
+                <Card 
+                  key={item.id}
+                  className="border"
+                  style={theme ? { 
+                    backgroundColor: theme.cardBg,
+                    borderColor: theme.cardBorder
+                  } : undefined}
+                >
                   <CardContent className="pt-6">
                     <div className="space-y-4">
                       {/* Item Info */}

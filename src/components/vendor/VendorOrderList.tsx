@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Package, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { VendorOrderDetails } from "./VendorOrderDetails";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface VendorOrderListProps {
   vendorId: string;
+  theme?: VendorThemePreset;
 }
 
-export const VendorOrderList = ({ vendorId }: VendorOrderListProps) => {
+export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -111,7 +113,14 @@ export const VendorOrderList = ({ vendorId }: VendorOrderListProps) => {
 
   if (orders.length === 0) {
     return (
-      <Card>
+      <Card
+        className="border-2"
+        style={theme ? { 
+          backgroundColor: theme.cardBg,
+          borderColor: theme.cardBorder,
+          boxShadow: theme.cardGlow
+        } : undefined}
+      >
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Package className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-muted-foreground text-center">
@@ -127,6 +136,7 @@ export const VendorOrderList = ({ vendorId }: VendorOrderListProps) => {
       <VendorOrderDetails
         orderId={selectedOrderId}
         vendorId={vendorId}
+        theme={theme}
         onBack={() => {
           setSelectedOrderId(null);
           loadOrders();
@@ -142,7 +152,15 @@ export const VendorOrderList = ({ vendorId }: VendorOrderListProps) => {
           const orderStatus = getOrderStatusSummary(order.items);
           
           return (
-            <Card key={order.id} className="hover:shadow-lg transition-shadow">
+            <Card 
+              key={order.id} 
+              className="hover:shadow-lg transition-shadow border-2"
+              style={theme ? { 
+                backgroundColor: theme.cardBg,
+                borderColor: theme.cardBorder,
+                boxShadow: theme.cardGlow
+              } : undefined}
+            >
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">

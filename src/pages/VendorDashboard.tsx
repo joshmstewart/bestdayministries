@@ -531,30 +531,38 @@ const VendorDashboard = () => {
                   vendorId={selectedVendorId} 
                   refreshTrigger={productRefreshTrigger} 
                   stripeChargesEnabled={selectedVendor?.stripe_charges_enabled}
+                  theme={theme}
                 />
               </TabsContent>
               
               <TabsContent value="orders">
-                <VendorOrderList vendorId={selectedVendorId} />
+                <VendorOrderList vendorId={selectedVendorId} theme={theme} />
               </TabsContent>
 
               <TabsContent value="earnings" className="space-y-4">
                 <h2 className="text-2xl font-semibold">Your Earnings</h2>
-                <VendorEarnings vendorId={selectedVendorId} />
+                <VendorEarnings vendorId={selectedVendorId} theme={theme} />
               </TabsContent>
               
               <TabsContent value="payments" className="space-y-6">
                 <h2 className="text-2xl font-semibold">Payment Settings</h2>
-                <StripeConnectOnboarding vendorId={selectedVendorId} readOnly={!isVendorOwner} />
+                <StripeConnectOnboarding vendorId={selectedVendorId} readOnly={!isVendorOwner} theme={theme} />
                 
                 {/* 1099 Tax Information */}
-                <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20">
+                <Card 
+                  className="border-2"
+                  style={{ 
+                    backgroundColor: theme.cardBg,
+                    borderColor: theme.cardBorder,
+                    boxShadow: theme.cardGlow
+                  }}
+                >
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                      <DollarSign className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" style={{ color: theme.accent }} />
                       1099 Tax Reporting – Handled by Stripe
                     </CardTitle>
-                    <CardDescription className="text-blue-600 dark:text-blue-400">
+                    <CardDescription>
                       Good news! You don't need to worry about 1099 paperwork.
                     </CardDescription>
                   </CardHeader>
@@ -609,14 +617,14 @@ const VendorDashboard = () => {
                 
                 <div>
                   <h3 className="text-xl font-semibold mb-4">Team Members</h3>
-                  <VendorTeamManager vendorId={selectedVendorId} />
+                  <VendorTeamManager vendorId={selectedVendorId} theme={theme} />
                 </div>
                 
                 <div>
                   <h3 className="text-xl font-semibold mb-4">Link to Besties</h3>
                   <div className="space-y-6">
-                    <VendorBestieLinkRequest vendorId={selectedVendorId} />
-                    <VendorLinkedBesties vendorId={selectedVendorId} />
+                    <VendorBestieLinkRequest vendorId={selectedVendorId} theme={theme} />
+                    <VendorLinkedBesties vendorId={selectedVendorId} theme={theme} />
                   </div>
                 </div>
               </TabsContent>

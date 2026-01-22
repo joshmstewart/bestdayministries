@@ -11,9 +11,11 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from "sonner";
 import { UserPlus, Trash2, Crown, Shield, User, Mail, Clock, CheckCircle, XCircle, Check } from "lucide-react";
 import { format } from "date-fns";
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
 interface VendorTeamManagerProps {
   vendorId: string;
+  theme?: VendorThemePreset;
 }
 
 type TeamRole = "owner" | "admin" | "staff";
@@ -34,7 +36,7 @@ interface TeamMember {
   };
 }
 
-export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
+export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) => {
   const queryClient = useQueryClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -203,7 +205,14 @@ export const VendorTeamManager = ({ vendorId }: VendorTeamManagerProps) => {
   }
 
   return (
-    <Card>
+    <Card
+      className="border-2"
+      style={theme ? { 
+        backgroundColor: theme.cardBg,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardGlow
+      } : undefined}
+    >
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-lg">Team Members</CardTitle>
