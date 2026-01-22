@@ -265,7 +265,7 @@ function buildDigestEmail(
 
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
-            ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="height: 60px; margin-bottom: 20px;">` : ''}
+            ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="height: 60px; margin-bottom: 20px; border-radius: 12px;">` : ''}
             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">
               Your ${frequency === 'daily' ? 'Daily' : 'Weekly'} Digest
             </h1>
