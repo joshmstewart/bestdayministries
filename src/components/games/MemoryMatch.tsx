@@ -645,7 +645,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                 selectedPackId={selectedPackId}
                 onSelectPack={setSelectedPackId}
                 canUsePack={canUsePack}
-                onPurchasePack={() => navigate('/store')}
+                onPackPurchased={loadImagePacks}
               />
             )}
 
