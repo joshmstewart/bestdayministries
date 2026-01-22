@@ -73,16 +73,16 @@ serve(async (req) => {
       game_win: [
         "jumping in the air with arms raised in victory celebration, confetti falling around them",
         "doing a happy victory dance with big smile, sparkles and stars around them",
-        "pumping fists in the air celebrating a big win, trophy or medal visible",
-        "cheering with both hands up, balloons and streamers in the background",
-        "striking a triumphant superhero pose with cape flowing, golden light behind them",
+        "pumping fists in the air celebrating a big win, shiny golden trophy visible",
+        "cheering with both hands up, colorful balloons and streamers in the background",
+        "striking a triumphant superhero pose with cape flowing, golden light rays behind them",
       ],
     };
 
     const prompts = celebrationPrompts[celebrationType] || celebrationPrompts.game_win;
     const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
 
-    const prompt = `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style. The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition.`;
+    const prompt = `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style. The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition. IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image - purely visual celebration only.`;
 
     console.log("Generating celebration image for avatar:", avatar.name);
     console.log("Using prompt:", prompt);
