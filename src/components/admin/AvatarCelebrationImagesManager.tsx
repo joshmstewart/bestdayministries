@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Wand2, Trash2, Eye, EyeOff, PartyPopper, Sparkles } from "lucide-react";
+import { Loader2, Wand2, Trash2, Eye, EyeOff, PartyPopper, Sparkles, Zap } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -44,6 +45,8 @@ export function AvatarCelebrationImagesManager() {
   const queryClient = useQueryClient();
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
+  const [batchGenerating, setBatchGenerating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 });
 
   // Load all avatars
   const { data: avatars = [], isLoading: loadingAvatars } = useQuery({
@@ -154,6 +157,72 @@ export function AvatarCelebrationImagesManager() {
   const handleGenerate = (avatarId: string) => {
     setGeneratingFor(avatarId);
     generateMutation.mutate(avatarId);
+  };
+
+  // Calculate the minimum images across all active avatars and generate to bring everyone up
+  const handleGenerateToMinimum = async () => {
+    const activeAvatars = avatars.filter((a) => a.is_active);
+    if (activeAvatars.length === 0) {
+      toast.error("No active avatars to generate for");
+      return;
+    }
+
+    // Get current minimum count among all active avatars
+    const counts = activeAvatars.map((a) => imageCounts[a.id] || 0);
+    const currentMin = Math.min(...counts);
+    const targetMin = currentMin + 1;
+
+    // Find avatars that need images
+    const avatarsNeedingImages = activeAvatars.filter(
+      (a) => (imageCounts[a.id] || 0) < targetMin
+    );
+
+    if (avatarsNeedingImages.length === 0) {
+      toast.info("All avatars already have at least " + targetMin + " images");
+      return;
+    }
+
+    setBatchGenerating(true);
+    setBatchProgress({ current: 0, total: avatarsNeedingImages.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < avatarsNeedingImages.length; i++) {
+      const avatar = avatarsNeedingImages[i];
+      setBatchProgress({ current: i + 1, total: avatarsNeedingImages.length });
+
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "generate-avatar-celebration-image",
+          {
+            body: { avatarId: avatar.id, celebrationType: "game_win" },
+          }
+        );
+        if (error || data?.error) {
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch {
+        errorCount++;
+      }
+
+      // Small delay to avoid rate limiting
+      if (i < avatarsNeedingImages.length - 1) {
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+
+    setBatchGenerating(false);
+    queryClient.invalidateQueries({ queryKey: ["celebration-images"] });
+    queryClient.invalidateQueries({ queryKey: ["celebration-images-counts"] });
+
+    if (errorCount === 0) {
+      toast.success(`Generated ${successCount} images! All avatars now have at least ${targetMin}.`);
+    } else {
+      toast.warning(`Generated ${successCount} images, ${errorCount} failed.`);
+    }
   };
 
   const selectedAvatar = avatars.find((a) => a.id === selectedAvatarId);
@@ -322,8 +391,57 @@ export function AvatarCelebrationImagesManager() {
         )}
 
         {/* Quick generate for all avatars */}
-        <div className="pt-4 border-t">
-          <h4 className="font-medium mb-2">Quick Stats</h4>
+        <div className="pt-4 border-t space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">Quick Stats</h4>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={batchGenerating || avatars.filter((a) => a.is_active).length === 0}
+                >
+                  {batchGenerating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4 mr-2" />
+                  )}
+                  Generate to Minimum
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Generate Celebration Images?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will generate images for all active avatars that are below the current minimum count. 
+                    {(() => {
+                      const activeAvatars = avatars.filter((a) => a.is_active);
+                      const counts = activeAvatars.map((a) => imageCounts[a.id] || 0);
+                      const currentMin = counts.length > 0 ? Math.min(...counts) : 0;
+                      const needCount = activeAvatars.filter((a) => (imageCounts[a.id] || 0) <= currentMin).length;
+                      return ` Current minimum is ${currentMin}. This will generate ${needCount} image(s) to bring all avatars to ${currentMin + 1}.`;
+                    })()}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleGenerateToMinimum}>
+                    Generate
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          {batchGenerating && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>Generating images...</span>
+                <span>{batchProgress.current}/{batchProgress.total}</span>
+              </div>
+              <Progress value={(batchProgress.current / batchProgress.total) * 100} />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
             <div className="p-2 bg-muted rounded">
               <div className="font-semibold">{avatars.length}</div>
@@ -341,7 +459,8 @@ export function AvatarCelebrationImagesManager() {
             </div>
             <div className="p-2 bg-muted rounded">
               <div className="font-semibold">
-                {avatars.length - Object.keys(imageCounts).length}
+                {avatars.filter((a) => a.is_active).length - 
+                  avatars.filter((a) => a.is_active && imageCounts[a.id]).length}
               </div>
               <div className="text-muted-foreground">Need Images</div>
             </div>
