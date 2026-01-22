@@ -70,10 +70,10 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
                 >
                   <Card
                     className={`p-4 transition-colors group relative border-0 rounded-none cursor-pointer ${
-                      isNew 
-                        ? "bg-primary/5" 
-                        : group.auto_resolved 
-                          ? "opacity-75 bg-muted/20" 
+                      group.auto_resolved 
+                        ? "opacity-75 bg-muted/20" 
+                        : isNew 
+                          ? "bg-primary/5" 
                           : ""
                     }`}
                     onClick={() => {
@@ -144,7 +144,11 @@ export const NotificationList = ({ newlySeenIds = new Set() }: NotificationListP
                                 <div
                                   key={notification.id}
                                   className={`p-2 rounded-md border hover:bg-muted cursor-pointer text-sm group/item relative ${
-                                    newlySeenIds.has(notification.id) ? "bg-primary/5" : "bg-card"
+                                    notification.auto_resolved 
+                                      ? "opacity-75 bg-muted/20" 
+                                      : newlySeenIds.has(notification.id) 
+                                        ? "bg-primary/5" 
+                                        : "bg-card"
                                   }`}
                                   onClick={(e) => {
                                     e.stopPropagation();
