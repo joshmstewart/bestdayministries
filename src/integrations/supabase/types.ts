@@ -3541,6 +3541,48 @@ export type Database = {
         }
         Relationships: []
       }
+      event_update_email_queue: {
+        Row: {
+          change_description: string
+          created_at: string
+          event_date: string | null
+          event_id: string
+          event_location: string | null
+          event_title: string
+          id: string
+          processed: boolean
+          processed_at: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          change_description: string
+          created_at?: string
+          event_date?: string | null
+          event_id: string
+          event_location?: string | null
+          event_title: string
+          id?: string
+          processed?: boolean
+          processed_at?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          change_description?: string
+          created_at?: string
+          event_date?: string | null
+          event_id?: string
+          event_location?: string | null
+          event_title?: string
+          id?: string
+          processed?: boolean
+          processed_at?: string | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           allow_admin_edit: boolean
@@ -7438,6 +7480,54 @@ export type Database = {
           section_key?: string
           section_name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      sponsorship_email_queue: {
+        Row: {
+          amount: number | null
+          bestie_name: string | null
+          created_at: string
+          id: string
+          notification_type: string
+          old_amount: number | null
+          old_tier_name: string | null
+          processed: boolean
+          processed_at: string | null
+          sponsor_name: string | null
+          tier_name: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          bestie_name?: string | null
+          created_at?: string
+          id?: string
+          notification_type: string
+          old_amount?: number | null
+          old_tier_name?: string | null
+          processed?: boolean
+          processed_at?: string | null
+          sponsor_name?: string | null
+          tier_name?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          bestie_name?: string | null
+          created_at?: string
+          id?: string
+          notification_type?: string
+          old_amount?: number | null
+          old_tier_name?: string | null
+          processed?: boolean
+          processed_at?: string | null
+          sponsor_name?: string | null
+          tier_name?: string | null
+          user_email?: string
+          user_id?: string
         }
         Relationships: []
       }
