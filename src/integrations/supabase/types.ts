@@ -4029,6 +4029,47 @@ export type Database = {
         }
         Relationships: []
       }
+      fitness_avatar_celebration_images: {
+        Row: {
+          avatar_id: string
+          celebration_type: string
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          avatar_id: string
+          celebration_type?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          avatar_id?: string
+          celebration_type?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fitness_avatar_celebration_images_avatar_id_fkey"
+            columns: ["avatar_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fitness_avatar_templates: {
         Row: {
           archived_at: string | null

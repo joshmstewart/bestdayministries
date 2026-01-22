@@ -10,6 +10,7 @@ import confetti from "canvas-confetti";
 import { CoinIcon } from "@/components/CoinIcon";
 import { PriceRibbon } from "@/components/ui/price-ribbon";
 import { PackCarousel } from "@/components/games/PackCarousel";
+import { GameCelebrationDisplay } from "@/components/games/GameCelebrationDisplay";
 import {
   Dialog,
   DialogContent,
@@ -95,6 +96,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
   const [gameCompleted, setGameCompleted] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [hasHardMode, setHasHardMode] = useState(false);
   const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number; time: number } | null>>({
     easy: null,
@@ -150,6 +152,11 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
   };
 
   useEffect(() => {
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    loadUser();
     checkHardModeUnlock();
     loadBestScores();
     loadImagePacks();
@@ -746,13 +753,13 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
         <CardContent>
           {gameCompleted ? (
             <div className="text-center space-y-6 py-8">
-              <div className="text-6xl">🎉</div>
+              <GameCelebrationDisplay userId={currentUserId} fallbackEmoji="🎉" />
               <div>
                 <h3 className="text-2xl font-bold mb-2">Congratulations!</h3>
                 <p className="text-muted-foreground">
                   You completed the game in {moves} moves and {formatTime(elapsedTime)}!
                 </p>
-                <p className="text-lg font-semibold text-yellow-600 mt-2">
+                <p className="text-lg font-semibold text-primary mt-2">
                   +{DIFFICULTY_CONFIG[difficulty].coins} coins earned!
                 </p>
               </div>
