@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check, ChevronDown, ChevronUp, Gamepad2, ShoppingCart } from "lucide-react";
+import { Trophy, Clock, Zap, Star, RotateCcw, Home, Package, Check, Gamepad2, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import confetti from "canvas-confetti";
 import { CoinIcon } from "@/components/CoinIcon";
 import { PriceRibbon } from "@/components/ui/price-ribbon";
+import { PackCarousel } from "@/components/games/PackCarousel";
 import {
   Dialog,
   DialogContent,
@@ -117,7 +118,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
     background: '#F97316',
     module: '#FFFFFF',
   });
-  const [packsExpanded, setPacksExpanded] = useState(false);
+  
   const [coinRewards, setCoinRewards] = useState<Record<Difficulty, number>>({
     easy: DEFAULT_DIFFICULTY_CONFIG.easy.coins,
     medium: DEFAULT_DIFFICULTY_CONFIG.medium.coins,
@@ -637,122 +638,16 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Image Pack Selection */}
-            {availablePacks.length > 0 && (() => {
-              const usablePacks = availablePacks.filter(p => p.images.length >= 10);
-              // Packs per row: use 5 as a middle-ground (md shows 5, sm shows 4, mobile shows 3)
-              const packsPerRow = 5;
-              const hasMultipleRows = usablePacks.length > packsPerRow;
-              
-              return (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      Choose Your Pack
-                    </h3>
-                    {hasMultipleRows && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setPacksExpanded(!packsExpanded)}
-                        className="text-sm"
-                      >
-                        {packsExpanded ? (
-                          <>Show Less <ChevronUp className="w-4 h-4 ml-1" /></>
-                        ) : (
-                          <>Show All <ChevronDown className="w-4 h-4 ml-1" /></>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                  <div className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 ${
-                    !packsExpanded && hasMultipleRows ? 'max-h-[200px] overflow-hidden' : ''
-                  }`}>
-                    {[...usablePacks]
-                      .sort((a, b) => {
-                        // Available packs first (default, owned, or free), then purchasable
-                        const aCanUse = canUsePack(a);
-                        const bCanUse = canUsePack(b);
-                        if (aCanUse && !bCanUse) return -1;
-                        if (!aCanUse && bCanUse) return 1;
-                        return 0; // Keep original display_order within groups
-                      })
-                      .map((pack) => {
-                      const canUse = canUsePack(pack);
-                      const isSelected = pack.is_default ? selectedPackId === null : selectedPackId === pack.id;
-                      const previewImage = pack.preview_image_url || pack.images[0]?.image_url;
-                      
-                      return (
-                        <div
-                          key={pack.id}
-                          onClick={() => {
-                            if (canUse) {
-                              setSelectedPackId(pack.is_default ? null : pack.id);
-                            } else if (pack.is_purchasable) {
-                              navigate('/store');
-                            }
-                          }}
-                          className={`relative cursor-pointer rounded-lg border-2 overflow-hidden transition-all ${
-                            isSelected 
-                              ? 'border-primary ring-2 ring-primary/50 scale-105' 
-                              : canUse 
-                                ? 'border-border hover:border-primary/50 hover:scale-102'
-                                : 'border-border hover:border-yellow-500/50'
-                          }`}
-                        >
-                          {/* Diagonal Banner for Purchasable Packs */}
-                          {!canUse && pack.is_purchasable && (
-                            <PriceRibbon price={pack.price_coins} position="top-right" size="sm" />
-                          )}
-                          
-                          {/* Preview Image */}
-                          <div className="aspect-square bg-muted">
-                            {previewImage ? (
-                              <img 
-                                src={previewImage} 
-                                alt={pack.name}
-                                className={`w-full h-full object-cover ${!canUse ? 'grayscale-[30%]' : ''}`}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <Package className="w-6 h-6 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Pack Name Overlay */}
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-5">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-white truncate">
-                                {pack.name}
-                              </span>
-                              {!canUse && <span className="text-xs">🔒</span>}
-                            </div>
-                          </div>
-                          
-                          {/* Selected Indicator */}
-                          {isSelected && (
-                            <div className="absolute top-1 right-1 bg-primary rounded-full p-0.5 z-20">
-                              <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                            </div>
-                          )}
-                          
-                          {/* Purchase overlay for locked purchasable packs on hover */}
-                          {!canUse && pack.is_purchasable && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity z-10">
-                              <div className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg">
-                                Buy in Store
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Image Pack Selection - Horizontal Carousel */}
+            {availablePacks.length > 0 && (
+              <PackCarousel
+                packs={availablePacks.filter(p => p.images.length >= 10)}
+                selectedPackId={selectedPackId}
+                onSelectPack={setSelectedPackId}
+                canUsePack={canUsePack}
+                onPurchasePack={() => navigate('/store')}
+              />
+            )}
 
             {/* Difficulty Selection */}
             <div className="space-y-3">
