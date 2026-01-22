@@ -52,12 +52,12 @@ interface Reply {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'new', label: 'Unread', variant: 'destructive' as const },
-  { value: 'read', label: 'Read', variant: 'secondary' as const },
-  { value: 'backlog', label: 'Backlog', variant: 'outline' as const },
-  { value: 'in_progress', label: 'In Progress', variant: 'default' as const },
-  { value: 'done', label: 'Done', variant: 'secondary' as const },
-  { value: 'wont_fix', label: "Won't Fix", variant: 'outline' as const },
+  { value: 'new', label: 'Unread', variant: 'destructive' as const, className: '' },
+  { value: 'read', label: 'Read', variant: 'secondary' as const, className: '' },
+  { value: 'backlog', label: 'Backlog', variant: 'outline' as const, className: '' },
+  { value: 'in_progress', label: 'In Progress', variant: 'default' as const, className: '' },
+  { value: 'done', label: 'Done', variant: 'secondary' as const, className: 'bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30' },
+  { value: 'wont_fix', label: "Won't Fix", variant: 'outline' as const, className: 'text-muted-foreground' },
 ];
 
 type AssignmentFilter = 'all' | 'mine' | 'unassigned' | string; // string for specific user ID
@@ -661,7 +661,10 @@ export default function ContactSubmissions() {
                       </TooltipProvider>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS_OPTIONS.find(s => s.value === sub.status)?.variant || 'secondary'}>
+                      <Badge 
+                        variant={STATUS_OPTIONS.find(s => s.value === sub.status)?.variant || 'secondary'}
+                        className={STATUS_OPTIONS.find(s => s.value === sub.status)?.className}
+                      >
                         {STATUS_OPTIONS.find(s => s.value === sub.status)?.label || sub.status}
                       </Badge>
                     </TableCell>
