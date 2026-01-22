@@ -351,22 +351,11 @@ export default function EventManagement() {
         if (error) throw error;
         eventId = newEvent.id;
         
-        // Trigger event published email
+        // Process event notification emails (the database trigger already created in-app notifications)
         if (isPublic) {
           setTimeout(() => {
-            supabase.functions.invoke("send-automated-campaign", {
-              body: {
-                trigger_event: "event_published",
-                recipient_email: user.email,
-                recipient_user_id: user.id,
-                trigger_data: {
-                  event_name: title,
-                  event_date: format(combinedDate, "PPP"),
-                  event_location: location || "TBA",
-                },
-              },
-            });
-          }, 0);
+            supabase.functions.invoke("process-event-email-queue", {});
+          }, 500); // Small delay to ensure the trigger has populated the queue
         }
         
         toast.success("Event created successfully");

@@ -114,6 +114,15 @@ Complete notification system with dual-channel delivery (in-app + email), user p
 - **Rate Limited:** Yes (1/hour per bestie)
 - **Creates:** In-app notification with link to guardian-links page
 
+**notify_on_new_event()** *(Added Jan 2026)*
+- **Fires:** AFTER INSERT on `events` (when `is_public = true` AND `is_active = true`)
+- **Recipients:** All users except event creator
+- **Type:** `new_event`
+- **Checks:** User's `inapp_on_new_event` preference (defaults to true)
+- **Email:** Queues to `event_email_queue` if user has `email_on_new_event = true`
+- **Creates:** In-app notification with link to `/community?eventId={id}`
+- **Email Processing:** Triggered via `process-event-email-queue` edge function after event creation
+
 ### 4. Edge Functions
 
 **send-notification-email** (`supabase/functions/send-notification-email/index.ts`)
