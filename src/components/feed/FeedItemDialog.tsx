@@ -363,29 +363,30 @@ export function FeedItemDialog({
               </div>
             )}
 
-            {/* Beat Instruments */}
+            {/* Beat Instruments - compact grid layout */}
             {item.item_type === 'beat' && beatInstruments.length > 0 && (
               <div className="space-y-2 mt-4">
-                <h3 className="text-sm font-medium">Instruments Used</h3>
+                <h3 className="text-sm font-medium">Instruments Used ({beatInstruments.length})</h3>
                 {loadingBeatInstruments ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Loading instruments...
                   </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="flex flex-wrap gap-2">
                     {beatInstruments.map((instrument) => (
                       <div 
                         key={instrument.id}
-                        className="flex items-center gap-3 py-1.5"
+                        className="flex items-center gap-2 px-2 py-1 rounded-full bg-muted/50"
+                        title={instrument.name}
                       >
                         <span 
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-sm shrink-0"
                           style={{ backgroundColor: instrument.color }}
                         >
                           {instrument.emoji}
                         </span>
-                        <span className="text-sm">{instrument.name}</span>
+                        <span className="text-xs font-medium truncate max-w-[100px]">{instrument.name}</span>
                       </div>
                     ))}
                   </div>
