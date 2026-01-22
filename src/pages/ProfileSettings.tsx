@@ -874,14 +874,6 @@ const ProfileSettings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Coming Soon Notice */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                    <p className="text-sm text-blue-900">
-                      <strong>📧 Email Notifications Coming Soon!</strong>
-                      <br />
-                      Email notifications are currently being finalized and will be available shortly. In-app notifications are fully functional now.
-                    </p>
-                  </div>
                   {/* Header row for Email and In-App columns */}
                   <div className="flex items-center justify-between pb-2 border-b">
                     <div className="flex-1"></div>
