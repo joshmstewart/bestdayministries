@@ -75,7 +75,7 @@ serve(async (req) => {
         "doing a happy victory dance with big smile, sparkles and stars around them",
         "pumping fists in the air celebrating a big win, shiny golden trophy visible",
         "cheering with both hands up, colorful balloons and streamers in the background",
-        "striking a triumphant superhero pose with cape flowing, golden light rays behind them",
+        "striking a triumphant victory pose with golden light rays behind them",
       ],
     };
 
