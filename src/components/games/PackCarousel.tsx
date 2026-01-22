@@ -89,12 +89,12 @@ export function PackCarousel({
           <PriceRibbon
             price={featuredPack.price_coins}
             position="top-right"
-            size="md"
+            size="sm"
           />
         )}
 
-        {/* Featured Image */}
-        <div className="aspect-[16/9] bg-muted">
+        {/* Featured Image - Compact */}
+        <div className="aspect-[3/1] bg-muted max-h-32">
           {featuredPreviewImage ? (
             <img
               src={featuredPreviewImage}
