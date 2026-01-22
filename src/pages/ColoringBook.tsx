@@ -56,6 +56,7 @@ export default function ColoringBook() {
   };
 
   const urlTab = searchParams.get("tab");
+  const urlColoringId = searchParams.get("id");
   const initialTab =
     urlTab === "books" || urlTab === "community" || urlTab === "gallery" ? urlTab : "books";
 
@@ -63,6 +64,77 @@ export default function ColoringBook() {
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [bookToPurchase, setBookToPurchase] = useState<ColoringBook | null>(null);
   const [previewBook, setPreviewBook] = useState<ColoringBook | null>(null);
+  const [loadingColoringById, setLoadingColoringById] = useState(false);
+
+  // Load a specific user coloring by ID from URL (for edit links from feed)
+  useEffect(() => {
+    const loadColoringById = async () => {
+      if (!urlColoringId || !user) return;
+      
+      // Skip if already loading or if we already have this coloring loaded
+      if (loadingColoringById || (selectedPage?.userColoringId === urlColoringId)) return;
+      
+      setLoadingColoringById(true);
+      try {
+        // Fetch the user coloring with its page and book data
+        const { data: userColoring, error: coloringError } = await supabase
+          .from("user_colorings")
+          .select(`
+            id,
+            canvas_data,
+            is_public,
+            coloring_page:coloring_pages(
+              id,
+              title,
+              image_url,
+              book_id,
+              book:coloring_books(id, title, cover_image_url, description, coin_price, is_free)
+            )
+          `)
+          .eq("id", urlColoringId)
+          .eq("user_id", user.id)
+          .single();
+        
+        if (coloringError || !userColoring) {
+          console.error("Failed to load coloring:", coloringError);
+          toast.error("Could not load that coloring");
+          // Clear the id param
+          const next = new URLSearchParams(searchParams);
+          next.delete("id");
+          setSearchParams(next, { replace: true });
+          return;
+        }
+        
+        // Build the page object with saved data
+        const pageWithSavedData = {
+          ...userColoring.coloring_page,
+          savedCanvasData: userColoring.canvas_data,
+          isPublic: userColoring.is_public,
+          userColoringId: urlColoringId, // Track which coloring we loaded
+        };
+        
+        // Set the book if available
+        if (userColoring.coloring_page?.book) {
+          setSelectedBook(userColoring.coloring_page.book as unknown as ColoringBook);
+        }
+        
+        // Load the page for editing and scroll to top
+        handleSelectPage(pageWithSavedData);
+        
+        // Clear the id param after loading
+        const next = new URLSearchParams(searchParams);
+        next.delete("id");
+        setSearchParams(next, { replace: true });
+      } catch (error) {
+        console.error("Error loading coloring by ID:", error);
+        toast.error("Failed to load coloring");
+      } finally {
+        setLoadingColoringById(false);
+      }
+    };
+    
+    loadColoringById();
+  }, [urlColoringId, user, searchParams, setSearchParams]);
 
   // Single effect to handle tab <-> URL sync (avoids race condition between two effects)
   useEffect(() => {
