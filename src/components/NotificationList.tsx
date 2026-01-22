@@ -12,10 +12,20 @@ export const NotificationList = () => {
   const { 
     groupedNotifications, 
     loading, 
+    markAsRead,
     markAllAsRead,
     deleteNotification,
     handleNotificationClick 
   } = useNotifications();
+  
+  // Mark all notifications in a group as read
+  const markGroupAsRead = async (notifications: any[]) => {
+    for (const notification of notifications) {
+      if (!notification.is_read) {
+        await markAsRead(notification.id);
+      }
+    }
+  };
   
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   
@@ -87,8 +97,15 @@ export const NotificationList = () => {
                       </div>
                       <div className="flex-1 min-w-0 pr-8">
                         <div 
-                          className={`flex items-center gap-2 ${showExpand ? '' : 'cursor-pointer'}`}
-                          onClick={() => !showExpand && handleNotificationClick(group.notifications[0])}
+                          className={`flex items-center gap-2 ${showExpand ? 'cursor-pointer' : 'cursor-pointer'}`}
+                          onClick={() => {
+                            if (!showExpand) {
+                              handleNotificationClick(group.notifications[0]);
+                            } else if (!group.is_read) {
+                              // Mark all notifications in this group as read
+                              markGroupAsRead(group.notifications);
+                            }
+                          }}
                         >
                           <p className="font-medium text-sm break-words flex-1">{group.title}</p>
                           {showExpand && (
