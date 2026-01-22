@@ -1280,7 +1280,7 @@ ROUTE:/games/recipe-gallery[main-page-3-tabs]|/games/recipe-gallery?tab=maker|?t
 DATABASE:
   public_recipes[creator_id|title|description|ingredients[]|steps[]|tips[]|tools[]|image_url|is_active|likes_count|saves_count]→community-shared-recipes
   saved_recipes[user_id|title|description|ingredients[]|steps[]|tips[]|tools[]|image_url|source_recipe_id|times_made|is_favorite|last_made_at]→personal-cookbook
-  public_recipe_likes[recipe_id|user_id]→like-tracking
+  public_recipe_likes[recipe_id|user_id]→like-tracking (Community Feed + Recipe Pal share same tables)
   recipe_ingredients[name|category|description|image_url|display_order|is_active]→master-ingredient-library[119-items]
   recipe_tools[name|category|icon|image_url|display_order|is_active]→master-tool-library[52-items]
   user_recipe_ingredients[user_id|ingredients[]]→user-selected-ingredients

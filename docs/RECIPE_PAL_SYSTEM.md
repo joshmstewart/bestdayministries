@@ -57,6 +57,12 @@ public_recipe_likes
 └── created_at: TIMESTAMPTZ
 ```
 
+## Likes
+
+- A “like” is stored as a row in `public_recipe_likes`.
+- `public_recipes.likes_count` is updated when likes are toggled.
+- Community Feed recipe items use the same tables, so likes are consistent across Recipe Pal and the main feed.
+
 ### Ingredient & Tool Inventory
 
 ```

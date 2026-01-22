@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout';
+type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout' | 'recipe' | 'prayer';
 
 interface LikeStatusMap {
   [key: string]: boolean; // key format: "itemType:itemId"
@@ -38,6 +38,8 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       const drinkIds: string[] = [];
       const jokeIds: string[] = [];
       const workoutIds: string[] = [];
+      const recipeIds: string[] = [];
+      const prayerIds: string[] = [];
 
       items.forEach(item => {
         switch (item.item_type) {
@@ -47,10 +49,12 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           case 'drink': drinkIds.push(item.id); break;
           case 'joke': jokeIds.push(item.id); break;
           case 'workout': workoutIds.push(item.id); break;
+          case 'recipe': recipeIds.push(item.id); break;
+          case 'prayer': prayerIds.push(item.id); break;
         }
       });
 
-      // Fetch all like statuses in parallel (max 6 queries instead of N queries)
+      // Fetch all like statuses in parallel (max 8 queries instead of N queries)
       const results = await Promise.all([
         beatIds.length > 0 
           ? supabase.from('beat_pad_likes').select('creation_id').eq('user_id', user.id).in('creation_id', beatIds)
@@ -69,6 +73,12 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           : Promise.resolve({ data: [] }),
         workoutIds.length > 0 
           ? supabase.from('workout_image_likes').select('image_id').eq('user_id', user.id).in('image_id', workoutIds)
+          : Promise.resolve({ data: [] }),
+        recipeIds.length > 0
+          ? supabase.from('public_recipe_likes').select('recipe_id').eq('user_id', user.id).in('recipe_id', recipeIds)
+          : Promise.resolve({ data: [] }),
+        prayerIds.length > 0
+          ? supabase.from('prayer_request_likes').select('prayer_request_id').eq('user_id', user.id).in('prayer_request_id', prayerIds)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -102,6 +112,16 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       // Process workout likes
       results[5].data?.forEach((like: any) => {
         newStatusMap[`workout:${like.image_id}`] = true;
+      });
+
+      // Process recipe likes
+      results[6].data?.forEach((like: any) => {
+        newStatusMap[`recipe:${like.recipe_id}`] = true;
+      });
+
+      // Process prayer likes
+      results[7].data?.forEach((like: any) => {
+        newStatusMap[`prayer:${like.prayer_request_id}`] = true;
       });
 
       setLikeStatusMap(newStatusMap);
