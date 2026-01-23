@@ -502,31 +502,31 @@ const VendorDashboard = () => {
               </Card>
 
               <Card 
-                className={`border-2 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${
+                className={`border-2 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-xl ${
                   stats.pendingOrders > 0 
-                    ? 'ring-2 ring-primary/50 animate-pulse-subtle shadow-lg' 
+                    ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 shadow-lg shadow-emerald-500/30' 
                     : ''
                 }`}
-                style={{ 
-                  backgroundColor: stats.pendingOrders > 0 ? 'hsl(var(--primary) / 0.08)' : theme.cardBg,
-                  borderColor: stats.pendingOrders > 0 ? 'hsl(var(--primary))' : theme.cardBorder,
-                  boxShadow: stats.pendingOrders > 0 ? '0 0 20px hsl(var(--primary) / 0.2)' : theme.cardGlow
-                }}
+                style={stats.pendingOrders === 0 ? { 
+                  backgroundColor: theme.cardBg,
+                  borderColor: theme.cardBorder,
+                  boxShadow: theme.cardGlow
+                } : undefined}
                 onClick={scrollToOrdersTab}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') scrollToOrdersTab(); }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className={`text-sm font-medium ${stats.pendingOrders > 0 ? 'text-primary font-semibold' : ''}`}>
-                    Ready to Ship {stats.pendingOrders > 0 && '→'}
+                  <CardTitle className={`text-sm font-medium ${stats.pendingOrders > 0 ? 'text-white font-semibold' : ''}`}>
+                    {stats.pendingOrders > 0 ? '🚀 Ready to Ship!' : 'Ready to Ship'}
                   </CardTitle>
-                  <Package className={`h-4 w-4 ${stats.pendingOrders > 0 ? 'text-primary' : ''}`} style={{ color: stats.pendingOrders > 0 ? undefined : theme.accent }} />
+                  <Package className={`h-4 w-4 ${stats.pendingOrders > 0 ? 'text-white' : ''}`} style={{ color: stats.pendingOrders > 0 ? undefined : theme.accent }} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold" style={{ color: theme.accent }}>{stats.pendingOrders}</div>
-                  <p className={`text-xs ${stats.pendingOrders > 0 ? 'text-primary/80 font-medium' : 'text-muted-foreground'}`}>
-                    {stats.pendingOrders > 0 ? 'Click to view orders' : 'Paid orders awaiting shipment'}
+                  <div className={`text-2xl font-bold ${stats.pendingOrders > 0 ? 'text-white' : ''}`} style={stats.pendingOrders === 0 ? { color: theme.accent } : undefined}>{stats.pendingOrders}</div>
+                  <p className={`text-xs ${stats.pendingOrders > 0 ? 'text-emerald-100 font-medium' : 'text-muted-foreground'}`}>
+                    {stats.pendingOrders > 0 ? 'Click here to fulfill orders →' : 'Paid orders awaiting shipment'}
                   </p>
                 </CardContent>
               </Card>
