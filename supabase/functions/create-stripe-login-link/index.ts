@@ -129,7 +129,7 @@ serve(async (req) => {
     const { data: modeSetting } = await supabaseClient
       .from('app_settings')
       .select('setting_value')
-      .eq('setting_key', 'stripe_mode')
+      .eq('setting_key', 'marketplace_stripe_mode')
       .single();
     
     const mode = modeSetting?.setting_value || 'test';
