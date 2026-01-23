@@ -161,8 +161,13 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
 
   // Get display label for fulfillment status, considering payment status
   const getFulfillmentLabel = (fulfillmentStatus: string, orderPaymentStatus: string) => {
-    // If order is not paid, show "Awaiting Payment" regardless of fulfillment status
-    if (orderPaymentStatus === 'pending' || orderPaymentStatus === 'cancelled') {
+    // If order is cancelled, show "Cancelled" for fulfillment too
+    if (orderPaymentStatus === 'cancelled') {
+      return 'Cancelled';
+    }
+    
+    // If order is pending payment, show "Awaiting Payment"
+    if (orderPaymentStatus === 'pending') {
       return 'Awaiting Payment';
     }
     
