@@ -85,11 +85,17 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
       if (error) throw error;
 
       const summary = data?.summary || {};
-      const message = summary.confirmed > 0 
-        ? `${summary.confirmed} order(s) confirmed from Stripe`
-        : summary.cancelled > 0
-          ? `${summary.cancelled} abandoned order(s) cleaned up`
-          : "Orders are up to date";
+      const confirmed = Number(summary.confirmed || 0);
+      const cancelled = Number(summary.cancelled || 0);
+      const errors = Number(summary.errors || 0);
+
+      const message = confirmed > 0
+        ? `${confirmed} order(s) confirmed from Stripe`
+        : cancelled > 0
+          ? `${cancelled} abandoned order(s) cleaned up`
+          : errors > 0
+            ? `${errors} order(s) could not be verified with Stripe yet`
+            : "Orders are up to date";
 
       toast({
         title: "Orders Synced",
@@ -113,10 +119,16 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-500';
+      case 'processing':
+        return 'bg-blue-500';
       case 'in_production':
         return 'bg-blue-500';
       case 'shipped':
         return 'bg-purple-500';
+      case 'completed':
+        return 'bg-green-500';
+      case 'cancelled':
+        return 'bg-red-500';
       case 'delivered':
         return 'bg-green-500';
       default:
@@ -200,7 +212,10 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
       </div>
       <div className="grid gap-4">
         {orders.map((order) => {
-          const orderStatus = getOrderStatusSummary(order.items);
+          // Show payment/order status when available; item fulfillment remains "pending" until shipped.
+          const paymentStatus = String(order.status || 'pending');
+          const fulfillmentStatus = getOrderStatusSummary(order.items);
+          const displayStatus = paymentStatus !== 'pending' ? paymentStatus : fulfillmentStatus;
           
           return (
             <Card 
@@ -223,8 +238,8 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                       {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
                     </CardDescription>
                   </div>
-                  <Badge className={getStatusColor(orderStatus)}>
-                    {orderStatus.replace('_', ' ')}
+                  <Badge className={getStatusColor(displayStatus)}>
+                    {displayStatus.replace('_', ' ')}
                   </Badge>
                 </div>
               </CardHeader>

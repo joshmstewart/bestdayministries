@@ -395,8 +395,8 @@ Full order sync to ShipStation for fulfillment management.
 
 | Secret | Purpose | Status |
 |--------|---------|--------|
-| `STRIPE_SECRET_KEY_LIVE` | Live Stripe API | Configured |
-| `STRIPE_SECRET_KEY_TEST` | Test Stripe API | Configured |
+| `MARKETPLACE_STRIPE_SECRET_KEY_LIVE` | Live Stripe API (marketplace) | Configured |
+| `MARKETPLACE_STRIPE_SECRET_KEY_TEST` | Test Stripe API (marketplace) | Configured |
 | `AFTERSHIP_API_KEY` | Order tracking | Configured |
 | `PRINTIFY_API_KEY` | Print-on-demand | Configured |
 | `SHIPSTATION_API_KEY` | ShipStation sync | **Not configured** |

@@ -51,18 +51,19 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Initialize both Stripe clients - orders may be in either mode
-    const stripeLiveKey = Deno.env.get("STRIPE_SECRET_KEY_LIVE");
-    const stripeTestKey = Deno.env.get("STRIPE_SECRET_KEY_TEST");
+    // IMPORTANT: Marketplace checkout uses MARKETPLACE_* Stripe keys.
+    // Using donation/sponsorship keys here will cause "No such checkout.session" errors.
+    const stripeLiveKey = Deno.env.get("MARKETPLACE_STRIPE_SECRET_KEY_LIVE");
+    const stripeTestKey = Deno.env.get("MARKETPLACE_STRIPE_SECRET_KEY_TEST");
 
     const stripeLive = stripeLiveKey ? new Stripe(stripeLiveKey, { apiVersion: "2023-10-16" }) : null;
     const stripeTest = stripeTestKey ? new Stripe(stripeTestKey, { apiVersion: "2023-10-16" }) : null;
 
     const getStripeClient = (mode: string | null) => {
-      if (mode === "live" && stripeLive) return stripeLive;
-      if (mode === "test" && stripeTest) return stripeTest;
-      // Fallback to test if mode unknown
-      return stripeTest;
+      if (mode === "live") return stripeLive ?? stripeTest;
+      if (mode === "test") return stripeTest ?? stripeLive;
+      // Fallback: prefer test for unknown
+      return stripeTest ?? stripeLive;
     };
 
     logStep("Stripe clients initialized", { 
