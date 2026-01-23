@@ -14,6 +14,10 @@ import { VendorBestieAssetDisplay } from "@/components/vendor/VendorBestieAssetD
 import { VendorStoryGallery } from "@/components/vendor/VendorStoryGallery";
 import ImageLightbox from "@/components/ImageLightbox";
 import { getVendorTheme, VendorThemePreset } from "@/lib/vendorThemePresets";
+import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
+import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
+import { useShopifyCartStore } from "@/stores/shopifyCartStore";
+import { useQuery } from "@tanstack/react-query";
 
 interface Vendor {
   id: string;
@@ -48,6 +52,23 @@ const VendorProfile = () => {
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
+
+  // Cart state
+  const shopifyItems = useShopifyCartStore((state) => state.items);
+  const { data: handmadeCart } = useQuery({
+    queryKey: ["shopping-cart"],
+    queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user?.id) return [];
+      const { data } = await supabase
+        .from("shopping_cart")
+        .select("*")
+        .eq("user_id", session.session.user.id);
+      return data || [];
+    },
+  });
+  const totalCartCount = (handmadeCart?.length || 0) + shopifyItems.length;
 
   // Check for preview mode parameters
   const isPreviewMode = searchParams.get('preview') === 'true';
@@ -453,6 +474,8 @@ const VendorProfile = () => {
         </div>
       </main>
 
+      <FloatingCartButton cartCount={totalCartCount} onClick={() => setCartOpen(true)} />
+      <UnifiedCartSheet open={cartOpen} onOpenChange={setCartOpen} />
       <Footer />
 
       {/* Image Lightbox */}
