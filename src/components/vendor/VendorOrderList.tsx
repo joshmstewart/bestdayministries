@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, Eye, RefreshCw, CreditCard, Truck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Package, Eye, RefreshCw, CreditCard, Truck, Filter } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { VendorOrderDetails } from "./VendorOrderDetails";
 import { VendorThemePreset } from "@/lib/vendorThemePresets";
 import { useToast } from "@/hooks/use-toast";
+
+type OrderStatusFilter = 'all' | 'active' | 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+
 interface VendorOrderListProps {
   vendorId: string;
   theme?: VendorThemePreset;
@@ -18,6 +22,7 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>('active'); // Default to hide cancelled
   const { toast } = useToast();
   useEffect(() => {
     loadOrders();
@@ -197,6 +202,29 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
     return 'pending';
   };
 
+  // Filter orders based on status
+  const filteredOrders = useMemo(() => {
+    if (statusFilter === 'all') return orders;
+    if (statusFilter === 'active') {
+      // Active = everything except cancelled
+      return orders.filter(order => order.status !== 'cancelled');
+    }
+    return orders.filter(order => order.status === statusFilter);
+  }, [orders, statusFilter]);
+
+  const getFilterLabel = (filter: OrderStatusFilter) => {
+    switch (filter) {
+      case 'all': return 'All Orders';
+      case 'active': return 'Active (No Cancelled)';
+      case 'pending': return 'Pending Payment';
+      case 'processing': return 'Processing';
+      case 'shipped': return 'Shipped';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return filter;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -241,7 +269,27 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as OrderStatusFilter)}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active (No Cancelled)</SelectItem>
+              <SelectItem value="all">All Orders</SelectItem>
+              <SelectItem value="pending">Pending Payment</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="shipped">Shipped</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-sm text-muted-foreground">
+            {filteredOrders.length} of {orders.length} orders
+          </span>
+        </div>
         <Button
           variant="outline"
           size="sm"
@@ -256,8 +304,33 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
           Refresh Orders
         </Button>
       </div>
+      
+      {filteredOrders.length === 0 ? (
+        <Card
+          className="border-2"
+          style={theme ? { 
+            backgroundColor: theme.cardBg,
+            borderColor: theme.cardBorder,
+            boxShadow: theme.cardGlow
+          } : undefined}
+        >
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground text-center">
+              No orders match this filter.
+            </p>
+            <Button 
+              variant="link" 
+              className="mt-2"
+              onClick={() => setStatusFilter('all')}
+            >
+              View all orders
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
       <div className="grid gap-4">
-        {orders.map((order) => {
+        {filteredOrders.map((order) => {
           const paymentStatus = String(order.status || 'pending');
           const fulfillmentStatus = getOrderStatusSummary(order.items);
           const createdAt = new Date(order.created_at);
@@ -344,6 +417,7 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
           );
         })}
       </div>
+      )}
     </div>
   );
 };
