@@ -4846,6 +4846,42 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_reconciliation_log: {
+        Row: {
+          cancelled: number
+          confirmed: number
+          created_at: string
+          details: Json | null
+          errors: number
+          id: string
+          orders_checked: number
+          run_at: string
+          skipped: number
+        }
+        Insert: {
+          cancelled?: number
+          confirmed?: number
+          created_at?: string
+          details?: Json | null
+          errors?: number
+          id?: string
+          orders_checked?: number
+          run_at?: string
+          skipped?: number
+        }
+        Update: {
+          cancelled?: number
+          confirmed?: number
+          created_at?: string
+          details?: Json | null
+          errors?: number
+          id?: string
+          orders_checked?: number
+          run_at?: string
+          skipped?: number
+        }
+        Relationships: []
+      }
       memory_match_images: {
         Row: {
           created_at: string
