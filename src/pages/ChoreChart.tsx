@@ -43,6 +43,7 @@ interface Chore {
   display_order: number;
   bestie_id: string;
   created_by: string;
+  created_at: string;
 }
 
 interface ChoreCompletion {
@@ -55,6 +56,15 @@ type MSTInfo = {
   mstDate: string;
   tomorrowUtcMidnightIso: string;
 };
+
+function isoToMSTDateString(iso: string): string {
+  // Keep chore tracking consistent with the app's MST-based day boundary.
+  const date = new Date(iso);
+  const mstOffsetMinutes = -7 * 60; // MST is UTC-7
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  const mstTime = new Date(utc + mstOffsetMinutes * 60000);
+  return mstTime.toISOString().split("T")[0];
+}
 
 function getMSTInfo(): MSTInfo {
   const now = new Date();
@@ -203,8 +213,8 @@ export default function ChoreChart() {
             isApplicableToday = chore.day_of_week === todayDayOfWeek;
             break;
           case 'once':
-            // Uncompleted one-time chores are always applicable today
-            isApplicableToday = true;
+            // One-time chores are due on the day they were created (MST)
+            isApplicableToday = isoToMSTDateString(chore.created_at) === today;
             break;
         }
         if (isApplicableToday) {
@@ -264,8 +274,8 @@ export default function ChoreChart() {
               wasApplicable = chore.day_of_week === pastDayOfWeek;
               break;
             case 'once':
-              // Uncompleted one-time chores should show as missed if not done yet
-              wasApplicable = true;
+              // One-time chores are only applicable (and thus missable) on the day they were created (MST)
+              wasApplicable = isoToMSTDateString(chore.created_at) === pastDateStr;
               break;
             default:
               wasApplicable = false;
@@ -339,13 +349,13 @@ export default function ChoreChart() {
           // Show on same day of week as created
           return chore.day_of_week === dayOfWeek;
         case 'once':
-          // "once" chores that haven't been completed yet are always applicable
-          return true;
+          // One-time chores should only show on the day they were created (MST)
+          return isoToMSTDateString(chore.created_at) === today;
         default:
           return true;
       }
     });
-  }, [chores, dayOfWeek, completedOnceChoreIds]);
+  }, [chores, dayOfWeek, completedOnceChoreIds, today]);
 
   const applicableChores = getApplicableChores();
   const completedChoreIds = new Set(completions.map(c => c.chore_id));
