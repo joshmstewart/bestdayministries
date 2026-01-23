@@ -3749,6 +3749,8 @@ export type Database = {
           is_public: boolean
           is_recurring: boolean
           likes_count: number
+          link_label: string | null
+          link_url: string | null
           location: string | null
           max_attendees: number | null
           moderated_at: string | null
@@ -3780,6 +3782,8 @@ export type Database = {
           is_public?: boolean
           is_recurring?: boolean
           likes_count?: number
+          link_label?: string | null
+          link_url?: string | null
           location?: string | null
           max_attendees?: number | null
           moderated_at?: string | null
@@ -3811,6 +3815,8 @@ export type Database = {
           is_public?: boolean
           is_recurring?: boolean
           likes_count?: number
+          link_label?: string | null
+          link_url?: string | null
           location?: string | null
           max_attendees?: number | null
           moderated_at?: string | null

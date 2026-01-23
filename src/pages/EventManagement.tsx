@@ -50,6 +50,8 @@ interface Event {
   created_at: string;
   updated_at: string;
   event_dates?: EventDate[];
+  link_url?: string | null;
+  link_label?: string | null;
 }
 
 interface SavedLocation {
@@ -94,6 +96,8 @@ export default function EventManagement() {
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
   const [eventStatus, setEventStatus] = useState<'draft' | 'published'>('draft');
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkLabel, setLinkLabel] = useState("Learn More");
 
   useEffect(() => {
     checkAdminAccess();
@@ -234,6 +238,8 @@ export default function EventManagement() {
     setShowAdditionalDatePicker(false);
     setAspectRatioKey('9:16');
     setEventStatus('draft');
+    setLinkUrl("");
+    setLinkLabel("Learn More");
     setEditingEvent(null);
     setShowForm(false);
   };
@@ -339,6 +345,8 @@ export default function EventManagement() {
         created_by: user.id,
         is_active: hasFutureDates ? true : (editingEvent?.is_active ?? true),
         status: newStatus,
+        link_url: linkUrl?.trim() || null,
+        link_label: linkLabel?.trim() || 'Learn More',
       };
 
       let eventId = editingEvent?.id;
@@ -447,6 +455,8 @@ export default function EventManagement() {
     }
     setAspectRatioKey((event as any).aspect_ratio || '9:16');
     setEventStatus((event as any).status || 'published');
+    setLinkUrl((event as any).link_url || "");
+    setLinkLabel((event as any).link_label || "Learn More");
     setImagePreview(event.image_url);
     setSelectedImage(null);
     setRawImageUrl(null);
@@ -564,9 +574,36 @@ export default function EventManagement() {
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Event description"
+                    placeholder="Event description (URLs will be automatically clickable)"
                     rows={4}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Tip: Any URLs you include will be automatically clickable for users.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="linkUrl">Event Link (optional)</Label>
+                    <Input
+                      id="linkUrl"
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="https://example.com/register"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Add a link for registration, tickets, or more info
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="linkLabel">Link Button Text</Label>
+                    <Input
+                      id="linkLabel"
+                      value={linkLabel}
+                      onChange={(e) => setLinkLabel(e.target.value)}
+                      placeholder="Learn More"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
