@@ -15,6 +15,8 @@ interface QueueItem {
   event_date: string;
   event_location: string;
   event_image_url: string | null;
+  event_link_url: string | null;
+  event_link_label: string | null;
 }
 
 serve(async (req) => {
@@ -106,10 +108,18 @@ serve(async (req) => {
               <p style="margin: 10px 0;"><strong>📍 Where:</strong> ${item.event_location || 'Location TBD'}</p>
             </div>
             
-            <a href="https://bestdayministries.lovable.app/community?eventId=${item.event_id}" 
-               style="display: inline-block; background-color: #E07A41; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
-              View Event Details
-            </a>
+            <div style="margin: 20px 0;">
+              <a href="https://bestdayministries.lovable.app/community?eventId=${item.event_id}" 
+                 style="display: inline-block; background-color: #E07A41; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 10px;">
+                View Event Details
+              </a>
+              ${item.event_link_url ? `
+              <a href="${item.event_link_url}" 
+                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
+                ${item.event_link_label || 'Learn More'}
+              </a>
+              ` : ''}
+            </div>
             
             <p style="margin-top: 30px; font-size: 12px; color: #666;">
               You're receiving this email because you have event notifications enabled. 

@@ -3623,6 +3623,8 @@ export type Database = {
           event_date: string | null
           event_id: string
           event_image_url: string | null
+          event_link_label: string | null
+          event_link_url: string | null
           event_location: string | null
           event_title: string
           id: string
@@ -3637,6 +3639,8 @@ export type Database = {
           event_date?: string | null
           event_id: string
           event_image_url?: string | null
+          event_link_label?: string | null
+          event_link_url?: string | null
           event_location?: string | null
           event_title: string
           id?: string
@@ -3651,6 +3655,8 @@ export type Database = {
           event_date?: string | null
           event_id?: string
           event_image_url?: string | null
+          event_link_label?: string | null
+          event_link_url?: string | null
           event_location?: string | null
           event_title?: string
           id?: string
