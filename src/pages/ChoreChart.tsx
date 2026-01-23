@@ -79,6 +79,7 @@ export default function ChoreChart() {
   const { user, isAuthenticated, loading: authLoading, isGuardian, isAdmin, isOwner } = useAuth();
   const [chores, setChores] = useState<Chore[]>([]);
   const [completions, setCompletions] = useState<ChoreCompletion[]>([]);
+  const [completedOnceChoreIds, setCompletedOnceChoreIds] = useState<Set<string>>(new Set());
   const [missedChores, setMissedChores] = useState<MissedChore[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -154,6 +155,23 @@ export default function ChoreChart() {
       if (completionsError) throw completionsError;
       setCompletions(completionsData || []);
 
+      // Load ALL completions for "once" chores to know which are permanently done
+      const onceChoreIds = (choresData || [])
+        .filter(c => c.recurrence_type === 'once')
+        .map(c => c.id);
+      
+      let completedOnceIds = new Set<string>();
+      if (onceChoreIds.length > 0) {
+        const { data: onceCompletions } = await supabase
+          .from('chore_completions')
+          .select('chore_id')
+          .eq('user_id', targetUserId)
+          .in('chore_id', onceChoreIds);
+        
+        completedOnceIds = new Set((onceCompletions || []).map(c => c.chore_id));
+      }
+      setCompletedOnceChoreIds(completedOnceIds);
+
       // Load missed chores from past 7 days
       const loadedChores = choresData || [];
       // Map to track the most recent missed date per chore ID
@@ -165,6 +183,11 @@ export default function ChoreChart() {
       // Build a set of chores that are applicable TODAY (these shouldn't show as missed)
       const applicableTodayIds = new Set<string>();
       loadedChores.forEach(chore => {
+        // "once" chores that have been completed are permanently done
+        if (chore.recurrence_type === 'once' && completedOnceIds.has(chore.id)) {
+          return; // Don't add to applicable today - they're done forever
+        }
+        
         let isApplicableToday = false;
         switch (chore.recurrence_type) {
           case 'daily':
@@ -180,9 +203,8 @@ export default function ChoreChart() {
             isApplicableToday = chore.day_of_week === todayDayOfWeek;
             break;
           case 'once':
-            // One-time chores are due on the day they were created
-            const choreCreatedDate = format(new Date(chore.created_at), 'yyyy-MM-dd');
-            isApplicableToday = choreCreatedDate === today;
+            // Uncompleted one-time chores are always applicable today
+            isApplicableToday = true;
             break;
         }
         if (isApplicableToday) {
@@ -211,6 +233,11 @@ export default function ChoreChart() {
 
         // Find applicable chores for that day that weren't completed
         loadedChores.forEach(chore => {
+          // Skip "once" chores that have been completed - they're done forever
+          if (chore.recurrence_type === 'once' && completedOnceIds.has(chore.id)) {
+            return;
+          }
+          
           // Skip if this chore is applicable today (it's on today's list, not missed)
           if (applicableTodayIds.has(chore.id)) {
             return;
@@ -237,9 +264,8 @@ export default function ChoreChart() {
               wasApplicable = chore.day_of_week === pastDayOfWeek;
               break;
             case 'once':
-              // One-time chores are only applicable on the day they were created
-              const choreCreatedDate = format(new Date(chore.created_at), 'yyyy-MM-dd');
-              wasApplicable = choreCreatedDate === pastDateStr;
+              // Uncompleted one-time chores should show as missed if not done yet
+              wasApplicable = true;
               break;
             default:
               wasApplicable = false;
@@ -296,6 +322,11 @@ export default function ChoreChart() {
 
   const getApplicableChores = useCallback(() => {
     return chores.filter(chore => {
+      // "once" chores that have been completed are permanently done - exclude them
+      if (chore.recurrence_type === 'once' && completedOnceChoreIds.has(chore.id)) {
+        return false;
+      }
+      
       switch (chore.recurrence_type) {
         case 'daily':
           return true;
@@ -307,11 +338,14 @@ export default function ChoreChart() {
         case 'every_x_weeks':
           // Show on same day of week as created
           return chore.day_of_week === dayOfWeek;
+        case 'once':
+          // "once" chores that haven't been completed yet are always applicable
+          return true;
         default:
           return true;
       }
     });
-  }, [chores, dayOfWeek]);
+  }, [chores, dayOfWeek, completedOnceChoreIds]);
 
   const applicableChores = getApplicableChores();
   const completedChoreIds = new Set(completions.map(c => c.chore_id));
