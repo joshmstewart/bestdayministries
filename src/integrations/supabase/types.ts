@@ -386,6 +386,7 @@ export type Database = {
       app_configurations: {
         Row: {
           app_id: string
+          category: string | null
           created_at: string
           display_name: string | null
           display_order: number | null
@@ -396,6 +397,7 @@ export type Database = {
         }
         Insert: {
           app_id: string
+          category?: string | null
           created_at?: string
           display_name?: string | null
           display_order?: number | null
@@ -406,6 +408,7 @@ export type Database = {
         }
         Update: {
           app_id?: string
+          category?: string | null
           created_at?: string
           display_name?: string | null
           display_order?: number | null

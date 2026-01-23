@@ -7,6 +7,8 @@ import { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 
+export type AppCategory = "games" | "resources" | "content" | "user";
+
 export interface AppConfiguration {
   id: string;
   app_id: string;
@@ -14,6 +16,7 @@ export interface AppConfiguration {
   is_active: boolean;
   visible_to_roles: UserRole[];
   display_order: number;
+  category: AppCategory | null;
 }
 
 const ALL_ROLES: UserRole[] = ["supporter", "bestie", "caregiver", "moderator", "admin", "owner"];
@@ -31,7 +34,12 @@ export function useAppConfigurations() {
         .order("display_order");
 
       if (error) throw error;
-      setConfigurations(data || []);
+      // Cast category to AppCategory type
+      const typedData = (data || []).map(item => ({
+        ...item,
+        category: item.category as AppCategory | null,
+      }));
+      setConfigurations(typedData);
     } catch (error) {
       console.error("Error fetching app configurations:", error);
     } finally {
@@ -50,6 +58,7 @@ export function useAppConfigurations() {
       return {
         ...app,
         name: config?.display_name || app.name,
+        category: config?.category || app.category, // Use configured category or fallback to default
         config,
       };
     }).filter((app) => {
@@ -68,7 +77,7 @@ export function useAppConfigurations() {
 
   const updateConfiguration = async (
     appId: string,
-    updates: Partial<Pick<AppConfiguration, "display_name" | "is_active" | "visible_to_roles" | "display_order">>
+    updates: Partial<Pick<AppConfiguration, "display_name" | "is_active" | "visible_to_roles" | "display_order" | "category">>
   ) => {
     try {
       // Check if config exists
@@ -82,6 +91,7 @@ export function useAppConfigurations() {
             is_active: updates.is_active,
             visible_to_roles: updates.visible_to_roles as UserRole[],
             display_order: updates.display_order,
+            category: updates.category,
           })
           .eq("app_id", appId);
 
@@ -96,6 +106,7 @@ export function useAppConfigurations() {
             is_active: updates.is_active,
             visible_to_roles: updates.visible_to_roles as UserRole[],
             display_order: updates.display_order,
+            category: updates.category,
           });
 
         if (error) throw error;
@@ -118,6 +129,7 @@ export function useAppConfigurations() {
         is_active: true,
         visible_to_roles: ALL_ROLES,
         display_order: existingIds.length + index,
+        category: app.category,
       }));
 
       if (newConfigs.length > 0) {
