@@ -173,8 +173,9 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
               <ShareButtons
                 title={event.title}
                 description={event.description}
-                url={`${window.location.origin}/events?eventId=${event.id}`}
+                url={`${window.location.origin}/community?tab=feed&eventId=${event.id}`}
                 hashtags={['JoyHouse', 'CommunityEvent']}
+                eventId={event.id}
               />
             </div>
           )}

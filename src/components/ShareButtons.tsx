@@ -26,6 +26,7 @@ interface ShareButtonsProps {
   via?: string;
   image?: string;
   compact?: boolean;
+  eventId?: string; // For dynamic social media previews
 }
 
 export const ShareButtons = ({
@@ -36,12 +37,26 @@ export const ShareButtons = ({
   via = "JoyHouseCommunity",
   image,
   compact = false,
+  eventId,
 }: ShareButtonsProps) => {
   const [copied, setCopied] = useState(false);
   
   // Use current URL if not provided
   const shareUrl = url || window.location.href;
+  
+  // For social media platforms (Facebook, LinkedIn), use edge function URL for rich previews
+  const getSocialShareUrl = () => {
+    if (eventId) {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const redirectUrl = encodeURIComponent(shareUrl);
+      return `${supabaseUrl}/functions/v1/generate-meta-tags?eventId=${eventId}&redirect=${redirectUrl}`;
+    }
+    return shareUrl;
+  };
+  
+  const socialShareUrl = getSocialShareUrl();
   const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedSocialUrl = encodeURIComponent(socialShareUrl);
   const encodedTitle = encodeURIComponent(title);
   const encodedDescription = encodeURIComponent(description);
   const hashtagString = hashtags.join(',');
@@ -74,10 +89,12 @@ export const ShareButtons = ({
     }
   };
 
+  // Use social share URL (with meta tags) for platforms that scrape OG tags
+  // Use regular URL for platforms that don't need OG scraping (Twitter uses its own cards, email/whatsapp show raw text)
   const shareLinks = {
     twitter: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}${via ? `&via=${via}` : ''}${hashtagString ? `&hashtags=${hashtagString}` : ''}`,
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedSocialUrl}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedSocialUrl}`,
     email: `mailto:?subject=${encodedTitle}&body=${encodedDescription}%0A%0A${encodedUrl}`,
     whatsapp: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`,
   };
