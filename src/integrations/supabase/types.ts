@@ -3622,6 +3622,7 @@ export type Database = {
           error_message: string | null
           event_date: string | null
           event_id: string
+          event_image_url: string | null
           event_location: string | null
           event_title: string
           id: string
@@ -3635,6 +3636,7 @@ export type Database = {
           error_message?: string | null
           event_date?: string | null
           event_id: string
+          event_image_url?: string | null
           event_location?: string | null
           event_title: string
           id?: string
@@ -3648,6 +3650,7 @@ export type Database = {
           error_message?: string | null
           event_date?: string | null
           event_id?: string
+          event_image_url?: string | null
           event_location?: string | null
           event_title?: string
           id?: string
@@ -3726,6 +3729,7 @@ export type Database = {
           recurrence_end_date: string | null
           recurrence_interval: number | null
           recurrence_type: string | null
+          status: string
           title: string
           updated_at: string
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
@@ -3755,6 +3759,7 @@ export type Database = {
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
+          status?: string
           title: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
@@ -3784,6 +3789,7 @@ export type Database = {
           recurrence_end_date?: string | null
           recurrence_interval?: number | null
           recurrence_type?: string | null
+          status?: string
           title?: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null

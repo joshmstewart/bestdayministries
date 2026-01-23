@@ -14,6 +14,7 @@ interface QueueItem {
   event_title: string;
   event_date: string;
   event_location: string;
+  event_image_url: string | null;
 }
 
 serve(async (req) => {
@@ -92,6 +93,12 @@ serve(async (req) => {
             <h1 style="color: #E07A41; margin-bottom: 20px;">New Event: ${item.event_title}</h1>
             
             <p>A new event has been posted that you might be interested in!</p>
+            
+            ${item.event_image_url ? `
+            <div style="margin: 20px 0;">
+              <img src="${item.event_image_url}" alt="${item.event_title}" style="max-width: 100%; height: auto; border-radius: 8px;">
+            </div>
+            ` : ''}
             
             <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h2 style="margin-top: 0; color: #333;">${item.event_title}</h2>
