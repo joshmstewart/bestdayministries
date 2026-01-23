@@ -327,22 +327,22 @@ const Community = () => {
             onValueChange={(value) => setSearchParams({ tab: value })}
             className="w-full"
           >
-            {canAccessFeed() ? (
-              <TabsList className="grid w-full max-w-[400px] grid-cols-3 mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible">
-                <TabsTrigger 
-                  value="community" 
-                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                >
-                  <Users className="w-4 h-4" />
-                  Home
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="apps" 
-                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  Apps
-                </TabsTrigger>
+            <TabsList className={`grid w-full max-w-[400px] mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <TabsTrigger 
+                value="community" 
+                className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+              >
+                <Users className="w-4 h-4" />
+                Home
+              </TabsTrigger>
+              <TabsTrigger 
+                value="apps" 
+                className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Apps
+              </TabsTrigger>
+              {canAccessFeed() && (
                 <TabsTrigger 
                   value="feed" 
                   className="gap-2 relative px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
@@ -358,8 +358,8 @@ const Community = () => {
                     </Badge>
                   )}
                 </TabsTrigger>
-              </TabsList>
-            ) : null}
+              )}
+            </TabsList>
 
             {/* What's New Feed Tab - only render if user has access */}
             {canAccessFeed() && (
