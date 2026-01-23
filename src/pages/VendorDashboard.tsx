@@ -216,15 +216,30 @@ const VendorDashboard = () => {
         readyToShipCount = orderItemsData?.filter(item => paidOrderIds.has(item.order_id)).length || 0;
       }
 
-      // Load total sales (all time)
-      const { data: salesData } = await supabase
+      // Load total sales (all time) - ONLY from paid orders
+      const { data: allOrderItems } = await supabase
         .from('order_items')
-        .select('price_at_purchase, quantity')
+        .select('price_at_purchase, quantity, order_id')
         .eq('vendor_id', vendorId);
-
-      const totalSales = salesData?.reduce((sum, item) => 
-        sum + (item.price_at_purchase * item.quantity), 0
-      ) || 0;
+      
+      // Get all unique order IDs from these items
+      const allOrderIds = [...new Set(allOrderItems?.map(item => item.order_id) || [])];
+      let totalSales = 0;
+      
+      if (allOrderIds.length > 0) {
+        const { data: allOrdersData } = await supabase
+          .from('orders')
+          .select('id, status')
+          .in('id', allOrderIds);
+        
+        // Only count sales from paid orders (processing, shipped, completed)
+        const paidOrderIdsForSales = new Set(
+          allOrdersData?.filter(o => ['processing', 'shipped', 'completed'].includes(o.status)).map(o => o.id) || []
+        );
+        
+        totalSales = allOrderItems?.filter(item => paidOrderIdsForSales.has(item.order_id))
+          .reduce((sum, item) => sum + (item.price_at_purchase * item.quantity), 0) || 0;
+      }
 
       setStats({
         totalProducts: productCount || 0,
@@ -487,11 +502,15 @@ const VendorDashboard = () => {
               </Card>
 
               <Card 
-                className="border-2 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg"
+                className={`border-2 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${
+                  stats.pendingOrders > 0 
+                    ? 'ring-2 ring-primary/50 animate-pulse-subtle shadow-lg' 
+                    : ''
+                }`}
                 style={{ 
-                  backgroundColor: theme.cardBg,
-                  borderColor: theme.cardBorder,
-                  boxShadow: theme.cardGlow
+                  backgroundColor: stats.pendingOrders > 0 ? 'hsl(var(--primary) / 0.08)' : theme.cardBg,
+                  borderColor: stats.pendingOrders > 0 ? 'hsl(var(--primary))' : theme.cardBorder,
+                  boxShadow: stats.pendingOrders > 0 ? '0 0 20px hsl(var(--primary) / 0.2)' : theme.cardGlow
                 }}
                 onClick={scrollToOrdersTab}
                 role="button"
@@ -499,12 +518,16 @@ const VendorDashboard = () => {
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') scrollToOrdersTab(); }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Ready to Ship</CardTitle>
-                  <Package className="h-4 w-4" style={{ color: theme.accent }} />
+                  <CardTitle className={`text-sm font-medium ${stats.pendingOrders > 0 ? 'text-primary font-semibold' : ''}`}>
+                    Ready to Ship {stats.pendingOrders > 0 && '→'}
+                  </CardTitle>
+                  <Package className={`h-4 w-4 ${stats.pendingOrders > 0 ? 'text-primary' : ''}`} style={{ color: stats.pendingOrders > 0 ? undefined : theme.accent }} />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold" style={{ color: theme.accent }}>{stats.pendingOrders}</div>
-                  <p className="text-xs text-muted-foreground">Paid orders awaiting shipment</p>
+                  <p className={`text-xs ${stats.pendingOrders > 0 ? 'text-primary/80 font-medium' : 'text-muted-foreground'}`}>
+                    {stats.pendingOrders > 0 ? 'Click to view orders' : 'Paid orders awaiting shipment'}
+                  </p>
                 </CardContent>
               </Card>
             </div>
