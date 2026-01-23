@@ -390,14 +390,19 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
                       )}
 
                       {item.fulfillment_status === 'shipped' && (
-                        <Button
-                          onClick={() => updateFulfillment(item.id, 'delivered')}
-                          disabled={updating === item.id}
-                          className="w-full"
-                        >
-                          {updating === item.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                          Mark as Delivered
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => updateFulfillment(item.id, 'delivered')}
+                            disabled={updating === item.id}
+                            className="w-full"
+                          >
+                            {updating === item.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Mark as Delivered
+                          </Button>
+                          <p className="text-xs text-muted-foreground text-center">
+                            This will automatically update within 4 hours of delivery confirmation
+                          </p>
+                        </div>
                       )}
                     </div>
                   </CardContent>
