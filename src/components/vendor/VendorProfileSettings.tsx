@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, ExternalLink, X, Eye } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
@@ -14,6 +15,15 @@ import { VendorBestieAssetManager } from "./VendorBestieAssetManager";
 import { VendorStoryMediaManager } from "./VendorStoryMediaManager";
 import { VendorThemeColorPicker } from "./VendorThemeColorPicker";
 import { getVendorTheme, VendorThemePreset } from "@/lib/vendorThemePresets";
+
+// Processing time options - must match VendorAuth.tsx
+const PROCESSING_TIME_OPTIONS = [
+  { value: "1", label: "1-2 business days" },
+  { value: "3", label: "3-5 business days" },
+  { value: "7", label: "5-7 business days" },
+  { value: "14", label: "1-2 weeks" },
+  { value: "21", label: "2-3 weeks (custom orders)" },
+];
 
 interface VendorProfileSettingsProps {
   vendorId: string;
@@ -242,17 +252,24 @@ export const VendorProfileSettings = ({ vendorId, theme, onThemeSaved }: VendorP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="estimated_processing_days">Estimated Processing Time (Days)</Label>
-            <Input
-              id="estimated_processing_days"
-              type="number"
-              min="1"
-              max="30"
-              value={formData.estimated_processing_days}
-              onChange={(e) => setFormData(prev => ({ ...prev, estimated_processing_days: parseInt(e.target.value) || 3 }))}
-            />
+            <Label htmlFor="estimated_processing_days">Order Processing Time</Label>
+            <Select 
+              value={formData.estimated_processing_days.toString()} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, estimated_processing_days: parseInt(value) || 3 }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select processing time" />
+              </SelectTrigger>
+              <SelectContent>
+                {PROCESSING_TIME_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
-              How many business days it typically takes to prepare an order for shipping.
+              How long to prepare orders before shipping.
             </p>
           </div>
 
