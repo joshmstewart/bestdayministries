@@ -284,3 +284,7 @@ verify_jwt = true
 
 [functions.generate-workout-location-image]
 verify_jwt = true
+
+[functions.reconcile-marketplace-orders]
+verify_jwt = false
+schedule = "*/15 * * * *"
