@@ -3661,6 +3661,35 @@ export type Database = {
         }
         Relationships: []
       }
+      event_likes: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_likes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_update_email_queue: {
         Row: {
           change_description: string
@@ -3719,6 +3748,7 @@ export type Database = {
           is_active: boolean
           is_public: boolean
           is_recurring: boolean
+          likes_count: number
           location: string | null
           max_attendees: number | null
           moderated_at: string | null
@@ -3749,6 +3779,7 @@ export type Database = {
           is_active?: boolean
           is_public?: boolean
           is_recurring?: boolean
+          likes_count?: number
           location?: string | null
           max_attendees?: number | null
           moderated_at?: string | null
@@ -3779,6 +3810,7 @@ export type Database = {
           is_active?: boolean
           is_public?: boolean
           is_recurring?: boolean
+          likes_count?: number
           location?: string | null
           max_attendees?: number | null
           moderated_at?: string | null
