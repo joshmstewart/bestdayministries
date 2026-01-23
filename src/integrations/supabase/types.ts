@@ -383,6 +383,39 @@ export type Database = {
         }
         Relationships: []
       }
+      app_configurations: {
+        Row: {
+          app_id: string
+          created_at: string
+          display_name: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          updated_at: string
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Insert: {
+          app_id: string
+          created_at?: string
+          display_name?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Update: {
+          app_id?: string
+          created_at?: string
+          display_name?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string

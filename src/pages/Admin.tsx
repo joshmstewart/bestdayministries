@@ -24,6 +24,7 @@ import { DataMaintenanceTools } from "@/components/admin/DataMaintenanceTools";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AvatarUploader } from "@/components/admin/AvatarUploader";
 import { AppSettingsManager } from "@/components/admin/AppSettingsManager";
+import { AppConfigManager } from "@/components/admin/AppConfigManager";
 import { RoleImpersonator } from "@/components/admin/RoleImpersonator";
 import { useModerationCount } from "@/hooks/useModerationCount";
 import { usePendingVendorsCount } from "@/hooks/usePendingVendorsCount";
@@ -969,6 +970,7 @@ const Admin = () => {
                 <Tabs defaultValue="app" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="app">App Settings</TabsTrigger>
+                    <TabsTrigger value="apps-config">Apps Grid</TabsTrigger>
                     <TabsTrigger value="social-sharing">Social Sharing</TabsTrigger>
                     <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
@@ -980,6 +982,10 @@ const Admin = () => {
 
                   <TabsContent value="app">
                     <AppSettingsManager />
+                  </TabsContent>
+
+                  <TabsContent value="apps-config">
+                    <AppConfigManager />
                   </TabsContent>
 
 
