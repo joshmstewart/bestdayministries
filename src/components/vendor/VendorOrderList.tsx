@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, Eye } from "lucide-react";
+import { Loader2, Package, Eye, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { VendorOrderDetails } from "./VendorOrderDetails";
 import { VendorThemePreset } from "@/lib/vendorThemePresets";
+import { useToast } from "@/hooks/use-toast";
 
 interface VendorOrderListProps {
   vendorId: string;
@@ -16,8 +17,9 @@ interface VendorOrderListProps {
 export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-
+  const { toast } = useToast();
   useEffect(() => {
     loadOrders();
   }, [vendorId]);
@@ -70,6 +72,40 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
       console.error('Error loading orders:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reconcile-marketplace-orders', {
+        body: { vendorId }
+      });
+
+      if (error) throw error;
+
+      const summary = data?.summary || {};
+      const message = summary.confirmed > 0 
+        ? `${summary.confirmed} order(s) confirmed from Stripe`
+        : summary.cancelled > 0
+          ? `${summary.cancelled} abandoned order(s) cleaned up`
+          : "Orders are up to date";
+
+      toast({
+        title: "Orders Synced",
+        description: message,
+      });
+
+      await loadOrders();
+    } catch (err) {
+      console.error('Error refreshing orders:', err);
+      toast({
+        title: "Sync Failed",
+        description: "Could not sync orders with Stripe",
+        variant: "destructive",
+      });
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -147,6 +183,21 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleManualRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Refresh Orders
+        </Button>
+      </div>
       <div className="grid gap-4">
         {orders.map((order) => {
           const orderStatus = getOrderStatusSummary(order.items);
