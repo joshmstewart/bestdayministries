@@ -199,6 +199,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             data = result.data;
             break;
           }
+          case 'event': {
+            const result = await supabase
+              .from('event_likes')
+              .select('id')
+              .eq('event_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
           default:
             return;
         }
@@ -385,6 +395,24 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               .update({ likes_count: likesCount + 1 })
               .eq('id', item.id);
             if (countError) throw countError;
+          }
+          break;
+        }
+        case 'event': {
+          if (isLiked) {
+            const { error } = await supabase
+              .from('event_likes')
+              .delete()
+              .eq('event_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
+            // likes_count is updated by database trigger
+          } else {
+            const { error } = await supabase
+              .from('event_likes')
+              .insert({ event_id: item.id, user_id: user.id });
+            if (error) throw error;
+            // likes_count is updated by database trigger
           }
           break;
         }
