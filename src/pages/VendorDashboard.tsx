@@ -183,12 +183,31 @@ const VendorDashboard = () => {
         .eq('vendor_id', vendorId)
         .eq('is_active', true);
 
-      // Load pending orders count (items not yet shipped or delivered)
-      const { count: orderCount } = await supabase
+      // Load pending orders count - ONLY items from PAID orders that are ready to ship
+      // First get order items with their order status
+      const { data: orderItemsData } = await supabase
         .from('order_items')
-        .select('*', { count: 'exact', head: true })
+        .select('id, order_id, fulfillment_status')
         .eq('vendor_id', vendorId)
         .in('fulfillment_status', ['pending', 'in_production']);
+      
+      // Get the order IDs and fetch their payment status
+      const orderIds = [...new Set(orderItemsData?.map(item => item.order_id) || [])];
+      let readyToShipCount = 0;
+      
+      if (orderIds.length > 0) {
+        const { data: ordersData } = await supabase
+          .from('orders')
+          .select('id, status')
+          .in('id', orderIds);
+        
+        // Only count items from paid orders (processing, shipped, completed)
+        const paidOrderIds = new Set(
+          ordersData?.filter(o => ['processing', 'shipped', 'completed'].includes(o.status)).map(o => o.id) || []
+        );
+        
+        readyToShipCount = orderItemsData?.filter(item => paidOrderIds.has(item.order_id)).length || 0;
+      }
 
       // Load total sales (all time)
       const { data: salesData } = await supabase
@@ -203,7 +222,7 @@ const VendorDashboard = () => {
       setStats({
         totalProducts: productCount || 0,
         totalSales,
-        pendingOrders: orderCount || 0
+        pendingOrders: readyToShipCount
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -469,12 +488,12 @@ const VendorDashboard = () => {
                 }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+                  <CardTitle className="text-sm font-medium">Ready to Ship</CardTitle>
                   <Package className="h-4 w-4" style={{ color: theme.accent }} />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold" style={{ color: theme.accent }}>{stats.pendingOrders}</div>
-                  <p className="text-xs text-muted-foreground">Awaiting shipment</p>
+                  <p className="text-xs text-muted-foreground">Paid orders awaiting shipment</p>
                 </CardContent>
               </Card>
             </div>

@@ -140,16 +140,46 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
 
   const getFulfillmentStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500';
-      case 'in_production': return 'bg-blue-500';
-      case 'processing': return 'bg-blue-500';
+      case 'pending': return 'bg-blue-500'; // Ready to ship - action needed
+      case 'ready_to_ship': return 'bg-blue-500';
+      case 'in_production': return 'bg-yellow-500';
+      case 'processing': return 'bg-yellow-500';
       case 'shipped': return 'bg-purple-500';
       case 'partially_shipped': return 'bg-purple-400';
       case 'delivered': return 'bg-green-500';
       case 'completed': return 'bg-green-500';
       case 'cancelled': return 'bg-red-500';
+      case 'awaiting_payment': return 'bg-gray-400';
       default: return 'bg-gray-500';
     }
+  };
+
+  // Get display label for fulfillment status, considering payment status
+  const getFulfillmentLabel = (fulfillmentStatus: string, orderPaymentStatus: string) => {
+    // If order is not paid, show "Awaiting Payment" regardless of fulfillment status
+    if (orderPaymentStatus === 'pending' || orderPaymentStatus === 'cancelled') {
+      return 'Awaiting Payment';
+    }
+    
+    // Order is paid - show appropriate fulfillment label
+    switch (fulfillmentStatus) {
+      case 'pending': return 'Ready to Ship';
+      case 'in_production': return 'In Production';
+      case 'shipped': return 'Shipped';
+      case 'partially_shipped': return 'Partially Shipped';
+      case 'delivered': return 'Delivered';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return fulfillmentStatus.replace('_', ' ');
+    }
+  };
+
+  // Get fulfillment color considering payment status
+  const getEffectiveFulfillmentColor = (fulfillmentStatus: string, orderPaymentStatus: string) => {
+    if (orderPaymentStatus === 'pending' || orderPaymentStatus === 'cancelled') {
+      return 'bg-gray-400';
+    }
+    return getFulfillmentStatusColor(fulfillmentStatus);
   };
 
   const getOrderStatusSummary = (items: any[]) => {
@@ -266,8 +296,8 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                     <div className="flex items-center gap-1.5">
                       <Truck className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">Fulfillment:</span>
-                      <Badge variant="outline" className={getFulfillmentStatusColor(fulfillmentStatus)}>
-                        {fulfillmentStatus.replace('_', ' ')}
+                      <Badge variant="outline" className={getEffectiveFulfillmentColor(fulfillmentStatus, paymentStatus)}>
+                        {getFulfillmentLabel(fulfillmentStatus, paymentStatus)}
                       </Badge>
                     </div>
                   </div>
@@ -294,8 +324,8 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                           )}
                           <span>{item.product?.name} × {item.quantity}</span>
                         </div>
-                        <Badge variant="outline" className={getFulfillmentStatusColor(item.fulfillment_status)}>
-                          {item.fulfillment_status}
+                        <Badge variant="outline" className={getEffectiveFulfillmentColor(item.fulfillment_status, paymentStatus)}>
+                          {getFulfillmentLabel(item.fulfillment_status, paymentStatus)}
                         </Badge>
                       </div>
                     ))}
