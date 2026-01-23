@@ -78,6 +78,33 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
     }
   };
 
+  const updateOrderStatusBasedOnItems = async () => {
+    // Fetch all items for this order (not just this vendor's items)
+    const { data: allItems, error } = await supabase
+      .from('order_items')
+      .select('fulfillment_status')
+      .eq('order_id', orderId);
+
+    if (error || !allItems) return;
+
+    const allDelivered = allItems.every(item => item.fulfillment_status === 'delivered');
+    const allShipped = allItems.every(item => 
+      item.fulfillment_status === 'shipped' || item.fulfillment_status === 'delivered'
+    );
+
+    if (allDelivered) {
+      await supabase
+        .from('orders')
+        .update({ status: 'completed' })
+        .eq('id', orderId);
+    } else if (allShipped) {
+      await supabase
+        .from('orders')
+        .update({ status: 'shipped' })
+        .eq('id', orderId);
+    }
+  };
+
   const updateFulfillment = async (itemId: string, status: string, trackingNumber?: string, carrier?: string) => {
     try {
       setUpdating(itemId);
@@ -98,6 +125,9 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
           title: "Success",
           description: "Tracking submitted! Status will auto-update when delivered.",
         });
+
+        // Auto-update order status based on all items
+        await updateOrderStatusBasedOnItems();
       } else if (status === 'delivered') {
         // Manual mark as delivered
         const { error } = await supabase
@@ -114,6 +144,9 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
           title: "Success",
           description: "Order marked as delivered"
         });
+
+        // Auto-update order status based on all items
+        await updateOrderStatusBasedOnItems();
       }
 
       loadOrderDetails();
