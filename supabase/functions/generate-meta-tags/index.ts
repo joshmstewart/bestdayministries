@@ -11,6 +11,8 @@ interface MetaTagsRequest {
   description?: string;
   image?: string;
   type?: string;
+  eventId?: string;
+  redirect?: string;
 }
 
 Deno.serve(async (req) => {
@@ -24,7 +26,24 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { url, title, description, image, type = 'website' } = await req.json() as MetaTagsRequest;
+    // Support both JSON body and URL query params
+    let params: MetaTagsRequest = { url: '' };
+    
+    const urlObj = new URL(req.url);
+    const eventId = urlObj.searchParams.get('eventId');
+    const redirect = urlObj.searchParams.get('redirect');
+    
+    if (req.method === 'GET' && (eventId || redirect)) {
+      params = {
+        url: redirect || urlObj.searchParams.get('url') || '',
+        eventId: eventId || undefined,
+        redirect: redirect || undefined,
+      };
+    } else {
+      params = await req.json() as MetaTagsRequest;
+    }
+
+    const { url, title, description, image, type = 'website' } = params;
 
     // Load SEO settings from database
     const { data: settings } = await supabase
@@ -44,10 +63,29 @@ Deno.serve(async (req) => {
       }
     });
 
-    const finalTitle = title || settingsMap.site_title || 'Joy House Community';
-    const finalDescription = description || settingsMap.site_description || 'Building a supportive community for adults with special needs';
-    const finalImage = image || settingsMap.og_image_url || 'https://lovable.dev/opengraph-image-p98pqg.png';
+    let finalTitle = title || settingsMap.site_title || 'Joy House Community';
+    let finalDescription = description || settingsMap.site_description || 'Building a supportive community for adults with special needs';
+    let finalImage = image || settingsMap.og_image_url || 'https://lovable.dev/opengraph-image-p98pqg.png';
+    let finalType = type;
+    let finalUrl = url;
     const twitterHandle = settingsMap.twitter_handle || '';
+
+    // Fetch event data if eventId is provided
+    if (params.eventId) {
+      const { data: event } = await supabase
+        .from('events')
+        .select('id, title, description, image_url, event_date, location')
+        .eq('id', params.eventId)
+        .single();
+
+      if (event) {
+        finalTitle = event.title;
+        finalDescription = event.description || finalDescription;
+        finalImage = event.image_url || finalImage;
+        finalType = 'article'; // Facebook treats events better as articles
+        finalUrl = params.redirect || `https://bestdayministries.lovable.app/community?tab=feed&eventId=${event.id}`;
+      }
+    }
 
     // Generate HTML with meta tags
     const html = `<!DOCTYPE html>
@@ -61,9 +99,11 @@ Deno.serve(async (req) => {
   <!-- Open Graph -->
   <meta property="og:title" content="${finalTitle}">
   <meta property="og:description" content="${finalDescription}">
-  <meta property="og:type" content="${type}">
+  <meta property="og:type" content="${finalType}">
   <meta property="og:image" content="${finalImage}">
-  <meta property="og:url" content="${url}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="${finalUrl}">
   <meta property="og:site_name" content="Joy House Community">
   
   <!-- Twitter Card -->
@@ -74,14 +114,14 @@ Deno.serve(async (req) => {
   ${twitterHandle ? `<meta name="twitter:site" content="@${twitterHandle}">` : ''}
   
   <!-- Canonical -->
-  <link rel="canonical" href="${url}">
+  <link rel="canonical" href="${finalUrl}">
   
   <!-- Redirect to actual page -->
-  <meta http-equiv="refresh" content="0; url=${url}">
-  <script>window.location.href = "${url}";</script>
+  <meta http-equiv="refresh" content="0; url=${finalUrl}">
+  <script>window.location.href = "${finalUrl}";</script>
 </head>
 <body>
-  <p>Redirecting to <a href="${url}">${url}</a>...</p>
+  <p>Redirecting to <a href="${finalUrl}">${finalUrl}</a>...</p>
 </body>
 </html>`;
 
