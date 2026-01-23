@@ -85,6 +85,11 @@ const Community = () => {
     }
   }, [profile, isImpersonating, getEffectiveRole]);
 
+  // Scroll to top on page load to ensure tabs are visible
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Redirect if not authenticated (after auth loading completes)
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
