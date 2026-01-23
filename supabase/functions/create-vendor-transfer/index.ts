@@ -110,8 +110,8 @@ serve(async (req) => {
     // Determine Stripe mode
     const stripeMode = (orderItem.orders as any)?.stripe_mode || 'test';
     const stripeKey = stripeMode === 'live' 
-      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE') 
-      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+      ? Deno.env.get('MARKETPLACE_STRIPE_SECRET_KEY_LIVE') 
+      : Deno.env.get('MARKETPLACE_STRIPE_SECRET_KEY_TEST');
 
     if (!stripeKey) {
       throw new Error(`Stripe secret key not configured for ${stripeMode} mode`);

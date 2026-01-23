@@ -132,8 +132,8 @@ serve(async (req) => {
     
     const mode = modeSetting?.setting_value || 'test';
     const stripeKey = mode === 'live' 
-      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
-      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+      ? Deno.env.get('MARKETPLACE_STRIPE_SECRET_KEY_LIVE')
+      : Deno.env.get('MARKETPLACE_STRIPE_SECRET_KEY_TEST');
     
     if (!stripeKey) {
       throw new Error(`Stripe ${mode} secret key not configured`);

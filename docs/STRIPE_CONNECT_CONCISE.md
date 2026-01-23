@@ -84,7 +84,8 @@ Tabs: Products, Orders, **Earnings** (new), **Settings** (updated)
 - All edge functions require JWT auth
 - Vendors see only their earnings (RLS via view)
 - Commission settings: Admins only
-- Uses `STRIPE_SECRET_KEY`
+- Uses `MARKETPLACE_STRIPE_SECRET_KEY_LIVE` / `MARKETPLACE_STRIPE_SECRET_KEY_TEST` (Joy House Store account)
+- **Separate from donation Stripe account** (Best Day Ministries) - ensures proper tax reporting
 
 ---
 
