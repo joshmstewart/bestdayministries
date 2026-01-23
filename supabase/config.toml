@@ -303,3 +303,7 @@ schedule = "0 * * * *"
 [functions.process-platform-payout]
 verify_jwt = false
 schedule = "0 12 * * 1"
+
+[functions.process-event-email-queue]
+verify_jwt = false
+schedule = "* * * * *"
