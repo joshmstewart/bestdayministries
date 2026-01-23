@@ -80,11 +80,25 @@ export function AppConfigManager() {
     });
   };
 
-  const handleCategoryChange = (appId: string, category: AppCategory) => {
+  const handleCategoryChange = async (appId: string, category: AppCategory) => {
+    const config = editedConfigs[appId];
+    if (!config) return;
+    
+    // Update local state immediately for responsive UI
     setEditedConfigs((prev) => ({
       ...prev,
       [appId]: { ...prev[appId], category },
     }));
+    
+    // Auto-save the category change
+    setSaving(appId);
+    await updateConfiguration(appId, {
+      display_name: config.display_name,
+      is_active: config.is_active,
+      visible_to_roles: config.visible_to_roles,
+      category,
+    });
+    setSaving(null);
   };
 
   const handleSave = async (appId: string) => {
