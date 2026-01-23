@@ -125,6 +125,14 @@ PRE-CHANGE CHECKLIST:
 
 ---
 
+## CHORE_CHART|/chore-chart
+JUST_ONCE:
+  - Due date = the MST date the chore was created (`chores.created_at`)
+  - If missed, it appears in **Missed Chores** grouped under that original due date (within the past 7 days)
+  - It does **NOT** automatically carry into later days’ main list
+  - Once completed on any day, it is treated as done forever (excluded from list + missed)
+FILES:src/pages/ChoreChart.tsx|src/components/chores/MissedChoresSection.tsx
+
 ## GUARDIAN_APPROVALS|/guardian-approvals|caregiver
 TABS:posts|comments|vendors|messages→approve/reject/del
 DB:caregiver_bestie_links(require_post_approval|require_comment_approval|require_message_approval|require_vendor_asset_approval)
