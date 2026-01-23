@@ -10597,6 +10597,7 @@ export type Database = {
         | "admin"
         | "owner"
         | "vendor"
+        | "moderator"
       vendor_status: "pending" | "approved" | "rejected" | "suspended"
       vendor_team_role: "owner" | "admin" | "staff"
     }
@@ -10783,6 +10784,7 @@ export const Constants = {
         "admin",
         "owner",
         "vendor",
+        "moderator",
       ],
       vendor_status: ["pending", "approved", "rejected", "suspended"],
       vendor_team_role: ["owner", "admin", "staff"],
