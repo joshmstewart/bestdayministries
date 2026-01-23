@@ -44,6 +44,8 @@ interface Event {
   created_at: string;
   updated_at: string;
   event_dates?: EventDate[];
+  link_url?: string | null;
+  link_label?: string | null;
 }
 
 export default function EventsPage() {
