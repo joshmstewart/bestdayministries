@@ -64,35 +64,47 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get AfterShip API key
-    const aftershipKey = Deno.env.get('AFTERSHIP_API_KEY');
-    if (!aftershipKey) {
-      throw new Error('AFTERSHIP_API_KEY not configured');
+    // Test tracking number for practice - bypasses AfterShip API
+    const TEST_TRACKING_NUMBER = '4242424242424242';
+    const isTestTracking = trackingNumber === TEST_TRACKING_NUMBER;
+    
+    let aftershipId = null;
+    
+    if (isTestTracking) {
+      logStep('Using test tracking number - skipping AfterShip API');
+      aftershipId = 'test-tracking-id';
+    } else {
+      // Get AfterShip API key
+      const aftershipKey = Deno.env.get('AFTERSHIP_API_KEY');
+      if (!aftershipKey) {
+        throw new Error('AFTERSHIP_API_KEY not configured');
+      }
+
+      // Submit tracking to AfterShip
+      const aftershipResponse = await fetch('https://api.aftership.com/v4/trackings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'aftership-api-key': aftershipKey,
+        },
+        body: JSON.stringify({
+          tracking: {
+            tracking_number: trackingNumber,
+            slug: carrier,
+          }
+        })
+      });
+
+      const aftershipData = await aftershipResponse.json();
+
+      if (!aftershipResponse.ok) {
+        logStep('AfterShip error', aftershipData);
+        throw new Error(`AfterShip API error: ${aftershipData.meta?.message || 'Unknown error'}`);
+      }
+
+      aftershipId = aftershipData.data?.tracking?.id;
+      logStep('AfterShip tracking created', { aftershipId });
     }
-
-    // Submit tracking to AfterShip
-    const aftershipResponse = await fetch('https://api.aftership.com/v4/trackings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'aftership-api-key': aftershipKey,
-      },
-      body: JSON.stringify({
-        tracking: {
-          tracking_number: trackingNumber,
-          slug: carrier,
-        }
-      })
-    });
-
-    const aftershipData = await aftershipResponse.json();
-
-    if (!aftershipResponse.ok) {
-      logStep('AfterShip error', aftershipData);
-      throw new Error(`AfterShip API error: ${aftershipData.meta?.message || 'Unknown error'}`);
-    }
-
-    logStep('AfterShip tracking created', { aftershipId: aftershipData.data?.tracking?.id });
 
     // Update order_item with tracking URL
     const trackingUrl = `https://track.aftership.com/${carrier}/${trackingNumber}`;
@@ -119,8 +131,9 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         trackingUrl,
-        aftershipId: aftershipData.data?.tracking?.id,
-        transfer: transferResult
+        aftershipId,
+        transfer: transferResult,
+        isTestTracking
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
