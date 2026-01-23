@@ -3,12 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Package, Eye, RefreshCw } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Loader2, Package, Eye, RefreshCw, CreditCard, Truck } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { VendorOrderDetails } from "./VendorOrderDetails";
 import { VendorThemePreset } from "@/lib/vendorThemePresets";
 import { useToast } from "@/hooks/use-toast";
-
 interface VendorOrderListProps {
   vendorId: string;
   theme?: VendorThemePreset;
@@ -212,11 +211,12 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
       </div>
       <div className="grid gap-4">
         {orders.map((order) => {
-          // Show payment/order status when available; item fulfillment remains "pending" until shipped.
           const paymentStatus = String(order.status || 'pending');
           const fulfillmentStatus = getOrderStatusSummary(order.items);
-          const displayStatus = paymentStatus !== 'pending' ? paymentStatus : fulfillmentStatus;
-          
+          const createdAt = new Date(order.created_at);
+          const updatedAt = new Date(order.updated_at);
+          const wasUpdated = updatedAt.getTime() - createdAt.getTime() > 1000; // > 1s difference
+
           return (
             <Card 
               key={order.id} 
@@ -227,7 +227,7 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                 boxShadow: theme.cardGlow
               } : undefined}
             >
-              <CardHeader>
+              <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-lg">
@@ -235,13 +235,31 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                     </CardTitle>
                     <CardDescription>
                       {order.customer?.display_name || 'Guest'} • {' '}
-                      {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
+                      {formatDistanceToNow(createdAt, { addSuffix: true })}
                     </CardDescription>
                   </div>
-                  <Badge className={getStatusColor(displayStatus)}>
-                    {displayStatus.replace('_', ' ')}
-                  </Badge>
+                  <div className="flex flex-col gap-1 items-end">
+                    <div className="flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Payment:</span>
+                      <Badge className={getStatusColor(paymentStatus)}>
+                        {paymentStatus.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Fulfillment:</span>
+                      <Badge variant="outline" className={getStatusColor(fulfillmentStatus)}>
+                        {fulfillmentStatus.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
+                {wasUpdated && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Last updated: {format(updatedAt, 'MMM d, h:mm:ss a')}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
