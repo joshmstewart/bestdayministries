@@ -232,13 +232,20 @@ serve(async (req) => {
 
     const totalSubtotal = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.subtotal, 0);
     const totalShipping = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.shippingFee, 0);
-    const totalAmount = totalSubtotal + totalShipping;
     const totalPlatformFee = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.platformFee, 0);
     const hasOfficialMerch = Array.from(groupTotals.values()).some(g => g.isHouseVendor);
+    
+    // Calculate Stripe processing fee to pass to customer
+    // Stripe charges 2.9% + $0.30 per transaction
+    // To receive X after fees: charge = (X + 0.30) / 0.971
+    const baseAmount = totalSubtotal + totalShipping;
+    const processingFeeCents = Math.ceil((baseAmount + 30) / 0.971) - baseAmount;
+    const totalAmount = baseAmount + processingFeeCents;
     
     logStep("Totals calculated", { 
       totalSubtotal, 
       totalShipping, 
+      processingFeeCents,
       totalAmount, 
       totalPlatformFee, 
       groupCount: groupTotals.size,
@@ -270,8 +277,21 @@ serve(async (req) => {
       quantity: item.quantity,
     }));
 
+    // Add processing fee as a separate line item with explanation
+    const processingFeeLineItem = {
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: "Processing Fee",
+          description: "Covers secure payment processing costs. This fee ensures vendors receive their full earnings.",
+        },
+        unit_amount: processingFeeCents,
+      },
+      quantity: 1,
+    };
+
     // Note: Shipping is handled via shipping_options, not line items
-    const allLineItems = productLineItems;
+    const allLineItems = [...productLineItems, processingFeeLineItem];
 
     // Create order record - use customer_id for authenticated users (matches OrderHistory.tsx)
     const { data: order, error: orderError } = await supabaseClient
