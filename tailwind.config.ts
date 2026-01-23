@@ -139,6 +139,16 @@ export default {
             transform: "rotate(360deg)"
           }
         },
+        "pulse-subtle": {
+          "0%, 100%": {
+            opacity: "1",
+            boxShadow: "0 0 15px hsl(var(--primary) / 0.2)"
+          },
+          "50%": {
+            opacity: "0.95",
+            boxShadow: "0 0 25px hsl(var(--primary) / 0.35)"
+          }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -149,6 +159,7 @@ export default {
         "float": "float 3s ease-in-out infinite",
         "wiggle": "wiggle 0.4s ease-in-out infinite",
         "spin-slow": "spin-slow 2s linear infinite",
+        "pulse-subtle": "pulse-subtle 2s ease-in-out infinite",
       },
     },
   },
