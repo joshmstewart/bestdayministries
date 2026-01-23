@@ -114,24 +114,41 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getPaymentLabel = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-500';
+      case 'pending': return 'Awaiting Payment';
+      case 'processing': return 'Paid';
+      case 'shipped': return 'Paid';
+      case 'completed': return 'Paid';
+      case 'cancelled': return 'Cancelled';
+      case 'refunded': return 'Refunded';
+      default: return status;
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500';
       case 'processing':
-        return 'bg-blue-500';
-      case 'in_production':
-        return 'bg-blue-500';
       case 'shipped':
-        return 'bg-purple-500';
-      case 'completed':
-        return 'bg-green-500';
-      case 'cancelled':
-        return 'bg-red-500';
-      case 'delivered':
-        return 'bg-green-500';
-      default:
-        return 'bg-gray-500';
+      case 'completed': return 'bg-green-500';
+      case 'cancelled': return 'bg-red-500';
+      case 'refunded': return 'bg-orange-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getFulfillmentStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-500';
+      case 'in_production': return 'bg-blue-500';
+      case 'processing': return 'bg-blue-500';
+      case 'shipped': return 'bg-purple-500';
+      case 'partially_shipped': return 'bg-purple-400';
+      case 'delivered': return 'bg-green-500';
+      case 'completed': return 'bg-green-500';
+      case 'cancelled': return 'bg-red-500';
+      default: return 'bg-gray-500';
     }
   };
 
@@ -242,14 +259,14 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                     <div className="flex items-center gap-1.5">
                       <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">Payment:</span>
-                      <Badge className={getStatusColor(paymentStatus)}>
-                        {paymentStatus.replace('_', ' ')}
+                      <Badge className={getPaymentStatusColor(paymentStatus)}>
+                        {getPaymentLabel(paymentStatus)}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Truck className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">Fulfillment:</span>
-                      <Badge variant="outline" className={getStatusColor(fulfillmentStatus)}>
+                      <Badge variant="outline" className={getFulfillmentStatusColor(fulfillmentStatus)}>
                         {fulfillmentStatus.replace('_', ' ')}
                       </Badge>
                     </div>
@@ -277,7 +294,7 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                           )}
                           <span>{item.product?.name} × {item.quantity}</span>
                         </div>
-                        <Badge variant="outline" className={getStatusColor(item.fulfillment_status)}>
+                        <Badge variant="outline" className={getFulfillmentStatusColor(item.fulfillment_status)}>
                           {item.fulfillment_status}
                         </Badge>
                       </div>
