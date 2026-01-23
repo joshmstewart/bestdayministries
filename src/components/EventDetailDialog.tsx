@@ -1,11 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon, Clock, MapPin, X } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, X, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ShareButtons } from "@/components/ShareButtons";
+import { LinkifiedText } from "@/lib/linkifyText";
 
 interface EventDate {
   id: string;
@@ -28,6 +29,8 @@ interface Event {
   recurrence_interval: number | null;
   recurrence_end_date: string | null;
   event_dates?: EventDate[];
+  link_url?: string | null;
+  link_label?: string | null;
 }
 
 interface EventDetailDialogProps {
@@ -91,8 +94,22 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
           )}
 
           <div className="prose prose-sm max-w-none">
-            <p className="text-base leading-relaxed whitespace-pre-wrap">{event.description}</p>
+            <p className="text-base leading-relaxed whitespace-pre-wrap">
+              <LinkifiedText text={event.description} />
+            </p>
           </div>
+
+          {/* Event Link Button */}
+          {event.link_url && (
+            <div className="pt-2">
+              <Button asChild className="gap-2">
+                <a href={event.link_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-4 h-4" />
+                  {event.link_label || 'Learn More'}
+                </a>
+              </Button>
+            </div>
+          )}
 
           {/* Display primary date prominently if provided */}
           {displayDate && (
