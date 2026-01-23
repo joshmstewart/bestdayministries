@@ -137,7 +137,11 @@ export function AppConfigManager() {
       </div>
 
       {sortedCategories.map(([categoryId, category]) => {
-        const categoryApps = AVAILABLE_APPS.filter((app) => app.category === categoryId);
+        // Group apps by their EDITED category, not static category
+        const categoryApps = AVAILABLE_APPS.filter((app) => {
+          const editedCategory = editedConfigs[app.id]?.category;
+          return editedCategory === categoryId;
+        });
         
         return (
           <Card key={categoryId}>
