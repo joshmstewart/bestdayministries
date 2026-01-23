@@ -295,3 +295,7 @@ verify_jwt = false
 [functions.poll-aftership-status]
 verify_jwt = false
 schedule = "0 */4 * * *"
+
+[functions.retry-vendor-transfers]
+verify_jwt = false
+schedule = "0 * * * *"
