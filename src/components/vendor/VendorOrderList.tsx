@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Package, Eye, RefreshCw, CreditCard, Truck, Filter } from "lucide-react";
+import { Loader2, Package, Eye, RefreshCw, CreditCard, Truck, Filter, DollarSign } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { VendorOrderDetails } from "./VendorOrderDetails";
 import { VendorThemePreset } from "@/lib/vendorThemePresets";
 import { useToast } from "@/hooks/use-toast";
+import { VendorPayoutStatus } from "./VendorPayoutStatus";
 
 type OrderStatusFilter = 'all' | 'active' | 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
 
@@ -391,20 +392,31 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Your Items ({order.items.length}):</p>
                     {order.items.map((item: any) => (
-                      <div key={item.id} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
+                      <div key={item.id} className="flex items-center justify-between text-sm gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                           {item.product?.images?.[0] && (
                             <img
                               src={item.product.images[0]}
                               alt={item.product?.name}
-                              className="h-10 w-10 object-cover rounded"
+                              className="h-10 w-10 object-cover rounded flex-shrink-0"
                             />
                           )}
-                          <span>{item.product?.name} × {item.quantity}</span>
+                          <span className="truncate">{item.product?.name} × {item.quantity}</span>
                         </div>
-                        <Badge variant="outline" className={getEffectiveFulfillmentColor(item.fulfillment_status, paymentStatus)}>
-                          {getFulfillmentLabel(item.fulfillment_status, paymentStatus)}
-                        </Badge>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge variant="outline" className={getEffectiveFulfillmentColor(item.fulfillment_status, paymentStatus)}>
+                            {getFulfillmentLabel(item.fulfillment_status, paymentStatus)}
+                          </Badge>
+                          {/* Show payout status for shipped/delivered items */}
+                          {(item.fulfillment_status === 'shipped' || item.fulfillment_status === 'delivered') && paymentStatus !== 'pending' && paymentStatus !== 'cancelled' && (
+                            <VendorPayoutStatus
+                              transferStatus={item.transfer_status}
+                              stripeTransferId={item.stripe_transfer_id}
+                              transferErrorMessage={item.transfer_error_message}
+                              vendorPayout={item.vendor_payout}
+                            />
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -5955,6 +5955,7 @@ export type Database = {
           delivered_at: string | null
           fulfillment_status: Database["public"]["Enums"]["fulfillment_status"]
           id: string
+          last_transfer_attempt: string | null
           order_id: string
           platform_fee: number | null
           price_at_purchase: number
@@ -5972,6 +5973,9 @@ export type Database = {
           stripe_transfer_id: string | null
           tracking_number: string | null
           tracking_url: string | null
+          transfer_attempts: number | null
+          transfer_error_message: string | null
+          transfer_status: string | null
           vendor_id: string | null
           vendor_payout: number | null
         }
@@ -5981,6 +5985,7 @@ export type Database = {
           delivered_at?: string | null
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
           id?: string
+          last_transfer_attempt?: string | null
           order_id: string
           platform_fee?: number | null
           price_at_purchase: number
@@ -5998,6 +6003,9 @@ export type Database = {
           stripe_transfer_id?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
+          transfer_attempts?: number | null
+          transfer_error_message?: string | null
+          transfer_status?: string | null
           vendor_id?: string | null
           vendor_payout?: number | null
         }
@@ -6007,6 +6015,7 @@ export type Database = {
           delivered_at?: string | null
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
           id?: string
+          last_transfer_attempt?: string | null
           order_id?: string
           platform_fee?: number | null
           price_at_purchase?: number
@@ -6024,6 +6033,9 @@ export type Database = {
           stripe_transfer_id?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
+          transfer_attempts?: number | null
+          transfer_error_message?: string | null
+          transfer_status?: string | null
           vendor_id?: string | null
           vendor_payout?: number | null
         }

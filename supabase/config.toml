@@ -299,3 +299,7 @@ schedule = "0 */4 * * *"
 [functions.retry-vendor-transfers]
 verify_jwt = false
 schedule = "0 * * * *"
+
+[functions.process-platform-payout]
+verify_jwt = false
+schedule = "0 12 * * 1"
