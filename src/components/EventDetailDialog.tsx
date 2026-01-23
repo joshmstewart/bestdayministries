@@ -43,7 +43,11 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
+      <DialogContent
+        hideCloseButton
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        aria-describedby={undefined}
+      >
         <DialogHeader>
           <div className="flex items-start gap-3">
             {/* Content area - takes up remaining space */}

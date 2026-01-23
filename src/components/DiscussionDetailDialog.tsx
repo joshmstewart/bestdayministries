@@ -170,7 +170,11 @@ export const DiscussionDetailDialog = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0" aria-describedby={undefined}>
+        <DialogContent
+          hideCloseButton
+          className="max-w-4xl max-h-[90vh] p-0"
+          aria-describedby={undefined}
+        >
           <ScrollArea className="max-h-[90vh]">
             <div className="p-6 space-y-6">
               {/* Header */}

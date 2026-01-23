@@ -83,7 +83,11 @@ export const SponsorshipBreakdownDialog = ({ className }: SponsorshipBreakdownDi
           Where does the money go?
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg" aria-describedby="sponsorship-description">
+      <DialogContent
+        hideCloseButton
+        className="max-w-lg"
+        aria-describedby="sponsorship-description"
+      >
         <DialogHeader>
           <div className="flex items-start gap-3">
             {/* Content area - takes up remaining space */}
