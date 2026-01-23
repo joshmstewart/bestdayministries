@@ -401,7 +401,7 @@ serve(async (req) => {
         });
       }
 
-      // Send order confirmation email
+      // Send order confirmation email to customer
       try {
         const customerEmail = session.customer_details?.email || session.customer_email || order.customer_email;
         if (customerEmail) {
@@ -430,6 +430,53 @@ serve(async (req) => {
         // Log but don't fail the payment verification if email fails
         logStep("Warning: Order confirmation email failed", {
           error: emailError instanceof Error ? emailError.message : String(emailError),
+        });
+      }
+
+      // Send notification emails to vendors with items in this order
+      try {
+        // Get unique vendor IDs from order items
+        const { data: orderItems } = await supabaseClient
+          .from("order_items")
+          .select("vendor_id")
+          .eq("order_id", order_id);
+
+        const uniqueVendorIds = [...new Set((orderItems || []).map(item => item.vendor_id).filter(Boolean))];
+        
+        logStep("Notifying vendors", { vendorCount: uniqueVendorIds.length, vendorIds: uniqueVendorIds });
+
+        for (const vendorId of uniqueVendorIds) {
+          try {
+            const vendorEmailResponse = await fetch(
+              `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-vendor-order-notification`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({ orderId: order_id, vendorId }),
+              }
+            );
+
+            const vendorEmailResult = await vendorEmailResponse.json();
+            logStep("Vendor notification email result", {
+              vendorId,
+              ok: vendorEmailResponse.ok,
+              status: vendorEmailResponse.status,
+              body: vendorEmailResult,
+            });
+          } catch (vendorEmailError) {
+            logStep("Warning: Vendor notification email failed", {
+              vendorId,
+              error: vendorEmailError instanceof Error ? vendorEmailError.message : String(vendorEmailError),
+            });
+          }
+        }
+      } catch (vendorNotifyError) {
+        // Log but don't fail if vendor notification fails
+        logStep("Warning: Vendor notification process failed", {
+          error: vendorNotifyError instanceof Error ? vendorNotifyError.message : String(vendorNotifyError),
         });
       }
 
