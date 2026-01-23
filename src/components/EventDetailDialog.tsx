@@ -74,7 +74,7 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
             <img
               src={event.image_url}
               alt={event.title}
-              className="w-full h-64 object-cover rounded-lg"
+              className="w-full max-h-[60vh] object-contain rounded-lg"
             />
           )}
 
