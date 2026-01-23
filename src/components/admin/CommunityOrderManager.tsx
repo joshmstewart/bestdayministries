@@ -65,7 +65,7 @@ const SortableItem = ({ section, onToggleVisibility, onConfigureRoles }: Sortabl
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const showRoleConfig = section.section_key === 'newsfeed';
+  const showRoleConfig = section.section_key === 'newsfeed' || section.section_key === 'apps_grid';
 
   return (
     <div
@@ -345,10 +345,12 @@ const CommunityOrderManager = () => {
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Configure Feed Access</DialogTitle>
+            <DialogTitle>
+              Configure {selectedSection?.section_key === 'apps_grid' ? 'Apps Grid' : 'Feed'} Access
+            </DialogTitle>
             <DialogDescription>
-              Select which roles can see the Feed tab. If no roles are selected, 
-              all authenticated users can access the Feed.
+              Select which roles can see the {selectedSection?.section_key === 'apps_grid' ? 'Apps Grid' : 'Feed'} tab. 
+              If no roles are selected, all authenticated users can access it.
             </DialogDescription>
           </DialogHeader>
           
@@ -370,8 +372,8 @@ const CommunityOrderManager = () => {
             
             <p className="text-sm text-muted-foreground">
               {selectedRoles.length === 0 
-                ? "Currently: All roles can access the Feed"
-                : `Currently: Only ${selectedRoles.join(', ')} can access the Feed`
+                ? `Currently: All roles can access the ${selectedSection?.section_key === 'apps_grid' ? 'Apps Grid' : 'Feed'}`
+                : `Currently: Only ${selectedRoles.join(', ')} can access the ${selectedSection?.section_key === 'apps_grid' ? 'Apps Grid' : 'Feed'}`
               }
             </p>
           </div>
