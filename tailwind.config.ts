@@ -147,7 +147,7 @@ export default {
         "slide-up": "slide-up 0.8s ease-out",
         "scale-in": "scale-in 0.5s ease-out",
         "float": "float 3s ease-in-out infinite",
-        "wiggle": "wiggle 0.15s ease-in-out infinite",
+        "wiggle": "wiggle 0.4s ease-in-out infinite",
         "spin-slow": "spin-slow 2s linear infinite",
       },
     },
