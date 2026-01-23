@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -49,9 +49,16 @@ const VendorDashboard = () => {
 
   const selectedVendor = vendors.find(v => v.id === selectedVendorId);
   const isVendorOwner = selectedVendor && currentUserId ? selectedVendor.user_id === currentUserId : false;
+  const [activeTab, setActiveTab] = useState("products");
+  const tabsRef = useRef<HTMLDivElement>(null);
   
   // Get theme from saved vendor data (only updates when vendor data is reloaded)
   const theme = useMemo(() => getVendorTheme(selectedVendor?.theme_color), [selectedVendor?.theme_color]);
+
+  const scrollToOrdersTab = () => {
+    setActiveTab("orders");
+    tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   useEffect(() => {
     checkVendorStatus();
@@ -480,12 +487,16 @@ const VendorDashboard = () => {
               </Card>
 
               <Card 
-                className="border-2"
+                className="border-2 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg"
                 style={{ 
                   backgroundColor: theme.cardBg,
                   borderColor: theme.cardBorder,
                   boxShadow: theme.cardGlow
                 }}
+                onClick={scrollToOrdersTab}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') scrollToOrdersTab(); }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Ready to Ship</CardTitle>
@@ -501,7 +512,7 @@ const VendorDashboard = () => {
             {/* Cart Insights */}
             <CartInsights vendorId={selectedVendorId} theme={theme} />
 
-            <Tabs defaultValue="products" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" ref={tabsRef}>
               <TabsList className="inline-flex flex-wrap h-auto gap-2 bg-muted/50 p-1.5 rounded-lg mb-6">
                 <TabsTrigger 
                   value="products" 
