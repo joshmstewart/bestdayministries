@@ -53,7 +53,8 @@ export const StripeConnectOnboarding = ({ vendorId, readOnly = false, theme }: S
     try {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke(
-        "create-stripe-connect-account"
+        "create-stripe-connect-account",
+        { body: { vendor_id: vendorId } }
       );
 
       if (error) throw error;
@@ -85,7 +86,8 @@ export const StripeConnectOnboarding = ({ vendorId, readOnly = false, theme }: S
     try {
       setManagingAccount(true);
       const { data, error } = await supabase.functions.invoke(
-        "create-stripe-login-link"
+        "create-stripe-login-link",
+        { body: { vendor_id: vendorId } }
       );
 
       if (error) throw error;
