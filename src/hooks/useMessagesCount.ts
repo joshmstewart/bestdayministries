@@ -50,19 +50,26 @@ export const useMessagesCount = () => {
         
         if (!isRelevant) return;
         
-        // Count new submissions
+        // Check if this submission needs attention (count once per submission, not per reason)
+        let needsAttention = false;
+        
+        // New submissions need attention
         if (submission.status === "new") {
-          totalCount++;
+          needsAttention = true;
         }
 
-        // Count submissions with unread user replies
+        // Submissions with unread user replies need attention
         const latestUserReply = latestUserReplyBySubmission.get(submission.id);
         if (latestUserReply) {
           const repliedAt = submission.replied_at ? new Date(submission.replied_at) : null;
           const userReplyDate = new Date(latestUserReply);
           if (!repliedAt || userReplyDate > repliedAt) {
-            totalCount++;
+            needsAttention = true;
           }
+        }
+        
+        if (needsAttention) {
+          totalCount++;
         }
       });
 
