@@ -754,6 +754,7 @@ const Admin = () => {
                     <TabsTrigger value="featured-item">Featured Item</TabsTrigger>
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
+                    <TabsTrigger value="apps-grid">Apps Grid</TabsTrigger>
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
                     <TabsTrigger value="joy-house-stores">Joy House Stores</TabsTrigger>
                     <TabsTrigger value="welcome-modal">Welcome Modal</TabsTrigger>
@@ -778,6 +779,10 @@ const Admin = () => {
 
                   <TabsContent value="community">
                     <CommunityOrderManager />
+                  </TabsContent>
+
+                  <TabsContent value="apps-grid">
+                    <AppConfigManager />
                   </TabsContent>
 
                   <TabsContent value="coffee-shop">
@@ -970,7 +975,6 @@ const Admin = () => {
                 <Tabs defaultValue="app" className="space-y-4">
                   <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="app">App Settings</TabsTrigger>
-                    <TabsTrigger value="apps-config">Apps Grid</TabsTrigger>
                     <TabsTrigger value="social-sharing">Social Sharing</TabsTrigger>
                     <TabsTrigger value="static-meta">Static Meta Tags</TabsTrigger>
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
@@ -983,11 +987,6 @@ const Admin = () => {
                   <TabsContent value="app">
                     <AppSettingsManager />
                   </TabsContent>
-
-                  <TabsContent value="apps-config">
-                    <AppConfigManager />
-                  </TabsContent>
-
 
                   <TabsContent value="social-sharing">
                     <SocialSharingGuide />
