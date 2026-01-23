@@ -11,7 +11,7 @@ export interface AppConfig {
   description: string;
   icon: LucideIcon;
   route: string;
-  category: "games" | "content" | "user";
+  category: "games" | "resources" | "content" | "user";
   color: string;
 }
 
@@ -59,7 +59,7 @@ export const AVAILABLE_APPS: AppConfig[] = [
     description: "Track daily tasks",
     icon: ClipboardCheck,
     route: "/chore-chart",
-    category: "games",
+    category: "resources",
     color: "from-amber-500 to-yellow-500"
   },
   {
@@ -68,7 +68,7 @@ export const AVAILABLE_APPS: AppConfig[] = [
     description: "Discover recipes",
     icon: UtensilsCrossed,
     route: "/games/recipe-gallery",
-    category: "games",
+    category: "resources",
     color: "from-orange-500 to-red-500"
   },
   {
@@ -77,7 +77,7 @@ export const AVAILABLE_APPS: AppConfig[] = [
     description: "Create fun drinks",
     icon: CupSoda,
     route: "/games/drink-creator",
-    category: "games",
+    category: "resources",
     color: "from-sky-500 to-indigo-500"
   },
   {
@@ -86,7 +86,7 @@ export const AVAILABLE_APPS: AppConfig[] = [
     description: "Laugh out loud",
     icon: Laugh,
     route: "/games/jokes",
-    category: "games",
+    category: "resources",
     color: "from-yellow-500 to-lime-500"
   },
   {
@@ -122,7 +122,7 @@ export const AVAILABLE_APPS: AppConfig[] = [
     description: "Track your feelings",
     icon: BookOpen,
     route: "/games/emotion-journal",
-    category: "games",
+    category: "resources",
     color: "from-indigo-500 to-blue-500"
   },
   {
@@ -131,7 +131,7 @@ export const AVAILABLE_APPS: AppConfig[] = [
     description: "Care for a pet",
     icon: Dog,
     route: "/virtual-pet",
-    category: "games",
+    category: "resources",
     color: "from-amber-400 to-orange-500"
   },
   // Content features
@@ -211,7 +211,8 @@ export const AVAILABLE_APPS: AppConfig[] = [
 ];
 
 export const APP_CATEGORIES = {
-  games: { label: "Games & Activities", order: 1 },
-  content: { label: "Community", order: 2 },
-  user: { label: "My Stuff", order: 3 }
+  games: { label: "Games", order: 1 },
+  resources: { label: "Resources", order: 2 },
+  content: { label: "Community", order: 3 },
+  user: { label: "My Stuff", order: 4 }
 } as const;
