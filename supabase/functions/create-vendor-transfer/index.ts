@@ -41,6 +41,8 @@ serve(async (req) => {
         vendor_payout,
         fulfillment_status,
         stripe_transfer_id,
+        transfer_status,
+        transfer_attempts,
         order_id,
         orders!inner(stripe_mode, stripe_payment_intent_id)
       `)
@@ -60,11 +62,12 @@ serve(async (req) => {
       vendorId: orderItem.vendor_id, 
       vendorPayout: orderItem.vendor_payout,
       fulfillmentStatus: orderItem.fulfillment_status,
+      transferStatus: orderItem.transfer_status,
       existingTransferId: orderItem.stripe_transfer_id
     });
 
     // Skip if already transferred
-    if (orderItem.stripe_transfer_id) {
+    if (orderItem.stripe_transfer_id || orderItem.transfer_status === 'transferred') {
       logStep('Transfer already exists, skipping', { transferId: orderItem.stripe_transfer_id });
       return new Response(
         JSON.stringify({ 
@@ -128,49 +131,137 @@ serve(async (req) => {
       throw new Error('Invalid transfer amount');
     }
 
+    // Check platform balance before attempting transfer
+    try {
+      const balance = await stripe.balance.retrieve();
+      const availableUsd = balance.available.find((b: { currency: string; amount: number }) => b.currency === 'usd');
+      const availableAmount = availableUsd?.amount || 0;
+
+      logStep('Platform balance check', { 
+        availableAmount, 
+        requiredAmount: transferAmountCents 
+      });
+
+      if (availableAmount < transferAmountCents) {
+        // Insufficient funds - mark as pending_funds and queue for retry
+        logStep('Insufficient funds, marking as pending_funds');
+        
+        await supabaseClient
+          .from('order_items')
+          .update({ 
+            transfer_status: 'pending_funds',
+            transfer_error_message: `Waiting for funds to settle. Available: $${(availableAmount / 100).toFixed(2)}, Required: $${(transferAmountCents / 100).toFixed(2)}`,
+            transfer_attempts: (orderItem.transfer_attempts || 0) + 1,
+            last_transfer_attempt: new Date().toISOString()
+          })
+          .eq('id', orderItemId);
+
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            pending_funds: true,
+            message: 'Transfer queued - waiting for customer payment to settle (2-3 business days)',
+            availableBalance: availableAmount / 100,
+            requiredAmount: transferAmountCents / 100
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+    } catch (balanceError) {
+      logStep('Warning: could not check balance, proceeding with transfer attempt', { error: balanceError });
+      // Continue with transfer attempt - Stripe will reject if insufficient
+    }
+
     logStep('Creating transfer', { 
       amount: transferAmountCents, 
       destination: vendor.stripe_account_id 
     });
 
     // Create the transfer
-    const transfer = await stripe.transfers.create({
-      amount: transferAmountCents,
-      currency: 'usd',
-      destination: vendor.stripe_account_id,
-      transfer_group: `order_${orderItem.order_id}`,
-      metadata: {
-        order_item_id: orderItemId,
-        order_id: orderItem.order_id,
-        vendor_id: vendor.id,
-        vendor_name: vendor.business_name,
-      },
-    });
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: transferAmountCents,
+        currency: 'usd',
+        destination: vendor.stripe_account_id,
+        transfer_group: `order_${orderItem.order_id}`,
+        metadata: {
+          order_item_id: orderItemId,
+          order_id: orderItem.order_id,
+          vendor_id: vendor.id,
+          vendor_name: vendor.business_name,
+        },
+      });
 
-    logStep('Transfer created successfully', { transferId: transfer.id });
+      logStep('Transfer created successfully', { transferId: transfer.id });
 
-    // Update order item with transfer ID
-    const { error: updateError } = await supabaseClient
-      .from('order_items')
-      .update({ stripe_transfer_id: transfer.id })
-      .eq('id', orderItemId);
+      // Update order item with transfer ID and status
+      const { error: updateError } = await supabaseClient
+        .from('order_items')
+        .update({ 
+          stripe_transfer_id: transfer.id,
+          transfer_status: 'transferred',
+          transfer_error_message: null,
+          last_transfer_attempt: new Date().toISOString()
+        })
+        .eq('id', orderItemId);
 
-    if (updateError) {
-      logStep('Warning: failed to update order item with transfer ID', { error: updateError });
-      // Don't throw - transfer already happened
+      if (updateError) {
+        logStep('Warning: failed to update order item with transfer ID', { error: updateError });
+      }
+
+      logStep('Order item updated with transfer ID');
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          transferId: transfer.id,
+          amount: orderItem.vendor_payout,
+          vendorName: vendor.business_name
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+
+    } catch (transferError: any) {
+      // Check if it's an insufficient funds error
+      if (transferError.code === 'balance_insufficient' || 
+          transferError.message?.includes('insufficient') ||
+          transferError.message?.includes('balance')) {
+        
+        logStep('Transfer failed due to insufficient funds', { error: transferError.message });
+        
+        await supabaseClient
+          .from('order_items')
+          .update({ 
+            transfer_status: 'pending_funds',
+            transfer_error_message: 'Waiting for customer payment to settle (2-3 business days)',
+            transfer_attempts: (orderItem.transfer_attempts || 0) + 1,
+            last_transfer_attempt: new Date().toISOString()
+          })
+          .eq('id', orderItemId);
+
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            pending_funds: true,
+            message: 'Transfer queued - waiting for funds to settle'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+
+      // Other transfer errors
+      await supabaseClient
+        .from('order_items')
+        .update({ 
+          transfer_status: 'failed',
+          transfer_error_message: transferError.message || 'Unknown transfer error',
+          transfer_attempts: (orderItem.transfer_attempts || 0) + 1,
+          last_transfer_attempt: new Date().toISOString()
+        })
+        .eq('id', orderItemId);
+
+      throw transferError;
     }
-
-    logStep('Order item updated with transfer ID');
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        transferId: transfer.id,
-        amount: orderItem.vendor_payout,
-        vendorName: vendor.business_name
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    );
 
   } catch (error) {
     console.error('[create-vendor-transfer] Error:', error);

@@ -61,12 +61,25 @@ Tabs: Products, Orders, **Earnings** (new), **Settings** (updated)
 
 ### Vendor Payouts (Fulfillment-Triggered)
 - When vendor marks item as "shipped" → `submit-tracking` → `create-vendor-transfer`
-- Stripe Transfer created to vendor's connected account
+- **Intelligent fund detection**: If platform balance is insufficient (customer payment still settling), marks as `pending_funds`
+- **Auto-retry**: `retry-vendor-transfers` runs hourly, automatically completes transfers when funds available
 - Transfer ID stored in `order_items.stripe_transfer_id`
+
+### Transfer Status Tracking
+- `order_items.transfer_status`: `pending` | `pending_funds` | `transferred` | `failed`
+- `order_items.transfer_error_message`: Human-readable explanation
+- `order_items.transfer_attempts`: Retry count
+- Vendor UI shows clear status badges with tooltips
 
 ### Shipping
 - Flat rate: $6.99 per vendor
 - Free shipping: Orders over $35 per vendor
+
+### Platform Payout with Reserve
+- `process-platform-payout` runs weekly (Mondays at 12:00 UTC)
+- Keeps $100 reserve in platform Stripe account for vendor transfers
+- Only pays out `available_balance - $100` to bank
+- Configurable via `app_settings.payout_reserve_amount`
 
 ---
 
@@ -95,7 +108,9 @@ Tabs: Products, Orders, **Earnings** (new), **Settings** (updated)
 | Onboarding incomplete | Click "Complete Onboarding" |
 | Earnings not showing | Check vendor status = 'approved' + Stripe connected |
 | Commission not calculating | Verify commission_settings table has record |
+| Payout stuck on "Processing" | Normal - customer payment takes 2-3 days to settle, then auto-retries |
+| Reserve not keeping $100 | Check `app_settings.payout_reserve_amount` setting |
 
 ---
 
-**Files:** `StripeConnectOnboarding.tsx`, `VendorEarnings.tsx`, `VendorDashboard.tsx`, edge functions in `supabase/functions/`
+**Files:** `StripeConnectOnboarding.tsx`, `VendorEarnings.tsx`, `VendorDashboard.tsx`, `VendorPayoutStatus.tsx`, edge functions in `supabase/functions/`
