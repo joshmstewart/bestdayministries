@@ -19,6 +19,9 @@ interface QueueItem {
   event_link_label: string | null;
 }
 
+// Helper to add delay between API calls (respect Resend's 2 req/sec limit)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -39,11 +42,12 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get unprocessed queue items (limit to prevent timeout)
+    // Get unprocessed queue items with retry_count < 3 (limit to prevent timeout)
     const { data: queueItems, error: fetchError } = await supabase
       .from('event_email_queue')
       .select('*')
       .eq('processed', false)
+      .lt('retry_count', 3)
       .order('created_at', { ascending: true })
       .limit(50);
 
@@ -72,6 +76,9 @@ serve(async (req) => {
 
     for (const item of queueItems as QueueItem[]) {
       try {
+        // Rate limiting: wait 500ms between sends (Resend allows 2 req/sec)
+        await delay(500);
+        
         const eventDate = new Date(item.event_date);
         const formattedDate = eventDate.toLocaleDateString('en-US', {
           weekday: 'long',
@@ -170,12 +177,19 @@ serve(async (req) => {
       } catch (emailError) {
         console.error(`Error sending email to ${item.user_email}:`, emailError);
         
-        // Mark as processed with error
+        // Get current retry count
+        const currentRetryCount = (item as any).retry_count || 0;
+        const newRetryCount = currentRetryCount + 1;
+        
+        // Only mark as processed if max retries reached (3 attempts)
+        const shouldMarkProcessed = newRetryCount >= 3;
+        
         await supabase
           .from('event_email_queue')
           .update({ 
-            processed: true, 
-            processed_at: new Date().toISOString(),
+            processed: shouldMarkProcessed, 
+            processed_at: shouldMarkProcessed ? new Date().toISOString() : null,
+            retry_count: newRetryCount,
             error_message: emailError instanceof Error ? emailError.message : 'Unknown error'
           })
           .eq('id', item.id);

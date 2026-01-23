@@ -3630,6 +3630,7 @@ export type Database = {
           id: string
           processed: boolean | null
           processed_at: string | null
+          retry_count: number | null
           user_email: string
           user_id: string
         }
@@ -3646,6 +3647,7 @@ export type Database = {
           id?: string
           processed?: boolean | null
           processed_at?: string | null
+          retry_count?: number | null
           user_email: string
           user_id: string
         }
@@ -3662,6 +3664,7 @@ export type Database = {
           id?: string
           processed?: boolean | null
           processed_at?: string | null
+          retry_count?: number | null
           user_email?: string
           user_id?: string
         }
