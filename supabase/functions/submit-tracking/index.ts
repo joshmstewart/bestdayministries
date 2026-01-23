@@ -44,6 +44,39 @@ async function triggerVendorTransfer(orderItemId: string): Promise<{ success: bo
   }
 }
 
+// Helper to send order shipped email to customer
+async function sendShippedEmail(orderId: string, trackingNumber: string, trackingUrl: string, carrier: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    
+    logStep('Sending shipped email', { orderId, trackingNumber, carrier });
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-order-shipped`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ orderId, trackingNumber, trackingUrl, carrier }),
+    });
+
+    const result = await response.json();
+    
+    if (!response.ok) {
+      logStep('Shipped email failed', { error: result.error });
+      return { success: false, error: result.error };
+    }
+
+    logStep('Shipped email sent successfully', { emailId: result.emailId });
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    logStep('Shipped email exception', { error: errorMsg });
+    return { success: false, error: errorMsg };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -124,8 +157,25 @@ serve(async (req) => {
 
     logStep('Order item updated successfully');
 
+    // Get the order ID for this item to send email
+    const { data: orderItem, error: orderItemError } = await supabaseClient
+      .from('order_items')
+      .select('order_id')
+      .eq('id', orderItemId)
+      .single();
+
+    if (orderItemError) {
+      logStep('Failed to get order ID for email', { error: orderItemError.message });
+    }
+
     // Trigger vendor payout transfer
     const transferResult = await triggerVendorTransfer(orderItemId);
+
+    // Send shipped email to customer (don't fail the request if email fails)
+    let emailResult: { success: boolean; error?: string } = { success: false, error: 'Order ID not found' };
+    if (orderItem?.order_id) {
+      emailResult = await sendShippedEmail(orderItem.order_id, trackingNumber, trackingUrl, carrier);
+    }
 
     return new Response(
       JSON.stringify({ 
@@ -133,6 +183,7 @@ serve(async (req) => {
         trackingUrl,
         aftershipId,
         transfer: transferResult,
+        email: emailResult,
         isTestTracking
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
