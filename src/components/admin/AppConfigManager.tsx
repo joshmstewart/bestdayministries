@@ -5,8 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Save, RotateCcw } from "lucide-react";
-import { useAppConfigurations, AppConfiguration } from "@/hooks/useAppConfigurations";
+import { useAppConfigurations, AppConfiguration, AppCategory } from "@/hooks/useAppConfigurations";
 import { AVAILABLE_APPS, APP_CATEGORIES } from "@/components/community/appsConfig";
 import { cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
@@ -19,6 +20,7 @@ interface EditableConfig {
   display_name: string;
   is_active: boolean;
   visible_to_roles: UserRole[];
+  category: AppCategory;
 }
 
 export function AppConfigManager() {
@@ -47,6 +49,7 @@ export function AppConfigManager() {
         display_name: existing?.display_name || app.name,
         is_active: existing?.is_active ?? true,
         visible_to_roles: existing?.visible_to_roles || [...ALL_ROLES],
+        category: (existing?.category || app.category) as AppCategory,
       };
     });
     setEditedConfigs(configs);
@@ -77,6 +80,13 @@ export function AppConfigManager() {
     });
   };
 
+  const handleCategoryChange = (appId: string, category: AppCategory) => {
+    setEditedConfigs((prev) => ({
+      ...prev,
+      [appId]: { ...prev[appId], category },
+    }));
+  };
+
   const handleSave = async (appId: string) => {
     const config = editedConfigs[appId];
     if (!config) return;
@@ -86,6 +96,7 @@ export function AppConfigManager() {
       display_name: config.display_name,
       is_active: config.is_active,
       visible_to_roles: config.visible_to_roles,
+      category: config.category,
     });
     setSaving(null);
   };
@@ -101,6 +112,7 @@ export function AppConfigManager() {
         display_name: app.name,
         is_active: true,
         visible_to_roles: [...ALL_ROLES],
+        category: app.category as AppCategory,
       },
     }));
   };
@@ -142,6 +154,7 @@ export function AppConfigManager() {
                 const hasChanges =
                   config.display_name !== (existingConfig?.display_name || app.name) ||
                   config.is_active !== (existingConfig?.is_active ?? true) ||
+                  config.category !== (existingConfig?.category || app.category) ||
                   JSON.stringify(config.visible_to_roles.sort()) !==
                     JSON.stringify((existingConfig?.visible_to_roles || [...ALL_ROLES]).sort());
 
@@ -175,6 +188,28 @@ export function AppConfigManager() {
                           onChange={(e) => handleNameChange(app.id, e.target.value)}
                           className="mt-1"
                         />
+                      </div>
+
+                      {/* Category Select */}
+                      <div className="w-32">
+                        <Label htmlFor={`category-${app.id}`} className="text-xs text-muted-foreground">
+                          Category
+                        </Label>
+                        <Select
+                          value={config.category}
+                          onValueChange={(value) => handleCategoryChange(app.id, value as AppCategory)}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(APP_CATEGORIES).map(([key, cat]) => (
+                              <SelectItem key={key} value={key}>
+                                {cat.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       {/* Active Toggle */}
