@@ -51,27 +51,26 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Get app settings to determine Stripe mode
-    const { data: appSettings } = await supabaseAdmin
-      .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "stripe_mode")
-      .single();
+    // Initialize both Stripe clients - orders may be in either mode
+    const stripeLiveKey = Deno.env.get("STRIPE_SECRET_KEY_LIVE");
+    const stripeTestKey = Deno.env.get("STRIPE_SECRET_KEY_TEST");
 
-    const stripeMode = (appSettings?.setting_value as any)?.mode || "test";
-    const stripeSecretKey = stripeMode === "live"
-      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
-      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+    const stripeLive = stripeLiveKey ? new Stripe(stripeLiveKey, { apiVersion: "2023-10-16" }) : null;
+    const stripeTest = stripeTestKey ? new Stripe(stripeTestKey, { apiVersion: "2023-10-16" }) : null;
 
-    if (!stripeSecretKey) {
-      throw new Error(`Missing Stripe secret key for ${stripeMode} mode`);
-    }
+    const getStripeClient = (mode: string | null) => {
+      if (mode === "live" && stripeLive) return stripeLive;
+      if (mode === "test" && stripeTest) return stripeTest;
+      // Fallback to test if mode unknown
+      return stripeTest;
+    };
 
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
+    logStep("Stripe clients initialized", { 
+      hasLive: !!stripeLive, 
+      hasTest: !!stripeTest 
     });
 
-    logStep("Using Stripe mode", { stripeMode });
+    
 
     // Query pending orders
     // Skip orders created less than 5 minutes ago (allow normal verification flow)
@@ -135,6 +134,12 @@ serve(async (req) => {
       };
 
       try {
+        // Get the correct Stripe client based on order's stripe_mode
+        const stripe = getStripeClient(order.stripe_mode);
+        if (!stripe) {
+          throw new Error(`No Stripe client available for mode: ${order.stripe_mode}`);
+        }
+
         // Retrieve Stripe checkout session
         const session = await stripe.checkout.sessions.retrieve(order.stripe_checkout_session_id);
         result.stripeStatus = session.payment_status;
