@@ -146,9 +146,13 @@ export const ContactForm = () => {
       setImagePreview(null);
     } catch (error: any) {
       console.error("Contact form error:", error);
+      const errorMessage = error?.message || error?.error_description || "Unknown error";
+      const isStorageError = errorMessage.includes("storage") || errorMessage.includes("upload") || errorMessage.includes("Bucket");
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: isStorageError 
+          ? "Failed to upload image. Please try again or submit without an attachment."
+          : `Failed to send message: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
