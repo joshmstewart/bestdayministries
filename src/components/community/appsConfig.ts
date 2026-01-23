@@ -1,7 +1,7 @@
 import { 
   Gamepad2, Music, Palette, Calculator, ClipboardCheck, UtensilsCrossed, 
   CupSoda, Laugh, Square, BookOpen, Image, Heart, MessageSquare, Calendar, 
-  Bell, User, History, Album, Dog, Brain, Grid3X3, PenTool
+  Bell, User, History, Album, Dog, Brain, Grid3X3, PenTool, Dumbbell, Store, HandHeart
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -133,6 +133,33 @@ export const AVAILABLE_APPS: AppConfig[] = [
     route: "/virtual-pet",
     category: "resources",
     color: "from-amber-400 to-orange-500"
+  },
+  {
+    id: "workout-tracker",
+    name: "Fitness Center",
+    description: "Track your workouts",
+    icon: Dumbbell,
+    route: "/workout-tracker",
+    category: "resources",
+    color: "from-emerald-500 to-teal-500"
+  },
+  {
+    id: "store",
+    name: "Coin Store",
+    description: "Spend your coins",
+    icon: Store,
+    route: "/store",
+    category: "user",
+    color: "from-yellow-500 to-amber-500"
+  },
+  {
+    id: "prayer-requests",
+    name: "Prayer Requests",
+    description: "Request prayers",
+    icon: HandHeart,
+    route: "/prayer-requests",
+    category: "content",
+    color: "from-violet-500 to-purple-500"
   },
   // Content features
   {
