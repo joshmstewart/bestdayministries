@@ -80,13 +80,14 @@ serve(async (req) => {
         await delay(500);
         
         const eventDate = new Date(item.event_date);
-        const formattedDate = eventDate.toLocaleDateString('en-US', {
+        const formattedDate = eventDate.toLocaleString('en-US', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
           day: 'numeric',
           hour: 'numeric',
-          minute: '2-digit'
+          minute: '2-digit',
+          timeZone: 'America/Denver' // Mountain Time
         });
 
         const emailHtml = `
