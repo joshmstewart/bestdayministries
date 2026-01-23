@@ -17,6 +17,9 @@ interface QueueItem {
   event_location: string | null;
 }
 
+// Helper to add delay between API calls (respect Resend's 2 req/sec limit)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -62,14 +65,17 @@ serve(async (req: Request) => {
 
     for (const item of queueItems as QueueItem[]) {
       try {
+        // Rate limiting: wait 600ms between sends (Resend allows 2 req/sec)
+        await delay(600);
         const formattedDate = item.event_date 
-          ? new Date(item.event_date).toLocaleDateString('en-US', {
+          ? new Date(item.event_date).toLocaleString('en-US', {
               weekday: 'long',
               year: 'numeric',
               month: 'long',
               day: 'numeric',
               hour: 'numeric',
-              minute: '2-digit'
+              minute: '2-digit',
+              timeZone: 'America/Denver' // Mountain Time
             })
           : 'TBD';
 
