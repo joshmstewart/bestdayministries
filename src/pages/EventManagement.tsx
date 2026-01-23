@@ -93,6 +93,7 @@ export default function EventManagement() {
   const [showAdditionalDatePicker, setShowAdditionalDatePicker] = useState(false);
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
   const [aspectRatioKey, setAspectRatioKey] = useState<string>('9:16');
+  const [eventStatus, setEventStatus] = useState<'draft' | 'published'>('draft');
 
   useEffect(() => {
     checkAdminAccess();
@@ -232,14 +233,29 @@ export default function EventManagement() {
     setAdditionalDates([]);
     setShowAdditionalDatePicker(false);
     setAspectRatioKey('9:16');
+    setEventStatus('draft');
     setEditingEvent(null);
     setShowForm(false);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (saveAsDraft: boolean = false) => {
     if (!title || !description || !eventDate) {
       toast.error("Please fill in all required fields");
       return;
+    }
+
+    const newStatus = saveAsDraft ? 'draft' : 'published';
+    
+    // Confirm publish action for new events (sends notifications)
+    if (!saveAsDraft && !editingEvent) {
+      const confirmPublish = confirm(
+        "Publishing this event will immediately notify all users who have event notifications enabled.\n\n" +
+        "• In-app notifications will be created\n" +
+        "• Email notifications will be sent\n\n" +
+        "Are you sure you want to publish now?\n\n" +
+        "Click 'Cancel' to save as draft instead."
+      );
+      if (!confirmPublish) return;
     }
 
     setUploading(true);
@@ -322,6 +338,7 @@ export default function EventManagement() {
         aspect_ratio: aspectRatioKey,
         created_by: user.id,
         is_active: hasFutureDates ? true : (editingEvent?.is_active ?? true),
+        status: newStatus,
       };
 
       let eventId = editingEvent?.id;
@@ -356,14 +373,14 @@ export default function EventManagement() {
         if (error) throw error;
         eventId = newEvent.id;
         
-        // Process event notification emails (the database trigger already created in-app notifications)
-        if (isPublic) {
+        // Process event notification emails only if published (the database trigger already created in-app notifications)
+        if (isPublic && newStatus === 'published') {
           setTimeout(() => {
             supabase.functions.invoke("process-event-email-queue", {});
           }, 500); // Small delay to ensure the trigger has populated the queue
         }
         
-        toast.success("Event created successfully");
+        toast.success(newStatus === 'draft' ? "Event saved as draft" : "Event published successfully");
       }
 
       // Insert additional dates
@@ -429,6 +446,7 @@ export default function EventManagement() {
       setRecurrenceEndDate(null);
     }
     setAspectRatioKey((event as any).aspect_ratio || '9:16');
+    setEventStatus((event as any).status || 'published');
     setImagePreview(event.image_url);
     setSelectedImage(null);
     setRawImageUrl(null);
@@ -1000,11 +1018,31 @@ export default function EventManagement() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button onClick={handleSubmit} disabled={uploading}>
-                    {uploading ? "Saving..." : editingEvent ? "Update Event" : "Create Event"}
+                {/* Warning box about publishing */}
+                {!editingEvent && (
+                  <div className="p-4 border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>📢 Heads up:</strong> Publishing an event will immediately send notifications to all users who have event alerts enabled. 
+                      Save as draft first if you want to review before sharing.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 flex-wrap">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleSubmit(true)} 
+                    disabled={uploading}
+                  >
+                    {uploading ? "Saving..." : editingEvent ? "Save as Draft" : "Save as Draft"}
                   </Button>
-                  <Button variant="outline" onClick={resetForm}>
+                  <Button 
+                    onClick={() => handleSubmit(false)} 
+                    disabled={uploading}
+                  >
+                    {uploading ? "Publishing..." : editingEvent ? "Update & Publish" : "Publish Event"}
+                  </Button>
+                  <Button variant="ghost" onClick={resetForm}>
                     Cancel
                   </Button>
                 </div>
@@ -1049,8 +1087,13 @@ export default function EventManagement() {
                     <CardContent className="p-4 space-y-2">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-lg">{event.title}</h3>
+                            {(event as any).status === 'draft' && (
+                              <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded">
+                                Draft
+                              </span>
+                            )}
                             {!event.is_active && (
                               <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
                                 Hidden
