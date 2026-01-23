@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight, Rss } from "lucide-react";
+import { Heart, Calendar, Users, MessageSquare, Gift, Sparkles, ArrowRight, Rss, LayoutGrid } from "lucide-react";
 import * as Icons from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FeaturedBestieDisplay } from "@/components/FeaturedBestieDisplay";
@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CommunityFeed } from "@/components/feed/CommunityFeed";
 import { Badge } from "@/components/ui/badge";
 import { useUnseenFeedCount } from "@/hooks/useUnseenFeedCount";
+import { AppsGrid } from "@/components/community/AppsGrid";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -327,13 +328,20 @@ const Community = () => {
             className="w-full"
           >
             {canAccessFeed() ? (
-              <TabsList className="grid w-full max-w-[320px] grid-cols-2 mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible">
+              <TabsList className="grid w-full max-w-[400px] grid-cols-3 mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible">
                 <TabsTrigger 
                   value="community" 
                   className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
                   <Users className="w-4 h-4" />
                   Home
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="apps" 
+                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Apps
                 </TabsTrigger>
                 <TabsTrigger 
                   value="feed" 
@@ -359,6 +367,11 @@ const Community = () => {
                 <CommunityFeed />
               </TabsContent>
             )}
+
+            {/* Apps Tab */}
+            <TabsContent value="apps" className="mt-6">
+              <AppsGrid />
+            </TabsContent>
 
             {/* Community Tab - existing content */}
             <TabsContent value="community" className="mt-6 space-y-6">

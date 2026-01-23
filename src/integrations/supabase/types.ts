@@ -8313,6 +8313,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_app_preferences: {
+        Row: {
+          app_order: string[] | null
+          created_at: string
+          hidden_apps: string[] | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_order?: string[] | null
+          created_at?: string
+          hidden_apps?: string[] | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_order?: string[] | null
+          created_at?: string
+          hidden_apps?: string[] | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_id: string
