@@ -156,8 +156,8 @@ serve(async (req) => {
 
     const stripeMode = appSettings?.setting_value === "live" ? "live" : "test";
     const stripeKey = stripeMode === "live" 
-      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE") 
-      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+      ? Deno.env.get("MARKETPLACE_STRIPE_SECRET_KEY_LIVE") 
+      : Deno.env.get("MARKETPLACE_STRIPE_SECRET_KEY_TEST");
     
     if (!stripeKey) throw new Error(`Stripe ${stripeMode} key not configured`);
     logStep("Stripe mode determined", { stripeMode });
