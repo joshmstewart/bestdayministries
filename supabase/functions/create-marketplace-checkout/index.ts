@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // Shipping constants
 const FLAT_SHIPPING_RATE_CENTS = 699; // $6.99
-const FREE_SHIPPING_THRESHOLD_CENTS = 3500; // $35.00
+const DEFAULT_FREE_SHIPPING_THRESHOLD_CENTS = 3500; // $35.00 default
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -26,12 +26,14 @@ interface CartItem {
     price: number;
     vendor_id: string;
     images?: string[];
+    variant_info?: { variant?: string; variantId?: number } | null;
     vendors: {
       id: string;
       business_name: string;
       stripe_account_id: string | null;
       stripe_charges_enabled: boolean;
       is_house_vendor: boolean;
+      free_shipping_threshold: number | null;
     };
   };
 }
@@ -85,7 +87,8 @@ serve(async (req) => {
             business_name,
             stripe_account_id,
             stripe_charges_enabled,
-            is_house_vendor
+            is_house_vendor,
+            free_shipping_threshold
           )
         )
       `);
@@ -175,6 +178,7 @@ serve(async (req) => {
       vendorPayout: number;
       shippingFee: number;
       items: CartItem[];
+      freeShippingThresholdCents: number;
     }>();
 
     // Process all items (both official merch and vendor items)
@@ -183,6 +187,12 @@ serve(async (req) => {
       const isHouseVendor = item.products.vendors.is_house_vendor;
       const stripeAccountId = item.products.vendors.stripe_account_id;
       const itemTotal = Math.round(item.products.price * 100) * item.quantity;
+      
+      // Get vendor's custom free shipping threshold (in cents), or use default
+      const vendorThreshold = item.products.vendors.free_shipping_threshold;
+      const freeShippingThresholdCents = vendorThreshold != null 
+        ? Math.round(vendorThreshold * 100) 
+        : DEFAULT_FREE_SHIPPING_THRESHOLD_CENTS;
       
       if (!groupTotals.has(vendorId)) {
         groupTotals.set(vendorId, {
@@ -194,7 +204,8 @@ serve(async (req) => {
           platformFee: 0,
           vendorPayout: 0,
           shippingFee: 0,
-          items: []
+          items: [],
+          freeShippingThresholdCents
         });
       }
       
@@ -205,8 +216,8 @@ serve(async (req) => {
 
     // Calculate fees and shipping for each vendor group
     for (const groupData of groupTotals.values()) {
-      // Free shipping if vendor subtotal >= $35, otherwise $6.99
-      groupData.shippingFee = groupData.subtotal >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : FLAT_SHIPPING_RATE_CENTS;
+      // Free shipping if vendor subtotal >= vendor's threshold, otherwise $6.99
+      groupData.shippingFee = groupData.subtotal >= groupData.freeShippingThresholdCents ? 0 : FLAT_SHIPPING_RATE_CENTS;
       
       if (groupData.isHouseVendor) {
         // Official merch: 100% goes to platform
