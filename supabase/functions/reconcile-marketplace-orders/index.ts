@@ -240,6 +240,23 @@ serve(async (req) => {
     const summary = { confirmed, cancelled, skipped, errors };
     logStep("Reconciliation complete", summary);
 
+    // Log reconciliation results to database for visibility
+    try {
+      await supabaseAdmin
+        .from("marketplace_reconciliation_log")
+        .insert({
+          orders_checked: pendingOrders?.length || 0,
+          confirmed,
+          cancelled,
+          skipped,
+          errors,
+          details: { results, vendorId, limit }
+        });
+      logStep("Logged reconciliation results to database");
+    } catch (logError) {
+      logStep("Failed to log reconciliation results", { error: logError });
+    }
+
     return new Response(JSON.stringify({
       success: true,
       message: `Reconciled ${pendingOrders?.length || 0} orders`,
