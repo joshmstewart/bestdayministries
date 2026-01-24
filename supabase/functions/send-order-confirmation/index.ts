@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { emailDelay } from "../_shared/emailRateLimiter.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -241,7 +242,11 @@ serve(async (req) => {
         `Order from ${customerEmail}`
       );
 
-      for (const vendorEmail of uniqueVendorEmails) {
+      for (let i = 0; i < uniqueVendorEmails.length; i++) {
+        const vendorEmail = uniqueVendorEmails[i];
+        // Rate limit: wait before sending (except first email after customer email)
+        if (i > 0) await emailDelay();
+        
         try {
           const vendorEmailResponse = await resend.emails.send({
             from: "Joy House Store <orders@bestdayministries.org>",

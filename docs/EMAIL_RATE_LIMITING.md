@@ -100,7 +100,7 @@ All these functions now implement proper rate limiting:
 
 | Function | Type | Rate Limited |
 |----------|------|--------------|
-| `process-event-email-queue` | Queue | ✅ 500ms |
+| `process-event-email-queue` | Queue | ✅ 600ms |
 | `process-event-update-email-queue` | Queue | ✅ 600ms |
 | `process-sponsorship-email-queue` | Queue | ✅ 600ms |
 | `process-badge-earned-email-queue` | Queue | ✅ 600ms |
@@ -109,19 +109,33 @@ All these functions now implement proper rate limiting:
 | `send-digest-email` | Bulk | ✅ 600ms |
 | `send-batch-year-end-summaries` | Bulk | ✅ 600ms |
 | `broadcast-product-update` | Bulk | ✅ 600ms |
+| `send-order-confirmation` | Multi | ✅ 600ms |
+| `send-order-shipped` | Multi | ✅ 600ms |
+| `send-vendor-application-email` | Multi | ✅ 600ms |
+| `prayer-expiry-notifications` | Multi | ✅ 600ms |
 
 ## Single Email Functions
 
-These send individual emails and don't need rate limiting:
+These send individual emails (no loops) and don't need rate limiting:
 - `send-notification-email`
 - `send-approval-notification`
 - `send-message-notification`
 - `send-prayer-notification`
 - `notify-admin-new-contact`
+- `notify-admin-assignment`
 - `send-contact-email`
 - `send-contact-reply`
-- `send-order-confirmation` (few emails per order)
-- `send-order-shipped` (few emails per order)
+- `send-vendor-order-notification`
+- `send-sponsorship-receipt`
+- `send-password-reset`
+- `send-test-newsletter`
+- `send-test-automated-template`
+- `send-automated-campaign`
+- `send-digest-email-test`
+- `send-corrected-receipts` (uses invoke pattern)
+- `send-missing-receipt-emails` (uses invoke pattern)
+- `generate-year-end-summary`
+- `process-inbound-email`
 
 ## Anti-Patterns
 

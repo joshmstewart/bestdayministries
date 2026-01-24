@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { emailDelay } from "../_shared/emailRateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -205,8 +206,12 @@ serve(async (req) => {
     console.log(`Sending vendor application notification to ${adminEmails.length} admin(s)`);
 
     let sentCount = 0;
-    for (const admin of adminProfiles) {
+    for (let i = 0; i < adminProfiles.length; i++) {
+      const admin = adminProfiles[i];
       if (!admin.email) continue;
+      
+      // Rate limit: wait before sending (except first email)
+      if (sentCount > 0) await emailDelay();
       
       try {
         const { data: emailData, error: sendError } = await resend.emails.send({
