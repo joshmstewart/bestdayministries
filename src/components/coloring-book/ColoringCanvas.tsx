@@ -588,21 +588,26 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       return;
     }
 
-    // Don't fill very dark pixels (the outlines) - increased threshold to catch anti-aliased edges
-    const isDark = (r: number, g: number, b: number) => r < 90 && g < 90 && b < 90;
-    if (isDark(startColor.r, startColor.g, startColor.b)) {
+    // Don't fill dark pixels (the outlines) - stricter threshold to preserve thin lines
+    // Using higher threshold (150) to catch gray anti-aliased edges as "lines"
+    const isDarkOrGray = (r: number, g: number, b: number) => {
+      const brightness = (r + g + b) / 3;
+      return brightness < 180; // Treat anything below 180 brightness as a potential line
+    };
+    
+    if (isDarkOrGray(startColor.r, startColor.g, startColor.b)) {
       return;
     }
 
-    // Increased tolerance to catch more similar-colored pixels including anti-aliased edges
-    const tolerance = 60;
+    // Stricter tolerance to prevent bleeding through anti-aliased edges
+    const tolerance = 30;
 
     const colorMatch = (x: number, y: number): boolean => {
       if (x < 0 || x >= width || y < 0 || y >= height) return false;
       const pixel = getPixelColor(x, y);
       
-      // Don't cross dark lines
-      if (isDark(pixel.r, pixel.g, pixel.b)) return false;
+      // Don't cross any dark or gray pixels (potential line boundaries)
+      if (isDarkOrGray(pixel.r, pixel.g, pixel.b)) return false;
 
       return (
         Math.abs(pixel.r - startColor.r) <= tolerance &&
@@ -655,6 +660,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
     // === POST-FILL EDGE FEATHERING PASS ===
     // Catch anti-aliased pixels along outlines that were missed by the main fill
     // Run multiple passes to ensure all edge artifacts are colored
+    // Only fill very light pixels (>220) to avoid bleeding through gray anti-aliased lines
     for (let pass = 0; pass < 3; pass++) {
       let changed = false;
       for (let y = 0; y < height; y++) {
@@ -663,8 +669,8 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           const pos = idx * 4;
           const pixel = { r: data[pos], g: data[pos + 1], b: data[pos + 2] };
           
-          // Skip if already filled or if it's a dark outline pixel
-          if (visited[idx] || isDark(pixel.r, pixel.g, pixel.b)) continue;
+          // Skip if already filled or if it's a dark/gray pixel (potential line)
+          if (visited[idx] || isDarkOrGray(pixel.r, pixel.g, pixel.b)) continue;
           
           // Check if this unfilled pixel is adjacent to a filled pixel
           const hasFilledNeighbor = 
@@ -673,9 +679,9 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
             (y > 0 && visited[(y - 1) * width + x]) ||
             (y < height - 1 && visited[(y + 1) * width + x]);
           
-          // If adjacent to filled area and is a light/mid gray (anti-alias artifact), fill it
-          // These are pixels that are lighter than the dark threshold but weren't matched by tolerance
-          if (hasFilledNeighbor && pixel.r > 120 && pixel.g > 120 && pixel.b > 120) {
+          // Only fill if adjacent to filled area and is very light (near white)
+          // Raised threshold to 220 to avoid bleeding through gray anti-aliased edges
+          if (hasFilledNeighbor && pixel.r > 220 && pixel.g > 220 && pixel.b > 220) {
             data[pos] = fillRGB.r;
             data[pos + 1] = fillRGB.g;
             data[pos + 2] = fillRGB.b;
