@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
   Download, Loader2, X, Lock, Play, Square, 
-  Palette, Music
+  Palette, Music, Activity, User, MapPin, Package
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -325,13 +325,48 @@ export function FeedItemDialog({
               </p>
             )}
             
-            {item.item_type !== 'beat' && (
+            {item.item_type !== 'beat' && item.item_type !== 'workout' && (
               <p className="text-xs text-muted-foreground mt-1">
                 Created {format(new Date(item.created_at), "MMM d, yyyy")}
               </p>
             )}
-            {item.description && item.item_type !== 'beat' && (
+            {item.description && item.item_type !== 'beat' && item.item_type !== 'workout' && (
               <p className="text-sm text-muted-foreground mt-2 italic">{item.description}</p>
+            )}
+
+            {/* Workout Details */}
+            {item.item_type === 'workout' && item.extra_data && (
+              <>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {format(new Date(item.created_at), "EEEE, MMMM d, yyyy")}
+                </p>
+                <div className="space-y-2 pt-3 mt-3 border-t border-border">
+                  {item.extra_data.activity_name && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                      <span>{item.extra_data.activity_name}</span>
+                    </div>
+                  )}
+                  {item.extra_data.avatar_name && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span>{item.extra_data.avatar_name}</span>
+                    </div>
+                  )}
+                  {item.extra_data.location_name && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>{item.extra_data.location_name}</span>
+                    </div>
+                  )}
+                  {item.extra_data.location_pack_name && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <span>{item.extra_data.location_pack_name}</span>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
             
             {/* Drink Ingredients - organized by category */}

@@ -4,7 +4,8 @@ import { formatDistanceToNow } from "date-fns";
 import { 
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2, Copy
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2, Copy,
+  Activity, User, MapPin, Package
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -644,7 +645,36 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   {countBeatNotes(item.extra_data.pattern)} notes • {item.extra_data.plays_count || 0} loop plays
                 </p>
               )}
-              {item.description && item.item_type !== 'prayer' && item.item_type !== 'beat' && (
+              {/* Workout details */}
+              {item.item_type === 'workout' && item.extra_data && (
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  {item.extra_data.activity_name && (
+                    <div className="flex items-center gap-1.5">
+                      <Activity className="h-3 w-3" />
+                      <span>{item.extra_data.activity_name}</span>
+                    </div>
+                  )}
+                  {item.extra_data.avatar_name && (
+                    <div className="flex items-center gap-1.5">
+                      <User className="h-3 w-3" />
+                      <span>{item.extra_data.avatar_name}</span>
+                    </div>
+                  )}
+                  {item.extra_data.location_name && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3" />
+                      <span>{item.extra_data.location_name}</span>
+                    </div>
+                  )}
+                  {item.extra_data.location_pack_name && (
+                    <div className="flex items-center gap-1.5">
+                      <Package className="h-3 w-3" />
+                      <span>{item.extra_data.location_pack_name}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {item.description && item.item_type !== 'prayer' && item.item_type !== 'beat' && item.item_type !== 'workout' && (
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {item.description}
                 </p>
