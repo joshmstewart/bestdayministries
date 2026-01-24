@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { emailDelay, RESEND_RATE_LIMIT_MS } from "../_shared/emailRateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,7 +63,14 @@ serve(async (req: Request) => {
     let processed = 0;
     const errors: string[] = [];
 
-    for (const item of queueItems as QueueItem[]) {
+    for (let i = 0; i < queueItems.length; i++) {
+      const item = queueItems[i] as QueueItem;
+      
+      // Rate limiting: wait between sends (Resend allows 2 req/sec)
+      if (i > 0) {
+        await emailDelay(RESEND_RATE_LIMIT_MS);
+      }
+      
       try {
         let subject = "";
         let content = "";

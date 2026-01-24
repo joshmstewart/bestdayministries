@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { emailDelay, RESEND_RATE_LIMIT_MS } from "../_shared/emailRateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,7 +43,14 @@ serve(async (req) => {
     let processed = 0;
     let errors = 0;
 
-    for (const item of queueItems) {
+    for (let i = 0; i < queueItems.length; i++) {
+      const item = queueItems[i];
+      
+      // Rate limiting: wait between sends (Resend allows 2 req/sec)
+      if (i > 0) {
+        await emailDelay(RESEND_RATE_LIMIT_MS);
+      }
+      
       try {
         const baseUrl = Deno.env.get("SITE_URL") || "https://bestdayministries.lovable.app";
         const contentLink = item.content_link ? `${baseUrl}${item.content_link}` : baseUrl;

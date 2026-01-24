@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { emailDelay, RESEND_RATE_LIMIT_MS } from "../_shared/emailRateLimiter.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -172,23 +173,36 @@ async function createNotificationsForUsers(
 
   console.log(`Created ${notifications.length} notifications`);
 
-  // Send emails asynchronously (don't wait for completion)
-  for (const user of users) {
-    // Call send-notification-email function for each user
-    supabaseClient.functions.invoke('send-notification-email', {
-      body: {
-        userId: user.id,
-        notificationType: 'product_update',
-        subject: `Product Update: ${title}`,
-        title,
-        message,
-        link,
-      },
-    }).catch((error: any) => {
+  // Send emails with rate limiting (Resend allows 2 req/sec)
+  // Note: We intentionally await each email to respect rate limits
+  console.log(`[broadcast-product-update] Sending ${users.length} emails with rate limiting...`);
+  
+  for (let i = 0; i < users.length; i++) {
+    const user = users[i];
+    
+    // Rate limiting: wait between sends
+    if (i > 0) {
+      await emailDelay(RESEND_RATE_LIMIT_MS);
+    }
+    
+    try {
+      await supabaseClient.functions.invoke('send-notification-email', {
+        body: {
+          userId: user.id,
+          notificationType: 'product_update',
+          subject: `Product Update: ${title}`,
+          title,
+          message,
+          link,
+        },
+      });
+    } catch (error: any) {
       console.error(`Failed to send email to ${user.email}:`, error);
       // Continue even if email fails
-    });
+    }
   }
+  
+  console.log(`[broadcast-product-update] Finished sending emails`);
 }
 
 serve(handler);

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { emailDelay, logRateLimitInfo, RESEND_RATE_LIMIT_MS } from "../_shared/emailRateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -314,71 +315,39 @@ serve(async (req) => {
       </div>
     `;
 
-    // Send via Resend in batches
+    // Send via Resend with rate limiting (Resend allows 2 req/sec)
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const batchSize = 100;
     let sentCount = 0;
+    let failedCount = 0;
 
-    for (let i = 0; i < subscribers.length; i += batchSize) {
-      const batch = subscribers.slice(i, i + batchSize);
+    // Log estimated time for transparency
+    logRateLimitInfo('send-newsletter', subscribers.length);
+
+    // Process emails sequentially with rate limiting to respect Resend's 2 req/sec limit
+    for (let i = 0; i < subscribers.length; i++) {
+      const subscriber = subscribers[i] as { email: string; id: string | null; user_id: string | null };
+      const subscriberId = subscriber.id || 'unknown';
+      const personalizedHtml = htmlContent.replace(/{{subscriber_id}}/g, subscriberId);
       
-      const emailPromises = batch.map(async (subscriber: { email: string; id: string | null; user_id: string | null }) => {
-        const subscriberId = subscriber.id || 'unknown';
-        const personalizedHtml = htmlContent.replace(/{{subscriber_id}}/g, subscriberId);
-        
-        try {
-          const { data: emailData, error } = await resend.emails.send({
-            from: `${fromName} <${fromEmail}>`,
-            to: subscriber.email,
-            subject: finalSubject,
-            html: personalizedHtml,
-            headers: {
-              "X-Campaign-ID": campaignId,
-              "X-Subscriber-ID": subscriberId,
-            },
-          });
+      try {
+        // Rate limiting: wait between sends
+        if (i > 0) {
+          await emailDelay(RESEND_RATE_LIMIT_MS);
+        }
 
-          if (error) {
-            console.error(`Failed to send to ${subscriber.email}:`, error);
-            
-            // Log failed send
-            await supabaseClient.from("newsletter_emails_log").insert({
-              campaign_id: campaignId,
-              recipient_email: subscriber.email,
-              recipient_user_id: subscriber.user_id,
-              subject: finalSubject,
-              html_content: personalizedHtml,
-              status: "failed",
-              error_message: error.message || String(error),
-              metadata: { subscriber_id: subscriber.id },
-            });
-            
-            return false;
-          }
+        const { data: emailData, error } = await resend.emails.send({
+          from: `${fromName} <${fromEmail}>`,
+          to: subscriber.email,
+          subject: finalSubject,
+          html: personalizedHtml,
+          headers: {
+            "X-Campaign-ID": campaignId,
+            "X-Subscriber-ID": subscriberId,
+          },
+        });
 
-          // Log successful send
-          await supabaseClient.from("newsletter_emails_log").insert({
-            campaign_id: campaignId,
-            recipient_email: subscriber.email,
-            recipient_user_id: subscriber.user_id,
-            subject: finalSubject,
-            html_content: personalizedHtml,
-            status: "sent",
-            resend_email_id: emailData?.id,
-            metadata: { subscriber_id: subscriber.id },
-          });
-
-          // Log send event for analytics
-          await supabaseClient.from("newsletter_analytics").insert({
-            campaign_id: campaignId,
-            subscriber_id: subscriber.id,
-            email: subscriber.email,
-            event_type: "sent",
-          });
-
-          return true;
-        } catch (error: any) {
-          console.error(`Error sending to ${subscriber.email}:`, error);
+        if (error) {
+          console.error(`Failed to send to ${subscriber.email}:`, error);
           
           // Log failed send
           await supabaseClient.from("newsletter_emails_log").insert({
@@ -392,18 +361,56 @@ serve(async (req) => {
             metadata: { subscriber_id: subscriber.id },
           });
           
-          return false;
+          failedCount++;
+          continue;
         }
-      });
 
-      const results = await Promise.all(emailPromises);
-      sentCount += results.filter(Boolean).length;
+        // Log successful send
+        await supabaseClient.from("newsletter_emails_log").insert({
+          campaign_id: campaignId,
+          recipient_email: subscriber.email,
+          recipient_user_id: subscriber.user_id,
+          subject: finalSubject,
+          html_content: personalizedHtml,
+          status: "sent",
+          resend_email_id: emailData?.id,
+          metadata: { subscriber_id: subscriber.id },
+        });
 
-      // Small delay between batches
-      if (i + batchSize < subscribers.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Log send event for analytics
+        await supabaseClient.from("newsletter_analytics").insert({
+          campaign_id: campaignId,
+          subscriber_id: subscriber.id,
+          email: subscriber.email,
+          event_type: "sent",
+        });
+
+        sentCount++;
+        
+        // Log progress every 50 emails
+        if ((i + 1) % 50 === 0) {
+          console.log(`[send-newsletter] Progress: ${i + 1}/${subscribers.length} emails processed`);
+        }
+      } catch (error: any) {
+        console.error(`Error sending to ${subscriber.email}:`, error);
+        
+        // Log failed send
+        await supabaseClient.from("newsletter_emails_log").insert({
+          campaign_id: campaignId,
+          recipient_email: subscriber.email,
+          recipient_user_id: subscriber.user_id,
+          subject: finalSubject,
+          html_content: personalizedHtml,
+          status: "failed",
+          error_message: error.message || String(error),
+          metadata: { subscriber_id: subscriber.id },
+        });
+        
+        failedCount++;
       }
     }
+
+    console.log(`[send-newsletter] Complete: ${sentCount} sent, ${failedCount} failed`);
 
     // Update campaign status
     await supabaseClient
