@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { emailDelay, RESEND_RATE_LIMIT_MS, logRateLimitInfo } from "../_shared/emailRateLimiter.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -58,12 +59,20 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`Found ${usersNeedingDigest.length} users needing ${frequency} digest`);
+    logRateLimitInfo('send-digest-email', usersNeedingDigest.length);
 
     let successCount = 0;
     let failCount = 0;
 
-    // Process each user
-    for (const user of usersNeedingDigest) {
+    // Process each user with rate limiting
+    for (let i = 0; i < usersNeedingDigest.length; i++) {
+      const user = usersNeedingDigest[i];
+      
+      // Rate limiting: wait between sends (Resend allows 2 req/sec)
+      if (i > 0) {
+        await emailDelay(RESEND_RATE_LIMIT_MS);
+      }
+      
       try {
         // Fetch their unread notifications
         const { data: notifications, error: notifError } = await supabase
