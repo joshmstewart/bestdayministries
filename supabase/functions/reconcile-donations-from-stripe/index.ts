@@ -429,29 +429,29 @@ serve(async (req) => {
             continue;
           }
           
-          // Skip if no email available
-          if (!donation.donor_email) {
-            logStep(`Skipping receipt email for ${donationId} - no donor_email`);
-            continue;
-          }
-          
-          // Get donor name from profile if available
+          // Resolve donor email for signed-in donors (donor_email is null due to donor_identifier_check)
+          let resolvedEmail: string | null = donation.donor_email || null;
           let sponsorName = 'Donor';
           if (donation.donor_id) {
             const { data: profile } = await supabaseClient
               .from('profiles')
-              .select('display_name')
+              .select('display_name, email')
               .eq('id', donation.donor_id)
               .single();
-            if (profile?.display_name) {
-              sponsorName = profile.display_name;
-            }
+            if (profile?.email) resolvedEmail = resolvedEmail || profile.email;
+            if (profile?.display_name) sponsorName = profile.display_name;
+          }
+
+          // Skip if still no email available
+          if (!resolvedEmail) {
+            logStep(`Skipping receipt email for ${donationId} - no email available (guest + no email)`);
+            continue;
           }
           
           // Invoke send-sponsorship-receipt to send the email
           const { error: sendError } = await supabaseClient.functions.invoke('send-sponsorship-receipt', {
             body: {
-              sponsorEmail: donation.donor_email,
+              sponsorEmail: resolvedEmail,
               sponsorName: sponsorName,
               bestieName: 'General Support',
               amount: donation.amount_charged || donation.amount,
@@ -466,7 +466,7 @@ serve(async (req) => {
             logStep(`Error sending receipt email for donation ${donationId}`, { error: sendError.message });
             receiptErrors++;
           } else {
-            logStep(`✉️ Sent receipt email to ${donation.donor_email}`);
+            logStep(`✉️ Sent receipt email to ${resolvedEmail}`);
             receiptsSent++;
           }
         } catch (emailError: any) {
