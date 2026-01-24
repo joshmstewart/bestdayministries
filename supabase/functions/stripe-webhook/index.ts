@@ -354,6 +354,126 @@ async function processDonationCheckout(
   const user = profileData ? { id: profileData.id, email: profileData.email } : null;
   const amountCharged = session.amount_total ? session.amount_total / 100 : 0;
   
+  // Check if donation already exists (created by create-donation-checkout with pending status)
+  const { data: existingDonation } = await supabaseAdmin
+    .from("donations")
+    .select("*")
+    .eq("stripe_checkout_session_id", session.id)
+    .eq("stripe_mode", stripeMode)
+    .maybeSingle();
+
+  if (existingDonation) {
+    await logStep("found_existing_donation", "info", {
+      donation_id: existingDonation.id,
+      current_status: existingDonation.status,
+    });
+
+    // Determine new status
+    const newStatus = session.mode === "payment" ? "completed" : "active";
+
+    // Update the existing donation
+    const updateData: Record<string, any> = {
+      status: newStatus,
+      amount_charged: amountCharged,
+    };
+
+    if (session.mode === "payment") {
+      updateData.stripe_payment_intent_id = session.payment_intent as string;
+    } else if (session.mode === "subscription" && session.subscription) {
+      updateData.stripe_subscription_id = session.subscription;
+      updateData.stripe_customer_id = session.customer as string;
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from("donations")
+      .update(updateData)
+      .eq("id", existingDonation.id);
+
+    if (updateError) {
+      await logStep("donation_update_failed", "error", {
+        error: updateError.message,
+      });
+      throw updateError;
+    }
+
+    await logStep("donation_updated", "success", {
+      donation_id: existingDonation.id,
+      new_status: newStatus,
+    });
+
+    // Get donor email - from donation record OR from profiles table
+    const donorEmail = existingDonation.donor_email || 
+      (existingDonation.donor_id ? (await supabaseAdmin
+        .from("profiles")
+        .select("email")
+        .eq("id", existingDonation.donor_id)
+        .single()
+      ).data?.email : null) || customerEmail;
+
+    // Generate receipt for initial payment
+    await generateDonationReceipt(
+      { ...existingDonation, ...updateData },
+      donorEmail,
+      session.mode === "payment" 
+        ? (session.payment_intent as string) 
+        : `checkout_${session.id}`,
+      stripeMode,
+      supabaseAdmin,
+      logStep,
+      amountCharged
+    );
+
+    // Send receipt email
+    try {
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          sponsorEmail: donorEmail,
+          sponsorName: donorEmail.split('@')[0],
+          bestieName: 'General Support',
+          amount: amountCharged,
+          frequency: session.mode === "payment" ? 'one-time' : 'monthly',
+          transactionId: session.mode === "payment" 
+            ? (session.payment_intent as string) 
+            : `checkout_${session.id}`,
+          transactionDate: new Date().toISOString(),
+          stripeMode: stripeMode,
+        }),
+      });
+      await logStep("receipt_email_sent", "success", { email: donorEmail });
+    } catch (emailError) {
+      await logStep("receipt_email_failed", "error", { 
+        error: emailError instanceof Error ? emailError.message : 'Unknown error' 
+      });
+    }
+
+    if (logId) {
+      await supabaseAdmin
+        .from("stripe_webhook_logs")
+        .update({
+          related_record_type: "donation",
+          related_record_id: existingDonation.id,
+        })
+        .eq("id", logId);
+    }
+    return;
+  }
+
+  // No existing donation - create new one (fallback for edge cases)
+  // IMPORTANT: Respect donor_identifier_check constraint - EITHER donor_id OR donor_email, never both
+  const donorId = user?.id ?? null;
+  const donorEmail = donorId ? null : customerEmail;
+
+  await logStep("creating_new_donation", "info", {
+    has_user: !!user,
+    donor_id: donorId || 'null',
+    donor_email: donorEmail || 'null',
+  });
+  
   if (session.mode === "payment") {
     await logStep("processing_one_time_donation", "info", {
       amount_charged: amountCharged,
@@ -363,14 +483,16 @@ async function processDonationCheckout(
     const { data: donation, error: donationError } = await supabaseAdmin
       .from("donations")
       .insert({
-        donor_id: user?.id,
-        donor_email: customerEmail,
+        donor_id: donorId,
+        donor_email: donorEmail,
         amount: amountCharged,
+        amount_charged: amountCharged,
         currency: session.currency,
-        status: "succeeded",
-        payment_method: "stripe",
+        frequency: "one-time",
+        status: "completed",
         stripe_checkout_session_id: session.id,
         stripe_payment_intent_id: session.payment_intent as string,
+        stripe_customer_id: session.customer as string,
         stripe_mode: stripeMode,
       })
       .select()
@@ -386,6 +508,44 @@ async function processDonationCheckout(
     await logStep("one_time_donation_created", "success", {
       donation_id: donation.id,
     });
+
+    // Generate receipt for one-time donation
+    const emailForReceipt = donorEmail || (user ? user.email : customerEmail);
+    await generateDonationReceipt(
+      donation,
+      emailForReceipt,
+      session.payment_intent as string,
+      stripeMode,
+      supabaseAdmin,
+      logStep,
+      amountCharged
+    );
+
+    // Send receipt email
+    try {
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          sponsorEmail: emailForReceipt,
+          sponsorName: emailForReceipt.split('@')[0],
+          bestieName: 'General Support',
+          amount: amountCharged,
+          frequency: 'one-time',
+          transactionId: session.payment_intent as string,
+          transactionDate: new Date().toISOString(),
+          stripeMode: stripeMode,
+        }),
+      });
+      await logStep("receipt_email_sent", "success", { email: emailForReceipt });
+    } catch (emailError) {
+      await logStep("receipt_email_failed", "error", { 
+        error: emailError instanceof Error ? emailError.message : 'Unknown error' 
+      });
+    }
 
     if (logId) {
       await supabaseAdmin
@@ -405,13 +565,13 @@ async function processDonationCheckout(
     const { data: donation, error: donationError } = await supabaseAdmin
       .from("donations")
       .insert({
-        donor_id: user?.id,
-        donor_email: customerEmail,
+        donor_id: donorId,
+        donor_email: donorEmail,
         amount: amountCharged,
+        amount_charged: amountCharged,
         currency: session.currency,
         frequency: "monthly",
         status: "active",
-        payment_method: "stripe",
         stripe_subscription_id: session.subscription,
         stripe_customer_id: session.customer as string,
         stripe_checkout_session_id: session.id,
@@ -430,6 +590,44 @@ async function processDonationCheckout(
     await logStep("monthly_donation_created", "success", {
       donation_id: donation.id,
     });
+
+    // Generate receipt for initial monthly donation
+    const emailForReceipt = donorEmail || (user ? user.email : customerEmail);
+    await generateDonationReceipt(
+      donation,
+      emailForReceipt,
+      `checkout_${session.id}`,
+      stripeMode,
+      supabaseAdmin,
+      logStep,
+      amountCharged
+    );
+
+    // Send receipt email
+    try {
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          sponsorEmail: emailForReceipt,
+          sponsorName: emailForReceipt.split('@')[0],
+          bestieName: 'General Support',
+          amount: amountCharged,
+          frequency: 'monthly',
+          transactionId: `checkout_${session.id}`,
+          transactionDate: new Date().toISOString(),
+          stripeMode: stripeMode,
+        }),
+      });
+      await logStep("receipt_email_sent", "success", { email: emailForReceipt });
+    } catch (emailError) {
+      await logStep("receipt_email_failed", "error", { 
+        error: emailError instanceof Error ? emailError.message : 'Unknown error' 
+      });
+    }
 
     if (logId) {
       await supabaseAdmin
