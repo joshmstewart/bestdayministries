@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { emailDelay } from "../_shared/emailRateLimiter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -83,6 +84,7 @@ serve(async (req) => {
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
     const results = [];
+    let emailsSent = 0;
 
     for (const prayer of expiringPrayers) {
       try {
@@ -109,6 +111,9 @@ serve(async (req) => {
         // Send email notification if Resend is configured and preference allows
         const userEmail = authEmails.get(prayer.user_id);
         if (resendApiKey && userEmail && shouldSendEmail) {
+          // Rate limit: wait before sending (except first email)
+          if (emailsSent > 0) await emailDelay();
+          
           const profile = profileMap.get(prayer.user_id);
           const userName = profile?.display_name || "Friend";
 
@@ -142,6 +147,7 @@ serve(async (req) => {
               `,
             }),
           });
+          emailsSent++;
         }
 
         // Mark as notified
