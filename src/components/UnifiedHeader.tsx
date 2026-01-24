@@ -96,9 +96,21 @@ export const UnifiedHeader = () => {
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
+    let hasInteracted = false;
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
+      
+      // On first scroll interaction, mark as interacted
+      if (!hasInteracted) {
+        hasInteracted = true;
+        // On initial page load, always show nav if near top
+        if (currentScrollY < 150) {
+          setShowNav(true);
+          lastScrollY = currentScrollY;
+          return;
+        }
+      }
       
       // Show nav if near top (within 150px) or scrolling up
       if (currentScrollY < 150 || currentScrollY < lastScrollY) {
@@ -111,8 +123,19 @@ export const UnifiedHeader = () => {
       lastScrollY = currentScrollY;
     };
 
+    // Ensure nav is shown on mount/navigation
+    // Use a small delay to handle browser scroll restoration
+    const initialCheck = setTimeout(() => {
+      if (window.scrollY < 150) {
+        setShowNav(true);
+      }
+    }, 50);
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      clearTimeout(initialCheck);
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   // Load header data (logo, nav links) and additional user-specific data
