@@ -60,6 +60,7 @@ interface Transaction {
   sponsor_profile?: {
     display_name: string;
     avatar_url: string | null;
+    email?: string | null;
   };
   bestie_profile?: {
     display_name: string;
@@ -206,11 +207,14 @@ export const SponsorshipTransactionsManager = () => {
       // Transform donations to transactions
       const donationTransactions: Transaction[] = (donationsData || []).map(d => {
         const receipt = receiptsMap.get(d.id);
+
+        const profileEmail = d.donor_id ? (profilesMap[d.donor_id]?.email ?? null) : null;
+        const resolvedEmail = (d.donor_email || profileEmail || null) as string | null;
         
         return {
           id: d.id,
           sponsor_id: d.donor_id,
-          sponsor_email: d.donor_email,
+          sponsor_email: resolvedEmail,
           bestie_id: null,
           sponsor_bestie_id: null,
           amount: d.amount || 0,
@@ -256,7 +260,7 @@ export const SponsorshipTransactionsManager = () => {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(t => {
         const sponsorName = t.sponsor_profile?.display_name?.toLowerCase() || '';
-        const sponsorEmail = t.sponsor_email?.toLowerCase() || '';
+        const sponsorEmail = (t.sponsor_email || t.sponsor_profile?.email || '').toLowerCase();
         const bestieName = t.sponsor_bestie?.bestie_name?.toLowerCase() || 
                            t.bestie_profile?.display_name?.toLowerCase() || '';
         const subscriptionId = t.stripe_subscription_id?.toLowerCase() || '';
@@ -1178,12 +1182,16 @@ export const SponsorshipTransactionsManager = () => {
                               {transaction.sponsor_profile?.display_name || 'Guest'}
                             </span>
                           </div>
-                          {transaction.sponsor_email && (
+                          {(() => {
+                            const email = (transaction.sponsor_email || transaction.sponsor_profile?.email || '').trim();
+                            if (!email) return null;
+                            return (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Mail className="w-3 h-3" />
-                              <span>{transaction.sponsor_email}</span>
+                              <span>{email}</span>
                             </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell>
