@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Key, Eye, EyeOff } from "lucide-react";
 
 export const PasswordChangeDialog = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -101,12 +103,26 @@ export const PasswordChangeDialog = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Hidden email field for password manager context */}
+            <input
+              type="email"
+              name="email"
+              autoComplete="username"
+              value={user?.email || ''}
+              readOnly
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+            
             <div className="space-y-2">
               <Label htmlFor="currentPassword">Current Password</Label>
               <div className="relative">
                 <Input
                   id="currentPassword"
+                  name="current-password"
                   type={showCurrentPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   required
                   value={passwords.currentPassword}
                   onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
@@ -128,7 +144,9 @@ export const PasswordChangeDialog = () => {
               <div className="relative">
                 <Input
                   id="newPassword"
+                  name="new-password"
                   type={showNewPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   required
                   value={passwords.newPassword}
                   onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
@@ -151,7 +169,9 @@ export const PasswordChangeDialog = () => {
               <div className="relative">
                 <Input
                   id="confirmPassword"
+                  name="new-password-confirm"
                   type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   required
                   value={passwords.confirmPassword}
                   onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
