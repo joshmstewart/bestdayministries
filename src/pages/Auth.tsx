@@ -559,11 +559,25 @@ const Auth = () => {
 
           {isPasswordRecovery ? (
             <form onSubmit={handleUpdatePassword} className="space-y-4">
+              {/* Hidden email field for password manager context */}
+              <input
+                type="email"
+                name="email"
+                autoComplete="username"
+                value={email}
+                readOnly
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+              
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
                 <Input
                   id="new-password"
+                  name="new-password"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -576,7 +590,9 @@ const Auth = () => {
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
                 <Input
                   id="confirm-password"
+                  name="new-password-confirm"
                   type="password"
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -719,7 +735,9 @@ const Auth = () => {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -742,7 +760,9 @@ const Auth = () => {
               </div>
               <Input
                 id="password"
+                name="password"
                 type="password"
+                autoComplete={isSignUp ? "new-password" : "current-password"}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
