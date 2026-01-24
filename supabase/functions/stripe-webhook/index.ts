@@ -410,13 +410,17 @@ async function processDonationCheckout(
         .single()
       ).data?.email : null) || customerEmail;
 
+    const donationTxId = `donation_${existingDonation.id}`;
+    const donationFrequency: 'monthly' | 'one-time' = session.mode === 'payment' ? 'one-time' : 'monthly';
+    const donationTxDate = (existingDonation.started_at || existingDonation.created_at || new Date().toISOString()) as string;
+
     // Generate receipt for initial payment
     await generateDonationReceipt(
       { ...existingDonation, ...updateData },
       donorEmail,
-      session.mode === "payment" 
-        ? (session.payment_intent as string) 
-        : `checkout_${session.id}`,
+      donationTxId,
+      donationFrequency,
+      donationTxDate,
       stripeMode,
       supabaseAdmin,
       logStep,
@@ -436,11 +440,9 @@ async function processDonationCheckout(
           sponsorName: donorEmail.split('@')[0],
           bestieName: 'General Support',
           amount: amountCharged,
-          frequency: session.mode === "payment" ? 'one-time' : 'monthly',
-          transactionId: session.mode === "payment" 
-            ? (session.payment_intent as string) 
-            : `checkout_${session.id}`,
-          transactionDate: new Date().toISOString(),
+            frequency: donationFrequency,
+            transactionId: donationTxId,
+            transactionDate: donationTxDate,
           stripeMode: stripeMode,
         }),
       });
@@ -511,10 +513,14 @@ async function processDonationCheckout(
 
     // Generate receipt for one-time donation
     const emailForReceipt = donorEmail || (user ? user.email : customerEmail);
+    const donationTxId = `donation_${donation.id}`;
+    const donationTxDate = (donation.started_at || donation.created_at || new Date().toISOString()) as string;
     await generateDonationReceipt(
       donation,
       emailForReceipt,
-      session.payment_intent as string,
+      donationTxId,
+      'one-time',
+      donationTxDate,
       stripeMode,
       supabaseAdmin,
       logStep,
@@ -535,8 +541,8 @@ async function processDonationCheckout(
           bestieName: 'General Support',
           amount: amountCharged,
           frequency: 'one-time',
-          transactionId: session.payment_intent as string,
-          transactionDate: new Date().toISOString(),
+          transactionId: donationTxId,
+          transactionDate: donationTxDate,
           stripeMode: stripeMode,
         }),
       });
@@ -593,10 +599,14 @@ async function processDonationCheckout(
 
     // Generate receipt for initial monthly donation
     const emailForReceipt = donorEmail || (user ? user.email : customerEmail);
+    const donationTxId = `donation_${donation.id}`;
+    const donationTxDate = (donation.started_at || donation.created_at || new Date().toISOString()) as string;
     await generateDonationReceipt(
       donation,
       emailForReceipt,
-      `checkout_${session.id}`,
+      donationTxId,
+      'monthly',
+      donationTxDate,
       stripeMode,
       supabaseAdmin,
       logStep,
@@ -617,8 +627,8 @@ async function processDonationCheckout(
           bestieName: 'General Support',
           amount: amountCharged,
           frequency: 'monthly',
-          transactionId: `checkout_${session.id}`,
-          transactionDate: new Date().toISOString(),
+          transactionId: donationTxId,
+          transactionDate: donationTxDate,
           stripeMode: stripeMode,
         }),
       });
@@ -868,6 +878,8 @@ async function processRecurringPayment(
       donation,
       customerEmail,
       invoice.id,
+      'monthly',
+      new Date(invoice.created * 1000).toISOString(),
       stripeMode,
       supabaseAdmin,
       logStep,
@@ -947,6 +959,8 @@ async function generateDonationReceipt(
   donation: any,
   customerEmail: string,
   transactionId: string,
+  frequency: 'monthly' | 'one-time',
+  transactionDate: string,
   stripeMode: string,
   supabaseAdmin: any,
   logStep: Function,
@@ -974,14 +988,14 @@ async function generateDonationReceipt(
       user_id: donation.donor_id || null,
       bestie_name: "General Support",
       amount: amount,
-      frequency: "monthly",
+      frequency,
       transaction_id: transactionId,
-      transaction_date: new Date().toISOString(),
+      transaction_date: transactionDate,
       stripe_mode: stripeMode,
       organization_name: orgSettings?.organization_name || null,
       organization_ein: orgSettings?.organization_ein || null,
       receipt_number: receiptNumber,
-      tax_year: new Date().getFullYear(),
+      tax_year: new Date(transactionDate).getFullYear(),
     })
     .select()
     .single();
