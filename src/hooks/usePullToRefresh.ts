@@ -37,10 +37,30 @@ export function usePullToRefresh({
   // Track if touch is potentially starting a pull
   const touchStartedAtTop = useRef(false);
 
+  const getEffectiveScrollTop = () => {
+    // IMPORTANT: The PullToRefresh wrapper is often NOT the scroll container.
+    // If we always read containerRef.current.scrollTop, it will be 0 and we’ll
+    // incorrectly think we’re “at top” anywhere on the page.
+    const el = containerRef.current;
+
+    // If the element itself scrolls, use it.
+    if (el && el.scrollHeight - el.clientHeight > 1) {
+      return el.scrollTop;
+    }
+
+    // Otherwise, fall back to document/window scrolling.
+    return (
+      window.scrollY ||
+      document.documentElement?.scrollTop ||
+      document.body?.scrollTop ||
+      0
+    );
+  };
+
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (disabled || isRefreshing) return;
     
-    const scrollTop = containerRef.current?.scrollTop ?? window.scrollY;
+    const scrollTop = getEffectiveScrollTop();
     
     // Only track if we're at the top
     if (scrollTop > 5) {
@@ -84,7 +104,7 @@ export function usePullToRefresh({
       
       // Determine if this is a vertical pull-down gesture at the top of the page
       // Must be: moving downward, more vertical than horizontal, and at top
-      const scrollTop = containerRef.current?.scrollTop ?? window.scrollY;
+      const scrollTop = getEffectiveScrollTop();
       const isAtTop = scrollTop <= 5;
       isVerticalPull.current = isAtTop && deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX) * 1.5;
       
