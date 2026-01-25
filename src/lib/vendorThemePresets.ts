@@ -22,15 +22,16 @@ export const vendorThemePresets: VendorThemePreset[] = [
   {
     key: 'none',
     name: 'Default',
-    swatch: 'hsl(0, 0%, 85%)', // Gray swatch to indicate "no color"
-    banner: 'hsl(var(--primary))',
-    bannerText: 'hsl(var(--primary-foreground))',
-    accent: 'hsl(var(--primary))',
-    accentText: 'hsl(var(--primary-foreground))',
-    cardBorder: 'hsl(var(--border))',
-    cardBg: 'hsl(var(--card))',
-    cardGlow: '0 4px 24px -4px hsla(var(--primary), 0.2)',
-    sectionBg: 'hsl(var(--muted))',
+    // Uses actual site design system values from index.css
+    swatch: 'hsl(24, 85%, 56%)', // Primary burnt orange - matches site accent
+    banner: 'hsl(24, 85%, 56%)', // --primary
+    bannerText: 'hsl(0, 0%, 100%)', // --primary-foreground (white)
+    accent: 'hsl(24, 85%, 56%)', // --primary
+    accentText: 'hsl(0, 0%, 100%)', // --primary-foreground
+    cardBorder: 'hsl(20, 10%, 88%)', // --border
+    cardBg: 'hsl(0, 0%, 100%)', // --card (white)
+    cardGlow: '0 4px 24px -4px hsla(24, 85%, 56%, 0.2)', // Primary with transparency
+    sectionBg: 'hsl(46, 35%, 96%)', // --muted (warm cream)
   },
   {
     key: 'blue',
