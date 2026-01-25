@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
   Download, Loader2, X, Lock, Play, Square, 
-  Palette, Music, Activity, User, MapPin, Package
+  Palette, Music, Activity, User, MapPin, Package, ArrowRight
 } from "lucide-react";
+import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -264,8 +265,15 @@ export function FeedItemDialog({
             <X className="h-5 w-5" />
           </Button>
           
-          {/* Image */}
-          {item.image_url ? (
+          {/* Image or Memory Match Grid for announcements */}
+          {item.item_type === 'announcement' && (item.extra_data?.announcement_type === 'memory_match_extreme' || item.extra_data?.announcement_type === 'memory_match_hard') ? (
+            <div className="p-4 pt-8">
+              <MemoryMatchGridPreview 
+                difficulty={item.extra_data?.announcement_type === 'memory_match_extreme' ? 'extreme' : 'hard'} 
+                cardBackUrl={item.image_url || undefined}
+              />
+            </div>
+          ) : item.image_url ? (
             <div className="relative pt-4">
               <img
                 src={item.image_url}
@@ -486,14 +494,16 @@ export function FeedItemDialog({
                 </Button>
               )}
 
-              {/* Like button with tooltip */}
-              <LikeButtonWithTooltip
-                itemId={item.id}
-                itemType={item.item_type}
-                isLiked={isLiked}
-                likesCount={likesCount}
-                onLike={onToggleLike}
-              />
+              {/* Like button with tooltip - not for announcements */}
+              {item.item_type !== 'announcement' && (
+                <LikeButtonWithTooltip
+                  itemId={item.id}
+                  itemType={item.item_type}
+                  isLiked={isLiked}
+                  likesCount={likesCount}
+                  onLike={onToggleLike}
+                />
+              )}
 
 
               {/* Owner-only actions */}
@@ -507,8 +517,8 @@ export function FeedItemDialog({
                     </Link>
                   </Button>
 
-                  {/* Download - owner only, not for colorings */}
-                  {item.image_url && item.item_type !== 'coloring' && (
+                  {/* Download - owner only, not for colorings or announcements */}
+                  {item.image_url && item.item_type !== 'coloring' && item.item_type !== 'announcement' && (
                     <Button 
                       variant="outline" 
                       size="sm" 
