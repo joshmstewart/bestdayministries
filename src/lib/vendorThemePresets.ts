@@ -20,17 +20,17 @@ export interface VendorThemePreset {
 
 export const vendorThemePresets: VendorThemePreset[] = [
   {
-    key: 'orange',
-    name: 'Sunset Orange',
-    swatch: 'hsl(24, 100%, 50%)',
-    banner: 'hsl(24, 100%, 50%)',
-    bannerText: 'hsl(0, 0%, 100%)',
-    accent: 'hsl(24, 100%, 50%)',
-    accentText: 'hsl(0, 0%, 100%)',
-    cardBorder: 'hsl(24, 90%, 65%)',
-    cardBg: 'hsl(24, 100%, 97%)',
-    cardGlow: '0 4px 24px -4px hsla(24, 100%, 50%, 0.4)',
-    sectionBg: 'hsl(24, 70%, 94%)',
+    key: 'none',
+    name: 'Default',
+    swatch: 'hsl(0, 0%, 85%)', // Gray swatch to indicate "no color"
+    banner: 'hsl(var(--primary))',
+    bannerText: 'hsl(var(--primary-foreground))',
+    accent: 'hsl(var(--primary))',
+    accentText: 'hsl(var(--primary-foreground))',
+    cardBorder: 'hsl(var(--border))',
+    cardBg: 'hsl(var(--card))',
+    cardGlow: '0 4px 24px -4px hsla(var(--primary), 0.2)',
+    sectionBg: 'hsl(var(--muted))',
   },
   {
     key: 'blue',
