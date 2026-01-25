@@ -784,7 +784,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               )}
 
               {/* Repost button for admins on events */}
-              {isAdmin && item.item_type === 'event' && !isRepost && (
+              {isAdmin && item.item_type === 'event' && (
                 <Button
                   variant="ghost"
                   size="sm"
