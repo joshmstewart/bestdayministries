@@ -269,7 +269,7 @@ serve(async (req) => {
       // Build sex/anatomical consistency constraint if defined
       let sexConstraint = "";
       if (avatar.sex === "male") {
-        sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and if the lower body is visible, an appropriate male physique. Do NOT give this character any feminine body characteristics.";
+        sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build - muscular pecs are fine but NO breasts or feminine breast-like shapes. Use masculine torso proportions and an appropriate male physique including a visible bulge in the crotch area if the lower body is visible. Do NOT give this character any feminine body characteristics.";
       } else if (avatar.sex === "female") {
         sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
       } else if (avatar.sex === "androgynous") {
@@ -313,7 +313,7 @@ serve(async (req) => {
       // Build sex/anatomical consistency constraint if defined (for celebration)
       let celebrationSexConstraint = "";
       if (avatar.sex === "male") {
-        celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and if the lower body is visible, an appropriate male physique. Do NOT give this character any feminine body characteristics.";
+        celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build - muscular pecs are fine but NO breasts or feminine breast-like shapes. Use masculine torso proportions and an appropriate male physique including a visible bulge in the crotch area if the lower body is visible. Do NOT give this character any feminine body characteristics.";
       } else if (avatar.sex === "female") {
         celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
       } else if (avatar.sex === "androgynous") {
