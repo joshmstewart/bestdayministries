@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, Send, Upload, X, Megaphone, ExternalLink, Clock, CheckCircle } from "lucide-react";
+import { Pencil, Trash2, Eye, Send, Upload, X, Megaphone, Clock, CheckCircle, Loader2 } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,16 +31,25 @@ interface ContentAnnouncement {
   updated_at: string;
 }
 
-const ANNOUNCEMENT_TYPES = [
-  { value: "general", label: "General", emoji: "📢" },
-  { value: "avatar", label: "New Avatars", emoji: "👤" },
-  { value: "coloring_book", label: "Coloring Book", emoji: "🎨" },
-  { value: "memory_match_pack", label: "Memory Match Pack", emoji: "🧩" },
-  { value: "sticker_pack", label: "Sticker Pack", emoji: "⭐" },
-  { value: "beat_pad_pack", label: "Beat Pad Sounds", emoji: "🎵" },
-  { value: "joke_pack", label: "Joke Pack", emoji: "😂" },
-  { value: "location_pack", label: "Location Pack", emoji: "📍" },
-  { value: "cash_register_pack", label: "Cash Register Pack", emoji: "💰" },
+interface ContentItem {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  link_url: string;
+}
+
+// App types that can be announced with their data sources
+const ANNOUNCEABLE_APPS = [
+  { id: "memory_match", label: "Memory Match", emoji: "🧩", table: "memory_match_packs", linkPath: "/games/memory-match" },
+  { id: "sticker_pack", label: "Sticker Packs", emoji: "⭐", table: "sticker_collections", linkPath: "/sticker-album" },
+  { id: "coloring_book", label: "Coloring Books", emoji: "🎨", table: "coloring_books", linkPath: "/games/coloring-book" },
+  { id: "beat_pad", label: "Beat Pad Sounds", emoji: "🎵", table: "beat_pad_sounds", linkPath: "/games/beat-pad" },
+  { id: "joke_category", label: "Joke Packs", emoji: "😂", table: "joke_categories", linkPath: "/games/jokes" },
+  { id: "cash_register_store", label: "Cash Register Locations", emoji: "🏪", table: "cash_register_stores", linkPath: "/games/cash-register" },
+  { id: "cash_register_pack", label: "Cash Register Packs", emoji: "💰", table: "cash_register_packs", linkPath: "/games/cash-register" },
+  { id: "card_template", label: "Card Templates", emoji: "💌", table: "card_templates", linkPath: "/games/card-creator" },
+  { id: "avatar", label: "Avatars", emoji: "👤", table: "avatars", linkPath: "/profile" },
 ];
 
 export const ContentAnnouncementsManager = () => {
@@ -50,10 +59,18 @@ export const ContentAnnouncementsManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewAnnouncement, setPreviewAnnouncement] = useState<ContentAnnouncement | null>(null);
+  
+  // Cascading dropdown state
+  const [selectedAppId, setSelectedAppId] = useState<string>("");
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [availableItems, setAvailableItems] = useState<ContentItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+  
+  // Form data (auto-filled from selection)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    announcement_type: "general",
+    announcement_type: "",
     link_url: "",
     link_label: "Check it out!",
   });
@@ -64,11 +81,41 @@ export const ContentAnnouncementsManager = () => {
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('16:9');
-  const [linkType, setLinkType] = useState<string>("custom");
 
   useEffect(() => {
     loadAnnouncements();
   }, []);
+
+  // Load items when app changes
+  useEffect(() => {
+    if (selectedAppId) {
+      loadItemsForApp(selectedAppId);
+    } else {
+      setAvailableItems([]);
+      setSelectedItemId("");
+    }
+  }, [selectedAppId]);
+
+  // Auto-fill form when item is selected
+  useEffect(() => {
+    if (selectedItemId && availableItems.length > 0) {
+      const item = availableItems.find(i => i.id === selectedItemId);
+      if (item) {
+        const app = ANNOUNCEABLE_APPS.find(a => a.id === selectedAppId);
+        setFormData({
+          title: `New ${app?.label || "Content"}: ${item.name}`,
+          description: item.description || "",
+          announcement_type: selectedAppId,
+          link_url: item.link_url,
+          link_label: "Check it out!",
+        });
+        if (item.image_url) {
+          setImagePreview(item.image_url);
+          setImageFile(null); // Clear file since we're using existing URL
+        }
+      }
+    }
+  }, [selectedItemId, availableItems, selectedAppId]);
 
   const loadAnnouncements = async () => {
     try {
@@ -87,18 +134,178 @@ export const ContentAnnouncementsManager = () => {
     }
   };
 
+  const loadItemsForApp = async (appId: string) => {
+    const app = ANNOUNCEABLE_APPS.find(a => a.id === appId);
+    if (!app) return;
+
+    setLoadingItems(true);
+    setAvailableItems([]);
+    setSelectedItemId("");
+
+    try {
+      let items: ContentItem[] = [];
+
+      switch (app.table) {
+        case "memory_match_packs": {
+          const { data } = await supabase
+            .from("memory_match_packs")
+            .select("id, name, description, preview_image_url")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false });
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            image_url: p.preview_image_url,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "sticker_collections": {
+          const { data } = await supabase
+            .from("sticker_collections")
+            .select("id, name, description, pack_image_url")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false });
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            image_url: p.pack_image_url,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "coloring_books": {
+          const { data } = await supabase
+            .from("coloring_books")
+            .select("id, title, description, cover_image_url")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false });
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.title,
+            description: p.description,
+            image_url: p.cover_image_url,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "beat_pad_sounds": {
+          const { data } = await supabase
+            .from("beat_pad_sounds")
+            .select("id, name, description, emoji, category")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false });
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: `${p.emoji || "🎵"} ${p.name}`,
+            description: p.description || `${p.category || "Sound"} for Beat Pad`,
+            image_url: null,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "joke_categories": {
+          const { data } = await supabase
+            .from("joke_categories")
+            .select("id, name, description, icon_url, emoji")
+            .eq("is_active", true)
+            .order("display_order");
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: `${p.emoji || "😂"} ${p.name}`,
+            description: p.description,
+            image_url: p.icon_url,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "cash_register_stores": {
+          const { data } = await supabase
+            .from("cash_register_stores")
+            .select("id, name, description, image_url")
+            .eq("is_active", true)
+            .order("display_order");
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            image_url: p.image_url,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "cash_register_packs": {
+          const { data } = await supabase
+            .from("cash_register_packs")
+            .select("id, name, description, image_url")
+            .eq("is_active", true)
+            .order("display_order");
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            image_url: p.image_url,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "card_templates": {
+          const { data } = await supabase
+            .from("card_templates")
+            .select("id, title, description, cover_image_url")
+            .eq("is_active", true)
+            .order("display_order");
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.title,
+            description: p.description,
+            image_url: p.cover_image_url,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+        case "avatars": {
+          const { data } = await supabase
+            .from("avatars")
+            .select("id, avatar_number, category")
+            .eq("is_active", true)
+            .order("created_at", { ascending: false });
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: `Avatar #${p.avatar_number} (${p.category})`,
+            description: `New ${p.category} avatar available!`,
+            image_url: null,
+            link_url: app.linkPath,
+          }));
+          break;
+        }
+      }
+
+      setAvailableItems(items);
+    } catch (error) {
+      console.error("Error loading items:", error);
+      toast.error("Failed to load items");
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       title: "",
       description: "",
-      announcement_type: "general",
+      announcement_type: "",
       link_url: "",
       link_label: "Check it out!",
     });
     setImageFile(null);
     setImagePreview("");
     setEditingId(null);
-    setLinkType("custom");
+    setSelectedAppId("");
+    setSelectedItemId("");
+    setAvailableItems([]);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +370,7 @@ export const ContentAnnouncementsManager = () => {
     try {
       let imageUrl = editingId 
         ? announcements.find(a => a.id === editingId)?.image_url 
-        : null;
+        : imagePreview && !imageFile ? imagePreview : null;
       
       if (imageFile) {
         imageUrl = await uploadImage();
@@ -172,7 +379,7 @@ export const ContentAnnouncementsManager = () => {
       const announcementData = {
         title: formData.title.trim(),
         description: formData.description.trim() || null,
-        announcement_type: formData.announcement_type,
+        announcement_type: formData.announcement_type || "general",
         link_url: formData.link_url.trim() || null,
         link_label: formData.link_label.trim() || null,
         image_url: imageUrl,
@@ -253,13 +460,9 @@ export const ContentAnnouncementsManager = () => {
     if (announcement.image_url) {
       setImagePreview(announcement.image_url);
     }
-    // Detect link type
-    if (announcement.link_url?.startsWith("/")) {
-      const internalPage = INTERNAL_PAGES.find(p => p.value === announcement.link_url);
-      setLinkType(internalPage ? "internal" : "custom");
-    } else {
-      setLinkType("custom");
-    }
+    // Clear cascading selects when editing (manual mode)
+    setSelectedAppId("");
+    setSelectedItemId("");
   };
 
   const handlePreview = (announcement: ContentAnnouncement) => {
@@ -267,19 +470,31 @@ export const ContentAnnouncementsManager = () => {
     setPreviewOpen(true);
   };
 
-  const handleLinkTypeChange = (type: string) => {
-    setLinkType(type);
-    if (type === "internal") {
-      setFormData(prev => ({ ...prev, link_url: "" }));
-    }
+  const handlePreviewCurrent = () => {
+    // Preview current form state
+    setPreviewAnnouncement({
+      id: "preview",
+      created_by: user?.id || "",
+      title: formData.title,
+      description: formData.description,
+      image_url: imagePreview || null,
+      announcement_type: formData.announcement_type,
+      link_url: formData.link_url,
+      link_label: formData.link_label,
+      status: "draft",
+      published_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    setPreviewOpen(true);
   };
 
-  const getTypeEmoji = (type: string) => {
-    return ANNOUNCEMENT_TYPES.find(t => t.value === type)?.emoji || "📢";
+  const getAppEmoji = (type: string) => {
+    return ANNOUNCEABLE_APPS.find(a => a.id === type)?.emoji || "📢";
   };
 
-  const getTypeLabel = (type: string) => {
-    return ANNOUNCEMENT_TYPES.find(t => t.value === type)?.label || "General";
+  const getAppLabel = (type: string) => {
+    return ANNOUNCEABLE_APPS.find(a => a.id === type)?.label || type || "General";
   };
 
   if (loading) {
@@ -297,151 +512,184 @@ export const ContentAnnouncementsManager = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Step 1: Select App */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="New Memory Match Pack Available!"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">Announcement Type</Label>
+              <Label>1. Select App Type *</Label>
               <Select
-                value={formData.announcement_type}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, announcement_type: value }))}
+                value={selectedAppId}
+                onValueChange={setSelectedAppId}
+                disabled={!!editingId}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Choose an app..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {ANNOUNCEMENT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.emoji} {type.label}
+                  {ANNOUNCEABLE_APPS.map((app) => (
+                    <SelectItem key={app.id} value={app.id}>
+                      {app.emoji} {app.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Check out our brand new animal-themed pack with 20 beautiful images..."
-              rows={3}
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
+            {/* Step 2: Select Item */}
             <div className="space-y-2">
-              <Label>Link Type</Label>
-              <Select value={linkType} onValueChange={handleLinkTypeChange}>
+              <Label>2. Select Item *</Label>
+              <Select
+                value={selectedItemId}
+                onValueChange={setSelectedItemId}
+                disabled={!selectedAppId || loadingItems || !!editingId}
+              >
                 <SelectTrigger>
-                  <SelectValue />
+                  {loadingItems ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Loading...
+                    </div>
+                  ) : (
+                    <SelectValue placeholder={selectedAppId ? "Choose an item..." : "Select app first"} />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="custom">Custom URL</SelectItem>
-                  <SelectItem value="internal">Internal Page</SelectItem>
+                  {availableItems.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      <div className="flex items-center gap-2">
+                        {item.image_url && (
+                          <img 
+                            src={item.image_url} 
+                            alt="" 
+                            className="w-6 h-6 rounded object-cover"
+                          />
+                        )}
+                        <span className="truncate">{item.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {!loadingItems && availableItems.length === 0 && selectedAppId && (
+                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                      No items found for this app
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="link_url">Link URL</Label>
-              {linkType === "internal" ? (
-                <Select
-                  value={formData.link_url}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, link_url: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a page" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INTERNAL_PAGES.map((page) => (
-                      <SelectItem key={page.value} value={page.value}>
-                        {page.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
+          </div>
+
+          {/* Auto-filled fields (editable) */}
+          {(selectedItemId || editingId) && (
+            <>
+              <div className="border-t pt-4 mt-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  ✨ Fields auto-filled from selection. You can edit them before saving.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
                 <Input
-                  id="link_url"
-                  value={formData.link_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, link_url: e.target.value }))}
-                  placeholder="/games/memory-match or https://..."
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="New Memory Match Pack Available!"
                 />
-              )}
-            </div>
-          </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="link_label">Link Button Text</Label>
-            <Input
-              id="link_label"
-              value={formData.link_label}
-              onChange={(e) => setFormData(prev => ({ ...prev, link_label: e.target.value }))}
-              placeholder="Check it out!"
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Check out our brand new pack..."
+                  rows={3}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label>Image (Optional)</Label>
-            <div className="flex items-center gap-4">
-              {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-32 h-20 object-cover rounded-lg border"
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="link_url">Link URL</Label>
+                  <Input
+                    id="link_url"
+                    value={formData.link_url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, link_url: e.target.value }))}
+                    placeholder="/games/memory-match"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="link_label">Button Text</Label>
+                  <Input
+                    id="link_label"
+                    value={formData.link_label}
+                    onChange={(e) => setFormData(prev => ({ ...prev, link_label: e.target.value }))}
+                    placeholder="Check it out!"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Image</Label>
+                <div className="flex items-center gap-4">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-32 h-20 object-cover rounded-lg border"
+                      />
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={() => {
+                          setImageFile(null);
+                          setImagePreview("");
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : null}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileSelect}
                   />
                   <Button
-                    size="icon"
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-6 w-6"
-                    onClick={() => {
-                      setImageFile(null);
-                      setImagePreview("");
-                    }}
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
                   >
-                    <X className="h-3 w-3" />
+                    <Upload className="w-4 h-4 mr-2" />
+                    {imagePreview ? "Change Image" : "Upload Image"}
                   </Button>
                 </div>
-              ) : null}
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileSelect}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {imagePreview ? "Change Image" : "Upload Image"}
-              </Button>
-            </div>
-          </div>
+              </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={uploading}>
-              {editingId ? "Update Draft" : "Save as Draft"}
-            </Button>
-            {editingId && (
-              <Button variant="outline" onClick={resetForm}>
-                Cancel
-              </Button>
-            )}
-          </div>
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleSave} disabled={uploading || !formData.title.trim()}>
+                  {editingId ? "Update Draft" : "Save as Draft"}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handlePreviewCurrent}
+                  disabled={!formData.title.trim()}
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview
+                </Button>
+                {editingId && (
+                  <Button variant="ghost" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -471,7 +719,7 @@ export const ContentAnnouncementsManager = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{getTypeEmoji(announcement.announcement_type)}</span>
+                      <span className="text-lg">{getAppEmoji(announcement.announcement_type)}</span>
                       <h3 className="font-medium truncate">{announcement.title}</h3>
                       <Badge variant={announcement.status === "published" ? "default" : "secondary"}>
                         {announcement.status === "published" ? (
@@ -487,21 +735,10 @@ export const ContentAnnouncementsManager = () => {
                       </p>
                     )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Badge variant="outline">{getTypeLabel(announcement.announcement_type)}</Badge>
-                      {announcement.link_url && (
-                        <span className="flex items-center gap-1">
-                          <ExternalLink className="w-3 h-3" />
-                          {announcement.link_url}
-                        </span>
-                      )}
+                      <Badge variant="outline">{getAppLabel(announcement.announcement_type)}</Badge>
                       <span>
-                        Created {formatDistanceToNow(new Date(announcement.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(announcement.created_at), { addSuffix: true })}
                       </span>
-                      {announcement.published_at && (
-                        <span>
-                          • Published {formatDistanceToNow(new Date(announcement.published_at), { addSuffix: true })}
-                        </span>
-                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -523,14 +760,13 @@ export const ContentAnnouncementsManager = () => {
                     </Button>
                     {announcement.status === "draft" && (
                       <Button
-                        size="sm"
-                        variant="default"
+                        size="icon"
+                        variant="ghost"
                         onClick={() => handlePublish(announcement.id)}
                         title="Publish"
-                        className="gap-1"
+                        className="text-primary hover:text-primary"
                       >
                         <Send className="w-4 h-4" />
-                        Publish
                       </Button>
                     )}
                     <Button
@@ -554,33 +790,32 @@ export const ContentAnnouncementsManager = () => {
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5" />
-              Preview Announcement
-            </DialogTitle>
+            <DialogTitle>Feed Preview</DialogTitle>
             <DialogDescription>
-              This is how the announcement will appear in the feed
+              This is how the announcement will appear in the community feed.
             </DialogDescription>
           </DialogHeader>
+          
           {previewAnnouncement && (
             <div className="border rounded-lg overflow-hidden bg-card">
               {previewAnnouncement.image_url && (
                 <img
                   src={previewAnnouncement.image_url}
                   alt={previewAnnouncement.title}
-                  className="w-full aspect-video object-cover"
+                  className="w-full h-48 object-cover"
                 />
               )}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="secondary" className="gap-1">
                     <Megaphone className="w-3 h-3" />
-                    {getTypeLabel(previewAnnouncement.announcement_type)}
+                    New!
+                  </Badge>
+                  <Badge variant="outline">
+                    {getAppEmoji(previewAnnouncement.announcement_type)} {getAppLabel(previewAnnouncement.announcement_type)}
                   </Badge>
                 </div>
-                <h3 className="font-semibold text-lg mb-1">
-                  {previewAnnouncement.title}
-                </h3>
+                <h3 className="font-semibold text-lg mb-1">{previewAnnouncement.title}</h3>
                 {previewAnnouncement.description && (
                   <p className="text-muted-foreground text-sm mb-3">
                     {previewAnnouncement.description}
@@ -594,19 +829,17 @@ export const ContentAnnouncementsManager = () => {
               </div>
             </div>
           )}
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>
               Close
             </Button>
-            {previewAnnouncement?.status === "draft" && (
-              <Button
-                onClick={() => {
-                  handlePublish(previewAnnouncement.id);
-                  setPreviewOpen(false);
-                }}
-                className="gap-1"
-              >
-                <Send className="w-4 h-4" />
+            {previewAnnouncement?.status === "draft" && previewAnnouncement.id !== "preview" && (
+              <Button onClick={() => {
+                handlePublish(previewAnnouncement.id);
+                setPreviewOpen(false);
+              }}>
+                <Send className="w-4 h-4 mr-2" />
                 Publish Now
               </Button>
             )}
@@ -624,7 +857,7 @@ export const ContentAnnouncementsManager = () => {
         selectedRatioKey={aspectRatioKey}
         onAspectRatioKeyChange={setAspectRatioKey}
         title="Crop Announcement Image"
-        description="Adjust the crop area for your announcement image"
+        description="Adjust the crop area for your announcement"
       />
     </div>
   );
