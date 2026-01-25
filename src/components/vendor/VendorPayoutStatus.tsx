@@ -61,10 +61,12 @@ export const VendorPayoutStatus = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge className={`${status.color} flex items-center gap-1 cursor-help`}>
-            {status.icon}
-            {status.label}
-          </Badge>
+          <span className="inline-flex">
+            <Badge className={`${status.color} flex items-center gap-1 cursor-help`}>
+              {status.icon}
+              {status.label}
+            </Badge>
+          </span>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">
           <p className="text-sm">{status.tooltip}</p>
