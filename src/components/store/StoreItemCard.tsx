@@ -56,8 +56,9 @@ export const StoreItemCard = ({
 
   const canAfford = userCoins >= price;
   const isColoringBook = id.startsWith("coloring_book_");
-  const isMemoryMatchHard = id === "memory_match_hard";
-  const isMemoryMatchExtreme = id === "memory_match_extreme";
+  // Check by name since IDs are UUIDs
+  const isMemoryMatchHard = name === "Memory Match - Hard Mode";
+  const isMemoryMatchExtreme = name === "Memory Match - Extreme Mode";
   const bookId = isColoringBook ? id.replace("coloring_book_", "") : null;
 
   // Fetch coloring book pages when preview opens
