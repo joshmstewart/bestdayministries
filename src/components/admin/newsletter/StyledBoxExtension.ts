@@ -205,8 +205,47 @@ export const StyledBox = Node.create<StyledBoxOptions>({
         },
       updateStyledBoxStyle:
         (style: StyledBoxStyle) =>
-        ({ commands }) => {
-          return commands.updateAttributes(this.name, { style });
+        ({ tr, state, dispatch }) => {
+          // Find the styledBox node that contains the current selection
+          const { selection } = state;
+          let foundPos: number | null = null;
+          let foundNode: any = null;
+          
+          // Walk up from the selection to find the styled box
+          state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+            if (node.type.name === 'styledBox') {
+              foundPos = pos;
+              foundNode = node;
+              return false; // stop searching
+            }
+            return true;
+          });
+          
+          // Also check ancestors
+          if (foundPos === null) {
+            const $pos = state.doc.resolve(selection.from);
+            for (let d = $pos.depth; d >= 0; d--) {
+              const node = $pos.node(d);
+              if (node.type.name === 'styledBox') {
+                foundPos = $pos.before(d);
+                foundNode = node;
+                break;
+              }
+            }
+          }
+          
+          if (foundPos === null || foundNode === null) {
+            return false;
+          }
+          
+          if (dispatch) {
+            // Create new attributes with just the style changed
+            const newAttrs = { ...foundNode.attrs, style };
+            tr.setNodeMarkup(foundPos, undefined, newAttrs);
+            dispatch(tr);
+          }
+          
+          return true;
         },
     };
   },
