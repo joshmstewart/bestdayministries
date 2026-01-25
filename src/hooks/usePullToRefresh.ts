@@ -14,6 +14,9 @@ interface UsePullToRefreshReturn {
   containerRef: React.RefObject<HTMLDivElement>;
 }
 
+// Minimum distance to move before we consider it a pull-to-refresh vs normal scroll
+const PULL_START_THRESHOLD = 10;
+
 export function usePullToRefresh({
   onRefresh,
   threshold = 80,
@@ -22,42 +25,102 @@ export function usePullToRefresh({
 }: UsePullToRefreshOptions): UsePullToRefreshReturn {
   const containerRef = useRef<HTMLDivElement>(null);
   const startY = useRef<number>(0);
+  const startX = useRef<number>(0);
   const currentY = useRef<number>(0);
   const [isPulling, setIsPulling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  
+  // Track if we've determined the gesture direction
+  const gestureDecided = useRef(false);
+  const isVerticalPull = useRef(false);
+  // Track if touch is potentially starting a pull
+  const touchStartedAtTop = useRef(false);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (disabled || isRefreshing) return;
     
     const scrollTop = containerRef.current?.scrollTop ?? window.scrollY;
-    if (scrollTop > 0) return;
+    
+    // Only track if we're at the top
+    if (scrollTop > 5) {
+      touchStartedAtTop.current = false;
+      return;
+    }
     
     startY.current = e.touches[0].clientY;
-    setIsPulling(true);
+    startX.current = e.touches[0].clientX;
+    touchStartedAtTop.current = true;
+    gestureDecided.current = false;
+    isVerticalPull.current = false;
   }, [disabled, isRefreshing]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isPulling || disabled || isRefreshing) return;
+    if (disabled || isRefreshing || !touchStartedAtTop.current) return;
     
     const scrollTop = containerRef.current?.scrollTop ?? window.scrollY;
-    if (scrollTop > 0) {
-      setIsPulling(false);
-      setPullDistance(0);
+    
+    // If we scrolled away from top, cancel any pull
+    if (scrollTop > 5) {
+      if (isPulling) {
+        setIsPulling(false);
+        setPullDistance(0);
+      }
+      touchStartedAtTop.current = false;
       return;
     }
     
     currentY.current = e.touches[0].clientY;
-    const distance = Math.max(0, (currentY.current - startY.current) / resistance);
+    const currentX = e.touches[0].clientX;
+    
+    const deltaY = currentY.current - startY.current;
+    const deltaX = currentX - startX.current;
+    
+    // If we haven't decided the gesture direction yet
+    if (!gestureDecided.current) {
+      const totalMovement = Math.abs(deltaY) + Math.abs(deltaX);
+      
+      // Wait until we have enough movement to decide
+      if (totalMovement < PULL_START_THRESHOLD) {
+        return;
+      }
+      
+      gestureDecided.current = true;
+      
+      // Determine if this is a vertical pull-down gesture
+      // Must be moving downward and more vertical than horizontal
+      isVerticalPull.current = deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX) * 1.5;
+      
+      if (isVerticalPull.current) {
+        setIsPulling(true);
+      }
+    }
+    
+    // Only handle as pull-to-refresh if we determined it's a vertical pull
+    if (!isVerticalPull.current) {
+      return;
+    }
+    
+    const distance = Math.max(0, deltaY / resistance);
     
     if (distance > 0) {
+      // Only prevent default when we're actively pulling
       e.preventDefault();
       setPullDistance(Math.min(distance, threshold * 1.5));
     }
   }, [isPulling, disabled, isRefreshing, resistance, threshold]);
 
   const handleTouchEnd = useCallback(async () => {
-    if (!isPulling || disabled) return;
+    // Reset touch tracking
+    touchStartedAtTop.current = false;
+    gestureDecided.current = false;
+    isVerticalPull.current = false;
+    
+    if (!isPulling || disabled) {
+      setIsPulling(false);
+      setPullDistance(0);
+      return;
+    }
     
     setIsPulling(false);
     
