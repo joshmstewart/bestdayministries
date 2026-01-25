@@ -30,7 +30,8 @@ export const PullToRefresh = forwardRef<HTMLDivElement, PullToRefreshProps>(({
   return (
     <div 
       ref={containerRef}
-      className={cn("relative", className)}
+      className={cn("relative touch-pan-y", className)}
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {/* Pull indicator */}
       <div 
