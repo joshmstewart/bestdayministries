@@ -86,9 +86,10 @@ export function ColoringPagesManager() {
     },
   });
 
-  const generateImage = async (promptToUse: string): Promise<string> => {
+  const generateImage = async (subject: string, bookTheme?: string): Promise<string> => {
+    console.log("Calling generate-coloring-page with:", { prompt: subject, bookTheme });
     const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
-      body: { prompt: promptToUse },
+      body: { prompt: subject, bookTheme: bookTheme || "" },
     });
     
     if (error) throw error;
@@ -101,15 +102,17 @@ export function ColoringPagesManager() {
       return;
     }
     
-    // Use full prompt if it's been customized, otherwise build it
-    const promptToUse = showFullPrompt && fullPrompt.trim() ? fullPrompt : buildFullPrompt(
-      aiPrompt,
-      books?.find(b => b.id === formData.book_id)?.generation_prompt
-    );
+    const selectedBook = books?.find(b => b.id === formData.book_id);
+    const bookTheme = selectedBook?.generation_prompt;
+    
+    if (!bookTheme) {
+      toast.warning("This book has no generation theme/prompt set - using generic style");
+    }
     
     setGeneratingImage(true);
     try {
-      const imageUrl = await generateImage(promptToUse);
+      // Pass subject and theme SEPARATELY - let backend enforce the theme
+      const imageUrl = await generateImage(aiPrompt.trim(), bookTheme);
       setGeneratedImageUrl(imageUrl);
       setImageFile(null);
       toast.success("Image generated!");
@@ -121,16 +124,15 @@ export function ColoringPagesManager() {
   };
 
   const handleRegenerateImage = async (page: any) => {
-    const prompt = page.description || page.title;
+    const subject = page.description || page.title;
     setRegeneratingId(page.id);
     
     try {
-      // Build the full prompt for regeneration
+      // Pass subject and theme SEPARATELY - let backend enforce the theme
       const selectedBook = books?.find(b => b.id === page.book_id);
       const bookTheme = selectedBook?.generation_prompt;
-      const fullPromptToUse = buildFullPrompt(prompt, bookTheme);
       
-      const imageUrl = await generateImage(fullPromptToUse);
+      const imageUrl = await generateImage(subject, bookTheme);
       
       const { error } = await supabase
         .from("coloring_pages")
