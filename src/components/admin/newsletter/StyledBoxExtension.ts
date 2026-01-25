@@ -26,6 +26,7 @@ declare module '@tiptap/core' {
     styledBox: {
       setStyledBox: (style: StyledBoxStyle) => ReturnType;
       toggleStyledBox: (style: StyledBoxStyle) => ReturnType;
+      updateStyledBoxStyle: (style: StyledBoxStyle) => ReturnType;
     };
   }
 }
@@ -195,6 +196,11 @@ export const StyledBox = Node.create<StyledBoxOptions>({
         (style: StyledBoxStyle) =>
         ({ commands }) => {
           return commands.toggleWrap(this.name, { style });
+        },
+      updateStyledBoxStyle:
+        (style: StyledBoxStyle) =>
+        ({ commands }) => {
+          return commands.updateAttributes(this.name, { style });
         },
     };
   },
