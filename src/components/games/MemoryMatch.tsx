@@ -1078,13 +1078,18 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                   aria-label={`Card ${card.id + 1}${card.isFlipped || card.isMatched ? `: ${card.imageName}` : ''}`}
                 >
                   {(card.isFlipped || card.isMatched) ? (
-                    <img 
-                      src={card.imageUrl} 
-                      alt={card.imageName}
-                      loading="eager"
-                      decoding="async"
-                      className="w-full h-full object-contain p-2"
-                    />
+                    <div className="w-full h-full flex flex-col items-center justify-center p-1 sm:p-2">
+                      <img 
+                        src={card.imageUrl} 
+                        alt={card.imageName}
+                        loading="eager"
+                        decoding="async"
+                        className="w-full flex-1 min-h-0 object-contain"
+                      />
+                      <span className="text-[8px] sm:text-[10px] font-medium text-primary-foreground text-center leading-tight mt-0.5 line-clamp-2 max-w-full px-0.5">
+                        {card.imageName}
+                      </span>
+                    </div>
                   ) : currentCardBackUrl && cardBackLoaded ? (
                     <img 
                       src={currentCardBackUrl}
