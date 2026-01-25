@@ -61,7 +61,7 @@ export const VendorThemePreview = ({ themeKey }: VendorThemePreviewProps) => {
         <div 
           className="rounded-md px-3 py-1.5 text-xs font-medium"
           style={{ 
-            backgroundColor: theme.accent,
+            background: theme.buttonGradient,
             color: theme.accentText 
           }}
           title="Accent Button"

@@ -16,6 +16,7 @@ export interface VendorThemePreset {
   cardBg: string;         // Card background tint
   cardGlow: string;       // Card glow/shadow effect
   sectionBg: string;      // Section background tint
+  buttonGradient: string; // Monochromatic gradient for buttons
 }
 
 export const vendorThemePresets: VendorThemePreset[] = [
@@ -32,6 +33,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(0, 0%, 100%)', // --card (white)
     cardGlow: '0 4px 24px -4px hsla(24, 85%, 56%, 0.2)', // Primary with transparency
     sectionBg: 'hsl(46, 35%, 96%)', // --muted (warm cream)
+    buttonGradient: 'linear-gradient(135deg, hsl(24, 85%, 60%) 0%, hsl(24, 85%, 48%) 100%)',
   },
   {
     key: 'blue',
@@ -45,6 +47,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(210, 100%, 97%)',
     cardGlow: '0 4px 24px -4px hsla(210, 100%, 50%, 0.4)',
     sectionBg: 'hsl(210, 70%, 93%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(210, 100%, 55%) 0%, hsl(210, 100%, 40%) 100%)',
   },
   {
     key: 'green',
@@ -58,6 +61,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(145, 70%, 96%)',
     cardGlow: '0 4px 24px -4px hsla(145, 80%, 38%, 0.4)',
     sectionBg: 'hsl(145, 50%, 92%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(145, 80%, 44%) 0%, hsl(145, 80%, 32%) 100%)',
   },
   {
     key: 'purple',
@@ -71,6 +75,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(270, 70%, 97%)',
     cardGlow: '0 4px 24px -4px hsla(270, 80%, 55%, 0.4)',
     sectionBg: 'hsl(270, 50%, 94%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(270, 80%, 60%) 0%, hsl(270, 80%, 45%) 100%)',
   },
   {
     key: 'red',
@@ -84,6 +89,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(0, 80%, 97%)',
     cardGlow: '0 4px 24px -4px hsla(0, 85%, 52%, 0.4)',
     sectionBg: 'hsl(0, 55%, 94%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(0, 85%, 58%) 0%, hsl(0, 85%, 44%) 100%)',
   },
   {
     key: 'pink',
@@ -97,6 +103,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(330, 75%, 97%)',
     cardGlow: '0 4px 24px -4px hsla(330, 85%, 58%, 0.4)',
     sectionBg: 'hsl(330, 55%, 94%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(330, 85%, 64%) 0%, hsl(330, 85%, 50%) 100%)',
   },
   {
     key: 'teal',
@@ -110,6 +117,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(175, 70%, 96%)',
     cardGlow: '0 4px 24px -4px hsla(175, 85%, 38%, 0.4)',
     sectionBg: 'hsl(175, 50%, 92%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(175, 85%, 44%) 0%, hsl(175, 85%, 30%) 100%)',
   },
   {
     key: 'gold',
@@ -123,6 +131,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(45, 90%, 96%)',
     cardGlow: '0 4px 24px -4px hsla(45, 100%, 50%, 0.4)',
     sectionBg: 'hsl(45, 65%, 92%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(45, 100%, 55%) 0%, hsl(45, 95%, 40%) 100%)',
   },
   {
     key: 'indigo',
@@ -136,6 +145,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(240, 60%, 97%)',
     cardGlow: '0 4px 24px -4px hsla(240, 70%, 50%, 0.4)',
     sectionBg: 'hsl(240, 45%, 94%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(240, 70%, 56%) 0%, hsl(240, 70%, 42%) 100%)',
   },
   {
     key: 'brown',
@@ -149,6 +159,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(25, 50%, 96%)',
     cardGlow: '0 4px 24px -4px hsla(25, 65%, 42%, 0.35)',
     sectionBg: 'hsl(25, 40%, 93%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(25, 65%, 48%) 0%, hsl(25, 65%, 34%) 100%)',
   },
   {
     key: 'slate',
@@ -162,6 +173,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(215, 25%, 97%)',
     cardGlow: '0 4px 24px -4px hsla(215, 30%, 45%, 0.3)',
     sectionBg: 'hsl(215, 20%, 94%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(215, 30%, 52%) 0%, hsl(215, 35%, 38%) 100%)',
   },
   {
     key: 'coral',
@@ -175,6 +187,7 @@ export const vendorThemePresets: VendorThemePreset[] = [
     cardBg: 'hsl(16, 85%, 97%)',
     cardGlow: '0 4px 24px -4px hsla(16, 95%, 58%, 0.4)',
     sectionBg: 'hsl(16, 60%, 94%)',
+    buttonGradient: 'linear-gradient(135deg, hsl(16, 95%, 64%) 0%, hsl(16, 95%, 50%) 100%)',
   },
 ];
 
