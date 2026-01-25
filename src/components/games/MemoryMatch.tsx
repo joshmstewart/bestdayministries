@@ -32,7 +32,7 @@ import coffeeGrinderImg from "@/assets/games/memory-match/coffee-grinder.png";
 import cinnamonSticksImg from "@/assets/games/memory-match/cinnamon-sticks.png";
 import sugarBowlImg from "@/assets/games/memory-match/sugar-bowl.png";
 
-type Difficulty = 'easy' | 'medium' | 'hard';
+type Difficulty = 'easy' | 'medium' | 'hard' | 'extreme';
 
 interface GameCard {
   id: number;
@@ -74,6 +74,7 @@ const DEFAULT_DIFFICULTY_CONFIG = {
   easy: { pairs: 6, coins: 10, label: 'Easy', color: 'bg-green-500' },
   medium: { pairs: 8, coins: 20, label: 'Medium', color: 'bg-yellow-500' },
   hard: { pairs: 10, coins: 40, label: 'Hard', color: 'bg-red-500' },
+  extreme: { pairs: 16, coins: 80, label: 'Extreme', color: 'bg-purple-600' },
 };
 
 interface MemoryMatchProps {
@@ -99,16 +100,19 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
   const [elapsedTime, setElapsedTime] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [hasHardMode, setHasHardMode] = useState(false);
-const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number; time: number } | null>>({
+  const [hasExtremeMode, setHasExtremeMode] = useState(false);
+  const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number; time: number } | null>>({
     easy: null,
     medium: null,
     hard: null,
+    extreme: null,
   });
   const [completionCount, setCompletionCount] = useState(0);
   const [pbRewards, setPbRewards] = useState<Record<Difficulty, number>>({
     easy: 50,
     medium: 75,
     hard: 100,
+    extreme: 150,
   });
   
   // Image pack state
@@ -127,6 +131,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
     easy: DEFAULT_DIFFICULTY_CONFIG.easy.coins,
     medium: DEFAULT_DIFFICULTY_CONFIG.medium.coins,
     hard: DEFAULT_DIFFICULTY_CONFIG.hard.coins,
+    extreme: DEFAULT_DIFFICULTY_CONFIG.extreme.coins,
   });
   const [changePackDialogOpen, setChangePackDialogOpen] = useState(false);
 
@@ -153,6 +158,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
     easy: { ...DEFAULT_DIFFICULTY_CONFIG.easy, coins: coinRewards.easy },
     medium: { ...DEFAULT_DIFFICULTY_CONFIG.medium, coins: coinRewards.medium },
     hard: { ...DEFAULT_DIFFICULTY_CONFIG.hard, coins: coinRewards.hard },
+    extreme: { ...DEFAULT_DIFFICULTY_CONFIG.extreme, coins: coinRewards.extreme },
   };
 
   useEffect(() => {
@@ -311,8 +317,8 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
       .from('coin_rewards_settings')
       .select('reward_key, coins_amount, is_active')
       .in('reward_key', [
-        'memory_match_easy', 'memory_match_medium', 'memory_match_hard',
-        'memory_match_pb_easy', 'memory_match_pb_medium', 'memory_match_pb_hard'
+        'memory_match_easy', 'memory_match_medium', 'memory_match_hard', 'memory_match_extreme',
+        'memory_match_pb_easy', 'memory_match_pb_medium', 'memory_match_pb_hard', 'memory_match_pb_extreme'
       ]);
     
     if (data) {
@@ -320,11 +326,13 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
         easy: DEFAULT_DIFFICULTY_CONFIG.easy.coins,
         medium: DEFAULT_DIFFICULTY_CONFIG.medium.coins,
         hard: DEFAULT_DIFFICULTY_CONFIG.hard.coins,
+        extreme: DEFAULT_DIFFICULTY_CONFIG.extreme.coins,
       };
       const pbRewardsData: Record<Difficulty, number> = {
         easy: 50,
         medium: 75,
         hard: 100,
+        extreme: 150,
       };
       
       data.forEach(reward => {
@@ -332,9 +340,11 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
           if (reward.reward_key === 'memory_match_easy') rewards.easy = reward.coins_amount;
           if (reward.reward_key === 'memory_match_medium') rewards.medium = reward.coins_amount;
           if (reward.reward_key === 'memory_match_hard') rewards.hard = reward.coins_amount;
+          if (reward.reward_key === 'memory_match_extreme') rewards.extreme = reward.coins_amount;
           if (reward.reward_key === 'memory_match_pb_easy') pbRewardsData.easy = reward.coins_amount;
           if (reward.reward_key === 'memory_match_pb_medium') pbRewardsData.medium = reward.coins_amount;
           if (reward.reward_key === 'memory_match_pb_hard') pbRewardsData.hard = reward.coins_amount;
+          if (reward.reward_key === 'memory_match_pb_extreme') pbRewardsData.extreme = reward.coins_amount;
         }
       });
       
@@ -352,6 +362,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
       .select('store_item_id')
       .eq('user_id', user.id);
 
+    // Check Hard Mode
     const hardModeItem = await supabase
       .from('store_items')
       .select('id')
@@ -360,6 +371,17 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
 
     if (hardModeItem.data && data?.some(p => p.store_item_id === hardModeItem.data.id)) {
       setHasHardMode(true);
+    }
+
+    // Check Extreme Mode
+    const extremeModeItem = await supabase
+      .from('store_items')
+      .select('id')
+      .eq('name', 'Memory Match - Extreme Mode')
+      .single();
+
+    if (extremeModeItem.data && data?.some(p => p.store_item_id === extremeModeItem.data.id)) {
+      setHasExtremeMode(true);
     }
   };
 
@@ -382,6 +404,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
         easy: null,
         medium: null,
         hard: null,
+        extreme: null,
       };
 
       // Track best time per difficulty (primary metric for PB)
@@ -644,7 +667,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
         <Card style={{ backgroundColor: currentColors.module }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-3xl">
-              <Star className="h-8 w-8 text-yellow-500" />
+              <Star className="h-8 w-8 text-primary" />
               Memory Match Game
             </CardTitle>
             <CardDescription className="text-lg">
@@ -669,10 +692,10 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
                 <Gamepad2 className="h-4 w-4" />
                 Choose Difficulty
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {(['easy', 'medium', 'hard'] as Difficulty[]).map((diff) => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {(['easy', 'medium', 'hard', 'extreme'] as Difficulty[]).map((diff) => {
                 const config = DIFFICULTY_CONFIG[diff];
-                const isLocked = diff === 'hard' && !hasHardMode;
+                const isLocked = (diff === 'hard' && !hasHardMode) || (diff === 'extreme' && !hasExtremeMode);
                 const best = bestScores[diff];
 
                 return (
@@ -706,18 +729,23 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
                         <div className="space-y-1 text-sm">
                           <p className="text-muted-foreground">Your Best:</p>
                           <p className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-blue-500" />
+                            <Clock className="h-4 w-4 text-primary" />
                             <span className="font-semibold">{formatTime(best.time)}</span>
                           </p>
                           <p className="flex items-center gap-2 text-muted-foreground">
-                            <Trophy className="h-4 w-4 text-yellow-500" />
+                            <Trophy className="h-4 w-4 text-primary" />
                             {best.moves} moves
                           </p>
                         </div>
                       )}
-                      {isLocked && (
+                      {isLocked && diff === 'hard' && (
                         <p className="text-xs text-muted-foreground mt-2">
                           Unlock Hard Mode in the store for 100 coins!
+                        </p>
+                      )}
+                      {isLocked && diff === 'extreme' && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Unlock Extreme Mode in the store for 250 coins!
                         </p>
                       )}
                     </CardContent>
@@ -738,7 +766,7 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
         <CardHeader className="px-2 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <Star className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500" />
+              <Star className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
               Memory Match - {DIFFICULTY_CONFIG[difficulty].label}
             </CardTitle>
           </div>
@@ -878,7 +906,8 @@ const [bestScores, setBestScores] = useState<Record<Difficulty, { moves: number;
             <div className={`grid gap-1 sm:gap-3 ${
               difficulty === 'easy' ? 'grid-cols-3 sm:grid-cols-4' :
               difficulty === 'medium' ? 'grid-cols-4' :
-              'grid-cols-4 sm:grid-cols-5'
+              difficulty === 'hard' ? 'grid-cols-4 sm:grid-cols-5' :
+              'grid-cols-4 sm:grid-cols-8'
             }`}>
               {cards.map((card) => (
                 <button
