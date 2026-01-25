@@ -2531,6 +2531,35 @@ export type Database = {
         }
         Relationships: []
       }
+      content_announcement_likes: {
+        Row: {
+          announcement_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_announcement_likes_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "content_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_announcements: {
         Row: {
           announcement_type: string
@@ -2539,6 +2568,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          likes_count: number
           link_label: string | null
           link_url: string | null
           published_at: string | null
@@ -2553,6 +2583,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          likes_count?: number
           link_label?: string | null
           link_url?: string | null
           published_at?: string | null
@@ -2567,6 +2598,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          likes_count?: number
           link_label?: string | null
           link_url?: string | null
           published_at?: string | null
