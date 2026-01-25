@@ -127,12 +127,24 @@ export function CreateJokeDialog({
         if (shareWithCommunity && !editingJoke.is_public) {
           updateData.shared_at = new Date().toISOString();
         }
-        const { error } = await supabase
+        
+        // Include user_id filter as additional safety measure
+        const { error, data } = await supabase
           .from("saved_jokes")
           .update(updateData)
-          .eq("id", editingJoke.id);
+          .eq("id", editingJoke.id)
+          .eq("user_id", userId)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating joke:", error);
+          throw error;
+        }
+        
+        if (!data || data.length === 0) {
+          throw new Error("No joke was updated - you may not own this joke");
+        }
+        
         toast.success("Joke updated! ✨");
       } else {
         // Create new joke
