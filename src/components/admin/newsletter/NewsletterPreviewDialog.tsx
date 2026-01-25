@@ -5,7 +5,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,17 +153,7 @@ export const NewsletterPreviewDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <DialogTitle>Email Preview</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="h-6 w-6"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle>Email Preview</DialogTitle>
         </DialogHeader>
 
         <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
