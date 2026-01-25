@@ -42,6 +42,7 @@ interface ContentItem {
 // App types that can be announced with their data sources
 const ANNOUNCEABLE_APPS = [
   { id: "memory_match", label: "Memory Match", emoji: "🧩", table: "memory_match_packs", linkPath: "/games/memory-match" },
+  { id: "memory_match_extreme", label: "Memory Match Extreme", emoji: "🔥", table: "store_items", linkPath: "/store" },
   { id: "sticker_pack", label: "Sticker Packs", emoji: "⭐", table: "sticker_collections", linkPath: "/sticker-album" },
   { id: "coloring_book", label: "Coloring Books", emoji: "🎨", table: "coloring_books", linkPath: "/games/coloring-book" },
   { id: "beat_pad", label: "Beat Pad Sounds", emoji: "🎵", table: "beat_pad_sounds", linkPath: "/games/beat-pad" },
@@ -278,6 +279,22 @@ export const ContentAnnouncementsManager = () => {
             description: `New ${p.category} avatar available!`,
             image_url: null,
             link_url: `${app.linkPath}?avatar=${p.id}`,
+          }));
+          break;
+        }
+        case "store_items": {
+          // Memory Match Extreme - get the specific store item
+          const { data } = await supabase
+            .from("store_items")
+            .select("id, name, description, image_url")
+            .eq("name", "Memory Match - Extreme Mode")
+            .eq("is_active", true);
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || "Unlock Extreme Mode with 32 cards!",
+            image_url: p.image_url,
+            link_url: `${app.linkPath}?item=${p.id}`,
           }));
           break;
         }
