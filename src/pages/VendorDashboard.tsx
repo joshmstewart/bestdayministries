@@ -21,7 +21,7 @@ import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 import { VendorTeamManager } from "@/components/vendor/VendorTeamManager";
 import { CartInsights } from "@/components/vendor/CartInsights";
 import { PageLoadingState } from "@/components/common";
-import { getVendorTheme } from "@/lib/vendorThemePresets";
+import { getVendorThemeOptional } from "@/lib/vendorThemePresets";
 
 interface Vendor {
   id: string;
@@ -53,7 +53,8 @@ const VendorDashboard = () => {
   const tabsRef = useRef<HTMLDivElement>(null);
   
   // Get theme from saved vendor data (only updates when vendor data is reloaded)
-  const theme = useMemo(() => getVendorTheme(selectedVendor?.theme_color), [selectedVendor?.theme_color]);
+  // Returns undefined for 'none' theme so no inline styles are applied
+  const theme = useMemo(() => getVendorThemeOptional(selectedVendor?.theme_color), [selectedVendor?.theme_color]);
 
   const scrollToOrdersTab = () => {
     setActiveTab("orders");
@@ -431,7 +432,7 @@ const VendorDashboard = () => {
         {selectedVendor?.status === 'approved' && selectedVendorId && (
           <div 
             className="space-y-6 p-6 rounded-xl -mx-4 sm:-mx-0"
-            style={{ backgroundColor: theme.sectionBg }}
+            style={theme ? { backgroundColor: theme.sectionBg } : undefined}
           >
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground uppercase tracking-wide">Vendor Account</p>
@@ -452,10 +453,11 @@ const VendorDashboard = () => {
                   </Button>
                   <Button 
                     onClick={() => navigate(`/vendors/${selectedVendorId}`)}
-                    style={{ 
+                    style={theme ? { 
                       backgroundColor: theme.accent,
                       color: theme.accentText 
-                    }}
+                    } : undefined}
+                    className={!theme ? "bg-primary text-primary-foreground" : ""}
                   >
                     <Store className="mr-2 h-4 w-4" />
                     View My Store
@@ -467,36 +469,36 @@ const VendorDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card 
                 className="border-2"
-                style={{ 
+                style={theme ? { 
                   backgroundColor: theme.cardBg,
                   borderColor: theme.cardBorder,
                   boxShadow: theme.cardGlow
-                }}
+                } : undefined}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                  <Package className="h-4 w-4" style={{ color: theme.accent }} />
+                  <Package className="h-4 w-4 text-primary" style={theme ? { color: theme.accent } : undefined} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold" style={{ color: theme.accent }}>{stats.totalProducts}</div>
+                  <div className="text-2xl font-bold text-primary" style={theme ? { color: theme.accent } : undefined}>{stats.totalProducts}</div>
                   <p className="text-xs text-muted-foreground">Active listings</p>
                 </CardContent>
               </Card>
 
               <Card 
                 className="border-2"
-                style={{ 
+                style={theme ? { 
                   backgroundColor: theme.cardBg,
                   borderColor: theme.cardBorder,
                   boxShadow: theme.cardGlow
-                }}
+                } : undefined}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-                  <DollarSign className="h-4 w-4" style={{ color: theme.accent }} />
+                  <DollarSign className="h-4 w-4 text-primary" style={theme ? { color: theme.accent } : undefined} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold" style={{ color: theme.accent }}>${stats.totalSales.toFixed(2)}</div>
+                  <div className="text-2xl font-bold text-primary" style={theme ? { color: theme.accent } : undefined}>${stats.totalSales.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">This month</p>
                 </CardContent>
               </Card>
@@ -507,7 +509,7 @@ const VendorDashboard = () => {
                     ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 shadow-lg shadow-emerald-500/30' 
                     : ''
                 }`}
-                style={stats.pendingOrders === 0 ? { 
+                style={stats.pendingOrders === 0 && theme ? { 
                   backgroundColor: theme.cardBg,
                   borderColor: theme.cardBorder,
                   boxShadow: theme.cardGlow
@@ -521,10 +523,10 @@ const VendorDashboard = () => {
                   <CardTitle className={`text-sm font-medium ${stats.pendingOrders > 0 ? 'text-white font-semibold' : ''}`}>
                     {stats.pendingOrders > 0 ? '🚀 Ready to Ship!' : 'Ready to Ship'}
                   </CardTitle>
-                  <Package className={`h-4 w-4 ${stats.pendingOrders > 0 ? 'text-white' : ''}`} style={{ color: stats.pendingOrders > 0 ? undefined : theme.accent }} />
+                  <Package className={`h-4 w-4 ${stats.pendingOrders > 0 ? 'text-white' : 'text-primary'}`} style={stats.pendingOrders === 0 && theme ? { color: theme.accent } : undefined} />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${stats.pendingOrders > 0 ? 'text-white' : ''}`} style={stats.pendingOrders === 0 ? { color: theme.accent } : undefined}>{stats.pendingOrders}</div>
+                  <div className={`text-2xl font-bold ${stats.pendingOrders > 0 ? 'text-white' : 'text-primary'}`} style={stats.pendingOrders === 0 && theme ? { color: theme.accent } : undefined}>{stats.pendingOrders}</div>
                   <p className={`text-xs ${stats.pendingOrders > 0 ? 'text-emerald-100 font-medium' : 'text-muted-foreground'}`}>
                     {stats.pendingOrders > 0 ? 'Click here to fulfill orders →' : 'Paid orders awaiting shipment'}
                   </p>

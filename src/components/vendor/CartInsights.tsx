@@ -111,7 +111,7 @@ export const CartInsights = ({ vendorId, theme }: CartInsightsProps) => {
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <ShoppingCart className="h-5 w-5" style={theme ? { color: theme.accent } : undefined} />
+          <ShoppingCart className="h-5 w-5 text-primary" style={theme ? { color: theme.accent } : undefined} />
           Cart Insights
         </CardTitle>
         <CardDescription>
@@ -122,11 +122,11 @@ export const CartInsights = ({ vendorId, theme }: CartInsightsProps) => {
         {/* Summary Stats */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold" style={theme ? { color: theme.accent } : undefined}>{totalItems}</div>
+            <div className="text-3xl font-bold text-primary" style={theme ? { color: theme.accent } : undefined}>{totalItems}</div>
             <div className="text-sm text-muted-foreground">Items in Carts</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold" style={theme ? { color: theme.accent } : undefined}>{totalCarts}</div>
+            <div className="text-3xl font-bold text-primary" style={theme ? { color: theme.accent } : undefined}>{totalCarts}</div>
             <div className="text-sm text-muted-foreground">Active Carts</div>
           </div>
         </div>
