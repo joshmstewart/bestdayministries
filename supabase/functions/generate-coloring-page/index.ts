@@ -48,7 +48,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json();
+    const { prompt, bookTheme } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -57,7 +57,44 @@ serve(async (req) => {
       );
     }
 
-    console.log("Generating coloring page with prompt:", prompt);
+    console.log("Generating coloring page with prompt:", prompt, "bookTheme:", bookTheme);
+
+    // Build the prompt with theme as the PRIMARY instruction if provided
+    let imagePrompt = "";
+    
+    if (bookTheme) {
+      // Theme is the DOMINANT style - subject must be rendered IN this style
+      imagePrompt = `MANDATORY VISUAL STYLE: ${bookTheme}
+
+The subject is: "${prompt}"
+
+CRITICAL: You MUST render the subject "${prompt}" ENTIRELY in the style of "${bookTheme}".
+
+For example:
+- If the theme is "stained glass windows", draw the subject as if it were an actual stained glass window with bold black lead lines dividing the image into geometric colored segments
+- If the theme is "mandala", render the subject as a circular mandala pattern
+- If the theme is "Art Nouveau", use flowing organic lines and decorative borders in that style
+
+The STYLE "${bookTheme}" must be the dominant visual treatment. The subject "${prompt}" is rendered WITHIN that style.
+
+COLORING PAGE REQUIREMENTS:
+- BLACK LINES ON WHITE BACKGROUND ONLY - no color, no shading, no gray
+- ALL lines must form CLOSED shapes (for paint bucket fill tools)
+- THICK, bold black outlines only
+- No text, words, or titles
+- Fill the entire page with the illustration`;
+    } else {
+      imagePrompt = `Create a BLACK AND WHITE LINE ART coloring page: "${prompt}"
+
+CRITICAL REQUIREMENTS:
+- BLACK LINES ON WHITE BACKGROUND ONLY
+- NO COLOR whatsoever - pure black outlines on white
+- NO shading, NO gray tones, NO gradients
+- ALL LINES MUST CONNECT - every shape must be fully closed for paint bucket fill
+- THICK, bold outlines suitable for coloring
+- No text, words, or titles
+- Simple, engaging illustration that fills the page`;
+    }
 
     // Use Lovable AI gateway for image generation
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -71,38 +108,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Create a BLACK AND WHITE LINE ART coloring page: "${prompt}"
-
-CRITICAL REQUIREMENTS - THIS IS A COLORING PAGE FOR DIGITAL FILL TOOLS:
-- BLACK LINES ON WHITE BACKGROUND ONLY
-- NO COLOR whatsoever - pure black outlines on white
-- NO shading, NO gray tones, NO gradients
-- NO filled-in areas - everything should be outlined for coloring
-- Clean, crisp black outlines that are easy to color inside
-- THICK, bold outlines (suitable for coloring)
-
-ABSOLUTELY CRITICAL - CLOSED SHAPES FOR FILL TOOL:
-- ALL LINES MUST CONNECT - every shape must be fully closed
-- NO gaps or breaks in any outline - users will use bucket fill tool
-- If lines don't connect, the fill color will leak and fill the entire page
-- Every area that should be colorable must be a completely enclosed region
-- Double-check that all outlines form closed loops with no openings
-
-IMPORTANT - STYLE CONSISTENCY:
-- If a theme/style is specified in the prompt (e.g., "stained glass", "mandala", "Art Nouveau"), the ENTIRE image must be drawn in that style
-- For "stained glass" style: use bold black lead lines dividing the image into geometric segments like actual stained glass windows
-- The visual style is paramount - the subject should be rendered IN that style, not just alongside it
-
-COMPOSITION:
-- Large, clear shapes that are easy to color
-- Clear separation between different areas
-- Fun, engaging illustration of the subject
-- Fill the page with the illustration (no title text, no borders)
-
-STYLE:
-- Bold black outlines only - ALL FULLY CONNECTED
-- Empty white spaces inside CLOSED shapes for coloring
-- Like a page from a real coloring book with perfect closed outlines`
+            content: imagePrompt
           }
         ],
         modalities: ["image", "text"]
