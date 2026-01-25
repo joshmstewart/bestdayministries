@@ -428,26 +428,6 @@ export const VendorProfileSettings = ({ vendorId, theme, onThemeSaved }: VendorP
           <VendorStoryMediaManager vendorId={vendorId} theme={theme} />
         </CardContent>
       </Card>
-
-      <Card 
-        className="border-2"
-        style={theme ? { 
-          backgroundColor: theme.cardBg,
-          borderColor: theme.cardBorder,
-          boxShadow: theme.cardGlow
-        } : undefined}
-      >
-        <CardHeader>
-          <CardTitle>Bestie Content</CardTitle>
-          <CardDescription>
-            Select assets from your linked Besties to feature on your store page
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <VendorBestieAssetManager vendorId={vendorId} theme={theme} />
-        </CardContent>
-      </Card>
-
       <Card 
         className="border-2"
         style={theme ? { 
