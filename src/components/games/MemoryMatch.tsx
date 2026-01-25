@@ -1056,7 +1056,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
               difficulty === 'easy' ? 'grid-cols-3 sm:grid-cols-4' :
               difficulty === 'medium' ? 'grid-cols-4' :
               difficulty === 'hard' ? 'grid-cols-4 sm:grid-cols-5' :
-              'grid-cols-4 sm:grid-cols-8'
+              'grid-cols-4'
             }`}>
               {cards.map((card) => (
                 <button
