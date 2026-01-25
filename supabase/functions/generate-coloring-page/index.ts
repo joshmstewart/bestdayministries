@@ -71,7 +71,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Create a BLACK AND WHITE LINE ART coloring page for children: "${prompt}"
+            content: `Create a BLACK AND WHITE LINE ART coloring page: "${prompt}"
 
 CRITICAL REQUIREMENTS - THIS IS A COLORING PAGE FOR DIGITAL FILL TOOLS:
 - BLACK LINES ON WHITE BACKGROUND ONLY
@@ -79,7 +79,7 @@ CRITICAL REQUIREMENTS - THIS IS A COLORING PAGE FOR DIGITAL FILL TOOLS:
 - NO shading, NO gray tones, NO gradients
 - NO filled-in areas - everything should be outlined for coloring
 - Clean, crisp black outlines that are easy to color inside
-- THICK, bold outlines (suitable for children to color)
+- THICK, bold outlines (suitable for coloring)
 
 ABSOLUTELY CRITICAL - CLOSED SHAPES FOR FILL TOOL:
 - ALL LINES MUST CONNECT - every shape must be fully closed
@@ -88,18 +88,21 @@ ABSOLUTELY CRITICAL - CLOSED SHAPES FOR FILL TOOL:
 - Every area that should be colorable must be a completely enclosed region
 - Double-check that all outlines form closed loops with no openings
 
+IMPORTANT - STYLE CONSISTENCY:
+- If a theme/style is specified in the prompt (e.g., "stained glass", "mandala", "Art Nouveau"), the ENTIRE image must be drawn in that style
+- For "stained glass" style: use bold black lead lines dividing the image into geometric segments like actual stained glass windows
+- The visual style is paramount - the subject should be rendered IN that style, not just alongside it
+
 COMPOSITION:
-- Large, simple shapes that are easy to color
+- Large, clear shapes that are easy to color
 - Clear separation between different areas
 - Fun, engaging illustration of the subject
 - Fill the page with the illustration (no title text, no borders)
-- Age-appropriate for children
 
 STYLE:
-- Simple cartoon/illustration style
 - Bold black outlines only - ALL FULLY CONNECTED
 - Empty white spaces inside CLOSED shapes for coloring
-- Like a page from a real children's coloring book with perfect closed outlines`
+- Like a page from a real coloring book with perfect closed outlines`
           }
         ],
         modalities: ["image", "text"]

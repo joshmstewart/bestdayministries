@@ -11,11 +11,13 @@ serve(async (req) => {
   }
 
   try {
-    const { bookTitle, bookDescription, existingTitles } = await req.json();
+    const { bookTitle, bookDescription, bookTheme, existingTitles } = await req.json();
     
     if (!bookTitle) {
       throw new Error("Book title is required");
     }
+    
+    console.log(`Book theme/style: ${bookTheme || 'none'}`)
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -30,13 +32,18 @@ serve(async (req) => {
     console.log(`Generating coloring page ideas for: ${bookTitle}`);
     console.log(`Excluding ${existingList.length} existing pages:`, existingList);
 
-    const systemPrompt = "You are a creative designer for children's coloring books. You suggest simple, appealing subjects that work well as coloring pages with clear outlines. For character-based themes (superheroes, princesses, cartoon characters, etc.), prioritize the actual characters themselves, not just their accessories or items.";
+    const systemPrompt = "You are a creative designer for coloring books. You suggest simple, appealing subjects that work well as coloring pages with clear outlines. For character-based themes (superheroes, princesses, cartoon characters, etc.), prioritize the actual characters themselves, not just their accessories or items.";
     
     const exclusionNote = existingList.length > 0 
       ? `\n\nCRITICAL - DO NOT SUGGEST ANY OF THESE (they already exist as pages):\n${existingList.join(", ")}\n\nGenerate COMPLETELY NEW ideas that are NOT similar to the above existing pages.`
       : '';
     
-    const userPrompt = `Generate 15-20 coloring page ideas for a coloring book titled "${bookTitle}"${bookDescription ? `. The book is about: ${bookDescription}` : ''}.${exclusionNote}
+    // Build theme/style instruction if provided
+    const themeInstruction = bookTheme 
+      ? `\n\nVERY IMPORTANT - VISUAL STYLE REQUIREMENT: ALL page ideas MUST be drawn in the style of "${bookTheme}". This means every image should visually incorporate this style/theme. For example, if the theme is "stained glass windows", every subject should look like a stained glass window design with bold lead lines and segmented glass panels. The theme "${bookTheme}" is NOT just a category - it defines HOW each subject should be visually rendered.`
+      : '';
+    
+    const userPrompt = `Generate 15-20 coloring page ideas for a coloring book titled "${bookTitle}"${bookDescription ? `. The book is about: ${bookDescription}` : ''}.${themeInstruction}${exclusionNote}
 
 CRITICAL REQUIREMENTS:
 - For character-based themes (superheroes, princesses, cartoon characters, movies, TV shows), suggest THE ACTUAL CHARACTERS first, then some items/scenes
@@ -45,7 +52,7 @@ CRITICAL REQUIREMENTS:
 - Each should be visually distinct from the others
 - Keep names SHORT (1-4 words max)
 - Mix character poses with action scenes and a few iconic items
-- Consider what children would enjoy coloring
+${bookTheme ? `- REMEMBER: Every subject must be drawn in "${bookTheme}" style!` : '- Consider what the target audience would enjoy coloring'}
 
 GOOD examples for "Marvel Superheroes" book: Spider-Man Swinging, Iron Man Flying, Hulk Smashing, Captain America, Thor with Hammer, Black Widow, Black Panther, Groot Dancing, Rocket Raccoon, Doctor Strange, Wolverine, Deadpool, Thanos, Avengers Team, Spider-Man vs Venom
 BAD examples: "Spider-Man Mask", "Iron Man Helmet", "Thor's Hammer" (these are just items - suggest the actual heroes!)
@@ -56,7 +63,9 @@ BAD examples: "Glass Slipper", "Magic Mirror", "Crown" (suggest the princesses, 
 GOOD examples for an "Ocean Friends" book: Happy Dolphin, Smiling Starfish, Treasure Chest, Friendly Octopus, Sea Turtle, Coral Reef, Mermaid, Clownfish, Whale, Crab, Jellyfish, Seahorse, Submarine, Pirate Ship, Beach Scene
 
 GOOD examples for "Cute Animals" book: Fluffy Bunny, Sleeping Kitten, Playful Puppy, Baby Elephant, Smiling Frog, Butterfly Garden, Owl at Night, Happy Penguin, Teddy Bear, Friendly Lion, Dancing Duck, Hedgehog, Panda Bear, Giraffe, Koala
-BAD examples: "Animals", "Nature", "Pets" (too generic)`;
+BAD examples: "Animals", "Nature", "Pets" (too generic)
+
+${bookTheme ? `GOOD examples for a book with theme "stained glass windows": Rose Window (stained glass style), Cross and Dove (stained glass style), Butterfly Window, Cathedral Scene, Angel Window, Peacock Panel - each subject rendered AS a stained glass design with geometric segments and bold outlines.` : ''}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

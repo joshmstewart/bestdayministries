@@ -416,6 +416,7 @@ DRAWING REQUIREMENTS:
         body: { 
           bookTitle: book.title, 
           bookDescription: book.description,
+          bookTheme: book.generation_prompt,
           existingTitles: existingTitles,
         },
       });
