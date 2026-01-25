@@ -117,7 +117,7 @@ import {
   ColumnsIcon,
   Palette,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -177,6 +177,10 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [isTableSelected, setIsTableSelected] = useState(false);
   const [isStyledBoxSelected, setIsStyledBoxSelected] = useState(false);
   const [editBoxStyleDialogOpen, setEditBoxStyleDialogOpen] = useState(false);
+  
+  // Track if this is the initial content load to prevent auto-reserializing
+  const isInitialLoad = useRef(true);
+  const initialContentRef = useRef(content);
 
   const editor = useEditor({
     extensions: [
@@ -231,6 +235,12 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       },
     },
     onUpdate: ({ editor }) => {
+      // Skip the first update triggered by initial content parse
+      // This prevents TipTap from rewriting/normalizing the original HTML
+      if (isInitialLoad.current) {
+        isInitialLoad.current = false;
+        return;
+      }
       onChange(editor.getHTML());
     },
     onSelectionUpdate: ({ editor }) => {
