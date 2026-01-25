@@ -110,6 +110,43 @@ serve(async (req) => {
     // Type assertion for nested data
     const typedCartItems = cartItems as unknown as CartItem[];
 
+    // INVENTORY CHECK: Verify all items have sufficient stock before proceeding
+    const inventoryIssues: string[] = [];
+    for (const item of typedCartItems) {
+      // Fetch current inventory for each product
+      const { data: productData, error: productError } = await supabaseClient
+        .from("products")
+        .select("id, name, inventory_count, is_printify_product")
+        .eq("id", item.product_id)
+        .single();
+
+      if (productError) {
+        inventoryIssues.push(`Could not verify inventory for "${item.products?.name || 'Unknown product'}"`);
+        continue;
+      }
+
+      // Skip Printify products (they have unlimited inventory managed by Printify)
+      if (productData.is_printify_product) {
+        continue;
+      }
+
+      // Check if requested quantity exceeds available inventory
+      if (productData.inventory_count < item.quantity) {
+        if (productData.inventory_count === 0) {
+          inventoryIssues.push(`"${productData.name}" is out of stock`);
+        } else {
+          inventoryIssues.push(`Only ${productData.inventory_count} of "${productData.name}" available (you requested ${item.quantity})`);
+        }
+      }
+    }
+
+    if (inventoryIssues.length > 0) {
+      logStep("Inventory check failed", { issues: inventoryIssues });
+      throw new Error(`Inventory issues: ${inventoryIssues.join("; ")}`);
+    }
+
+    logStep("Inventory check passed");
+
     // Separate house vendor (official merch) from regular vendor products
     const officialMerchItems: CartItem[] = [];
     const vendorItems: CartItem[] = [];
