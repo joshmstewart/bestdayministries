@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useCartSession } from "@/hooks/useCartSession";
-
+import { VendorThemePreset } from "@/lib/vendorThemePresets";
 // Map color names to CSS colors
 const colorNameToCSS: Record<string, string> = {
   'white': '#FFFFFF',
@@ -93,9 +93,10 @@ const getColorCSS = (colorName: string): string => {
 
 interface ProductCardProps {
   product: any;
+  theme?: VendorThemePreset;
 }
 
-export const ProductCard = ({ product }: ProductCardProps) => {
+export const ProductCard = ({ product, theme }: ProductCardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -159,7 +160,15 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         : '/placeholder.svg');
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer h-full flex flex-col" onClick={() => navigate(`/store/product/${product.id}`)}>
+    <Card 
+      className="group hover:shadow-lg transition-all duration-300 cursor-pointer h-full flex flex-col border-2"
+      onClick={() => navigate(`/store/product/${product.id}`)}
+      style={theme ? {
+        backgroundColor: theme.cardBg,
+        borderColor: theme.cardBorder,
+        boxShadow: theme.cardGlow
+      } : undefined}
+    >
       <CardContent className="p-4 flex-1 flex flex-col">
         <div className="aspect-square relative overflow-hidden rounded-lg mb-4">
           <img 
@@ -221,7 +230,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </button>
         )}
 
-        <p className="text-2xl font-bold text-primary">
+        <p 
+          className={`text-2xl font-bold ${!theme ? 'text-primary' : ''}`}
+          style={theme ? { color: theme.accent } : undefined}
+        >
           ${Number(product.price).toFixed(2)}
         </p>
 
@@ -240,7 +252,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
       <CardFooter className="p-4 pt-0">
         <Button 
-          className="w-full" 
+          className={`w-full ${theme ? 'border-0' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
             // For Printify products with multiple variants, navigate to detail page
@@ -256,6 +268,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             }
           }}
           disabled={product.inventory_count === 0}
+          style={theme ? {
+            background: theme.buttonGradient,
+            color: theme.accentText
+          } : undefined}
         >
           <ShoppingCart className="mr-2 h-4 w-4" />
           {product.is_printify_product && hasMultipleVariants 
