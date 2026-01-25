@@ -1514,23 +1514,24 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             <p className="text-sm text-muted-foreground">
               Select a new color for this styled box:
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {[
-                { key: 'sunset-gradient', label: 'Sunset', bg: 'radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), hsl(24, 85%, 56%)', text: 'white' },
-                { key: 'burnt-orange', label: 'Burnt Orange', bg: '#e8650d', text: 'white' },
-                { key: 'mustard-gold', label: 'Mustard', bg: '#eab308', text: '#1a1a1a' },
-                { key: 'warm-cream', label: 'Cream', bg: '#faf5ef', text: '#1a1a1a', border: '2px solid #e8650d' },
-                { key: 'warm-gradient', label: 'Warm', bg: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', text: 'white' },
-                { key: 'light-gray', label: 'Light Gray', bg: '#f3f4f6', text: '#374151' },
-                { key: 'white-bordered', label: 'White', bg: '#ffffff', text: '#374151', border: '2px solid #e5e7eb' },
-                { key: 'dark-charcoal', label: 'Charcoal', bg: '#1f2937', text: 'white' },
-                { key: 'purple-gradient', label: 'Purple', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', text: 'white' },
-                { key: 'blue-info', label: 'Blue Info', bg: '#dbeafe', text: '#1e40af', border: '4px solid #3b82f6' },
-                { key: 'green-success', label: 'Green', bg: '#dcfce7', text: '#166534', border: '4px solid #22c55e' },
-                { key: 'amber-highlight', label: 'Amber', bg: '#fef3c7', text: '#92400e', border: '4px solid #f59e0b' },
-                { key: 'brand-dark', label: 'Brand Dark', bg: '#1a1a1a', text: 'white', border: '4px solid #e8650d' },
-                { key: 'sand-light', label: 'Sand', bg: '#f5e6d3', text: '#1a1a1a' },
-                { key: 'forest-accent', label: 'Forest', bg: '#14532d', text: 'white', border: '4px solid #eab308' },
+                { key: 'sunset-gradient', label: 'Sunset', bgColor: '#ea8b47', text: 'white', isGradient: true },
+                { key: 'burnt-orange', label: 'Burnt Orange', bgColor: '#e8650d', text: 'white' },
+                { key: 'deep-orange', label: 'Deep Orange', bgColor: '#c2410c', text: 'white' },
+                { key: 'mustard-gold', label: 'Mustard', bgColor: '#eab308', text: '#1a1a1a' },
+                { key: 'warm-cream', label: 'Cream', bgColor: '#faf5ef', text: '#1a1a1a', border: '2px solid #e8650d' },
+                { key: 'sand-light', label: 'Sand', bgColor: '#f5e6d3', text: '#1a1a1a' },
+                { key: 'warm-gradient', label: 'Warm Grad', bgColor: '#f97316', text: 'white', isGradient: true },
+                { key: 'light-gray', label: 'Light Gray', bgColor: '#f3f4f6', text: '#374151' },
+                { key: 'white-bordered', label: 'White', bgColor: '#ffffff', text: '#374151', border: '2px solid #e5e7eb' },
+                { key: 'dark-charcoal', label: 'Charcoal', bgColor: '#1f2937', text: 'white' },
+                { key: 'brand-dark', label: 'Brand Dark', bgColor: '#1a1a1a', text: 'white', border: '4px solid #e8650d' },
+                { key: 'purple-gradient', label: 'Purple', bgColor: '#764ba2', text: 'white', isGradient: true },
+                { key: 'blue-info', label: 'Blue Info', bgColor: '#dbeafe', text: '#1e40af', border: '4px solid #3b82f6' },
+                { key: 'green-success', label: 'Green', bgColor: '#dcfce7', text: '#166534', border: '4px solid #22c55e' },
+                { key: 'amber-highlight', label: 'Amber', bgColor: '#fef3c7', text: '#92400e', border: '4px solid #f59e0b' },
+                { key: 'forest-accent', label: 'Forest', bgColor: '#14532d', text: 'white', border: '4px solid #eab308' },
               ].map((style) => (
                 <Button
                   key={style.key}
@@ -1545,15 +1546,15 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   }}
                 >
                   <div 
-                    className="w-full h-8 rounded flex items-center justify-center text-[10px]" 
+                    className="w-full h-8 rounded flex items-center justify-center text-[10px] font-bold" 
                     style={{ 
-                      background: style.bg, 
+                      backgroundColor: style.bgColor, 
                       color: style.text,
                       borderLeft: style.border?.includes('solid') && !style.border?.includes('#e5e7eb') ? style.border : undefined,
                       border: style.border?.includes('#e5e7eb') || style.border?.includes('#e8650d') ? style.border : undefined,
                     }}
                   >
-                    ✓
+                    {style.isGradient ? '◐' : '✓'}
                   </div>
                   <span className="text-[10px]">{style.label}</span>
                 </Button>
