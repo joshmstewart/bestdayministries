@@ -354,6 +354,7 @@ const defaultFormData = {
   is_free: false, price_coins: 100, display_order: 0, is_active: true,
   character_type: "human" as string,
   category: "free" as string,
+  sex: "" as string,
 };
 
 export function FitnessAvatarManager() {
@@ -498,6 +499,7 @@ export function FitnessAvatarManager() {
         display_order: data.display_order, is_active: data.is_active,
         category: data.category || "free",
         character_type: data.character_type || "human",
+        sex: data.sex && data.sex !== "not_specified" ? data.sex : null,
       };
       if (data.id) {
         const { error } = await supabase.from("fitness_avatars").update(payload).eq("id", data.id);
@@ -617,6 +619,7 @@ export function FitnessAvatarManager() {
       is_active: avatar.is_active,
       character_type: "human",
       category: avatar.category || "free",
+      sex: avatar.sex || "",
     });
     setDialogOpen(true);
   };
@@ -958,6 +961,26 @@ export function FitnessAvatarManager() {
                     placeholder="A friendly orange tabby cat with athletic build, wearing a colorful headband..."
                   />
                   <p className="text-xs text-muted-foreground">Describe the character's appearance for AI generation. Don't include sports - they can do any sport!</p>
+                </div>
+                
+                {/* Sex Selector for anatomical consistency */}
+                <div className="space-y-2">
+                  <Label>Sex (for AI anatomical consistency)</Label>
+                  <Select
+                    value={formData.sex}
+                    onValueChange={(value) => setFormData({ ...formData, sex: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Not specified" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="not_specified">Not specified</SelectItem>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="androgynous">Androgynous</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Ensures AI-generated images maintain consistent anatomical traits</p>
                 </div>
                 
                 {/* Preview Image Section */}
