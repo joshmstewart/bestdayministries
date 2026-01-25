@@ -46,12 +46,12 @@ export const VendorPayoutStatus = ({
       };
     }
 
-    // Pending (not yet attempted)
+    // Pending (not yet attempted or awaiting funds settlement)
     return {
-      label: 'Queued',
-      icon: <DollarSign className="h-3.5 w-3.5" />,
+      label: 'Payout Pending',
+      icon: <Clock className="h-3.5 w-3.5" />,
       color: 'bg-blue-500 text-white',
-      tooltip: 'Your payout will be processed once you ship the item and customer payment settles.'
+      tooltip: 'Your payout is pending. Stripe typically takes 2-3 business days to make funds available after the customer\'s payment. Once funds are available, your payout will be sent automatically.'
     };
   };
 
