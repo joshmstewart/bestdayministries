@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pencil, Trash2, Eye, Send, Upload, X, Megaphone, Clock, CheckCircle, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Eye, Send, Upload, X, Megaphone, Clock, CheckCircle, Loader2, ArrowRight } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
@@ -846,9 +846,25 @@ export const ContentAnnouncementsManager = () => {
                     {previewAnnouncement.description}
                   </p>
                 )}
-                {previewAnnouncement.link_url && previewAnnouncement.link_label && (
-                  <Button size="sm" className="w-full">
-                    {previewAnnouncement.link_label}
+                {previewAnnouncement.link_url && (
+                  <Button 
+                    size="sm" 
+                    className="w-full gap-2"
+                    onClick={() => {
+                      toast.info(`Button navigates to: ${previewAnnouncement.link_url}`, {
+                        description: "Click to copy URL",
+                        action: {
+                          label: "Copy",
+                          onClick: () => {
+                            navigator.clipboard.writeText(previewAnnouncement.link_url || "");
+                            toast.success("URL copied!");
+                          }
+                        }
+                      });
+                    }}
+                  >
+                    {previewAnnouncement.link_label || "Check it out!"}
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
                 )}
               </div>
