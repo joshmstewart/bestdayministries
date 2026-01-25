@@ -344,7 +344,72 @@ serve(async (req) => {
         });
       }
 
-      logStep("Order updated", { status: "completed" });
+      logStep("Order updated", { status: "processing" });
+
+      // INVENTORY DECREMENT: Reduce inventory for each item in the order
+      try {
+        const { data: orderItemsForInventory, error: itemsQueryError } = await supabaseClient
+          .from("order_items")
+          .select(`
+            id,
+            product_id,
+            quantity,
+            products (
+              id,
+              name,
+              inventory_count,
+              is_printify_product
+            )
+          `)
+          .eq("order_id", order_id);
+
+        if (itemsQueryError) {
+          logStep("Warning: Failed to fetch order items for inventory update", { 
+            error: itemsQueryError.message 
+          });
+        } else if (orderItemsForInventory && orderItemsForInventory.length > 0) {
+          for (const item of orderItemsForInventory) {
+            const product = (item as any).products;
+            
+            // Skip Printify products (they have unlimited inventory managed by Printify)
+            if (product?.is_printify_product) {
+              logStep("Skipping inventory decrement for Printify product", { 
+                product_id: item.product_id,
+                name: product?.name 
+              });
+              continue;
+            }
+
+            const currentInventory = product?.inventory_count || 0;
+            const newInventory = Math.max(0, currentInventory - item.quantity);
+
+            const { error: inventoryUpdateError } = await supabaseClient
+              .from("products")
+              .update({ inventory_count: newInventory })
+              .eq("id", item.product_id);
+
+            if (inventoryUpdateError) {
+              logStep("Warning: Failed to update inventory for product", { 
+                product_id: item.product_id,
+                error: inventoryUpdateError.message 
+              });
+            } else {
+              logStep("Inventory decremented", { 
+                product_id: item.product_id,
+                product_name: product?.name,
+                quantity_sold: item.quantity,
+                old_inventory: currentInventory,
+                new_inventory: newInventory
+              });
+            }
+          }
+        }
+      } catch (inventoryError) {
+        // Log but don't fail the payment verification if inventory update fails
+        logStep("Warning: Inventory update process failed", {
+          error: inventoryError instanceof Error ? inventoryError.message : String(inventoryError),
+        });
+      }
 
       // Clear cart - use customer_id/user_id from order since user session may be missing
       const orderOwnerId = order.customer_id || order.user_id;
