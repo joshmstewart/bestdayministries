@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -72,6 +79,7 @@ export function ColoringManager() {
   const [generatingCover, setGeneratingCover] = useState<string | null>(null);
   const [generatedCoverUrl, setGeneratedCoverUrl] = useState<string | null>(null);
   const [coverPrompt, setCoverPrompt] = useState("");
+  const [coverStyle, setCoverStyle] = useState<string>("kawaii");
   const [generatingDescription, setGeneratingDescription] = useState(false);
 
   // Page state
@@ -150,10 +158,22 @@ export function ColoringManager() {
     }
   };
 
+  // Cover style options
+  const COVER_STYLE_OPTIONS = [
+    { value: "kawaii", label: "Kawaii / Chibi", description: "Cute, bubbly Japanese-inspired style with big eyes and pastel colors" },
+    { value: "whimsical", label: "Whimsical Fantasy", description: "Magical, dreamy style with sparkles and enchanted elements" },
+    { value: "vintage", label: "Vintage Storybook", description: "Classic golden-era illustration style with warm tones" },
+    { value: "geometric", label: "Modern Geometric", description: "Bold shapes, clean lines, and bright contemporary colors" },
+    { value: "watercolor", label: "Watercolor Soft", description: "Gentle, flowing watercolor aesthetic with soft edges" },
+    { value: "retro", label: "Retro 70s", description: "Groovy vibes with bold colors, rainbows, and funky patterns" },
+    { value: "nature", label: "Nature Botanical", description: "Organic botanical illustrations with leaves, flowers, and natural elements" },
+    { value: "cartoon", label: "Classic Cartoon", description: "Fun animated style like Saturday morning cartoons" },
+  ] as const;
+
   // Generate cover image (COVER logic is intentionally separate from page generation)
-  const generateCover = async (prompt: string): Promise<string> => {
+  const generateCover = async (prompt: string, style?: string): Promise<string> => {
     const { data, error } = await supabase.functions.invoke("generate-coloring-book-cover", {
-      body: { prompt },
+      body: { prompt, style: style || "kawaii" },
     });
 
     if (error) throw error;
@@ -180,13 +200,13 @@ export function ColoringManager() {
     return data.imageUrl;
   };
 
-  const handleGenerateCover = async (bookId?: string) => {
+  const handleGenerateCover = async (bookId?: string, style?: string) => {
     const prompt = bookId ? books?.find(b => b.id === bookId)?.title : coverPrompt;
     if (!prompt?.trim()) return;
     
     setGeneratingCover(bookId || "new");
     try {
-      const imageUrl = await generateCover(prompt);
+      const imageUrl = await generateCover(prompt, style || coverStyle);
       
       if (bookId) {
         // Update existing book
@@ -1229,6 +1249,28 @@ export function ColoringManager() {
                 <Sparkles className="w-4 h-4 text-primary" />
                 Generate Cover with AI
               </Label>
+              
+              {/* Style Selector */}
+              <div className="space-y-1.5">
+                <Label className="text-sm text-muted-foreground">Cover Style</Label>
+                <Select value={coverStyle} onValueChange={setCoverStyle}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COVER_STYLE_OPTIONS.map((style) => (
+                      <SelectItem key={style.value} value={style.value}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{style.label}</span>
+                          <span className="text-xs text-muted-foreground">{style.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Theme/Prompt Input */}
               <div className="flex gap-2">
                 <Input
                   value={coverPrompt}
@@ -1249,6 +1291,7 @@ export function ColoringManager() {
                   )}
                 </Button>
               </div>
+              
               {generatedCoverUrl && (
                 <div className="relative">
                   <img 
@@ -1256,7 +1299,9 @@ export function ColoringManager() {
                     alt="Generated" 
                     className="w-full max-w-xs mx-auto rounded border"
                   />
-                  <p className="text-xs text-muted-foreground text-center mt-1">AI Generated Cover</p>
+                  <p className="text-xs text-muted-foreground text-center mt-1">
+                    AI Generated Cover ({COVER_STYLE_OPTIONS.find(s => s.value === coverStyle)?.label})
+                  </p>
                 </div>
               )}
             </div>
