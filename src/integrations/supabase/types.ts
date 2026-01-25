@@ -2531,6 +2531,51 @@ export type Database = {
         }
         Relationships: []
       }
+      content_announcements: {
+        Row: {
+          announcement_type: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          image_url: string | null
+          link_label: string | null
+          link_url: string | null
+          published_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          announcement_type?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          link_label?: string | null
+          link_url?: string | null
+          published_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          announcement_type?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          link_label?: string | null
+          link_url?: string | null
+          published_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       content_like_email_queue: {
         Row: {
           content_link: string | null
@@ -5780,6 +5825,7 @@ export type Database = {
           email_on_event_update: boolean
           email_on_message_approved: boolean
           email_on_message_rejected: boolean
+          email_on_new_content_announcement: boolean | null
           email_on_new_event: boolean
           email_on_new_sponsor_message: boolean
           email_on_new_sponsorship: boolean
@@ -5803,6 +5849,7 @@ export type Database = {
           inapp_on_event_update: boolean
           inapp_on_message_approved: boolean
           inapp_on_message_rejected: boolean
+          inapp_on_new_content_announcement: boolean | null
           inapp_on_new_event: boolean
           inapp_on_new_sponsor_message: boolean
           inapp_on_new_sponsorship: boolean
@@ -5831,6 +5878,7 @@ export type Database = {
           email_on_event_update?: boolean
           email_on_message_approved?: boolean
           email_on_message_rejected?: boolean
+          email_on_new_content_announcement?: boolean | null
           email_on_new_event?: boolean
           email_on_new_sponsor_message?: boolean
           email_on_new_sponsorship?: boolean
@@ -5854,6 +5902,7 @@ export type Database = {
           inapp_on_event_update?: boolean
           inapp_on_message_approved?: boolean
           inapp_on_message_rejected?: boolean
+          inapp_on_new_content_announcement?: boolean | null
           inapp_on_new_event?: boolean
           inapp_on_new_sponsor_message?: boolean
           inapp_on_new_sponsorship?: boolean
@@ -5882,6 +5931,7 @@ export type Database = {
           email_on_event_update?: boolean
           email_on_message_approved?: boolean
           email_on_message_rejected?: boolean
+          email_on_new_content_announcement?: boolean | null
           email_on_new_event?: boolean
           email_on_new_sponsor_message?: boolean
           email_on_new_sponsorship?: boolean
@@ -5905,6 +5955,7 @@ export type Database = {
           inapp_on_event_update?: boolean
           inapp_on_message_approved?: boolean
           inapp_on_message_rejected?: boolean
+          inapp_on_new_content_announcement?: boolean | null
           inapp_on_new_event?: boolean
           inapp_on_new_sponsor_message?: boolean
           inapp_on_new_sponsorship?: boolean

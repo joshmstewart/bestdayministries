@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Music, Palette, Image, MessageSquare, FolderOpen, Trophy,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Filter, X
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Filter, X, Megaphone
 } from "lucide-react";
 import { ItemType, ITEM_TYPE_LABELS } from "@/hooks/useCommunityFeed";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ const typeIcons: Record<ItemType, React.ElementType> = {
   recipe: ChefHat,
   drink: GlassWater,
   joke: Laugh,
+  announcement: Megaphone,
 };
 
 const typeColors: Record<ItemType, string> = {
@@ -46,6 +47,7 @@ const typeColors: Record<ItemType, string> = {
   recipe: "text-amber-500",
   drink: "text-cyan-500",
   joke: "text-lime-500",
+  announcement: "text-primary",
 };
 
 const FILTER_ORDER: ItemType[] = [
