@@ -12,7 +12,10 @@ export type StyledBoxStyle =
   | 'burnt-orange'
   | 'mustard-gold'
   | 'warm-cream'
-  | 'sunset-gradient';
+  | 'sunset-gradient'
+  | 'brand-dark'
+  | 'sand-light'
+  | 'forest-accent';
 
 export interface StyledBoxOptions {
   HTMLAttributes: Record<string, any>;
@@ -66,6 +69,9 @@ export const StyledBox = Node.create<StyledBoxOptions>({
           if (bg.includes('#dcfce7') || bg.includes('rgb(220, 252, 231)')) return 'green-success';
           if (bg.includes('#fef3c7') || bg.includes('rgb(254, 243, 199)')) return 'amber-highlight';
           if (bg.includes('#1f2937') || bg.includes('rgb(31, 41, 55)')) return 'dark-charcoal';
+          if (bg.includes('#1a1a1a') || bg.includes('rgb(26, 26, 26)')) return 'brand-dark';
+          if (bg.includes('#f5e6d3') || bg.includes('rgb(245, 230, 211)')) return 'sand-light';
+          if (bg.includes('#14532d') || bg.includes('rgb(20, 83, 45)')) return 'forest-accent';
           if (bg.includes('white') && bg.includes('border')) return 'white-bordered';
           
           return 'light-gray';
@@ -102,6 +108,9 @@ export const StyledBox = Node.create<StyledBoxOptions>({
             bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)') || // warm-cream
             bg.includes('radial-gradient') && bg.includes('hsl(24') || // sunset-gradient
             bg.includes('#f97316') || bg.includes('rgb(249, 115, 22)') || // warm-gradient
+            bg.includes('#1a1a1a') || bg.includes('rgb(26, 26, 26)') || // brand-dark
+            bg.includes('#f5e6d3') || bg.includes('rgb(245, 230, 211)') || // sand-light
+            bg.includes('#14532d') || bg.includes('rgb(20, 83, 45)') || // forest-accent
             (bg.includes('background') && bg.includes('white') && bg.includes('border')) // white-bordered
           ) {
             return {};
@@ -149,6 +158,15 @@ export const StyledBox = Node.create<StyledBoxOptions>({
         break;
       case 'sunset-gradient':
         styleAttr = 'background: radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), radial-gradient(circle at 75% 20%, hsl(46, 95%, 55%, 0.2) 0%, transparent 30%), radial-gradient(circle at 85% 70%, hsl(46, 95%, 55%, 0.28) 0%, transparent 25%), radial-gradient(circle at 40% 80%, hsl(46, 95%, 55%, 0.18) 0%, transparent 35%), radial-gradient(circle at 15% 85%, hsl(46, 95%, 55%, 0.15) 0%, transparent 28%), hsl(24, 85%, 56%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+        break;
+      case 'brand-dark':
+        styleAttr = 'background-color: #1a1a1a; border-top: 4px solid #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+        break;
+      case 'sand-light':
+        styleAttr = 'background-color: #f5e6d3; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
+        break;
+      case 'forest-accent':
+        styleAttr = 'background-color: #14532d; border-left: 4px solid #eab308; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
         break;
       case 'light-gray':
       default:
