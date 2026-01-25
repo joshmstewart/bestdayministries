@@ -718,14 +718,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 </Button>
               )}
               
-              {/* Like button with tooltip showing who liked */}
-              <LikeButtonWithTooltip
-                itemId={item.id}
-                itemType={item.item_type}
-                isLiked={isLiked}
-                likesCount={likesCount}
-                onLike={handleLike}
-              />
+              {/* Like button with tooltip showing who liked - not for announcements */}
+              {item.item_type !== 'announcement' && (
+                <LikeButtonWithTooltip
+                  itemId={item.id}
+                  itemType={item.item_type}
+                  isLiked={isLiked}
+                  likesCount={likesCount}
+                  onLike={handleLike}
+                />
+              )}
 
               {/* Remix button for beats */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
