@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { PurchaseDialog } from "./PurchaseDialog";
 import { CoinIcon } from "@/components/CoinIcon";
 import { supabase } from "@/integrations/supabase/client";
+import { MemoryMatchGridPreview } from "./MemoryMatchGridPreview";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,8 @@ export const StoreItemCard = ({
 
   const canAfford = userCoins >= price;
   const isColoringBook = id.startsWith("coloring_book_");
+  const isMemoryMatchHard = id === "memory_match_hard";
+  const isMemoryMatchExtreme = id === "memory_match_extreme";
   const bookId = isColoringBook ? id.replace("coloring_book_", "") : null;
 
   // Fetch coloring book pages when preview opens
@@ -104,7 +107,23 @@ export const StoreItemCard = ({
     <>
       <Card className="flex flex-col h-full hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
-          {imageUrl && (
+          {(isMemoryMatchHard || isMemoryMatchExtreme) ? (
+            <div className="relative mb-4 rounded-lg overflow-hidden group">
+              <MemoryMatchGridPreview 
+                difficulty={isMemoryMatchHard ? 'hard' : 'extreme'} 
+                cardBackUrl={imageUrl || undefined}
+              />
+              {/* Preview overlay button */}
+              <button
+                onClick={() => setShowPreviewDialog(true)}
+                className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+              >
+                <div className="bg-white/90 rounded-full p-3 shadow-lg flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-foreground" />
+                </div>
+              </button>
+            </div>
+          ) : imageUrl && (
             <div className="relative mb-4 rounded-lg overflow-hidden bg-muted group">
               <OptimizedImage
                 src={imageUrl}
