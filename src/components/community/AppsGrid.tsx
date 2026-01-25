@@ -99,13 +99,13 @@ export function AppsGrid() {
       </div>
 
       {/* Apps grid by category */}
-      <div className="space-y-8">
+      <div className="space-y-8 max-w-4xl mx-auto">
         {sortedCategories.map(([category, apps]) => (
           <div key={category}>
             <h3 className="text-sm font-medium text-muted-foreground mb-3 px-1">
               {APP_CATEGORIES[category as keyof typeof APP_CATEGORIES].label}
             </h3>
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4 lg:gap-6">
               {apps.map(app => (
                 <AppIcon
                   key={app.id}
