@@ -62,7 +62,33 @@ serve(async (req) => {
     // Build the prompt with theme as the PRIMARY instruction if provided
     let imagePrompt = "";
     
-    if (bookTheme) {
+    // Check if theme contains "stained glass" for STRICT stained glass rendering
+    const isStainedGlass = bookTheme?.toLowerCase().includes("stained glass");
+    
+    if (isStainedGlass) {
+      // STRICT STAINED GLASS MODE - very explicit instructions
+      imagePrompt = `CREATE A STAINED GLASS WINDOW COLORING PAGE
+
+SUBJECT: "${prompt}"
+
+MANDATORY STAINED GLASS WINDOW STYLE:
+- This MUST look like an actual church stained glass window
+- The ENTIRE image is divided into GEOMETRIC SEGMENTS like real stained glass panels
+- THICK BLACK LEAD LINES (cames) separate every segment - these are the bold dividing lines between glass pieces
+- Each segment is a separate polygon/cell shape
+- The subject "${prompt}" is depicted WITHIN the stained glass segments, not as a regular drawing
+- Include a decorative border frame like a real window
+- Segments should be irregular geometric shapes (not a grid)
+
+COLORING PAGE REQUIREMENTS:
+- BLACK LINES ON WHITE BACKGROUND ONLY - no color, no shading, no gray
+- ALL lines must form CLOSED shapes (every segment is a fillable region)
+- THICK, bold black outlines (the lead lines between glass segments)
+- No text, words, or titles
+- The entire page should look like a stained glass window ready to be colored
+
+Think of classic church rose windows or Tiffany-style stained glass art.`;
+    } else if (bookTheme) {
       // Theme is the DOMINANT style - subject must be rendered IN this style
       imagePrompt = `MANDATORY VISUAL STYLE: ${bookTheme}
 
@@ -71,9 +97,9 @@ The subject is: "${prompt}"
 CRITICAL: You MUST render the subject "${prompt}" ENTIRELY in the style of "${bookTheme}".
 
 For example:
-- If the theme is "stained glass windows", draw the subject as if it were an actual stained glass window with bold black lead lines dividing the image into geometric colored segments
 - If the theme is "mandala", render the subject as a circular mandala pattern
 - If the theme is "Art Nouveau", use flowing organic lines and decorative borders in that style
+- If the theme is "zentangle", fill the subject with intricate repetitive patterns
 
 The STYLE "${bookTheme}" must be the dominant visual treatment. The subject "${prompt}" is rendered WITHIN that style.
 
