@@ -178,6 +178,13 @@ export const vendorThemePresets: VendorThemePreset[] = [
   },
 ];
 
+// "none" means: do not apply any vendor-specific inline theme styles.
+// Components should treat this as undefined and fall back to the app's normal design tokens.
+export function getVendorThemeOptional(themeKey: string | null | undefined): VendorThemePreset | undefined {
+  if (!themeKey || themeKey === 'none') return undefined;
+  return getVendorTheme(themeKey);
+}
+
 export function getVendorTheme(themeKey: string | null | undefined): VendorThemePreset {
   const preset = vendorThemePresets.find(p => p.key === themeKey);
   return preset || vendorThemePresets[0]; // Default to orange
