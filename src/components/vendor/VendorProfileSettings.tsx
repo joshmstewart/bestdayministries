@@ -527,9 +527,9 @@ export const VendorProfileSettings = ({ vendorId, theme, onThemeSaved }: VendorP
             type="submit" 
             disabled={loading} 
             size="lg" 
-            className="shadow-lg"
+            className="shadow-lg border-0"
             style={{ 
-              backgroundColor: stickyBarTheme.accent,
+              background: stickyBarTheme.buttonGradient,
               color: stickyBarTheme.accentText 
             }}
           >
