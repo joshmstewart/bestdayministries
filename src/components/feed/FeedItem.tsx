@@ -62,7 +62,7 @@ const typeConfig: Record<string, { label: string; appName: string; icon: React.E
   recipe: { label: "Recipe", appName: "Recipe Gallery", icon: ChefHat, color: "bg-amber-500/10 text-amber-500 border-amber-500/20", buttonColor: "bg-amber-500 hover:bg-amber-600 text-white", routeBase: "/games/recipe-gallery", idParam: "recipe" },
   drink: { label: "Drink", appName: "Drink Creator", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", buttonColor: "bg-cyan-500 hover:bg-cyan-600 text-white", routeBase: "/games/drink-creator", idParam: "drink" },
   joke: { label: "Joke", appName: "Joke Generator", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", buttonColor: "bg-lime-500 hover:bg-lime-600 text-white", routeBase: "/games/jokes", idParam: "joke" },
-  announcement: { label: "New!", appName: "Announcement", icon: Megaphone, color: "bg-primary/10 text-primary border-primary/20", buttonColor: "bg-primary hover:bg-primary/90 text-primary-foreground", routeBase: "/community", idParam: "" },
+  announcement: { label: "New!", appName: "Check it out!", icon: Megaphone, color: "bg-primary/10 text-primary border-primary/20", buttonColor: "bg-primary hover:bg-primary/90 text-primary-foreground", routeBase: "", idParam: "" },
 };
 
 // Helper to count active steps in a beat pattern
@@ -76,9 +76,14 @@ const countBeatNotes = (pattern: Record<string, boolean[]>): number => {
   }, 0);
 };
 
-const getItemRoute = (itemType: string, itemId: string) => {
+const getItemRoute = (itemType: string, itemId: string, extraData?: any) => {
   const config = typeConfig[itemType];
   if (!config) return "#";
+
+  // For announcements, use the stored link_url from extra_data
+  if (itemType === "announcement" && extraData?.link_url) {
+    return extraData.link_url;
+  }
 
   const params = new URLSearchParams();
   params.set(config.idParam, itemId);
@@ -784,7 +789,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               asChild
               className={cn("h-8 gap-1.5 border-0", config.buttonColor)}
             >
-              <Link to={getItemRoute(item.item_type, item.id)}>
+              <Link to={getItemRoute(item.item_type, item.id, item.extra_data)}>
                 <span className="text-xs font-medium">{config.appName}</span>
                 <ArrowRight className="h-3 w-3" />
               </Link>

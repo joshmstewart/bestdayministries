@@ -157,7 +157,7 @@ export const ContentAnnouncementsManager = () => {
             name: p.name,
             description: p.description,
             image_url: p.preview_image_url,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?pack=${p.id}`,
           }));
           break;
         }
@@ -172,7 +172,7 @@ export const ContentAnnouncementsManager = () => {
             name: p.name,
             description: p.description,
             image_url: p.pack_image_url,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?collection=${p.id}`,
           }));
           break;
         }
@@ -187,7 +187,7 @@ export const ContentAnnouncementsManager = () => {
             name: p.title,
             description: p.description,
             image_url: p.cover_image_url,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?book=${p.id}`,
           }));
           break;
         }
@@ -202,7 +202,7 @@ export const ContentAnnouncementsManager = () => {
             name: `${p.emoji || "🎵"} ${p.name}`,
             description: p.description || `${p.category || "Sound"} for Beat Pad`,
             image_url: null,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?sound=${p.id}`,
           }));
           break;
         }
@@ -217,7 +217,7 @@ export const ContentAnnouncementsManager = () => {
             name: `${p.emoji || "😂"} ${p.name}`,
             description: p.description,
             image_url: p.icon_url,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?category=${p.id}`,
           }));
           break;
         }
@@ -232,7 +232,7 @@ export const ContentAnnouncementsManager = () => {
             name: p.name,
             description: p.description,
             image_url: p.image_url,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?store=${p.id}`,
           }));
           break;
         }
@@ -247,7 +247,7 @@ export const ContentAnnouncementsManager = () => {
             name: p.name,
             description: p.description,
             image_url: p.image_url,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?pack=${p.id}`,
           }));
           break;
         }
@@ -262,7 +262,7 @@ export const ContentAnnouncementsManager = () => {
             name: p.title,
             description: p.description,
             image_url: p.cover_image_url,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?template=${p.id}`,
           }));
           break;
         }
@@ -277,7 +277,7 @@ export const ContentAnnouncementsManager = () => {
             name: `Avatar #${p.avatar_number} (${p.category})`,
             description: `New ${p.category} avatar available!`,
             image_url: null,
-            link_url: app.linkPath,
+            link_url: `${app.linkPath}?avatar=${p.id}`,
           }));
           break;
         }
