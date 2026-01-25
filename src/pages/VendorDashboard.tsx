@@ -454,10 +454,10 @@ const VendorDashboard = () => {
                   <Button 
                     onClick={() => navigate(`/vendors/${selectedVendorId}`)}
                     style={theme ? { 
-                      backgroundColor: theme.accent,
+                      background: theme.buttonGradient,
                       color: theme.accentText 
                     } : undefined}
-                    className={!theme ? "bg-primary text-primary-foreground" : ""}
+                    className={!theme ? "" : "border-0"}
                   >
                     <Store className="mr-2 h-4 w-4" />
                     View My Store
