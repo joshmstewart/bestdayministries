@@ -92,6 +92,39 @@ export type Database = {
         }
         Relationships: []
       }
+      address_validation_log: {
+        Row: {
+          created_at: string
+          id: string
+          is_valid: boolean
+          original_address: Json
+          provider: string | null
+          user_id: string | null
+          validated_address: Json | null
+          validation_messages: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_valid?: boolean
+          original_address: Json
+          provider?: string | null
+          user_id?: string | null
+          validated_address?: Json | null
+          validation_messages?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_valid?: boolean
+          original_address?: Json
+          provider?: string | null
+          user_id?: string | null
+          validated_address?: Json | null
+          validation_messages?: string[] | null
+        }
+        Relationships: []
+      }
       ai_gateway_usage_log: {
         Row: {
           created_at: string
@@ -6066,6 +6099,9 @@ export type Database = {
           product_id: string
           quantity: number
           shipped_at: string | null
+          shipping_amount_cents: number | null
+          shipping_carrier: string | null
+          shipping_service: string | null
           shipstation_last_checked_at: string | null
           shipstation_order_id: string | null
           shipstation_order_key: string | null
@@ -6079,6 +6115,7 @@ export type Database = {
           transfer_status: string | null
           vendor_id: string | null
           vendor_payout: number | null
+          weight_oz: number | null
         }
         Insert: {
           carrier?: string | null
@@ -6096,6 +6133,9 @@ export type Database = {
           product_id: string
           quantity: number
           shipped_at?: string | null
+          shipping_amount_cents?: number | null
+          shipping_carrier?: string | null
+          shipping_service?: string | null
           shipstation_last_checked_at?: string | null
           shipstation_order_id?: string | null
           shipstation_order_key?: string | null
@@ -6109,6 +6149,7 @@ export type Database = {
           transfer_status?: string | null
           vendor_id?: string | null
           vendor_payout?: number | null
+          weight_oz?: number | null
         }
         Update: {
           carrier?: string | null
@@ -6126,6 +6167,9 @@ export type Database = {
           product_id?: string
           quantity?: number
           shipped_at?: string | null
+          shipping_amount_cents?: number | null
+          shipping_carrier?: string | null
+          shipping_service?: string | null
           shipstation_last_checked_at?: string | null
           shipstation_order_id?: string | null
           shipstation_order_key?: string | null
@@ -6139,6 +6183,7 @@ export type Database = {
           transfer_status?: string | null
           vendor_id?: string | null
           vendor_payout?: number | null
+          weight_oz?: number | null
         }
         Relationships: [
           {
@@ -6180,7 +6225,12 @@ export type Database = {
           id: string
           notes: string | null
           paid_at: string | null
+          selected_shipping_service: string | null
           shipping_address: Json | null
+          shipping_address_validated: boolean | null
+          shipping_breakdown: Json | null
+          shipping_provider: string | null
+          shipping_total_cents: number | null
           status: Database["public"]["Enums"]["order_status"]
           stripe_checkout_session_id: string | null
           stripe_mode: string | null
@@ -6197,7 +6247,12 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          selected_shipping_service?: string | null
           shipping_address?: Json | null
+          shipping_address_validated?: boolean | null
+          shipping_breakdown?: Json | null
+          shipping_provider?: string | null
+          shipping_total_cents?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           stripe_checkout_session_id?: string | null
           stripe_mode?: string | null
@@ -6214,7 +6269,12 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          selected_shipping_service?: string | null
           shipping_address?: Json | null
+          shipping_address_validated?: boolean | null
+          shipping_breakdown?: Json | null
+          shipping_provider?: string | null
+          shipping_total_cents?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           stripe_checkout_session_id?: string | null
           stripe_mode?: string | null
@@ -6738,10 +6798,12 @@ export type Database = {
           printify_print_provider_id: number | null
           printify_product_id: string | null
           printify_variant_ids: Json | null
+          ships_separately: boolean | null
           tags: string[] | null
           updated_at: string
           vendor_id: string | null
           view_count: number
+          weight_oz: number | null
         }
         Insert: {
           category?: string | null
@@ -6767,10 +6829,12 @@ export type Database = {
           printify_print_provider_id?: number | null
           printify_product_id?: string | null
           printify_variant_ids?: Json | null
+          ships_separately?: boolean | null
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
           view_count?: number
+          weight_oz?: number | null
         }
         Update: {
           category?: string | null
@@ -6796,10 +6860,12 @@ export type Database = {
           printify_print_provider_id?: number | null
           printify_product_id?: string | null
           printify_variant_ids?: Json | null
+          ships_separately?: boolean | null
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
           view_count?: number
+          weight_oz?: number | null
         }
         Relationships: [
           {
@@ -7552,6 +7618,45 @@ export type Database = {
           tool_tips?: Json | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shipping_rate_cache: {
+        Row: {
+          cache_key: string
+          cheapest_rate_cents: number
+          cheapest_service: string
+          created_at: string
+          destination_zip: string
+          expires_at: string
+          id: string
+          origin_zip: string
+          rates: Json
+          weight_oz: number
+        }
+        Insert: {
+          cache_key: string
+          cheapest_rate_cents: number
+          cheapest_service: string
+          created_at?: string
+          destination_zip: string
+          expires_at?: string
+          id?: string
+          origin_zip: string
+          rates: Json
+          weight_oz: number
+        }
+        Update: {
+          cache_key?: string
+          cheapest_rate_cents?: number
+          cheapest_service?: string
+          created_at?: string
+          destination_zip?: string
+          expires_at?: string
+          id?: string
+          origin_zip?: string
+          rates?: Json
+          weight_oz?: number
         }
         Relationships: []
       }
@@ -9629,6 +9734,7 @@ export type Database = {
         Row: {
           agreed_to_terms_at: string | null
           agreed_to_vendor_terms: boolean | null
+          allowed_carriers: string[] | null
           application_notes: string | null
           approved_at: string | null
           approved_by: string | null
@@ -9641,12 +9747,17 @@ export type Database = {
           disable_free_shipping: boolean
           estimated_processing_days: number | null
           featured_bestie_id: string | null
+          flat_rate_amount_cents: number | null
           free_shipping_threshold: number | null
           id: string
           is_house_vendor: boolean
           logo_url: string | null
           product_categories: string[] | null
           rejection_reason: string | null
+          ship_from_city: string | null
+          ship_from_state: string | null
+          ship_from_zip: string | null
+          shipping_mode: Database["public"]["Enums"]["shipping_mode"] | null
           social_links: Json | null
           status: Database["public"]["Enums"]["vendor_status"]
           stripe_account_id: string | null
@@ -9656,11 +9767,13 @@ export type Database = {
           stripe_payouts_enabled: boolean | null
           theme_color: string | null
           updated_at: string
+          use_flat_rate_fallback: boolean | null
           user_id: string
         }
         Insert: {
           agreed_to_terms_at?: string | null
           agreed_to_vendor_terms?: boolean | null
+          allowed_carriers?: string[] | null
           application_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
@@ -9673,12 +9786,17 @@ export type Database = {
           disable_free_shipping?: boolean
           estimated_processing_days?: number | null
           featured_bestie_id?: string | null
+          flat_rate_amount_cents?: number | null
           free_shipping_threshold?: number | null
           id?: string
           is_house_vendor?: boolean
           logo_url?: string | null
           product_categories?: string[] | null
           rejection_reason?: string | null
+          ship_from_city?: string | null
+          ship_from_state?: string | null
+          ship_from_zip?: string | null
+          shipping_mode?: Database["public"]["Enums"]["shipping_mode"] | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["vendor_status"]
           stripe_account_id?: string | null
@@ -9688,11 +9806,13 @@ export type Database = {
           stripe_payouts_enabled?: boolean | null
           theme_color?: string | null
           updated_at?: string
+          use_flat_rate_fallback?: boolean | null
           user_id: string
         }
         Update: {
           agreed_to_terms_at?: string | null
           agreed_to_vendor_terms?: boolean | null
+          allowed_carriers?: string[] | null
           application_notes?: string | null
           approved_at?: string | null
           approved_by?: string | null
@@ -9705,12 +9825,17 @@ export type Database = {
           disable_free_shipping?: boolean
           estimated_processing_days?: number | null
           featured_bestie_id?: string | null
+          flat_rate_amount_cents?: number | null
           free_shipping_threshold?: number | null
           id?: string
           is_house_vendor?: boolean
           logo_url?: string | null
           product_categories?: string[] | null
           rejection_reason?: string | null
+          ship_from_city?: string | null
+          ship_from_state?: string | null
+          ship_from_zip?: string | null
+          shipping_mode?: Database["public"]["Enums"]["shipping_mode"] | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["vendor_status"]
           stripe_account_id?: string | null
@@ -9720,6 +9845,7 @@ export type Database = {
           stripe_payouts_enabled?: boolean | null
           theme_color?: string | null
           updated_at?: string
+          use_flat_rate_fallback?: boolean | null
           user_id?: string
         }
         Relationships: []
@@ -10635,6 +10761,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      cleanup_shipping_rate_cache: { Args: never; Returns: undefined }
       deactivate_collections_after_end_date: { Args: never; Returns: undefined }
       generate_daily_scratch_card: {
         Args: { _user_id: string }
@@ -10839,6 +10966,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "refunded"
+      shipping_mode: "flat" | "calculated"
       sticker_rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"
       user_role:
         | "bestie"
@@ -11026,6 +11154,7 @@ export const Constants = {
         "cancelled",
         "refunded",
       ],
+      shipping_mode: ["flat", "calculated"],
       sticker_rarity: ["common", "uncommon", "rare", "epic", "legendary"],
       user_role: [
         "bestie",
