@@ -606,15 +606,15 @@ const VendorDashboard = () => {
                 {/* 1099 Tax Information */}
                 <Card 
                   className="border-2"
-                  style={{ 
+                  style={theme ? { 
                     backgroundColor: theme.cardBg,
                     borderColor: theme.cardBorder,
                     boxShadow: theme.cardGlow
-                  }}
+                  } : undefined}
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" style={{ color: theme.accent }} />
+                      <DollarSign className={`h-5 w-5 ${!theme ? 'text-primary' : ''}`} style={theme ? { color: theme.accent } : undefined} />
                       1099 Tax Reporting – Handled by Stripe
                     </CardTitle>
                     <CardDescription>
