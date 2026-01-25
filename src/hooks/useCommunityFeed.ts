@@ -4,9 +4,9 @@ import { FeedItemData } from "@/components/feed/FeedItem";
 
 const PAGE_SIZE = 12;
 
-export type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke';
+export type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke' | 'announcement';
 
-export const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke'];
+export const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke', 'announcement'];
 
 export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   beat: 'Beats',
@@ -21,6 +21,7 @@ export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   recipe: 'Recipes',
   drink: 'Drinks',
   joke: 'Jokes',
+  announcement: 'Announcements',
 };
 
 interface UseCommunityFeedOptions {

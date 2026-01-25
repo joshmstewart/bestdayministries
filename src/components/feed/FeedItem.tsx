@@ -24,7 +24,7 @@ import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 
 export interface FeedItemData {
   id: string;
-  item_type: 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke';
+  item_type: 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke' | 'announcement';
   title: string;
   description: string | null;
   author_id: string;
@@ -47,6 +47,8 @@ interface FeedItemProps {
   onLikeChange?: (liked: boolean) => void;
 }
 
+import { Megaphone } from "lucide-react";
+
 const typeConfig: Record<string, { label: string; appName: string; icon: React.ElementType; color: string; buttonColor: string; routeBase: string; idParam: string }> = {
   beat: { label: "Beat", appName: "Beat Pad", icon: Music, color: "bg-purple-500/10 text-purple-500 border-purple-500/20", buttonColor: "bg-purple-500 hover:bg-purple-600 text-white", routeBase: "/games/beat-pad", idParam: "id" },
   card: { label: "Card", appName: "Card Creator", icon: Image, color: "bg-pink-500/10 text-pink-500 border-pink-500/20", buttonColor: "bg-pink-500 hover:bg-pink-600 text-white", routeBase: "/games/card-creator", idParam: "id" },
@@ -60,6 +62,7 @@ const typeConfig: Record<string, { label: string; appName: string; icon: React.E
   recipe: { label: "Recipe", appName: "Recipe Gallery", icon: ChefHat, color: "bg-amber-500/10 text-amber-500 border-amber-500/20", buttonColor: "bg-amber-500 hover:bg-amber-600 text-white", routeBase: "/games/recipe-gallery", idParam: "recipe" },
   drink: { label: "Drink", appName: "Drink Creator", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", buttonColor: "bg-cyan-500 hover:bg-cyan-600 text-white", routeBase: "/games/drink-creator", idParam: "drink" },
   joke: { label: "Joke", appName: "Joke Generator", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", buttonColor: "bg-lime-500 hover:bg-lime-600 text-white", routeBase: "/games/jokes", idParam: "joke" },
+  announcement: { label: "New!", appName: "Announcement", icon: Megaphone, color: "bg-primary/10 text-primary border-primary/20", buttonColor: "bg-primary hover:bg-primary/90 text-primary-foreground", routeBase: "/community", idParam: "" },
 };
 
 // Helper to count active steps in a beat pattern

@@ -56,6 +56,7 @@ import { UserActivityAnalytics } from "@/components/admin/UserActivityAnalytics"
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
+import { ContentAnnouncementsManager } from "@/components/admin/ContentAnnouncementsManager";
 import CoffeeShopManager from "@/components/admin/CoffeeShopManager";
 import { StripeModeSwitcher } from "@/components/admin/StripeModeSwitcher";
 import { MarketplaceStripeModeSwitcher } from "@/components/admin/MarketplaceStripeModeSwitcher";
@@ -898,11 +899,16 @@ const Admin = () => {
                 <CardDescription>Broadcast updates to users and track system changes</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="product-updates" className="space-y-4">
+                <Tabs defaultValue="announcements" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
+                    <TabsTrigger value="announcements" className="whitespace-nowrap">Content Announcements</TabsTrigger>
                     <TabsTrigger value="product-updates" className="whitespace-nowrap">Product Updates</TabsTrigger>
                     <TabsTrigger value="change-logs" className="whitespace-nowrap">Change Logs</TabsTrigger>
                   </TabsList>
+
+                  <TabsContent value="announcements">
+                    <ContentAnnouncementsManager />
+                  </TabsContent>
 
                   <TabsContent value="product-updates">
                     <ProductUpdateBroadcaster />

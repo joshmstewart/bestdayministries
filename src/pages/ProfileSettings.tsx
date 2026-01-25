@@ -98,6 +98,8 @@ const ProfileSettings = () => {
     inapp_on_order_shipped: true,
     inapp_on_order_delivered: true,
     inapp_on_badge_earned: true,
+    email_on_new_content_announcement: false,
+    inapp_on_new_content_announcement: true,
     digest_frequency: 'never' as 'never' | 'daily' | 'weekly',
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
@@ -1266,6 +1268,33 @@ const ProfileSettings = () => {
                             checked={notificationPrefs.inapp_on_event_update}
                             onCheckedChange={(checked) => 
                               setNotificationPrefs(prev => ({ ...prev, inapp_on_event_update: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* New Content Announcements */}
+                  <div className="space-y-3 pb-4 border-b">
+                    <Label className="text-base">New Content Announcements</Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5 flex-1">
+                          <Label className="font-normal">New content available</Label>
+                          <p className="text-xs text-muted-foreground">When new avatars, coloring books, sticker packs, or other content is released</p>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                          <Switch
+                            checked={(notificationPrefs as any).email_on_new_content_announcement ?? false}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, email_on_new_content_announcement: checked }))
+                            }
+                          />
+                          <Switch
+                            checked={(notificationPrefs as any).inapp_on_new_content_announcement ?? true}
+                            onCheckedChange={(checked) => 
+                              setNotificationPrefs(prev => ({ ...prev, inapp_on_new_content_announcement: checked }))
                             }
                           />
                         </div>
