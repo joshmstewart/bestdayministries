@@ -21,6 +21,7 @@ import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemDialog } from "./FeedItemDialog";
 import { useFeedRepost } from "@/hooks/useFeedRepost";
 import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
+import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 
 export interface FeedItemData {
   id: string;
@@ -579,6 +580,14 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                     </div>
                   )}
                 </div>
+              </div>
+            ) : item.item_type === 'announcement' && (item.extra_data?.announcement_type === 'memory_match_extreme' || item.extra_data?.announcement_type === 'memory_match_hard') ? (
+              // Memory Match Extreme/Hard announcements show grid preview
+              <div className="p-4">
+                <MemoryMatchGridPreview 
+                  difficulty={item.extra_data?.announcement_type === 'memory_match_extreme' ? 'extreme' : 'hard'} 
+                  cardBackUrl={item.image_url || undefined}
+                />
               </div>
             ) : item.image_url ? (
               <div className="relative aspect-square overflow-hidden bg-muted">
