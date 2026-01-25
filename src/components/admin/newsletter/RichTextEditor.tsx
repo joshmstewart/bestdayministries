@@ -15,6 +15,7 @@ import { DOMSerializer } from "@tiptap/pm/model";
 import { StyledBox } from "./StyledBoxExtension";
 import { CTAButton } from "./CTAButtonExtension";
 import { StatsBlock, StatItem } from "./StatsBlockExtension";
+import { TwoColumn, TwoColumnLayout } from "./TwoColumnExtension";
 import { forwardRef, useImperativeHandle } from "react";
 
 // Custom FontSize extension
@@ -146,6 +147,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [containerDialogOpen, setContainerDialogOpen] = useState(false);
   const [tableDialogOpen, setTableDialogOpen] = useState(false);
   const [columnsDialogOpen, setColumnsDialogOpen] = useState(false);
+  const [twoColumnDialogOpen, setTwoColumnDialogOpen] = useState(false);
   const [buttonDialogOpen, setButtonDialogOpen] = useState(false);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -216,6 +218,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       StyledBox,
       CTAButton,
       StatsBlock,
+      TwoColumn,
     ],
     content,
     editable: true,
@@ -825,6 +828,15 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         >
           <Square className="h-4 w-4" />
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setTwoColumnDialogOpen(true)}
+          title="Magazine-style 2-column layout"
+        >
+          <Columns className="h-4 w-4" />
+        </Button>
         {editor.isActive('styledBox') && (
           <Button
             type="button"
@@ -1375,6 +1387,69 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   Important notice
                 </div>
               </Button>
+
+              {/* Brand Dark Box - NEW */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('brand-dark').run();
+                    toast.success("Brand dark box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Brand Dark</div>
+                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ backgroundColor: '#1a1a1a', borderTop: '4px solid #e8650d' }}>
+                  Magazine header
+                </div>
+              </Button>
+
+              {/* Sand Light Box - NEW */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('sand-light').run();
+                    toast.success("Sand light box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Sand Light</div>
+                <div className="w-full h-12 rounded flex items-center justify-center text-xs" style={{ backgroundColor: '#f5e6d3', color: '#1a1a1a' }}>
+                  Content section
+                </div>
+              </Button>
+
+              {/* Forest Accent Box - NEW */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-start gap-2"
+                onClick={() => {
+                  if (!editor) return;
+                  try {
+                    editor.chain().focus().setStyledBox('forest-accent').run();
+                    toast.success("Forest accent box added!");
+                  } catch (error: any) {
+                    toast.error("Select content first");
+                  }
+                  setContainerDialogOpen(false);
+                }}
+              >
+                <div className="font-semibold text-sm">Forest Accent</div>
+                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ backgroundColor: '#14532d', borderLeft: '4px solid #eab308' }}>
+                  Nature theme
+                </div>
+              </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-3">
               <strong>Tip:</strong> Select content first to wrap it, or insert an empty box to type in.
@@ -1510,6 +1585,100 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setColumnsDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Two Column Magazine Layout Dialog */}
+      <Dialog open={twoColumnDialogOpen} onOpenChange={setTwoColumnDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Insert Magazine-Style Layout</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choose a layout style for your content section:
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              {/* Text Left, Image Right */}
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex flex-col gap-2"
+                onClick={() => {
+                  if (editor) {
+                    editor.chain().focus().setTwoColumn('text-left-image-right').run();
+                    setTwoColumnDialogOpen(false);
+                    toast.success("Magazine layout inserted!");
+                  }
+                }}
+              >
+                <div className="flex gap-2 w-full">
+                  <div className="flex-1 h-16 rounded flex flex-col items-start justify-center p-2" style={{ backgroundColor: '#faf5ef' }}>
+                    <div className="w-3/4 h-2 rounded" style={{ backgroundColor: '#1a1a1a' }}></div>
+                    <div className="w-full h-1.5 rounded mt-1" style={{ backgroundColor: '#d1d5db' }}></div>
+                    <div className="w-2/3 h-1.5 rounded mt-0.5" style={{ backgroundColor: '#d1d5db' }}></div>
+                  </div>
+                  <div className="w-1/3 h-16 rounded" style={{ backgroundColor: '#e8650d' }}></div>
+                </div>
+                <span className="text-sm font-medium">Text Left + Image Right</span>
+              </Button>
+
+              {/* Image Left, Text Right */}
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex flex-col gap-2"
+                onClick={() => {
+                  if (editor) {
+                    editor.chain().focus().setTwoColumn('image-left-text-right').run();
+                    setTwoColumnDialogOpen(false);
+                    toast.success("Magazine layout inserted!");
+                  }
+                }}
+              >
+                <div className="flex gap-2 w-full">
+                  <div className="w-1/3 h-16 rounded" style={{ backgroundColor: '#e8650d' }}></div>
+                  <div className="flex-1 h-16 rounded flex flex-col items-start justify-center p-2" style={{ backgroundColor: '#faf5ef' }}>
+                    <div className="w-3/4 h-2 rounded" style={{ backgroundColor: '#1a1a1a' }}></div>
+                    <div className="w-full h-1.5 rounded mt-1" style={{ backgroundColor: '#d1d5db' }}></div>
+                    <div className="w-2/3 h-1.5 rounded mt-0.5" style={{ backgroundColor: '#d1d5db' }}></div>
+                  </div>
+                </div>
+                <span className="text-sm font-medium">Image Left + Text Right</span>
+              </Button>
+
+              {/* Equal Columns */}
+              <Button
+                variant="outline"
+                className="h-auto p-4 flex flex-col gap-2"
+                onClick={() => {
+                  if (editor) {
+                    editor.chain().focus().setTwoColumn('equal-columns').run();
+                    setTwoColumnDialogOpen(false);
+                    toast.success("Two-column layout inserted!");
+                  }
+                }}
+              >
+                <div className="flex gap-2 w-full">
+                  <div className="flex-1 h-16 rounded flex flex-col items-start justify-center p-2" style={{ backgroundColor: '#faf5ef' }}>
+                    <div className="w-3/4 h-2 rounded" style={{ backgroundColor: '#1a1a1a' }}></div>
+                    <div className="w-full h-1.5 rounded mt-1" style={{ backgroundColor: '#d1d5db' }}></div>
+                  </div>
+                  <div className="flex-1 h-16 rounded flex flex-col items-start justify-center p-2" style={{ backgroundColor: '#faf5ef' }}>
+                    <div className="w-3/4 h-2 rounded" style={{ backgroundColor: '#1a1a1a' }}></div>
+                    <div className="w-full h-1.5 rounded mt-1" style={{ backgroundColor: '#d1d5db' }}></div>
+                  </div>
+                </div>
+                <span className="text-sm font-medium">Equal Text Columns</span>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              <strong>Tip:</strong> After inserting, edit the content directly in the editor. The layout uses email-safe tables for compatibility.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTwoColumnDialogOpen(false)}>
               Cancel
             </Button>
           </DialogFooter>
