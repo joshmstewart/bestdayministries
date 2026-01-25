@@ -91,36 +91,12 @@ export const StyledBox = Node.create<StyledBoxOptions>({
       {
         tag: 'div[data-styled-box]',
       },
-      // Fallback: parse divs with inline styles that match our styled boxes
+      // Also accept nodes created by the extension (data-style is always emitted)
+      // NOTE: Do NOT parse generic divs by background color. That can silently
+      // convert unrelated layout elements (like headers/badges) into styledBox
+      // nodes, which rewrites the HTML and "breaks" templates.
       {
-        tag: 'div',
-        getAttrs: (element: HTMLElement) => {
-          const style = element.getAttribute('style') || '';
-          const bg = style.toLowerCase();
-          
-          // Check if this div has styling that matches our styled boxes
-          if (
-            bg.includes('#f3f4f6') || bg.includes('rgb(243, 244, 246)') || // light-gray
-            bg.includes('667eea') || bg.includes('764ba2') || // purple-gradient
-            bg.includes('#dbeafe') || bg.includes('rgb(219, 234, 254)') || // blue-info
-            bg.includes('#dcfce7') || bg.includes('rgb(220, 252, 231)') || // green-success
-            bg.includes('#fef3c7') || bg.includes('rgb(254, 243, 199)') || // amber-highlight
-            bg.includes('#1f2937') || bg.includes('rgb(31, 41, 55)') || // dark-charcoal
-            bg.includes('#e8650d') || bg.includes('rgb(232, 101, 13)') || // burnt-orange
-            bg.includes('#c2410c') || bg.includes('rgb(194, 65, 12)') || // deep-orange
-            bg.includes('#eab308') || bg.includes('rgb(234, 179, 8)') || // mustard-gold
-            bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)') || // warm-cream
-            bg.includes('radial-gradient') && bg.includes('hsl(24') || // sunset-gradient
-            bg.includes('#f97316') || bg.includes('rgb(249, 115, 22)') || // warm-gradient
-            bg.includes('#1a1a1a') || bg.includes('rgb(26, 26, 26)') || // brand-dark
-            bg.includes('#f5e6d3') || bg.includes('rgb(245, 230, 211)') || // sand-light
-            bg.includes('#14532d') || bg.includes('rgb(20, 83, 45)') || // forest-accent
-            (bg.includes('background') && bg.includes('white') && bg.includes('border')) // white-bordered
-          ) {
-            return {};
-          }
-          return false;
-        },
+        tag: 'div[data-style]',
       },
     ];
   },
