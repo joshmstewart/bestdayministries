@@ -11,7 +11,7 @@ export const MemoryMatchGridPreview = ({ difficulty, cardBackUrl }: MemoryMatchG
     if (difficulty === 'hard') {
       return { cols: 5, rows: 4, totalCards: 20 }; // 10 pairs
     } else {
-      return { cols: 4, rows: 8, totalCards: 32 }; // 16 pairs
+      return { cols: 8, rows: 4, totalCards: 32 }; // 16 pairs - wider layout for preview
     }
   }, [difficulty]);
 
