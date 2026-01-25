@@ -102,6 +102,8 @@ serve(async (req) => {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and an appropriate male physique. Do NOT give this character any feminine body characteristics.";
     } else if (avatar.sex === "female") {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
+    } else if (avatar.sex === "androgynous") {
+      sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is ANDROGYNOUS. The body should have a neutral, gender-ambiguous build - neither distinctly masculine nor feminine. Use slender proportions, a flat or very subtle chest, and avoid strongly gendered body characteristics.";
     }
 
     const prompt = `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, body shape, outfit details, accessories, and art style, preserving their thematic identity/costume style exactly as shown in the reference.${sexConstraint}${characterEnhancements}

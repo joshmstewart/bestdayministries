@@ -272,6 +272,8 @@ serve(async (req) => {
         sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and if the lower body is visible, an appropriate male physique. Do NOT give this character any feminine body characteristics.";
       } else if (avatar.sex === "female") {
         sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
+      } else if (avatar.sex === "androgynous") {
+        sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is ANDROGYNOUS. The body should have a neutral, gender-ambiguous build - neither distinctly masculine nor feminine. Use slender proportions, a flat or very subtle chest, and avoid strongly gendered body characteristics. The overall appearance should be balanced and non-binary.";
       }
 
       prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character COMPLETELY identical - same gender, face, hair, art style, AND MOST IMPORTANTLY their thematic identity/costume style (e.g., if they're a mage they should wear mage-themed athletic wear, if they're a superhero they should wear superhero-themed gear, if they're in fantasy armor they should have fantasy-styled workout clothes, etc.). The outfit should be adapted for the activity but PRESERVE the character's signature look/theme/vibe.${sexConstraint}${characterEnhancements} Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
@@ -314,6 +316,8 @@ serve(async (req) => {
         celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and if the lower body is visible, an appropriate male physique. Do NOT give this character any feminine body characteristics.";
       } else if (avatar.sex === "female") {
         celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
+      } else if (avatar.sex === "androgynous") {
+        celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is ANDROGYNOUS. The body should have a neutral, gender-ambiguous build - neither distinctly masculine nor feminine. Use slender proportions, a flat or very subtle chest, and avoid strongly gendered body characteristics.";
       }
 
       prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (preserve their signature look like mage robes, superhero cape, fantasy elements, etc. but adapted for celebration).${celebrationSexConstraint}${celebrationCharacterEnhancements} Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
