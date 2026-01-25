@@ -114,6 +114,54 @@ serve(async (req) => {
 - Expressive animated characters with dynamic poses
 - Fun, energetic action-oriented composition
 - Bright primary and secondary color schemes`,
+      mandala: `
+- Intricate circular mandala patterns radiating from center
+- Zentangle-inspired detailed geometric and organic elements
+- Meditative, symmetrical designs with fine linework
+- Rich jewel tones: deep purples, teals, burgundy, gold
+- Sophisticated adult coloring aesthetic`,
+      artdeco: `
+- Elegant 1920s Art Deco geometric patterns
+- Bold symmetrical designs with fan shapes and sunbursts
+- Luxurious color palette: gold, black, emerald, ruby
+- Gatsby-era glamour with metallic accents
+- Clean lines and sophisticated ornamentation`,
+      gothic: `
+- Dark fantasy and gothic Victorian aesthetic
+- Ornate frames with skulls, ravens, roses, and thorns
+- Rich deep colors: black, deep purple, blood red, midnight blue
+- Cathedral and stained glass influences
+- Dramatic and mysterious atmosphere`,
+      steampunk: `
+- Victorian-era industrial aesthetic with brass and copper tones
+- Intricate gears, clockwork mechanisms, and machinery
+- Airships, goggles, and fantastical inventions
+- Sepia, bronze, and aged metal color palette
+- Detailed mechanical ornamentation`,
+      architectural: `
+- Detailed architectural illustration style
+- Famous landmarks, Gothic cathedrals, or ornate buildings
+- Precise linework with perspective and depth
+- Sophisticated muted color palette
+- Urban exploration and structural beauty`,
+      abstract: `
+- Bold abstract expressionist style
+- Flowing organic shapes with dynamic movement
+- Rich saturated colors in artistic combinations
+- Gestural brushstroke textures and energy
+- Modern art museum quality aesthetic`,
+      tattoo: `
+- Traditional American tattoo art style
+- Bold black outlines with limited color palette
+- Classic imagery: roses, anchors, daggers, hearts, eagles
+- Banner ribbons and decorative scrollwork
+- Sailor Jerry inspired vintage aesthetic`,
+      artnouveau: `
+- Flowing Art Nouveau organic curves and lines
+- Nature-inspired with flowers, vines, and feminine figures
+- Alphonse Mucha inspired elegant compositions
+- Muted earth tones with gold and jewel accents
+- Decorative borders with sinuous organic patterns`,
     };
 
     const selectedStyle = styleInstructions[style] || styleInstructions.kawaii;

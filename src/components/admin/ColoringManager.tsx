@@ -158,16 +158,27 @@ export function ColoringManager() {
     }
   };
 
-  // Cover style options
+  // Cover style options - includes kid-friendly and adult-focused styles
   const COVER_STYLE_OPTIONS = [
+    // Kid-friendly styles
     { value: "kawaii", label: "Kawaii / Chibi", description: "Cute, bubbly Japanese-inspired style with big eyes and pastel colors" },
     { value: "whimsical", label: "Whimsical Fantasy", description: "Magical, dreamy style with sparkles and enchanted elements" },
+    { value: "cartoon", label: "Classic Cartoon", description: "Fun animated style like Saturday morning cartoons" },
+    { value: "retro", label: "Retro 70s", description: "Groovy vibes with bold colors, rainbows, and funky patterns" },
+    // Versatile styles
     { value: "vintage", label: "Vintage Storybook", description: "Classic golden-era illustration style with warm tones" },
     { value: "geometric", label: "Modern Geometric", description: "Bold shapes, clean lines, and bright contemporary colors" },
     { value: "watercolor", label: "Watercolor Soft", description: "Gentle, flowing watercolor aesthetic with soft edges" },
-    { value: "retro", label: "Retro 70s", description: "Groovy vibes with bold colors, rainbows, and funky patterns" },
     { value: "nature", label: "Nature Botanical", description: "Organic botanical illustrations with leaves, flowers, and natural elements" },
-    { value: "cartoon", label: "Classic Cartoon", description: "Fun animated style like Saturday morning cartoons" },
+    // Adult-focused styles
+    { value: "mandala", label: "Mandala / Zentangle", description: "Intricate circular patterns and meditative designs" },
+    { value: "artdeco", label: "Art Deco", description: "Elegant 1920s geometric elegance with gold accents" },
+    { value: "gothic", label: "Gothic / Dark Fantasy", description: "Dramatic dark themes with ornate Victorian elements" },
+    { value: "steampunk", label: "Steampunk", description: "Victorian machinery with gears, clockwork, and brass" },
+    { value: "architectural", label: "Architectural", description: "Detailed buildings, cityscapes, and structural beauty" },
+    { value: "abstract", label: "Abstract Expressionist", description: "Bold, flowing abstract forms and artistic expression" },
+    { value: "tattoo", label: "Tattoo Art", description: "Traditional tattoo style with bold lines and iconic imagery" },
+    { value: "artnouveau", label: "Art Nouveau", description: "Flowing organic curves with nature-inspired elegance" },
   ] as const;
 
   // Generate cover image (COVER logic is intentionally separate from page generation)
