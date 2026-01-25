@@ -493,6 +493,10 @@ Configure global newsletter settings.
 ### `RichTextEditor`
 TipTap-based rich text editor for email content.
 
+**Styled Boxes (CRITICAL):**
+- Styled boxes are identified by `div[data-styled-box]` / `div[data-style]` emitted by the editor.
+- We intentionally **do not** auto-detect styled boxes from arbitrary `background-color` values, because that can silently convert normal layout elements (headers, pill badges) into styled-box blocks and rewrite/break a template.
+
 **Features:**
 - Bold, italic, underline, strikethrough
 - Headings (H1-H6)
