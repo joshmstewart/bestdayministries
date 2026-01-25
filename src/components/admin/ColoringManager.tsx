@@ -162,7 +162,11 @@ export function ColoringManager() {
 
   // Generate coloring page image
   const generatePageImage = async (prompt: string, bookId?: string | null): Promise<string> => {
-    const bookTheme = bookId ? books?.find((b) => b.id === bookId)?.generation_prompt : null;
+    const book = bookId ? books?.find((b) => b.id === bookId) : null;
+    // FALLBACK: Use generation_prompt if set, otherwise use book title as theme
+    const bookTheme = book?.generation_prompt || book?.title || null;
+
+    console.log("generatePageImage:", { prompt, bookTheme, bookTitle: book?.title, generationPrompt: book?.generation_prompt });
 
     // Pass subject and theme separately - let the edge function handle the prompt construction
     const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
@@ -524,8 +528,12 @@ export function ColoringManager() {
 
       if (!coverUrl) throw new Error("Cover image is required");
 
+      // AUTO-FILL: If generation_prompt is empty, use the title as the theme
+      const finalGenerationPrompt = data.generation_prompt?.trim() || data.title;
+
       const payload = { 
         ...data, 
+        generation_prompt: finalGenerationPrompt,
         cover_image_url: coverUrl,
         coin_price: data.is_free ? 0 : data.coin_price,
       };
