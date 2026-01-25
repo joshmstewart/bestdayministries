@@ -149,21 +149,12 @@ export default {
             boxShadow: "0 0 25px hsl(var(--primary) / 0.35)"
           }
         },
-        "heartbeat": {
+        "slow-pulse": {
           "0%, 100%": {
             transform: "scale(1)"
           },
-          "15%": {
-            transform: "scale(1.1)"
-          },
-          "30%": {
-            transform: "scale(1)"
-          },
-          "45%": {
+          "50%": {
             transform: "scale(1.08)"
-          },
-          "60%": {
-            transform: "scale(1)"
           }
         },
       },
@@ -177,7 +168,7 @@ export default {
         "wiggle": "wiggle 0.4s ease-in-out infinite",
         "spin-slow": "spin-slow 2s linear infinite",
         "pulse-subtle": "pulse-subtle 2s ease-in-out infinite",
-        "heartbeat": "heartbeat 1.5s ease-in-out infinite",
+        "slow-pulse": "slow-pulse 2.5s ease-in-out infinite",
       },
     },
   },

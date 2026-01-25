@@ -303,7 +303,7 @@ const Store = () => {
 
           {/* Large Coin Display */}
           <div className="flex justify-center">
-            <div className="animate-[heartbeat_1.5s_ease-in-out_infinite]">
+            <div className="animate-slow-pulse">
               <CoinIcon size={100} className="drop-shadow-lg md:hidden" />
               <CoinIcon size={120} className="drop-shadow-lg hidden md:block" />
             </div>
