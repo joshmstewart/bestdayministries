@@ -69,10 +69,10 @@ export const VendorEarnings = ({ vendorId, theme }: VendorEarningsProps) => {
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-          <DollarSign className="h-4 w-4" style={theme ? { color: theme.accent } : undefined} />
+          <DollarSign className="h-4 w-4 text-primary" style={theme ? { color: theme.accent } : undefined} />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold" style={theme ? { color: theme.accent } : undefined}>
+          <div className="text-2xl font-bold text-primary" style={theme ? { color: theme.accent } : undefined}>
             {formatCurrency(Number(earnings?.total_earnings || 0))}
           </div>
           <p className="text-xs text-muted-foreground">
@@ -91,10 +91,10 @@ export const VendorEarnings = ({ vendorId, theme }: VendorEarningsProps) => {
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-          <TrendingUp className="h-4 w-4" style={theme ? { color: theme.accent } : undefined} />
+          <TrendingUp className="h-4 w-4 text-primary" style={theme ? { color: theme.accent } : undefined} />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold" style={theme ? { color: theme.accent } : undefined}>
+          <div className="text-2xl font-bold text-primary" style={theme ? { color: theme.accent } : undefined}>
             {formatCurrency(Number(earnings?.total_sales || 0))}
           </div>
           <p className="text-xs text-muted-foreground">
@@ -113,10 +113,10 @@ export const VendorEarnings = ({ vendorId, theme }: VendorEarningsProps) => {
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Platform Fees</CardTitle>
-          <Package className="h-4 w-4" style={theme ? { color: theme.accent } : undefined} />
+          <Package className="h-4 w-4 text-primary" style={theme ? { color: theme.accent } : undefined} />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold" style={theme ? { color: theme.accent } : undefined}>
+          <div className="text-2xl font-bold text-primary" style={theme ? { color: theme.accent } : undefined}>
             {formatCurrency(Number(earnings?.total_fees || 0))}
           </div>
           <p className="text-xs text-muted-foreground">
