@@ -4,11 +4,13 @@ import { CoinsDisplay } from "@/components/CoinsDisplay";
 import { StoreItemGrid } from "@/components/store/StoreItemGrid";
 import { CoinTransactionLedger } from "@/components/store/CoinTransactionLedger";
 import { AllWaysToEarnDialog } from "@/components/store/AllWaysToEarnDialog";
+import { StoreCategoryFilter } from "@/components/store/StoreCategoryFilter";
+import { StoreSortSelect, type StoreSortOption } from "@/components/store/StoreSortSelect";
 import { CoinIcon } from "@/components/CoinIcon";
 import { useStorePurchases } from "@/hooks/useStorePurchases";
 import { useCoins } from "@/hooks/useCoins";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, ChevronRight } from "lucide-react";
@@ -26,6 +28,12 @@ interface StoreItem {
   image_url: string | null;
   display_order: number;
   pageCount?: number;
+  created_at?: string;
+}
+
+interface PurchaseCount {
+  item_id: string;
+  count: number;
 }
 
 const Store = () => {
@@ -34,8 +42,10 @@ const Store = () => {
   const { purchases, loading: purchasesLoading, purchaseItem, refetch } = useStorePurchases();
   const [items, setItems] = useState<StoreItem[]>([]);
   const [purchasedPackIds, setPurchasedPackIds] = useState<Set<string>>(new Set());
+  const [purchaseCounts, setPurchaseCounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<StoreSortOption>("newest");
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [hidePurchased, setHidePurchased] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -55,7 +65,7 @@ const Store = () => {
         setUserRole(roleData?.role || "supporter");
       }
 
-      // Fetch store items, purchasable memory match packs, coloring books, cash register packs, joke categories, fitness avatars, location packs and user's purchases in parallel
+      // Fetch all items and purchase counts in parallel
       const [
         storeItemsResult, 
         memoryPacksResult, 
@@ -69,45 +79,53 @@ const Store = () => {
         userCashRegisterPacksResult, 
         userJokeCategoriesResult,
         userFitnessAvatarsResult,
-        userLocationPacksResult
+        userLocationPacksResult,
+        // Purchase counts for popularity
+        storePurchaseCountsResult,
+        memoryPackCountsResult,
+        coloringBookCountsResult,
+        cashRegisterCountsResult,
+        jokeCategoryCountsResult,
+        fitnessAvatarCountsResult,
+        locationPackCountsResult
       ] = await Promise.all([
         supabase
           .from("store_items")
-          .select("*")
+          .select("*, created_at")
           .eq("is_active", true)
           .order("display_order", { ascending: true }),
         supabase
           .from("memory_match_packs")
-          .select("id, name, description, preview_image_url, price_coins, is_active, is_purchasable")
+          .select("id, name, description, preview_image_url, price_coins, is_active, is_purchasable, created_at")
           .eq("is_active", true)
           .eq("is_purchasable", true),
         supabase
           .from("coloring_books")
-          .select("id, title, description, cover_image_url, coin_price, is_free, is_active, display_order, coloring_pages!inner(id)")
+          .select("id, title, description, cover_image_url, coin_price, is_free, is_active, display_order, created_at, coloring_pages!inner(id)")
           .eq("is_active", true)
           .eq("is_free", false)
           .gt("coin_price", 0)
           .eq("coloring_pages.is_active", true),
         supabase
           .from("cash_register_packs")
-          .select("id, name, description, image_url, price_coins, pack_type, display_order")
+          .select("id, name, description, image_url, price_coins, pack_type, display_order, created_at")
           .eq("is_active", true)
           .order("display_order"),
         supabase
           .from("joke_categories")
-          .select("id, name, description, icon_url, coin_price, is_free, is_active, display_order")
+          .select("id, name, description, icon_url, coin_price, is_free, is_active, display_order, created_at")
           .eq("is_active", true)
           .eq("is_free", false)
           .gt("coin_price", 0),
         supabase
           .from("fitness_avatars")
-          .select("id, name, description, preview_image_url, price_coins, is_free, is_active, display_order")
+          .select("id, name, description, preview_image_url, price_coins, is_free, is_active, display_order, created_at")
           .eq("is_active", true)
           .eq("is_free", false)
           .gt("price_coins", 0),
         supabase
           .from("workout_location_packs")
-          .select("id, name, description, image_url, price_coins, is_free, is_active, display_order")
+          .select("id, name, description, image_url, price_coins, is_free, is_active, display_order, created_at")
           .eq("is_active", true)
           .eq("is_free", false)
           .gt("price_coins", 0),
@@ -134,12 +152,66 @@ const Store = () => {
         user ? supabase
           .from("user_workout_location_packs")
           .select("pack_id")
-          .eq("user_id", user.id) : Promise.resolve({ data: [] })
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        // Get purchase counts for popularity sorting
+        supabase.from("user_store_purchases").select("store_item_id"),
+        supabase.from("user_memory_match_packs").select("pack_id"),
+        supabase.from("user_coloring_books").select("book_id"),
+        supabase.from("user_cash_register_packs").select("pack_id"),
+        supabase.from("user_joke_categories").select("category_id"),
+        supabase.from("user_fitness_avatars").select("avatar_id"),
+        supabase.from("user_workout_location_packs").select("pack_id")
       ]);
 
       if (storeItemsResult.error) throw storeItemsResult.error;
+
+      // Build purchase counts map
+      const countsMap = new Map<string, number>();
       
-      // Store purchased pack IDs (memory packs, coloring books, cash register packs, joke categories, fitness avatars, and location packs)
+      // Count store item purchases
+      (storePurchaseCountsResult.data || []).forEach((p: { store_item_id: string }) => {
+        countsMap.set(p.store_item_id, (countsMap.get(p.store_item_id) || 0) + 1);
+      });
+      
+      // Count memory pack purchases
+      (memoryPackCountsResult.data || []).forEach((p: { pack_id: string }) => {
+        const key = `memory_pack_${p.pack_id}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      });
+      
+      // Count coloring book purchases
+      (coloringBookCountsResult.data || []).forEach((p: { book_id: string }) => {
+        const key = `coloring_book_${p.book_id}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      });
+      
+      // Count cash register pack purchases
+      (cashRegisterCountsResult.data || []).forEach((p: { pack_id: string }) => {
+        const key = `cash_register_pack_${p.pack_id}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      });
+      
+      // Count joke category purchases
+      (jokeCategoryCountsResult.data || []).forEach((p: { category_id: string }) => {
+        const key = `joke_category_${p.category_id}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      });
+      
+      // Count fitness avatar purchases
+      (fitnessAvatarCountsResult.data || []).forEach((p: { avatar_id: string }) => {
+        const key = `fitness_avatar_${p.avatar_id}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      });
+      
+      // Count location pack purchases
+      (locationPackCountsResult.data || []).forEach((p: { pack_id: string }) => {
+        const key = `location_pack_${p.pack_id}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      });
+      
+      setPurchaseCounts(countsMap);
+      
+      // Store purchased pack IDs
       const purchasedIds = new Set<string>([
         ...(userPacksResult.data || []).map((p: { pack_id: string }) => `memory_pack_${p.pack_id}`),
         ...(userColoringBooksResult.data || []).map((p: { book_id: string }) => `coloring_book_${p.book_id}`),
@@ -159,16 +231,16 @@ const Store = () => {
         category: "games",
         image_url: pack.preview_image_url,
         display_order: 1000 + index,
+        created_at: pack.created_at,
       }));
 
-      // Convert coloring books to store item format - aggregate by book id to count pages
+      // Convert coloring books to store item format
       const bookPageCounts = new Map<string, number>();
       (coloringBooksResult.data || []).forEach((book: any) => {
         const pageCount = Array.isArray(book.coloring_pages) ? book.coloring_pages.length : 0;
         bookPageCounts.set(book.id, (bookPageCounts.get(book.id) || 0) + pageCount);
       });
       
-      // Deduplicate books (since inner join creates multiple rows)
       const uniqueBooks = new Map<string, any>();
       (coloringBooksResult.data || []).forEach((book: any) => {
         if (!uniqueBooks.has(book.id)) {
@@ -185,6 +257,7 @@ const Store = () => {
         image_url: book.cover_image_url,
         display_order: 2000 + (book.display_order || index),
         pageCount: bookPageCounts.get(book.id) || 0,
+        created_at: book.created_at,
       }));
 
       // Convert cash register packs to store item format
@@ -201,6 +274,7 @@ const Store = () => {
         category: "games",
         image_url: pack.image_url,
         display_order: 3000 + (pack.display_order || index),
+        created_at: pack.created_at,
       }));
 
       // Convert joke categories to store item format
@@ -212,6 +286,7 @@ const Store = () => {
         category: "games",
         image_url: cat.icon_url,
         display_order: 4000 + (cat.display_order || index),
+        created_at: cat.created_at,
       }));
 
       // Convert fitness avatars to store item format
@@ -223,6 +298,7 @@ const Store = () => {
         category: "fitness",
         image_url: avatar.preview_image_url,
         display_order: 5000 + (avatar.display_order || index),
+        created_at: avatar.created_at,
       }));
 
       // Convert location packs to store item format
@@ -234,6 +310,7 @@ const Store = () => {
         category: "fitness",
         image_url: pack.image_url,
         display_order: 6000 + (pack.display_order || index),
+        created_at: pack.created_at,
       }));
 
       // Combine and set items
@@ -259,23 +336,48 @@ const Store = () => {
 
   // Filter items by role visibility first
   const roleFilteredItems = items.filter(item => {
-    // Admin can see all items
     if (userRole === "admin" || userRole === "owner") return true;
-    // Check if item is visible to user's role
     const visibleRoles = (item as any).visible_to_roles;
     if (!visibleRoles || visibleRoles.length === 0) return true;
     return userRole && visibleRoles.includes(userRole);
   });
 
-  const categories = ["all", ...new Set(roleFilteredItems.map(item => item.category))];
+  // Get unique categories from role-filtered items
+  const categories = useMemo(() => {
+    return [...new Set(roleFilteredItems.map(item => item.category))].sort();
+  }, [roleFilteredItems]);
   
-  // Apply category and purchased filters
-  const filteredItems = roleFilteredItems.filter(item => {
-    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
-    const isPurchased = purchases.some(p => p.store_item_id === item.id) || purchasedPackIds.has(item.id);
-    const matchesPurchased = !hidePurchased || !isPurchased;
-    return matchesCategory && matchesPurchased;
-  });
+  // Apply category, purchased filters, and sorting
+  const filteredAndSortedItems = useMemo(() => {
+    let result = roleFilteredItems.filter(item => {
+      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(item.category);
+      const isPurchased = purchases.some(p => p.store_item_id === item.id) || purchasedPackIds.has(item.id);
+      const matchesPurchased = !hidePurchased || !isPurchased;
+      return matchesCategory && matchesPurchased;
+    });
+
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        case "oldest":
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+        case "popular":
+          return (purchaseCounts.get(b.id) || 0) - (purchaseCounts.get(a.id) || 0);
+        case "price-low":
+          return a.price - b.price;
+        case "price-high":
+          return b.price - a.price;
+        case "name-az":
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [roleFilteredItems, selectedCategories, hidePurchased, purchases, purchasedPackIds, sortBy, purchaseCounts]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -316,7 +418,7 @@ const Store = () => {
             </p>
           </div>
 
-          {/* How It Works Section - Simplified */}
+          {/* How It Works Section */}
           <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-2xl p-6 border border-yellow-200 dark:border-yellow-800">
             <h2 className="text-xl font-bold text-center mb-4">💰 How Coins Work</h2>
             <div className="grid md:grid-cols-2 gap-6">
@@ -351,19 +453,20 @@ const Store = () => {
           <AllWaysToEarnDialog open={earnDialogOpen} onOpenChange={setEarnDialogOpen} />
 
           <div className="space-y-6">
-            <div className="flex flex-wrap gap-2 justify-center items-center">
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(category)}
-                  className="capitalize"
-                >
-                  {category}
-                </Button>
-              ))}
+            {/* Filter and Sort Controls */}
+            <div className="flex flex-wrap gap-4 justify-center items-center">
+              <StoreCategoryFilter
+                categories={categories}
+                selectedCategories={selectedCategories}
+                onCategoriesChange={setSelectedCategories}
+              />
               
-              <div className="flex items-center space-x-2 ml-4">
+              <StoreSortSelect
+                value={sortBy}
+                onChange={setSortBy}
+              />
+              
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   id="hide-purchased"
                   checked={hidePurchased}
@@ -379,7 +482,7 @@ const Store = () => {
             </div>
 
             <StoreItemGrid
-              items={filteredItems}
+              items={filteredAndSortedItems}
               onPurchase={purchaseItem}
               userCoins={coins}
               loading={loading}
