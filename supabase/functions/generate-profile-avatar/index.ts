@@ -59,8 +59,16 @@ serve(async (req) => {
       throw new Error("Avatar has no image to use");
     }
 
+    // Build sex/anatomical consistency constraint if defined
+    let sexConstraint = "";
+    if (avatar.sex === "male") {
+      sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and an appropriate male physique. Do NOT give this character any feminine body characteristics.";
+    } else if (avatar.sex === "female") {
+      sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
+    }
+
     // Build the prompt for a profile-worthy image that preserves character identity
-    const prompt = `Use the EXACT same character from the reference image. Create a profile picture/avatar showing them ${sceneDescription}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (e.g., if they're a mage preserve their mystical/wizard aesthetic, if a superhero keep their heroic look, if fantasy-themed preserve those elements - adapt the outfit for the scene but keep the signature style/vibe). The image should be suitable as a profile picture - centered on the character with a simple, complementary background. High quality cartoon illustration, vibrant colors, friendly expression.`;
+    const prompt = `Use the EXACT same character from the reference image. Create a profile picture/avatar showing them ${sceneDescription}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (e.g., if they're a mage preserve their mystical/wizard aesthetic, if a superhero keep their heroic look, if fantasy-themed preserve those elements - adapt the outfit for the scene but keep the signature style/vibe).${sexConstraint} The image should be suitable as a profile picture - centered on the character with a simple, complementary background. High quality cartoon illustration, vibrant colors, friendly expression.`;
 
     console.log("Generating profile avatar with scene:", sceneDescription);
     console.log("Avatar image URL:", avatarImageUrl);

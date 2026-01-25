@@ -266,7 +266,15 @@ serve(async (req) => {
         characterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side doing the workout TOGETHER. Both copies should look exactly the same - same outfit, same pose (or mirrored), same expression. The twins should be doing the activity together like workout buddies.";
       }
 
-      prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character COMPLETELY identical - same gender, face, hair, art style, AND MOST IMPORTANTLY their thematic identity/costume style (e.g., if they're a mage they should wear mage-themed athletic wear, if they're a superhero they should wear superhero-themed gear, if they're in fantasy armor they should have fantasy-styled workout clothes, etc.). The outfit should be adapted for the activity but PRESERVE the character's signature look/theme/vibe.${characterEnhancements} Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
+      // Build sex/anatomical consistency constraint if defined
+      let sexConstraint = "";
+      if (avatar.sex === "male") {
+        sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and if the lower body is visible, an appropriate male physique. Do NOT give this character any feminine body characteristics.";
+      } else if (avatar.sex === "female") {
+        sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
+      }
+
+      prompt = `Use the EXACT same character from the reference image. Show them clearly and actively doing the workout: "${selectedWorkout}". Keep the character COMPLETELY identical - same gender, face, hair, art style, AND MOST IMPORTANTLY their thematic identity/costume style (e.g., if they're a mage they should wear mage-themed athletic wear, if they're a superhero they should wear superhero-themed gear, if they're in fantasy armor they should have fantasy-styled workout clothes, etc.). The outfit should be adapted for the activity but PRESERVE the character's signature look/theme/vibe.${sexConstraint}${characterEnhancements} Background/location: ${selectedLocation}. Make the action unmistakable (movement, posture, props if needed). High quality cartoon illustration.`;
     } else if (imageType === "celebration") {
       // For celebration, also use real location if in admin test
       if (isAdminTest || !location) {
@@ -300,7 +308,15 @@ serve(async (req) => {
         celebrationCharacterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side celebrating together. Both copies should look exactly the same and be doing the same celebration pose or mirrored poses. Show the twins high-fiving, jumping together, or doing synchronized celebration moves.";
       }
 
-      prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (preserve their signature look like mage robes, superhero cape, fantasy elements, etc. but adapted for celebration).${celebrationCharacterEnhancements} Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
+      // Build sex/anatomical consistency constraint if defined (for celebration)
+      let celebrationSexConstraint = "";
+      if (avatar.sex === "male") {
+        celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and if the lower body is visible, an appropriate male physique. Do NOT give this character any feminine body characteristics.";
+      } else if (avatar.sex === "female") {
+        celebrationSexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
+      }
+
+      prompt = `Use the EXACT same character from the reference image. Show them celebrating a fitness goal with arms raised in victory. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style (preserve their signature look like mage robes, superhero cape, fantasy elements, etc. but adapted for celebration).${celebrationSexConstraint}${celebrationCharacterEnhancements} Background/location: ${selectedLocation}. Add confetti, streamers, and a trophy or medal. High quality cartoon illustration.`;
     } else {
       throw new Error("Invalid imageType");
     }
