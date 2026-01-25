@@ -10,6 +10,7 @@ export type StyledBoxStyle =
   | 'amber-highlight'
   | 'dark-charcoal'
   | 'burnt-orange'
+  | 'deep-orange'
   | 'mustard-gold'
   | 'warm-cream'
   | 'sunset-gradient'
@@ -63,6 +64,7 @@ export const StyledBox = Node.create<StyledBoxOptions>({
           if (bg.includes('667eea') || bg.includes('764ba2')) return 'purple-gradient';
           if (bg.includes('#f97316') || bg.includes('rgb(249, 115, 22)') || (bg.includes('f97316') && bg.includes('ea580c'))) return 'warm-gradient';
           if (bg.includes('#e8650d') || bg.includes('rgb(232, 101, 13)')) return 'burnt-orange';
+          if (bg.includes('#c2410c') || bg.includes('rgb(194, 65, 12)')) return 'deep-orange';
           if (bg.includes('#eab308') || bg.includes('rgb(234, 179, 8)')) return 'mustard-gold';
           if (bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)')) return 'warm-cream';
           if (bg.includes('#f3f4f6') || bg.includes('rgb(243, 244, 246)')) return 'light-gray';
@@ -105,6 +107,7 @@ export const StyledBox = Node.create<StyledBoxOptions>({
             bg.includes('#fef3c7') || bg.includes('rgb(254, 243, 199)') || // amber-highlight
             bg.includes('#1f2937') || bg.includes('rgb(31, 41, 55)') || // dark-charcoal
             bg.includes('#e8650d') || bg.includes('rgb(232, 101, 13)') || // burnt-orange
+            bg.includes('#c2410c') || bg.includes('rgb(194, 65, 12)') || // deep-orange
             bg.includes('#eab308') || bg.includes('rgb(234, 179, 8)') || // mustard-gold
             bg.includes('#faf5ef') || bg.includes('rgb(250, 245, 239)') || // warm-cream
             bg.includes('radial-gradient') && bg.includes('hsl(24') || // sunset-gradient
@@ -150,6 +153,9 @@ export const StyledBox = Node.create<StyledBoxOptions>({
         break;
       case 'burnt-orange':
         styleAttr = 'background-color: #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+        break;
+      case 'deep-orange':
+        styleAttr = 'background-color: #c2410c; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
         break;
       case 'mustard-gold':
         styleAttr = 'background-color: #eab308; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
