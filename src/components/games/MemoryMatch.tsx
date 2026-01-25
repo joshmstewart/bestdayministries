@@ -19,6 +19,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Default coffee shop theme images
 import croissantImg from "@/assets/games/memory-match/croissant.png";
@@ -134,6 +144,12 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
     extreme: DEFAULT_DIFFICULTY_CONFIG.extreme.coins,
   });
   const [changePackDialogOpen, setChangePackDialogOpen] = useState(false);
+  
+  // Purchase confirmation dialog state
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [modeToPurchase, setModeToPurchase] = useState<{ difficulty: Difficulty; price: number } | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [userCoins, setUserCoins] = useState(0);
 
   // Preload celebration images as soon as component mounts (before game completion)
   useCelebrationImagePreloader(currentUserId);
@@ -671,7 +687,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
       return;
     }
 
-    // Get user's coin balance
+    // Get user's coin balance first
     const { data: profile } = await supabase
       .from('profiles')
       .select('coins')
@@ -687,81 +703,100 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
       return;
     }
 
-    // Find the store item
-    const modeName = diff === 'hard' ? 'Memory Match - Hard Mode' : 'Memory Match - Extreme Mode';
-    const { data: storeItem } = await supabase
-      .from('store_items')
-      .select('id')
-      .eq('name', modeName)
-      .single();
+    // Set state and open confirmation dialog
+    setUserCoins(profile.coins || 0);
+    setModeToPurchase({ difficulty: diff, price });
+    setPurchaseDialogOpen(true);
+  };
 
-    if (!storeItem) {
-      toast({
-        title: "Error",
-        description: "Could not find the store item.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const confirmPurchase = async () => {
+    if (!modeToPurchase || !currentUserId) return;
 
-    // Deduct coins
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ coins: (profile.coins || 0) - price })
-      .eq('id', currentUserId);
+    setIsPurchasing(true);
+    const { difficulty: diff, price } = modeToPurchase;
 
-    if (updateError) {
-      toast({
-        title: "Error",
-        description: "Failed to process purchase.",
-        variant: "destructive",
-      });
-      return;
-    }
+    try {
+      // Find the store item
+      const modeName = diff === 'hard' ? 'Memory Match - Hard Mode' : 'Memory Match - Extreme Mode';
+      const { data: storeItem } = await supabase
+        .from('store_items')
+        .select('id')
+        .eq('name', modeName)
+        .single();
 
-    // Record purchase
-    const { error: purchaseError } = await supabase
-      .from('user_store_purchases')
-      .insert({
-        user_id: currentUserId,
-        store_item_id: storeItem.id,
-        coins_spent: price,
-      });
+      if (!storeItem) {
+        toast({
+          title: "Error",
+          description: "Could not find the store item.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    if (purchaseError) {
-      // Refund coins on failure
-      await supabase
+      // Deduct coins
+      const { error: updateError } = await supabase
         .from('profiles')
-        .update({ coins: profile.coins })
+        .update({ coins: userCoins - price })
         .eq('id', currentUserId);
-      
-      toast({
-        title: "Error",
-        description: "Failed to record purchase.",
-        variant: "destructive",
+
+      if (updateError) {
+        toast({
+          title: "Error",
+          description: "Failed to process purchase.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Record purchase
+      const { error: purchaseError } = await supabase
+        .from('user_store_purchases')
+        .insert({
+          user_id: currentUserId,
+          store_item_id: storeItem.id,
+          coins_spent: price,
+        });
+
+      if (purchaseError) {
+        // Refund coins on failure
+        await supabase
+          .from('profiles')
+          .update({ coins: userCoins })
+          .eq('id', currentUserId);
+        
+        toast({
+          title: "Error",
+          description: "Failed to record purchase.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Record transaction
+      await supabase.from('coin_transactions').insert({
+        user_id: currentUserId,
+        amount: -price,
+        transaction_type: 'store_purchase',
+        description: `Purchased ${modeName}`,
       });
-      return;
+
+      // Update local state
+      if (diff === 'hard') {
+        setHasHardMode(true);
+      } else if (diff === 'extreme') {
+        setHasExtremeMode(true);
+      }
+
+      toast({
+        title: "🎉 Unlocked!",
+        description: `${modeName.replace('Memory Match - ', '')} is now available!`,
+      });
+
+      setPurchaseDialogOpen(false);
+      setModeToPurchase(null);
+    } finally {
+      setIsPurchasing(false);
     }
-
-    // Record transaction
-    await supabase.from('coin_transactions').insert({
-      user_id: currentUserId,
-      amount: -price,
-      transaction_type: 'store_purchase',
-      description: `Purchased ${modeName}`,
-    });
-
-    // Update local state
-    if (diff === 'hard') {
-      setHasHardMode(true);
-    } else if (diff === 'extreme') {
-      setHasExtremeMode(true);
-    }
-
-    toast({
-      title: "🎉 Unlocked!",
-      description: `${modeName.replace('Memory Match - ', '')} is now available!`,
-    });
   };
 
   if (!gameStarted) {
@@ -1067,6 +1102,55 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
           )}
         </CardContent>
       </Card>
+
+      {/* Purchase Confirmation Dialog */}
+      <AlertDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                Are you sure you want to purchase{' '}
+                <strong>
+                  {modeToPurchase?.difficulty === 'hard' ? 'Hard Mode' : 'Extreme Mode'}
+                </strong>?
+              </p>
+              
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Price:</span>
+                  <div className="flex items-center gap-2 font-semibold">
+                    <CoinIcon size={16} />
+                    <span>{modeToPurchase?.price.toLocaleString()}</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Your Balance:</span>
+                  <div className="flex items-center gap-2 font-semibold">
+                    <CoinIcon size={16} />
+                    <span>{userCoins.toLocaleString()}</span>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-2 flex items-center justify-between">
+                  <span className="text-muted-foreground">After Purchase:</span>
+                  <div className="flex items-center gap-2 font-semibold">
+                    <CoinIcon size={16} />
+                    <span>{(userCoins - (modeToPurchase?.price || 0)).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPurchasing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPurchase} disabled={isPurchasing}>
+              {isPurchasing ? "Processing..." : "Confirm Purchase"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 });
