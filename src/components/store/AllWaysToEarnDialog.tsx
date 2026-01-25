@@ -68,8 +68,8 @@ const earnHierarchy: ParentCategory[] = [
       {
         name: "Memory Match",
         items: [
-          { name: "Complete Game", description: "Complete games by difficulty", coins: "5-15" },
-          { name: "Personal Best", description: "Beat your personal best time", coins: "50-100" },
+          { name: "Complete Game", description: "Complete games by difficulty", coins: "5-30" },
+          { name: "Personal Best", description: "Beat your personal best time", coins: "50-150" },
         ],
       },
       {
