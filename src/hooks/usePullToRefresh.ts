@@ -56,19 +56,14 @@ export function usePullToRefresh({
   }, [disabled, isRefreshing]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (disabled || isRefreshing || !touchStartedAtTop.current) return;
+    // Early exit - don't interfere with any scrolling if we're not tracking a potential pull
+    if (disabled || isRefreshing) return;
     
-    const scrollTop = containerRef.current?.scrollTop ?? window.scrollY;
+    // If we never started at top, don't do anything
+    if (!touchStartedAtTop.current) return;
     
-    // If we scrolled away from top, cancel any pull
-    if (scrollTop > 5) {
-      if (isPulling) {
-        setIsPulling(false);
-        setPullDistance(0);
-      }
-      touchStartedAtTop.current = false;
-      return;
-    }
+    // If we already decided this ISN'T a pull gesture, stay completely out of the way
+    if (gestureDecided.current && !isVerticalPull.current) return;
     
     currentY.current = e.touches[0].clientY;
     const currentX = e.touches[0].clientX;
@@ -87,28 +82,35 @@ export function usePullToRefresh({
       
       gestureDecided.current = true;
       
-      // Determine if this is a vertical pull-down gesture
-      // Must be moving downward and more vertical than horizontal
-      isVerticalPull.current = deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX) * 1.5;
+      // Determine if this is a vertical pull-down gesture at the top of the page
+      // Must be: moving downward, more vertical than horizontal, and at top
+      const scrollTop = containerRef.current?.scrollTop ?? window.scrollY;
+      const isAtTop = scrollTop <= 5;
+      isVerticalPull.current = isAtTop && deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX) * 1.5;
       
       if (isVerticalPull.current) {
         setIsPulling(true);
+      } else {
+        // Not a pull-to-refresh - completely disengage
+        touchStartedAtTop.current = false;
+        return;
       }
     }
     
-    // Only handle as pull-to-refresh if we determined it's a vertical pull
-    if (!isVerticalPull.current) {
-      return;
-    }
-    
+    // Only reach here if it's confirmed as a vertical pull-down gesture
     const distance = Math.max(0, deltaY / resistance);
     
     if (distance > 0) {
-      // Only prevent default when we're actively pulling
+      // Only prevent default when we're actively pulling down
       e.preventDefault();
       setPullDistance(Math.min(distance, threshold * 1.5));
+    } else {
+      // User changed direction (now scrolling up) - cancel the pull
+      setIsPulling(false);
+      setPullDistance(0);
+      touchStartedAtTop.current = false;
     }
-  }, [isPulling, disabled, isRefreshing, resistance, threshold]);
+  }, [disabled, isRefreshing, resistance, threshold]);
 
   const handleTouchEnd = useCallback(async () => {
     // Reset touch tracking
