@@ -1102,6 +1102,7 @@ export function FitnessAvatarManager() {
             <TableRow>
               <TableHead>Avatar</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead className="w-12 text-center" title="Sex (Male/Female/Androgynous/Null)">Sex</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Status</TableHead>
@@ -1129,6 +1130,22 @@ export function FitnessAvatarManager() {
                 <TableCell>
                   <p className="font-medium">{avatar.name}</p>
                   <p className="text-xs text-muted-foreground truncate max-w-[200px]">{avatar.character_prompt}</p>
+                </TableCell>
+                <TableCell className="text-center">
+                  <Badge 
+                    variant={avatar.sex ? "default" : "outline"} 
+                    className={`text-xs font-bold ${
+                      avatar.sex === 'male' ? 'bg-blue-500 hover:bg-blue-600' :
+                      avatar.sex === 'female' ? 'bg-pink-500 hover:bg-pink-600' :
+                      avatar.sex === 'androgynous' ? 'bg-purple-500 hover:bg-purple-600' :
+                      'text-muted-foreground'
+                    }`}
+                    title={avatar.sex ? avatar.sex.charAt(0).toUpperCase() + avatar.sex.slice(1) : 'Not specified'}
+                  >
+                    {avatar.sex === 'male' ? 'M' :
+                     avatar.sex === 'female' ? 'F' :
+                     avatar.sex === 'androgynous' ? 'A' : 'N'}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs">
@@ -1260,7 +1277,7 @@ export function FitnessAvatarManager() {
             ))}
             {avatars?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No avatars yet. Click "Add Avatar" and use "Randomize Character" to get started!
                 </TableCell>
               </TableRow>
