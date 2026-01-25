@@ -588,14 +588,19 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       return;
     }
 
-    // Don't fill dark pixels (the outlines) - stricter threshold to preserve thin lines
-    // Using higher threshold (150) to catch gray anti-aliased edges as "lines"
-    const isDarkOrGray = (r: number, g: number, b: number) => {
+    // Don't fill dark GRAYSCALE pixels (the outlines) - stricter threshold to preserve thin lines
+    // A pixel is considered a "line" only if it's dark AND grayscale (R≈G≈B)
+    // This allows re-filling colored areas while still protecting black/gray outlines
+    const isOutlineLine = (r: number, g: number, b: number) => {
       const brightness = (r + g + b) / 3;
-      return brightness < 180; // Treat anything below 180 brightness as a potential line
+      // Check if it's grayscale (R, G, B values are close to each other)
+      const maxChannel = Math.max(r, g, b);
+      const minChannel = Math.min(r, g, b);
+      const isGrayscale = (maxChannel - minChannel) < 40; // Low saturation = grayscale
+      return brightness < 180 && isGrayscale; // Must be BOTH dark AND grayscale to be a line
     };
     
-    if (isDarkOrGray(startColor.r, startColor.g, startColor.b)) {
+    if (isOutlineLine(startColor.r, startColor.g, startColor.b)) {
       return;
     }
 
@@ -607,7 +612,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
       const pixel = getPixelColor(x, y);
       
       // Don't cross any dark or gray pixels (potential line boundaries)
-      if (isDarkOrGray(pixel.r, pixel.g, pixel.b)) return false;
+      if (isOutlineLine(pixel.r, pixel.g, pixel.b)) return false;
 
       return (
         Math.abs(pixel.r - startColor.r) <= tolerance &&
@@ -670,7 +675,7 @@ export function ColoringCanvas({ page, onClose }: ColoringCanvasProps) {
           const pixel = { r: data[pos], g: data[pos + 1], b: data[pos + 2] };
           
           // Skip if already filled or if it's a dark/gray pixel (potential line)
-          if (visited[idx] || isDarkOrGray(pixel.r, pixel.g, pixel.b)) continue;
+          if (visited[idx] || isOutlineLine(pixel.r, pixel.g, pixel.b)) continue;
           
           // Check if this unfilled pixel is adjacent to a filled pixel
           const hasFilledNeighbor = 
