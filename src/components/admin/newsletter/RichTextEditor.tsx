@@ -115,6 +115,7 @@ import {
   ArrowRight,
   RowsIcon,
   ColumnsIcon,
+  Palette,
 } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
@@ -174,6 +175,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [uploading, setUploading] = useState(false);
   const [isImageSelected, setIsImageSelected] = useState(false);
   const [isTableSelected, setIsTableSelected] = useState(false);
+  const [isStyledBoxSelected, setIsStyledBoxSelected] = useState(false);
+  const [editBoxStyleDialogOpen, setEditBoxStyleDialogOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -233,6 +236,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     onSelectionUpdate: ({ editor }) => {
       setIsImageSelected(editor.isActive('image'));
       setIsTableSelected(editor.isActive('table'));
+      setIsStyledBoxSelected(editor.isActive('styledBox'));
     },
   });
 
@@ -247,6 +251,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     if (editor) {
       setIsImageSelected(editor.isActive('image'));
       setIsTableSelected(editor.isActive('table'));
+      setIsStyledBoxSelected(editor.isActive('styledBox'));
     }
   }, [editor]);
 
@@ -639,6 +644,42 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           >
             <Trash2 className="h-3 w-3 mr-1" />
             Delete Table
+          </Button>
+        </div>
+      )}
+      {isStyledBoxSelected && editor && (
+        <div className="bg-orange-50 dark:bg-orange-950/30 border-b border-orange-200 dark:border-orange-800 p-2 flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-orange-700 dark:text-orange-300 mr-2">
+            <Square className="h-3 w-3 inline mr-1" />
+            Styled Box:
+          </span>
+          
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setEditBoxStyleDialogOpen(true)}
+            className="h-7 px-3 gap-1"
+          >
+            <Palette className="h-3 w-3" />
+            Change Color
+          </Button>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              editor.chain().focus().lift('styledBox').run();
+              toast.success("Box removed, content kept!");
+            }}
+            title="Remove box wrapper (keeps content)"
+            className="h-7 px-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Remove Box
           </Button>
         </div>
       )}
@@ -1457,6 +1498,70 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setContainerDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Box Style Dialog */}
+      <Dialog open={editBoxStyleDialogOpen} onOpenChange={setEditBoxStyleDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Box Color</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select a new color for this styled box:
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { key: 'sunset-gradient', label: 'Sunset', bg: 'radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), hsl(24, 85%, 56%)', text: 'white' },
+                { key: 'burnt-orange', label: 'Burnt Orange', bg: '#e8650d', text: 'white' },
+                { key: 'mustard-gold', label: 'Mustard', bg: '#eab308', text: '#1a1a1a' },
+                { key: 'warm-cream', label: 'Cream', bg: '#faf5ef', text: '#1a1a1a', border: '2px solid #e8650d' },
+                { key: 'warm-gradient', label: 'Warm', bg: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', text: 'white' },
+                { key: 'light-gray', label: 'Light Gray', bg: '#f3f4f6', text: '#374151' },
+                { key: 'white-bordered', label: 'White', bg: '#ffffff', text: '#374151', border: '2px solid #e5e7eb' },
+                { key: 'dark-charcoal', label: 'Charcoal', bg: '#1f2937', text: 'white' },
+                { key: 'purple-gradient', label: 'Purple', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', text: 'white' },
+                { key: 'blue-info', label: 'Blue Info', bg: '#dbeafe', text: '#1e40af', border: '4px solid #3b82f6' },
+                { key: 'green-success', label: 'Green', bg: '#dcfce7', text: '#166534', border: '4px solid #22c55e' },
+                { key: 'amber-highlight', label: 'Amber', bg: '#fef3c7', text: '#92400e', border: '4px solid #f59e0b' },
+                { key: 'brand-dark', label: 'Brand Dark', bg: '#1a1a1a', text: 'white', border: '4px solid #e8650d' },
+                { key: 'sand-light', label: 'Sand', bg: '#f5e6d3', text: '#1a1a1a' },
+                { key: 'forest-accent', label: 'Forest', bg: '#14532d', text: 'white', border: '4px solid #eab308' },
+              ].map((style) => (
+                <Button
+                  key={style.key}
+                  variant="outline"
+                  className="h-auto p-2 flex flex-col items-center gap-1"
+                  onClick={() => {
+                    if (editor) {
+                      editor.chain().focus().updateStyledBoxStyle(style.key as any).run();
+                      toast.success(`Changed to ${style.label}!`);
+                      setEditBoxStyleDialogOpen(false);
+                    }
+                  }}
+                >
+                  <div 
+                    className="w-full h-8 rounded flex items-center justify-center text-[10px]" 
+                    style={{ 
+                      background: style.bg, 
+                      color: style.text,
+                      borderLeft: style.border?.includes('solid') && !style.border?.includes('#e5e7eb') ? style.border : undefined,
+                      border: style.border?.includes('#e5e7eb') || style.border?.includes('#e8650d') ? style.border : undefined,
+                    }}
+                  >
+                    ✓
+                  </div>
+                  <span className="text-[10px]">{style.label}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditBoxStyleDialogOpen(false)}>
               Cancel
             </Button>
           </DialogFooter>
