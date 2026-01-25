@@ -303,12 +303,9 @@ const Store = () => {
 
           {/* Large Coin Display */}
           <div className="flex justify-center">
-            <div className="relative">
-              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-[0_8px_32px_rgba(234,179,8,0.4)] flex items-center justify-center animate-pulse">
-                <CoinIcon size={100} className="drop-shadow-lg md:hidden" />
-                <CoinIcon size={120} className="drop-shadow-lg hidden md:block" />
-              </div>
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none" />
+            <div className="animate-[heartbeat_1.5s_ease-in-out_infinite]">
+              <CoinIcon size={100} className="drop-shadow-lg md:hidden" />
+              <CoinIcon size={120} className="drop-shadow-lg hidden md:block" />
             </div>
           </div>
 
