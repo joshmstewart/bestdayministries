@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout' | 'recipe' | 'prayer' | 'event';
+type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout' | 'recipe' | 'prayer' | 'event' | 'announcement';
 
 interface LikeStatusMap {
   [key: string]: boolean; // key format: "itemType:itemId"
@@ -41,6 +41,7 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       const recipeIds: string[] = [];
       const prayerIds: string[] = [];
       const eventIds: string[] = [];
+      const announcementIds: string[] = [];
 
       items.forEach(item => {
         switch (item.item_type) {
@@ -53,6 +54,7 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           case 'recipe': recipeIds.push(item.id); break;
           case 'prayer': prayerIds.push(item.id); break;
           case 'event': eventIds.push(item.id); break;
+          case 'announcement': announcementIds.push(item.id); break;
         }
       });
 
@@ -84,6 +86,9 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           : Promise.resolve({ data: [] }),
         eventIds.length > 0
           ? supabase.from('event_likes').select('event_id').eq('user_id', user.id).in('event_id', eventIds)
+          : Promise.resolve({ data: [] }),
+        announcementIds.length > 0
+          ? supabase.from('content_announcement_likes').select('announcement_id').eq('user_id', user.id).in('announcement_id', announcementIds)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -132,6 +137,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       // Process event likes
       results[8].data?.forEach((like: any) => {
         newStatusMap[`event:${like.event_id}`] = true;
+      });
+
+      // Process announcement likes
+      results[9].data?.forEach((like: any) => {
+        newStatusMap[`announcement:${like.announcement_id}`] = true;
       });
 
       setLikeStatusMap(newStatusMap);

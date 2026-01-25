@@ -131,6 +131,15 @@ export function LikeButtonWithTooltip({
           userIds = data?.map(d => d.user_id) || [];
           break;
         }
+        case 'announcement': {
+          const { data } = await supabase
+            .from('content_announcement_likes')
+            .select('user_id')
+            .eq('announcement_id', itemId)
+            .limit(10);
+          userIds = data?.map(d => d.user_id) || [];
+          break;
+        }
       }
 
       if (userIds.length > 0) {

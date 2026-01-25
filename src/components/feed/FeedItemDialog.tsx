@@ -494,16 +494,14 @@ export function FeedItemDialog({
                 </Button>
               )}
 
-              {/* Like button with tooltip - not for announcements */}
-              {item.item_type !== 'announcement' && (
-                <LikeButtonWithTooltip
-                  itemId={item.id}
-                  itemType={item.item_type}
-                  isLiked={isLiked}
-                  likesCount={likesCount}
-                  onLike={onToggleLike}
-                />
-              )}
+              {/* Like button with tooltip */}
+              <LikeButtonWithTooltip
+                itemId={item.id}
+                itemType={item.item_type}
+                isLiked={isLiked}
+                likesCount={likesCount}
+                onLike={onToggleLike}
+              />
 
 
               {/* Owner-only actions */}

@@ -219,6 +219,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             data = result.data;
             break;
           }
+          case 'announcement': {
+            const result = await supabase
+              .from('content_announcement_likes')
+              .select('id')
+              .eq('announcement_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
           default:
             return;
         }
@@ -421,6 +431,24 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             const { error } = await supabase
               .from('event_likes')
               .insert({ event_id: item.id, user_id: user.id });
+            if (error) throw error;
+            // likes_count is updated by database trigger
+          }
+          break;
+        }
+        case 'announcement': {
+          if (isLiked) {
+            const { error } = await supabase
+              .from('content_announcement_likes')
+              .delete()
+              .eq('announcement_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
+            // likes_count is updated by database trigger
+          } else {
+            const { error } = await supabase
+              .from('content_announcement_likes')
+              .insert({ announcement_id: item.id, user_id: user.id });
             if (error) throw error;
             // likes_count is updated by database trigger
           }
@@ -718,16 +746,14 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 </Button>
               )}
               
-              {/* Like button with tooltip showing who liked - not for announcements */}
-              {item.item_type !== 'announcement' && (
-                <LikeButtonWithTooltip
-                  itemId={item.id}
-                  itemType={item.item_type}
-                  isLiked={isLiked}
-                  likesCount={likesCount}
-                  onLike={handleLike}
-                />
-              )}
+              {/* Like button with tooltip showing who liked */}
+              <LikeButtonWithTooltip
+                itemId={item.id}
+                itemType={item.item_type}
+                isLiked={isLiked}
+                likesCount={likesCount}
+                onLike={handleLike}
+              />
 
               {/* Remix button for beats */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
