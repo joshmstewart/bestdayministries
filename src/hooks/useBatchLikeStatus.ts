@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout' | 'recipe' | 'prayer';
+type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout' | 'recipe' | 'prayer' | 'event';
 
 interface LikeStatusMap {
   [key: string]: boolean; // key format: "itemType:itemId"
@@ -40,6 +40,7 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       const workoutIds: string[] = [];
       const recipeIds: string[] = [];
       const prayerIds: string[] = [];
+      const eventIds: string[] = [];
 
       items.forEach(item => {
         switch (item.item_type) {
@@ -51,10 +52,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           case 'workout': workoutIds.push(item.id); break;
           case 'recipe': recipeIds.push(item.id); break;
           case 'prayer': prayerIds.push(item.id); break;
+          case 'event': eventIds.push(item.id); break;
         }
       });
 
-      // Fetch all like statuses in parallel (max 8 queries instead of N queries)
+      // Fetch all like statuses in parallel (max 9 queries instead of N queries)
       const results = await Promise.all([
         beatIds.length > 0 
           ? supabase.from('beat_pad_likes').select('creation_id').eq('user_id', user.id).in('creation_id', beatIds)
@@ -79,6 +81,9 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           : Promise.resolve({ data: [] }),
         prayerIds.length > 0
           ? supabase.from('prayer_request_likes').select('prayer_request_id').eq('user_id', user.id).in('prayer_request_id', prayerIds)
+          : Promise.resolve({ data: [] }),
+        eventIds.length > 0
+          ? supabase.from('event_likes').select('event_id').eq('user_id', user.id).in('event_id', eventIds)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -122,6 +127,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       // Process prayer likes
       results[7].data?.forEach((like: any) => {
         newStatusMap[`prayer:${like.prayer_request_id}`] = true;
+      });
+
+      // Process event likes
+      results[8].data?.forEach((like: any) => {
+        newStatusMap[`event:${like.event_id}`] = true;
       });
 
       setLikeStatusMap(newStatusMap);
