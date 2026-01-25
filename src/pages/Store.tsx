@@ -3,13 +3,15 @@ import Footer from "@/components/Footer";
 import { CoinsDisplay } from "@/components/CoinsDisplay";
 import { StoreItemGrid } from "@/components/store/StoreItemGrid";
 import { CoinTransactionLedger } from "@/components/store/CoinTransactionLedger";
+import { AllWaysToEarnDialog } from "@/components/store/AllWaysToEarnDialog";
+import { CoinIcon } from "@/components/CoinIcon";
 import { useStorePurchases } from "@/hooks/useStorePurchases";
 import { useCoins } from "@/hooks/useCoins";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -37,6 +39,7 @@ const Store = () => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [hidePurchased, setHidePurchased] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [earnDialogOpen, setEarnDialogOpen] = useState(false);
 
   const fetchItems = async () => {
     try {
@@ -298,57 +301,57 @@ const Store = () => {
             currentBalance={coins}
           />
 
+          {/* Large Coin Display */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 shadow-[0_8px_32px_rgba(234,179,8,0.4)] flex items-center justify-center animate-pulse">
+                <CoinIcon size={100} className="drop-shadow-lg md:hidden" />
+                <CoinIcon size={120} className="drop-shadow-lg hidden md:block" />
+              </div>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none" />
+            </div>
+          </div>
+
           <div className="text-center space-y-4">
             <h1 className="text-4xl font-bold">Coin Shop</h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Spend your earned JoyCoins on exclusive items, badges, and more!
+              Spend your earned coins on exclusive items, badges, and more!
             </p>
           </div>
 
-          {/* How It Works Section */}
+          {/* How It Works Section - Simplified */}
           <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-2xl p-6 border border-yellow-200 dark:border-yellow-800">
-            <h2 className="text-xl font-bold text-center mb-4">💰 How JoyCoins Work</h2>
+            <h2 className="text-xl font-bold text-center mb-4">💰 How Coins Work</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <span className="text-2xl">✨</span> Earn Coins
                 </h3>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span><strong>Daily Sticker Pack</strong> – Open your free pack each day</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span><strong>Win Games</strong> – Beat Memory Match or Brew Blast</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span><strong>Share Creations</strong> – Save or share your coloring pages</span>
-                  </li>
-                </ul>
+                <p className="text-muted-foreground text-sm">
+                  Play games, complete daily activities, share creations, and more to earn coins!
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setEarnDialogOpen(true)}
+                  className="w-full"
+                >
+                  See All Ways to Earn
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
               </div>
               <div className="space-y-3">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <span className="text-2xl">🛒</span> Spend Coins
                 </h3>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span><strong>Game Themes</strong> – Unlock new Memory Match packs</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span><strong>Coloring Books</strong> – Get new pages to color</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-primary">•</span>
-                    <span><strong>Bonus Packs</strong> – Buy extra sticker packs</span>
-                  </li>
-                </ul>
+                <p className="text-muted-foreground text-sm">
+                  Unlock game themes, coloring books, bonus sticker packs, workout avatars, and more!
+                </p>
               </div>
             </div>
           </div>
+
+          <AllWaysToEarnDialog open={earnDialogOpen} onOpenChange={setEarnDialogOpen} />
 
           <div className="space-y-6">
             <div className="flex flex-wrap gap-2 justify-center items-center">
