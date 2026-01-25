@@ -74,7 +74,7 @@ const DEFAULT_DIFFICULTY_CONFIG = {
   easy: { pairs: 6, coins: 10, label: 'Easy', color: 'bg-green-500' },
   medium: { pairs: 8, coins: 20, label: 'Medium', color: 'bg-yellow-500' },
   hard: { pairs: 10, coins: 40, label: 'Hard', color: 'bg-red-500' },
-  extreme: { pairs: 16, coins: 80, label: 'Extreme', color: 'bg-purple-600' },
+  extreme: { pairs: 16, coins: 30, label: 'Extreme', color: 'bg-purple-600' },
 };
 
 interface MemoryMatchProps {
@@ -661,6 +661,109 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
     return pack.is_default || !pack.is_purchasable || ownedPackIds.includes(pack.id);
   };
 
+  const handleUnlockMode = async (diff: Difficulty, price: number) => {
+    if (!currentUserId) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to purchase game modes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Get user's coin balance
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('coins')
+      .eq('id', currentUserId)
+      .single();
+
+    if (!profile || (profile.coins || 0) < price) {
+      toast({
+        title: "Insufficient coins",
+        description: `You need ${price} coins to unlock this mode. You have ${profile?.coins || 0}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Find the store item
+    const modeName = diff === 'hard' ? 'Memory Match - Hard Mode' : 'Memory Match - Extreme Mode';
+    const { data: storeItem } = await supabase
+      .from('store_items')
+      .select('id')
+      .eq('name', modeName)
+      .single();
+
+    if (!storeItem) {
+      toast({
+        title: "Error",
+        description: "Could not find the store item.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Deduct coins
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ coins: (profile.coins || 0) - price })
+      .eq('id', currentUserId);
+
+    if (updateError) {
+      toast({
+        title: "Error",
+        description: "Failed to process purchase.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Record purchase
+    const { error: purchaseError } = await supabase
+      .from('user_store_purchases')
+      .insert({
+        user_id: currentUserId,
+        store_item_id: storeItem.id,
+        coins_spent: price,
+      });
+
+    if (purchaseError) {
+      // Refund coins on failure
+      await supabase
+        .from('profiles')
+        .update({ coins: profile.coins })
+        .eq('id', currentUserId);
+      
+      toast({
+        title: "Error",
+        description: "Failed to record purchase.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Record transaction
+    await supabase.from('coin_transactions').insert({
+      user_id: currentUserId,
+      amount: -price,
+      transaction_type: 'store_purchase',
+      description: `Purchased ${modeName}`,
+    });
+
+    // Update local state
+    if (diff === 'hard') {
+      setHasHardMode(true);
+    } else if (diff === 'extreme') {
+      setHasExtremeMode(true);
+    }
+
+    toast({
+      title: "🎉 Unlocked!",
+      description: `${modeName.replace('Memory Match - ', '')} is now available!`,
+    });
+  };
+
   if (!gameStarted) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
@@ -692,61 +795,72 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                 <Gamepad2 className="h-4 w-4" />
                 Choose Difficulty
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {(['easy', 'medium', 'hard', 'extreme'] as Difficulty[]).map((diff) => {
                 const config = DIFFICULTY_CONFIG[diff];
                 const isLocked = (diff === 'hard' && !hasHardMode) || (diff === 'extreme' && !hasExtremeMode);
                 const best = bestScores[diff];
+                const unlockPrice = diff === 'hard' ? 100 : diff === 'extreme' ? 200 : 0;
 
                 return (
                   <Card
                     key={diff}
-                    className={`cursor-pointer transition-all hover:scale-105 ${
+                    className={`cursor-pointer transition-all hover:scale-[1.02] ${
                       difficulty === diff ? 'ring-2 ring-primary' : ''
-                    } ${isLocked ? 'opacity-50' : ''}`}
+                    } ${isLocked ? 'opacity-70' : ''}`}
                     onClick={() => {
                       if (!isLocked) {
                         initializeGame(diff);
                       }
                     }}
                   >
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>{config.label}</span>
-                        {isLocked && <span className="text-sm">🔒 Locked</span>}
+                    <CardHeader className="pb-2 px-3 pt-3">
+                      <CardTitle className="flex items-center justify-between text-lg">
+                        <span className={`font-bold ${diff === 'extreme' ? 'text-purple-600' : ''}`}>{config.label}</span>
+                        {isLocked && <span className="text-xs">🔒</span>}
                       </CardTitle>
-                      <CardDescription>
-                        {config.pairs} pairs • {config.coins} coins
+                      <CardDescription className="text-xs">
+                        <span className="block">{config.pairs} pairs • {config.coins} coins</span>
                         {best && (
-                          <span className="block text-primary font-medium">
+                          <span className="block text-primary font-medium mt-1">
                             Beat {formatTime(best.time)} for +{pbRewards[diff]} bonus!
                           </span>
                         )}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      {best && (
-                        <div className="space-y-1 text-sm">
+                    <CardContent className="px-3 pb-3 pt-0">
+                      {best ? (
+                        <div className="space-y-0.5 text-xs">
                           <p className="text-muted-foreground">Your Best:</p>
-                          <p className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-primary" />
+                          <p className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3 text-primary" />
                             <span className="font-semibold">{formatTime(best.time)}</span>
                           </p>
-                          <p className="flex items-center gap-2 text-muted-foreground">
-                            <Trophy className="h-4 w-4 text-primary" />
+                          <p className="flex items-center gap-1.5 text-muted-foreground">
+                            <Trophy className="h-3 w-3 text-primary" />
                             {best.moves} moves
                           </p>
                         </div>
-                      )}
-                      {isLocked && diff === 'hard' && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Unlock Hard Mode in the store for 100 coins!
-                        </p>
-                      )}
-                      {isLocked && diff === 'extreme' && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Unlock Extreme Mode in the store for 250 coins!
-                        </p>
+                      ) : isLocked ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Unlock for {unlockPrice} coins
+                          </p>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="w-full h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUnlockMode(diff, unlockPrice);
+                            }}
+                          >
+                            <ShoppingCart className="h-3 w-3 mr-1" />
+                            Buy Now
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">Click to play!</p>
                       )}
                     </CardContent>
                   </Card>
