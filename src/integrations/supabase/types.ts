@@ -4284,6 +4284,7 @@ export type Database = {
           name: string
           preview_image_url: string | null
           price_coins: number
+          sex: string | null
           updated_at: string
         }
         Insert: {
@@ -4300,6 +4301,7 @@ export type Database = {
           name: string
           preview_image_url?: string | null
           price_coins?: number
+          sex?: string | null
           updated_at?: string
         }
         Update: {
@@ -4316,6 +4318,7 @@ export type Database = {
           name?: string
           preview_image_url?: string | null
           price_coins?: number
+          sex?: string | null
           updated_at?: string
         }
         Relationships: []

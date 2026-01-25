@@ -157,8 +157,16 @@ serve(async (req) => {
     const category = detectCategory(choreTitle);
     const categoryData = ACTIVITY_CATEGORIES[category];
 
+    // Build sex/anatomical consistency constraint if defined
+    let sexConstraint = "";
+    if (avatar.sex === "male") {
+      sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build with a flat chest (NO breasts or breast-like shapes), masculine torso proportions, and an appropriate male physique. Do NOT give this character any feminine body characteristics.";
+    } else if (avatar.sex === "female") {
+      sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
+    }
+
     // Build the prompt
-    const prompt = `Use the EXACT same character from the reference image. Show them ${categoryData.prompt}. Keep the character identical (same gender, face, hair, and art style) but dress them appropriately for the activity. The character should look happy and proud of completing their task. Bright, cheerful cartoon illustration style with warm colors.`;
+    const prompt = `Use the EXACT same character from the reference image. Show them ${categoryData.prompt}. Keep the character identical (same gender, face, hair, and art style) but dress them appropriately for the activity.${sexConstraint} The character should look happy and proud of completing their task. Bright, cheerful cartoon illustration style with warm colors.`;
 
     console.log("Generating chore celebration for:", choreTitle);
     console.log("Detected category:", category, "-", categoryData.name);
