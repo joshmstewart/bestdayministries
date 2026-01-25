@@ -40,25 +40,6 @@ const earnHierarchy: ParentCategory[] = [
           { name: "Daily Sticker Pack", description: "Open your free pack each day", coins: "10-50" },
         ],
       },
-    ],
-  },
-  {
-    title: "Games",
-    emoji: "🎮",
-    apps: [
-      {
-        name: "Memory Match",
-        items: [
-          { name: "Complete Game", description: "Complete games by difficulty", coins: "5-15" },
-          { name: "Personal Best", description: "Beat your personal best time", coins: "50-100" },
-        ],
-      },
-      {
-        name: "Cash Register",
-        items: [
-          { name: "Complete Level", description: "Complete a level", coins: "10" },
-        ],
-      },
       {
         name: "Wordle",
         items: [
@@ -68,8 +49,8 @@ const earnHierarchy: ParentCategory[] = [
     ],
   },
   {
-    title: "Creative",
-    emoji: "✨",
+    title: "Games",
+    emoji: "🎮",
     apps: [
       {
         name: "Coloring Book",
@@ -79,53 +60,54 @@ const earnHierarchy: ParentCategory[] = [
         ],
       },
       {
+        name: "Drink Creator",
+        items: [
+          { name: "Create Drink", description: "Create custom drinks", coins: "10" },
+        ],
+      },
+      {
+        name: "Memory Match",
+        items: [
+          { name: "Complete Game", description: "Complete games by difficulty", coins: "5-15" },
+          { name: "Personal Best", description: "Beat your personal best time", coins: "50-100" },
+        ],
+      },
+      {
         name: "Beat Pad",
         items: [
           { name: "Share Beat", description: "Create and share beats", coins: "10" },
         ],
       },
-      {
-        name: "Card Maker",
-        items: [
-          { name: "Share Card", description: "Create and share cards", coins: "10" },
-        ],
-      },
-      {
-        name: "Drink Lab",
-        items: [
-          { name: "Create Drink", description: "Create custom drinks", coins: "10" },
-        ],
-      },
+    ],
+  },
+  {
+    title: "Resources",
+    emoji: "📚",
+    apps: [
       {
         name: "Recipe Pal",
         items: [
           { name: "Complete Recipe", description: "Complete a recipe", coins: "15" },
         ],
       },
-    ],
-  },
-  {
-    title: "Fitness",
-    emoji: "💪",
-    apps: [
+      {
+        name: "Chore Chart",
+        items: [
+          { name: "Complete Chore", description: "Finish a single chore", coins: "5" },
+          { name: "All Daily Chores", description: "Complete all chores for the day", coins: "20" },
+        ],
+      },
+      {
+        name: "Cash Register",
+        items: [
+          { name: "Complete Level", description: "Complete a level", coins: "10" },
+        ],
+      },
       {
         name: "Fitness Center",
         items: [
           { name: "Complete Workout", description: "Log a workout activity", coins: "15" },
           { name: "Weekly Goal", description: "Meet your weekly workout goal", coins: "50" },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Chores",
-    emoji: "✅",
-    apps: [
-      {
-        name: "Chore Tracker",
-        items: [
-          { name: "Complete Chore", description: "Finish a single chore", coins: "5" },
-          { name: "All Daily Chores", description: "Complete all chores for the day", coins: "20" },
         ],
       },
     ],
