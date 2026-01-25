@@ -163,26 +163,13 @@ export function ColoringManager() {
   // Generate coloring page image
   const generatePageImage = async (prompt: string, bookId?: string | null): Promise<string> => {
     const bookTheme = bookId ? books?.find((b) => b.id === bookId)?.generation_prompt : null;
-    const subject = bookTheme ? `${prompt}. Theme/context: ${bookTheme}` : prompt;
 
-    const fullPrompt = `Create a coloring book page line drawing. Subject: ${subject}.
-
-ABSOLUTELY CRITICAL - BLACK AND WHITE ONLY:
-- ONLY black lines on a pure white background - NO COLOR WHATSOEVER
-- No gray, no shading, no gradients, no colored fills - ONLY black outlines
-- This is a coloring page - users will add their own colors
-
-DRAWING REQUIREMENTS:
-- ONLY draw the subject itself - no decorative elements like stars, hearts, swirls unless they are part of the subject
-- NO text, words, letters, titles, or captions anywhere
-- NO decorative borders or frames
-- ALL outlines must be FULLY CLOSED with no gaps (for paint bucket fill tools)
-- Thick, clean black outlines only
-- Simple cartoon style suitable for children to color
-- Subject should fill most of the image`;
-
+    // Pass subject and theme separately - let the edge function handle the prompt construction
     const { data, error } = await supabase.functions.invoke("generate-coloring-page", {
-      body: { prompt: fullPrompt },
+      body: { 
+        prompt: prompt, // Just the subject (e.g., "Bird on Branch")
+        bookTheme: bookTheme // The style/theme (e.g., "stained glass windows")
+      },
     });
 
     if (error) throw error;
