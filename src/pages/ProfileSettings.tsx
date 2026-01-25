@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Save, Volume2, Copy, RefreshCw, Bell, Mail, Lock, Send, Loader2 } from "lucide-react";
+import { Save, Volume2, Copy, RefreshCw, Bell, Mail, Lock, Send, Loader2, Download } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -25,6 +25,7 @@ import { PicturePasswordManager } from "@/components/auth/PicturePasswordManager
 import { DeleteAccountSection } from "@/components/profile/DeleteAccountSection";
 import { formatFriendCode, generateRandomFriendCode } from "@/lib/friendCodeEmojis";
 import { profileSchema, validateInput } from "@/lib/validation";
+import { useCodeImageDownload } from "@/hooks/useCodeImageDownload";
 
 interface Profile {
   id: string;
@@ -44,6 +45,7 @@ const ProfileSettings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin } = useAuth();
+  const { downloadFriendCode } = useCodeImageDownload();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -711,6 +713,15 @@ const ProfileSettings = () => {
                           >
                             <Copy className="w-4 h-4" />
                             Copy Code
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => profile.friend_code && downloadFriendCode(profile.friend_code, profile.display_name)}
+                            title="Download code as image"
+                          >
+                            <Download className="w-4 h-4" />
                           </Button>
                           <Button
                             type="button"

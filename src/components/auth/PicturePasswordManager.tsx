@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PicturePasswordDisplay } from "./PicturePasswordDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, Trash2, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Sparkles, Download } from "lucide-react";
 import { generateRandomSequence } from "@/lib/picturePasswordImages";
+import { useCodeImageDownload } from "@/hooks/useCodeImageDownload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ export const PicturePasswordManager = ({
   compact = false,
 }: PicturePasswordManagerProps) => {
   const { toast } = useToast();
+  const { downloadPictureCode } = useCodeImageDownload();
   const [currentSequence, setCurrentSequence] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -210,6 +212,15 @@ export const PicturePasswordManager = ({
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
               Generate New Code
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => downloadPictureCode(currentSequence, bestieName)}
+              title="Download code as image"
+            >
+              <Download className="w-4 h-4" />
             </Button>
             
             <AlertDialog>
