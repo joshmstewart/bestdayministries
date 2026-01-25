@@ -64,7 +64,7 @@ serve(async (req) => {
 
     console.log("Generating coloring book cover with prompt:", prompt, "style:", style);
 
-    // Style-specific instructions
+    // Style-specific instructions - pure ART STYLES (how it's drawn), not subjects
     const styleInstructions: Record<string, string> = {
       kawaii: `
 - Kawaii/chibi cute art style with big sparkly eyes and round faces
@@ -102,24 +102,24 @@ serve(async (req) => {
 - Funky patterns, peace signs, and flower power elements
 - Rounded retro typography style
 - Sunny, optimistic energy with warm oranges and yellows`,
-      nature: `
-- Botanical illustration style with organic elements
-- Leaves, flowers, vines as decorative framing
-- Earthy color palette with greens, browns, and natural tones
-- Hand-drawn botanical accuracy with artistic flair
-- Garden-inspired whimsy with butterflies and birds`,
+      impressionist: `
+- Impressionist painting style with visible brushstrokes
+- Soft, dreamy color palette with light and movement
+- Monet and Renoir inspired romantic aesthetic
+- Dappled light effects and atmospheric depth
+- Painterly texture with gentle color blending`,
       cartoon: `
 - Classic Saturday morning cartoon style
 - Bold black outlines with vibrant flat colors
 - Expressive animated characters with dynamic poses
 - Fun, energetic action-oriented composition
 - Bright primary and secondary color schemes`,
-      mandala: `
-- Intricate circular mandala patterns radiating from center
-- Zentangle-inspired detailed geometric and organic elements
-- Meditative, symmetrical designs with fine linework
-- Rich jewel tones: deep purples, teals, burgundy, gold
-- Sophisticated adult coloring aesthetic`,
+      folkart: `
+- Traditional folk art and crafts aesthetic
+- Hand-painted look with charming imperfections
+- Warm, earthy color palette with rich reds, blues, and greens
+- Decorative motifs inspired by traditional crafts worldwide
+- Naive art style with heartfelt, rustic charm`,
       artdeco: `
 - Elegant 1920s Art Deco geometric patterns
 - Bold symmetrical designs with fan shapes and sunbursts
@@ -135,15 +135,15 @@ serve(async (req) => {
       steampunk: `
 - Victorian-era industrial aesthetic with brass and copper tones
 - Intricate gears, clockwork mechanisms, and machinery
-- Airships, goggles, and fantastical inventions
 - Sepia, bronze, and aged metal color palette
-- Detailed mechanical ornamentation`,
-      architectural: `
-- Detailed architectural illustration style
-- Famous landmarks, Gothic cathedrals, or ornate buildings
-- Precise linework with perspective and depth
-- Sophisticated muted color palette
-- Urban exploration and structural beauty`,
+- Detailed mechanical ornamentation and textures
+- Fantasy-industrial fusion style`,
+      popart: `
+- Bold Pop Art style inspired by Warhol and Lichtenstein
+- Vibrant, saturated primary colors with high contrast
+- Ben-Day dots and comic book halftone effects
+- Bold black outlines with flat color fills
+- Commercial art aesthetic with graphic punch`,
       abstract: `
 - Bold abstract expressionist style
 - Flowing organic shapes with dynamic movement

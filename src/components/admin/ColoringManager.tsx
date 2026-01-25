@@ -158,7 +158,7 @@ export function ColoringManager() {
     }
   };
 
-  // Cover style options - includes kid-friendly and adult-focused styles
+  // Cover style options - pure ART STYLES (how it's drawn), not subjects
   const COVER_STYLE_OPTIONS = [
     // Kid-friendly styles
     { value: "kawaii", label: "Kawaii / Chibi", description: "Cute, bubbly Japanese-inspired style with big eyes and pastel colors" },
@@ -169,13 +169,13 @@ export function ColoringManager() {
     { value: "vintage", label: "Vintage Storybook", description: "Classic golden-era illustration style with warm tones" },
     { value: "geometric", label: "Modern Geometric", description: "Bold shapes, clean lines, and bright contemporary colors" },
     { value: "watercolor", label: "Watercolor Soft", description: "Gentle, flowing watercolor aesthetic with soft edges" },
-    { value: "nature", label: "Nature Botanical", description: "Organic botanical illustrations with leaves, flowers, and natural elements" },
+    { value: "impressionist", label: "Impressionist", description: "Soft brushstrokes, dreamy colors, and painterly texture" },
     // Adult-focused styles
-    { value: "mandala", label: "Mandala / Zentangle", description: "Intricate circular patterns and meditative designs" },
+    { value: "folkart", label: "Folk Art", description: "Traditional crafts aesthetic with hand-painted charm" },
     { value: "artdeco", label: "Art Deco", description: "Elegant 1920s geometric elegance with gold accents" },
     { value: "gothic", label: "Gothic / Dark Fantasy", description: "Dramatic dark themes with ornate Victorian elements" },
-    { value: "steampunk", label: "Steampunk", description: "Victorian machinery with gears, clockwork, and brass" },
-    { value: "architectural", label: "Architectural", description: "Detailed buildings, cityscapes, and structural beauty" },
+    { value: "steampunk", label: "Steampunk", description: "Victorian-industrial aesthetic with brass and clockwork elements" },
+    { value: "popart", label: "Pop Art", description: "Bold colors, Ben-Day dots, and Warhol-inspired vibrancy" },
     { value: "abstract", label: "Abstract Expressionist", description: "Bold, flowing abstract forms and artistic expression" },
     { value: "tattoo", label: "Tattoo Art", description: "Traditional tattoo style with bold lines and iconic imagery" },
     { value: "artnouveau", label: "Art Nouveau", description: "Flowing organic curves with nature-inspired elegance" },
