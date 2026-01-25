@@ -4,12 +4,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { CoinIcon } from "@/components/CoinIcon";
 
 interface AllWaysToEarnDialogProps {
@@ -168,49 +162,39 @@ export function AllWaysToEarnDialog({ open, onOpenChange }: AllWaysToEarnDialogP
           </DialogTitle>
         </DialogHeader>
         
-        <div className="mt-4">
-          <Accordion type="multiple" className="w-full">
-            {earnHierarchy.map((category) => (
-              <AccordionItem key={category.title} value={category.title} className="border-b-0">
-                <AccordionTrigger className="py-3 hover:no-underline">
-                  <span className="flex items-center gap-2 text-base font-semibold">
-                    <span>{category.emoji}</span>
-                    {category.title}
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="pb-2">
-                  <Accordion type="multiple" className="w-full pl-4">
-                    {category.apps.map((app) => (
-                      <AccordionItem key={app.name} value={app.name} className="border-b-0">
-                        <AccordionTrigger className="py-2 hover:no-underline text-sm">
-                          <span className="font-medium text-muted-foreground">{app.name}</span>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-2">
-                          <div className="space-y-2 pl-2">
-                            {app.items.map((method, index) => (
-                              <div 
-                                key={index}
-                                className="flex items-center justify-between p-2.5 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800"
-                              >
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm">{method.name}</p>
-                                  <p className="text-xs text-muted-foreground truncate">{method.description}</p>
-                                </div>
-                                <div className="flex items-center gap-1 ml-3 shrink-0">
-                                  <span className="font-bold text-sm text-yellow-700 dark:text-yellow-400">{method.coins}</span>
-                                  <CoinIcon size={16} />
-                                </div>
-                              </div>
-                            ))}
+        <div className="mt-4 space-y-6">
+          {earnHierarchy.map((category) => (
+            <div key={category.title}>
+              <h3 className="flex items-center gap-2 text-base font-semibold mb-3">
+                <span>{category.emoji}</span>
+                {category.title}
+              </h3>
+              <div className="space-y-4 pl-4">
+                {category.apps.map((app) => (
+                  <div key={app.name}>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">{app.name}</h4>
+                    <div className="space-y-2 pl-2">
+                      {app.items.map((method, index) => (
+                        <div 
+                          key={index}
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{method.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{method.description}</p>
                           </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+                          <div className="flex items-center gap-1 ml-3 shrink-0">
+                            <span className="font-bold text-sm text-yellow-700 dark:text-yellow-400">{method.coins}</span>
+                            <CoinIcon size={16} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
