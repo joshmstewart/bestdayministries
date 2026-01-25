@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from "sonner";
 import { Pencil, Trash2, Eye, Send, Upload, X, Megaphone, Clock, CheckCircle, Loader2 } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
@@ -815,7 +816,14 @@ export const ContentAnnouncementsManager = () => {
           
           {previewAnnouncement && (
             <div className="border rounded-lg overflow-hidden bg-card">
-              {previewAnnouncement.image_url && (
+              {previewAnnouncement.announcement_type === "memory_match_extreme" ? (
+                <div className="p-4">
+                  <MemoryMatchGridPreview 
+                    difficulty="extreme" 
+                    cardBackUrl={previewAnnouncement.image_url || undefined}
+                  />
+                </div>
+              ) : previewAnnouncement.image_url && (
                 <img
                   src={previewAnnouncement.image_url}
                   alt={previewAnnouncement.title}
