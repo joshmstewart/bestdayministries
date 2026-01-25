@@ -1,8 +1,30 @@
 import { useCallback } from "react";
-import { getPictureById, PICTURE_PASSWORD_IMAGES } from "@/lib/picturePasswordImages";
+import { getPictureById } from "@/lib/picturePasswordImages";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createElement } from "react";
 
 export function useCodeImageDownload() {
-  // Download picture password as image
+  // Convert Lucide icon to canvas-drawable image
+  const iconToImage = (IconComponent: any, color: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const hexColor = getColorFromTailwind(color);
+      const svgString = renderToStaticMarkup(
+        createElement(IconComponent, { 
+          width: 64, 
+          height: 64, 
+          color: hexColor,
+          strokeWidth: 2
+        })
+      );
+      
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = `data:image/svg+xml;base64,${btoa(svgString)}`;
+    });
+  };
+
+  // Download picture password as image with actual icons
   const downloadPictureCode = useCallback(async (sequence: string[], userName?: string) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -13,6 +35,7 @@ export function useCodeImageDownload() {
     const padding = 40;
     const titleHeight = 60;
     const labelHeight = 30;
+    const iconSize = 64;
     
     canvas.width = padding * 2 + cardSize * 4 + gap * 3;
     canvas.height = padding * 2 + titleHeight + cardSize + labelHeight;
@@ -28,7 +51,7 @@ export function useCodeImageDownload() {
     const title = userName ? `${userName}'s Picture Code` : "My Picture Code";
     ctx.fillText(title, canvas.width / 2, padding + 30);
 
-    // Draw each picture card
+    // Draw each picture card with actual icons
     for (let i = 0; i < sequence.length; i++) {
       const picture = getPictureById(sequence[i]);
       if (!picture) continue;
@@ -55,12 +78,20 @@ export function useCodeImageDownload() {
       ctx.textBaseline = "middle";
       ctx.fillText(String(i + 1), x + cardSize - 10, y + 10);
 
-      // Icon emoji/text (use name as fallback since we can't render Lucide icons to canvas easily)
-      ctx.fillStyle = getColorFromTailwind(picture.color);
-      ctx.font = "bold 48px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(getEmojiForPicture(picture.id), x + cardSize / 2, y + cardSize / 2);
+      // Draw the actual Lucide icon
+      try {
+        const iconImg = await iconToImage(picture.icon, picture.color);
+        const iconX = x + (cardSize - iconSize) / 2;
+        const iconY = y + (cardSize - iconSize) / 2;
+        ctx.drawImage(iconImg, iconX, iconY, iconSize, iconSize);
+      } catch (err) {
+        // Fallback to emoji if icon fails
+        ctx.fillStyle = getColorFromTailwind(picture.color);
+        ctx.font = "bold 48px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(getEmojiForPicture(picture.id), x + cardSize / 2, y + cardSize / 2);
+      }
 
       // Label
       ctx.fillStyle = "#666666";
@@ -149,7 +180,7 @@ function roundRect(
   ctx.closePath();
 }
 
-// Map picture IDs to emojis for canvas rendering
+// Fallback emoji map for canvas rendering
 function getEmojiForPicture(id: string): string {
   const emojiMap: Record<string, string> = {
     dog: "🐕",
