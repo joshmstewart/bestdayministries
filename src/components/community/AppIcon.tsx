@@ -33,13 +33,13 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
       {/* App icon with gradient background */}
       <div
         className={cn(
-          "relative w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg",
+          "relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center shadow-lg",
           "bg-gradient-to-br",
           app.color,
           !editMode && "hover:scale-105 active:scale-95 transition-transform"
         )}
       >
-        <Icon className="w-8 h-8 text-white drop-shadow-md" />
+        <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-white drop-shadow-md" />
         
         {/* Edit mode checkbox indicator */}
         {editMode && (
@@ -57,7 +57,7 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
       </div>
       
       {/* App name */}
-      <span className="text-xs font-medium text-foreground text-center leading-tight max-w-16 line-clamp-2">
+      <span className="text-xs lg:text-sm font-medium text-foreground text-center leading-tight max-w-16 lg:max-w-24 line-clamp-2">
         {app.name}
       </span>
     </button>
