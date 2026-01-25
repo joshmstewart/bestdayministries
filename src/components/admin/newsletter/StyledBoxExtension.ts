@@ -206,46 +206,26 @@ export const StyledBox = Node.create<StyledBoxOptions>({
       updateStyledBoxStyle:
         (style: StyledBoxStyle) =>
         ({ tr, state, dispatch }) => {
-          // Find the styledBox node that contains the current selection
+          // Find the styledBox node by walking up from selection
           const { selection } = state;
-          let foundPos: number | null = null;
-          let foundNode: any = null;
+          const $from = selection.$from;
           
-          // Walk up from the selection to find the styled box
-          state.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+          // Walk up the tree to find the styledBox
+          for (let d = $from.depth; d >= 0; d--) {
+            const node = $from.node(d);
             if (node.type.name === 'styledBox') {
-              foundPos = pos;
-              foundNode = node;
-              return false; // stop searching
-            }
-            return true;
-          });
-          
-          // Also check ancestors
-          if (foundPos === null) {
-            const $pos = state.doc.resolve(selection.from);
-            for (let d = $pos.depth; d >= 0; d--) {
-              const node = $pos.node(d);
-              if (node.type.name === 'styledBox') {
-                foundPos = $pos.before(d);
-                foundNode = node;
-                break;
+              const pos = $from.before(d);
+              
+              if (dispatch) {
+                // CRITICAL: Pass node.type explicitly to preserve content structure
+                const newAttrs = { ...node.attrs, style };
+                tr.setNodeMarkup(pos, node.type, newAttrs, node.marks);
+                dispatch(tr);
               }
+              return true;
             }
           }
-          
-          if (foundPos === null || foundNode === null) {
-            return false;
-          }
-          
-          if (dispatch) {
-            // Create new attributes with just the style changed
-            const newAttrs = { ...foundNode.attrs, style };
-            tr.setNodeMarkup(foundPos, undefined, newAttrs);
-            dispatch(tr);
-          }
-          
-          return true;
+          return false;
         },
     };
   },
