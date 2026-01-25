@@ -101,7 +101,7 @@ export function PackCarousel({
         throw new Error("Failed to deduct coins");
       }
 
-      // Record purchase
+      // Record purchase (no need to manually insert coin_transaction - deductCoins already does it)
       const { error: purchaseError } = await supabase
         .from("user_memory_match_packs")
         .insert({
@@ -110,15 +110,6 @@ export function PackCarousel({
         });
 
       if (purchaseError) throw purchaseError;
-
-      // Record transaction
-      await supabase.from("coin_transactions").insert({
-        user_id: user.id,
-        amount: -packToPurchase.price_coins,
-        transaction_type: "store_purchase",
-        description: `Memory Match pack purchase: ${packToPurchase.name}`,
-        related_item_id: packToPurchase.id,
-      });
 
       await refetchCoins();
       onPackPurchased?.();
