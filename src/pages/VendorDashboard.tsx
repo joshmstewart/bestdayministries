@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus } from "lucide-react";
+import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star } from "lucide-react";
+import { VendorBestieAssetManager } from "@/components/vendor/VendorBestieAssetManager";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
 import { VendorOrderList } from "@/components/vendor/VendorOrderList";
@@ -675,13 +676,94 @@ const VendorDashboard = () => {
                   <h3 className="text-xl font-semibold mb-4">Team Members</h3>
                   <VendorTeamManager vendorId={selectedVendorId} theme={theme} />
                 </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-4">Link to Besties</h3>
-                  <div className="space-y-6">
-                    <VendorBestieLinkRequest vendorId={selectedVendorId} theme={theme} />
-                    <VendorLinkedBesties vendorId={selectedVendorId} theme={theme} />
+
+                {/* Bestie Features Section */}
+                <div className="pt-8 border-t border-border/50">
+                  <div className="mb-8">
+                    <h2 className="text-2xl font-semibold mb-2">Bestie Features</h2>
+                    <p className="text-muted-foreground">
+                      Connect with Besties to add a personal touch to your store and support our community
+                    </p>
                   </div>
+
+                  {/* Link to Besties */}
+                  <Card 
+                    className="border-2 mb-6"
+                    style={theme ? { 
+                      backgroundColor: theme.cardBg,
+                      borderColor: theme.cardBorder,
+                      boxShadow: theme.cardGlow
+                    } : undefined}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Heart className="h-5 w-5 text-primary" />
+                        Link to Besties
+                      </CardTitle>
+                      <CardDescription className="space-y-2">
+                        <p>
+                          Connect your store with Besties by entering their unique 3-emoji friend code. 
+                          Once linked, you can feature their content on your store page.
+                        </p>
+                        <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                          <strong>How it works:</strong>
+                          <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
+                            <li>Ask a Bestie or their guardian for their 3-emoji friend code</li>
+                            <li>Enter the code below to send a link request</li>
+                            <li>Their guardian will review and approve the connection</li>
+                            <li>Once approved, you can select their content to feature</li>
+                          </ul>
+                        </div>
+                        <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                          <strong>Benefits:</strong> Show your customers that you support our Bestie community, 
+                          add authentic personal stories to your store, and help Besties gain visibility and recognition.
+                        </div>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <VendorBestieLinkRequest vendorId={selectedVendorId} theme={theme} />
+                      <VendorLinkedBesties vendorId={selectedVendorId} theme={theme} />
+                    </CardContent>
+                  </Card>
+
+                  {/* Best Content */}
+                  <Card 
+                    className="border-2"
+                    style={theme ? { 
+                      backgroundColor: theme.cardBg,
+                      borderColor: theme.cardBorder,
+                      boxShadow: theme.cardGlow
+                    } : undefined}
+                  >
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Star className="h-5 w-5 text-primary" />
+                        Best Content
+                      </CardTitle>
+                      <CardDescription className="space-y-2">
+                        <p>
+                          Choose photos, videos, and audio from your linked Besties to showcase on your store page.
+                        </p>
+                        <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                          <strong>How it works:</strong>
+                          <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
+                            <li>Select assets from any Bestie you're connected with</li>
+                            <li>Their guardian may need to approve your selections</li>
+                            <li>Approved content appears on your public store page</li>
+                            <li>Update your selections anytime to keep content fresh</li>
+                          </ul>
+                        </div>
+                        <div className="bg-primary/10 rounded-lg p-3 text-sm">
+                          <strong>Benefits:</strong> Personalize your store with authentic Bestie content, 
+                          tell meaningful stories that resonate with customers, and create a unique shopping 
+                          experience that supports our community.
+                        </div>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <VendorBestieAssetManager vendorId={selectedVendorId} theme={theme} />
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
             </Tabs>
