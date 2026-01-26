@@ -2716,9 +2716,11 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_free: boolean | null
           likes_count: number
           link_label: string | null
           link_url: string | null
+          price_coins: number | null
           published_at: string | null
           status: string
           title: string
@@ -2731,9 +2733,11 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_free?: boolean | null
           likes_count?: number
           link_label?: string | null
           link_url?: string | null
+          price_coins?: number | null
           published_at?: string | null
           status?: string
           title: string
@@ -2746,9 +2750,11 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_free?: boolean | null
           likes_count?: number
           link_label?: string | null
           link_url?: string | null
+          price_coins?: number | null
           published_at?: string | null
           status?: string
           title?: string
