@@ -87,6 +87,8 @@ interface StoreType {
   is_active: boolean;
   is_default: boolean;
   menu_items: Json | null;
+  receipt_address: string | null;
+  receipt_tagline: string | null;
 }
 
 const parseMenuItems = (json: Json | null): MenuItem[] => {
@@ -126,6 +128,7 @@ export const CashRegisterStoresManager = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [savingMenu, setSavingMenu] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [generatingDetails, setGeneratingDetails] = useState<string | null>(null);
 
   useEffect(() => {
     loadStores();
@@ -245,6 +248,34 @@ export const CashRegisterStoresManager = () => {
         // Optimistic update - add to local state immediately
         if (data) {
           setStores(prev => [...prev, data]);
+          
+          // Auto-generate menu items and receipt details in background
+          toast.info("Generating store details...");
+          supabase.functions.invoke("generate-store-details", {
+            body: { 
+              storeId: data.id, 
+              storeName: formData.name, 
+              storeDescription: formData.description 
+            },
+          }).then(({ data: genData, error: genError }) => {
+            if (genError) {
+              console.error("Error generating store details:", genError);
+              toast.error("Failed to auto-generate store details. You can add them manually.");
+            } else {
+              // Update the store in local state with the generated data
+              setStores(prev => prev.map(s => 
+                s.id === data.id 
+                  ? { 
+                      ...s, 
+                      menu_items: genData?.menuItems || null,
+                      receipt_address: genData?.receiptAddress || null,
+                      receipt_tagline: genData?.receiptTagline || null,
+                    }
+                  : s
+              ));
+              toast.success("Store details generated!");
+            }
+          });
         }
         toast.success("Store created");
       }
@@ -394,6 +425,39 @@ export const CashRegisterStoresManager = () => {
       showErrorToastWithCopy("Saving menu items", error);
     } finally {
       setSavingMenu(false);
+    }
+  };
+
+  const generateStoreDetails = async (store: StoreType) => {
+    setGeneratingDetails(store.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-store-details", {
+        body: { 
+          storeId: store.id, 
+          storeName: store.name, 
+          storeDescription: store.description 
+        },
+      });
+
+      if (error) throw error;
+
+      // Update the store in local state with the generated data
+      setStores(prev => prev.map(s => 
+        s.id === store.id 
+          ? { 
+              ...s, 
+              menu_items: data?.menuItems || null,
+              receipt_address: data?.receiptAddress || null,
+              receipt_tagline: data?.receiptTagline || null,
+            }
+          : s
+      ));
+      toast.success(`Details generated for ${store.name}!`);
+    } catch (error) {
+      console.error("Error generating store details:", error);
+      showErrorToastWithCopy(`Generating details for ${store.name}`, error);
+    } finally {
+      setGeneratingDetails(null);
     }
   };
 
@@ -634,6 +698,22 @@ export const CashRegisterStoresManager = () => {
                     <EyeOff className="h-4 w-4" />
                   )}
                 </Button>
+                {/* Generate Details button - show if no menu items */}
+                {(!store.menu_items || (Array.isArray(store.menu_items) && store.menu_items.length === 0)) && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => generateStoreDetails(store)}
+                    disabled={generatingDetails === store.id}
+                    title="Generate Menu & Receipt Details"
+                  >
+                    {generatingDetails === store.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="icon"

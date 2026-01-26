@@ -9,6 +9,8 @@ interface ReceiptDisplayProps {
   tax: number;
   total: number;
   storeName?: string;
+  storeAddress?: string | null;
+  storeTagline?: string | null;
 }
 
 // Store-specific details
@@ -40,14 +42,18 @@ const STORE_DETAILS: Record<string, { name: string; address: string; tagline: st
   },
 };
 
-export function ReceiptDisplay({ items, subtotal, tax, total, storeName }: ReceiptDisplayProps) {
-  // Use predefined details if available, otherwise generate from store name
+export function ReceiptDisplay({ items, subtotal, tax, total, storeName, storeAddress, storeTagline }: ReceiptDisplayProps) {
+  // Use database-stored details first, then predefined fallbacks, then generate from store name
   const storeDetails = storeName && STORE_DETAILS[storeName] 
-    ? STORE_DETAILS[storeName] 
+    ? {
+        name: STORE_DETAILS[storeName].name,
+        address: storeAddress || STORE_DETAILS[storeName].address,
+        tagline: storeTagline || STORE_DETAILS[storeName].tagline,
+      }
     : {
         name: storeName?.toUpperCase() || "JOY CAFÉ",
-        address: "123 Main Street",
-        tagline: "Thank you for your order!",
+        address: storeAddress || "123 Main Street",
+        tagline: storeTagline || "Thank you for your order!",
       };
 
   return (
