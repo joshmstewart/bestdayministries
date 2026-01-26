@@ -25,7 +25,8 @@ export type SoundEventType =
   | "achievement"
   | "error"
   | "success"
-  | "button_click";
+  | "button_click"
+  | "wheel_click";
 
 export function useSoundEffects() {
   const [soundEffects, setSoundEffects] = useState<Record<string, SoundEffect>>({});

@@ -58,6 +58,7 @@ const EVENT_LABELS: Record<string, string> = {
   error: "Error Occurred",
   success: "Success Action",
   button_click: "Button Click",
+  wheel_click: "Wheel Spin Click",
 };
 
 export const SoundEffectsManager = () => {

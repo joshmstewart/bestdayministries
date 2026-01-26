@@ -38,16 +38,29 @@ export function ChoreRewardWheelDialog({
   const [segments, setSegments] = useState<WheelSegment[]>([]);
   const [wonPrize, setWonPrize] = useState<WheelSegment | null>(null);
   const [claiming, setClaiming] = useState(false);
-  const { playSound } = useSoundEffects();
+  const [wheelClickSound, setWheelClickSound] = useState<{ url: string; volume: number } | null>(null);
+  const { playSound, soundEffects } = useSoundEffects();
 
-  // Get MST date (must match edge function logic)
+  // Get MST date using Intl (must match edge function logic)
   const getMSTDate = (): string => {
-    const now = new Date();
-    const mstOffsetMinutes = -7 * 60;
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const mstTime = new Date(utc + mstOffsetMinutes * 60000);
-    return mstTime.toISOString().split("T")[0];
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Denver',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(new Date());
   };
+
+  // Get wheel click sound from sound effects
+  useEffect(() => {
+    const wheelEffect = soundEffects['wheel_click'];
+    if (wheelEffect?.is_enabled && wheelEffect.file_url) {
+      setWheelClickSound({ url: wheelEffect.file_url, volume: wheelEffect.volume });
+    } else {
+      setWheelClickSound(null);
+    }
+  }, [soundEffects]);
 
   // Load wheel config and check if already spun today
   useEffect(() => {
@@ -216,6 +229,8 @@ export function ChoreRewardWheelDialog({
                   onSpinStart={handleSpinStart}
                   disabled={hasSpunToday}
                   size={280}
+                  clickSoundUrl={wheelClickSound?.url}
+                  clickSoundVolume={wheelClickSound?.volume}
                 />
 
               {wonPrize && (

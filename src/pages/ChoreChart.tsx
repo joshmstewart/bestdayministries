@@ -487,8 +487,9 @@ export default function ChoreChart() {
     if (prizeType === 'sticker_pack' && cardIds && cardIds.length > 0) {
       setRewardCardIds(cardIds);
       setCurrentPackIndex(0);
-      // Show pack opening dialog after a short delay
-      setTimeout(() => setShowPackDialog(true), 500);
+      // Close wheel dialog and immediately show pack opening
+      setShowWheelDialog(false);
+      setShowPackDialog(true);
     }
     
     fireBigCelebration();

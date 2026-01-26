@@ -7,25 +7,33 @@ const corsHeaders = {
 };
 
 function getMSTDate(): string {
-  const now = new Date();
-  const mstOffsetMinutes = -7 * 60;
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const mstTime = new Date(utc + mstOffsetMinutes * 60000);
-  return mstTime.toISOString().split("T")[0];
+  // Create a date formatter for MST timezone
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
 }
 
 function getMSTTomorrowMidnightUTC(): string {
+  // Get current time in MST
   const now = new Date();
-  const mstOffsetMinutes = -7 * 60;
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const mstTime = new Date(utc + mstOffsetMinutes * 60000);
+  const mstFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Denver',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const mstParts = mstFormatter.formatToParts(now);
+  const year = parseInt(mstParts.find(p => p.type === 'year')?.value || '2025');
+  const month = parseInt(mstParts.find(p => p.type === 'month')?.value || '1') - 1;
+  const day = parseInt(mstParts.find(p => p.type === 'day')?.value || '1');
   
-  const tomorrowMST = new Date(mstTime);
-  tomorrowMST.setDate(tomorrowMST.getDate() + 1);
-  tomorrowMST.setHours(0, 0, 0, 0);
-  
-  const tomorrowUTC = new Date(tomorrowMST.getTime() - mstOffsetMinutes * 60000);
-  return tomorrowUTC.toISOString();
+  // Create tomorrow midnight in MST (UTC-7)
+  const tomorrowMST = new Date(Date.UTC(year, month, day + 1, 7, 0, 0, 0));
+  return tomorrowMST.toISOString();
 }
 
 serve(async (req) => {
@@ -172,8 +180,9 @@ serve(async (req) => {
         });
       }
 
-      // Create the sticker pack(s)
+      // Create the sticker pack(s) - use timestamp for unique purchase_number
       const cardIds: string[] = [];
+      const baseTimestamp = Date.now();
       
       for (let i = 0; i < prizeAmount; i++) {
         const { data: newCard, error: cardError } = await adminClient
@@ -185,7 +194,7 @@ serve(async (req) => {
             expires_at: expiresAt,
             is_bonus_card: true,
             is_scratched: false,
-            purchase_number: i + 1,
+            purchase_number: baseTimestamp + i, // Use timestamp to ensure uniqueness
           })
           .select("id")
           .single();
