@@ -72,7 +72,15 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
   // Check if any vendor uses calculated shipping
   const hasCalculatedShippingVendor = useMemo(() => {
     if (!cartItems || cartItems.length === 0) return false;
-    return cartItems.some(item => item.product?.vendors?.shipping_mode === 'calculated');
+    console.log('Cart items for shipping check:', cartItems.map(item => ({
+      productName: item.product?.name,
+      vendorId: item.product?.vendor_id,
+      vendorData: item.product?.vendors,
+      shippingMode: item.product?.vendors?.shipping_mode
+    })));
+    const hasCalculated = cartItems.some(item => item.product?.vendors?.shipping_mode === 'calculated');
+    console.log('Has calculated shipping vendor:', hasCalculated);
+    return hasCalculated;
   }, [cartItems]);
 
   // Shipping constants (for flat rate fallback display)
