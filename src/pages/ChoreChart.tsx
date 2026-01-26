@@ -16,6 +16,7 @@ import { ChoreStreakDisplay } from "@/components/chores/ChoreStreakDisplay";
 import { MonthlyChallengeCard } from "@/components/chores/MonthlyChallengeCard";
 import { ChallengeGallery } from "@/components/chores/ChallengeGallery";
 import { ChoreCelebrationDialog } from "@/components/chores/ChoreCelebrationDialog";
+import { ChoreRewardWheelDialog } from "@/components/chores/ChoreRewardWheelDialog";
 import { MissedChoresSection } from "@/components/chores/MissedChoresSection";
 import { useChoreStreaks } from "@/hooks/useChoreStreaks";
 import { Link, useNavigate } from "react-router-dom";
@@ -98,9 +99,10 @@ export default function ChoreChart() {
   const [linkedBesties, setLinkedBesties] = useState<{ id: string; display_name: string }[]>([]);
   const [selectedBestieId, setSelectedBestieId] = useState<string | null>(null);
   const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
-  const [rewardCreating, setRewardCreating] = useState(false);
+  const [showWheelDialog, setShowWheelDialog] = useState(false);
   const [showPackDialog, setShowPackDialog] = useState(false);
-  const [rewardCardId, setRewardCardId] = useState<string | null>(null);
+  const [rewardCardIds, setRewardCardIds] = useState<string[]>([]);
+  const [currentPackIndex, setCurrentPackIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'list' | 'week'>('list');
   const [earnedBadge, setEarnedBadge] = useState<import("@/lib/choreBadgeDefinitions").BadgeDefinition | null>(null);
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
@@ -291,29 +293,29 @@ export default function ChoreChart() {
       // Convert map to array
       setMissedChores(Array.from(missedByChoreId.values()));
 
-      // Check if daily reward already claimed
-      const { data: rewardData } = await supabase
-        .from('chore_daily_rewards')
+      // Check if user already spun the wheel today
+      const { data: spinData } = await supabase
+        .from('chore_wheel_spins')
         .select('id')
         .eq('user_id', targetUserId)
-        .eq('reward_date', today)
-        .single();
+        .eq('spin_date', today)
+        .maybeSingle();
 
-      setDailyRewardClaimed(!!rewardData);
+      setDailyRewardClaimed(!!spinData);
 
-      // Check for unscratched bonus card from chore rewards
-      if (rewardData) {
-        const { data: bonusCard } = await supabase
+      // Check for unscratched bonus cards from wheel rewards
+      if (spinData) {
+        const { data: bonusCards } = await supabase
           .from('daily_scratch_cards')
           .select('id')
           .eq('user_id', targetUserId)
           .eq('date', today)
           .eq('is_bonus_card', true)
           .eq('is_scratched', false)
-          .single();
+          .order('purchase_number', { ascending: true });
 
-        if (bonusCard) {
-          setRewardCardId(bonusCard.id);
+        if (bonusCards && bonusCards.length > 0) {
+          setRewardCardIds(bonusCards.map(c => c.id));
         }
       }
     } catch (error) {
@@ -476,57 +478,19 @@ export default function ChoreChart() {
     }
   };
 
-  const claimDailyReward = async (userId: string) => {
-    try {
-      setRewardCreating(true);
-
-      // Use backend function to claim reward and create bonus card
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Please log in again to claim your reward');
-        return;
-      }
-
-      const response = await supabase.functions.invoke('claim-chore-reward', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (response.error) {
-        console.error('Error claiming reward:', response.error);
-        toast.error('Failed to create your sticker pack');
-        return;
-      }
-
-      const result = response.data as
-        | { success: true; cardId: string; alreadyClaimed?: boolean }
-        | { success?: false; error?: string };
-
-      if (!result || (result as any).success !== true || !(result as any).cardId) {
-        console.error('Unexpected claim-chore-reward response:', result);
-        toast.error('Failed to create your sticker pack');
-        return;
-      }
-
-      setDailyRewardClaimed(true);
-      setRewardCardId((result as any).cardId);
-      setShowPackDialog(true);
-
-      fireBigCelebration();
-      toast.success(
-        <div className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
-          <span>Sticker pack ready — open it now!</span>
-        </div>,
-        { duration: 4000 }
-      );
-    } catch (error) {
-      console.error('Error claiming reward:', error);
-      toast.error('Failed to create your sticker pack');
-    } finally {
-      setRewardCreating(false);
+  // Handler for when a prize is won on the wheel
+  const handlePrizeWon = (prizeType: string, amount: number, cardIds?: string[]) => {
+    setDailyRewardClaimed(true);
+    
+    if (prizeType === 'sticker_pack' && cardIds && cardIds.length > 0) {
+      setRewardCardIds(cardIds);
+      setCurrentPackIndex(0);
+      // Show pack opening dialog after a short delay
+      setTimeout(() => setShowPackDialog(true), 500);
     }
+    
+    fireBigCelebration();
+    loadData();
   };
 
   const handleEditChore = (chore: Chore) => {
@@ -732,16 +696,16 @@ export default function ChoreChart() {
                 <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex items-center gap-2 text-primary font-medium">
                     <Trophy className="h-5 w-5" />
-                    {dailyRewardClaimed ? 'Reward claimed!' : 'All done! Your reward is ready.'}
+                    {dailyRewardClaimed ? 'Reward claimed!' : 'All done! Spin the wheel!'}
                   </div>
 
-                  {rewardCardId ? (
+                  {rewardCardIds.length > 0 ? (
                     <Button
                       onClick={() => setShowPackDialog(true)}
-                      className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white animate-pulse"
+                      className="bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white animate-pulse"
                     >
                       <Gift className="h-4 w-4 mr-2" />
-                      Open Your Sticker Pack!
+                      Open Your Sticker Pack{rewardCardIds.length > 1 ? 's' : ''}!
                     </Button>
                   ) : dailyRewardClaimed ? (
                     <Link to="/games/sticker-album">
@@ -752,15 +716,11 @@ export default function ChoreChart() {
                     </Link>
                   ) : (
                     <Button
-                      onClick={() => {
-                        const targetUserId = canManageChores && selectedBestieId ? selectedBestieId : user?.id;
-                        if (targetUserId) claimDailyReward(targetUserId);
-                      }}
-                      disabled={rewardCreating}
+                      onClick={() => setShowWheelDialog(true)}
                       className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
                     >
                       <Gift className="h-4 w-4 mr-2" />
-                      {rewardCreating ? 'Creating pack…' : 'Get Sticker Pack'}
+                      Spin the Wheel!
                     </Button>
                   )}
                 </div>
@@ -960,18 +920,37 @@ export default function ChoreChart() {
           canManageAll={canManageChores}
         />
 
-        {/* Pack Opening Dialog for chore reward */}
-        {rewardCardId && (
+        {/* Pack Opening Dialog for wheel rewards */}
+        {rewardCardIds.length > 0 && rewardCardIds[currentPackIndex] && (
           <PackOpeningDialog
             open={showPackDialog}
-            onOpenChange={setShowPackDialog}
-            cardId={rewardCardId}
+            onOpenChange={(open) => {
+              setShowPackDialog(open);
+              if (!open) {
+                // Move to next pack or clear
+                if (currentPackIndex < rewardCardIds.length - 1) {
+                  setCurrentPackIndex(prev => prev + 1);
+                  setTimeout(() => setShowPackDialog(true), 300);
+                } else {
+                  setRewardCardIds([]);
+                  setCurrentPackIndex(0);
+                }
+              }
+            }}
+            cardId={rewardCardIds[currentPackIndex]}
             onOpened={() => {
-              setRewardCardId(null);
               loadData();
             }}
           />
         )}
+
+        {/* Reward Wheel Dialog */}
+        <ChoreRewardWheelDialog
+          open={showWheelDialog}
+          onOpenChange={setShowWheelDialog}
+          userId={targetUserId || user?.id || ""}
+          onPrizeWon={handlePrizeWon}
+        />
 
         {/* Badge Earned Celebration Dialog */}
         <BadgeEarnedDialog
