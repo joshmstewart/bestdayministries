@@ -4,11 +4,12 @@ import { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
-import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2, Lightbulb, Wand2, ShoppingCart, X } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2, Lightbulb, Wand2, ShoppingCart, X, Coins } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -89,6 +90,8 @@ interface StoreType {
   menu_items: Json | null;
   receipt_address: string | null;
   receipt_tagline: string | null;
+  price_coins: number;
+  is_free: boolean;
 }
 
 const parseMenuItems = (json: Json | null): MenuItem[] => {
@@ -119,6 +122,8 @@ export const CashRegisterStoresManager = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    is_free: true,
+    price_coins: 0,
   });
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -219,6 +224,8 @@ export const CashRegisterStoresManager = () => {
           .update({
             name: formData.name,
             description: formData.description,
+            is_free: formData.is_free,
+            price_coins: formData.is_free ? 0 : formData.price_coins,
           })
           .eq("id", editingStore.id);
 
@@ -227,7 +234,7 @@ export const CashRegisterStoresManager = () => {
         // Optimistic update - immediately update local state
         setStores(prev => prev.map(s => 
           s.id === editingStore.id 
-            ? { ...s, name: formData.name, description: formData.description }
+            ? { ...s, name: formData.name, description: formData.description, is_free: formData.is_free, price_coins: formData.is_free ? 0 : formData.price_coins }
             : s
         ));
         toast.success("Store updated");
@@ -239,6 +246,8 @@ export const CashRegisterStoresManager = () => {
             name: formData.name,
             description: formData.description,
             display_order: maxOrder + 1,
+            is_free: formData.is_free,
+            price_coins: formData.is_free ? 0 : formData.price_coins,
           })
           .select()
           .single();
@@ -282,7 +291,7 @@ export const CashRegisterStoresManager = () => {
 
       setDialogOpen(false);
       setEditingStore(null);
-      setFormData({ name: "", description: "" });
+      setFormData({ name: "", description: "", is_free: true, price_coins: 0 });
     } catch (error) {
       console.error("Error saving store:", error);
       showErrorToastWithCopy(editingStore ? "Updating store" : "Creating store", error);
@@ -316,6 +325,8 @@ export const CashRegisterStoresManager = () => {
     setFormData({
       name: store.name,
       description: store.description || "",
+      is_free: store.is_free ?? true,
+      price_coins: store.price_coins ?? 0,
     });
     setDialogOpen(true);
   };
@@ -324,6 +335,8 @@ export const CashRegisterStoresManager = () => {
     setFormData({
       name: idea.name,
       description: idea.description,
+      is_free: true,
+      price_coins: 0,
     });
     setIdeasOpen(false);
     setEditingStore(null);
@@ -551,7 +564,7 @@ export const CashRegisterStoresManager = () => {
                   <Button
                     onClick={() => {
                       setEditingStore(null);
-                      setFormData({ name: "", description: "" });
+                      setFormData({ name: "", description: "", is_free: true, price_coins: 0 });
                     }}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -611,6 +624,31 @@ export const CashRegisterStoresManager = () => {
                         rows={3}
                       />
                     </div>
+                    
+                    {/* Pricing */}
+                    <div className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="flex items-center gap-2">
+                          <Coins className="w-4 h-4" />
+                          Free Store
+                        </Label>
+                        <Switch
+                          checked={formData.is_free}
+                          onCheckedChange={(checked) => setFormData({ ...formData, is_free: checked })}
+                        />
+                      </div>
+                      {!formData.is_free && (
+                        <div>
+                          <Label>Price (coins)</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={formData.price_coins}
+                            onChange={(e) => setFormData({ ...formData, price_coins: parseInt(e.target.value) || 0 })}
+                          />
+                        </div>
+                      )}
+                    </div>
                     <Button type="submit" className="w-full" disabled={saving}>
                       {saving ? (
                         <>
@@ -663,6 +701,17 @@ export const CashRegisterStoresManager = () => {
                   {!store.is_active && (
                     <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded">
                       Hidden
+                    </span>
+                  )}
+                  {!store.is_free && store.price_coins > 0 && (
+                    <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded flex items-center gap-1">
+                      <Coins className="h-3 w-3" />
+                      {store.price_coins}
+                    </span>
+                  )}
+                  {store.is_free && (
+                    <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">
+                      Free
                     </span>
                   )}
                 </div>
