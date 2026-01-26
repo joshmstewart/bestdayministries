@@ -44,7 +44,7 @@ export function SpinningWheel({
   };
 
   const spin = () => {
-    if (isAnimating || disabled) return;
+    if (isAnimating) return;
 
     // Select the winning segment first
     const winningSegment = selectSegment();
