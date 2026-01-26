@@ -1331,6 +1331,8 @@ export type Database = {
           is_pack_only: boolean
           menu_items: Json | null
           name: string
+          receipt_address: string | null
+          receipt_tagline: string | null
           updated_at: string
         }
         Insert: {
@@ -1344,6 +1346,8 @@ export type Database = {
           is_pack_only?: boolean
           menu_items?: Json | null
           name: string
+          receipt_address?: string | null
+          receipt_tagline?: string | null
           updated_at?: string
         }
         Update: {
@@ -1357,6 +1361,8 @@ export type Database = {
           is_pack_only?: boolean
           menu_items?: Json | null
           name?: string
+          receipt_address?: string | null
+          receipt_tagline?: string | null
           updated_at?: string
         }
         Relationships: []

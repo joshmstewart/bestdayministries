@@ -37,6 +37,8 @@ interface StoreType {
   image_url: string | null;
   is_default: boolean;
   menu_items: Json | null;
+  receipt_address: string | null;
+  receipt_tagline: string | null;
 }
 
 interface CustomerType {
@@ -124,7 +126,7 @@ export default function MoneyCounting() {
       const [storesRes, customersRes, currencyImages, userPacksRes, packItemsRes] = await Promise.all([
         supabase
           .from("cash_register_stores")
-          .select("id, name, description, image_url, is_default, menu_items, is_pack_only")
+          .select("id, name, description, image_url, is_default, menu_items, is_pack_only, receipt_address, receipt_tagline")
           .eq("is_active", true)
           .order("display_order"),
         supabase
@@ -632,6 +634,8 @@ export default function MoneyCounting() {
                     tax={gameState.tax}
                     total={gameState.total}
                     storeName={selectedStore?.name}
+                    storeAddress={selectedStore?.receipt_address}
+                    storeTagline={selectedStore?.receipt_tagline}
                   />
                   <Button onClick={goToNextStep} size="lg" className="w-full">
                     Next: See Customer Payment →
