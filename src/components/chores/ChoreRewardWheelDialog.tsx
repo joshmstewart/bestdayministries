@@ -200,14 +200,14 @@ export function ChoreRewardWheelDialog({
             </p>
           ) : (
             <>
-              <SpinningWheel
-                segments={segments}
-                onSpinEnd={handleSpinEnd}
-                spinning={spinning}
-                onSpinStart={handleSpinStart}
-                disabled={hasSpunToday || spinning}
-                size={280}
-              />
+                <SpinningWheel
+                  segments={segments}
+                  onSpinEnd={handleSpinEnd}
+                  spinning={spinning}
+                  onSpinStart={handleSpinStart}
+                  disabled={hasSpunToday}
+                  size={280}
+                />
 
               {wonPrize && (
                 <div className="flex flex-col items-center gap-2 animate-fade-in">
