@@ -85,6 +85,7 @@ interface StoreType {
 export const CashRegisterStoresManager = () => {
   const [stores, setStores] = useState<StoreType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStore, setEditingStore] = useState<StoreType | null>(null);
@@ -178,6 +179,7 @@ export const CashRegisterStoresManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       if (editingStore) {
         const { error } = await supabase
@@ -189,26 +191,45 @@ export const CashRegisterStoresManager = () => {
           .eq("id", editingStore.id);
 
         if (error) throw error;
+        
+        // Optimistic update - immediately update local state
+        setStores(prev => prev.map(s => 
+          s.id === editingStore.id 
+            ? { ...s, name: formData.name, description: formData.description }
+            : s
+        ));
         toast.success("Store updated");
       } else {
         const maxOrder = Math.max(...stores.map((s) => s.display_order), 0);
-        const { error } = await supabase.from("cash_register_stores").insert({
-          name: formData.name,
-          description: formData.description,
-          display_order: maxOrder + 1,
-        });
+        const { data, error } = await supabase
+          .from("cash_register_stores")
+          .insert({
+            name: formData.name,
+            description: formData.description,
+            display_order: maxOrder + 1,
+          })
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Optimistic update - add to local state immediately
+        if (data) {
+          setStores(prev => [...prev, data]);
+        }
         toast.success("Store created");
       }
 
       setDialogOpen(false);
       setEditingStore(null);
       setFormData({ name: "", description: "" });
-      await loadStores();
     } catch (error) {
       console.error("Error saving store:", error);
       showErrorToastWithCopy(editingStore ? "Updating store" : "Creating store", error);
+      // On error, refresh to get accurate state
+      loadStores();
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -435,8 +456,15 @@ export const CashRegisterStoresManager = () => {
                         rows={3}
                       />
                     </div>
-                    <Button type="submit" className="w-full">
-                      {editingStore ? "Update Store" : "Create Store"}
+                    <Button type="submit" className="w-full" disabled={saving}>
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        editingStore ? "Update Store" : "Create Store"
+                      )}
                     </Button>
                   </form>
                 </DialogContent>
