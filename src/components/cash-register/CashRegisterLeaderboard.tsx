@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Medal, Award, Star } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 
@@ -38,7 +39,7 @@ export function CashRegisterLeaderboard() {
         .eq("current_month_year", currentMonthYear)
         .gt("current_month_score", 0)
         .order("current_month_score", { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (error) throw error;
 
@@ -112,45 +113,47 @@ export function CashRegisterLeaderboard() {
             No scores yet this month. Be the first!
           </div>
         ) : (
-          <div className="space-y-2">
-            {entries.map((entry, index) => (
-              <div
-                key={entry.user_id}
-                className={`flex items-center gap-3 p-2 rounded-lg ${
-                  entry.user_id === user?.id ? "bg-primary/10 border border-primary/20" : "bg-muted/50"
-                }`}
-              >
-                <div className="flex-shrink-0 w-6 flex justify-center">
-                  {getRankIcon(index + 1)}
-                </div>
-                <AvatarDisplay
-                  avatarNumber={entry.avatar_number}
-                  displayName={entry.display_name}
-                  size="sm"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {entry.display_name}
-                    {entry.user_id === user?.id && (
-                      <span className="text-xs text-primary ml-1">(You)</span>
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <div className="flex items-center gap-1" title="Monthly Score">
-                    <Trophy className="h-3.5 w-3.5 text-yellow-500" />
-                    <span className="font-semibold">{entry.current_month_score}</span>
+          <ScrollArea className="h-[400px] pr-3">
+            <div className="space-y-2">
+              {entries.map((entry, index) => (
+                <div
+                  key={entry.user_id}
+                  className={`flex items-center gap-3 p-2 rounded-lg ${
+                    entry.user_id === user?.id ? "bg-primary/10 border border-primary/20" : "bg-muted/50"
+                  }`}
+                >
+                  <div className="flex-shrink-0 w-6 flex justify-center">
+                    {getRankIcon(index + 1)}
                   </div>
-                  {entry.best_level > 0 && (
-                    <div className="flex items-center gap-1" title="Best Level">
-                      <Star className="h-3.5 w-3.5 text-purple-500" />
-                      <span className="text-muted-foreground">{entry.best_level}</span>
+                  <AvatarDisplay
+                    avatarNumber={entry.avatar_number}
+                    displayName={entry.display_name}
+                    size="sm"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {entry.display_name}
+                      {entry.user_id === user?.id && (
+                        <span className="text-xs text-primary ml-1">(You)</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="flex items-center gap-1" title="Monthly Score">
+                      <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+                      <span className="font-semibold">{entry.current_month_score}</span>
                     </div>
-                  )}
+                    {entry.best_level > 0 && (
+                      <div className="flex items-center gap-1" title="Best Level">
+                        <Star className="h-3.5 w-3.5 text-purple-500" />
+                        <span className="text-muted-foreground">{entry.best_level}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
       </CardContent>
     </Card>
