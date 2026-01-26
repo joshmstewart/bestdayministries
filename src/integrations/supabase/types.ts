@@ -1328,9 +1328,11 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           is_default: boolean | null
+          is_free: boolean
           is_pack_only: boolean
           menu_items: Json | null
           name: string
+          price_coins: number
           receipt_address: string | null
           receipt_tagline: string | null
           updated_at: string
@@ -1343,9 +1345,11 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          is_free?: boolean
           is_pack_only?: boolean
           menu_items?: Json | null
           name: string
+          price_coins?: number
           receipt_address?: string | null
           receipt_tagline?: string | null
           updated_at?: string
@@ -1358,9 +1362,11 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_default?: boolean | null
+          is_free?: boolean
           is_pack_only?: boolean
           menu_items?: Json | null
           name?: string
+          price_coins?: number
           receipt_address?: string | null
           receipt_tagline?: string | null
           updated_at?: string
@@ -8901,6 +8907,38 @@ export type Database = {
             columns: ["pack_id"]
             isOneToOne: false
             referencedRelation: "cash_register_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_cash_register_stores: {
+        Row: {
+          coins_spent: number
+          id: string
+          purchased_at: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          coins_spent?: number
+          id?: string
+          purchased_at?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cash_register_stores_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "cash_register_stores"
             referencedColumns: ["id"]
           },
         ]
