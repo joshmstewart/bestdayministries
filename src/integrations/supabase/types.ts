@@ -1234,6 +1234,36 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_register_leaderboard_rewards: {
+        Row: {
+          awarded_at: string | null
+          coins_awarded: number
+          duration_seconds: number
+          id: string
+          rank: number
+          reward_month: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string | null
+          coins_awarded: number
+          duration_seconds: number
+          id?: string
+          rank: number
+          reward_month: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string | null
+          coins_awarded?: number
+          duration_seconds?: number
+          id?: string
+          rank?: number
+          reward_month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cash_register_pack_items: {
         Row: {
           created_at: string

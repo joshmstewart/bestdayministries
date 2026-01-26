@@ -86,6 +86,14 @@ const PRESET_REWARDS = [
   { key: "collection_complete", name: "Collection Complete", description: "Complete a sticker collection", category: "daily", coins: 200 },
   { key: "album_upload", name: "Album Upload", description: "Upload photos to an album", category: "other", coins: 5 },
   { key: "video_watch", name: "Watch Video", description: "Watch a video to completion", category: "other", coins: 3 },
+  // Cash Register game rewards
+  { key: "time_trial_record", name: "Time Trial Record", description: "Beat your personal best in Time Trial mode", category: "games", coins: 25 },
+  { key: "time_trial_complete", name: "Complete Time Trial", description: "Complete any Time Trial session", category: "games", coins: 5 },
+  { key: "cash_register_first_game", name: "First Cash Register Game", description: "Complete your first Cash Register level (one-time)", category: "games", coins: 50 },
+  { key: "cash_register_level_record", name: "Just Play Level Record", description: "Beat your best level in Just Play mode", category: "games", coins: 15 },
+  { key: "time_trial_top_3", name: "Time Trial Top 3", description: "Monthly top 3 on Time Trial leaderboard", category: "games", coins: 100 },
+  { key: "time_trial_top_5", name: "Time Trial Top 5", description: "Monthly top 5 on Time Trial leaderboard", category: "games", coins: 50 },
+  { key: "time_trial_top_10", name: "Time Trial Top 10", description: "Monthly top 10 on Time Trial leaderboard", category: "games", coins: 25 },
 ];
 
 export const CoinRewardsManager = () => {
