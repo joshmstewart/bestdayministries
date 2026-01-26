@@ -15,7 +15,7 @@ import { ChoreWeeklyView } from "@/components/chores/ChoreWeeklyView";
 import { ChoreStreakDisplay } from "@/components/chores/ChoreStreakDisplay";
 import { MonthlyChallengeCard } from "@/components/chores/MonthlyChallengeCard";
 import { ChallengeGallery } from "@/components/chores/ChallengeGallery";
-import { ChoreCelebrationDialog } from "@/components/chores/ChoreCelebrationDialog";
+// ChoreCelebrationDialog removed - replaced by ChoreRewardWheelDialog
 import { ChoreRewardWheelDialog } from "@/components/chores/ChoreRewardWheelDialog";
 import { MissedChoresSection } from "@/components/chores/MissedChoresSection";
 import { useChoreStreaks } from "@/hooks/useChoreStreaks";
@@ -107,7 +107,7 @@ export default function ChoreChart() {
   const [earnedBadge, setEarnedBadge] = useState<import("@/lib/choreBadgeDefinitions").BadgeDefinition | null>(null);
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
-  const [showCelebrationDialog, setShowCelebrationDialog] = useState(false);
+  
   
 
   const { mstDate: today } = getMSTInfo();
@@ -467,8 +467,10 @@ export default function ChoreChart() {
               });
             }
           } else {
-            // No badges earned but still show celebration dialog
-            setTimeout(() => setShowCelebrationDialog(true), 1000);
+            // No badges earned - show the wheel dialog if not already claimed today
+            if (!dailyRewardClaimed) {
+              setTimeout(() => setShowWheelDialog(true), 1000);
+            }
           }
         }
       }
@@ -958,9 +960,9 @@ export default function ChoreChart() {
           open={showBadgeDialog}
           onOpenChange={(open) => {
             setShowBadgeDialog(open);
-            // When badge dialog closes, show the celebration image dialog
-            if (!open) {
-              setTimeout(() => setShowCelebrationDialog(true), 500);
+            // When badge dialog closes, show the wheel dialog if not already claimed today
+            if (!open && !dailyRewardClaimed) {
+              setTimeout(() => setShowWheelDialog(true), 500);
             }
           }}
         />
@@ -982,12 +984,6 @@ export default function ChoreChart() {
           onOpenChange={setShowGallery}
         />
 
-        {/* Chore Celebration Dialog */}
-        <ChoreCelebrationDialog
-          open={showCelebrationDialog}
-          onOpenChange={setShowCelebrationDialog}
-          userId={targetUserId || user?.id || ""}
-        />
       </div>
     </main>
     <Footer />
