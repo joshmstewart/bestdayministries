@@ -46,9 +46,7 @@ export function SpinningWheel({
   const spin = () => {
     if (isAnimating || disabled) return;
 
-    setIsAnimating(true);
-
-    // Select the winning segment
+    // Select the winning segment first
     const winningSegment = selectSegment();
     const winningIndex = segments.indexOf(winningSegment);
 
@@ -56,18 +54,25 @@ export function SpinningWheel({
     const segmentAngle = 360 / segments.length;
     
     // Calculate target angle - we want the segment to land at the top (pointer position)
-    // The wheel rotates clockwise, so we need to calculate how far to rotate
     const baseSpins = 5; // Number of full rotations for effect
     const targetSegmentAngle = winningIndex * segmentAngle;
     
-    // We want the center of the segment at the top (0 degrees)
     // Offset by half a segment to center it under the pointer
     const offset = segmentAngle / 2;
     
     // Calculate final rotation (clockwise)
     const finalRotation = rotation + (baseSpins * 360) + (360 - targetSegmentAngle) - offset + (Math.random() * 20 - 10);
 
-    setRotation(finalRotation);
+    // Enable animation state first
+    setIsAnimating(true);
+    
+    // Use requestAnimationFrame to ensure the transition is set before rotation changes
+    // This prevents React from batching both state updates into one render
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setRotation(finalRotation);
+      });
+    });
 
     // End animation after spin completes
     setTimeout(() => {
