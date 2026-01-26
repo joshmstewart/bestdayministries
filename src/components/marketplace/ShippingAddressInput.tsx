@@ -23,13 +23,11 @@ export const ShippingAddressInput = ({
   initialAddress 
 }: ShippingAddressInputProps) => {
   const [zip, setZip] = useState(initialAddress?.zip || "");
-  const [city, setCity] = useState(initialAddress?.city || "");
-  const [state, setState] = useState(initialAddress?.state || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (zip.length >= 5) {
-      onAddressSubmit({ zip, city, state, country: "US" });
+      onAddressSubmit({ zip, country: "US" });
     }
   };
 
@@ -39,7 +37,7 @@ export const ShippingAddressInput = ({
     <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-muted/50 rounded-lg border">
       <div className="flex items-center gap-2 text-sm font-medium text-primary">
         <MapPin className="h-4 w-4" />
-        <span>Enter shipping address for accurate rates</span>
+        <span>Enter ZIP code to calculate shipping</span>
       </div>
       
       <div className="grid grid-cols-1 gap-3">
@@ -57,32 +55,6 @@ export const ShippingAddressInput = ({
             maxLength={10}
             required
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="shipping-city" className="text-xs">City (optional)</Label>
-            <Input
-              id="shipping-city"
-              type="text"
-              placeholder="City"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="h-9"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="shipping-state" className="text-xs">State (optional)</Label>
-            <Input
-              id="shipping-state"
-              type="text"
-              placeholder="CA"
-              value={state}
-              onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
-              className="h-9"
-              maxLength={2}
-            />
-          </div>
         </div>
       </div>
 
