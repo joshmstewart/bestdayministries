@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw, Coffee, Package, Truck, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { CoffeeProductsManager } from "./coffee/CoffeeProductsManager";
 
 interface ShipStationOrder {
   orderId: number;
@@ -250,11 +250,16 @@ export const CoffeeVendorManager = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="orders" className="space-y-4">
+      <Tabs defaultValue="products" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="products">Products</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="products">
+          <CoffeeProductsManager />
+        </TabsContent>
 
         <TabsContent value="orders">
           <Card>

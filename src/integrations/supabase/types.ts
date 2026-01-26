@@ -2087,6 +2087,48 @@ export type Database = {
           },
         ]
       }
+      coffee_products: {
+        Row: {
+          cost_price: number
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          images: string[] | null
+          is_active: boolean
+          name: string
+          selling_price: number
+          shipstation_sku: string
+          updated_at: string
+        }
+        Insert: {
+          cost_price: number
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          name: string
+          selling_price: number
+          shipstation_sku: string
+          updated_at?: string
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          name?: string
+          selling_price?: number
+          shipstation_sku?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coffee_shop_menu_addons: {
         Row: {
           category_id: string | null
