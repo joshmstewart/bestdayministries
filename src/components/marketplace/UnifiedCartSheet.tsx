@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -9,13 +9,41 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2 } from "lucide-react";
 import { FreeShippingProgress } from "./FreeShippingProgress";
+import { ShippingAddressInput } from "./ShippingAddressInput";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCartSession } from "@/hooks/useCartSession";
+
+interface ShippingAddress {
+  zip: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+interface VendorShippingResult {
+  vendor_id: string;
+  vendor_name: string;
+  subtotal_cents: number;
+  shipping_cents: number;
+  shipping_method: 'calculated' | 'flat' | 'free';
+  service_name?: string;
+  carrier?: string;
+  estimated_days?: number;
+  error?: string;
+}
+
+interface ShippingCalculationResult {
+  success: boolean;
+  shipping_total_cents: number;
+  subtotal_cents: number;
+  vendor_shipping: VendorShippingResult[];
+  requires_calculated_shipping: boolean;
+}
 
 interface UnifiedCartSheetProps {
   open: boolean;
@@ -26,6 +54,10 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCheckingOutHandmade, setIsCheckingOutHandmade] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+  const [shippingResult, setShippingResult] = useState<ShippingCalculationResult | null>(null);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
   const { getCartFilter, isAuthenticated, sessionId, isLoading: cartSessionLoading } = useCartSession();
   
   // Shopify cart state
@@ -69,6 +101,12 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   // All database cart items (both house vendor merch and handmade)
   const allCartItems = cartItems || [];
 
+  // Check if any vendor uses calculated shipping
+  const hasCalculatedShippingVendor = useMemo(() => {
+    if (!allCartItems || allCartItems.length === 0) return false;
+    return allCartItems.some(item => item.product?.vendors?.shipping_mode === 'calculated');
+  }, [allCartItems]);
+
   // Shipping constants
   const FLAT_SHIPPING_RATE = 6.99;
   const DEFAULT_FREE_SHIPPING_THRESHOLD = 35;
@@ -86,17 +124,68 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       acc[vendorId] = { 
         subtotal: 0, 
         vendorName: item.product.vendors?.business_name || 'Vendor',
-        freeShippingThreshold: vendorThreshold != null ? Number(vendorThreshold) : DEFAULT_FREE_SHIPPING_THRESHOLD
+        freeShippingThreshold: vendorThreshold != null ? Number(vendorThreshold) : DEFAULT_FREE_SHIPPING_THRESHOLD,
+        shippingMode: item.product.vendors?.shipping_mode || 'flat'
       };
     }
     acc[vendorId].subtotal += itemTotal;
     return acc;
-  }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number }>);
+  }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number; shippingMode: string }>);
 
   const cartSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
-  const shippingTotal = Object.values(vendorTotals).reduce((sum, v) => 
-    sum + (v.subtotal >= v.freeShippingThreshold ? 0 : FLAT_SHIPPING_RATE), 0);
+  
+  // Use calculated shipping if available, otherwise flat rate estimate
+  const shippingTotal = shippingResult?.success 
+    ? shippingResult.shipping_total_cents / 100
+    : Object.values(vendorTotals).reduce((sum, v) => 
+        sum + (v.subtotal >= v.freeShippingThreshold ? 0 : FLAT_SHIPPING_RATE), 0);
+  
   const cartTotal = cartSubtotal + shippingTotal;
+
+  // Reset shipping when cart changes
+  useEffect(() => {
+    if (cartItems) {
+      setShippingResult(null);
+    }
+  }, [cartItems?.length]);
+
+  const calculateShipping = async (address: ShippingAddress) => {
+    setIsCalculatingShipping(true);
+    setShippingAddress(address);
+    setIsEditingAddress(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("calculate-shipping-rates", {
+        body: { shipping_address: address }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setShippingResult(data as ShippingCalculationResult);
+        toast({
+          title: "Shipping calculated",
+          description: `Shipping to ${address.zip}: $${(data.shipping_total_cents / 100).toFixed(2)}`,
+        });
+      } else {
+        throw new Error(data?.error || "Failed to calculate shipping");
+      }
+    } catch (err) {
+      console.error("Shipping calculation error:", err);
+      toast({
+        title: "Shipping calculation failed",
+        description: "Using flat rate shipping. You can try again.",
+        variant: "destructive"
+      });
+      setShippingResult(null);
+    } finally {
+      setIsCalculatingShipping(false);
+    }
+  };
+
+  // Determine if we need to show address input
+  const needsAddressInput = hasCalculatedShippingVendor && (!shippingAddress || isEditingAddress);
+  const hasValidShipping = !hasCalculatedShippingVendor || shippingResult?.success;
 
   const shopifyTotalItems = getShopifyTotalItems();
   const shopifyTotalPrice = getShopifyTotalPrice();
@@ -121,6 +210,8 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       return;
     }
 
+    // Reset shipping calculation when cart changes
+    setShippingResult(null);
     queryClient.invalidateQueries({ queryKey: ['cart-items'] });
     queryClient.invalidateQueries({ queryKey: ['cart-count'] });
   };
@@ -140,6 +231,8 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       return;
     }
 
+    // Reset shipping calculation when cart changes
+    setShippingResult(null);
     queryClient.invalidateQueries({ queryKey: ['cart-items'] });
     queryClient.invalidateQueries({ queryKey: ['cart-count'] });
   };
@@ -152,12 +245,30 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   };
 
   const handleHandmadeCheckout = async () => {
+    // If vendor has calculated shipping but no address entered, prompt for address
+    if (hasCalculatedShippingVendor && !shippingAddress) {
+      toast({
+        title: "Shipping address required",
+        description: "Please enter your ZIP code to calculate shipping before checkout.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsCheckingOutHandmade(true);
     
     try {
-      // For authenticated users, use the edge function with auth
-      // For guests, pass session_id in the body
-      const body = isAuthenticated ? {} : { session_id: sessionId };
+      // Build body with shipping info if available
+      let body: Record<string, any> = {};
+      
+      if (!isAuthenticated) {
+        body.session_id = sessionId;
+      }
+      
+      if (shippingResult?.success) {
+        body.shipping_address = shippingAddress;
+        body.calculated_shipping = shippingResult.vendor_shipping;
+      }
       
       const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", { body });
 
@@ -417,6 +528,35 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                       );
                     })}
                     
+                    {/* Shipping Address Input for calculated shipping vendors */}
+                    {hasCalculatedShippingVendor && (
+                      <div className="space-y-2">
+                        {needsAddressInput ? (
+                          <ShippingAddressInput
+                            onAddressSubmit={calculateShipping}
+                            isLoading={isCalculatingShipping}
+                            initialAddress={shippingAddress}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                            <div className="flex items-center gap-2 text-sm">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              <span>Shipping to: <strong>{shippingAddress?.zip}</strong></span>
+                              {shippingAddress?.city && <span className="text-muted-foreground">({shippingAddress.city})</span>}
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setIsEditingAddress(true)}
+                            >
+                              <Edit2 className="h-3 w-3 mr-1" />
+                              Change
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="p-3 bg-muted/50 rounded-lg space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Subtotal</span>
@@ -425,11 +565,27 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                       <div className="flex justify-between text-sm">
                         <span>
                           Shipping
-                          {shippingTotal === 0 && <span className="ml-1 text-green-600">(Free)</span>}
+                          {shippingTotal === 0 && <span className="ml-1 text-primary">(Free)</span>}
+                          {hasCalculatedShippingVendor && !shippingResult?.success && (
+                            <span className="ml-1 text-muted-foreground">(estimate)</span>
+                          )}
                         </span>
                         <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
                       </div>
-                      {shippingTotal > 0 && (
+
+                      {/* Show per-vendor shipping breakdown if calculated */}
+                      {shippingResult?.success && shippingResult.vendor_shipping.length > 1 && (
+                        <div className="pl-4 space-y-1 text-xs text-muted-foreground">
+                          {shippingResult.vendor_shipping.map((vs) => (
+                            <div key={vs.vendor_id} className="flex justify-between">
+                              <span>{vs.vendor_name}: {vs.service_name}</span>
+                              <span>${(vs.shipping_cents / 100).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {shippingTotal > 0 && !shippingResult?.success && (
                         <p className="text-xs text-muted-foreground">
                           Free shipping on orders $35+ per vendor
                         </p>
@@ -444,13 +600,15 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                       <Button 
                         onClick={handleHandmadeCheckout}
                         className="w-full" 
-                        disabled={isCheckingOutHandmade}
+                        disabled={isCheckingOutHandmade || (hasCalculatedShippingVendor && !hasValidShipping)}
                       >
                         {isCheckingOutHandmade ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Processing...
                           </>
+                        ) : hasCalculatedShippingVendor && !hasValidShipping ? (
+                          "Enter ZIP to continue"
                         ) : (
                           "Proceed to Checkout"
                         )}
