@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
 export interface WheelSegment {
@@ -8,6 +8,53 @@ export interface WheelSegment {
   color: string;
   probability: number;
 }
+
+// Create a click/tick sound using Web Audio API
+const createTickSound = (audioContext: AudioContext, volume: number = 0.3) => {
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.value = 800 + Math.random() * 200; // Slight variation
+  oscillator.type = "square";
+  
+  gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.05);
+};
+
+// Cubic bezier easing function matching CSS cubic-bezier(0.17, 0.67, 0.12, 0.99)
+const cubicBezier = (t: number): number => {
+  const p1x = 0.17, p1y = 0.67, p2x = 0.12, p2y = 0.99;
+  
+  // Approximate cubic bezier - simplified for our use case
+  const cx = 3 * p1x;
+  const bx = 3 * (p2x - p1x) - cx;
+  const ax = 1 - cx - bx;
+  
+  const cy = 3 * p1y;
+  const by = 3 * (p2y - p1y) - cy;
+  const ay = 1 - cy - by;
+  
+  const sampleCurveX = (t: number) => ((ax * t + bx) * t + cx) * t;
+  const sampleCurveY = (t: number) => ((ay * t + by) * t + cy) * t;
+  
+  // Newton-Raphson iteration to find t for given x
+  let guessT = t;
+  for (let i = 0; i < 4; i++) {
+    const currentX = sampleCurveX(guessT) - t;
+    if (Math.abs(currentX) < 0.001) break;
+    const derivative = (3 * ax * guessT + 2 * bx) * guessT + cx;
+    if (Math.abs(derivative) < 0.000001) break;
+    guessT -= currentX / derivative;
+  }
+  
+  return sampleCurveY(guessT);
+};
 
 interface SpinningWheelProps {
   segments: WheelSegment[];
@@ -29,6 +76,69 @@ export function SpinningWheel({
   const [rotation, setRotation] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const tickIntervalRef = useRef<number | null>(null);
+
+  // Initialize audio context on first user interaction
+  const getAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    }
+    return audioContextRef.current;
+  }, []);
+
+  // Play tick sounds that slow down over the animation duration
+  const playSpinSounds = useCallback(() => {
+    const audioContext = getAudioContext();
+    const duration = 4000; // Match the CSS animation duration
+    const startTime = Date.now();
+    let lastTickTime = 0;
+    
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= duration) {
+        if (tickIntervalRef.current) {
+          cancelAnimationFrame(tickIntervalRef.current);
+          tickIntervalRef.current = null;
+        }
+        return;
+      }
+      
+      const progress = elapsed / duration;
+      // Get the easing progress - this tells us how "fast" the wheel is moving
+      const easedProgress = cubicBezier(progress);
+      
+      // Calculate velocity (derivative of progress) - higher at start, lower at end
+      const velocity = 1 - easedProgress; // Simplified: velocity decreases as we progress
+      
+      // Time between ticks: faster velocity = shorter interval
+      // Start at ~30ms intervals, end at ~300ms intervals
+      const minInterval = 30;
+      const maxInterval = 300;
+      const interval = minInterval + (maxInterval - minInterval) * (1 - velocity);
+      
+      if (elapsed - lastTickTime >= interval) {
+        createTickSound(audioContext, 0.15 + velocity * 0.2);
+        lastTickTime = elapsed;
+      }
+      
+      tickIntervalRef.current = requestAnimationFrame(tick);
+    };
+    
+    tickIntervalRef.current = requestAnimationFrame(tick);
+  }, [getAudioContext]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (tickIntervalRef.current) {
+        cancelAnimationFrame(tickIntervalRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
 
   // Select a segment based on probability
   const selectSegment = (): WheelSegment => {
@@ -65,6 +175,9 @@ export function SpinningWheel({
 
     // Enable animation state first
     setIsAnimating(true);
+    
+    // Start playing tick sounds
+    playSpinSounds();
     
     // Use requestAnimationFrame to ensure the transition is set before rotation changes
     // This prevents React from batching both state updates into one render
