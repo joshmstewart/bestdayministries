@@ -51,7 +51,6 @@ interface CoffeeOrder {
   products: {
     id: string;
     name: string;
-    sku: string | null;
   };
   quantity: number;
   price_at_purchase: number;
@@ -118,8 +117,7 @@ export const CoffeeVendorManager = () => {
           ),
           products (
             id,
-            name,
-            sku
+            name
           )
         `)
         .not("shipstation_order_id", "is", null)
