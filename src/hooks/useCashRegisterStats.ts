@@ -20,6 +20,9 @@ export function useCashRegisterStats() {
         .maybeSingle();
 
       if (existing) {
+        // Check if this is a new level record BEFORE updating
+        const isNewLevelRecord = level > existing.best_level;
+        
         // Update existing stats
         const isNewMonth = existing.current_month_year !== currentMonthYear;
         const newMonthScore = isNewMonth ? score : Math.max(existing.current_month_score || 0, score);
@@ -36,8 +39,20 @@ export function useCashRegisterStats() {
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", user.id);
+
+        // Award coins for completing a level
+        await awardCoinReward(user.id, 'cash_register_complete', 'Completed a Cash Register level');
+
+        // Award coins for new level record
+        if (isNewLevelRecord) {
+          await awardCoinReward(
+            user.id, 
+            'cash_register_level_record', 
+            `New personal best: ${level} levels in one session! 🎉`
+          );
+        }
       } else {
-        // Insert new stats
+        // Insert new stats - this is their first game ever
         await supabase
           .from("cash_register_user_stats")
           .insert({
@@ -49,10 +64,20 @@ export function useCashRegisterStats() {
             current_month_score: score,
             current_month_year: currentMonthYear,
           });
-      }
 
-      // Award coins for completing a level
-      await awardCoinReward(user.id, 'cash_register_complete', 'Completed a Cash Register level');
+        // Award coins for completing a level
+        await awardCoinReward(user.id, 'cash_register_complete', 'Completed a Cash Register level');
+
+        // Award first game bonus (one-time)
+        await awardCoinReward(user.id, 'cash_register_first_game', 'First Cash Register game completed! 🎉');
+        
+        // First game is also their best level record
+        await awardCoinReward(
+          user.id, 
+          'cash_register_level_record', 
+          `New personal best: ${level} levels in one session! 🎉`
+        );
+      }
     } catch (error) {
       console.error("Error saving game result:", error);
     }
