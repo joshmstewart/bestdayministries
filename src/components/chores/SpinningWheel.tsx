@@ -46,7 +46,6 @@ export function SpinningWheel({
   const spin = () => {
     if (isAnimating || disabled) return;
 
-    onSpinStart();
     setIsAnimating(true);
 
     // Select the winning segment
@@ -77,10 +76,12 @@ export function SpinningWheel({
     }, 4000);
   };
 
+  // Trigger spin when spinning prop becomes true
   useEffect(() => {
     if (spinning && !isAnimating) {
       spin();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spinning]);
 
   const radius = size / 2;

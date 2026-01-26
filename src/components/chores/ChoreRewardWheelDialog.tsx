@@ -100,7 +100,7 @@ export function ChoreRewardWheelDialog({
   }, [open, userId]);
 
   const handleSpinStart = () => {
-    // Play a sound if available
+    // This is called when the spin animation begins
     playSound("button_click");
   };
 
