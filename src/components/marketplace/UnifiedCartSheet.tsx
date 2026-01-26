@@ -109,7 +109,6 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
   // Shipping constants
   const FLAT_SHIPPING_RATE = 6.99;
-  const DEFAULT_FREE_SHIPPING_THRESHOLD = 35;
 
   // Calculate totals by vendor for shipping (including vendor's custom threshold)
   const vendorTotals = allCartItems.reduce((acc, item) => {
@@ -124,23 +123,39 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       acc[vendorId] = { 
         subtotal: 0, 
         vendorName: item.product.vendors?.business_name || 'Vendor',
-        freeShippingThreshold: vendorThreshold != null ? Number(vendorThreshold) : DEFAULT_FREE_SHIPPING_THRESHOLD,
+        // IMPORTANT: only treat free shipping as enabled if vendor explicitly configured a threshold
+        freeShippingThreshold: vendorThreshold != null ? Number(vendorThreshold) : null,
+        disableFreeShipping: !!item.product.vendors?.disable_free_shipping,
         shippingMode: item.product.vendors?.shipping_mode || 'flat'
       };
     }
     acc[vendorId].subtotal += itemTotal;
     return acc;
-  }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number; shippingMode: string }>);
+  }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number | null; disableFreeShipping: boolean; shippingMode: string }>);
 
   const cartSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
   
-  // Use calculated shipping if available, otherwise flat rate estimate
-  const shippingTotal = shippingResult?.success 
+  const hasAnyConfiguredFreeShipping = useMemo(() => {
+    return Object.values(vendorTotals).some((v) =>
+      v.shippingMode !== 'calculated' &&
+      !v.disableFreeShipping &&
+      v.freeShippingThreshold != null &&
+      v.freeShippingThreshold > 0
+    );
+  }, [vendorTotals]);
+
+  // Use calculated shipping if available; when dynamic shipping is enabled and not calculated yet, show pending (no estimate)
+  const shippingTotal: number | null = shippingResult?.success
     ? shippingResult.shipping_total_cents / 100
-    : Object.values(vendorTotals).reduce((sum, v) => 
-        sum + (v.subtotal >= v.freeShippingThreshold ? 0 : FLAT_SHIPPING_RATE), 0);
+    : hasCalculatedShippingVendor
+      ? null
+      : Object.values(vendorTotals).reduce((sum, v) => {
+          const offersFreeShipping = v.shippingMode !== 'calculated' && !v.disableFreeShipping && v.freeShippingThreshold != null;
+          const isFree = offersFreeShipping && v.freeShippingThreshold != null && v.subtotal >= v.freeShippingThreshold;
+          return sum + (isFree ? 0 : FLAT_SHIPPING_RATE);
+        }, 0);
   
-  const cartTotal = cartSubtotal + shippingTotal;
+  const cartTotal: number | null = shippingTotal == null ? null : cartSubtotal + shippingTotal;
 
   // Reset shipping when cart changes
   useEffect(() => {
@@ -456,6 +471,12 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                     {/* Group items by vendor */}
                     {Object.entries(vendorTotals).map(([vendorId, vendor], index) => {
                       const vendorItems = allCartItems.filter(item => item.product.vendor_id === vendorId);
+                      const showFreeShippingProgress =
+                        vendor.shippingMode !== 'calculated' &&
+                        !vendor.disableFreeShipping &&
+                        vendor.freeShippingThreshold != null &&
+                        vendor.freeShippingThreshold > 0;
+
                       return (
                         <div key={vendorId} className="space-y-3">
                           {index > 0 && <Separator className="my-2" />}
@@ -520,10 +541,12 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                           </div>
                           
                           {/* Vendor's shipping progress */}
-                          <FreeShippingProgress 
-                            currentSubtotal={vendor.subtotal} 
-                            threshold={vendor.freeShippingThreshold}
-                          />
+                          {showFreeShippingProgress && (
+                            <FreeShippingProgress 
+                              currentSubtotal={vendor.subtotal} 
+                              threshold={vendor.freeShippingThreshold}
+                            />
+                          )}
                         </div>
                       );
                     })}
@@ -542,7 +565,6 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                             <div className="flex items-center gap-2 text-sm">
                               <MapPin className="h-4 w-4 text-primary" />
                               <span>Shipping to: <strong>{shippingAddress?.zip}</strong></span>
-                              {shippingAddress?.city && <span className="text-muted-foreground">({shippingAddress.city})</span>}
                             </div>
                             <Button 
                               variant="ghost" 
@@ -566,11 +588,18 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                         <span>
                           Shipping
                           {shippingTotal === 0 && <span className="ml-1 text-primary">(Free)</span>}
-                          {hasCalculatedShippingVendor && !shippingResult?.success && (
-                            <span className="ml-1 text-muted-foreground">(estimate)</span>
+                          {shippingTotal == null && (
+                            <span className="ml-1 text-muted-foreground">(pending)</span>
                           )}
                         </span>
-                        <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
+                        <span>
+                          {shippingTotal == null
+                            ? 'Pending'
+                            : shippingTotal > 0
+                              ? `$${shippingTotal.toFixed(2)}`
+                              : 'FREE'
+                          }
+                        </span>
                       </div>
 
                       {/* Show per-vendor shipping breakdown if calculated */}
@@ -585,14 +614,14 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                         </div>
                       )}
 
-                      {shippingTotal > 0 && !shippingResult?.success && (
+                      {shippingTotal != null && shippingTotal > 0 && !shippingResult?.success && hasAnyConfiguredFreeShipping && (
                         <p className="text-xs text-muted-foreground">
-                          Free shipping on orders $35+ per vendor
+                          Free shipping may apply on qualifying orders (per vendor)
                         </p>
                       )}
                       <div className="flex justify-between font-semibold pt-1 border-t">
-                        <span>Total (before tax)</span>
-                        <span>${cartTotal.toFixed(2)}</span>
+                        <span>{cartTotal == null ? 'Total (pending shipping)' : 'Total (before tax)'}</span>
+                        <span>{cartTotal == null ? '—' : `$${cartTotal.toFixed(2)}`}</span>
                       </div>
                       <p className="text-xs text-muted-foreground text-center">
                         Sales tax will be calculated at checkout
