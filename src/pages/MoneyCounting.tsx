@@ -122,11 +122,11 @@ export default function MoneyCounting() {
       // Get current user for pack purchases
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Load base data and user's purchased packs
-      const [storesRes, customersRes, currencyImages, userPacksRes, packItemsRes] = await Promise.all([
+      // Load base data and user's purchased packs/stores
+      const [storesRes, customersRes, currencyImages, userPacksRes, userStoresRes, packItemsRes] = await Promise.all([
         supabase
           .from("cash_register_stores")
-          .select("id, name, description, image_url, is_default, menu_items, is_pack_only, receipt_address, receipt_tagline")
+          .select("id, name, description, image_url, is_default, menu_items, is_pack_only, is_free, price_coins, receipt_address, receipt_tagline")
           .eq("is_active", true)
           .order("display_order"),
         supabase
@@ -138,13 +138,18 @@ export default function MoneyCounting() {
           .from("user_cash_register_packs")
           .select("pack_id")
           .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        user ? supabase
+          .from("user_cash_register_stores")
+          .select("store_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
         supabase.from("cash_register_pack_items").select("pack_id, store_id, customer_id"),
       ]);
 
       setCustomCurrencyImages(currencyImages);
       
-      // Get purchased pack IDs
+      // Get purchased pack IDs and directly purchased store IDs
       const purchasedPackIds = new Set((userPacksRes.data || []).map(p => p.pack_id));
+      const purchasedStoreIds = new Set((userStoresRes.data || []).map(s => s.store_id));
       
       // Get store/customer IDs from purchased packs
       const unlockedStoreIds = new Set<string>();
@@ -155,13 +160,19 @@ export default function MoneyCounting() {
           if (item.customer_id) unlockedCustomerIds.add(item.customer_id);
         }
       });
+      
+      // Also add directly purchased stores to unlocked set
+      purchasedStoreIds.forEach(id => unlockedStoreIds.add(id));
 
       if (storesRes.error) {
         console.error("Error loading stores:", storesRes.error);
       } else {
-        // Filter: show non-pack-only stores OR pack-only stores that are unlocked
+        // Filter stores: show if:
+        // 1. Store is free (is_free = true), OR
+        // 2. Store is NOT pack-only and price_coins = 0 (default stores), OR
+        // 3. Store is unlocked (via pack or direct purchase)
         const availableStores = (storesRes.data || []).filter(s => 
-          !s.is_pack_only || unlockedStoreIds.has(s.id)
+          s.is_free || (!s.is_pack_only && (s.price_coins || 0) === 0) || unlockedStoreIds.has(s.id)
         );
         console.log("Loaded stores:", availableStores.length);
         setStores(availableStores);

@@ -71,12 +71,14 @@ const Store = () => {
         memoryPacksResult, 
         coloringBooksResult, 
         cashRegisterPacksResult, 
+        cashRegisterStoresResult,
         jokeCategoriesResult, 
         fitnessAvatarsResult,
         locationPacksResult,
         userPacksResult, 
         userColoringBooksResult, 
         userCashRegisterPacksResult, 
+        userCashRegisterStoresResult,
         userJokeCategoriesResult,
         userFitnessAvatarsResult,
         userLocationPacksResult,
@@ -85,6 +87,7 @@ const Store = () => {
         memoryPackCountsResult,
         coloringBookCountsResult,
         cashRegisterCountsResult,
+        cashRegisterStoreCountsResult,
         jokeCategoryCountsResult,
         fitnessAvatarCountsResult,
         locationPackCountsResult
@@ -111,6 +114,12 @@ const Store = () => {
           .select("id, name, description, image_url, price_coins, pack_type, display_order, created_at")
           .eq("is_active", true)
           .order("display_order"),
+        supabase
+          .from("cash_register_stores")
+          .select("id, name, description, image_url, price_coins, is_free, is_active, display_order, created_at")
+          .eq("is_active", true)
+          .eq("is_free", false)
+          .gt("price_coins", 0),
         supabase
           .from("joke_categories")
           .select("id, name, description, icon_url, coin_price, is_free, is_active, display_order, created_at")
@@ -142,6 +151,10 @@ const Store = () => {
           .select("pack_id")
           .eq("user_id", user.id) : Promise.resolve({ data: [] }),
         user ? supabase
+          .from("user_cash_register_stores")
+          .select("store_id")
+          .eq("user_id", user.id) : Promise.resolve({ data: [] }),
+        user ? supabase
           .from("user_joke_categories")
           .select("category_id")
           .eq("user_id", user.id) : Promise.resolve({ data: [] }),
@@ -158,6 +171,7 @@ const Store = () => {
         supabase.from("user_memory_match_packs").select("pack_id"),
         supabase.from("user_coloring_books").select("book_id"),
         supabase.from("user_cash_register_packs").select("pack_id"),
+        supabase.from("user_cash_register_stores").select("store_id"),
         supabase.from("user_joke_categories").select("category_id"),
         supabase.from("user_fitness_avatars").select("avatar_id"),
         supabase.from("user_workout_location_packs").select("pack_id")
@@ -191,6 +205,12 @@ const Store = () => {
         countsMap.set(key, (countsMap.get(key) || 0) + 1);
       });
       
+      // Count cash register store purchases
+      (cashRegisterStoreCountsResult.data || []).forEach((p: { store_id: string }) => {
+        const key = `cash_register_store_${p.store_id}`;
+        countsMap.set(key, (countsMap.get(key) || 0) + 1);
+      });
+      
       // Count joke category purchases
       (jokeCategoryCountsResult.data || []).forEach((p: { category_id: string }) => {
         const key = `joke_category_${p.category_id}`;
@@ -216,6 +236,7 @@ const Store = () => {
         ...(userPacksResult.data || []).map((p: { pack_id: string }) => `memory_pack_${p.pack_id}`),
         ...(userColoringBooksResult.data || []).map((p: { book_id: string }) => `coloring_book_${p.book_id}`),
         ...(userCashRegisterPacksResult.data || []).map((p: { pack_id: string }) => `cash_register_pack_${p.pack_id}`),
+        ...(userCashRegisterStoresResult.data || []).map((p: { store_id: string }) => `cash_register_store_${p.store_id}`),
         ...(userJokeCategoriesResult.data || []).map((p: { category_id: string }) => `joke_category_${p.category_id}`),
         ...(userFitnessAvatarsResult.data || []).map((p: { avatar_id: string }) => `fitness_avatar_${p.avatar_id}`),
         ...(userLocationPacksResult.data || []).map((p: { pack_id: string }) => `location_pack_${p.pack_id}`)
@@ -277,6 +298,18 @@ const Store = () => {
         created_at: pack.created_at,
       }));
 
+      // Convert cash register stores to store item format
+      const cashRegisterStoreItems: StoreItem[] = (cashRegisterStoresResult.data || []).map((store, index) => ({
+        id: `cash_register_store_${store.id}`,
+        name: `Cash Register Store: ${store.name}`,
+        description: store.description || `Unlock the ${store.name} store for the Cash Register game`,
+        price: store.price_coins,
+        category: "games",
+        image_url: store.image_url,
+        display_order: 3500 + (store.display_order || index),
+        created_at: store.created_at,
+      }));
+
       // Convert joke categories to store item format
       const jokeCategoryItems: StoreItem[] = (jokeCategoriesResult.data || []).map((cat, index) => ({
         id: `joke_category_${cat.id}`,
@@ -319,6 +352,7 @@ const Store = () => {
         ...memoryPackItems, 
         ...coloringBookItems, 
         ...cashRegisterPackItems, 
+        ...cashRegisterStoreItems,
         ...jokeCategoryItems,
         ...fitnessAvatarItems,
         ...locationPackItems

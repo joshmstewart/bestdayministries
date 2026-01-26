@@ -88,6 +88,7 @@ export const useStorePurchases = () => {
       const isMemoryPack = itemId.startsWith("memory_pack_");
       const isColoringBook = itemId.startsWith("coloring_book_");
       const isCashRegisterPack = itemId.startsWith("cash_register_pack_");
+      const isCashRegisterStore = itemId.startsWith("cash_register_store_");
       const isJokeCategory = itemId.startsWith("joke_category_");
       const isFitnessAvatar = itemId.startsWith("fitness_avatar_");
       const isLocationPack = itemId.startsWith("location_pack_");
@@ -97,13 +98,15 @@ export const useStorePurchases = () => {
           ? itemId.replace("coloring_book_", "") 
           : isCashRegisterPack
             ? itemId.replace("cash_register_pack_", "")
-            : isJokeCategory
-              ? itemId.replace("joke_category_", "")
-              : isFitnessAvatar
-                ? itemId.replace("fitness_avatar_", "")
-                : isLocationPack
-                  ? itemId.replace("location_pack_", "")
-                  : itemId;
+            : isCashRegisterStore
+              ? itemId.replace("cash_register_store_", "")
+              : isJokeCategory
+                ? itemId.replace("joke_category_", "")
+                : isFitnessAvatar
+                  ? itemId.replace("fitness_avatar_", "")
+                  : isLocationPack
+                    ? itemId.replace("location_pack_", "")
+                    : itemId;
 
       // Start transaction: deduct coins and create purchase
       const { data: profile, error: profileError } = await supabase
@@ -181,6 +184,26 @@ export const useStorePurchases = () => {
           amount: -itemPrice,
           transaction_type: "store_purchase",
           description: "Cash Register pack purchase",
+          related_item_id: actualItemId,
+        });
+      } else if (isCashRegisterStore) {
+        // Handle cash register store purchase
+        const { error: storePurchaseError } = await supabase
+          .from("user_cash_register_stores")
+          .insert({
+            user_id: user.id,
+            store_id: actualItemId,
+            coins_spent: itemPrice,
+          });
+
+        if (storePurchaseError) throw storePurchaseError;
+
+        // Record transaction
+        await supabase.from("coin_transactions").insert({
+          user_id: user.id,
+          amount: -itemPrice,
+          transaction_type: "store_purchase",
+          description: "Cash Register store purchase",
           related_item_id: actualItemId,
         });
       } else if (isJokeCategory) {
