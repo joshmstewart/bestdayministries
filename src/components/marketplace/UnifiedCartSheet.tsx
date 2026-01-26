@@ -107,10 +107,10 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     return allCartItems.some(item => item.product?.vendors?.shipping_mode === 'calculated');
   }, [allCartItems]);
 
-  // Shipping constants
+  // Shipping constants (fallback only)
   const FLAT_SHIPPING_RATE = 6.99;
 
-  // Calculate totals by vendor for shipping (including vendor's custom threshold)
+  // Calculate totals by vendor for shipping (including vendor-specific thresholds and flat-rate amounts)
   const vendorTotals = allCartItems.reduce((acc, item) => {
     const vendorId = item.product.vendor_id;
     const price = typeof item.product.price === 'string' 
@@ -120,20 +120,57 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     
     if (!acc[vendorId]) {
       const vendorThreshold = item.product.vendors?.free_shipping_threshold;
+      const vendorFlatRateCentsRaw = item.product.vendors?.flat_rate_amount_cents;
+      const vendorFlatRateCents =
+        vendorFlatRateCentsRaw != null
+          ? Number(vendorFlatRateCentsRaw)
+          : Math.round(FLAT_SHIPPING_RATE * 100);
       acc[vendorId] = { 
         subtotal: 0, 
         vendorName: item.product.vendors?.business_name || 'Vendor',
         // IMPORTANT: only treat free shipping as enabled if vendor explicitly configured a threshold
         freeShippingThreshold: vendorThreshold != null ? Number(vendorThreshold) : null,
         disableFreeShipping: !!item.product.vendors?.disable_free_shipping,
-        shippingMode: item.product.vendors?.shipping_mode || 'flat'
+        shippingMode: item.product.vendors?.shipping_mode || 'flat',
+        flatRateCents: vendorFlatRateCents,
       };
     }
     acc[vendorId].subtotal += itemTotal;
     return acc;
-  }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number | null; disableFreeShipping: boolean; shippingMode: string }>);
+  }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number | null; disableFreeShipping: boolean; shippingMode: string; flatRateCents: number }>);
 
   const cartSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
+
+  const getVendorShippingDisplay = (vendorId: string): { label: string; isPending: boolean } => {
+    const vendor = vendorTotals[vendorId];
+    if (!vendor) return { label: 'Pending', isPending: true };
+
+    // If we have a calculated result, trust it for ALL vendors (flat/free/calculated)
+    if (shippingResult?.success) {
+      const vs = shippingResult.vendor_shipping.find(v => v.vendor_id === vendorId);
+      if (vs) {
+        if (vs.shipping_cents === 0) return { label: 'FREE', isPending: false };
+        return { label: `$${(vs.shipping_cents / 100).toFixed(2)}`, isPending: false };
+      }
+    }
+
+    // Calculated vendors require ZIP first
+    if (vendor.shippingMode === 'calculated') {
+      return { label: 'Pending', isPending: true };
+    }
+
+    // Flat vendors can show known shipping immediately
+    const offersFreeShipping =
+      vendor.shippingMode !== 'calculated' &&
+      !vendor.disableFreeShipping &&
+      vendor.freeShippingThreshold != null &&
+      vendor.freeShippingThreshold > 0;
+
+    const isFree = offersFreeShipping && vendor.freeShippingThreshold != null && vendor.subtotal >= vendor.freeShippingThreshold;
+    if (isFree) return { label: 'FREE', isPending: false };
+
+    return { label: `$${(vendor.flatRateCents / 100).toFixed(2)}`, isPending: false };
+  };
   
   const hasAnyConfiguredFreeShipping = useMemo(() => {
     return Object.values(vendorTotals).some((v) =>
@@ -476,6 +513,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                         !vendor.disableFreeShipping &&
                         vendor.freeShippingThreshold != null &&
                         vendor.freeShippingThreshold > 0;
+                        const vendorShipping = getVendorShippingDisplay(vendorId);
 
                       return (
                         <div key={vendorId} className="space-y-3">
@@ -547,6 +585,22 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                               threshold={vendor.freeShippingThreshold}
                             />
                           )}
+
+                          {/* Vendor shipping line (per-store) */}
+                          <div className="flex justify-between items-center text-sm pt-2">
+                            <span className="text-muted-foreground">Shipping</span>
+                            <span
+                              className={
+                                vendorShipping.isPending
+                                  ? "text-accent-foreground font-medium italic"
+                                  : vendorShipping.label === 'FREE'
+                                    ? "text-primary font-medium"
+                                    : "font-medium"
+                              }
+                            >
+                              {vendorShipping.label}
+                            </span>
+                          </div>
                         </div>
                       );
                     })}
@@ -592,7 +646,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                             <span className="ml-1 text-muted-foreground">(pending)</span>
                           )}
                         </span>
-                        <span>
+                        <span className={shippingTotal == null ? "text-accent-foreground font-medium italic" : ""}>
                           {shippingTotal == null
                             ? 'Pending'
                             : shippingTotal > 0
