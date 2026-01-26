@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Upload, Play, Pause, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Edit, Upload, Play, Pause, Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AudioClip {
   id: string;
@@ -52,14 +53,38 @@ const CATEGORIES = [
   "other",
 ];
 
+const ELEVENLABS_VOICES = [
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah' },
+  { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum' },
+  { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda' },
+  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will' },
+  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica' },
+  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric' },
+  { id: 'iP95p4xoKVk53GoZ742B', name: 'Chris' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily' },
+  { id: 'pqHfZKP75CvOlQylNhV4', name: 'Bill' },
+];
+
 export const AudioClipsManager = () => {
   const [clips, setClips] = useState<AudioClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClip, setEditingClip] = useState<AudioClip | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [audioSource, setAudioSource] = useState<"upload" | "generate">("upload");
+  const [generatedFileUrl, setGeneratedFileUrl] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -67,6 +92,8 @@ export const AudioClipsManager = () => {
     description: "",
     category: "other",
     file: null as File | null,
+    generateText: "",
+    voiceId: "EXAVITQu4vr4xnSDxMaL",
   });
 
   useEffect(() => {
@@ -94,6 +121,41 @@ export const AudioClipsManager = () => {
     }
   };
 
+  const handleGenerateAudio = async () => {
+    if (!formData.generateText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter text to generate audio",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-generate-audio-clip', {
+        body: {
+          text: formData.generateText,
+          voiceId: formData.voiceId,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setGeneratedFileUrl(data.fileUrl);
+      toast({ title: "Audio generated successfully!" });
+    } catch (error: any) {
+      toast({
+        title: "Error generating audio",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
@@ -101,29 +163,39 @@ export const AudioClipsManager = () => {
     try {
       let fileUrl = editingClip?.file_url || "";
 
-      // Upload new file if provided
-      if (formData.file) {
-        const fileExt = formData.file.name.split(".").pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const filePath = `${fileName}`;
+      if (audioSource === "generate") {
+        // Use generated audio
+        if (!generatedFileUrl && !editingClip) {
+          throw new Error("Please generate audio first");
+        }
+        if (generatedFileUrl) {
+          fileUrl = generatedFileUrl;
+        }
+      } else {
+        // Upload new file if provided
+        if (formData.file) {
+          const fileExt = formData.file.name.split(".").pop();
+          const fileName = `${crypto.randomUUID()}.${fileExt}`;
+          const filePath = `${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("audio-clips")
-          .upload(filePath, formData.file);
+          const { error: uploadError } = await supabase.storage
+            .from("audio-clips")
+            .upload(filePath, formData.file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("audio-clips").getPublicUrl(filePath);
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from("audio-clips").getPublicUrl(filePath);
 
-        fileUrl = publicUrl;
+          fileUrl = publicUrl;
 
-        // Get duration from audio file
-        const audio = new Audio(URL.createObjectURL(formData.file));
-        await new Promise((resolve) => {
-          audio.addEventListener("loadedmetadata", resolve);
-        });
+          // Get duration from audio file
+          const audio = new Audio(URL.createObjectURL(formData.file));
+          await new Promise((resolve) => {
+            audio.addEventListener("loadedmetadata", resolve);
+          });
+        }
       }
 
       if (editingClip) {
@@ -175,8 +247,12 @@ export const AudioClipsManager = () => {
       description: "",
       category: "other",
       file: null,
+      generateText: "",
+      voiceId: "EXAVITQu4vr4xnSDxMaL",
     });
     setEditingClip(null);
+    setAudioSource("upload");
+    setGeneratedFileUrl(null);
   };
 
   const openEditDialog = (clip: AudioClip) => {
@@ -186,7 +262,11 @@ export const AudioClipsManager = () => {
       description: clip.description || "",
       category: clip.category || "other",
       file: null,
+      generateText: "",
+      voiceId: "EXAVITQu4vr4xnSDxMaL",
     });
+    setAudioSource("upload");
+    setGeneratedFileUrl(null);
     setDialogOpen(true);
   };
 
@@ -269,7 +349,7 @@ export const AudioClipsManager = () => {
               <DialogDescription>
                 {editingClip
                   ? "Update the audio clip details"
-                  : "Upload a new audio clip and add details"}
+                  : "Upload or generate a new audio clip"}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -293,7 +373,7 @@ export const AudioClipsManager = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  rows={3}
+                  rows={2}
                 />
               </div>
 
@@ -318,22 +398,93 @@ export const AudioClipsManager = () => {
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="file">
-                  Audio File {editingClip ? "(optional - leave empty to keep current)" : "*"}
-                </Label>
-                <Input
-                  id="file"
-                  type="file"
-                  accept="audio/*"
-                  onChange={(e) =>
-                    setFormData({ ...formData, file: e.target.files?.[0] || null })
-                  }
-                  required={!editingClip}
-                />
-              </div>
+              <Tabs value={audioSource} onValueChange={(v) => setAudioSource(v as "upload" | "generate")}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="upload" className="flex-1 gap-2">
+                    <Upload className="w-4 h-4" />
+                    Upload File
+                  </TabsTrigger>
+                  <TabsTrigger value="generate" className="flex-1 gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Generate with AI
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="upload" className="mt-4 space-y-2">
+                  <Label htmlFor="file">
+                    Audio File {editingClip ? "(optional)" : "*"}
+                  </Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) =>
+                      setFormData({ ...formData, file: e.target.files?.[0] || null })
+                    }
+                    required={!editingClip && audioSource === "upload"}
+                  />
+                </TabsContent>
+                <TabsContent value="generate" className="mt-4 space-y-4">
+                  <div>
+                    <Label htmlFor="voice">Voice</Label>
+                    <Select
+                      value={formData.voiceId}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, voiceId: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ELEVENLABS_VOICES.map((voice) => (
+                          <SelectItem key={voice.id} value={voice.id}>
+                            {voice.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="generateText">Text to speak *</Label>
+                    <Textarea
+                      id="generateText"
+                      value={formData.generateText}
+                      onChange={(e) =>
+                        setFormData({ ...formData, generateText: e.target.value })
+                      }
+                      placeholder="Enter the text you want to convert to speech..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleGenerateAudio}
+                    disabled={generating || !formData.generateText.trim()}
+                    className="w-full"
+                  >
+                    {generating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate Audio
+                      </>
+                    )}
+                  </Button>
+                  {generatedFileUrl && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <Label className="text-sm text-muted-foreground mb-2 block">Preview</Label>
+                      <AudioPlayer src={generatedFileUrl} className="w-full" />
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -341,8 +492,11 @@ export const AudioClipsManager = () => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={uploading}>
-                  {uploading ? "Uploading..." : editingClip ? "Update" : "Add"}
+                <Button 
+                  type="submit" 
+                  disabled={uploading || (audioSource === "generate" && !generatedFileUrl && !editingClip)}
+                >
+                  {uploading ? "Saving..." : editingClip ? "Update" : "Add"}
                 </Button>
               </div>
             </form>
