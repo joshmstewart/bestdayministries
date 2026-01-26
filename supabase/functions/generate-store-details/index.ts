@@ -33,7 +33,7 @@ serve(async (req) => {
 
 For a store called "${storeName}"${storeDescription ? ` (${storeDescription})` : ""}, generate:
 
-1. A list of 8-12 menu/product items that would realistically be sold at this store. For each item, provide a name and a realistic price range (min and max).
+1. A list of exactly 45 menu/product items that would realistically be sold at this store. Include a wide variety of items across different categories (e.g., drinks, snacks, meals, desserts, sides, specials). For each item, provide a name and a realistic price range (min and max in USD).
 
 2. A fictional street address for the receipt header (e.g., "456 Oak Avenue").
 
