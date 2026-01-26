@@ -1086,7 +1086,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                         decoding="async"
                         className="w-full flex-1 min-h-0 object-contain"
                       />
-                      <span className="text-[8px] sm:text-[10px] font-medium text-primary-foreground text-center leading-tight mt-0.5 line-clamp-2 max-w-full px-0.5">
+                      <span className="text-[10px] sm:text-xs font-medium text-primary-foreground text-center leading-tight mt-0.5 line-clamp-2 max-w-full px-0.5">
                         {card.imageName}
                       </span>
                     </div>
