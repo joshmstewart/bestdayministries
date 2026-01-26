@@ -40,6 +40,15 @@ export function ChoreRewardWheelDialog({
   const [claiming, setClaiming] = useState(false);
   const { playSound } = useSoundEffects();
 
+  // Get MST date (must match edge function logic)
+  const getMSTDate = (): string => {
+    const now = new Date();
+    const mstOffsetMinutes = -7 * 60;
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const mstTime = new Date(utc + mstOffsetMinutes * 60000);
+    return mstTime.toISOString().split("T")[0];
+  };
+
   // Load wheel config and check if already spun today
   useEffect(() => {
     if (!open) return;
@@ -66,8 +75,8 @@ export function ChoreRewardWheelDialog({
           }
         }
 
-        // Check if user has already spun today
-        const today = new Date().toISOString().split("T")[0];
+        // Check if user has already spun today (use MST date)
+        const today = getMSTDate();
         const { data: spinData } = await supabase
           .from("chore_wheel_spins")
           .select("id, prize_type, prize_amount")
