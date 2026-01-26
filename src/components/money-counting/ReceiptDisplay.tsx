@@ -41,9 +41,14 @@ const STORE_DETAILS: Record<string, { name: string; address: string; tagline: st
 };
 
 export function ReceiptDisplay({ items, subtotal, tax, total, storeName }: ReceiptDisplayProps) {
+  // Use predefined details if available, otherwise generate from store name
   const storeDetails = storeName && STORE_DETAILS[storeName] 
     ? STORE_DETAILS[storeName] 
-    : STORE_DETAILS["Coffee Shop"];
+    : {
+        name: storeName?.toUpperCase() || "JOY CAFÉ",
+        address: "123 Main Street",
+        tagline: "Thank you for your order!",
+      };
 
   return (
     <Card>
