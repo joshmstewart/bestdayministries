@@ -63,7 +63,8 @@ serve(async (req) => {
     }
 
     // Generate the image using Lovable AI chat completions (Nano banana)
-    const prompt = `Realistic photo from the cashier's perspective standing behind a ${storeName.toLowerCase()} checkout counter. View shows: a cash register and scanner in the foreground, empty checkout area where a customer would stand, store shelves and aisles visible in the background. No people in the image. ${storeDescription || ""} Professional retail photography, natural store lighting, 16:9 aspect ratio. No text overlays, no watermarks.`;
+    // Fun, vibrant, exciting images - NOT boring realistic checkout counters!
+    const prompt = `Colorful, fun, vibrant illustration of a ${storeName.toLowerCase()} scene. The image should be exciting and visually engaging with lots of interesting details to look at. ${storeDescription || ""} Show the unique and exciting elements of this store - the products, decorations, atmosphere, and any characters or creatures that might be there. Warm inviting lighting, rich colors, slightly whimsical cartoon/illustration style. 16:9 aspect ratio. No text, no watermarks, no words. Make it look like a place you'd WANT to visit!`;
 
     console.log("Generating image with prompt:", prompt);
 
