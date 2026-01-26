@@ -12,11 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = 'EXAVITQu4vr4xnSDxMaL' } = await req.json();
+    const { prompt, duration = 2 } = await req.json();
 
-    if (!text) {
+    if (!prompt) {
       return new Response(
-        JSON.stringify({ error: 'Text is required' }),
+        JSON.stringify({ error: 'Prompt is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -29,49 +29,40 @@ serve(async (req) => {
       );
     }
 
-    console.log('Generating audio for text:', text.substring(0, 50) + '...');
+    console.log('Generating sound effect with prompt:', prompt, 'duration:', duration);
 
-    // Call ElevenLabs API with mp3 output format
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
-      {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVEN_LABS_API_KEY,
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_turbo_v2_5',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.3,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    );
+    // Call ElevenLabs Sound Generation API
+    const response = await fetch('https://api.elevenlabs.io/v1/sound-generation', {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVEN_LABS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: prompt,
+        duration_seconds: duration,
+        prompt_influence: 0.3,
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('ElevenLabs API error:', errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate audio' }),
+        JSON.stringify({ error: 'Failed to generate sound effect' }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const audioBuffer = await response.arrayBuffer();
-    console.log('Audio generated, size:', audioBuffer.byteLength);
+    console.log('Sound effect generated, size:', audioBuffer.byteLength);
 
     // Upload to Supabase Storage
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const fileName = `generated-${Date.now()}.mp3`;
+    const fileName = `generated-sfx-${Date.now()}.mp3`;
     const { error: uploadError } = await supabase.storage
       .from('audio-clips')
       .upload(fileName, audioBuffer, {
@@ -91,7 +82,7 @@ serve(async (req) => {
       .from('audio-clips')
       .getPublicUrl(fileName);
 
-    console.log('Audio uploaded successfully:', publicUrl);
+    console.log('Sound effect uploaded successfully:', publicUrl);
 
     return new Response(
       JSON.stringify({ fileUrl: publicUrl }),

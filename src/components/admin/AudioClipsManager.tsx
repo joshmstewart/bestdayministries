@@ -53,25 +53,14 @@ const CATEGORIES = [
   "other",
 ];
 
-const ELEVENLABS_VOICES = [
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah' },
-  { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger' },
-  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura' },
-  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie' },
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum' },
-  { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River' },
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam' },
-  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda' },
-  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will' },
-  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica' },
-  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric' },
-  { id: 'iP95p4xoKVk53GoZ742B', name: 'Chris' },
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian' },
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily' },
-  { id: 'pqHfZKP75CvOlQylNhV4', name: 'Bill' },
+const DURATION_OPTIONS = [
+  { value: 1, label: '1 second' },
+  { value: 2, label: '2 seconds' },
+  { value: 3, label: '3 seconds' },
+  { value: 5, label: '5 seconds' },
+  { value: 10, label: '10 seconds' },
+  { value: 15, label: '15 seconds' },
+  { value: 22, label: '22 seconds (max)' },
 ];
 
 export const AudioClipsManager = () => {
@@ -92,8 +81,8 @@ export const AudioClipsManager = () => {
     description: "",
     category: "other",
     file: null as File | null,
-    generateText: "",
-    voiceId: "EXAVITQu4vr4xnSDxMaL",
+    sfxPrompt: "",
+    sfxDuration: 2,
   });
 
   useEffect(() => {
@@ -122,10 +111,10 @@ export const AudioClipsManager = () => {
   };
 
   const handleGenerateAudio = async () => {
-    if (!formData.generateText.trim()) {
+    if (!formData.sfxPrompt.trim()) {
       toast({
         title: "Error",
-        description: "Please enter text to generate audio",
+        description: "Please enter a sound effect description",
         variant: "destructive",
       });
       return;
@@ -135,8 +124,8 @@ export const AudioClipsManager = () => {
     try {
       const { data, error } = await supabase.functions.invoke('elevenlabs-generate-audio-clip', {
         body: {
-          text: formData.generateText,
-          voiceId: formData.voiceId,
+          prompt: formData.sfxPrompt,
+          duration: formData.sfxDuration,
         },
       });
 
@@ -247,8 +236,8 @@ export const AudioClipsManager = () => {
       description: "",
       category: "other",
       file: null,
-      generateText: "",
-      voiceId: "EXAVITQu4vr4xnSDxMaL",
+      sfxPrompt: "",
+      sfxDuration: 2,
     });
     setEditingClip(null);
     setAudioSource("upload");
@@ -262,8 +251,8 @@ export const AudioClipsManager = () => {
       description: clip.description || "",
       category: clip.category || "other",
       file: null,
-      generateText: "",
-      voiceId: "EXAVITQu4vr4xnSDxMaL",
+      sfxPrompt: "",
+      sfxDuration: 2,
     });
     setAudioSource("upload");
     setGeneratedFileUrl(null);
@@ -425,42 +414,42 @@ export const AudioClipsManager = () => {
                 </TabsContent>
                 <TabsContent value="generate" className="mt-4 space-y-4">
                   <div>
-                    <Label htmlFor="voice">Voice</Label>
+                    <Label htmlFor="sfxPrompt">Sound Effect Description *</Label>
+                    <Textarea
+                      id="sfxPrompt"
+                      value={formData.sfxPrompt}
+                      onChange={(e) =>
+                        setFormData({ ...formData, sfxPrompt: e.target.value })
+                      }
+                      placeholder="Describe the sound effect, e.g., 'cheerful notification chime', 'whoosh transition sound', 'coin drop clinking'..."
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="duration">Duration</Label>
                     <Select
-                      value={formData.voiceId}
+                      value={formData.sfxDuration.toString()}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, voiceId: value })
+                        setFormData({ ...formData, sfxDuration: parseInt(value) })
                       }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {ELEVENLABS_VOICES.map((voice) => (
-                          <SelectItem key={voice.id} value={voice.id}>
-                            {voice.name}
+                        {DURATION_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value.toString()}>
+                            {opt.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="generateText">Text to speak *</Label>
-                    <Textarea
-                      id="generateText"
-                      value={formData.generateText}
-                      onChange={(e) =>
-                        setFormData({ ...formData, generateText: e.target.value })
-                      }
-                      placeholder="Enter the text you want to convert to speech..."
-                      rows={3}
-                    />
-                  </div>
                   <Button
                     type="button"
                     variant="secondary"
                     onClick={handleGenerateAudio}
-                    disabled={generating || !formData.generateText.trim()}
+                    disabled={generating || !formData.sfxPrompt.trim()}
                     className="w-full"
                   >
                     {generating ? (
@@ -471,7 +460,7 @@ export const AudioClipsManager = () => {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Generate Audio
+                        Generate Sound Effect
                       </>
                     )}
                   </Button>
