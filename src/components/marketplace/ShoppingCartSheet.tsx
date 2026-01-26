@@ -1,11 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Minus, Loader2 } from "lucide-react";
+import { Trash2, Plus, Minus, Loader2, MapPin, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ShippingAddressInput } from "./ShippingAddressInput";
+
+interface ShippingAddress {
+  zip: string;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+interface VendorShippingResult {
+  vendor_id: string;
+  vendor_name: string;
+  subtotal_cents: number;
+  shipping_cents: number;
+  shipping_method: 'calculated' | 'flat' | 'free';
+  service_name?: string;
+  carrier?: string;
+  estimated_days?: number;
+  error?: string;
+}
+
+interface ShippingCalculationResult {
+  success: boolean;
+  shipping_total_cents: number;
+  subtotal_cents: number;
+  vendor_shipping: VendorShippingResult[];
+  requires_calculated_shipping: boolean;
+}
 
 interface ShoppingCartSheetProps {
   open: boolean;
@@ -16,6 +44,10 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+  const [shippingResult, setShippingResult] = useState<ShippingCalculationResult | null>(null);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
 
   const { data: cartItems, isLoading } = useQuery({
     queryKey: ['cart-items'],
@@ -37,29 +69,89 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
     enabled: open
   });
 
-  // Shipping constants (must match edge function)
+  // Check if any vendor uses calculated shipping
+  const hasCalculatedShippingVendor = useMemo(() => {
+    if (!cartItems || cartItems.length === 0) return false;
+    return cartItems.some(item => item.product?.vendors?.shipping_mode === 'calculated');
+  }, [cartItems]);
+
+  // Shipping constants (for flat rate fallback display)
   const FLAT_SHIPPING_RATE = 6.99;
   const FREE_SHIPPING_THRESHOLD = 35;
 
-  // Calculate vendor subtotals and shipping
-  const vendorTotals = cartItems?.reduce((acc, item) => {
-    const vendorId = item.product.vendor_id;
-    const price = typeof item.product.price === 'string' 
-      ? parseFloat(item.product.price) 
-      : item.product.price;
-    const itemTotal = price * item.quantity;
-    
-    if (!acc[vendorId]) {
-      acc[vendorId] = { subtotal: 0, vendorName: item.product.vendors?.business_name || 'Vendor' };
-    }
-    acc[vendorId].subtotal += itemTotal;
-    return acc;
-  }, {} as Record<string, { subtotal: number; vendorName: string }>) || {};
+  // Calculate vendor subtotals for flat rate display
+  const vendorTotals = useMemo(() => {
+    if (!cartItems) return {};
+    return cartItems.reduce((acc, item) => {
+      const vendorId = item.product.vendor_id;
+      const price = typeof item.product.price === 'string' 
+        ? parseFloat(item.product.price) 
+        : item.product.price;
+      const itemTotal = price * item.quantity;
+      
+      if (!acc[vendorId]) {
+        acc[vendorId] = { 
+          subtotal: 0, 
+          vendorName: item.product.vendors?.business_name || 'Vendor',
+          shippingMode: item.product.vendors?.shipping_mode || 'flat'
+        };
+      }
+      acc[vendorId].subtotal += itemTotal;
+      return acc;
+    }, {} as Record<string, { subtotal: number; vendorName: string; shippingMode: string }>);
+  }, [cartItems]);
 
   const subtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
-  const shippingTotal = Object.values(vendorTotals).reduce((sum, v) => 
-    sum + (v.subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_RATE), 0);
+
+  // Use calculated shipping if available, otherwise flat rate estimate
+  const shippingTotal = shippingResult?.success 
+    ? shippingResult.shipping_total_cents / 100
+    : Object.values(vendorTotals).reduce((sum, v) => 
+        sum + (v.subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_RATE), 0);
+
   const total = subtotal + shippingTotal;
+
+  // Reset shipping when cart changes
+  useEffect(() => {
+    if (cartItems) {
+      setShippingResult(null);
+    }
+  }, [cartItems?.length]);
+
+  const calculateShipping = async (address: ShippingAddress) => {
+    setIsCalculatingShipping(true);
+    setShippingAddress(address);
+    setIsEditingAddress(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("calculate-shipping-rates", {
+        body: { shipping_address: address }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setShippingResult(data as ShippingCalculationResult);
+        toast({
+          title: "Shipping calculated",
+          description: `Shipping to ${address.zip}: $${(data.shipping_total_cents / 100).toFixed(2)}`,
+        });
+      } else {
+        throw new Error(data?.error || "Failed to calculate shipping");
+      }
+    } catch (err) {
+      console.error("Shipping calculation error:", err);
+      toast({
+        title: "Shipping calculation failed",
+        description: "Using flat rate shipping. You can try again.",
+        variant: "destructive"
+      });
+      // Keep flat rate as fallback
+      setShippingResult(null);
+    } finally {
+      setIsCalculatingShipping(false);
+    }
+  };
 
   const updateQuantity = async (cartItemId: string, currentQuantity: number, delta: number) => {
     const newQuantity = currentQuantity + delta;
@@ -79,6 +171,8 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
       return;
     }
 
+    // Reset shipping calculation when cart changes
+    setShippingResult(null);
     queryClient.invalidateQueries({ queryKey: ['cart-items'] });
     queryClient.invalidateQueries({ queryKey: ['cart-count'] });
   };
@@ -98,6 +192,8 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
       return;
     }
 
+    // Reset shipping calculation when cart changes
+    setShippingResult(null);
     queryClient.invalidateQueries({ queryKey: ['cart-items'] });
     queryClient.invalidateQueries({ queryKey: ['cart-count'] });
 
@@ -108,6 +204,16 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
   };
 
   const handleCheckout = async () => {
+    // If vendor has calculated shipping but no address entered, prompt for address
+    if (hasCalculatedShippingVendor && !shippingAddress) {
+      toast({
+        title: "Shipping address required",
+        description: "Please enter your ZIP code to calculate shipping before checkout.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsCheckingOut(true);
     
     try {
@@ -122,7 +228,13 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", {});
+      // Pass shipping info to checkout
+      const { data, error } = await supabase.functions.invoke("create-marketplace-checkout", {
+        body: shippingResult?.success ? {
+          shipping_address: shippingAddress,
+          calculated_shipping: shippingResult.vendor_shipping
+        } : {}
+      });
 
       if (error) {
         console.error("Checkout error:", error);
@@ -158,6 +270,9 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
     }
   };
 
+  // Determine if we need to show address input
+  const needsAddressInput = hasCalculatedShippingVendor && (!shippingAddress || isEditingAddress);
+  const hasValidShipping = !hasCalculatedShippingVendor || shippingResult?.success;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -231,6 +346,35 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
             </ScrollArea>
 
             <div className="space-y-4 pt-4 border-t">
+              {/* Shipping Address Input for calculated shipping vendors */}
+              {hasCalculatedShippingVendor && (
+                <div className="space-y-2">
+                  {needsAddressInput ? (
+                    <ShippingAddressInput
+                      onAddressSubmit={calculateShipping}
+                      isLoading={isCalculatingShipping}
+                      initialAddress={shippingAddress}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        <span>Shipping to: <strong>{shippingAddress?.zip}</strong></span>
+                        {shippingAddress?.city && <span className="text-muted-foreground">({shippingAddress.city})</span>}
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setIsEditingAddress(true)}
+                      >
+                        <Edit2 className="h-3 w-3 mr-1" />
+                        Change
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -239,11 +383,27 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
                     Shipping
-                    {shippingTotal === 0 && <span className="ml-1 text-green-600">(Free)</span>}
+                    {shippingTotal === 0 && <span className="ml-1 text-primary">(Free)</span>}
+                    {hasCalculatedShippingVendor && !shippingResult?.success && (
+                      <span className="ml-1 text-accent-foreground/70">(estimate)</span>
+                    )}
                   </span>
                   <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
                 </div>
-                {shippingTotal > 0 && (
+
+                {/* Show per-vendor shipping breakdown if calculated */}
+                {shippingResult?.success && shippingResult.vendor_shipping.length > 1 && (
+                  <div className="pl-4 space-y-1 text-xs text-muted-foreground">
+                    {shippingResult.vendor_shipping.map((vs) => (
+                      <div key={vs.vendor_id} className="flex justify-between">
+                        <span>{vs.vendor_name}: {vs.service_name}</span>
+                        <span>${(vs.shipping_cents / 100).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {shippingTotal > 0 && !shippingResult?.success && (
                   <p className="text-xs text-muted-foreground">
                     Free shipping on orders $35+ per vendor
                   </p>
@@ -260,13 +420,15 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
                 className="w-full" 
                 size="lg"
                 onClick={handleCheckout}
-                disabled={isCheckingOut}
+                disabled={isCheckingOut || (hasCalculatedShippingVendor && !hasValidShipping)}
               >
                 {isCheckingOut ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Processing...
                   </>
+                ) : hasCalculatedShippingVendor && !hasValidShipping ? (
+                  "Enter ZIP to continue"
                 ) : (
                   "Proceed to Checkout"
                 )}

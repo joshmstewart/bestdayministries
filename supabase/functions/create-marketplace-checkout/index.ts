@@ -52,9 +52,19 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Parse request body for guest checkout
+    // Parse request body for guest checkout and calculated shipping
     const body = await req.json().catch(() => ({}));
     const guestSessionId = body.session_id;
+    const calculatedShipping = body.calculated_shipping as Array<{
+      vendor_id: string;
+      shipping_cents: number;
+      shipping_method: string;
+      service_name?: string;
+    }> | undefined;
+    
+    if (calculatedShipping) {
+      logStep("Using pre-calculated shipping rates", { vendorCount: calculatedShipping.length });
+    }
 
     // Try to authenticate user (optional for guest checkout)
     const authHeader = req.headers.get("Authorization");
@@ -253,8 +263,21 @@ serve(async (req) => {
 
     // Calculate fees and shipping for each vendor group
     for (const groupData of groupTotals.values()) {
-      // Free shipping if vendor subtotal >= vendor's threshold, otherwise $6.99
-      groupData.shippingFee = groupData.subtotal >= groupData.freeShippingThresholdCents ? 0 : FLAT_SHIPPING_RATE_CENTS;
+      // Check if we have pre-calculated shipping for this vendor
+      const calculatedRate = calculatedShipping?.find(cs => cs.vendor_id === groupData.vendorId);
+      
+      if (calculatedRate) {
+        // Use pre-calculated shipping rate from EasyPost
+        groupData.shippingFee = calculatedRate.shipping_cents;
+        logStep("Using calculated shipping for vendor", { 
+          vendorId: groupData.vendorId, 
+          shippingCents: calculatedRate.shipping_cents,
+          method: calculatedRate.shipping_method
+        });
+      } else {
+        // Fall back to flat rate: free if subtotal >= threshold, otherwise $6.99
+        groupData.shippingFee = groupData.subtotal >= groupData.freeShippingThresholdCents ? 0 : FLAT_SHIPPING_RATE_CENTS;
+      }
       
       if (groupData.isHouseVendor) {
         // Official merch: 100% goes to platform
