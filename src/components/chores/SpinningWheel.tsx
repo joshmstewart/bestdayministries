@@ -63,6 +63,8 @@ interface SpinningWheelProps {
   onSpinStart: () => void;
   disabled?: boolean;
   size?: number;
+  clickSoundUrl?: string;
+  clickSoundVolume?: number;
 }
 
 export function SpinningWheel({
@@ -72,14 +74,34 @@ export function SpinningWheel({
   onSpinStart,
   disabled = false,
   size = 300,
+  clickSoundUrl,
+  clickSoundVolume = 0.3,
 }: SpinningWheelProps) {
   const [rotation, setRotation] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
+  const audioPoolRef = useRef<HTMLAudioElement[]>([]);
 
-  // Initialize audio context on first user interaction
+  // Create an audio pool for rapid playback
+  const getAudioFromPool = useCallback(() => {
+    if (!clickSoundUrl) return null;
+    
+    // Find an audio element that's not playing
+    let audio = audioPoolRef.current.find(a => a.paused || a.ended);
+    
+    if (!audio) {
+      // Create a new audio element if pool is empty or all are busy
+      audio = new Audio(clickSoundUrl);
+      audio.volume = clickSoundVolume;
+      audioPoolRef.current.push(audio);
+    }
+    
+    return audio;
+  }, [clickSoundUrl, clickSoundVolume]);
+
+  // Initialize audio context on first user interaction (for fallback)
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -89,7 +111,6 @@ export function SpinningWheel({
 
   // Play tick sounds that slow down over the animation duration
   const playSpinSounds = useCallback(() => {
-    const audioContext = getAudioContext();
     const duration = 4000; // Match the CSS animation duration
     const startTime = Date.now();
     let lastTickTime = 0;
@@ -118,7 +139,18 @@ export function SpinningWheel({
       const interval = minInterval + (maxInterval - minInterval) * (1 - velocity);
       
       if (elapsed - lastTickTime >= interval) {
-        createTickSound(audioContext, 0.15 + velocity * 0.2);
+        // Use custom sound if available, otherwise fallback to synthesized
+        if (clickSoundUrl) {
+          const audio = getAudioFromPool();
+          if (audio) {
+            audio.currentTime = 0;
+            audio.volume = clickSoundVolume * (0.5 + velocity * 0.5);
+            audio.play().catch(() => {});
+          }
+        } else {
+          const audioContext = getAudioContext();
+          createTickSound(audioContext, 0.15 + velocity * 0.2);
+        }
         lastTickTime = elapsed;
       }
       
@@ -126,7 +158,7 @@ export function SpinningWheel({
     };
     
     tickIntervalRef.current = requestAnimationFrame(tick);
-  }, [getAudioContext]);
+  }, [clickSoundUrl, clickSoundVolume, getAudioFromPool, getAudioContext]);
 
   // Cleanup on unmount
   useEffect(() => {
