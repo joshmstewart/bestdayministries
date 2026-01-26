@@ -1,12 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Timer, Trophy, Flame } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Play, Timer, Trophy, Flame, Star } from "lucide-react";
 
 export type GameMode = "free_play" | "time_trial";
 export type TimeTrialDuration = 60 | 120 | 300;
 
+interface TimeTrialBest {
+  duration_seconds: number;
+  best_levels: number;
+  best_score: number;
+}
+
 interface CashRegisterModeSelectProps {
   onSelectMode: (mode: GameMode, duration?: TimeTrialDuration) => void;
+  freePlayBestLevel?: number;
+  timeTrialBests?: Map<number, TimeTrialBest>;
 }
 
 const DURATIONS: { value: TimeTrialDuration; label: string; description: string }[] = [
@@ -15,7 +24,11 @@ const DURATIONS: { value: TimeTrialDuration; label: string; description: string 
   { value: 300, label: "5 Minutes", description: "Extended session" },
 ];
 
-export function CashRegisterModeSelect({ onSelectMode }: CashRegisterModeSelectProps) {
+export function CashRegisterModeSelect({ onSelectMode, freePlayBestLevel, timeTrialBests }: CashRegisterModeSelectProps) {
+  const getTimeTrialBest = (duration: TimeTrialDuration) => {
+    return timeTrialBests?.get(duration);
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="text-center mb-8">
@@ -39,6 +52,12 @@ export function CashRegisterModeSelect({ onSelectMode }: CashRegisterModeSelectP
             <p className="text-muted-foreground text-sm">
               Practice at your own pace. No time limit - complete as many levels as you want!
             </p>
+            {freePlayBestLevel && freePlayBestLevel > 0 && (
+              <Badge variant="outline" className="mt-3 gap-1.5 text-primary border-primary/30 bg-primary/5">
+                <Star className="h-3.5 w-3.5 fill-primary" />
+                Best: Level {freePlayBestLevel}
+              </Badge>
+            )}
             <Button className="mt-4 w-full" variant="outline">
               <Play className="h-4 w-4 mr-2" />
               Start Playing
@@ -62,23 +81,35 @@ export function CashRegisterModeSelect({ onSelectMode }: CashRegisterModeSelectP
               Race against the clock! Complete as many levels as you can before time runs out.
             </p>
             <div className="space-y-2">
-              {DURATIONS.map((duration) => (
-                <Button
-                  key={duration.value}
-                  variant="outline"
-                  className="w-full justify-between"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectMode("time_trial", duration.value);
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <Timer className="h-4 w-4 text-orange-500" />
-                    {duration.label}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{duration.description}</span>
-                </Button>
-              ))}
+              {DURATIONS.map((duration) => {
+                const best = getTimeTrialBest(duration.value);
+                return (
+                  <Button
+                    key={duration.value}
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectMode("time_trial", duration.value);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Timer className="h-4 w-4 text-orange-500" />
+                      {duration.label}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      {best ? (
+                        <Badge variant="secondary" className="text-xs gap-1">
+                          <Trophy className="h-3 w-3 text-primary" />
+                          {best.best_levels} levels
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{duration.description}</span>
+                      )}
+                    </span>
+                  </Button>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

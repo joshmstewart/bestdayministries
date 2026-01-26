@@ -135,7 +135,28 @@ export default function MoneyCounting() {
 
   const { user } = useAuth();
   const { saveGameResult } = useCashRegisterStats();
-  const { saveTimeTrialResult, getBestForDuration } = useTimeTrialStats();
+  const { saveTimeTrialResult, getBestForDuration, bests: timeTrialBests } = useTimeTrialStats();
+  const [freePlayBestLevel, setFreePlayBestLevel] = useState<number>(0);
+  const [modeSelectTab, setModeSelectTab] = useState("play");
+
+  // Load free play best level
+  useEffect(() => {
+    const loadFreePlayStats = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("cash_register_user_stats")
+        .select("best_level")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (data?.best_level) {
+        setFreePlayBestLevel(data.best_level);
+      }
+    };
+    
+    loadFreePlayStats();
+  }, [user]);
 
   // Load stores and customers from database (including purchased pack items)
   useEffect(() => {
@@ -702,7 +723,29 @@ export default function MoneyCounting() {
               <p className="text-muted-foreground text-sm">Make correct change for customers!</p>
             </div>
             
-            <CashRegisterModeSelect onSelectMode={handleModeSelect} />
+            <Tabs value={modeSelectTab} onValueChange={setModeSelectTab} className="w-full">
+              <div className="flex justify-center mb-6">
+                <TabsList>
+                  <TabsTrigger value="play">Play</TabsTrigger>
+                  <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="play">
+                <CashRegisterModeSelect 
+                  onSelectMode={handleModeSelect}
+                  freePlayBestLevel={freePlayBestLevel}
+                  timeTrialBests={timeTrialBests}
+                />
+              </TabsContent>
+
+              <TabsContent value="leaderboard" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <CashRegisterLeaderboard />
+                  <TimeTrialLeaderboard />
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
         <Footer />
