@@ -683,16 +683,12 @@ const Admin = () => {
                       <TabsList>
                         <TabsTrigger value="badges">Badges</TabsTrigger>
                         <TabsTrigger value="challenges">Monthly Challenges</TabsTrigger>
-                        <TabsTrigger value="wheel-sounds">Wheel Sounds</TabsTrigger>
                       </TabsList>
                       <TabsContent value="badges">
                         <ChoreBadgeManager />
                       </TabsContent>
                       <TabsContent value="challenges">
                         <ChoreChallengeManager />
-                      </TabsContent>
-                      <TabsContent value="wheel-sounds">
-                        <SoundEffectsManager />
                       </TabsContent>
                     </Tabs>
                   </TabsContent>
@@ -985,6 +981,7 @@ const Admin = () => {
                     <TabsTrigger value="avatars">Avatars</TabsTrigger>
                     <TabsTrigger value="picture-passwords">Picture Passwords</TabsTrigger>
                     <TabsTrigger value="tts">Text-to-Speech</TabsTrigger>
+                    <TabsTrigger value="sound-effects">Sound Effects</TabsTrigger>
                     <TabsTrigger value="locations">Locations</TabsTrigger>
                     <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
                   </TabsList>
@@ -1029,6 +1026,10 @@ const Admin = () => {
 
                   <TabsContent value="tts">
                     <TTSVoiceManager />
+                  </TabsContent>
+
+                  <TabsContent value="sound-effects">
+                    <SoundEffectsManager />
                   </TabsContent>
 
                   <TabsContent value="locations">
