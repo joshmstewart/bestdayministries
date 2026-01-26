@@ -103,6 +103,7 @@ import { CardManager } from "@/components/admin/CardManager";
 import { GuardianResourcesManager } from "@/components/admin/GuardianResourcesManager";
 import JoyHouseStoresManager from "@/components/admin/JoyHouseStoresManager";
 import { AiUsageManager } from "@/components/admin/AiUsageManager";
+import { CoffeeVendorManager } from "@/components/admin/CoffeeVendorManager";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -715,6 +716,7 @@ const Admin = () => {
                 <Tabs defaultValue="vendors" className="space-y-4">
                   <TabsList className="inline-flex flex-wrap h-auto">
                     <TabsTrigger value="vendors">Vendors</TabsTrigger>
+                    <TabsTrigger value="coffee">Coffee</TabsTrigger>
                     <TabsTrigger value="marketplace">Marketplace Settings</TabsTrigger>
                   </TabsList>
                   
@@ -723,6 +725,10 @@ const Admin = () => {
                       <MarketplaceStripeModeSwitcher />
                       <VendorManagement />
                     </div>
+                  </TabsContent>
+
+                  <TabsContent value="coffee">
+                    <CoffeeVendorManager />
                   </TabsContent>
                   
                   <TabsContent value="marketplace">
