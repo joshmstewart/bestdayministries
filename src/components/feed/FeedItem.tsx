@@ -22,6 +22,7 @@ import { FeedItemDialog } from "./FeedItemDialog";
 import { useFeedRepost } from "@/hooks/useFeedRepost";
 import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
+import { CoinIcon } from "@/components/CoinIcon";
 
 export interface FeedItemData {
   id: string;
@@ -570,6 +571,13 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 <Icon className="h-3 w-3" />
                 {config.label}
               </Badge>
+              {/* Price badge for announcements with paid items */}
+              {item.item_type === 'announcement' && item.extra_data?.price_coins > 0 && !item.extra_data?.is_free && (
+                <Badge variant="outline" className="gap-1 text-xs bg-primary/10 text-primary border-primary/20">
+                  {item.extra_data.price_coins}
+                  <CoinIcon size={12} />
+                </Badge>
+              )}
             </div>
           </div>
 

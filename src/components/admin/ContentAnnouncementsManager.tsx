@@ -38,6 +38,8 @@ interface ContentItem {
   description: string | null;
   image_url: string | null;
   link_url: string;
+  price?: number;
+  is_free?: boolean;
 }
 
 // App types that can be announced with their data sources
@@ -75,6 +77,8 @@ export const ContentAnnouncementsManager = () => {
     announcement_type: "",
     link_url: "",
     link_label: "Check it out!",
+    price_coins: 0,
+    is_free: true,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -110,6 +114,8 @@ export const ContentAnnouncementsManager = () => {
           announcement_type: selectedAppId,
           link_url: item.link_url,
           link_label: "Check it out!",
+          price_coins: item.price || 0,
+          is_free: item.is_free ?? true,
         });
         if (item.image_url) {
           setImagePreview(item.image_url);
@@ -151,7 +157,7 @@ export const ContentAnnouncementsManager = () => {
         case "memory_match_packs": {
           const { data } = await supabase
             .from("memory_match_packs")
-            .select("id, name, description, preview_image_url")
+            .select("id, name, description, preview_image_url, price_coins")
             .eq("is_active", true)
             .order("created_at", { ascending: false });
           items = (data || []).map(p => ({
@@ -160,6 +166,8 @@ export const ContentAnnouncementsManager = () => {
             description: p.description,
             image_url: p.preview_image_url,
             link_url: `${app.linkPath}?pack=${p.id}`,
+            price: p.price_coins || 0,
+            is_free: (p.price_coins || 0) === 0,
           }));
           break;
         }
@@ -175,13 +183,15 @@ export const ContentAnnouncementsManager = () => {
             description: p.description,
             image_url: p.pack_image_url,
             link_url: `${app.linkPath}?collection=${p.id}`,
+            price: 0,
+            is_free: true,
           }));
           break;
         }
         case "coloring_books": {
           const { data } = await supabase
             .from("coloring_books")
-            .select("id, title, description, cover_image_url")
+            .select("id, title, description, cover_image_url, coin_price, is_free")
             .eq("is_active", true)
             .order("created_at", { ascending: false });
           items = (data || []).map(p => ({
@@ -190,13 +200,15 @@ export const ContentAnnouncementsManager = () => {
             description: p.description,
             image_url: p.cover_image_url,
             link_url: `${app.linkPath}?book=${p.id}`,
+            price: p.coin_price || 0,
+            is_free: p.is_free ?? true,
           }));
           break;
         }
         case "beat_pad_sounds": {
           const { data } = await supabase
             .from("beat_pad_sounds")
-            .select("id, name, description, emoji, category")
+            .select("id, name, description, emoji, category, price_coins")
             .eq("is_active", true)
             .order("created_at", { ascending: false });
           items = (data || []).map(p => ({
@@ -205,6 +217,8 @@ export const ContentAnnouncementsManager = () => {
             description: p.description || `${p.category || "Sound"} for Beat Pad`,
             image_url: null,
             link_url: `${app.linkPath}?sound=${p.id}`,
+            price: p.price_coins || 0,
+            is_free: (p.price_coins || 0) === 0,
           }));
           break;
         }
@@ -220,13 +234,15 @@ export const ContentAnnouncementsManager = () => {
             description: p.description,
             image_url: p.icon_url,
             link_url: `${app.linkPath}?category=${p.id}`,
+            price: 0,
+            is_free: true,
           }));
           break;
         }
         case "cash_register_stores": {
           const { data } = await supabase
             .from("cash_register_stores")
-            .select("id, name, description, image_url")
+            .select("id, name, description, image_url, price_coins, is_free")
             .eq("is_active", true)
             .order("display_order");
           items = (data || []).map(p => ({
@@ -235,13 +251,15 @@ export const ContentAnnouncementsManager = () => {
             description: p.description,
             image_url: p.image_url,
             link_url: `${app.linkPath}?store=${p.id}`,
+            price: p.price_coins || 0,
+            is_free: p.is_free ?? true,
           }));
           break;
         }
         case "cash_register_packs": {
           const { data } = await supabase
             .from("cash_register_packs")
-            .select("id, name, description, image_url")
+            .select("id, name, description, image_url, price_coins")
             .eq("is_active", true)
             .order("display_order");
           items = (data || []).map(p => ({
@@ -250,13 +268,15 @@ export const ContentAnnouncementsManager = () => {
             description: p.description,
             image_url: p.image_url,
             link_url: `${app.linkPath}?pack=${p.id}`,
+            price: p.price_coins || 0,
+            is_free: (p.price_coins || 0) === 0,
           }));
           break;
         }
         case "card_templates": {
           const { data } = await supabase
             .from("card_templates")
-            .select("id, title, description, cover_image_url")
+            .select("id, title, description, cover_image_url, coin_price, is_free")
             .eq("is_active", true)
             .order("display_order");
           items = (data || []).map(p => ({
@@ -265,6 +285,8 @@ export const ContentAnnouncementsManager = () => {
             description: p.description,
             image_url: p.cover_image_url,
             link_url: `${app.linkPath}?template=${p.id}`,
+            price: p.coin_price || 0,
+            is_free: p.is_free ?? true,
           }));
           break;
         }
@@ -280,6 +302,8 @@ export const ContentAnnouncementsManager = () => {
             description: `New ${p.category} avatar available!`,
             image_url: null,
             link_url: `${app.linkPath}?avatar=${p.id}`,
+            price: 0,
+            is_free: true,
           }));
           break;
         }
@@ -287,7 +311,7 @@ export const ContentAnnouncementsManager = () => {
           // Memory Match Extreme - get the specific store item
           const { data } = await supabase
             .from("store_items")
-            .select("id, name, description, image_url")
+            .select("id, name, description, image_url, price")
             .eq("name", "Memory Match - Extreme Mode")
             .eq("is_active", true);
           items = (data || []).map(p => ({
@@ -296,6 +320,8 @@ export const ContentAnnouncementsManager = () => {
             description: p.description || "Unlock Extreme Mode with 32 cards!",
             image_url: p.image_url,
             link_url: `${app.linkPath}?item=${p.id}`,
+            price: p.price || 0,
+            is_free: (p.price || 0) === 0,
           }));
           break;
         }
@@ -317,6 +343,8 @@ export const ContentAnnouncementsManager = () => {
       announcement_type: "",
       link_url: "",
       link_label: "Check it out!",
+      price_coins: 0,
+      is_free: true,
     });
     setImageFile(null);
     setImagePreview("");
@@ -402,6 +430,8 @@ export const ContentAnnouncementsManager = () => {
         link_label: formData.link_label.trim() || null,
         image_url: imageUrl,
         created_by: user?.id,
+        price_coins: formData.price_coins,
+        is_free: formData.is_free,
       };
 
       if (editingId) {
@@ -474,6 +504,8 @@ export const ContentAnnouncementsManager = () => {
       announcement_type: announcement.announcement_type,
       link_url: announcement.link_url || "",
       link_label: announcement.link_label || "Check it out!",
+      price_coins: (announcement as any).price_coins || 0,
+      is_free: (announcement as any).is_free ?? true,
     });
     if (announcement.image_url) {
       setImagePreview(announcement.image_url);
