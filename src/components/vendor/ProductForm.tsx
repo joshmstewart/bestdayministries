@@ -53,6 +53,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price || "");
   const [inventoryCount, setInventoryCount] = useState(product?.inventory_count || 0);
+  const [weightOz, setWeightOz] = useState<number | "">(product?.weight_oz ?? "");
   const [category, setCategory] = useState(product?.category || "");
   const [tags, setTags] = useState(product?.tags?.join(", ") || "");
   const [isActive, setIsActive] = useState(product?.is_active ?? true);
@@ -80,6 +81,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
       setDescription(product?.description || "");
       setPrice(product?.price || "");
       setInventoryCount(product?.inventory_count || 0);
+      setWeightOz(product?.weight_oz ?? "");
       setCategory(product?.category || "");
       setTags(product?.tags?.join(", ") || "");
       setIsActive(product?.is_active ?? true);
@@ -243,6 +245,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
         description,
         price: parseFloat(price),
         inventory_count: inventoryCount,
+        weight_oz: weightOz === "" ? null : Number(weightOz),
         category: category || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : null,
         images: allImages,
@@ -317,6 +320,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setDescription("");
     setPrice("");
     setInventoryCount(0);
+    setWeightOz("");
     setCategory("");
     setTags("");
     setIsActive(true);
@@ -435,7 +439,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="price">Price ($) *</Label>
               <Input
@@ -451,7 +455,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
             </div>
 
             <div>
-              <Label htmlFor="inventory">Inventory Count *</Label>
+              <Label htmlFor="inventory">Inventory *</Label>
               <Input
                 id="inventory"
                 type="number"
@@ -460,6 +464,19 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
                 onChange={(e) => setInventoryCount(parseInt(e.target.value))}
                 required
                 placeholder="10"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="weight">Weight (oz)</Label>
+              <Input
+                id="weight"
+                type="number"
+                step="0.1"
+                min="0"
+                value={weightOz}
+                onChange={(e) => setWeightOz(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                placeholder="16"
               />
             </div>
           </div>
