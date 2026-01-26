@@ -977,7 +977,13 @@ export default function ChoreChart() {
         <BadgeEarnedDialog
           badge={earnedBadge}
           open={showBadgeDialog}
-          onOpenChange={setShowBadgeDialog}
+          onOpenChange={(open) => {
+            setShowBadgeDialog(open);
+            // When badge dialog closes, show the celebration image dialog
+            if (!open) {
+              setTimeout(() => setShowCelebrationDialog(true), 500);
+            }
+          }}
         />
 
         {/* Gallery Button - Admin Only */}
