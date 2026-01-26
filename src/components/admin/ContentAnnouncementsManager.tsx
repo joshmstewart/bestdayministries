@@ -52,6 +52,7 @@ const ANNOUNCEABLE_APPS = [
   { id: "joke_category", label: "Joke Packs", emoji: "😂", table: "joke_categories", linkPath: "/games/jokes" },
   { id: "cash_register_store", label: "Cash Register Locations", emoji: "🏪", table: "cash_register_stores", linkPath: "/games/cash-register" },
   { id: "cash_register_pack", label: "Cash Register Packs", emoji: "💰", table: "cash_register_packs", linkPath: "/games/cash-register" },
+  { id: "cash_register_time_trial", label: "Cash Register Time Trials", emoji: "⏱️", table: "feature_announcement", linkPath: "/games/cash-register" },
   { id: "card_template", label: "Card Templates", emoji: "💌", table: "card_templates", linkPath: "/games/card-creator" },
   { id: "avatar", label: "Avatars", emoji: "👤", table: "avatars", linkPath: "/profile" },
 ];
@@ -323,6 +324,22 @@ export const ContentAnnouncementsManager = () => {
             price: p.price || 0,
             is_free: (p.price || 0) === 0,
           }));
+          break;
+        }
+        case "feature_announcement": {
+          // Pre-defined feature announcements (no database query needed)
+          const app_feature = ANNOUNCEABLE_APPS.find(a => a.id === appId);
+          if (appId === "cash_register_time_trial") {
+            items = [{
+              id: "time_trial_feature",
+              name: "⏱️ Time Trial Mode",
+              description: "Race against the clock! Complete as many levels as you can before time runs out. Choose 1, 2, or 5 minute challenges!",
+              image_url: null,
+              link_url: app_feature?.linkPath || "/games/cash-register",
+              price: 0,
+              is_free: true,
+            }];
+          }
           break;
         }
       }
