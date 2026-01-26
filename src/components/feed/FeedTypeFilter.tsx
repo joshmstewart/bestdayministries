@@ -51,8 +51,8 @@ const typeColors: Record<ItemType, string> = {
 };
 
 const FILTER_ORDER: ItemType[] = [
-  'post', 'album', 'event', 'beat', 'coloring', 'card', 
-  'recipe', 'drink', 'joke', 'prayer', 'workout', 'chore_art'
+  'post', 'album', 'event', 'beat', 'coloring', 
+  'recipe', 'drink', 'joke', 'prayer', 'workout', 'announcement'
 ];
 
 export function FeedTypeFilter({ selectedTypes, onTypesChange }: FeedTypeFilterProps) {

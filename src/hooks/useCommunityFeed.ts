@@ -8,6 +8,9 @@ export type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_
 
 export const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke', 'announcement'];
 
+// Types shown in the filter dropdown (excludes chore_art and card, includes announcement as "Updates")
+export const FILTERABLE_ITEM_TYPES: ItemType[] = ['beat', 'coloring', 'post', 'album', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke', 'announcement'];
+
 export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   beat: 'Beats',
   card: 'Cards',
@@ -21,7 +24,7 @@ export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   recipe: 'Recipes',
   drink: 'Drinks',
   joke: 'Jokes',
-  announcement: 'Announcements',
+  announcement: 'Updates',
 };
 
 interface UseCommunityFeedOptions {
