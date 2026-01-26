@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Minus, Loader2, MapPin, Edit2 } from "lucide-react";
+import { Trash2, Plus, Minus, Loader2, MapPin, Edit2, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ShippingAddressInput } from "./ShippingAddressInput";
 
@@ -87,7 +87,24 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
   const FLAT_SHIPPING_RATE = 6.99;
   const FREE_SHIPPING_THRESHOLD = 35;
 
-  // Calculate vendor subtotals for flat rate display
+  // Group cart items by vendor
+  const itemsByVendor = useMemo(() => {
+    if (!cartItems) return {};
+    return cartItems.reduce((acc, item) => {
+      const vendorId = item.product.vendor_id;
+      if (!acc[vendorId]) {
+        acc[vendorId] = {
+          vendorName: item.product.vendors?.business_name || 'Vendor',
+          shippingMode: item.product.vendors?.shipping_mode || 'flat',
+          items: []
+        };
+      }
+      acc[vendorId].items.push(item);
+      return acc;
+    }, {} as Record<string, { vendorName: string; shippingMode: string; items: typeof cartItems }>);
+  }, [cartItems]);
+
+  // Calculate vendor subtotals for shipping calculations
   const vendorTotals = useMemo(() => {
     if (!cartItems) return {};
     return cartItems.reduce((acc, item) => {
@@ -108,6 +125,42 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
       return acc;
     }, {} as Record<string, { subtotal: number; vendorName: string; shippingMode: string }>);
   }, [cartItems]);
+
+  // Get shipping info for a specific vendor
+  const getVendorShippingDisplay = (vendorId: string): { label: string; isPending: boolean } => {
+    const vendor = vendorTotals[vendorId];
+    if (!vendor) return { label: 'Pending', isPending: true };
+
+    // If vendor uses calculated shipping
+    if (vendor.shippingMode === 'calculated') {
+      // Check if we have calculated shipping result for this vendor
+      if (shippingResult?.success) {
+        const vendorShipping = shippingResult.vendor_shipping.find(vs => vs.vendor_id === vendorId);
+        if (vendorShipping) {
+          if (vendorShipping.shipping_cents === 0) {
+            return { label: 'FREE', isPending: false };
+          }
+          return { label: `$${(vendorShipping.shipping_cents / 100).toFixed(2)}`, isPending: false };
+        }
+      }
+      // No calculated result yet - show pending
+      return { label: 'Pending', isPending: true };
+    }
+
+    // Flat rate shipping vendor
+    if (vendor.subtotal >= FREE_SHIPPING_THRESHOLD) {
+      return { label: 'FREE', isPending: false };
+    }
+    return { label: `$${FLAT_SHIPPING_RATE.toFixed(2)}`, isPending: false };
+  };
+
+  // Check if any vendor shipping is still pending
+  const hasAnyPendingShipping = useMemo(() => {
+    return Object.keys(vendorTotals).some(vendorId => {
+      const shipping = getVendorShippingDisplay(vendorId);
+      return shipping.isPending;
+    });
+  }, [vendorTotals, shippingResult]);
 
   const subtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
 
@@ -303,53 +356,86 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
         ) : (
           <div className="flex flex-col h-full">
             <ScrollArea className="flex-1 -mx-6 px-6 my-6">
-              <div className="space-y-4">
-                {cartItems.map((item) => (
-                  <div key={item.id} className="flex gap-4">
-                    <img
-                      src={item.product.images?.[0] || '/placeholder.svg'}
-                      alt={item.product.name}
-                      className="w-20 h-20 object-cover rounded"
-                    />
-                    <div className="flex-1 space-y-2">
-                      <h4 className="font-semibold line-clamp-1">
-                        {item.product.name}
-                      </h4>
-                      <p className="text-sm text-primary font-bold">
-                        ${(typeof item.product.price === 'string' 
-                          ? parseFloat(item.product.price) 
-                          : item.product.price).toFixed(2)}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity, -1)}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-8 text-center">{item.quantity}</span>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity, 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 ml-auto text-destructive"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+              <div className="space-y-6">
+                {Object.entries(itemsByVendor).map(([vendorId, vendorData]) => {
+                  const vendorShipping = getVendorShippingDisplay(vendorId);
+                  const vendorSubtotal = vendorTotals[vendorId]?.subtotal || 0;
+                  
+                  return (
+                    <div key={vendorId} className="space-y-3">
+                      {/* Vendor Header */}
+                      <div className="flex items-center gap-2 pb-2 border-b">
+                        <Store className="h-4 w-4 text-primary" />
+                        <span className="font-semibold text-sm">{vendorData.vendorName}</span>
                       </div>
+                      
+                      {/* Vendor Items */}
+                      <div className="space-y-3">
+                        {vendorData.items.map((item) => (
+                          <div key={item.id} className="flex gap-4">
+                            <img
+                              src={item.product.images?.[0] || '/placeholder.svg'}
+                              alt={item.product.name}
+                              className="w-20 h-20 object-cover rounded"
+                            />
+                            <div className="flex-1 space-y-2">
+                              <h4 className="font-semibold line-clamp-1">
+                                {item.product.name}
+                              </h4>
+                              <p className="text-sm text-primary font-bold">
+                                ${(typeof item.product.price === 'string' 
+                                  ? parseFloat(item.product.price) 
+                                  : item.product.price).toFixed(2)}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-8 w-8"
+                                  onClick={() => updateQuantity(item.id, item.quantity, -1)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-8 text-center">{item.quantity}</span>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-8 w-8"
+                                  onClick={() => updateQuantity(item.id, item.quantity, 1)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 ml-auto text-destructive"
+                                  onClick={() => removeItem(item.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Vendor Shipping */}
+                      <div className="flex justify-between items-center text-sm pt-2 border-t border-dashed">
+                        <span className="text-muted-foreground">Shipping:</span>
+                        <span className={vendorShipping.isPending ? "text-accent-foreground font-medium italic" : vendorShipping.label === 'FREE' ? "text-primary font-medium" : ""}>
+                          {vendorShipping.label}
+                        </span>
+                      </div>
+                      
+                      {/* Free shipping progress for flat rate vendors */}
+                      {vendorData.shippingMode === 'flat' && vendorSubtotal < FREE_SHIPPING_THRESHOLD && (
+                        <div className="text-xs text-muted-foreground">
+                          Add ${(FREE_SHIPPING_THRESHOLD - vendorSubtotal).toFixed(2)} more for FREE shipping
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
 
@@ -389,37 +475,21 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Shipping
-                    {shippingTotal === 0 && <span className="ml-1 text-primary">(Free)</span>}
-                    {hasCalculatedShippingVendor && !shippingResult?.success && (
-                      <span className="ml-1 text-accent-foreground/70">(estimate)</span>
-                    )}
-                  </span>
-                  <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
+                  <span className="text-muted-foreground">Shipping Total</span>
+                  {hasAnyPendingShipping ? (
+                    <span className="text-accent-foreground font-medium italic">Pending</span>
+                  ) : (
+                    <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
+                  )}
                 </div>
-
-                {/* Show per-vendor shipping breakdown if calculated */}
-                {shippingResult?.success && shippingResult.vendor_shipping.length > 1 && (
-                  <div className="pl-4 space-y-1 text-xs text-muted-foreground">
-                    {shippingResult.vendor_shipping.map((vs) => (
-                      <div key={vs.vendor_id} className="flex justify-between">
-                        <span>{vs.vendor_name}: {vs.service_name}</span>
-                        <span>${(vs.shipping_cents / 100).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {shippingTotal > 0 && !shippingResult?.success && (
-                  <p className="text-xs text-muted-foreground">
-                    Free shipping on orders $35+ per vendor
-                  </p>
-                )}
               </div>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total (before tax):</span>
-                <span className="text-primary">${total.toFixed(2)}</span>
+                {hasAnyPendingShipping ? (
+                  <span className="text-accent-foreground italic">Pending</span>
+                ) : (
+                  <span className="text-primary">${total.toFixed(2)}</span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground text-center">
                 Sales tax will be calculated at checkout
