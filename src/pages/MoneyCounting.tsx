@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RotateCcw, Trophy, Store, ChevronDown, ArrowLeft, Timer } from "lucide-react";
+import { RotateCcw, Trophy, ArrowLeft, Timer } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -18,13 +18,13 @@ import { CashRegisterModeSelect, GameMode, TimeTrialDuration } from "@/component
 import { TimeTrialTimer } from "@/components/cash-register/TimeTrialTimer";
 import { TimeTrialComplete } from "@/components/cash-register/TimeTrialComplete";
 import { TimeTrialLeaderboard } from "@/components/cash-register/TimeTrialLeaderboard";
+import { CashRegisterStoreSelector } from "@/components/cash-register/CashRegisterStoreSelector";
 import { generateOrder, calculateOptimalChange, MenuItem } from "@/lib/moneyCountingUtils";
 import { loadCustomCurrencyImages } from "@/lib/currencyImages";
 import { supabase } from "@/integrations/supabase/client";
 import { useCashRegisterStats } from "@/hooks/useCashRegisterStats";
 import { useTimeTrialStats } from "@/hooks/useTimeTrialStats";
 import { useAuth } from "@/contexts/AuthContext";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Json } from "@/integrations/supabase/types";
 
@@ -41,6 +41,9 @@ interface StoreType {
   description: string | null;
   image_url: string | null;
   is_default: boolean;
+  is_free: boolean;
+  is_pack_only: boolean;
+  price_coins: number;
   menu_items: Json | null;
   receipt_address: string | null;
   receipt_tagline: string | null;
@@ -100,12 +103,14 @@ const TAX_RATE = 0.08; // 8% tax
 export default function MoneyCounting() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [showComplete, setShowComplete] = useState(false);
-  const [stores, setStores] = useState<StoreType[]>([]);
+  const [allStores, setAllStores] = useState<StoreType[]>([]);
+  const [unlockedStoreIds, setUnlockedStoreIds] = useState<Set<string>>(new Set());
   const [customers, setCustomers] = useState<CustomerType[]>([]);
   const [currentCustomer, setCurrentCustomer] = useState<CustomerType | null>(null);
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [customCurrencyImages, setCustomCurrencyImages] = useState<{ [key: string]: string }>({});
+  const [storeRefreshKey, setStoreRefreshKey] = useState(0);
 
   const [levelResult, setLevelResult] = useState<{
     success: boolean;
@@ -169,32 +174,33 @@ export default function MoneyCounting() {
       const purchasedStoreIds = new Set((userStoresRes.data || []).map(s => s.store_id));
       
       // Get store/customer IDs from purchased packs
-      const unlockedStoreIds = new Set<string>();
+      const computedUnlockedStoreIds = new Set<string>();
       const unlockedCustomerIds = new Set<string>();
       (packItemsRes.data || []).forEach(item => {
         if (purchasedPackIds.has(item.pack_id)) {
-          if (item.store_id) unlockedStoreIds.add(item.store_id);
+          if (item.store_id) computedUnlockedStoreIds.add(item.store_id);
           if (item.customer_id) unlockedCustomerIds.add(item.customer_id);
         }
       });
       
       // Also add directly purchased stores to unlocked set
-      purchasedStoreIds.forEach(id => unlockedStoreIds.add(id));
+      purchasedStoreIds.forEach(id => computedUnlockedStoreIds.add(id));
+      setUnlockedStoreIds(computedUnlockedStoreIds);
 
       if (storesRes.error) {
         console.error("Error loading stores:", storesRes.error);
       } else {
-        // Filter stores: show if:
-        // 1. Store is free (is_free = true), OR
-        // 2. Store is NOT pack-only and price_coins = 0 (default stores), OR
-        // 3. Store is unlocked (via pack or direct purchase)
-        const availableStores = (storesRes.data || []).filter(s => 
-          s.is_free || (!s.is_pack_only && (s.price_coins || 0) === 0) || unlockedStoreIds.has(s.id)
-        );
-        console.log("Loaded stores:", availableStores.length);
-        setStores(availableStores);
+        // Store ALL stores (not just available ones) - filtering happens in the selector
+        const allStoresData = (storesRes.data || []).filter(s => !s.is_pack_only) as StoreType[];
+        console.log("Loaded stores:", allStoresData.length);
+        setAllStores(allStoresData);
+        
+        // Set default selected store (must be unlocked)
+        const isStoreUnlocked = (s: StoreType) => 
+          s.is_free || (s.price_coins || 0) === 0 || computedUnlockedStoreIds.has(s.id);
+        const availableStores = allStoresData.filter(isStoreUnlocked);
         const defaultStore = availableStores.find((s) => s.is_default) || availableStores[0];
-        if (defaultStore) setSelectedStore(defaultStore);
+        if (defaultStore && !selectedStore) setSelectedStore(defaultStore);
       }
 
       if (customersRes.error) {
@@ -212,6 +218,11 @@ export default function MoneyCounting() {
     };
 
     loadData();
+  }, [storeRefreshKey]);
+  
+  // Callback to refresh stores after purchase
+  const handleStorePurchased = useCallback(() => {
+    setStoreRefreshKey(prev => prev + 1);
   }, []);
 
   // Pick a different customer for each level (excludes current customer)
@@ -764,27 +775,14 @@ export default function MoneyCounting() {
                   </Button>
                   
                   {/* Store Selector */}
-                  {stores.length > 0 && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Store className="h-4 w-4 mr-2" />
-                          {selectedStore?.name || "Select Store"}
-                          <ChevronDown className="h-4 w-4 ml-2" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {stores.map((store) => (
-                          <DropdownMenuItem
-                            key={store.id}
-                            onClick={() => setSelectedStore(store)}
-                            className={selectedStore?.id === store.id ? "bg-accent" : ""}
-                          >
-                            {store.name}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  {allStores.length > 0 && (
+                    <CashRegisterStoreSelector
+                      stores={allStores}
+                      selectedStore={selectedStore}
+                      unlockedStoreIds={unlockedStoreIds}
+                      onSelectStore={setSelectedStore}
+                      onStorePurchased={handleStorePurchased}
+                    />
                   )}
                   
                   {/* Time Trial Timer */}
