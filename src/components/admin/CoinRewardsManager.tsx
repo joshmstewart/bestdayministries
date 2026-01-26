@@ -47,53 +47,94 @@ interface CoinReward {
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  games: { label: "Games", icon: <Gamepad2 className="w-4 h-4" />, color: "bg-blue-100 text-blue-800" },
-  daily: { label: "Daily", icon: <Calendar className="w-4 h-4" />, color: "bg-green-100 text-green-800" },
+  // App-specific categories
+  cash_register: { label: "Cash Register", icon: <Coins className="w-4 h-4" />, color: "bg-emerald-100 text-emerald-800" },
+  memory_match: { label: "Memory Match", icon: <Gamepad2 className="w-4 h-4" />, color: "bg-blue-100 text-blue-800" },
+  beat_pad: { label: "Beat Pad", icon: <Gamepad2 className="w-4 h-4" />, color: "bg-purple-100 text-purple-800" },
+  recipe_pal: { label: "Recipe Pal", icon: <Gamepad2 className="w-4 h-4" />, color: "bg-orange-100 text-orange-800" },
+  drink_creator: { label: "Drink Creator", icon: <Gamepad2 className="w-4 h-4" />, color: "bg-cyan-100 text-cyan-800" },
+  chores: { label: "Chores", icon: <Calendar className="w-4 h-4" />, color: "bg-amber-100 text-amber-800" },
+  fitness: { label: "Fitness", icon: <Heart className="w-4 h-4" />, color: "bg-red-100 text-red-800" },
+  stickers: { label: "Stickers", icon: <Coins className="w-4 h-4" />, color: "bg-yellow-100 text-yellow-800" },
   pets: { label: "Pets", icon: <Heart className="w-4 h-4" />, color: "bg-pink-100 text-pink-800" },
+  community: { label: "Community", icon: <Calendar className="w-4 h-4" />, color: "bg-indigo-100 text-indigo-800" },
+  // Legacy categories for backward compat
+  games: { label: "Games (Other)", icon: <Gamepad2 className="w-4 h-4" />, color: "bg-slate-100 text-slate-800" },
+  daily: { label: "Daily", icon: <Calendar className="w-4 h-4" />, color: "bg-green-100 text-green-800" },
   other: { label: "Other", icon: <Coins className="w-4 h-4" />, color: "bg-gray-100 text-gray-800" },
 };
 
-// Preset reward templates for quick adding
+// Preset reward templates for quick adding - organized by app
 const PRESET_REWARDS = [
-  { key: "daily_login", name: "Daily Login", description: "Reward for logging in each day", category: "daily", coins: 10 },
-  { key: "first_login", name: "First Time Login", description: "Welcome bonus for new users", category: "daily", coins: 50 },
-  { key: "weekly_streak", name: "Weekly Streak", description: "Bonus for 7 consecutive days", category: "daily", coins: 100 },
-  { key: "monthly_streak", name: "Monthly Streak", description: "Bonus for 30 consecutive days", category: "daily", coins: 500 },
-  { key: "memory_match_easy", name: "Memory Match - Easy", description: "Complete an easy Memory Match game", category: "games", coins: 5 },
-  { key: "memory_match_medium", name: "Memory Match - Medium", description: "Complete a medium Memory Match game", category: "games", coins: 10 },
-  { key: "memory_match_hard", name: "Memory Match - Hard", description: "Complete a hard Memory Match game", category: "games", coins: 20 },
-  { key: "memory_match_perfect", name: "Memory Match - Perfect Game", description: "Complete Memory Match without mistakes", category: "games", coins: 25 },
-  { key: "puzzle_complete", name: "Puzzle Complete", description: "Complete a puzzle game", category: "games", coins: 15 },
-  { key: "trivia_correct", name: "Trivia Correct Answer", description: "Answer a trivia question correctly", category: "games", coins: 5 },
-  { key: "trivia_streak", name: "Trivia Streak Bonus", description: "Multiple correct answers in a row", category: "games", coins: 20 },
-  { key: "recipe_created", name: "Recipe Created", description: "Create a new recipe", category: "games", coins: 10 },
-  { key: "recipe_made", name: "Recipe Completed", description: "Mark a recipe as made", category: "games", coins: 5 },
-  { key: "recipe_saved", name: "Recipe Saved", description: "Save a recipe to cookbook", category: "games", coins: 3 },
-  { key: "drink_created", name: "Custom Drink Created", description: "Create a custom drink", category: "games", coins: 10 },
+  // Cash Register
+  { key: "cash_register_complete", name: "Complete Level", description: "Complete a Cash Register level", category: "cash_register", coins: 5 },
+  { key: "cash_register_first_game", name: "First Game", description: "Complete your first Cash Register level (one-time)", category: "cash_register", coins: 50 },
+  { key: "cash_register_level_record", name: "Just Play Level Record", description: "Beat your best level in Just Play mode", category: "cash_register", coins: 15 },
+  { key: "time_trial_record", name: "Time Trial Record", description: "Beat your personal best in Time Trial mode", category: "cash_register", coins: 25 },
+  { key: "time_trial_complete", name: "Complete Time Trial", description: "Complete any Time Trial session", category: "cash_register", coins: 5 },
+  { key: "time_trial_top_3", name: "Time Trial Top 3", description: "Monthly top 3 on Time Trial leaderboard", category: "cash_register", coins: 100 },
+  { key: "time_trial_top_5", name: "Time Trial Top 5", description: "Monthly top 5 on Time Trial leaderboard", category: "cash_register", coins: 50 },
+  { key: "time_trial_top_10", name: "Time Trial Top 10", description: "Monthly top 10 on Time Trial leaderboard", category: "cash_register", coins: 25 },
+  
+  // Memory Match
+  { key: "memory_match_easy", name: "Easy Complete", description: "Complete an easy Memory Match game", category: "memory_match", coins: 5 },
+  { key: "memory_match_medium", name: "Medium Complete", description: "Complete a medium Memory Match game", category: "memory_match", coins: 10 },
+  { key: "memory_match_hard", name: "Hard Complete", description: "Complete a hard Memory Match game", category: "memory_match", coins: 20 },
+  { key: "memory_match_perfect", name: "Perfect Game", description: "Complete Memory Match without mistakes", category: "memory_match", coins: 25 },
+  
+  // Beat Pad
+  { key: "beat_pad_create", name: "Create Beat", description: "Create a new beat", category: "beat_pad", coins: 10 },
+  { key: "beat_pad_share", name: "Share Beat", description: "Share beat with community", category: "beat_pad", coins: 5 },
+  
+  // Recipe Pal
+  { key: "recipe_complete", name: "Complete Recipe", description: "Complete a recipe in Recipe Pal", category: "recipe_pal", coins: 10 },
+  { key: "recipe_created", name: "Recipe Created", description: "Create a new recipe", category: "recipe_pal", coins: 10 },
+  { key: "recipe_made", name: "Recipe Made", description: "Mark a recipe as made", category: "recipe_pal", coins: 5 },
+  { key: "recipe_saved", name: "Recipe Saved", description: "Save a recipe to cookbook", category: "recipe_pal", coins: 3 },
+  
+  // Drink Creator
+  { key: "drink_created", name: "Create Drink", description: "Create a custom drink", category: "drink_creator", coins: 10 },
+  
+  // Chores
+  { key: "chore_complete", name: "Complete Chore", description: "Complete a chore", category: "chores", coins: 5 },
+  { key: "chore_streak", name: "Chore Streak", description: "Maintain a chore streak", category: "chores", coins: 10 },
+  
+  // Fitness
+  { key: "workout_complete", name: "Complete Workout", description: "Complete a workout", category: "fitness", coins: 10 },
+  { key: "weekly_goal", name: "Weekly Goal", description: "Meet weekly fitness goal", category: "fitness", coins: 50 },
+  
+  // Stickers
+  { key: "sticker_rare", name: "Rare Sticker", description: "Found a rare sticker", category: "stickers", coins: 15 },
+  { key: "sticker_epic", name: "Epic Sticker", description: "Found an epic sticker", category: "stickers", coins: 25 },
+  { key: "sticker_legendary", name: "Legendary Sticker", description: "Found a legendary sticker", category: "stickers", coins: 50 },
+  { key: "collection_complete", name: "Collection Complete", description: "Complete a sticker collection", category: "stickers", coins: 200 },
+  
+  // Pets
   { key: "pet_feed", name: "Feed Pet", description: "Feed your virtual pet", category: "pets", coins: 2 },
   { key: "pet_play", name: "Play with Pet", description: "Play with your virtual pet", category: "pets", coins: 3 },
   { key: "pet_groom", name: "Groom Pet", description: "Groom your virtual pet", category: "pets", coins: 2 },
   { key: "pet_levelup", name: "Pet Level Up", description: "Your pet reached a new level", category: "pets", coins: 25 },
-  { key: "discussion_post", name: "Create Discussion Post", description: "Create a new discussion post", category: "other", coins: 10 },
-  { key: "discussion_comment", name: "Comment on Discussion", description: "Leave a comment on a post", category: "other", coins: 5 },
-  { key: "event_attend", name: "Event Attendance", description: "RSVP to an event", category: "other", coins: 10 },
+  
+  // Community
+  { key: "discussion_post", name: "Create Post", description: "Create a new discussion post", category: "community", coins: 10 },
+  { key: "discussion_comment", name: "Comment", description: "Leave a comment on a post", category: "community", coins: 5 },
+  { key: "event_attend", name: "Event RSVP", description: "RSVP to an event", category: "community", coins: 10 },
+  { key: "album_upload", name: "Album Upload", description: "Upload photos to an album", category: "community", coins: 5 },
+  { key: "share_content", name: "Share Content", description: "Share content with friends", category: "community", coins: 5 },
+  
+  // Daily
+  { key: "daily_login", name: "Daily Login", description: "Reward for logging in each day", category: "daily", coins: 10 },
+  { key: "first_login", name: "First Time Login", description: "Welcome bonus for new users", category: "daily", coins: 50 },
+  { key: "weekly_streak", name: "Weekly Streak", description: "Bonus for 7 consecutive days", category: "daily", coins: 100 },
+  { key: "monthly_streak", name: "Monthly Streak", description: "Bonus for 30 consecutive days", category: "daily", coins: 500 },
+  
+  // Other
   { key: "profile_complete", name: "Complete Profile", description: "Fill out all profile information", category: "other", coins: 50 },
-  { key: "share_content", name: "Share Content", description: "Share content with friends", category: "other", coins: 5 },
   { key: "referral_signup", name: "Referral Signup", description: "Someone you referred signed up", category: "other", coins: 100 },
-  { key: "sticker_rare", name: "Rare Sticker Found", description: "Found a rare sticker", category: "daily", coins: 15 },
-  { key: "sticker_epic", name: "Epic Sticker Found", description: "Found an epic sticker", category: "daily", coins: 25 },
-  { key: "sticker_legendary", name: "Legendary Sticker Found", description: "Found a legendary sticker", category: "daily", coins: 50 },
-  { key: "collection_complete", name: "Collection Complete", description: "Complete a sticker collection", category: "daily", coins: 200 },
-  { key: "album_upload", name: "Album Upload", description: "Upload photos to an album", category: "other", coins: 5 },
   { key: "video_watch", name: "Watch Video", description: "Watch a video to completion", category: "other", coins: 3 },
-  // Cash Register game rewards
-  { key: "time_trial_record", name: "Time Trial Record", description: "Beat your personal best in Time Trial mode", category: "games", coins: 25 },
-  { key: "time_trial_complete", name: "Complete Time Trial", description: "Complete any Time Trial session", category: "games", coins: 5 },
-  { key: "cash_register_first_game", name: "First Cash Register Game", description: "Complete your first Cash Register level (one-time)", category: "games", coins: 50 },
-  { key: "cash_register_level_record", name: "Just Play Level Record", description: "Beat your best level in Just Play mode", category: "games", coins: 15 },
-  { key: "time_trial_top_3", name: "Time Trial Top 3", description: "Monthly top 3 on Time Trial leaderboard", category: "games", coins: 100 },
-  { key: "time_trial_top_5", name: "Time Trial Top 5", description: "Monthly top 5 on Time Trial leaderboard", category: "games", coins: 50 },
-  { key: "time_trial_top_10", name: "Time Trial Top 10", description: "Monthly top 10 on Time Trial leaderboard", category: "games", coins: 25 },
+  { key: "puzzle_complete", name: "Puzzle Complete", description: "Complete a puzzle game", category: "games", coins: 15 },
+  { key: "trivia_correct", name: "Trivia Correct", description: "Answer a trivia question correctly", category: "games", coins: 5 },
+  { key: "trivia_streak", name: "Trivia Streak", description: "Multiple correct answers in a row", category: "games", coins: 20 },
 ];
 
 export const CoinRewardsManager = () => {
@@ -692,13 +733,23 @@ export const CoinRewardsManager = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="games">Games</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
+                    {/* App-specific categories */}
+                    <SelectItem value="cash_register">Cash Register</SelectItem>
+                    <SelectItem value="memory_match">Memory Match</SelectItem>
+                    <SelectItem value="beat_pad">Beat Pad</SelectItem>
+                    <SelectItem value="recipe_pal">Recipe Pal</SelectItem>
+                    <SelectItem value="drink_creator">Drink Creator</SelectItem>
+                    <SelectItem value="chores">Chores</SelectItem>
+                    <SelectItem value="fitness">Fitness</SelectItem>
+                    <SelectItem value="stickers">Stickers</SelectItem>
                     <SelectItem value="pets">Pets</SelectItem>
+                    <SelectItem value="community">Community</SelectItem>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="games">Games (Other)</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                     {/* Show any custom categories already in use */}
                     {Array.from(new Set(rewards.map(r => r.category)))
-                      .filter(c => !["games", "daily", "pets", "other"].includes(c))
+                      .filter(c => !["cash_register", "memory_match", "beat_pad", "recipe_pal", "drink_creator", "chores", "fitness", "stickers", "pets", "community", "daily", "games", "other"].includes(c))
                       .map(customCat => (
                         <SelectItem key={customCat} value={customCat}>
                           {customCat.charAt(0).toUpperCase() + customCat.slice(1).replace(/_/g, " ")}
