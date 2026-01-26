@@ -776,7 +776,7 @@ export const CashRegisterStoresManager = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 pr-4">
+          <ScrollArea className="flex-1 max-h-[50vh] pr-4">
             <div className="space-y-3">
               {menuItems.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
