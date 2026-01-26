@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star } from "lucide-react";
+import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck } from "lucide-react";
 import { VendorBestieAssetManager } from "@/components/vendor/VendorBestieAssetManager";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
@@ -21,6 +21,7 @@ import { VendorBestieLinkRequest } from "@/components/vendor/VendorBestieLinkReq
 import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 import { VendorTeamManager } from "@/components/vendor/VendorTeamManager";
 import { CartInsights } from "@/components/vendor/CartInsights";
+import { VendorShippingSettings } from "@/components/vendor/VendorShippingSettings";
 import { PageLoadingState } from "@/components/common";
 import { getVendorThemeOptional } from "@/lib/vendorThemePresets";
 
@@ -559,6 +560,13 @@ const VendorDashboard = () => {
                   Earnings
                 </TabsTrigger>
                 <TabsTrigger 
+                  value="shipping" 
+                  className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                >
+                  <Truck className="h-4 w-4 mr-1.5" />
+                  Shipping
+                </TabsTrigger>
+                <TabsTrigger 
                   value="payments" 
                   className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
@@ -598,6 +606,11 @@ const VendorDashboard = () => {
               <TabsContent value="earnings" className="space-y-4">
                 <h2 className="text-2xl font-semibold">Your Earnings</h2>
                 <VendorEarnings vendorId={selectedVendorId} theme={theme} />
+              </TabsContent>
+
+              <TabsContent value="shipping" className="space-y-4">
+                <h2 className="text-2xl font-semibold">Shipping Settings</h2>
+                <VendorShippingSettings vendorId={selectedVendorId} theme={theme} />
               </TabsContent>
               
               <TabsContent value="payments" className="space-y-6">
