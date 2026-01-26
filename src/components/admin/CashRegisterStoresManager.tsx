@@ -765,18 +765,18 @@ export const CashRegisterStoresManager = () => {
 
       {/* Menu Items Dialog */}
       <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+        <DialogContent className="!flex !flex-col max-w-2xl h-[80vh] overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
               Menu Items - {selectedStoreForMenu?.name}
             </DialogTitle>
             <DialogDescription>
-              Configure the purchasable items and price ranges for this store
+              Configure the purchasable items and price ranges for this store ({menuItems.length} items)
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 max-h-[50vh] pr-4">
+          <ScrollArea className="flex-1 min-h-0 pr-4 -mr-4">
             <div className="space-y-3">
               {menuItems.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
@@ -801,6 +801,7 @@ export const CashRegisterStoresManager = () => {
                         min="0.01"
                         value={item.priceRange[0]}
                         onChange={(e) => updateMenuItemPrice(index, 0, parseFloat(e.target.value) || 0)}
+                        onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                         className="w-20"
                       />
                       <span className="text-sm text-muted-foreground">to</span>
@@ -811,6 +812,7 @@ export const CashRegisterStoresManager = () => {
                         min="0.01"
                         value={item.priceRange[1]}
                         onChange={(e) => updateMenuItemPrice(index, 1, parseFloat(e.target.value) || 0)}
+                        onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                         className="w-20"
                       />
                     </div>
@@ -828,7 +830,7 @@ export const CashRegisterStoresManager = () => {
             </div>
           </ScrollArea>
 
-          <div className="flex justify-between pt-4 border-t">
+          <div className="flex-shrink-0 flex justify-between pt-4 border-t">
             <Button variant="outline" onClick={addMenuItem}>
               <Plus className="h-4 w-4 mr-2" />
               Add Item
