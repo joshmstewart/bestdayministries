@@ -307,3 +307,7 @@ schedule = "0 12 * * 1"
 [functions.process-event-email-queue]
 verify_jwt = false
 schedule = "* * * * *"
+
+[functions.award-time-trial-rewards]
+verify_jwt = false
+schedule = "0 8 1 * *"
