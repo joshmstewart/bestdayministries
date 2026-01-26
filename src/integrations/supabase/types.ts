@@ -1373,6 +1373,63 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_register_time_trial_bests: {
+        Row: {
+          achieved_at: string
+          best_levels: number
+          best_score: number
+          duration_seconds: number
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          best_levels?: number
+          best_score?: number
+          duration_seconds: number
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          achieved_at?: string
+          best_levels?: number
+          best_score?: number
+          duration_seconds?: number
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cash_register_time_trial_scores: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          levels_completed: number
+          score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds: number
+          id?: string
+          levels_completed?: number
+          score?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          levels_completed?: number
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       cash_register_user_stats: {
         Row: {
           best_level: number
