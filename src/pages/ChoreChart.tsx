@@ -397,28 +397,31 @@ export default function ChoreChart() {
 
     const targetUserId = canManageChores && selectedBestieId ? selectedBestieId : user.id;
     const isCompleted = completedChoreIds.has(choreId);
+    
+    // Get fresh MST date at the time of action to ensure consistency
+    const { mstDate: currentMSTDate } = getMSTInfo();
 
     try {
       if (isCompleted) {
-        // Remove completion
+        // Remove completion - try both the current MST date and the render-time date
         const { error } = await supabase
           .from('chore_completions')
           .delete()
           .eq('chore_id', choreId)
-          .eq('completed_date', today)
-          .eq('user_id', targetUserId);
+          .eq('user_id', targetUserId)
+          .or(`completed_date.eq.${currentMSTDate},completed_date.eq.${today}`);
 
         if (error) throw error;
         setCompletions(prev => prev.filter(c => c.chore_id !== choreId));
         toast.info('Chore unmarked');
       } else {
-        // Add completion
+        // Add completion - always use fresh MST date
         const { data, error } = await supabase
           .from('chore_completions')
           .insert({
             chore_id: choreId,
             user_id: targetUserId,
-            completed_date: today
+            completed_date: currentMSTDate
           })
           .select()
           .single();
