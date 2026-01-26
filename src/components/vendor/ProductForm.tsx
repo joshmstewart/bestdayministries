@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Upload, X, Settings2, ArrowLeft, Eye } from "lucide-react";
+import { Loader2, Plus, Upload, X, Settings2, ArrowLeft, Eye, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { compressImage } from "@/lib/imageUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -468,7 +469,19 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
             </div>
 
             <div>
-              <Label htmlFor="weight">Weight (oz)</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="weight">Weight (oz)</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-muted-foreground hover:text-foreground">
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p>Used for shipping calculations. If left empty, we'll assume 16 oz (1 lb).</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="weight"
                 type="number"
