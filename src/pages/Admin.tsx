@@ -421,7 +421,6 @@ const Admin = () => {
                   <TabsList className="inline-flex flex-wrap h-auto">
                     <TabsTrigger value="videos">Videos</TabsTrigger>
                     <TabsTrigger value="audio">Audio Clips</TabsTrigger>
-                    <TabsTrigger value="sound-effects">Sound Effects</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="videos">
@@ -430,10 +429,6 @@ const Admin = () => {
 
                   <TabsContent value="audio">
                     <AudioClipsManager />
-                  </TabsContent>
-
-                  <TabsContent value="sound-effects">
-                    <SoundEffectsManager />
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -688,12 +683,16 @@ const Admin = () => {
                       <TabsList>
                         <TabsTrigger value="badges">Badges</TabsTrigger>
                         <TabsTrigger value="challenges">Monthly Challenges</TabsTrigger>
+                        <TabsTrigger value="wheel-sounds">Wheel Sounds</TabsTrigger>
                       </TabsList>
                       <TabsContent value="badges">
                         <ChoreBadgeManager />
                       </TabsContent>
                       <TabsContent value="challenges">
                         <ChoreChallengeManager />
+                      </TabsContent>
+                      <TabsContent value="wheel-sounds">
+                        <SoundEffectsManager />
                       </TabsContent>
                     </Tabs>
                   </TabsContent>
