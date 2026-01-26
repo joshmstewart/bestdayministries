@@ -127,6 +127,7 @@ export default function MoneyCounting() {
   const [timeTrialActive, setTimeTrialActive] = useState(false);
   const [timeTrialComplete, setTimeTrialComplete] = useState(false);
   const [timeTrialLevelsCompleted, setTimeTrialLevelsCompleted] = useState(0);
+  const [timeTrialPending, setTimeTrialPending] = useState(false); // Timer not started yet
   const [timeTrialResult, setTimeTrialResult] = useState<{
     isNewRecord: boolean;
     previousBest: number | null;
@@ -270,11 +271,10 @@ export default function MoneyCounting() {
       setTimeTrialLevelsCompleted(0);
       setTimeTrialComplete(false);
       setTimeTrialResult(null);
+      setTimeTrialPending(true); // Timer starts on first Next click
+      setTimeTrialActive(false);
     }
     startNewGame();
-    if (mode === "time_trial") {
-      setTimeTrialActive(true);
-    }
   }, []);
 
   const handleTimeUp = useCallback(async () => {
@@ -319,6 +319,7 @@ export default function MoneyCounting() {
     setTimeTrialActive(false);
     setTimeTrialComplete(false);
     setTimeTrialLevelsCompleted(0);
+    setTimeTrialPending(false);
     setTimeTrialResult(null);
     setGameState(null);
   }, []);
@@ -397,6 +398,12 @@ export default function MoneyCounting() {
   const goToNextStep = useCallback(() => {
     if (!gameState) return;
     
+    // Start time trial timer on first Next click
+    if (timeTrialPending && gameMode === "time_trial") {
+      setTimeTrialPending(false);
+      setTimeTrialActive(true);
+    }
+    
     if (gameState.step === "receipt") {
       setGameState({ ...gameState, step: "payment" });
     } else if (gameState.step === "payment") {
@@ -413,7 +420,7 @@ export default function MoneyCounting() {
       });
       toast.success("Cash collected! Now make change.");
     }
-  }, [gameState]);
+  }, [gameState, timeTrialPending, gameMode]);
 
   const generateCustomerPayment = (total: number): { payment: number; cash: { [key: string]: number } } => {
     const cash: { [key: string]: number } = {};
@@ -785,7 +792,14 @@ export default function MoneyCounting() {
                     />
                   )}
                   
-                  {/* Time Trial Timer */}
+                  {/* Time Trial Timer - show pending state or active timer */}
+                  {gameMode === "time_trial" && timeTrialDuration && timeTrialPending && (
+                    <Badge variant="outline" className="text-lg px-4 py-2 font-mono border-primary text-primary bg-primary/10">
+                      <Timer className="h-4 w-4 mr-2" />
+                      {Math.floor(timeTrialDuration / 60)}:{(timeTrialDuration % 60).toString().padStart(2, "0")}
+                      <span className="ml-2 text-xs animate-pulse">Ready!</span>
+                    </Badge>
+                  )}
                   {gameMode === "time_trial" && timeTrialDuration && timeTrialActive && (
                     <TimeTrialTimer
                       durationSeconds={timeTrialDuration}
@@ -813,9 +827,9 @@ export default function MoneyCounting() {
                 <Button variant="outline" size="sm" onClick={() => {
                   if (gameMode === "time_trial") {
                     setTimeTrialActive(false);
+                    setTimeTrialPending(true);
                     setTimeTrialLevelsCompleted(0);
                     startNewGame();
-                    setTimeTrialActive(true);
                   } else {
                     startNewGame();
                   }
