@@ -1881,6 +1881,36 @@ export type Database = {
         }
         Relationships: []
       }
+      chore_wheel_spins: {
+        Row: {
+          created_at: string
+          id: string
+          prize_amount: number
+          prize_type: string
+          spin_date: string
+          user_id: string
+          wheel_config: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prize_amount: number
+          prize_type: string
+          spin_date: string
+          user_id: string
+          wheel_config: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prize_amount?: number
+          prize_type?: string
+          spin_date?: string
+          user_id?: string
+          wheel_config?: string
+        }
+        Relationships: []
+      }
       chores: {
         Row: {
           bestie_id: string
