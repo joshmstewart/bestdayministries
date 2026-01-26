@@ -12,14 +12,12 @@ interface ChoreCelebrationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
-  completedChoreTitle: string;
 }
 
 export function ChoreCelebrationDialog({
   open,
   onOpenChange,
   userId,
-  completedChoreTitle,
 }: ChoreCelebrationDialogProps) {
   const queryClient = useQueryClient();
   const [showImage, setShowImage] = useState(false);
@@ -33,7 +31,7 @@ export function ChoreCelebrationDialog({
         .select("avatar_id")
         .eq("user_id", userId)
         .eq("is_selected", true)
-        .single();
+        .maybeSingle();
 
       return !error && !!data;
     },
@@ -52,9 +50,9 @@ export function ChoreCelebrationDialog({
         .eq("completion_date", today)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") throw error;
+      if (error) throw error;
       return data;
     },
     enabled: open && hasAvatar,
@@ -68,15 +66,20 @@ export function ChoreCelebrationDialog({
 
       const response = await supabase.functions.invoke("generate-chore-celebration-image", {
         body: { 
-          choreTitle: completedChoreTitle,
           targetUserId: userId,
         },
       });
 
       if (response.error) throw new Error(response.error.message);
+      
+      // Check if skipped (no avatar)
+      if (response.data?.skipped) {
+        throw new Error(response.data.reason || "Image generation skipped");
+      }
+      
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["chore-celebration-image", userId, today] });
       toast.success("Celebration image created!");
       // Fire confetti
@@ -159,7 +162,12 @@ export function ChoreCelebrationDialog({
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
                   <p className="text-white font-medium text-center">
-                    {existingImage.activity_category.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                    {existingImage.activity_category}
+                    {existingImage.location_name && (
+                      <span className="block text-sm text-white/80">
+                        @ {existingImage.location_name}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>

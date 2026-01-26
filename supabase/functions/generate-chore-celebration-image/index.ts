@@ -6,73 +6,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Activity categories with prompts
-const ACTIVITY_CATEGORIES: Record<string, { name: string; prompt: string; examples: string[] }> = {
-  cleaning: {
-    name: "Cleaning",
-    prompt: "sweeping, mopping, or vacuuming a clean sparkling room with cleaning supplies visible",
-    examples: ["Sweep floor", "Vacuum", "Mop", "Dust", "Clean bathroom", "Wipe counters"]
-  },
-  organizing: {
-    name: "Organizing",
-    prompt: "organizing items neatly on shelves, making the bed perfectly, or tidying up a space",
-    examples: ["Make bed", "Organize closet", "Put away toys", "Sort laundry", "Tidy room"]
-  },
-  cooking: {
-    name: "Cooking & Kitchen",
-    prompt: "cooking in a kitchen, preparing food, or washing dishes with a proud expression",
-    examples: ["Wash dishes", "Set table", "Help cook", "Put away groceries", "Empty dishwasher"]
-  },
-  personal_care: {
-    name: "Personal Care",
-    prompt: "taking care of themselves - brushing teeth, getting dressed, or grooming with confidence",
-    examples: ["Brush teeth", "Take shower", "Get dressed", "Brush hair", "Wash hands"]
-  },
-  pet_care: {
-    name: "Pet Care",
-    prompt: "lovingly caring for a pet - feeding, walking, or playing with an animal companion",
-    examples: ["Feed pet", "Walk dog", "Clean litter box", "Play with pet", "Fill water bowl"]
-  },
-  outdoor: {
-    name: "Outdoor Tasks",
-    prompt: "doing outdoor chores like gardening, raking leaves, or watering plants in a sunny yard",
-    examples: ["Water plants", "Rake leaves", "Take out trash", "Get mail", "Pull weeds"]
-  },
-  laundry: {
-    name: "Laundry",
-    prompt: "handling laundry tasks - folding clean clothes neatly or loading the washing machine",
-    examples: ["Fold laundry", "Put away clothes", "Sort dirty laundry", "Hang clothes"]
-  },
-  general: {
-    name: "General Tasks",
-    prompt: "completing a helpful household task with a proud, accomplished expression",
-    examples: []
-  }
-};
-
-// Detect category from chore title
-function detectCategory(choreTitle: string): string {
-  const lowerTitle = choreTitle.toLowerCase();
-  
-  for (const [category, data] of Object.entries(ACTIVITY_CATEGORIES)) {
-    for (const example of data.examples) {
-      if (lowerTitle.includes(example.toLowerCase()) || example.toLowerCase().includes(lowerTitle)) {
-        return category;
-      }
-    }
-  }
-  
-  // Keyword matching
-  if (/clean|sweep|mop|vacuum|wipe|dust|scrub/.test(lowerTitle)) return "cleaning";
-  if (/bed|organize|tidy|sort|put away/.test(lowerTitle)) return "organizing";
-  if (/dish|cook|kitchen|table|food|groceries/.test(lowerTitle)) return "cooking";
-  if (/brush|teeth|shower|bath|dress|groom|wash hands/.test(lowerTitle)) return "personal_care";
-  if (/pet|dog|cat|feed pet|walk dog|litter/.test(lowerTitle)) return "pet_care";
-  if (/plant|water|garden|trash|mail|outdoor|yard|leaf|rake/.test(lowerTitle)) return "outdoor";
-  if (/laundry|fold|clothes|wash clothes/.test(lowerTitle)) return "laundry";
-  
-  return "general";
-}
+// Generic chore activities for celebration images (not specific to user's chores)
+const CHORE_ACTIVITIES = [
+  { name: "Washing Dishes", prompt: "washing dishes at a sparkling clean kitchen sink with soap bubbles" },
+  { name: "Sweeping", prompt: "sweeping the floor with a broom, leaving a clean path behind" },
+  { name: "Vacuuming", prompt: "vacuuming a carpet with a modern vacuum cleaner" },
+  { name: "Making the Bed", prompt: "making a bed with fresh sheets and fluffy pillows" },
+  { name: "Folding Laundry", prompt: "folding clean laundry neatly into organized stacks" },
+  { name: "Watering Plants", prompt: "watering indoor plants with a watering can, plants looking healthy and green" },
+  { name: "Taking Out Trash", prompt: "carrying a trash bag to take outside, keeping things tidy" },
+  { name: "Organizing Shelves", prompt: "organizing items neatly on shelves, everything in its place" },
+  { name: "Wiping Counters", prompt: "wiping down kitchen counters with a cloth until they sparkle" },
+  { name: "Feeding a Pet", prompt: "lovingly feeding a pet, the animal looking happy and grateful" },
+  { name: "Dusting", prompt: "dusting furniture with a feather duster, surfaces gleaming" },
+  { name: "Mopping", prompt: "mopping a floor with a mop bucket, floor looking shiny and clean" },
+  { name: "Setting the Table", prompt: "setting a table with plates, napkins, and utensils for a meal" },
+  { name: "Tidying Up Toys", prompt: "putting toys away neatly into a toy box or on shelves" },
+  { name: "Brushing Teeth", prompt: "brushing teeth at the bathroom sink with a toothbrush" },
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -102,11 +53,7 @@ serve(async (req) => {
       throw new Error("Invalid user");
     }
 
-    const { choreTitle, targetUserId } = await req.json();
-
-    if (!choreTitle) {
-      throw new Error("choreTitle is required");
-    }
+    const { targetUserId } = await req.json();
 
     // Use targetUserId if provided (for guardians acting on behalf of bestie), otherwise use the authenticated user
     const userId = targetUserId || user.id;
@@ -118,7 +65,7 @@ serve(async (req) => {
         .select("id")
         .eq("caregiver_id", user.id)
         .eq("bestie_id", targetUserId)
-        .single();
+        .maybeSingle();
 
       if (linkError || !link) {
         // Also check if admin/owner
@@ -126,7 +73,7 @@ serve(async (req) => {
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
 
         if (!roleData || !["admin", "owner"].includes(roleData.role)) {
           throw new Error("Not authorized to generate images for this user");
@@ -140,39 +87,158 @@ serve(async (req) => {
       .select("avatar_id, fitness_avatars(*)")
       .eq("user_id", userId)
       .eq("is_selected", true)
-      .single();
+      .maybeSingle();
 
     if (avatarError || !userAvatar?.fitness_avatars) {
-      throw new Error("No fitness avatar selected. Please select an avatar in the Fitness Center first.");
+      // No avatar selected - return gracefully (same as workout behavior)
+      console.log("No avatar selected for user", userId);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          skipped: true,
+          reason: "No fitness avatar selected" 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const avatar = userAvatar.fitness_avatars as any;
     const avatarImageUrl = avatar.image_url || avatar.preview_image_url;
 
     if (!avatarImageUrl) {
-      throw new Error("Avatar has no image to use");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          skipped: true,
+          reason: "Avatar has no image" 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Detect activity category
-    const category = detectCategory(choreTitle);
-    const categoryData = ACTIVITY_CATEGORIES[category];
+    // Pick a random generic chore activity
+    const randomActivity = CHORE_ACTIVITIES[Math.floor(Math.random() * CHORE_ACTIVITIES.length)];
+    console.log("Selected random chore activity:", randomActivity.name);
+
+    // Get user's enabled location packs (same pattern as workout image generation)
+    const { data: userPacks } = await supabase
+      .from("user_workout_location_packs")
+      .select("pack_id, is_enabled")
+      .eq("user_id", userId);
+
+    // Get all free packs (these are always available)
+    const { data: freePacks } = await supabase
+      .from("workout_location_packs")
+      .select("id")
+      .eq("is_active", true)
+      .eq("is_free", true);
+
+    const freePackIds = (freePacks || []).map((p) => p.id);
+
+    // Build list of enabled pack IDs
+    const enabledPackIds = new Set<string>(freePackIds);
+
+    if (userPacks && userPacks.length > 0) {
+      for (const up of userPacks) {
+        if (up.is_enabled) {
+          enabledPackIds.add(up.pack_id);
+        } else {
+          // If user explicitly disabled a free pack, remove it
+          enabledPackIds.delete(up.pack_id);
+        }
+      }
+    }
+
+    // Query locations from enabled packs
+    let locationsQuery = supabase
+      .from("workout_locations")
+      .select("id, name, prompt_text, pack_id, workout_location_packs(name)")
+      .eq("is_active", true);
+
+    if (enabledPackIds.size > 0) {
+      locationsQuery = locationsQuery.in("pack_id", Array.from(enabledPackIds));
+    }
+
+    const { data: locations, error: locationsError } = await locationsQuery;
+
+    let selectedLocation = "a cozy, cheerful home interior";
+    let selectedLocationName: string | null = null;
+    let selectedLocationId: string | null = null;
+    let selectedLocationPackName: string | null = null;
+
+    if (!locationsError && locations && locations.length > 0) {
+      // Get user's recently used locations to avoid repetition
+      const { data: recentImages } = await supabase
+        .from("chore_celebration_images")
+        .select("location_id")
+        .eq("user_id", userId)
+        .not("location_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const recentLocationIds = new Set(
+        (recentImages || []).map((img) => img.location_id).filter(Boolean)
+      );
+
+      // Filter out recently used locations if we have enough variety
+      let availableLocations = locations.filter(
+        (loc) => !recentLocationIds.has(loc.id)
+      );
+
+      // If we've used most locations, allow repeats from older ones
+      if (availableLocations.length < 3) {
+        const veryRecentIds = new Set(
+          (recentImages || []).slice(0, 3).map((img) => img.location_id).filter(Boolean)
+        );
+        availableLocations = locations.filter(
+          (loc) => !veryRecentIds.has(loc.id)
+        );
+      }
+
+      // If still not enough, just use all locations
+      if (availableLocations.length === 0) {
+        availableLocations = locations;
+      }
+
+      // Pick a random location
+      const randomLocation = availableLocations[Math.floor(Math.random() * availableLocations.length)];
+      selectedLocation = randomLocation.prompt_text;
+      selectedLocationName = randomLocation.name;
+      selectedLocationId = randomLocation.id;
+      selectedLocationPackName = (randomLocation as any).workout_location_packs?.name || null;
+      console.log("Selected location:", selectedLocationName, "- Pack:", selectedLocationPackName);
+    } else {
+      console.log("No locations found, using default home interior");
+    }
 
     // Build sex/anatomical consistency constraint if defined
     let sexConstraint = "";
     if (avatar.sex === "male") {
-      sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build - muscular pecs are fine but NO breasts or feminine breast-like shapes. Use masculine torso proportions and an appropriate male physique including a visible bulge in the crotch area. Do NOT give this character any feminine body characteristics.";
+      sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build - muscular pecs are fine but NO breasts or feminine breast-like shapes. Use masculine torso proportions and an appropriate male physique. Do NOT give this character any feminine body characteristics.";
     } else if (avatar.sex === "female") {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is FEMALE. The body should have a feminine build with appropriate female proportions. Maintain feminine body characteristics consistently.";
     } else if (avatar.sex === "androgynous") {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is ANDROGYNOUS. The body should have a neutral, gender-ambiguous build - neither distinctly masculine nor feminine. Use slender proportions, a flat or very subtle chest, and avoid strongly gendered body characteristics.";
     }
 
-    // Build the prompt
-    const prompt = `Use the EXACT same character from the reference image. Show them ${categoryData.prompt}. Keep the character identical (same gender, face, hair, and art style) but dress them appropriately for the activity.${sexConstraint} The character should look happy and proud of completing their task. Bright, cheerful cartoon illustration style with warm colors.`;
+    // Check for character-specific enhancements
+    const lowerName = String(avatar.name || "").toLowerCase();
+    const isBubbleBenny = lowerName.includes("bubble benny");
+    const isXeroxXander = lowerName.includes("xerox xander");
 
-    console.log("Generating chore celebration for:", choreTitle);
-    console.log("Detected category:", category, "-", categoryData.name);
-    console.log("Avatar image URL:", avatarImageUrl);
+    let characterEnhancements = "";
+    if (isBubbleBenny) {
+      characterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating around them and soap-bubble texture on their skin.";
+    } else if (isXeroxXander) {
+      characterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side doing the chore TOGETHER.";
+    }
+
+    // Build the prompt
+    const prompt = `Use the EXACT same character from the reference image. Show them ${randomActivity.prompt}, looking proud and happy about completing their chores. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style. Adapt their outfit appropriately for the household task.${sexConstraint}${characterEnhancements} Background/location: ${selectedLocation}. The character should have a celebratory, accomplished expression. High quality, bright and cheerful cartoon illustration style.`;
+
+    console.log("Generating chore celebration image");
+    console.log("Activity:", randomActivity.name);
+    console.log("Location:", selectedLocationName || "default");
 
     // Call Lovable AI to generate the image
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -251,15 +317,18 @@ serve(async (req) => {
 
     const imageUrl = urlData.publicUrl;
 
-    // Save to database
+    // Save to database with location info
     const { data: savedImage, error: saveError } = await supabase
       .from("chore_celebration_images")
       .insert({
         user_id: userId,
         avatar_id: avatar.id,
         image_url: imageUrl,
-        activity_category: category,
+        activity_category: randomActivity.name,
         completion_date: today,
+        location_id: selectedLocationId,
+        location_name: selectedLocationName,
+        location_pack_name: selectedLocationPackName,
       })
       .select()
       .single();
@@ -273,7 +342,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         image: savedImage,
-        category: categoryData.name,
+        activity: randomActivity.name,
+        location: selectedLocationName,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
