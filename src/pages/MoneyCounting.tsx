@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RotateCcw, Trophy, Store, ChevronDown } from "lucide-react";
+import { RotateCcw, Trophy, Store, ChevronDown, ArrowLeft, Timer } from "lucide-react";
 import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -14,10 +14,15 @@ import { ReceiptDisplay } from "@/components/money-counting/ReceiptDisplay";
 import { LevelComplete } from "@/components/money-counting/LevelComplete";
 import { CashRegisterStats } from "@/components/cash-register/CashRegisterStats";
 import { CashRegisterLeaderboard } from "@/components/cash-register/CashRegisterLeaderboard";
+import { CashRegisterModeSelect, GameMode, TimeTrialDuration } from "@/components/cash-register/CashRegisterModeSelect";
+import { TimeTrialTimer } from "@/components/cash-register/TimeTrialTimer";
+import { TimeTrialComplete } from "@/components/cash-register/TimeTrialComplete";
+import { TimeTrialLeaderboard } from "@/components/cash-register/TimeTrialLeaderboard";
 import { generateOrder, calculateOptimalChange, MenuItem } from "@/lib/moneyCountingUtils";
 import { loadCustomCurrencyImages } from "@/lib/currencyImages";
 import { supabase } from "@/integrations/supabase/client";
 import { useCashRegisterStats } from "@/hooks/useCashRegisterStats";
+import { useTimeTrialStats } from "@/hooks/useTimeTrialStats";
 import { useAuth } from "@/contexts/AuthContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -111,8 +116,20 @@ export default function MoneyCounting() {
   const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("play");
 
+  // Time Trial state
+  const [gameMode, setGameMode] = useState<GameMode | null>(null);
+  const [timeTrialDuration, setTimeTrialDuration] = useState<TimeTrialDuration | null>(null);
+  const [timeTrialActive, setTimeTrialActive] = useState(false);
+  const [timeTrialComplete, setTimeTrialComplete] = useState(false);
+  const [timeTrialLevelsCompleted, setTimeTrialLevelsCompleted] = useState(0);
+  const [timeTrialResult, setTimeTrialResult] = useState<{
+    isNewRecord: boolean;
+    previousBest: number | null;
+  } | null>(null);
+
   const { user } = useAuth();
   const { saveGameResult } = useCashRegisterStats();
+  const { saveTimeTrialResult, getBestForDuration } = useTimeTrialStats();
 
   // Load stores and customers from database (including purchased pack items)
   useEffect(() => {
@@ -234,6 +251,67 @@ export default function MoneyCounting() {
     return coffeeShopBg;
   };
 
+  // Handle mode selection
+  const handleModeSelect = useCallback((mode: GameMode, duration?: TimeTrialDuration) => {
+    setGameMode(mode);
+    if (mode === "time_trial" && duration) {
+      setTimeTrialDuration(duration);
+      setTimeTrialLevelsCompleted(0);
+      setTimeTrialComplete(false);
+      setTimeTrialResult(null);
+    }
+    startNewGame();
+    if (mode === "time_trial") {
+      setTimeTrialActive(true);
+    }
+  }, []);
+
+  const handleTimeUp = useCallback(async () => {
+    setTimeTrialActive(false);
+    setTimeTrialComplete(true);
+
+    if (user && timeTrialDuration) {
+      const result = await saveTimeTrialResult(
+        timeTrialDuration,
+        timeTrialLevelsCompleted,
+        gameState?.score || 0
+      );
+      setTimeTrialResult(result);
+    }
+
+    confetti({
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.5 },
+    });
+  }, [user, timeTrialDuration, timeTrialLevelsCompleted, gameState?.score, saveTimeTrialResult]);
+
+  const handleTimeTrialPlayAgain = useCallback(() => {
+    setTimeTrialComplete(false);
+    setTimeTrialLevelsCompleted(0);
+    setTimeTrialResult(null);
+    startNewGame();
+    setTimeTrialActive(true);
+  }, []);
+
+  const handleTimeTrialChangeDuration = useCallback(() => {
+    setTimeTrialComplete(false);
+    setTimeTrialActive(false);
+    setTimeTrialDuration(null);
+    // Stay in time trial mode but pick new duration
+    setGameMode(null);
+  }, []);
+
+  const handleBackToModeSelect = useCallback(() => {
+    setGameMode(null);
+    setTimeTrialDuration(null);
+    setTimeTrialActive(false);
+    setTimeTrialComplete(false);
+    setTimeTrialLevelsCompleted(0);
+    setTimeTrialResult(null);
+    setGameState(null);
+  }, []);
+
   const startNewGame = useCallback(() => {
     // Get menu items from selected store
     const storeMenuItems = selectedStore?.menu_items as unknown as MenuItem[] | undefined;
@@ -263,8 +341,14 @@ export default function MoneyCounting() {
     });
     setShowComplete(false);
     setLevelResult(null);
+    
+    // Reset time trial counters if starting fresh
+    if (gameMode === "time_trial") {
+      setTimeTrialLevelsCompleted(0);
+    }
+    
     pickRandomCustomer();
-  }, [pickRandomCustomer, selectedStore]);
+  }, [pickRandomCustomer, selectedStore, gameMode]);
 
   const startNextLevel = useCallback(() => {
     if (!gameState) return;
@@ -474,7 +558,6 @@ export default function MoneyCounting() {
     };
 
     setLevelResult(result);
-    setShowComplete(true);
 
     // Calculate score bonus for efficiency
     const efficiencyBonus = piecesUsed <= optimalPieces ? 50 : 0;
@@ -485,6 +568,53 @@ export default function MoneyCounting() {
       ...gameState,
       score: newScore,
     });
+
+    // Time Trial mode: auto-advance to next level
+    if (gameMode === "time_trial" && timeTrialActive) {
+      setTimeTrialLevelsCompleted(prev => prev + 1);
+      
+      confetti({
+        particleCount: 50,
+        spread: 50,
+        origin: { y: 0.6 },
+      });
+      
+      // Immediately start next level without showing complete screen
+      setTimeout(() => {
+        const nextLevel = gameState.level + 1;
+        const storeMenuItems = selectedStore?.menu_items as unknown as MenuItem[] | undefined;
+        const order = generateOrder(nextLevel, storeMenuItems);
+        const subtotal = order.reduce((sum, item) => sum + item.price, 0);
+        const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+        const total = Math.round((subtotal + tax) * 100) / 100;
+        
+        const { payment, cash } = generateCustomerPayment(total);
+        const changeNeeded = Math.round((payment - total) * 100) / 100;
+
+        setGameState(prev => prev ? {
+          ...prev,
+          items: order,
+          subtotal,
+          tax,
+          total,
+          customerPayment: payment,
+          changeNeeded,
+          changeGiven: {},
+          customerCash: cash,
+          cashCollected: false,
+          level: nextLevel,
+          step: "receipt",
+          score: newScore,
+        } : null);
+        setLevelResult(null);
+        pickRandomCustomer();
+      }, 300);
+      
+      return;
+    }
+
+    // Free play mode: show complete screen
+    setShowComplete(true);
 
     confetti({
       particleCount: 100,
@@ -499,9 +629,13 @@ export default function MoneyCounting() {
     }
   };
 
+  // Remove auto-start on mount - we want mode selection first
   useEffect(() => {
-    startNewGame();
-  }, []);
+    // Only start if we already have a mode selected (not initial load)
+    if (gameMode && !gameState) {
+      startNewGame();
+    }
+  }, [gameMode]);
 
   // Regenerate order when store changes (after initial load)
   useEffect(() => {
@@ -536,10 +670,64 @@ export default function MoneyCounting() {
     setLevelResult(null);
   }, [selectedStore?.id]);
 
+  // Show mode selection if no mode chosen yet
+  if (!gameMode) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <UnifiedHeader />
+        
+        <main className="pt-20 pb-8 px-4 flex-1">
+          <div className="container mx-auto max-w-6xl">
+            <BackButton className="mb-4" />
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl font-bold">💵 Cash Register</h1>
+              <p className="text-muted-foreground text-sm">Make correct change for customers!</p>
+            </div>
+            
+            <CashRegisterModeSelect onSelectMode={handleModeSelect} />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show loading while game state initializes
   if (!gameState) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Show time trial complete screen
+  if (timeTrialComplete && timeTrialDuration) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <UnifiedHeader />
+        
+        <main className="pt-20 pb-8 px-4 flex-1">
+          <div className="container mx-auto max-w-6xl">
+            <BackButton className="mb-4" />
+            <div className="mb-6 text-center">
+              <h1 className="text-2xl font-bold">💵 Cash Register</h1>
+              <p className="text-muted-foreground text-sm">Time Trial Results</p>
+            </div>
+            
+            <TimeTrialComplete
+              duration={timeTrialDuration}
+              levelsCompleted={timeTrialLevelsCompleted}
+              score={gameState.score}
+              previousBest={timeTrialResult?.previousBest ?? null}
+              isNewRecord={timeTrialResult?.isNewRecord ?? false}
+              onPlayAgain={handleTimeTrialPlayAgain}
+              onChangeDuration={handleTimeTrialChangeDuration}
+              onBackToModeSelect={handleBackToModeSelect}
+            />
+          </div>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -566,9 +754,15 @@ export default function MoneyCounting() {
 
             {/* Play Tab */}
             <TabsContent value="play" className="space-y-4">
-              {/* Game Settings Bar - uses bg-soft-ribbon utility class */}
+              {/* Game Settings Bar */}
               <div className="flex items-center justify-between bg-soft-ribbon rounded-lg p-4 shadow-lg flex-wrap gap-4 border border-primary/30">
                 <div className="flex items-center gap-3 flex-wrap">
+                  {/* Back to mode select */}
+                  <Button variant="ghost" size="sm" onClick={handleBackToModeSelect}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Menu
+                  </Button>
+                  
                   {/* Store Selector */}
                   {stores.length > 0 && (
                     <DropdownMenu>
@@ -592,6 +786,24 @@ export default function MoneyCounting() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
+                  
+                  {/* Time Trial Timer */}
+                  {gameMode === "time_trial" && timeTrialDuration && timeTrialActive && (
+                    <TimeTrialTimer
+                      durationSeconds={timeTrialDuration}
+                      isActive={timeTrialActive}
+                      onTimeUp={handleTimeUp}
+                    />
+                  )}
+                  
+                  {/* Time Trial Levels Counter */}
+                  {gameMode === "time_trial" && (
+                    <Badge variant="outline" className="text-lg px-3 py-1 border-primary">
+                      <Timer className="h-4 w-4 mr-1 text-primary" />
+                      {timeTrialLevelsCompleted} levels
+                    </Badge>
+                  )}
+                  
                   <Badge variant="secondary" className="text-lg px-3 py-1">
                     Level {gameState.level}
                   </Badge>
@@ -600,9 +812,18 @@ export default function MoneyCounting() {
                     {gameState.score}
                   </Badge>
                 </div>
-                <Button variant="outline" size="sm" onClick={startNewGame}>
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (gameMode === "time_trial") {
+                    setTimeTrialActive(false);
+                    setTimeTrialLevelsCompleted(0);
+                    startNewGame();
+                    setTimeTrialActive(true);
+                  } else {
+                    startNewGame();
+                  }
+                }}>
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  New Game
+                  {gameMode === "time_trial" ? "Restart" : "New Game"}
                 </Button>
               </div>
 
@@ -745,6 +966,7 @@ export default function MoneyCounting() {
             {/* Leaderboard Tab */}
             <TabsContent value="leaderboard" className="space-y-6">
               <CashRegisterStats refreshKey={statsRefreshKey} currentScore={gameState.score} />
+              <TimeTrialLeaderboard />
               <CashRegisterLeaderboard />
             </TabsContent>
           </Tabs>
