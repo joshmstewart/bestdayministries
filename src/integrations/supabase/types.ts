@@ -1495,6 +1495,9 @@ export type Database = {
           created_at: string
           id: string
           image_url: string
+          location_id: string | null
+          location_name: string | null
+          location_pack_name: string | null
           user_id: string
         }
         Insert: {
@@ -1504,6 +1507,9 @@ export type Database = {
           created_at?: string
           id?: string
           image_url: string
+          location_id?: string | null
+          location_name?: string | null
+          location_pack_name?: string | null
           user_id: string
         }
         Update: {
@@ -1513,6 +1519,9 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string
+          location_id?: string | null
+          location_name?: string | null
+          location_pack_name?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1521,6 +1530,13 @@ export type Database = {
             columns: ["avatar_id"]
             isOneToOne: false
             referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chore_celebration_images_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "workout_locations"
             referencedColumns: ["id"]
           },
         ]

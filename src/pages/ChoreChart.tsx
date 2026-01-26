@@ -106,7 +106,7 @@ export default function ChoreChart() {
   const [showBadgeDialog, setShowBadgeDialog] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [showCelebrationDialog, setShowCelebrationDialog] = useState(false);
-  const [lastCompletedChore, setLastCompletedChore] = useState<string>("");
+  
 
   const { mstDate: today } = getMSTInfo();
   const dayOfWeek = new Date().getDay();
@@ -431,11 +431,6 @@ export default function ChoreChart() {
         // Award coins for completing a chore
         await awardCoinReward(targetUserId, 'chore_complete', 'Completed a chore');
 
-        // Track the completed chore title for celebration
-        const completedChore = chores.find(c => c.id === choreId);
-        if (completedChore) {
-          setLastCompletedChore(completedChore.title);
-        }
 
         // Check if all chores are now completed - update streak
         const newCompletedIds = new Set(newCompletions.map(c => c.chore_id));
@@ -1007,7 +1002,6 @@ export default function ChoreChart() {
           open={showCelebrationDialog}
           onOpenChange={setShowCelebrationDialog}
           userId={targetUserId || user?.id || ""}
-          completedChoreTitle={lastCompletedChore}
         />
       </div>
     </main>
