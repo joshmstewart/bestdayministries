@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
-import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2, Lightbulb, Wand2 } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2, Lightbulb, Wand2, ShoppingCart, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -72,6 +73,11 @@ const STORE_IDEAS = [
   { name: "Candle Shop", description: "Aromatic candle store with jar candles, wax melts, and diffuser displays." },
 ];
 
+interface MenuItem {
+  name: string;
+  priceRange: [number, number];
+}
+
 interface StoreType {
   id: string;
   name: string;
@@ -80,7 +86,26 @@ interface StoreType {
   display_order: number;
   is_active: boolean;
   is_default: boolean;
+  menu_items: Json | null;
 }
+
+const parseMenuItems = (json: Json | null): MenuItem[] => {
+  if (!json || !Array.isArray(json)) return [];
+  return json
+    .filter((item) => 
+      typeof item === 'object' && 
+      item !== null && 
+      'name' in item && 
+      'priceRange' in item
+    )
+    .map((item) => {
+      const obj = item as { name: string; priceRange: number[] };
+      return {
+        name: obj.name,
+        priceRange: [obj.priceRange[0], obj.priceRange[1]] as [number, number]
+      };
+    });
+};
 
 export const CashRegisterStoresManager = () => {
   const [stores, setStores] = useState<StoreType[]>([]);
@@ -96,6 +121,10 @@ export const CashRegisterStoresManager = () => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [ideasOpen, setIdeasOpen] = useState(false);
+  const [menuDialogOpen, setMenuDialogOpen] = useState(false);
+  const [selectedStoreForMenu, setSelectedStoreForMenu] = useState<StoreType | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [savingMenu, setSavingMenu] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
 
   useEffect(() => {
@@ -303,6 +332,68 @@ export const CashRegisterStoresManager = () => {
       showErrorToastWithCopy("Generating description", error);
     } finally {
       setGeneratingDescription(false);
+    }
+  };
+
+  const openMenuDialog = (store: StoreType) => {
+    setSelectedStoreForMenu(store);
+    setMenuItems(parseMenuItems(store.menu_items));
+    setMenuDialogOpen(true);
+  };
+
+  const addMenuItem = () => {
+    setMenuItems(prev => [...prev, { name: "", priceRange: [1.00, 5.00] }]);
+  };
+
+  const updateMenuItem = (index: number, field: keyof MenuItem, value: string | number) => {
+    setMenuItems(prev => prev.map((item, i) => {
+      if (i !== index) return item;
+      if (field === 'name') {
+        return { ...item, name: value as string };
+      } else if (field === 'priceRange') {
+        return item; // handled separately
+      }
+      return item;
+    }));
+  };
+
+  const updateMenuItemPrice = (index: number, priceIndex: 0 | 1, value: number) => {
+    setMenuItems(prev => prev.map((item, i) => {
+      if (i !== index) return item;
+      const newRange: [number, number] = [...item.priceRange] as [number, number];
+      newRange[priceIndex] = value;
+      return { ...item, priceRange: newRange };
+    }));
+  };
+
+  const removeMenuItem = (index: number) => {
+    setMenuItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const saveMenuItems = async () => {
+    if (!selectedStoreForMenu) return;
+    setSavingMenu(true);
+    try {
+      const { error } = await supabase
+        .from("cash_register_stores")
+        .update({ menu_items: menuItems as unknown as Json })
+        .eq("id", selectedStoreForMenu.id);
+
+      if (error) throw error;
+
+      // Optimistic update
+      setStores(prev => prev.map(s => 
+        s.id === selectedStoreForMenu.id 
+          ? { ...s, menu_items: menuItems as unknown as Json }
+          : s
+      ));
+      toast.success("Menu items saved");
+      setMenuDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving menu items:", error);
+      showErrorToastWithCopy("Saving menu items", error);
+    } finally {
+      setSavingMenu(false);
     }
   };
 
@@ -546,6 +637,14 @@ export const CashRegisterStoresManager = () => {
                 <Button
                   variant="outline"
                   size="icon"
+                  onClick={() => openMenuDialog(store)}
+                  title="Menu Items"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
                   onClick={() => openEditDialog(store)}
                   title="Edit"
                 >
@@ -583,6 +682,90 @@ export const CashRegisterStoresManager = () => {
         onPrevious={() => setLightboxIndex((prev) => (prev - 1 + stores.length) % stores.length)}
         onNext={() => setLightboxIndex((prev) => (prev + 1) % stores.length)}
       />
+
+      {/* Menu Items Dialog */}
+      <Dialog open={menuDialogOpen} onOpenChange={setMenuDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Menu Items - {selectedStoreForMenu?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Configure the purchasable items and price ranges for this store
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-3">
+              {menuItems.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No menu items yet. Click "Add Item" to create one.
+                </p>
+              )}
+              {menuItems.map((item, index) => (
+                <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-muted/30">
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      value={item.name}
+                      onChange={(e) => updateMenuItem(index, 'name', e.target.value)}
+                      placeholder="Item name (e.g., Coffee, Sandwich)"
+                      className="font-medium"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">Price:</span>
+                      <span className="text-sm">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={item.priceRange[0]}
+                        onChange={(e) => updateMenuItemPrice(index, 0, parseFloat(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">to</span>
+                      <span className="text-sm">$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={item.priceRange[1]}
+                        onChange={(e) => updateMenuItemPrice(index, 1, parseFloat(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeMenuItem(index)}
+                    className="text-destructive hover:text-destructive flex-shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className="flex justify-between pt-4 border-t">
+            <Button variant="outline" onClick={addMenuItem}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
+            </Button>
+            <Button onClick={saveMenuItems} disabled={savingMenu}>
+              {savingMenu ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Menu Items"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
