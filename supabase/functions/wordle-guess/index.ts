@@ -322,6 +322,8 @@ serve(async (req) => {
           // Only affect streak if playing today's puzzle
           const newStreak = isToday ? (isWin ? 1 : 0) : 0;
           const currentMonthYear = new Date().toISOString().slice(0, 7); // YYYY-MM format
+          // Only count monthly wins for TODAY's puzzle wins (not catch-up games)
+          const monthlyWinCount = (isWin && isToday) ? 1 : 0;
           const { error: insertError } = await supabaseAdmin
             .from("wordle_user_stats")
             .insert({
@@ -330,9 +332,9 @@ serve(async (req) => {
               total_wins: isWin ? 1 : 0,
               current_streak: newStreak,
               best_streak: newStreak,
-              last_played_date: isToday ? today : existingStats?.last_played_date || null,
+              last_played_date: isToday ? today : null,
               last_win_date: (isWin && isToday) ? today : null,
-              current_month_wins: isWin ? 1 : 0,
+              current_month_wins: monthlyWinCount,
               current_month_year: currentMonthYear
             });
           
@@ -365,12 +367,19 @@ serve(async (req) => {
           }
           // For past days: games played and win rate are updated, but NOT streak
 
-          // Check if we need to reset monthly wins for a new month
+          // Only count wins toward monthly stats if playing TODAY's puzzle
+          // This prevents catch-up games from inflating monthly win counts
           const currentMonthYear = new Date().toISOString().slice(0, 7);
           const isNewMonth = existingStats.current_month_year !== currentMonthYear;
-          const newMonthlyWins = isNewMonth 
-            ? (isWin ? 1 : 0) 
-            : (existingStats.current_month_wins || 0) + (isWin ? 1 : 0);
+          let newMonthlyWins = existingStats.current_month_wins || 0;
+          
+          if (isNewMonth) {
+            // Reset monthly wins for new month, only count if today's puzzle and win
+            newMonthlyWins = (isWin && isToday) ? 1 : 0;
+          } else if (isWin && isToday) {
+            // Only increment monthly wins for today's puzzle wins
+            newMonthlyWins = (existingStats.current_month_wins || 0) + 1;
+          }
 
           const { error: updateError } = await supabaseAdmin
             .from("wordle_user_stats")
