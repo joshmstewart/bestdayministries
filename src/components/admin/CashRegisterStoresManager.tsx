@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
-import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2 } from "lucide-react";
+import { Loader2, Plus, RefreshCw, Store, Eye, EyeOff, Edit, Trash2, Lightbulb, Wand2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import ImageLightbox from "@/components/ImageLightbox";
 
 // Import local fallback images
@@ -25,6 +27,50 @@ const FALLBACK_IMAGES: Record<string, string> = {
   "Convenience Store": convenienceBg,
   "Bakery": bakeryBg,
 };
+
+// Store idea suggestions for quick creation
+const STORE_IDEAS = [
+  { name: "Pet Store", description: "Colorful pet supply shop with aquariums, bird cages, and shelves of pet food and toys." },
+  { name: "Ice Cream Parlor", description: "Retro ice cream shop with display freezers showing various flavors, waffle cones, and toppings bar." },
+  { name: "Hardware Store", description: "Well-organized hardware store with tool displays, paint mixing station, and lumber section." },
+  { name: "Bookstore", description: "Cozy bookstore with tall wooden shelves, reading nooks, and a bestseller display table." },
+  { name: "Flower Shop", description: "Vibrant florist shop with refrigerated display cases full of fresh flowers and potted plants." },
+  { name: "Toy Store", description: "Bright toy store with colorful displays, action figures, board games, and stuffed animals." },
+  { name: "Electronics Store", description: "Modern electronics retailer with phones, laptops, TVs on display, and accessory walls." },
+  { name: "Pharmacy", description: "Clean pharmacy with medicine aisles, health products, and a prescription pickup counter." },
+  { name: "Sports Store", description: "Athletic store with jerseys, shoes on wall displays, and equipment sections." },
+  { name: "Music Store", description: "Instrument shop with guitars hanging on walls, keyboard displays, and sheet music racks." },
+  { name: "Art Supply Store", description: "Creative art store with paint tubes, canvas displays, brushes, and craft supplies." },
+  { name: "Candy Shop", description: "Whimsical candy store with jars of colorful sweets, chocolate displays, and lollipop trees." },
+  { name: "Jewelry Store", description: "Elegant jewelry boutique with glass display cases showing rings, necklaces, and watches." },
+  { name: "Shoe Store", description: "Shoe retailer with wall displays of sneakers, boots, and dress shoes with try-on benches." },
+  { name: "Antique Shop", description: "Vintage antique store with old furniture, collectibles, clocks, and nostalgic memorabilia." },
+  { name: "Farmers Market Stand", description: "Rustic market stand with fresh produce, handmade signs, and wooden crates." },
+  { name: "Deli Counter", description: "Traditional deli with meat and cheese display case, scale, and hanging salamis." },
+  { name: "Pizza Shop", description: "Cozy pizza restaurant with brick oven visible, menu boards, and pizza display warmer." },
+  { name: "Donut Shop", description: "Sweet donut shop with glass display cases full of colorful donuts and pastries." },
+  { name: "Thrift Store", description: "Eclectic thrift shop with clothing racks, vintage items, and miscellaneous treasures." },
+  { name: "Game Store", description: "Video game retailer with game displays, console showcases, and gaming merchandise." },
+  { name: "Smoothie Bar", description: "Fresh smoothie bar with fruit displays, blenders, and colorful menu boards." },
+  { name: "Bike Shop", description: "Bicycle store with bikes on display racks, accessories wall, and repair station." },
+  { name: "Camping Store", description: "Outdoor gear shop with tents, sleeping bags, hiking equipment, and camping supplies." },
+  { name: "Craft Store", description: "Creative craft store with yarn, fabric bolts, scrapbooking supplies, and DIY kits." },
+  { name: "Auto Parts Store", description: "Car parts retailer with oil displays, battery section, and automotive accessories." },
+  { name: "Garden Center", description: "Plant nursery with potted flowers, gardening tools, seeds, and outdoor furniture." },
+  { name: "Movie Theater Concession", description: "Cinema snack bar with popcorn machine, candy display, and drink fountains." },
+  { name: "Butcher Shop", description: "Classic butcher with meat display case, cutting boards, and specialty meats hanging." },
+  { name: "Cheese Shop", description: "Artisan cheese store with refrigerated wheels, crackers, and wine pairings." },
+  { name: "Tea Shop", description: "Cozy tea boutique with loose leaf containers, teapots, and brewing accessories." },
+  { name: "Salon Supply Store", description: "Beauty supply shop with hair products, styling tools, and nail polish displays." },
+  { name: "Office Supply Store", description: "Office retailer with pens, paper products, desk accessories, and technology." },
+  { name: "Furniture Store", description: "Modern furniture showroom with couches, tables, and home decor displays." },
+  { name: "Kitchen Store", description: "Cookware shop with pots, pans, utensils, and small appliances on display." },
+  { name: "Surf Shop", description: "Beach surf store with surfboards, wetsuits, sunglasses, and beach gear." },
+  { name: "Wine Shop", description: "Upscale wine store with bottle racks, tasting bar, and cheese pairings." },
+  { name: "Record Store", description: "Vintage vinyl shop with record bins, turntables, and band posters on walls." },
+  { name: "Comic Book Store", description: "Colorful comic shop with graphic novels, action figures, and collectible displays." },
+  { name: "Candle Shop", description: "Aromatic candle store with jar candles, wax melts, and diffuser displays." },
+];
 
 interface StoreType {
   id: string;
@@ -48,6 +94,8 @@ export const CashRegisterStoresManager = () => {
   });
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [ideasOpen, setIdeasOpen] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
 
   useEffect(() => {
     loadStores();
@@ -191,6 +239,52 @@ export const CashRegisterStoresManager = () => {
     setDialogOpen(true);
   };
 
+  const selectStoreIdea = (idea: { name: string; description: string }) => {
+    setFormData({
+      name: idea.name,
+      description: idea.description,
+    });
+    setIdeasOpen(false);
+    setEditingStore(null);
+    setDialogOpen(true);
+  };
+
+  const generateDescription = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Please enter a store name first");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lovable-ai", {
+        body: {
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            {
+              role: "user",
+              content: `Generate a brief, vivid description (2-3 sentences) of a "${formData.name}" store for a cash register game. Describe what the store looks like from behind the checkout counter, including visible products, displays, and atmosphere. Focus on visual details that would help generate an image. Be specific and evocative.`,
+            },
+          ],
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.content) {
+        setFormData((prev) => ({ ...prev, description: data.content.trim() }));
+        toast.success("Description generated!");
+      } else {
+        throw new Error("No content returned");
+      }
+    } catch (error) {
+      console.error("Error generating description:", error);
+      showErrorToastWithCopy("Generating description", error);
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
   const getStoreImageUrl = (store: StoreType) => {
     return store.image_url ? `${store.image_url}?v=${Date.now()}` : FALLBACK_IMAGES[store.name] || "";
   };
@@ -204,6 +298,12 @@ export const CashRegisterStoresManager = () => {
     setLightboxIndex(index);
     setLightboxOpen(true);
   };
+
+  // Filter out already existing stores from ideas
+  const existingStoreNames = new Set(stores.map((s) => s.name.toLowerCase()));
+  const availableIdeas = STORE_IDEAS.filter(
+    (idea) => !existingStoreNames.has(idea.name.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -229,60 +329,119 @@ export const CashRegisterStoresManager = () => {
                 Manage store types for the cash register game
               </CardDescription>
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={() => {
-                    setEditingStore(null);
-                    setFormData({ name: "", description: "" });
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Store
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingStore ? "Edit Store" : "Add New Store"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {editingStore
-                      ? "Update the store details"
-                      : "Create a new store type for the cash register game"}
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Store Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      placeholder="e.g., Coffee Shop"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({ ...formData, description: e.target.value })
-                      }
-                      placeholder="Describe the store for image generation..."
-                      rows={3}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    {editingStore ? "Update Store" : "Create Store"}
+            <div className="flex gap-2">
+              {/* Store Ideas Popover */}
+              <Popover open={ideasOpen} onOpenChange={setIdeasOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline">
+                    <Lightbulb className="h-4 w-4 mr-2" />
+                    Store Ideas ({availableIdeas.length})
                   </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                  <div className="p-3 border-b">
+                    <h4 className="font-medium">Choose a Store Idea</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Select to pre-fill the form, then edit as needed
+                    </p>
+                  </div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="p-2 space-y-1">
+                      {availableIdeas.map((idea) => (
+                        <button
+                          key={idea.name}
+                          onClick={() => selectStoreIdea(idea)}
+                          className="w-full text-left p-2 rounded-md hover:bg-accent transition-colors"
+                        >
+                          <div className="font-medium text-sm">{idea.name}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-2">
+                            {idea.description}
+                          </div>
+                        </button>
+                      ))}
+                      {availableIdeas.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          All store ideas have been added!
+                        </p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+
+              {/* Add Store Dialog */}
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      setEditingStore(null);
+                      setFormData({ name: "", description: "" });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Store
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingStore ? "Edit Store" : "Add New Store"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {editingStore
+                        ? "Update the store details"
+                        : "Create a new store type for the cash register game"}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Store Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        placeholder="e.g., Coffee Shop"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="description">Description</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={generateDescription}
+                          disabled={generatingDescription || !formData.name.trim()}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {generatingDescription ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <Wand2 className="h-3 w-3 mr-1" />
+                          )}
+                          Generate
+                        </Button>
+                      </div>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData({ ...formData, description: e.target.value })
+                        }
+                        placeholder="Describe the store for image generation..."
+                        rows={3}
+                      />
+                    </div>
+                    <Button type="submit" className="w-full">
+                      {editingStore ? "Update Store" : "Create Store"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-2">
