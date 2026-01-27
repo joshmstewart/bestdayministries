@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { getBackButtonFallback } from "@/lib/routeHierarchy";
 
 interface BackButtonProps {
   /** The destination path. If not provided, uses browser history with fallback */
@@ -28,9 +29,12 @@ interface BackButtonProps {
  * - variant="outline" size="sm"
  * - ArrowLeft icon with mr-2
  */
-export function BackButton({ to, fallback = "/community", label = "Back", className = "", onClick }: BackButtonProps) {
+export function BackButton({ to, fallback, label = "Back", className = "", onClick }: BackButtonProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Determine smart fallback: use provided fallback, or calculate from route hierarchy
+  const smartFallback = fallback ?? getBackButtonFallback(location.pathname);
 
   // Use custom onClick handler if provided
   if (onClick) {
@@ -74,8 +78,8 @@ export function BackButton({ to, fallback = "/community", label = "Back", classN
     if (hasHistory) {
       navigate(-1);
     } else {
-      // No history - navigate to fallback destination
-      navigate(fallback, { replace: true });
+      // No history - navigate to smart fallback destination
+      navigate(smartFallback, { replace: true });
     }
   };
 
