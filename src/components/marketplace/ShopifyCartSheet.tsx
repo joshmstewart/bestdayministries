@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
+import { Link } from "react-router-dom";
 
 interface ShopifyCartSheetProps {
   open: boolean;
@@ -59,29 +60,39 @@ export const ShopifyCartSheet = ({ open, onOpenChange }: ShopifyCartSheetProps) 
               {/* Scrollable items area */}
               <div className="flex-1 overflow-y-auto pr-2 min-h-0">
                 <div className="space-y-4">
-                  {items.map((item) => (
-                    <div key={item.variantId} className="flex gap-4 p-2 border rounded-lg">
-                      <div className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
-                        {item.product.node.images?.edges?.[0]?.node && (
-                          <img
-                            src={item.product.node.images.edges[0].node.url}
-                            alt={item.product.node.title}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate">{item.product.node.title}</h4>
-                        {item.variantTitle !== "Default Title" && (
-                          <p className="text-sm text-muted-foreground">
-                            {item.variantTitle}
+                    {items.map((item) => (
+                      <div key={item.variantId} className="flex gap-4 p-2 border rounded-lg">
+                        <Link
+                          to={`/shopify-product/${item.product.node.id.split('/').pop()}`}
+                          onClick={() => onOpenChange(false)}
+                          className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity"
+                        >
+                          {item.product.node.images?.edges?.[0]?.node && (
+                            <img
+                              src={item.product.node.images.edges[0].node.url}
+                              alt={item.product.node.title}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </Link>
+                        
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            to={`/shopify-product/${item.product.node.id.split('/').pop()}`}
+                            onClick={() => onOpenChange(false)}
+                            className="hover:text-primary transition-colors"
+                          >
+                            <h4 className="font-medium truncate">{item.product.node.title}</h4>
+                          </Link>
+                          {item.variantTitle !== "Default Title" && (
+                            <p className="text-sm text-muted-foreground">
+                              {item.variantTitle}
+                            </p>
+                          )}
+                          <p className="font-semibold">
+                            ${parseFloat(item.price.amount).toFixed(2)}
                           </p>
-                        )}
-                        <p className="font-semibold">
-                          ${parseFloat(item.price.amount).toFixed(2)}
-                        </p>
-                      </div>
+                        </div>
                       
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
                         <Button

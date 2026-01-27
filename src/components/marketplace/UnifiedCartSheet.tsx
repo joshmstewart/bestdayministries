@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2 } from "lucide-react";
 import { FreeShippingProgress } from "./FreeShippingProgress";
+import { Link } from "react-router-dom";
 import { ShippingAddressInput } from "./ShippingAddressInput";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -421,7 +422,11 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                     <div className="space-y-3">
                       {shopifyItems.map((item) => (
                         <div key={item.variantId} className="flex gap-3 p-3 border rounded-lg bg-card">
-                          <div className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                          <Link
+                            to={`/shopify-product/${item.product.node.id.split('/').pop()}`}
+                            onClick={() => onOpenChange(false)}
+                            className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity"
+                          >
                             {item.product.node.images?.edges?.[0]?.node && (
                               <img
                                 src={item.product.node.images.edges[0].node.url}
@@ -429,10 +434,16 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                                 className="w-full h-full object-cover"
                               />
                             )}
-                          </div>
+                          </Link>
                           
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate text-sm">{item.product.node.title}</h4>
+                            <Link
+                              to={`/shopify-product/${item.product.node.id.split('/').pop()}`}
+                              onClick={() => onOpenChange(false)}
+                              className="hover:text-primary transition-colors"
+                            >
+                              <h4 className="font-medium truncate text-sm">{item.product.node.title}</h4>
+                            </Link>
                             {item.variantTitle !== "Default Title" && (
                               <p className="text-xs text-muted-foreground">
                                 {item.variantTitle}
@@ -541,14 +552,26 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                           <div className="space-y-2">
                             {vendorItems.map((item) => (
                               <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
-                                <img
-                                  src={item.product.images?.[0] || '/placeholder.svg'}
-                                  alt={item.product.name}
-                                  className="w-16 h-16 object-cover rounded-md flex-shrink-0"
-                                />
+                                <Link
+                                  to={`/store/product/${item.product.id}`}
+                                  onClick={() => onOpenChange(false)}
+                                  className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                                >
+                                  <img
+                                    src={item.product.images?.[0] || '/placeholder.svg'}
+                                    alt={item.product.name}
+                                    className="w-16 h-16 object-cover rounded-md"
+                                  />
+                                </Link>
                                 
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium truncate text-sm">{item.product.name}</h4>
+                                  <Link
+                                    to={`/store/product/${item.product.id}`}
+                                    onClick={() => onOpenChange(false)}
+                                    className="hover:text-primary transition-colors"
+                                  >
+                                    <h4 className="font-medium truncate text-sm">{item.product.name}</h4>
+                                  </Link>
                                   <p className="font-semibold text-sm text-primary">
                                     ${(typeof item.product.price === 'string' 
                                       ? parseFloat(item.product.price) 
