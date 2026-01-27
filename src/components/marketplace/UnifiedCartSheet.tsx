@@ -201,12 +201,18 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   
   const cartTotal: number | null = shippingTotal == null ? null : cartSubtotal + shippingTotal;
 
-  // Reset shipping when cart changes
+  // Auto-recalculate shipping when cart changes and we have an address
   useEffect(() => {
-    if (cartItems) {
+    if (cartItems && shippingAddress && hasCalculatedShippingVendor) {
+      // Cart changed and we have an address - recalculate shipping
+      calculateShipping(shippingAddress);
+    } else if (cartItems && !hasCalculatedShippingVendor) {
+      // No calculated shipping vendors anymore (all met threshold or removed)
+      // Clear the result so flat-rate calculations take over
       setShippingResult(null);
     }
-  }, [cartItems?.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItems?.length, cartSubtotal, hasCalculatedShippingVendor]);
 
   const calculateShipping = async (address: ShippingAddress) => {
     setIsCalculatingShipping(true);
@@ -269,8 +275,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       return;
     }
 
-    // Reset shipping calculation when cart changes
-    setShippingResult(null);
+    // Invalidate queries - shipping will auto-recalculate via useEffect
     queryClient.invalidateQueries({ queryKey: ['cart-items'] });
     queryClient.invalidateQueries({ queryKey: ['cart-count'] });
   };
@@ -290,8 +295,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       return;
     }
 
-    // Reset shipping calculation when cart changes
-    setShippingResult(null);
+    // Invalidate queries - shipping will auto-recalculate via useEffect
     queryClient.invalidateQueries({ queryKey: ['cart-items'] });
     queryClient.invalidateQueries({ queryKey: ['cart-count'] });
   };
