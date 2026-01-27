@@ -1081,7 +1081,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                   }}
                   className={`game-card aspect-square rounded-xl flex items-center justify-center cursor-pointer transition-all transform hover:scale-105 overflow-hidden touch-manipulation select-none ${
                     card.isFlipped || card.isMatched
-                      ? 'bg-gradient-warm'
+                      ? 'bg-muted'
                       : 'bg-secondary hover:bg-secondary/80'
                   } ${card.isMatched ? 'opacity-50 cursor-default' : ''}`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -1097,7 +1097,10 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                         decoding="async"
                         className="w-full h-full object-cover"
                       />
-                      <span className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-[10px] sm:text-xs font-medium text-white text-center leading-tight line-clamp-2 px-1 py-1 sm:py-1.5">
+                      <span 
+                        className="absolute bottom-0 left-0 right-0 bg-black/50 text-[10px] sm:text-xs font-semibold text-white text-center leading-tight line-clamp-2 px-1 py-1 sm:py-1.5"
+                        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5)' }}
+                      >
                         {card.imageName}
                       </span>
                     </div>
