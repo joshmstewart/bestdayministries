@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -117,7 +118,7 @@ serve(async (req) => {
             </div>
             
             <div style="margin: 20px 0;">
-              <a href="https://bestdayministries.lovable.app/community?eventId=${item.event_id}" 
+              <a href="${SITE_URL}/community?eventId=${item.event_id}" 
                  style="display: inline-block; background-color: #E07A41; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 10px;">
                 View Event Details
               </a>
@@ -131,7 +132,7 @@ serve(async (req) => {
             
             <p style="margin-top: 30px; font-size: 12px; color: #666;">
               You're receiving this email because you have event notifications enabled. 
-              <a href="https://bestdayministries.lovable.app/profile" style="color: #E07A41;">Manage your notification preferences</a>
+              <a href="${SITE_URL}/profile" style="color: #E07A41;">Manage your notification preferences</a>
             </p>
           </body>
           </html>

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { emailDelay, RESEND_RATE_LIMIT_MS } from "../_shared/emailRateLimiter.ts";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,7 +75,7 @@ serve(async (req: Request) => {
       try {
         let subject = "";
         let content = "";
-        let actionUrl = "https://bestdayministries.lovable.app/guardian-links";
+        let actionUrl = `${SITE_URL}/guardian-links`;
 
         if (item.notification_type === 'new_sponsorship') {
           subject = `🎉 ${item.bestie_name ? `New Sponsor for ${item.bestie_name}` : 'You Have a New Sponsor!'}`;
@@ -160,7 +161,7 @@ serve(async (req: Request) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: "Community Notifications <notifications@bestdayministries.org>",
+              from: SENDERS.community,
               to: [item.user_email],
               subject: subject,
               html: html,

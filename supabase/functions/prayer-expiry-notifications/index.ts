@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { emailDelay } from "../_shared/emailRateLimiter.ts";
+import { SITE_URL } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,7 +135,7 @@ serve(async (req) => {
                   <p>Your prayer request "<strong>${prayer.title}</strong>" will be removed from the community board in <strong>${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}</strong>.</p>
                   <p>If you'd like to keep it visible so others can continue praying with you, please renew it.</p>
                   <p style="margin-top: 20px;">
-                    <a href="https://bestdayministries.lovable.app/prayer-requests" 
+                    <a href="${SITE_URL}/prayer-requests" 
                        style="background-color: #c87533; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
                       Renew Your Prayer
                     </a>

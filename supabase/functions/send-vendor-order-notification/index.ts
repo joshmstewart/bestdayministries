@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseAdmin = createClient(
@@ -225,7 +226,7 @@ const handler = async (req: Request): Promise<Response> => {
               ${shippingInfo}
               
               <div style="text-align: center; margin-top: 30px;">
-                <a href="https://bestdayministries.lovable.app/vendor-dashboard" class="button">
+                <a href="${SITE_URL}/vendor-dashboard" class="button">
                   View Order & Add Tracking
                 </a>
               </div>
@@ -249,7 +250,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "Marketplace <notifications@bestdayministries.org>",
+      from: SENDERS.marketplace,
       to: [profile.email],
       subject: `🛒 New Order Received - Action Required!`,
       html: html,

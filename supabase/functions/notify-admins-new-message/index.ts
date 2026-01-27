@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { SITE_URL } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -145,7 +146,7 @@ serve(async (req) => {
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-          <a href="https://bestdayever.lovable.app/admin?tab=contact" 
+          <a href="${SITE_URL}/admin?tab=contact" 
              style="display: inline-block; background: #8B4513; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">
             View & Respond in Platform
           </a>

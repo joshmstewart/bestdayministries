@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,7 +81,7 @@ serve(async (req: Request) => {
           : 'TBD';
 
         const subject = `📅 Event Updated: ${item.event_title}`;
-        const actionUrl = "https://bestdayministries.lovable.app/community";
+        const actionUrl = `${SITE_URL}/community`;
 
         const html = `
           <!DOCTYPE html>
@@ -145,7 +146,7 @@ serve(async (req: Request) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: "Community Notifications <notifications@bestdayministries.org>",
+              from: SENDERS.community,
               to: [item.user_email],
               subject: subject,
               html: html,

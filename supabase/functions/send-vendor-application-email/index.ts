@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { emailDelay } from "../_shared/emailRateLimiter.ts";
+import { SITE_URL } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -114,7 +115,7 @@ serve(async (req) => {
     // Build email content - use template if available, otherwise use default
     let subject: string;
     let htmlContent: string;
-    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '';
+    const baseUrl = SITE_URL;
 
     if (template) {
       console.log("Using campaign template for vendor application email");

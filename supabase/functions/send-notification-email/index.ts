@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -305,8 +306,7 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     const logoUrl = appSettings?.setting_value || "";
-    const appUrl = supabaseUrl.replace(".supabase.co", ".lovable.app");
-    const actionUrl = requestData.link ? `${appUrl}${requestData.link}` : appUrl;
+    const actionUrl = requestData.link ? `${SITE_URL}${requestData.link}` : SITE_URL;
 
     // Generate customized email content
     const { title, message, actionText } = generateEmailContent(requestData, profile.display_name);
@@ -358,7 +358,7 @@ const handler = async (req: Request): Promise<Response> => {
                       <p style="margin: 0; font-size: 14px; color: #888888; text-align: center;">
                         You received this email because you have notifications enabled in your settings.
                         <br>
-                        <a href="${appUrl}/profile" style="color: #888888; text-decoration: underline;">Manage preferences</a>
+                        <a href="${SITE_URL}/profile" style="color: #888888; text-decoration: underline;">Manage preferences</a>
                       </p>
                     </td>
                   </tr>
@@ -372,7 +372,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Notifications <notifications@bestdayministries.org>",
+      from: SENDERS.notifications,
       to: [profile.email],
       subject: requestData.subject,
       html,

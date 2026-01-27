@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseAdmin = createClient(
@@ -70,7 +71,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Build email content based on content type
     let subject = "";
     let contentTypeText = "";
-    let actionUrl = `${Deno.env.get("SUPABASE_URL")?.replace("https://", "https://id-preview--609caef2-e036-416b-a2bc-d1430e40b6ba.lovable.app") || ""}/guardian-approvals`;
+    let actionUrl = `${SITE_URL}/guardian-approvals`;
 
     switch (contentType) {
       case 'post':
@@ -146,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "Community Notifications <notifications@bestdayministries.org>",
+      from: SENDERS.community,
       to: [guardian.email],
       subject: subject,
       html: html,

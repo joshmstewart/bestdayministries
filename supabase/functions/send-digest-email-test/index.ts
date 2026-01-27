@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -284,7 +285,7 @@ function buildDigestEmail(
 
             <!-- View All Button -->
             <div style="text-align: center; margin-top: 40px;">
-              <a href="https://bestdayministries.lovable.app/notifications" 
+              <a href="${SITE_URL}/notifications"
                  style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
                 View All Notifications
               </a>
