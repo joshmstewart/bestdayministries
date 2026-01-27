@@ -546,7 +546,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
               ));
               setFlippedCards([]);
               isProcessingRef.current = false;
-            }, 600);
+            }, 1100);
           }
         }
         
