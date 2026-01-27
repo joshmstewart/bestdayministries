@@ -482,9 +482,19 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
     setElapsedTime(0);
   };
 
+  // Store difficulty in a ref for stable access in callbacks
+  const difficultyRef = useRef<Difficulty>(difficulty);
+  useEffect(() => {
+    difficultyRef.current = difficulty;
+  }, [difficulty]);
+
   const handleCardClick = useCallback((cardId: number) => {
     // Block if we're still processing a previous non-match
     if (isProcessingRef.current) return;
+    
+    // Read current difficulty from ref to avoid stale closure
+    const currentDifficulty = difficultyRef.current;
+    const requiredPairs = DIFFICULTY_CONFIG[currentDifficulty].pairs;
     
     setFlippedCards(prevFlipped => {
       if (prevFlipped.length === 2 || prevFlipped.includes(cardId)) {
@@ -512,7 +522,8 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
             // Match found - update cards to matched state
             setMatchedPairs(prev => {
               const newCount = prev + 1;
-              if (newCount === DIFFICULTY_CONFIG[difficulty].pairs) {
+              // Use requiredPairs from outside the closure to ensure correct value
+              if (newCount === requiredPairs) {
                 completeGame();
               }
               return newCount;
@@ -548,7 +559,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
       }
       return prevFlipped;
     });
-  }, [difficulty, DIFFICULTY_CONFIG]);
+  }, [DIFFICULTY_CONFIG]);
 
   // Pointer event handlers for iOS/Safari compatibility
   const handleCardPointerDown = useCallback((e: React.PointerEvent) => {
