@@ -8,10 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, Coins, BookOpen, Wand2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, Coins, BookOpen, Wand2, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { compressImage } from "@/lib/imageUtils";
+
+interface BookIdea {
+  title: string;
+  description: string;
+}
 
 export function ColoringBooksManager() {
   const queryClient = useQueryClient();
@@ -33,6 +40,9 @@ export function ColoringBooksManager() {
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [showFullCoverPrompt, setShowFullCoverPrompt] = useState(false);
   const [fullCoverPrompt, setFullCoverPrompt] = useState("");
+  const [ideasOpen, setIdeasOpen] = useState(false);
+  const [generatingIdeas, setGeneratingIdeas] = useState(false);
+  const [bookIdeas, setBookIdeas] = useState<BookIdea[]>([]);
 
   const DEFAULT_COVER_PROMPT_TEMPLATE = `Create a FULL-COLOR children's coloring book cover that looks like a REAL PUBLISHED COLORING BOOK for the theme: "{THEME}".
 
@@ -254,6 +264,41 @@ OUTPUT: High quality, print-ready, no watermarks.`;
     saveMutation.mutate(formData);
   };
 
+  const generateBookIdeas = async () => {
+    setGeneratingIdeas(true);
+    try {
+      const existingTitles = books?.map((b: any) => b.title) || [];
+      const { data, error } = await supabase.functions.invoke("generate-coloring-book-ideas", {
+        body: { existingTitles },
+      });
+
+      if (error) throw error;
+      if (data?.ideas && Array.isArray(data.ideas)) {
+        setBookIdeas(data.ideas);
+        toast.success(`Generated ${data.ideas.length} book ideas!`);
+      }
+    } catch (error) {
+      showErrorToastWithCopy("Generating book ideas", error);
+    } finally {
+      setGeneratingIdeas(false);
+    }
+  };
+
+  const selectBookIdea = (idea: BookIdea) => {
+    setFormData({
+      title: idea.title,
+      description: idea.description,
+      generation_prompt: "",
+      coin_price: 0,
+      is_free: true,
+      display_order: 0,
+    });
+    setAiPrompt(idea.title);
+    setIdeasOpen(false);
+    setEditingBook(null);
+    setDialogOpen(true);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -261,12 +306,69 @@ OUTPUT: High quality, print-ready, no watermarks.`;
           <BookOpen className="w-5 h-5" />
           Coloring Books
         </CardTitle>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="w-4 h-4" /> Add Book
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          {/* Ideas Popover */}
+          <Popover open={ideasOpen} onOpenChange={setIdeasOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Lightbulb className="w-4 h-4" /> Ideas
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <div className="p-3 border-b">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Book Ideas</h4>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={generateBookIdeas}
+                    disabled={generatingIdeas}
+                    className="h-7 gap-1"
+                  >
+                    {generatingIdeas ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    Generate
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click an idea to start creating a new book
+                </p>
+              </div>
+              <ScrollArea className="h-72">
+                {bookIdeas.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Click "Generate" to get AI-powered book ideas
+                  </div>
+                ) : (
+                  <div className="p-2 space-y-1">
+                    {bookIdeas.map((idea, index) => (
+                      <button
+                        key={index}
+                        onClick={() => selectBookIdea(idea)}
+                        className="w-full text-left p-2 rounded-md hover:bg-accent transition-colors"
+                      >
+                        <p className="font-medium text-sm">{idea.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {idea.description}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+
+          {/* Add Book Dialog */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" /> Add Book
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingBook ? "Edit" : "Add"} Coloring Book</DialogTitle>
@@ -501,6 +603,7 @@ OUTPUT: High quality, print-ready, no watermarks.`;
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
