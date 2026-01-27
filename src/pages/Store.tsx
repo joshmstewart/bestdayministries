@@ -38,7 +38,7 @@ interface PurchaseCount {
 
 const Store = () => {
   const navigate = useNavigate();
-  const { coins } = useCoins();
+  const { coins, refetch: refetchCoins } = useCoins();
   const { purchases, loading: purchasesLoading, purchaseItem, refetch } = useStorePurchases();
   const [items, setItems] = useState<StoreItem[]>([]);
   const [purchasedPackIds, setPurchasedPackIds] = useState<Set<string>>(new Set());
@@ -368,6 +368,18 @@ const Store = () => {
     fetchItems();
   }, []);
 
+  // Wrapper to refresh all data after a purchase
+  const handlePurchase = async (itemId: string, price: number): Promise<boolean> => {
+    const success = await purchaseItem(itemId, price);
+    if (success) {
+      // Refresh local store state (purchasedPackIds, etc.)
+      await fetchItems();
+      // Also ensure coins are up-to-date
+      await refetchCoins();
+    }
+    return success;
+  };
+
   // Filter items by role visibility first
   const roleFilteredItems = items.filter(item => {
     if (userRole === "admin" || userRole === "owner") return true;
@@ -517,7 +529,7 @@ const Store = () => {
 
             <StoreItemGrid
               items={filteredAndSortedItems}
-              onPurchase={purchaseItem}
+              onPurchase={handlePurchase}
               userCoins={coins}
               loading={loading}
               purchases={purchases}
