@@ -516,13 +516,14 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                         const vendorShipping = getVendorShippingDisplay(vendorId);
 
                       return (
-                        <div key={vendorId} className="space-y-3">
-                          {index > 0 && <Separator className="my-2" />}
-                          
-                          {/* Vendor name header */}
-                          <div className="flex items-center gap-2">
-                            <Store className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">{vendor.vendorName}</span>
+                        <div 
+                          key={vendorId} 
+                          className="rounded-xl border-2 border-border bg-muted/30 p-4 space-y-3"
+                        >
+                          {/* Vendor name header with strong visual identity */}
+                          <div className="flex items-center gap-2 pb-2 border-b border-border">
+                            <Store className="h-5 w-5 text-primary" />
+                            <span className="font-semibold text-base">{vendor.vendorName}</span>
                           </div>
                           
                           {/* Vendor's items */}
@@ -586,16 +587,16 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                             />
                           )}
 
-                          {/* Vendor shipping line (per-store) */}
-                          <div className="flex justify-between items-center text-sm pt-2">
-                            <span className="text-muted-foreground">Shipping</span>
+                          {/* Vendor shipping line with visual separator */}
+                          <div className="flex justify-between items-center text-sm pt-3 mt-2 border-t border-border/50">
+                            <span className="text-muted-foreground font-medium">Shipping</span>
                             <span
                               className={
                                 vendorShipping.isPending
-                                  ? "text-accent-foreground font-medium italic"
+                                  ? "text-accent-foreground font-semibold italic"
                                   : vendorShipping.label === 'FREE'
-                                    ? "text-primary font-medium"
-                                    : "font-medium"
+                                    ? "text-primary font-semibold"
+                                    : "font-semibold"
                               }
                             >
                               {vendorShipping.label}
