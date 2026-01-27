@@ -229,10 +229,6 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
       if (data?.success) {
         setShippingResult(data as ShippingCalculationResult);
-        toast({
-          title: "Shipping calculated",
-          description: `Shipping to ${address.zip}: $${(data.shipping_total_cents / 100).toFixed(2)}`,
-        });
       } else {
         throw new Error(data?.error || "Failed to calculate shipping");
       }
