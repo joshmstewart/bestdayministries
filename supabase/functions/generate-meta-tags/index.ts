@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SITE_URL } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
         finalDescription = event.description || finalDescription;
         finalImage = event.image_url || finalImage;
         finalType = 'article'; // Facebook treats events better as articles
-        finalUrl = params.redirect || `https://bestdayministries.lovable.app/community?tab=feed&eventId=${event.id}`;
+        finalUrl = params.redirect || `${SITE_URL}/community?tab=feed&eventId=${event.id}`;
       }
     }
 

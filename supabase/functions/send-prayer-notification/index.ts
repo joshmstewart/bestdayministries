@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseAdmin = createClient(
@@ -137,8 +138,8 @@ const handler = async (req: Request): Promise<Response> => {
         .single();
 
       const logoUrl = settings?.setting_value || "";
-      const actionUrl = "https://bestdayministries.lovable.app/prayer-requests";
-      const guardianUrl = "https://bestdayministries.lovable.app/guardian-approvals";
+      const actionUrl = `${SITE_URL}/prayer-requests`;
+      const guardianUrl = `${SITE_URL}/guardian-approvals`;
 
       let subject = "";
       let emailHtml = "";
@@ -305,7 +306,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Send the email
       const emailResponse = await resend.emails.send({
-        from: "Prayer Notifications <notifications@bestdayministries.org>",
+        from: SENDERS.prayer,
         to: [recipient.email],
         subject: subject,
         html: emailHtml,

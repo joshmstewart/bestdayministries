@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SITE_URL } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -110,8 +111,7 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     const logoUrl = appSettings?.setting_value ? JSON.parse(appSettings.setting_value) : "";
-    const appUrl = supabaseUrl.replace(".supabase.co", ".lovable.app");
-    const viewUrl = `${appUrl}/admin?tab=contact`;
+    const viewUrl = `${SITE_URL}/admin?tab=contact`;
 
     // Format message type
     const messageType = (submission.message_type || "general").replace(/_/g, " ");

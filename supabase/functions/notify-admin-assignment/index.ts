@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { SITE_URL } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,7 +78,7 @@ serve(async (req) => {
         .eq("setting_key", "logo_url")
         .single();
 
-      let logoUrl = "https://bestdayministries.lovable.app/lovable-uploads/30b14d94-fb5c-4e56-a960-ef0f6614a498.png";
+      let logoUrl = `${SITE_URL}/lovable-uploads/30b14d94-fb5c-4e56-a960-ef0f6614a498.png`;
       if (logoSetting?.setting_value) {
         const val = typeof logoSetting.setting_value === 'string' 
           ? logoSetting.setting_value.replace(/^"|"$/g, '') 
@@ -123,7 +124,7 @@ serve(async (req) => {
                       </div>
                       
                       <div style="text-align: center; margin: 30px 0;">
-                        <a href="https://bestdayministries.lovable.app/admin?tab=contact" 
+                        <a href="${SITE_URL}/admin?tab=contact" 
                            style="display: inline-block; background: linear-gradient(135deg, #c2410c 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
                           View Message
                         </a>

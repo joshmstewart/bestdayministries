@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { emailDelay, RESEND_RATE_LIMIT_MS } from "../_shared/emailRateLimiter.ts";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,7 +53,7 @@ serve(async (req) => {
       }
       
       try {
-        const baseUrl = Deno.env.get("SITE_URL") || "https://bestdayministries.lovable.app";
+        const baseUrl = SITE_URL;
         const contentLink = item.content_link ? `${baseUrl}${item.content_link}` : baseUrl;
         
         const contentTypeEmoji = getContentEmoji(item.content_type);
@@ -110,7 +111,7 @@ serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: "Best Day Ministries <notifications@bestdayministries.org>",
+              from: SENDERS.noreply,
               to: [item.recipient_email],
               subject: `${contentTypeEmoji} ${item.liker_name} liked your ${item.content_type}!`,
               html: emailHtml,

@@ -3,10 +3,15 @@
  * 
  * ⚠️ IMPORTANT: Our domain is bestdayministries.ORG (not .com!)
  * Always import from this file instead of hardcoding domains.
+ * 
+ * ⚠️ NEVER use .lovable.app domains in emails or links!
  */
 
 // Primary domain - ALWAYS use .org
 export const PRIMARY_DOMAIN = "bestdayministries.org";
+
+// Site URL - Use this for all email links (NEVER lovable.app!)
+export const SITE_URL = `https://${PRIMARY_DOMAIN}`;
 
 // Email addresses - derived from primary domain
 export const EMAILS = {
@@ -34,4 +39,6 @@ export const SENDERS = {
   noreply: `${ORGANIZATION_NAME} <${EMAILS.noreply}>`,
   store: `Joy House Store <${EMAILS.orders}>`,
   contact: `${ORGANIZATION_NAME} <${EMAILS.contact}>`,
+  prayer: `Prayer Notifications <${EMAILS.notifications}>`,
+  marketplace: `Marketplace <${EMAILS.notifications}>`,
 } as const;

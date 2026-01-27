@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseAdmin = createClient(
@@ -109,7 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
     let content = "";
     // Sponsors view messages on /guardian-links (My Sponsorships section)
     // Besties view/send messages on /bestie-messages
-    let actionUrl = `https://bestdayministries.lovable.app/guardian-links`;
+    let actionUrl = `${SITE_URL}/guardian-links`;
 
     switch (notificationType) {
       case 'new_message':
@@ -133,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           <p>Your message will now be delivered to your sponsors.</p>
         `;
-        actionUrl = `https://bestdayministries.lovable.app/bestie-messages`;
+        actionUrl = `${SITE_URL}/bestie-messages`;
         break;
       case 'rejected':
         subject = `❌ Your Message Needs Revision`;
@@ -145,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           <p>Please review the feedback and submit a revised message.</p>
         `;
-        actionUrl = `https://bestdayministries.lovable.app/bestie-messages`;
+        actionUrl = `${SITE_URL}/bestie-messages`;
         break;
     }
 
@@ -195,7 +196,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "Community Notifications <notifications@bestdayministries.org>",
+      from: SENDERS.community,
       to: [recipient.email],
       subject: subject,
       html: html,
