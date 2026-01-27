@@ -3418,13 +3418,6 @@ export type Database = {
             referencedColumns: ["donation_id"]
           },
           {
-            foreignKeyName: "donation_stripe_transactions_donation_id_fkey"
-            columns: ["donation_id"]
-            isOneToOne: false
-            referencedRelation: "orphaned_receipts_analysis"
-            referencedColumns: ["potential_donation_id"]
-          },
-          {
             foreignKeyName: "donation_stripe_transactions_donor_id_fkey"
             columns: ["donor_id"]
             isOneToOne: false
@@ -7314,13 +7307,6 @@ export type Database = {
             referencedColumns: ["donation_id"]
           },
           {
-            foreignKeyName: "receipt_generation_logs_donation_id_fkey"
-            columns: ["donation_id"]
-            isOneToOne: false
-            referencedRelation: "orphaned_receipts_analysis"
-            referencedColumns: ["potential_donation_id"]
-          },
-          {
             foreignKeyName: "receipt_generation_logs_receipt_id_fkey"
             columns: ["receipt_id"]
             isOneToOne: false
@@ -7946,13 +7932,6 @@ export type Database = {
             foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
             columns: ["sponsor_bestie_id"]
             isOneToOne: false
-            referencedRelation: "sponsor_bestie_funding_progress_by_mode"
-            referencedColumns: ["sponsor_bestie_id"]
-          },
-          {
-            foreignKeyName: "sponsor_bestie_requests_sponsor_bestie_id_fkey"
-            columns: ["sponsor_bestie_id"]
-            isOneToOne: false
             referencedRelation: "sponsor_besties"
             referencedColumns: ["id"]
           },
@@ -8363,13 +8342,6 @@ export type Database = {
             columns: ["sponsor_bestie_id"]
             isOneToOne: false
             referencedRelation: "sponsor_bestie_funding_progress"
-            referencedColumns: ["sponsor_bestie_id"]
-          },
-          {
-            foreignKeyName: "sponsorships_sponsor_bestie_id_fkey"
-            columns: ["sponsor_bestie_id"]
-            isOneToOne: false
-            referencedRelation: "sponsor_bestie_funding_progress_by_mode"
             referencedColumns: ["sponsor_bestie_id"]
           },
           {
@@ -10785,85 +10757,99 @@ export type Database = {
       donations_missing_receipts: {
         Row: {
           amount: number | null
-          amount_charged: number | null
-          donation_date: string | null
+          created_at: string | null
           donation_id: string | null
           donor_email: string | null
+          donor_id: string | null
           frequency: string | null
           status: string | null
           stripe_mode: string | null
-          stripe_payment_intent_id: string | null
-          stripe_subscription_id: string | null
         }
         Insert: {
           amount?: number | null
-          amount_charged?: number | null
-          donation_date?: string | null
+          created_at?: string | null
           donation_id?: string | null
           donor_email?: string | null
+          donor_id?: string | null
           frequency?: string | null
           status?: string | null
           stripe_mode?: string | null
-          stripe_payment_intent_id?: string | null
-          stripe_subscription_id?: string | null
         }
         Update: {
           amount?: number | null
-          amount_charged?: number | null
-          donation_date?: string | null
+          created_at?: string | null
           donation_id?: string | null
           donor_email?: string | null
+          donor_id?: string | null
           frequency?: string | null
           status?: string | null
           stripe_mode?: string | null
-          stripe_payment_intent_id?: string | null
-          stripe_subscription_id?: string | null
         }
         Relationships: []
       }
       game_leaderboard: {
         Row: {
-          best_moves: number | null
-          best_time: number | null
-          difficulty: string | null
-          game_type: string | null
-          games_played: number | null
+          best_level: number | null
           high_score: number | null
-          total_coins: number | null
+          total_games_played: number | null
+          updated_at: string | null
           user_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "game_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "game_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
-        ]
+        Insert: {
+          best_level?: number | null
+          high_score?: number | null
+          total_games_played?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          best_level?: number | null
+          high_score?: number | null
+          total_games_played?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       orphaned_receipts_analysis: {
         Row: {
           amount: number | null
-          donation_amount: number | null
-          donation_created_at: string | null
-          donation_status: string | null
-          potential_donation_id: string | null
-          receipt_created_at: string | null
+          created_at: string | null
+          frequency: string | null
+          has_matching_donation: boolean | null
+          has_sponsorship: boolean | null
           receipt_id: string | null
           sponsor_email: string | null
-          sponsorship_id: string | null
           stripe_mode: string | null
-          time_diff_seconds: number | null
           transaction_date: string | null
           transaction_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          frequency?: string | null
+          has_matching_donation?: never
+          has_sponsorship?: never
+          receipt_id?: string | null
+          sponsor_email?: string | null
+          stripe_mode?: string | null
+          transaction_date?: string | null
+          transaction_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          frequency?: string | null
+          has_matching_donation?: never
+          has_sponsorship?: never
+          receipt_id?: string | null
+          sponsor_email?: string | null
+          stripe_mode?: string | null
+          transaction_date?: string | null
+          transaction_id?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -10882,13 +10868,11 @@ export type Database = {
           avatar_number: number | null
           avatar_url: string | null
           bio: string | null
-          created_at: string | null
           display_name: string | null
           email: string | null
           friend_code: string | null
           id: string | null
           role: Database["public"]["Enums"]["user_role"] | null
-          updated_at: string | null
         }
         Relationships: [
           {
@@ -10927,14 +10911,16 @@ export type Database = {
       }
       sponsorship_year_end_summary: {
         Row: {
-          donations: Json[] | null
-          first_donation_date: string | null
-          last_donation_date: string | null
+          first_transaction: string | null
+          last_transaction: string | null
+          organization_ein: string | null
+          organization_name: string | null
           sponsor_email: string | null
-          sponsor_name: string | null
+          stripe_mode: string | null
           tax_year: number | null
           total_amount: number | null
-          total_donations: number | null
+          total_receipts: number | null
+          user_id: string | null
         }
         Relationships: []
       }
