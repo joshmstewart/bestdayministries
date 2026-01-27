@@ -504,8 +504,8 @@ export function FeedItemDialog({
               />
 
 
-              {/* Owner-only actions */}
-              {isOwner && (
+              {/* Owner-only actions - excluding announcements (managed in Admin) */}
+              {isOwner && item.item_type !== 'announcement' && (
                 <>
                   {/* Edit - owner only */}
                   <Button variant="default" size="sm" asChild>
@@ -515,8 +515,8 @@ export function FeedItemDialog({
                     </Link>
                   </Button>
 
-                  {/* Download - owner only, not for colorings or announcements */}
-                  {item.image_url && item.item_type !== 'coloring' && item.item_type !== 'announcement' && (
+                  {/* Download - owner only, not for colorings */}
+                  {item.image_url && item.item_type !== 'coloring' && (
                     <Button 
                       variant="outline" 
                       size="sm" 
