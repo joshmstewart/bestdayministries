@@ -9,7 +9,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2 } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { FreeShippingProgress } from "./FreeShippingProgress";
 import { Link } from "react-router-dom";
 import { ShippingAddressInput } from "./ShippingAddressInput";
@@ -201,6 +207,14 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
         }, 0);
   
   const cartTotal: number | null = shippingTotal == null ? null : cartSubtotal + shippingTotal;
+
+  // Processing fee calculation (2.9% + $0.30)
+  const calculateProcessingFee = (amount: number): number => {
+    return Number((amount * 0.029 + 0.30).toFixed(2));
+  };
+  
+  const processingFee: number | null = cartTotal != null ? calculateProcessingFee(cartTotal) : null;
+  const grandTotal: number | null = cartTotal != null && processingFee != null ? cartTotal + processingFee : null;
 
   // Auto-recalculate shipping when cart changes and we have an address
   useEffect(() => {
@@ -704,9 +718,32 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                           Free shipping may apply on qualifying orders (per vendor)
                         </p>
                       )}
+                      
+                      {/* Processing Fee */}
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1">
+                          Processing Fee
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className="text-muted-foreground hover:text-foreground transition-colors">
+                                  <Info className="h-3.5 w-3.5" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <p>This fee covers secure payment processing costs (2.9% + $0.30). It ensures vendors receive their full earnings.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </span>
+                        <span className={processingFee == null ? "text-accent-foreground font-medium italic" : ""}>
+                          {processingFee == null ? '—' : `$${processingFee.toFixed(2)}`}
+                        </span>
+                      </div>
+
                       <div className="flex justify-between font-semibold pt-1 border-t">
-                        <span>{cartTotal == null ? 'Total (pending shipping)' : 'Total (before tax)'}</span>
-                        <span>{cartTotal == null ? '—' : `$${cartTotal.toFixed(2)}`}</span>
+                        <span>{grandTotal == null ? 'Total (pending shipping)' : 'Total (before tax)'}</span>
+                        <span>{grandTotal == null ? '—' : `$${grandTotal.toFixed(2)}`}</span>
                       </div>
                       <p className="text-xs text-muted-foreground text-center">
                         Sales tax will be calculated at checkout
