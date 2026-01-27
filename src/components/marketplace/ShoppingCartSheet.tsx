@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Minus, Loader2, MapPin, Edit2, Store } from "lucide-react";
+import { Trash2, Plus, Minus, Loader2, MapPin, Edit2, Store, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { ShippingAddressInput } from "./ShippingAddressInput";
 
@@ -171,6 +177,14 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
         sum + (v.subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_RATE), 0);
 
   const total = subtotal + shippingTotal;
+
+  // Processing fee calculation (2.9% + $0.30)
+  const calculateProcessingFee = (amount: number): number => {
+    return Number((amount * 0.029 + 0.30).toFixed(2));
+  };
+  
+  const processingFee = hasAnyPendingShipping ? null : calculateProcessingFee(total);
+  const grandTotal = processingFee != null ? total + processingFee : null;
 
   // Reset shipping when cart changes
   useEffect(() => {
@@ -478,13 +492,35 @@ export const ShoppingCartSheet = ({ open, onOpenChange }: ShoppingCartSheetProps
                     <span>{shippingTotal > 0 ? `$${shippingTotal.toFixed(2)}` : 'FREE'}</span>
                   )}
                 </div>
+                <div className="flex justify-between">
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    Processing Fee
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <p>This fee covers secure payment processing costs (2.9% + $0.30). It ensures vendors receive their full earnings.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </span>
+                  {hasAnyPendingShipping ? (
+                    <span className="text-accent-foreground font-medium italic">—</span>
+                  ) : (
+                    <span>${processingFee?.toFixed(2)}</span>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total (before tax):</span>
                 {hasAnyPendingShipping ? (
                   <span className="text-accent-foreground italic">Pending</span>
                 ) : (
-                  <span className="text-primary">${total.toFixed(2)}</span>
+                  <span className="text-primary">${grandTotal?.toFixed(2)}</span>
                 )}
               </div>
               <p className="text-xs text-muted-foreground text-center">
