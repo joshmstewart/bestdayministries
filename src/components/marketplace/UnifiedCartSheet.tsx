@@ -101,12 +101,6 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   // All database cart items (both house vendor merch and handmade)
   const allCartItems = cartItems || [];
 
-  // Check if any vendor uses calculated shipping
-  const hasCalculatedShippingVendor = useMemo(() => {
-    if (!allCartItems || allCartItems.length === 0) return false;
-    return allCartItems.some(item => item.product?.vendors?.shipping_mode === 'calculated');
-  }, [allCartItems]);
-
   // Shipping constants (fallback only)
   const FLAT_SHIPPING_RATE = 6.99;
 
@@ -141,9 +135,30 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
   const cartSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
 
+  // Check if any vendor uses calculated shipping AND hasn't met their free shipping threshold
+  const hasCalculatedShippingVendor = useMemo(() => {
+    if (!allCartItems || allCartItems.length === 0) return false;
+    return Object.values(vendorTotals).some(vendor => {
+      if (vendor.shippingMode !== 'calculated') return false;
+      // If they have a threshold and it's met, no need for calculated shipping
+      const hasThreshold = !vendor.disableFreeShipping && vendor.freeShippingThreshold != null && vendor.freeShippingThreshold > 0;
+      const thresholdMet = hasThreshold && vendor.freeShippingThreshold != null && vendor.subtotal >= vendor.freeShippingThreshold;
+      return !thresholdMet; // Only requires calculation if threshold NOT met
+    });
+  }, [allCartItems, vendorTotals]);
+
   const getVendorShippingDisplay = (vendorId: string): { label: string; isPending: boolean } => {
     const vendor = vendorTotals[vendorId];
     if (!vendor) return { label: 'Pending', isPending: true };
+
+    // Check if vendor has a free shipping threshold and if it's met (applies to ALL shipping modes)
+    const hasThreshold = !vendor.disableFreeShipping && vendor.freeShippingThreshold != null && vendor.freeShippingThreshold > 0;
+    const thresholdMet = hasThreshold && vendor.freeShippingThreshold != null && vendor.subtotal >= vendor.freeShippingThreshold;
+    
+    // If threshold is met, always show FREE (bypasses dynamic calculation)
+    if (thresholdMet) {
+      return { label: 'FREE', isPending: false };
+    }
 
     // If we have a calculated result, trust it for ALL vendors (flat/free/calculated)
     if (shippingResult?.success) {
@@ -154,27 +169,17 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       }
     }
 
-    // Calculated vendors require ZIP first
+    // Calculated vendors require ZIP first (but only if threshold not met)
     if (vendor.shippingMode === 'calculated') {
       return { label: 'Pending', isPending: true };
     }
 
     // Flat vendors can show known shipping immediately
-    const offersFreeShipping =
-      vendor.shippingMode !== 'calculated' &&
-      !vendor.disableFreeShipping &&
-      vendor.freeShippingThreshold != null &&
-      vendor.freeShippingThreshold > 0;
-
-    const isFree = offersFreeShipping && vendor.freeShippingThreshold != null && vendor.subtotal >= vendor.freeShippingThreshold;
-    if (isFree) return { label: 'FREE', isPending: false };
-
     return { label: `$${(vendor.flatRateCents / 100).toFixed(2)}`, isPending: false };
   };
   
   const hasAnyConfiguredFreeShipping = useMemo(() => {
     return Object.values(vendorTotals).some((v) =>
-      v.shippingMode !== 'calculated' &&
       !v.disableFreeShipping &&
       v.freeShippingThreshold != null &&
       v.freeShippingThreshold > 0
@@ -187,9 +192,11 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     : hasCalculatedShippingVendor
       ? null
       : Object.values(vendorTotals).reduce((sum, v) => {
-          const offersFreeShipping = v.shippingMode !== 'calculated' && !v.disableFreeShipping && v.freeShippingThreshold != null;
-          const isFree = offersFreeShipping && v.freeShippingThreshold != null && v.subtotal >= v.freeShippingThreshold;
-          return sum + (isFree ? 0 : FLAT_SHIPPING_RATE);
+          // Check if threshold is met (applies to all shipping modes)
+          const hasThreshold = !v.disableFreeShipping && v.freeShippingThreshold != null && v.freeShippingThreshold > 0;
+          const thresholdMet = hasThreshold && v.freeShippingThreshold != null && v.subtotal >= v.freeShippingThreshold;
+          if (thresholdMet) return sum; // Free shipping for this vendor
+          return sum + (v.flatRateCents / 100);
         }, 0);
   
   const cartTotal: number | null = shippingTotal == null ? null : cartSubtotal + shippingTotal;
@@ -508,8 +515,8 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                     {/* Group items by vendor */}
                     {Object.entries(vendorTotals).map(([vendorId, vendor], index) => {
                       const vendorItems = allCartItems.filter(item => item.product.vendor_id === vendorId);
+                      // Show progress bar for ANY vendor with a configured threshold (including calculated shipping)
                       const showFreeShippingProgress =
-                        vendor.shippingMode !== 'calculated' &&
                         !vendor.disableFreeShipping &&
                         vendor.freeShippingThreshold != null &&
                         vendor.freeShippingThreshold > 0;
