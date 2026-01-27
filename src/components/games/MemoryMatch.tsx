@@ -64,6 +64,7 @@ interface ImagePack {
   background_color: string | null;
   module_color: string | null;
   card_back_url: string | null;
+  card_text_color: string;
 }
 
 // Default bundled images (always available)
@@ -132,9 +133,10 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
   const [currentImages, setCurrentImages] = useState(DEFAULT_IMAGES);
   const [currentCardBackUrl, setCurrentCardBackUrl] = useState<string | null>(null);
   const [cardBackLoaded, setCardBackLoaded] = useState(false);
-  const [currentColors, setCurrentColors] = useState<{ background: string; module: string }>({
+  const [currentColors, setCurrentColors] = useState<{ background: string; module: string; cardText: string }>({
     background: '#F97316',
     module: '#FFFFFF',
+    cardText: 'black',
   });
   
   const [coinRewards, setCoinRewards] = useState<Record<Difficulty, number>>({
@@ -214,15 +216,18 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
   useEffect(() => {
     let newBackgroundColor = '#F97316';
     let newCardBackUrl: string | null = null;
+    let newCardTextColor = 'black';
     
     if (selectedPackId) {
       const pack = availablePacks.find(p => p.id === selectedPackId);
       if (pack && pack.images.length > 0) {
         setCurrentImages(pack.images);
         newBackgroundColor = pack.background_color || '#F97316';
+        newCardTextColor = pack.card_text_color || 'black';
         setCurrentColors({
           background: newBackgroundColor,
           module: pack.module_color || '#FFFFFF',
+          cardText: newCardTextColor,
         });
         newCardBackUrl = pack.card_back_url;
       }
@@ -232,9 +237,11 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
       if (defaultPack) {
         setCurrentImages(defaultPack.images);
         newBackgroundColor = defaultPack.background_color || '#F97316';
+        newCardTextColor = defaultPack.card_text_color || 'black';
         setCurrentColors({
           background: newBackgroundColor,
           module: defaultPack.module_color || '#FFFFFF',
+          cardText: newCardTextColor,
         });
         newCardBackUrl = defaultPack.card_back_url;
       } else {
@@ -242,6 +249,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
         setCurrentColors({
           background: '#F97316',
           module: '#FFFFFF',
+          cardText: 'black',
         });
         newCardBackUrl = null;
       }
@@ -291,7 +299,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
     // Load all active packs with their images
     const { data: packs } = await supabase
       .from('memory_match_packs')
-      .select('id, name, description, preview_image_url, is_default, is_purchasable, price_coins, background_color, module_color, card_back_url')
+      .select('id, name, description, preview_image_url, is_default, is_purchasable, price_coins, background_color, module_color, card_back_url, card_text_color')
       .eq('is_active', true)
       .order('display_order');
 
@@ -1098,8 +1106,16 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                         className="w-full h-full object-cover"
                       />
                       <span 
-                        className="absolute bottom-0 left-0 right-0 bg-black/50 text-[10px] sm:text-xs font-semibold text-white text-center leading-tight line-clamp-2 px-1 py-1 sm:py-1.5"
-                        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(0,0,0,0.5)' }}
+                        className={`absolute bottom-0 left-0 right-0 text-[10px] sm:text-xs font-semibold text-center leading-tight line-clamp-2 px-1 py-1 sm:py-1.5 ${
+                          currentColors.cardText === 'white' 
+                            ? 'text-white bg-black/40' 
+                            : 'text-black bg-white/60'
+                        }`}
+                        style={{ 
+                          textShadow: currentColors.cardText === 'white' 
+                            ? '0 1px 2px rgba(0,0,0,0.8)' 
+                            : '0 1px 2px rgba(255,255,255,0.8)' 
+                        }}
                       >
                         {card.imageName}
                       </span>

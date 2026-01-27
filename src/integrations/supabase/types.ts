@@ -5267,6 +5267,7 @@ export type Database = {
         Row: {
           background_color: string | null
           card_back_url: string | null
+          card_text_color: string
           created_at: string
           description: string | null
           design_style: string | null
@@ -5285,6 +5286,7 @@ export type Database = {
         Insert: {
           background_color?: string | null
           card_back_url?: string | null
+          card_text_color?: string
           created_at?: string
           description?: string | null
           design_style?: string | null
@@ -5303,6 +5305,7 @@ export type Database = {
         Update: {
           background_color?: string | null
           card_back_url?: string | null
+          card_text_color?: string
           created_at?: string
           description?: string | null
           design_style?: string | null
