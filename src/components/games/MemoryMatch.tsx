@@ -1106,15 +1106,15 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
                         className="w-full h-full object-cover"
                       />
                       <span 
-                        className={`absolute bottom-0 left-0 right-0 text-[10px] sm:text-xs font-semibold text-center leading-tight line-clamp-2 px-1 py-1 sm:py-1.5 ${
+                        className={`absolute bottom-0 left-0 right-0 text-[10px] sm:text-xs font-bold text-center leading-tight line-clamp-2 px-1 py-1 sm:py-1.5 ${
                           currentColors.cardText === 'white' 
-                            ? 'text-white bg-black/40' 
-                            : 'text-black bg-white/60'
+                            ? 'text-white' 
+                            : 'text-black'
                         }`}
                         style={{ 
                           textShadow: currentColors.cardText === 'white' 
-                            ? '0 1px 2px rgba(0,0,0,0.8)' 
-                            : '0 1px 2px rgba(255,255,255,0.8)' 
+                            ? '0 1px 3px rgba(0,0,0,0.9), 0 0 6px rgba(0,0,0,0.7)' 
+                            : '0 1px 3px rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.7)' 
                         }}
                       >
                         {card.imageName}
