@@ -25,6 +25,7 @@ import { CommunityFeed } from "@/components/feed/CommunityFeed";
 import { Badge } from "@/components/ui/badge";
 import { useUnseenFeedCount } from "@/hooks/useUnseenFeedCount";
 import { AppsGrid } from "@/components/community/AppsGrid";
+import { useTabClickTracking } from "@/hooks/useTabClickTracking";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -32,9 +33,16 @@ const Community = () => {
   const { toast } = useToast();
   const { user, profile: authProfile, role, loading: authLoading, isAuthenticated } = useAuth();
   const { unseenCount, showBadge } = useUnseenFeedCount();
+  const { trackTabClick } = useTabClickTracking();
   
   // Tab state from URL params
   const activeTab = searchParams.get("tab") || "community";
+  
+  // Handle tab change with tracking
+  const handleTabChange = (value: string) => {
+    trackTabClick(`community_${value}_tab`, "/community");
+    setSearchParams({ tab: value });
+  };
 
   // Extract YouTube video ID from various URL formats
   const getYouTubeVideoId = (url: string): string | null => {
@@ -329,7 +337,7 @@ const Community = () => {
           {/* Community Tabs */}
           <Tabs 
             value={activeTab} 
-            onValueChange={(value) => setSearchParams({ tab: value })}
+            onValueChange={handleTabChange}
             className="w-full"
           >
             <TabsList className={`grid w-full max-w-[400px] mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>

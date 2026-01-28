@@ -8654,6 +8654,36 @@ export type Database = {
         }
         Relationships: []
       }
+      tab_click_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          page_url: string
+          session_id: string | null
+          tab_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_url: string
+          session_id?: string | null
+          tab_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_url?: string
+          session_id?: string | null
+          tab_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       terms_acceptance: {
         Row: {
           accepted_at: string
