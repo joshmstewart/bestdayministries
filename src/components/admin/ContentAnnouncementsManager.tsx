@@ -873,11 +873,13 @@ export const ContentAnnouncementsManager = () => {
                   />
                 </div>
               ) : previewAnnouncement.image_url && (
-                <img
-                  src={previewAnnouncement.image_url}
-                  alt={previewAnnouncement.title}
-                  className="w-full h-48 object-cover"
-                />
+                <div className="w-full h-48 bg-background flex items-center justify-center p-4">
+                  <img
+                    src={previewAnnouncement.image_url}
+                    alt={previewAnnouncement.title}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
               )}
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-2">
