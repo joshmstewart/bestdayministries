@@ -626,11 +626,23 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 />
               </div>
             ) : item.image_url ? (
-              <div className="relative aspect-square overflow-hidden bg-muted">
+              <div
+                className={cn(
+                  "relative aspect-square overflow-hidden",
+                  item.item_type === 'announcement' && item.extra_data?.announcement_type === 'sticker_pack'
+                    ? "bg-background flex items-center justify-center p-4"
+                    : "bg-muted"
+                )}
+              >
                 <img
                   src={item.image_url}
                   alt={item.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  className={cn(
+                    "w-full h-full transition-transform duration-300",
+                    item.item_type === 'announcement' && item.extra_data?.announcement_type === 'sticker_pack'
+                      ? "object-contain"
+                      : "object-cover hover:scale-105"
+                  )}
                   loading="lazy"
                 />
                 {/* Beat play overlay */}

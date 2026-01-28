@@ -274,11 +274,11 @@ export function FeedItemDialog({
               />
             </div>
           ) : item.image_url ? (
-            <div className="relative pt-4">
+            <div className="relative pt-4 bg-background">
               <img
                 src={item.image_url}
                 alt={item.title}
-                className="w-full h-auto max-h-[60vh] object-contain bg-white"
+                className="w-full h-auto max-h-[60vh] object-contain"
               />
               {/* Beat play overlay */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
