@@ -278,7 +278,7 @@ export function FeedItemDialog({
               <img
                 src={item.image_url}
                 alt={item.title}
-                className="w-full h-auto max-h-[60vh] object-contain"
+                className="w-full h-auto max-h-[60vh] object-contain bg-white"
               />
               {/* Beat play overlay */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
