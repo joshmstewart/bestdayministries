@@ -223,8 +223,8 @@ export function PackCarousel({
         </div>
       </div>
 
-      {/* Thumbnail Strip with Names */}
-      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      {/* Thumbnail Grid with Names */}
+      <div className="flex flex-wrap gap-3 pb-2">
         {sortedPacks.map((pack) => {
           const canUse = canUsePack(pack);
           const isFeatured = pack.id === featuredPack.id;
@@ -232,7 +232,7 @@ export function PackCarousel({
             pack.preview_image_url || pack.images[0]?.image_url;
 
           return (
-            <div key={pack.id} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+            <div key={pack.id} className="flex flex-col items-center gap-1.5">
               <button
                 onClick={() => {
                   if (canUse) {
