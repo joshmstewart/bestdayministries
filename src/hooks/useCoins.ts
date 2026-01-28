@@ -47,6 +47,9 @@ export const useCoins = () => {
       return;
     }
 
+    // Always fetch fresh coins on mount to ensure we have latest data
+    fetchCoins();
+
     // Subscribe to realtime updates for coins
     const channel = supabase
       .channel('coins-changes')
