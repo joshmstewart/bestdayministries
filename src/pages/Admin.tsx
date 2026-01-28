@@ -53,6 +53,7 @@ import ContactSubmissions from "@/components/admin/ContactSubmissions";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { PageVisitsAnalytics } from "@/components/admin/PageVisitsAnalytics";
 import { UserActivityAnalytics } from "@/components/admin/UserActivityAnalytics";
+import { TabClickAnalytics } from "@/components/admin/TabClickAnalytics";
 import { EmailTemplatePreview } from "@/components/admin/EmailTemplatePreview";
 import { HelpCenterManager } from "@/components/admin/HelpCenterManager";
 import { ProductUpdateBroadcaster } from "@/components/admin/ProductUpdateBroadcaster";
@@ -344,10 +345,11 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="overview" className="space-y-4">
-                  <TabsList>
+                  <TabsList className="flex-wrap">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="page-visits">Page Visits</TabsTrigger>
                     <TabsTrigger value="user-activity">User Activity</TabsTrigger>
+                    <TabsTrigger value="tab-clicks">Tab Clicks</TabsTrigger>
                     <TabsTrigger value="ai-usage">AI Usage</TabsTrigger>
                   </TabsList>
                   <TabsContent value="overview">
@@ -358,6 +360,9 @@ const Admin = () => {
                   </TabsContent>
                   <TabsContent value="user-activity">
                     <UserActivityAnalytics />
+                  </TabsContent>
+                  <TabsContent value="tab-clicks">
+                    <TabClickAnalytics />
                   </TabsContent>
                   <TabsContent value="ai-usage">
                     <AiUsageManager />
