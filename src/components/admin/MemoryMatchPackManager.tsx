@@ -52,6 +52,7 @@ interface ImagePack {
   design_style: string | null;
   background_color: string | null;
   module_color: string | null;
+  card_text_color: string;
 }
 
 interface PackImage {
@@ -101,6 +102,7 @@ export const MemoryMatchPackManager = () => {
     design_style: "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements",
     background_color: "#F97316",
     module_color: "#FFFFFF",
+    card_text_color: "black" as "white" | "black",
   });
   const [savingPack, setSavingPack] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -392,6 +394,7 @@ export const MemoryMatchPackManager = () => {
         design_style: pack.design_style || defaultStyle,
         background_color: pack.background_color || "#F97316",
         module_color: pack.module_color || "#FFFFFF",
+        card_text_color: (pack.card_text_color || "black") as "white" | "black",
       });
     } else {
       setEditingPack(null);
@@ -404,6 +407,7 @@ export const MemoryMatchPackManager = () => {
         design_style: defaultStyle,
         background_color: "#F97316",
         module_color: "#FFFFFF",
+        card_text_color: "black",
       });
     }
     setPackDialogOpen(true);
@@ -586,6 +590,7 @@ export const MemoryMatchPackManager = () => {
             design_style: packFormData.design_style.trim() || null,
             background_color: packFormData.background_color || "#F97316",
             module_color: packFormData.module_color || "#FFFFFF",
+            card_text_color: packFormData.card_text_color,
           })
           .eq("id", editingPack.id);
 
@@ -605,6 +610,7 @@ export const MemoryMatchPackManager = () => {
             design_style: packFormData.design_style.trim() || null,
             background_color: packFormData.background_color || "#F97316",
             module_color: packFormData.module_color || "#FFFFFF",
+            card_text_color: packFormData.card_text_color,
           })
           .select()
           .single();
@@ -1565,6 +1571,34 @@ export const MemoryMatchPackManager = () => {
                       className="flex-1 font-mono text-sm uppercase"
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="card-text-color" className="text-xs text-muted-foreground">
+                    Card Label Text Color
+                  </Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={packFormData.card_text_color === "black" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPackFormData((prev) => ({ ...prev, card_text_color: "black" as const }))}
+                      className="flex-1"
+                    >
+                      Black Text
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={packFormData.card_text_color === "white" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPackFormData((prev) => ({ ...prev, card_text_color: "white" as const }))}
+                      className="flex-1"
+                    >
+                      White Text
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Choose based on card image brightness. Use white for dark images, black for light images.
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
