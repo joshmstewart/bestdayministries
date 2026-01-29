@@ -881,7 +881,7 @@ export const StickerAlbum = () => {
 
       {/* Sticker Detail Dialog */}
       <Dialog open={!!selectedSticker} onOpenChange={(open) => !open && setSelectedSticker(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" hideCloseButton>
           <DialogHeader className="flex flex-row items-center gap-3">
             <div className="flex-1 min-w-0">
               <DialogTitle className="flex items-center gap-2">
