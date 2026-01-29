@@ -52,6 +52,22 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
     },
   });
 
+  // Determine whether the current user is the *actual* vendor owner.
+  // IMPORTANT: Do not rely on the vendor_team_members list alone, because the vendor record owner
+  // (vendors.user_id) may not have a corresponding vendor_team_members row.
+  const { data: isCurrentUserVendorOwner } = useQuery({
+    queryKey: ["vendor-is-owner", vendorId, currentUser?.id],
+    enabled: !!vendorId && !!currentUser?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("is_vendor_owner", {
+        _user_id: currentUser!.id,
+        _vendor_id: vendorId,
+      });
+      if (error) throw error;
+      return !!data;
+    },
+  });
+
   // Fetch team members
   const { data: teamMembers, isLoading } = useQuery({
     queryKey: ["vendor-team-members", vendorId],
@@ -103,10 +119,8 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
 
   const selectedUser = availableUsers.find(u => u.id === selectedUserId);
 
-  // Check if current user is owner
-  const isOwner = teamMembers?.some(
-    m => m.user_id === currentUser?.id && m.role === "owner"
-  );
+  // Check if current user is owner (vendor record owner OR team owner)
+  const isOwner = !!isCurrentUserVendorOwner;
 
   // Invite team member mutation
   const inviteMutation = useMutation({

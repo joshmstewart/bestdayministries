@@ -43,6 +43,7 @@ const VendorDashboard = () => {
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdminOrOwner, setIsAdminOrOwner] = useState(false);
+  const [isSelectedVendorAdmin, setIsSelectedVendorAdmin] = useState(false);
   const [productRefreshTrigger, setProductRefreshTrigger] = useState(0);
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -51,7 +52,6 @@ const VendorDashboard = () => {
   });
 
   const selectedVendor = vendors.find(v => v.id === selectedVendorId);
-  const isVendorOwner = selectedVendor && currentUserId ? selectedVendor.user_id === currentUserId : false;
   const [activeTab, setActiveTab] = useState("products");
   const tabsRef = useRef<HTMLDivElement>(null);
   
@@ -78,6 +78,43 @@ const VendorDashboard = () => {
       }
     }
   }, [searchParams, vendors]);
+
+  // IMPORTANT: Do not rely on vendors.user_id alone for permissions.
+  // Vendor permissions also come from vendor_team_members roles.
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkSelectedVendorAdmin = async () => {
+      if (!selectedVendorId || !currentUserId) {
+        setIsSelectedVendorAdmin(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('is_vendor_admin', {
+          _user_id: currentUserId,
+          _vendor_id: selectedVendorId,
+        });
+
+        if (error) throw error;
+
+        if (!cancelled) {
+          setIsSelectedVendorAdmin(!!data);
+        }
+      } catch (error) {
+        console.error('Error checking vendor admin status:', error);
+        if (!cancelled) {
+          setIsSelectedVendorAdmin(false);
+        }
+      }
+    };
+
+    checkSelectedVendorAdmin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedVendorId, currentUserId]);
 
   const checkVendorStatus = async () => {
     try {
@@ -617,7 +654,11 @@ const VendorDashboard = () => {
               
               <TabsContent value="payments" className="space-y-6">
                 <h2 className="text-2xl font-semibold">Payment Settings</h2>
-                <StripeConnectOnboarding vendorId={selectedVendorId} readOnly={!isVendorOwner && !isAdminOrOwner} theme={theme} />
+                <StripeConnectOnboarding
+                  vendorId={selectedVendorId}
+                  readOnly={!(isAdminOrOwner || isSelectedVendorAdmin)}
+                  theme={theme}
+                />
                 
                 {/* 1099 Tax Information */}
                 <Card 
