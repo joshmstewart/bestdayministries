@@ -17,6 +17,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SponsorshipBreakdownDialog } from "@/components/SponsorshipBreakdownDialog";
+import { trackDonationStart } from "@/lib/analytics";
 
 interface Bestie {
   id: string;
@@ -329,6 +330,9 @@ const SponsorBestie = () => {
         }
       }
       // Note: Subscription success email is now sent from SponsorshipSuccess.tsx after payment is confirmed
+
+      // Track sponsorship start in Google Analytics
+      trackDonationStart(frequency === "monthly" ? "monthly_sponsorship" : "one_time_sponsorship", parseFloat(amount));
 
       // Call Stripe edge function to create checkout session
       const { data, error } = await supabase.functions.invoke("create-sponsorship-checkout", {

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Heart, Home, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { trackDonationComplete } from "@/lib/analytics";
 
 const SponsorshipSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -60,6 +61,12 @@ const SponsorshipSuccess = () => {
         amount: data.amount,
         frequency: data.frequency,
       });
+
+      // Track sponsorship completion in Google Analytics
+      trackDonationComplete(
+        data.frequency === "monthly" ? "monthly_sponsorship" : "one_time_sponsorship",
+        parseFloat(data.amount)
+      );
       
       // Send confirmation emails AFTER payment is verified (not before checkout)
       // This prevents emails being sent for abandoned checkouts

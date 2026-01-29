@@ -10,6 +10,7 @@ import { Heart, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
+import { trackDonationStart } from "@/lib/analytics";
 
 const donationSchema = z.object({
   amount: z.number().min(5, "Minimum donation is $5"),
@@ -85,6 +86,9 @@ export const DonationForm = () => {
       } catch (termsError) {
         console.error("Error recording terms acceptance:", termsError);
       }
+
+      // Track donation start in Google Analytics
+      trackDonationStart(frequency === "monthly" ? "monthly_donation" : "one_time_donation", parseFloat(amount));
 
       const { data, error } = await supabase.functions.invoke("create-donation-checkout", {
         body: {
