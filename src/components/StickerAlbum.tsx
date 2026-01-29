@@ -741,12 +741,11 @@ export const StickerAlbum = () => {
                   </>
                 )}
               </Button>
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                {coinBalance < nextCost 
-                  ? `Need ${nextCost - coinBalance} more coins` 
-                  : `You have ${coinBalance} coins • Price doubles each time`
-                }
-              </p>
+              {coinBalance < nextCost && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Need {nextCost - coinBalance} more coins
+                </p>
+              )}
             </div>
           )}
         </CardContent>
