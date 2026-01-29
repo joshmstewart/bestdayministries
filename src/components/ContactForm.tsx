@@ -95,10 +95,14 @@ export const ContactForm = () => {
       if (data.image) {
         const compressedFile = await compressImage(data.image);
         // Sanitize filename: remove spaces and special characters, keep only alphanumeric, dashes, underscores, and dots
-        const sanitizedName = compressedFile.name
+        // IMPORTANT: Get original filename from data.image since compressImage may return original file unchanged
+        const originalName = data.image.name;
+        const sanitizedName = originalName
           .replace(/[^a-zA-Z0-9.-]/g, '_')
-          .replace(/_+/g, '_');
-        const fileName = `${Date.now()}-${sanitizedName}`;
+          .replace(/_+/g, '_')
+          .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+        const fileName = `${Date.now()}-${sanitizedName || 'image.jpg'}`;
+        console.log('[ContactForm] Upload filename:', fileName); // Debug log
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("app-assets")
           .upload(`contact-form/${fileName}`, compressedFile);
