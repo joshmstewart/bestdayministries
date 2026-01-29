@@ -25,7 +25,7 @@ export default function ImageLightbox({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-[100vw] md:!max-w-[90vw] !max-h-[100vh] md:!max-h-[90vh] w-screen md:w-auto h-screen md:h-auto p-0 overflow-hidden border-0">
+      <DialogContent className="!max-w-[100vw] md:!max-w-[90vw] !max-h-[100vh] md:!max-h-[90vh] w-screen md:w-auto h-screen md:h-auto p-0 overflow-hidden border-0" hideCloseButton>
         <div className="relative flex items-center justify-center bg-black w-full h-full">
           {/* Close Button */}
           <Button

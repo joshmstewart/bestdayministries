@@ -21,7 +21,7 @@ export default function VideoLightbox({
 }: VideoLightboxProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-[95vw] md:!max-w-[80vw] lg:!max-w-[900px] !max-h-[90vh] p-0 overflow-hidden border-0 bg-black">
+      <DialogContent className="!max-w-[95vw] md:!max-w-[80vw] lg:!max-w-[900px] !max-h-[90vh] p-0 overflow-hidden border-0 bg-black" hideCloseButton>
         <VisuallyHidden>
           <DialogTitle>Video Player</DialogTitle>
         </VisuallyHidden>
