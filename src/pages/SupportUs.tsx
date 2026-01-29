@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import { DonationForm } from "@/components/DonationForm";
@@ -8,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Gift, ShoppingBag, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { trackDonationComplete } from "@/lib/analytics";
 
 interface WishlistSettings {
   amazon_wishlist_url?: string;
@@ -40,6 +42,7 @@ interface WayToGive {
 }
 
 const SupportUs = () => {
+  const [searchParams] = useSearchParams();
   const [wishlistSettings, setWishlistSettings] = useState<WishlistSettings>({});
   const [sections, setSections] = useState<SupportPageSection[]>([]);
   const [waysToGive, setWaysToGive] = useState<WayToGive[]>([]);
@@ -49,7 +52,13 @@ const SupportUs = () => {
     loadWishlistSettings();
     loadSections();
     loadWaysToGive();
-  }, []);
+    
+    // Track donation completion if redirected from successful payment
+    const donationStatus = searchParams.get("donation");
+    if (donationStatus === "success") {
+      trackDonationComplete("donation");
+    }
+  }, [searchParams]);
 
   const loadWishlistSettings = async () => {
     const { data } = await supabase

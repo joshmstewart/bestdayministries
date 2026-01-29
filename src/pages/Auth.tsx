@@ -29,6 +29,7 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
+import { trackSignUp, trackLogin } from "@/lib/analytics";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -329,6 +330,9 @@ const Auth = () => {
           });
         }, 0);
 
+        // Track signup in Google Analytics
+        trackSignUp("email");
+
         toast({
           title: "Welcome to Best Day Ministries!",
           description: "Your account has been created successfully.",
@@ -343,6 +347,9 @@ const Auth = () => {
 
         // Play login sound
         playSound('login');
+
+        // Track login in Google Analytics
+        trackLogin("email");
 
         // Vendor status check will be handled by auth state listener
         // which will redirect appropriately
