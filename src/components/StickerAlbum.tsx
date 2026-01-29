@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 
 const rarityColors = {
@@ -578,60 +579,43 @@ export const StickerAlbum = () => {
               Available Packs
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex justify-center gap-4">
-              {collections.slice(0, 3).map((collection) => {
-                // Find the first available card for this collection (if any)
-                const cardForCollection = availableCards.find(c => c.collection_id === collection.id);
-                
-                return (
-                  <button
-                    key={collection.id}
-                    onClick={() => {
-                      // Always navigate to this collection's stickers when clicking its pack image
-                      setSelectedCollection(collection.id);
-                      
-                      // If user has a card for this collection, also offer to open it
-                      if (cardForCollection) {
-                        setSelectedCardId(cardForCollection.id);
-                        setSelectedPackCollectionId(collection.id);
-                        setShowScratchDialog(true);
-                      }
-                    }}
-                    className="relative group transition-all focus:outline-none hover:scale-105 active:scale-95 cursor-pointer"
-                  >
-                    <div className="relative w-32 h-48 sm:w-40 sm:h-56">
-                      {collection.pack_image_url ? (
-                        <img
-                          src={collection.pack_image_url}
-                          alt={collection.name || 'Sticker Pack'}
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex items-center justify-center">
-                          <Sparkles className="w-10 h-10 text-primary" />
-                        </div>
-                      )}
-                      {/* Featured badge */}
-                      {collection.is_featured && (
-                        <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                          ★
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-              {/* View All button when more than 3 collections */}
-              {collections.length > 3 && (
+        <CardContent>
+            <div className="flex flex-wrap justify-center gap-4">
+              {collections.map((collection) => (
                 <button
-                  onClick={() => setShowCollectionSelector(true)}
-                  className="flex flex-col items-center justify-center w-32 h-48 sm:w-40 sm:h-56 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors"
+                  key={collection.id}
+                  onClick={() => {
+                    // Use the next available card (don't require matching collection_id)
+                    const cardToUse = availableCards[0];
+                    if (cardToUse) {
+                      setSelectedCardId(cardToUse.id);
+                      setSelectedPackCollectionId(collection.id);
+                      setShowScratchDialog(true);
+                    }
+                  }}
+                  className="relative group transition-all focus:outline-none hover:scale-105 active:scale-95 cursor-pointer"
                 >
-                  <span className="text-2xl mb-1">+{collections.length - 3}</span>
-                  <span className="text-xs text-muted-foreground">View All</span>
+                  <div className="relative w-32 h-48 sm:w-40 sm:h-56">
+                    {collection.pack_image_url ? (
+                      <img
+                        src={collection.pack_image_url}
+                        alt={collection.name || 'Sticker Pack'}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex items-center justify-center">
+                        <Sparkles className="w-10 h-10 text-primary" />
+                      </div>
+                    )}
+                    {/* Featured badge */}
+                    {collection.is_featured && (
+                      <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        ★
+                      </div>
+                    )}
+                  </div>
                 </button>
-              )}
+              ))}
             </div>
             <p className="text-sm text-muted-foreground mt-3 text-center">
               Tap a pack to open it! ({availableCards.length} card{availableCards.length !== 1 ? 's' : ''} available)
@@ -861,18 +845,39 @@ export const StickerAlbum = () => {
           open={showScratchDialog}
           onOpenChange={setShowScratchDialog}
           cardId={selectedCardId}
+          collectionId={selectedPackCollectionId ?? undefined}
           onOpened={handleCardScratched}
+          onChangeCollection={() => {
+            setShowScratchDialog(false);
+            setShowCollectionSelector(true);
+          }}
         />
       )}
+      
+      {/* Collection Selector Dialog for Change Pack */}
+      <CollectionSelectorDialog
+        open={showCollectionSelector}
+        onOpenChange={setShowCollectionSelector}
+        onSelectCollection={(collectionId) => {
+          setSelectedPackCollectionId(collectionId);
+          setShowCollectionSelector(false);
+          setShowScratchDialog(true);
+        }}
+      />
 
       {/* Sticker Detail Dialog */}
       <Dialog open={!!selectedSticker} onOpenChange={(open) => !open && setSelectedSticker(null)}>
-        <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader className="flex flex-row items-center gap-3">
-            <DialogTitle className="flex items-center gap-2 flex-1 min-w-0">
-              <span>#{selectedSticker?.sticker_number}</span>
-              <span>{selectedSticker?.name}</span>
-            </DialogTitle>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="flex items-center gap-2">
+                <span>#{selectedSticker?.sticker_number}</span>
+                <span>{selectedSticker?.name}</span>
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Details for sticker {selectedSticker?.name}
+              </DialogDescription>
+            </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {selectedSticker && (
                 <TextToSpeech 
