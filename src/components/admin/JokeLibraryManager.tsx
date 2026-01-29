@@ -778,7 +778,8 @@ export const JokeLibraryManager = () => {
             </div>
           ) : (
             <ScrollArea className="h-[500px]">
-              <Table>
+              <div className="overflow-x-auto min-w-full">
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[40px]">
@@ -913,6 +914,7 @@ export const JokeLibraryManager = () => {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </ScrollArea>
           )}
           
