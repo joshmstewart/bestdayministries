@@ -318,11 +318,16 @@ const Community = () => {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
-          <p className="text-muted-foreground">Loading your community...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
+        <UnifiedHeader />
+        <main className="container mx-auto px-4 pt-24 pb-12">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-primary via-accent to-secondary animate-pulse" />
+              <p className="text-muted-foreground">Loading your community...</p>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
