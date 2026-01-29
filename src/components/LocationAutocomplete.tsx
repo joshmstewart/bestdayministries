@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin } from "lucide-react";
@@ -28,11 +28,16 @@ export function LocationAutocomplete({
   required = false
 }: LocationAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [apiKey, setApiKey] = useState<string>("");
   const [fetchingKey, setFetchingKey] = useState(true);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  
+  // Store onChange in a ref to avoid dependency issues
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   // Fetch saved locations
   useEffect(() => {
@@ -98,31 +103,38 @@ export function LocationAutocomplete({
       return;
     }
 
+    // Prevent re-initialization if autocomplete already exists
+    if (autocompleteRef.current || isInitialized) {
+      return;
+    }
+
     // Initialize autocomplete
     const autocompleteInstance = new google.maps.places.Autocomplete(inputRef.current, {
       types: ["establishment", "geocode"],
       fields: ["formatted_address", "name", "geometry"],
     });
 
-    // Listen for place selection
+    // Listen for place selection - use ref to avoid stale closure
     autocompleteInstance.addListener("place_changed", () => {
       const place = autocompleteInstance.getPlace();
       
       if (place.formatted_address) {
-        onChange(place.formatted_address);
+        onChangeRef.current(place.formatted_address);
       } else if (place.name) {
-        onChange(place.name);
+        onChangeRef.current(place.name);
       }
     });
 
-    setAutocomplete(autocompleteInstance);
+    autocompleteRef.current = autocompleteInstance;
+    setIsInitialized(true);
 
     return () => {
-      if (autocomplete) {
-        google.maps.event.clearInstanceListeners(autocomplete);
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        autocompleteRef.current = null;
       }
     };
-  }, [isLoaded, onChange, hasValidKey]);
+  }, [isLoaded, hasValidKey, isInitialized]);
 
   if (loadError) {
     console.error("Error loading Google Maps:", loadError);
