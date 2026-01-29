@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lock, Clock, Sparkles, X, Info } from "lucide-react";
+import { Loader2, Lock, Clock, Sparkles, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -651,16 +651,62 @@ export const StickerAlbum = () => {
                 </div>
               )}
             </div>
-            <Select value={selectedCollection} onValueChange={setSelectedCollection}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {collections.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-3">
+              <Select value={selectedCollection} onValueChange={setSelectedCollection}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {collections.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-xs text-muted-foreground hover:text-primary underline underline-offset-2 whitespace-nowrap">
+                    See rarities
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align="end">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Drop Rate Information</p>
+                      {collections.find(c => c.id === selectedCollection)?.use_default_rarity && (
+                        <Badge variant="outline" className="text-xs">Using Defaults</Badge>
+                      )}
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded bg-gray-500"></div>
+                        <span>Common</span>
+                        <span className="ml-auto text-muted-foreground">{rarityPercentages.common}%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded bg-green-500"></div>
+                        <span>Uncommon</span>
+                        <span className="ml-auto text-muted-foreground">{rarityPercentages.uncommon}%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded bg-blue-500"></div>
+                        <span>Rare</span>
+                        <span className="ml-auto text-muted-foreground">{rarityPercentages.rare}%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded bg-purple-500"></div>
+                        <span>Epic</span>
+                        <span className="ml-auto text-muted-foreground">{rarityPercentages.epic}%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded bg-yellow-500"></div>
+                        <span>Legendary</span>
+                        <span className="ml-auto text-muted-foreground">{rarityPercentages.legendary}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -673,53 +719,6 @@ export const StickerAlbum = () => {
             </div>
             <Progress value={progress} className="h-2" />
           </div>
-
-          {/* See the Rarities Button */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Info className="w-4 h-4 mr-2" />
-                See the Rarities
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="start">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Drop Rate Information</p>
-                  {collections.find(c => c.id === selectedCollection)?.use_default_rarity && (
-                    <Badge variant="outline" className="text-xs">Using Defaults</Badge>
-                  )}
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-gray-500"></div>
-                    <span>Common</span>
-                    <span className="ml-auto text-muted-foreground">{rarityPercentages.common}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-green-500"></div>
-                    <span>Uncommon</span>
-                    <span className="ml-auto text-muted-foreground">{rarityPercentages.uncommon}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-blue-500"></div>
-                    <span>Rare</span>
-                    <span className="ml-auto text-muted-foreground">{rarityPercentages.rare}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-purple-500"></div>
-                    <span>Epic</span>
-                    <span className="ml-auto text-muted-foreground">{rarityPercentages.epic}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-yellow-500"></div>
-                    <span>Legendary</span>
-                    <span className="ml-auto text-muted-foreground">{rarityPercentages.legendary}%</span>
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
 
           {/* Buy Bonus Card Button */}
           {bonusPacksEnabled && (
