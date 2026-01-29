@@ -196,7 +196,7 @@ export function GuideViewer({ guide, onClose }: GuideViewerProps) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]" aria-describedby={undefined}>
+      <DialogContent className="max-w-4xl max-h-[90vh]" aria-describedby={undefined} hideCloseButton>
         <DialogHeader>
           <div className="flex items-start gap-3">
             {/* Content area - takes up remaining space */}

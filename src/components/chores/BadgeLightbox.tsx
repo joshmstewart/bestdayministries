@@ -28,7 +28,7 @@ export function BadgeLightbox({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-transparent border-none shadow-none" hideCloseButton>
         <div className="relative flex flex-col items-center p-6 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950 dark:via-orange-950 dark:to-yellow-950 rounded-2xl border-2 border-amber-300 dark:border-amber-700 shadow-2xl">
           {/* Close button */}
           <Button

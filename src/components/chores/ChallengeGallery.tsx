@@ -227,7 +227,7 @@ export function ChallengeGallery({ open, onOpenChange }: ChallengeGalleryProps) 
 
       {/* Full image view */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden" hideCloseButton>
           {selectedImage && (
             <>
               <div className="relative">
