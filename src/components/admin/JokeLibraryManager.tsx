@@ -306,12 +306,33 @@ export const JokeLibraryManager = () => {
     
     setSavingEdit(true);
     try {
+      const trimmedQuestion = editQuestion.trim();
+      const trimmedAnswer = editAnswer.trim();
+      
+      // Check if another joke already has this question (excluding current joke)
+      const { data: existingJoke } = await supabase
+        .from("joke_library")
+        .select("id")
+        .eq("question", trimmedQuestion)
+        .neq("id", editingJoke.id)
+        .maybeSingle();
+      
+      if (existingJoke) {
+        toast({
+          title: "Duplicate Question",
+          description: "Another joke already has this question. Please use a different question.",
+          variant: "destructive",
+        });
+        setSavingEdit(false);
+        return;
+      }
+      
       // Clear AI quality in DB since joke was edited
       const { error } = await supabase
         .from("joke_library")
         .update({ 
-          question: editQuestion.trim(), 
-          answer: editAnswer.trim(),
+          question: trimmedQuestion, 
+          answer: trimmedAnswer,
           ai_quality_rating: null,
           ai_quality_reason: null,
           ai_reviewed_at: null
@@ -324,8 +345,8 @@ export const JokeLibraryManager = () => {
         j.id === editingJoke.id 
           ? { 
               ...j, 
-              question: editQuestion.trim(), 
-              answer: editAnswer.trim(),
+              question: trimmedQuestion, 
+              answer: trimmedAnswer,
               ai_quality_rating: null,
               ai_quality_reason: null,
               ai_reviewed_at: null
