@@ -588,16 +588,13 @@ export const StickerAlbum = () => {
                   <button
                     key={collection.id}
                     onClick={() => {
+                      // Always navigate to this collection's stickers when clicking its pack image
+                      setSelectedCollection(collection.id);
+                      
+                      // If user has a card for this collection, also offer to open it
                       if (cardForCollection) {
-                        // User has a card for this collection - open it directly
                         setSelectedCardId(cardForCollection.id);
                         setSelectedPackCollectionId(collection.id);
-                        setShowScratchDialog(true);
-                      } else if (availableCards.length > 0) {
-                        // User has cards but not for this collection - use first available
-                        const firstCard = availableCards[0];
-                        setSelectedCardId(firstCard.id);
-                        setSelectedPackCollectionId(firstCard.collection_id);
                         setShowScratchDialog(true);
                       }
                     }}
