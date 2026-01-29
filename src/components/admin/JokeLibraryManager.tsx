@@ -777,145 +777,145 @@ export const JokeLibraryManager = () => {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <ScrollArea className="h-[500px]">
-              <div className="overflow-x-auto min-w-full">
-              <Table className="min-w-[900px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">
-                      <Checkbox
-                        checked={selectedJokes.size === filteredJokes.length && filteredJokes.length > 0}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead className="w-[40px] text-center">AI</TableHead>
-                    <TableHead className="w-[40px] text-center">✓</TableHead>
-                    <TableHead className="w-[30%]">Question</TableHead>
-                    <TableHead className="w-[25%]">Answer</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-center">Served</TableHead>
-                    <TableHead 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSortOrder(prev => prev === "desc" ? "asc" : "desc")}
-                    >
-                      <div className="flex items-center gap-1">
-                        Created
-                        {sortOrder === "desc" ? (
-                          <ArrowDown className="h-4 w-4" />
-                        ) : (
-                          <ArrowUp className="h-4 w-4" />
-                        )}
-                      </div>
-                    </TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredJokes.map((joke) => {
-                    const quality = jokeQuality[joke.id];
-                    return (
-                      <TableRow 
-                        key={joke.id}
-                        className={quality?.quality === "bad" ? "bg-destructive/5" : undefined}
+            <div className="overflow-x-auto">
+              <div className="h-[500px] overflow-y-auto">
+                <Table className="min-w-[900px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]">
+                        <Checkbox
+                          checked={selectedJokes.size === filteredJokes.length && filteredJokes.length > 0}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead className="w-[40px] text-center">AI</TableHead>
+                      <TableHead className="w-[40px] text-center">✓</TableHead>
+                      <TableHead className="w-[30%]">Question</TableHead>
+                      <TableHead className="w-[25%]">Answer</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead className="text-center">Served</TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSortOrder(prev => prev === "desc" ? "asc" : "desc")}
                       >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedJokes.has(joke.id)}
-                            onCheckedChange={() => handleToggleSelect(joke.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex justify-center">
-                                  {quality ? (
-                                    quality.quality === "good" ? (
-                                      <ThumbsUp className="h-4 w-4 text-green-500" />
+                        <div className="flex items-center gap-1">
+                          Created
+                          {sortOrder === "desc" ? (
+                            <ArrowDown className="h-4 w-4" />
+                          ) : (
+                            <ArrowUp className="h-4 w-4" />
+                          )}
+                        </div>
+                      </TableHead>
+                      <TableHead className="w-[80px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredJokes.map((joke) => {
+                      const quality = jokeQuality[joke.id];
+                      return (
+                        <TableRow 
+                          key={joke.id}
+                          className={quality?.quality === "bad" ? "bg-destructive/5" : undefined}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedJokes.has(joke.id)}
+                              onCheckedChange={() => handleToggleSelect(joke.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex justify-center">
+                                    {quality ? (
+                                      quality.quality === "good" ? (
+                                        <ThumbsUp className="h-4 w-4 text-green-500" />
+                                      ) : (
+                                        <ThumbsDown className="h-4 w-4 text-destructive" />
+                                      )
                                     ) : (
-                                      <ThumbsDown className="h-4 w-4 text-destructive" />
-                                    )
-                                  ) : (
-                                    <span className="text-muted-foreground/30">—</span>
-                                  )}
-                                </div>
-                              </TooltipTrigger>
-                              {quality && (
-                                <TooltipContent side="right" className="max-w-[300px]">
-                                  <p>{quality.reason}</p>
-                                </TooltipContent>
+                                      <span className="text-muted-foreground/30">—</span>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                {quality && (
+                                  <TooltipContent side="right" className="max-w-[300px]">
+                                    <p>{quality.reason}</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleToggleReviewed(joke.id, joke.is_reviewed)}
+                              title={joke.is_reviewed ? "Reviewed - click to unmark" : "Click to mark as reviewed"}
+                            >
+                              {joke.is_reviewed ? (
+                                <CheckCircle className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-muted-foreground/40" />
                               )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleToggleReviewed(joke.id, joke.is_reviewed)}
-                            title={joke.is_reviewed ? "Reviewed - click to unmark" : "Click to mark as reviewed"}
-                          >
-                            {joke.is_reviewed ? (
-                              <CheckCircle className="h-5 w-5 text-green-500" />
-                            ) : (
-                              <Circle className="h-5 w-5 text-muted-foreground/40" />
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          <div className="flex items-start gap-1">
-                            <span className="flex-1">{joke.question}</span>
-                            <TextToSpeech text={joke.question} size="icon" />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-start gap-1">
-                            <span className="flex-1">{joke.answer}</span>
-                            <TextToSpeech text={joke.answer} size="icon" />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{joke.category}</Badge>
-                        </TableCell>
-                        <TableCell className="text-center">{joke.times_served}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                          {format(new Date(joke.created_at), "M/d/yy h:mm a")}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditJoke(joke)}
-                              title="Edit joke"
-                            >
-                              <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteJoke(joke.id)}
-                              title="Delete joke"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-start gap-1">
+                              <span className="flex-1">{joke.question}</span>
+                              <TextToSpeech text={joke.question} size="icon" />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-start gap-1">
+                              <span className="flex-1">{joke.answer}</span>
+                              <TextToSpeech text={joke.answer} size="icon" />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{joke.category}</Badge>
+                          </TableCell>
+                          <TableCell className="text-center">{joke.times_served}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {format(new Date(joke.created_at), "M/d/yy h:mm a")}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditJoke(joke)}
+                                title="Edit joke"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteJoke(joke.id)}
+                                title="Delete joke"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {filteredJokes.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                          No jokes found
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                  {filteredJokes.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                        No jokes found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-            </ScrollArea>
+            </div>
           )}
           
           <p className="text-sm text-muted-foreground">
