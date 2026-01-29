@@ -55,7 +55,7 @@ const ANNOUNCEABLE_APPS = [
   { id: "cash_register_time_trial", label: "Cash Register Time Trials", emoji: "⏱️", table: "feature_announcement", linkPath: "/games/cash-register" },
   { id: "card_template", label: "Card Templates", emoji: "💌", table: "card_templates", linkPath: "/games/card-creator" },
   { id: "avatar", label: "Avatars", emoji: "👤", table: "avatars", linkPath: "/profile" },
-  { id: "workout_location", label: "Workout Locations", emoji: "🏋️", table: "workout_locations", linkPath: "/games/exercise" },
+  { id: "workout_location_pack", label: "Workout Location Packs", emoji: "🏋️", table: "workout_location_packs", linkPath: "/games/exercise" },
 ];
 
 export const ContentAnnouncementsManager = () => {
@@ -343,21 +343,48 @@ export const ContentAnnouncementsManager = () => {
           }
           break;
         }
-        case "workout_locations": {
-          const { data } = await supabase
-            .from("workout_locations")
-            .select("id, name, description, image_url")
+        case "workout_location_packs": {
+          // Fetch packs
+          const { data: packs } = await supabase
+            .from("workout_location_packs")
+            .select("id, name, description, image_url, price_coins, is_free")
             .eq("is_active", true)
             .order("display_order");
-          items = (data || []).map(p => ({
-            id: p.id,
-            name: p.name,
-            description: p.description,
-            image_url: p.image_url,
-            link_url: `${app.linkPath}?location=${p.id}`,
-            price: 0,
-            is_free: true,
-          }));
+          
+          // Fetch locations to build descriptions
+          const { data: locations } = await supabase
+            .from("workout_locations")
+            .select("id, name, pack_id")
+            .eq("is_active", true)
+            .order("display_order");
+          
+          // Group locations by pack
+          const locationsByPack = (locations || []).reduce((acc, loc) => {
+            if (loc.pack_id) {
+              if (!acc[loc.pack_id]) acc[loc.pack_id] = [];
+              acc[loc.pack_id].push(loc.name);
+            }
+            return acc;
+          }, {} as Record<string, string[]>);
+          
+          items = (packs || []).map(p => {
+            const packLocations = locationsByPack[p.id] || [];
+            const locationList = packLocations.slice(0, 3).join(", ");
+            const moreCount = packLocations.length > 3 ? ` +${packLocations.length - 3} more` : "";
+            const enhancedDescription = p.description || (packLocations.length > 0 
+              ? `Includes: ${locationList}${moreCount}`
+              : "New workout locations!");
+            
+            return {
+              id: p.id,
+              name: p.name,
+              description: enhancedDescription,
+              image_url: p.image_url,
+              link_url: `${app.linkPath}?pack=${p.id}`,
+              price: p.price_coins || 0,
+              is_free: p.is_free ?? false,
+            };
+          });
           break;
         }
       }
