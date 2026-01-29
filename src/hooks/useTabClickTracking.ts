@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackTabClick as gaTrackTabClick } from "@/lib/analytics";
 
 /**
  * Hook to track tab/button clicks for analytics.
@@ -10,6 +11,9 @@ export function useTabClickTracking() {
   const { user } = useAuth();
 
   const trackTabClick = useCallback(async (tabName: string, pageUrl: string = window.location.pathname) => {
+    // Track in Google Analytics
+    gaTrackTabClick(tabName, pageUrl);
+
     try {
       // Get or create session ID
       const storedData = localStorage.getItem("page_tracking_session");

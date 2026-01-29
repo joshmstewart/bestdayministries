@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { trackPageView } from "@/lib/analytics";
 
 // Session timeout in milliseconds (30 minutes)
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -48,6 +49,9 @@ export function usePageTracking() {
     const currentPath = location.pathname + location.search;
     if (currentPath === lastTrackedPath.current) return;
     lastTrackedPath.current = currentPath;
+
+    // Track in Google Analytics
+    trackPageView(location.pathname, document.title);
 
     const trackPageVisit = async () => {
       try {
