@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { 
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
   Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2, Copy,
-  Activity, User, MapPin, Package
+  Activity, User, MapPin, Package, Clock
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -739,7 +739,26 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   )}
                 </div>
               )}
-              {item.description && item.item_type !== 'prayer' && item.item_type !== 'beat' && item.item_type !== 'workout' && (
+              {/* Event details: date, time, location */}
+              {item.item_type === 'event' && item.extra_data?.event_date && (
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" />
+                    <span>{format(new Date(item.extra_data.event_date), "EEEE, MMMM d, yyyy")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3 w-3" />
+                    <span>{format(new Date(item.extra_data.event_date), "h:mm a")}</span>
+                  </div>
+                  {item.extra_data.location && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3" />
+                      <span className="line-clamp-1">{item.extra_data.location}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {item.description && item.item_type !== 'prayer' && item.item_type !== 'beat' && item.item_type !== 'workout' && item.item_type !== 'event' && (
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {item.description}
                 </p>

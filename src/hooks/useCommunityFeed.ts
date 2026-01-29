@@ -130,6 +130,22 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
         });
       }
 
+      // For event items, fetch event_date and location from events table
+      const eventItems = feedItems.filter(item => item.item_type === 'event');
+      const eventDetailsMap = new Map<string, { event_date: string | null; location: string | null }>();
+      
+      if (eventItems.length > 0) {
+        const eventIds = eventItems.map(item => item.id);
+        const { data: eventData } = await supabase
+          .from("events")
+          .select("id, event_date, location")
+          .in("id", eventIds);
+        
+        eventData?.forEach(event => {
+          eventDetailsMap.set(event.id, { event_date: event.event_date, location: event.location });
+        });
+      }
+
       // Merge profile data with feed items, filtering invalid types
       const enrichedItems: FeedItemData[] = feedItems
         .filter(item => VALID_ITEM_TYPES.includes(item.item_type as ItemType))
@@ -142,6 +158,16 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
             extraData = {
               ...(typeof extraData === 'object' && extraData !== null ? extraData : {}),
               plays_count: beatPlaysMap.get(item.id),
+            };
+          }
+          
+          // For events, inject event_date and location into extra_data
+          if (item.item_type === 'event' && eventDetailsMap.has(item.id)) {
+            const eventDetails = eventDetailsMap.get(item.id);
+            extraData = {
+              ...(typeof extraData === 'object' && extraData !== null ? extraData : {}),
+              event_date: eventDetails?.event_date,
+              location: eventDetails?.location,
             };
           }
           
