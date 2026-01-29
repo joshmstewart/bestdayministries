@@ -581,33 +581,27 @@ export const StickerAlbum = () => {
           <CardContent>
             <div className="flex justify-center gap-4">
               {collections.slice(0, 3).map((collection) => {
-                // Check if user has an available card for this collection
+                // Find the first available card for this collection (if any)
                 const cardForCollection = availableCards.find(c => c.collection_id === collection.id);
-                const hasCardForCollection = !!cardForCollection;
                 
                 return (
                   <button
                     key={collection.id}
                     onClick={() => {
                       if (cardForCollection) {
-                        // User has a card for this collection - open it
+                        // User has a card for this collection - open it directly
                         setSelectedCardId(cardForCollection.id);
                         setSelectedPackCollectionId(collection.id);
                         setShowScratchDialog(true);
-                      } else {
-                        // No card for this collection - show toast
-                        toast({
-                          title: "No Pack Available",
-                          description: `You don't have a pack for ${collection.name}. Your available packs are from different collections.`,
-                        });
+                      } else if (availableCards.length > 0) {
+                        // User has cards but not for this collection - use first available
+                        const firstCard = availableCards[0];
+                        setSelectedCardId(firstCard.id);
+                        setSelectedPackCollectionId(firstCard.collection_id);
+                        setShowScratchDialog(true);
                       }
                     }}
-                    className={cn(
-                      "relative group transition-all focus:outline-none",
-                      hasCardForCollection 
-                        ? "hover:scale-105 active:scale-95 cursor-pointer" 
-                        : "opacity-50 cursor-not-allowed"
-                    )}
+                    className="relative group transition-all focus:outline-none hover:scale-105 active:scale-95 cursor-pointer"
                   >
                     <div className="relative w-32 h-48 sm:w-40 sm:h-56">
                       {collection.pack_image_url ? (
@@ -625,12 +619,6 @@ export const StickerAlbum = () => {
                       {collection.is_featured && (
                         <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                           ★
-                        </div>
-                      )}
-                      {/* No card indicator */}
-                      {!hasCardForCollection && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
-                          <Lock className="w-8 h-8 text-muted-foreground" />
                         </div>
                       )}
                     </div>
