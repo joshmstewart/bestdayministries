@@ -42,6 +42,7 @@ const VendorDashboard = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isAdminOrOwner, setIsAdminOrOwner] = useState(false);
   const [productRefreshTrigger, setProductRefreshTrigger] = useState(0);
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -96,11 +97,12 @@ const VendorDashboard = () => {
         .eq('user_id', user.id)
         .maybeSingle();
       
-      const isAdminOrOwner = roleData?.role && ['admin', 'owner'].includes(roleData.role);
+      const adminOrOwner = roleData?.role && ['admin', 'owner'].includes(roleData.role);
+      setIsAdminOrOwner(!!adminOrOwner);
 
       let vendorData: Vendor[] = [];
 
-      if (isAdminOrOwner) {
+      if (adminOrOwner) {
         // Admins/owners can see ALL approved vendors
         const { data, error } = await supabase
           .from('vendors')
@@ -615,7 +617,7 @@ const VendorDashboard = () => {
               
               <TabsContent value="payments" className="space-y-6">
                 <h2 className="text-2xl font-semibold">Payment Settings</h2>
-                <StripeConnectOnboarding vendorId={selectedVendorId} readOnly={!isVendorOwner} theme={theme} />
+                <StripeConnectOnboarding vendorId={selectedVendorId} readOnly={!isVendorOwner && !isAdminOrOwner} theme={theme} />
                 
                 {/* 1099 Tax Information */}
                 <Card 
