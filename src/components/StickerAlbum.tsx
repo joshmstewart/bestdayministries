@@ -532,8 +532,22 @@ export const StickerAlbum = () => {
         .from('stickers')
         .select('*')
         .eq('collection_id', selectedCollection)
-        .eq('is_active', true)
-        .order('sticker_number');
+        .eq('is_active', true);
+
+      // Apply rarity sorting (same as initial load)
+      const rarityOrder: Record<string, number> = {
+        common: 1,
+        uncommon: 2,
+        rare: 3,
+        epic: 4,
+        legendary: 5
+      };
+
+      const sortedStickers = (stickers || []).sort((a, b) => {
+        const rarityDiff = (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
+        if (rarityDiff !== 0) return rarityDiff;
+        return (a.sticker_number || 0) - (b.sticker_number || 0);
+      });
 
       const { data: obtained } = await supabase
         .from('user_stickers')
@@ -541,7 +555,7 @@ export const StickerAlbum = () => {
         .eq('user_id', session.user.id)
         .eq('collection_id', selectedCollection);
 
-      setAllStickers(stickers || []);
+      setAllStickers(sortedStickers);
       
       const userStickerMap = new Map();
       obtained?.forEach((item) => {
