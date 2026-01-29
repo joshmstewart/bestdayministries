@@ -3,6 +3,19 @@ import ReactGA from "react-ga4";
 const GA_MEASUREMENT_ID = "G-3CP9NVT9GM";
 
 /**
+ * Set the user ID for authenticated users
+ * This enables cross-device tracking and user-level analytics
+ */
+export const setUserId = (userId: string | null) => {
+  if (userId) {
+    ReactGA.set({ userId });
+  } else {
+    // Clear user ID on logout
+    ReactGA.set({ userId: undefined });
+  }
+};
+
+/**
  * Initialize Google Analytics 4
  * Should be called once at app startup
  */
