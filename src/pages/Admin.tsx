@@ -88,6 +88,7 @@ import { CashRegisterStoresManager } from "@/components/admin/CashRegisterStores
 import { CurrencyImagesManager } from "@/components/admin/CurrencyImagesManager";
 import { CashRegisterCustomersManager } from "@/components/admin/CashRegisterCustomersManager";
 import { CashRegisterPacksManager } from "@/components/admin/CashRegisterPacksManager";
+import { CashRegisterRewardsManager } from "@/components/admin/CashRegisterRewardsManager";
 import { MemoryMatchPackManager } from "@/components/admin/MemoryMatchPackManager";
 import { JokeLibraryManager } from "@/components/admin/JokeLibraryManager";
 import { JokeCategoriesManager } from "@/components/admin/JokeCategoriesManager";
@@ -642,6 +643,7 @@ const Admin = () => {
                         <TabsTrigger value="customers">Customers</TabsTrigger>
                         <TabsTrigger value="packs">Packs</TabsTrigger>
                         <TabsTrigger value="currency">Currency</TabsTrigger>
+                        <TabsTrigger value="rewards">Rewards</TabsTrigger>
                       </TabsList>
                       <TabsContent value="stores">
                         <CashRegisterStoresManager />
@@ -654,6 +656,9 @@ const Admin = () => {
                       </TabsContent>
                       <TabsContent value="currency">
                         <CurrencyImagesManager />
+                      </TabsContent>
+                      <TabsContent value="rewards">
+                        <CashRegisterRewardsManager />
                       </TabsContent>
                     </Tabs>
                   </TabsContent>
