@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { trackProductView } from "@/lib/analytics";
 
 /**
  * Hook to track product views. Records a view once per session per product.
  * Uses sessionStorage to prevent duplicate views within the same browsing session.
  */
-export const useProductViewTracking = (productId: string | undefined) => {
+export const useProductViewTracking = (productId: string | undefined, productName?: string) => {
   const hasTrackedRef = useRef(false);
 
   useEffect(() => {
@@ -19,6 +20,9 @@ export const useProductViewTracking = (productId: string | undefined) => {
       hasTrackedRef.current = true;
       return;
     }
+
+    // Track in Google Analytics
+    trackProductView(productId, productName);
 
     const trackView = async () => {
       try {
@@ -50,5 +54,5 @@ export const useProductViewTracking = (productId: string | undefined) => {
     };
 
     trackView();
-  }, [productId]);
+  }, [productId, productName]);
 };
