@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { User, Session } from "@supabase/supabase-js";
+import { setUserId } from "@/lib/analytics";
 
 type UserRole = "supporter" | "bestie" | "caregiver" | "moderator" | "admin" | "owner";
 
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           setSession(session);
           setUser(session.user);
+          setUserId(session.user.id); // Set GA user ID for returning users
           await fetchUserData(session.user);
         }
       } catch (error) {
@@ -128,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setRole(null);
+          setUserId(null); // Clear GA user ID on logout
         }
 
         if (event === 'SIGNED_OUT') {
