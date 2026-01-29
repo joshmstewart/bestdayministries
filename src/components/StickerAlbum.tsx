@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Loader2, Lock, Clock, Sparkles, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { CoinIcon } from "@/components/CoinIcon";
 import { PackOpeningDialog } from "./PackOpeningDialog";
@@ -579,44 +580,63 @@ export const StickerAlbum = () => {
           </CardHeader>
           <CardContent>
             <div className="flex justify-center gap-4">
-              {collections.slice(0, 3).map((collection) => (
-                <button
-                  key={collection.id}
-                  onClick={() => {
-                    // Find a card for this collection, or use the first available card
-                    const cardForCollection = availableCards.find(c => c.collection_id === collection.id);
-                    if (cardForCollection) {
-                      setSelectedCardId(cardForCollection.id);
-                    } else if (availableCards.length > 0) {
-                      // Open pack selector with this collection pre-selected
-                      setSelectedPackCollectionId(collection.id);
-                      setSelectedCardId(availableCards[0].id);
-                    }
-                    setShowScratchDialog(true);
-                  }}
-                  className="relative group transition-all hover:scale-105 active:scale-95 focus:outline-none"
-                >
-                  <div className="relative w-32 h-48 sm:w-40 sm:h-56">
-                    {collection.pack_image_url ? (
-                      <img
-                        src={collection.pack_image_url}
-                        alt={collection.name || 'Sticker Pack'}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex items-center justify-center">
-                        <Sparkles className="w-10 h-10 text-primary" />
-                      </div>
+              {collections.slice(0, 3).map((collection) => {
+                // Check if user has an available card for this collection
+                const cardForCollection = availableCards.find(c => c.collection_id === collection.id);
+                const hasCardForCollection = !!cardForCollection;
+                
+                return (
+                  <button
+                    key={collection.id}
+                    onClick={() => {
+                      if (cardForCollection) {
+                        // User has a card for this collection - open it
+                        setSelectedCardId(cardForCollection.id);
+                        setSelectedPackCollectionId(collection.id);
+                        setShowScratchDialog(true);
+                      } else {
+                        // No card for this collection - show toast
+                        toast({
+                          title: "No Pack Available",
+                          description: `You don't have a pack for ${collection.name}. Your available packs are from different collections.`,
+                        });
+                      }
+                    }}
+                    className={cn(
+                      "relative group transition-all focus:outline-none",
+                      hasCardForCollection 
+                        ? "hover:scale-105 active:scale-95 cursor-pointer" 
+                        : "opacity-50 cursor-not-allowed"
                     )}
-                    {/* Featured badge */}
-                    {collection.is_featured && (
-                      <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                        ★
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
+                  >
+                    <div className="relative w-32 h-48 sm:w-40 sm:h-56">
+                      {collection.pack_image_url ? (
+                        <img
+                          src={collection.pack_image_url}
+                          alt={collection.name || 'Sticker Pack'}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 rounded-lg flex items-center justify-center">
+                          <Sparkles className="w-10 h-10 text-primary" />
+                        </div>
+                      )}
+                      {/* Featured badge */}
+                      {collection.is_featured && (
+                        <div className="absolute top-1 right-1 bg-yellow-500 text-yellow-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                          ★
+                        </div>
+                      )}
+                      {/* No card indicator */}
+                      {!hasCardForCollection && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-lg">
+                          <Lock className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
               {/* View All button when more than 3 collections */}
               {collections.length > 3 && (
                 <button
