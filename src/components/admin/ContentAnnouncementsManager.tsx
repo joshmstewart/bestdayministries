@@ -55,6 +55,7 @@ const ANNOUNCEABLE_APPS = [
   { id: "cash_register_time_trial", label: "Cash Register Time Trials", emoji: "⏱️", table: "feature_announcement", linkPath: "/games/cash-register" },
   { id: "card_template", label: "Card Templates", emoji: "💌", table: "card_templates", linkPath: "/games/card-creator" },
   { id: "avatar", label: "Avatars", emoji: "👤", table: "avatars", linkPath: "/profile" },
+  { id: "workout_location", label: "Workout Locations", emoji: "🏋️", table: "workout_locations", linkPath: "/games/exercise" },
 ];
 
 export const ContentAnnouncementsManager = () => {
@@ -340,6 +341,23 @@ export const ContentAnnouncementsManager = () => {
               is_free: true,
             }];
           }
+          break;
+        }
+        case "workout_locations": {
+          const { data } = await supabase
+            .from("workout_locations")
+            .select("id, name, description, image_url")
+            .eq("is_active", true)
+            .order("display_order");
+          items = (data || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            image_url: p.image_url,
+            link_url: `${app.linkPath}?location=${p.id}`,
+            price: 0,
+            is_free: true,
+          }));
           break;
         }
       }
