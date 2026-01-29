@@ -507,6 +507,14 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
           if (error) throw error;
           break;
         }
+        case 'workout': {
+          const { error } = await supabase
+            .from('workout_generated_images')
+            .update({ is_shared_to_community: false })
+            .eq('id', item.id);
+          if (error) throw error;
+          break;
+        }
         default:
           showErrorToastWithCopy("Unshare", "Cannot unshare this type of content");
           return;
@@ -810,7 +818,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               )}
 
               {/* Unshare button for owner */}
-              {isOwner && ['beat', 'coloring', 'card', 'chore_art'].includes(item.item_type) && (
+              {isOwner && ['beat', 'coloring', 'card', 'chore_art', 'workout'].includes(item.item_type) && (
                 <Button
                   variant="ghost"
                   size="sm"
