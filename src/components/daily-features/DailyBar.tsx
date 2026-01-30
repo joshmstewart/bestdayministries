@@ -1,17 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, PenTool, Package, Loader2, ExternalLink } from "lucide-react";
+import { Sparkles, PenTool, Loader2, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
 import { DailyFivePopup } from "./DailyFivePopup";
-import { DailyScratchCard } from "@/components/DailyScratchCard";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
-import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
-import { useDailyScratchCardStatus } from "@/hooks/useDailyScratchCardStatus";
 import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
 
 // Fallback icons when no custom image is uploaded
@@ -19,7 +16,6 @@ const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> =
   mood: { icon: <span className="text-2xl">🌈</span>, emoji: "🌈" },
   "daily-five": { icon: <PenTool className="w-5 h-5" />, emoji: "🎯" },
   fortune: { icon: <Sparkles className="w-5 h-5" />, emoji: "✨" },
-  stickers: { icon: <Package className="w-5 h-5" />, emoji: "🎁" },
 };
 
 // Gradient styles for each item type
@@ -36,10 +32,6 @@ const GRADIENTS: Record<string, { gradient: string; bgGradient: string }> = {
     gradient: "from-indigo-500 to-purple-500",
     bgGradient: "from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20",
   },
-  stickers: {
-    gradient: "from-orange-500 to-yellow-500",
-    bgGradient: "from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20",
-  },
 };
 
 export function DailyBar() {
@@ -47,20 +39,16 @@ export function DailyBar() {
   const navigate = useNavigate();
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const { icons, loading } = useDailyBarIcons();
-  const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
-  const { hasAvailableCard, loading: cardStatusLoading } = useDailyScratchCardStatus();
   const { canSeeFeature } = useDailyEngagementSettings();
 
   if (!isAuthenticated) return null;
 
   const handleItemClick = (itemId: string) => {
-    // Stickers: if no card available, go to album instead of popup
-    if (itemId === "stickers" && !hasAvailableCard) {
-      navigate('/sticker-album');
-      return;
-    }
     setActivePopup(itemId);
   };
+  
+  // Filter out stickers - that's handled by the floating Daily Scratch Widget
+  const filteredIcons = icons.filter(icon => icon.item_key !== "stickers");
 
   if (loading) {
     return (
@@ -82,16 +70,9 @@ export function DailyBar() {
           <span className="text-sm font-medium text-muted-foreground hidden sm:block">Daily:</span>
           
           <div className="flex items-center gap-2 sm:gap-3">
-            {icons.map((item) => {
-              // Hide stickers button if daily_scratch_widget feature is disabled
-              if (item.item_key === "stickers" && !canSeeFeature('daily_scratch_widget')) {
-                return null;
-              }
-              
+            {filteredIcons.map((item) => {
               const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
               const fallback = FALLBACK_ICONS[item.item_key] || FALLBACK_ICONS.mood;
-              const isStickers = item.item_key === "stickers";
-              const isStickersGrayed = isStickers && !hasAvailableCard && !cardStatusLoading;
               
               return (
                 <button
@@ -103,17 +84,9 @@ export function DailyBar() {
                     "hover:scale-110 active:scale-95",
                     activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
                   )}
-                  style={isStickersGrayed ? { filter: 'grayscale(100%)' } : undefined}
                 >
                   <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
-                    {/* For stickers, show featured sticker image if available */}
-                    {isStickers && featuredStickerUrl ? (
-                      <img 
-                        src={featuredStickerUrl} 
-                        alt={item.label} 
-                        className="w-full h-full object-contain"
-                      />
-                    ) : item.icon_url ? (
+                    {item.icon_url ? (
                       <img 
                         src={item.icon_url} 
                         alt={item.label} 
@@ -133,11 +106,6 @@ export function DailyBar() {
                   <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {item.label}
                   </span>
-                  
-                  {/* Pulse indicator for stickers - only show when card available */}
-                  {isStickers && hasAvailableCard && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse" />
-                  )}
                 </button>
               );
             })}
@@ -213,35 +181,6 @@ export function DailyBar() {
         </DialogContent>
       </Dialog>
 
-      {/* Stickers Popup */}
-      <Dialog open={activePopup === "stickers"} onOpenChange={(open) => !open && setActivePopup(null)}>
-        <DialogContent className="max-w-sm" hideCloseButton>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-2xl">🎁</span>
-              <span className="bg-gradient-to-r from-orange-600 to-yellow-600 bg-clip-text text-transparent">
-                Daily Sticker Pack
-              </span>
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              Open your daily sticker pack
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            <DailyScratchCard />
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setActivePopup(null);
-                navigate("/sticker-album");
-              }}
-              className="mt-2"
-            >
-              View Full Album
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
