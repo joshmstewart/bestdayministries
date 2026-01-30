@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, PenTool, Package, Loader2 } from "lucide-react";
+import { Sparkles, PenTool, Package, Loader2, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
+import { DailyFivePopup } from "./DailyFivePopup";
 import { DailyScratchCard } from "@/components/DailyScratchCard";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
-
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
   mood: { icon: <span className="text-2xl">🌈</span>, emoji: "🌈" },
@@ -47,11 +47,8 @@ export function DailyBar() {
   if (!isAuthenticated) return null;
 
   const handleItemClick = (itemId: string) => {
-    if (itemId === "daily-five") {
-      navigate("/games/daily-five");
-    } else {
-      setActivePopup(itemId);
-    }
+    // All items now open in popups
+    setActivePopup(itemId);
   };
 
   if (loading) {
@@ -155,6 +152,38 @@ export function DailyBar() {
             </DialogDescription>
           </DialogHeader>
           <DailyFortunePopup onClose={() => setActivePopup(null)} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Daily Five Popup */}
+      <Dialog open={activePopup === "daily-five"} onOpenChange={(open) => !open && setActivePopup(null)}>
+        <DialogContent className="max-w-sm sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🎯</span>
+                <span className="bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  Daily Five
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setActivePopup(null);
+                  navigate("/games/daily-five");
+                }}
+                className="text-xs text-muted-foreground"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Full Page
+              </Button>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Play today's word puzzle
+            </DialogDescription>
+          </DialogHeader>
+          <DailyFivePopup onComplete={() => setActivePopup(null)} />
         </DialogContent>
       </Dialog>
 
