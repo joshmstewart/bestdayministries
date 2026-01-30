@@ -18,6 +18,8 @@ import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
 import OurFamily from "@/components/OurFamily";
 import { FeaturedItem } from "@/components/FeaturedItem";
 import { DailyScratchCard } from "@/components/DailyScratchCard";
+import { DailyBar } from "@/components/daily-features/DailyBar";
+import { StreakMeter } from "@/components/daily-features/StreakMeter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { isProblematicIOSVersion } from "@/lib/browserDetection";
 import { useAuth } from "@/contexts/AuthContext";
@@ -393,6 +395,14 @@ const Community = () => {
 
             {/* Community Tab - existing content */}
             <TabsContent value="community" className="mt-6 space-y-6">
+              {/* Daily Bar - always show at top for authenticated users */}
+              {user && (
+                <div className="space-y-4">
+                  <DailyBar />
+                  <StreakMeter />
+                </div>
+              )}
+              
           {sectionOrder.map(({ key, visible }) => {
             if (!visible || key === 'newsfeed') return null;
 
@@ -401,19 +411,6 @@ const Community = () => {
               case 'welcome':
                 return (
                   <div key={key} className="relative" data-tour-target="welcome-section">
-                    {/* Daily Sticker Pack Button - positioned naturally in top right with slight rotation */}
-                    {user && (
-                      <div 
-                        className={`absolute top-16 md:-top-2 right-4 md:right-8 z-10 bg-transparent ${
-                          !isProblematicIOSVersion() ? '[transform:rotate(-8deg)]' : ''
-                        }`}
-                      >
-                        <ErrorBoundary fallback={null}>
-                          <DailyScratchCard />
-                        </ErrorBoundary>
-                      </div>
-                    )}
-                    
                     <div className="text-center space-y-2">
                       <h1 className="text-4xl md:text-5xl font-black text-foreground">
                         Welcome to Your{" "}
