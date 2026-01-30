@@ -433,7 +433,10 @@ export const DiscussionDetailDialog = ({
                           ) : (
                             <>
                               {comment.content && (
-                                <p className="text-sm text-foreground">{comment.content}</p>
+                                <div className="flex items-start gap-2">
+                                  <p className="text-sm text-foreground flex-1">{comment.content}</p>
+                                  <TextToSpeech text={comment.content} size="sm" />
+                                </div>
                               )}
                               {comment.audio_url && (
                                 <AudioPlayer src={comment.audio_url} />
