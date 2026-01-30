@@ -347,7 +347,7 @@ const Community = () => {
             onValueChange={handleTabChange}
             className="w-full"
           >
-            <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="relative flex items-center justify-center mb-2">
               <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <TabsTrigger 
                   value="community" 
@@ -381,7 +381,11 @@ const Community = () => {
                   </TabsTrigger>
                 )}
               </TabsList>
-              {user && <StreakMeter />}
+              {user && (
+                <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                  <StreakMeter />
+                </div>
+              )}
             </div>
 
             {/* What's New Feed Tab - only render if user has access */}
