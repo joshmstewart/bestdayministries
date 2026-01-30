@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, PenTool, Package, Loader2, ExternalLink } from "lucide-react";
@@ -7,10 +7,12 @@ import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
 import { DailyFivePopup } from "./DailyFivePopup";
 import { DailyScratchCard } from "@/components/DailyScratchCard";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
 import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
+import { useDailyScratchCardStatus } from "@/hooks/useDailyScratchCardStatus";
+
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
   mood: { icon: <span className="text-2xl">🌈</span>, emoji: "🌈" },
@@ -45,11 +47,16 @@ export function DailyBar() {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const { icons, loading } = useDailyBarIcons();
   const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
+  const { hasAvailableCard, loading: cardStatusLoading } = useDailyScratchCardStatus();
 
   if (!isAuthenticated) return null;
 
   const handleItemClick = (itemId: string) => {
-    // All items now open in popups
+    // Stickers: if no card available, go to album instead of popup
+    if (itemId === "stickers" && !hasAvailableCard) {
+      navigate('/sticker-album');
+      return;
+    }
     setActivePopup(itemId);
   };
 
@@ -76,6 +83,8 @@ export function DailyBar() {
             {icons.map((item) => {
               const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
               const fallback = FALLBACK_ICONS[item.item_key] || FALLBACK_ICONS.mood;
+              const isStickers = item.item_key === "stickers";
+              const isStickersGrayed = isStickers && !hasAvailableCard && !cardStatusLoading;
               
               return (
                 <button
@@ -87,10 +96,11 @@ export function DailyBar() {
                     "hover:scale-110 active:scale-95",
                     activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
                   )}
+                  style={isStickersGrayed ? { filter: 'grayscale(100%)' } : undefined}
                 >
                   <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
                     {/* For stickers, show featured sticker image if available */}
-                    {item.item_key === "stickers" && featuredStickerUrl ? (
+                    {isStickers && featuredStickerUrl ? (
                       <img 
                         src={featuredStickerUrl} 
                         alt={item.label} 
@@ -117,8 +127,8 @@ export function DailyBar() {
                     {item.label}
                   </span>
                   
-                  {/* Pulse indicator for stickers */}
-                  {item.item_key === "stickers" && (
+                  {/* Pulse indicator for stickers - only show when card available */}
+                  {isStickers && hasAvailableCard && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse" />
                   )}
                 </button>
