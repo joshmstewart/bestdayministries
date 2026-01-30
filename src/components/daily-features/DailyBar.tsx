@@ -83,10 +83,8 @@ export function DailyBar() {
                   onClick={() => handleItemClick(item.item_key)}
                   className={cn(
                     "group relative flex flex-col items-center gap-1 p-2 sm:p-3 rounded-xl",
-                    "bg-gradient-to-br transition-all duration-300",
-                    gradientStyles.bgGradient,
-                    "hover:scale-110 hover:shadow-lg active:scale-95",
-                    "border border-transparent hover:border-primary/20",
+                    "transition-all duration-300",
+                    "hover:scale-110 active:scale-95",
                     activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
                   )}
                 >
