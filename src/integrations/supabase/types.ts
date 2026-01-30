@@ -2980,6 +2980,112 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_fortune_likes: {
+        Row: {
+          created_at: string
+          fortune_post_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fortune_post_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fortune_post_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_fortune_likes_fortune_post_id_fkey"
+            columns: ["fortune_post_id"]
+            isOneToOne: false
+            referencedRelation: "daily_fortune_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_fortune_posts: {
+        Row: {
+          created_at: string
+          discussion_post_id: string | null
+          fortune_id: string
+          id: string
+          likes_count: number
+          post_date: string
+        }
+        Insert: {
+          created_at?: string
+          discussion_post_id?: string | null
+          fortune_id: string
+          id?: string
+          likes_count?: number
+          post_date: string
+        }
+        Update: {
+          created_at?: string
+          discussion_post_id?: string | null
+          fortune_id?: string
+          id?: string
+          likes_count?: number
+          post_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_fortune_posts_fortune_id_fkey"
+            columns: ["fortune_id"]
+            isOneToOne: false
+            referencedRelation: "daily_fortunes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_fortunes: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          author: string | null
+          content: string
+          created_at: string
+          id: string
+          is_approved: boolean
+          is_used: boolean
+          reference: string | null
+          source_type: string
+          used_date: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          author?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_used?: boolean
+          reference?: string | null
+          source_type: string
+          used_date?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          author?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          is_used?: boolean
+          reference?: string | null
+          source_type?: string
+          used_date?: string | null
+        }
+        Relationships: []
+      }
       daily_scratch_cards: {
         Row: {
           collection_id: string
@@ -5385,6 +5491,69 @@ export type Database = {
             | null
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      mood_entries: {
+        Row: {
+          audio_url: string | null
+          coins_awarded: number | null
+          created_at: string
+          entry_date: string
+          id: string
+          mood_emoji: string
+          mood_label: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          audio_url?: string | null
+          coins_awarded?: number | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood_emoji: string
+          mood_label: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          audio_url?: string | null
+          coins_awarded?: number | null
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood_emoji?: string
+          mood_label?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mood_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          message: string
+          mood_emoji: string
+          mood_label: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message: string
+          mood_emoji: string
+          mood_label: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message?: string
+          mood_emoji?: string
+          mood_label?: string
         }
         Relationships: []
       }
@@ -8555,6 +8724,42 @@ export type Database = {
         }
         Relationships: []
       }
+      streak_milestones: {
+        Row: {
+          badge_icon: string | null
+          badge_name: string | null
+          bonus_coins: number
+          created_at: string
+          days_required: number
+          description: string | null
+          free_sticker_packs: number
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          badge_icon?: string | null
+          badge_name?: string | null
+          bonus_coins?: number
+          created_at?: string
+          days_required: number
+          description?: string | null
+          free_sticker_packs?: number
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          badge_icon?: string | null
+          badge_name?: string | null
+          bonus_coins?: number
+          created_at?: string
+          days_required?: number
+          description?: string | null
+          free_sticker_packs?: number
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       stripe_webhook_logs: {
         Row: {
           completed_at: string | null
@@ -9591,6 +9796,77 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_streak_milestones: {
+        Row: {
+          coins_awarded: number
+          earned_at: string
+          id: string
+          milestone_id: string
+          sticker_packs_awarded: number
+          user_id: string
+        }
+        Insert: {
+          coins_awarded?: number
+          earned_at?: string
+          id?: string
+          milestone_id: string
+          sticker_packs_awarded?: number
+          user_id: string
+        }
+        Update: {
+          coins_awarded?: number
+          earned_at?: string
+          id?: string
+          milestone_id?: string
+          sticker_packs_awarded?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_streak_milestones_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "streak_milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_login_date: string | null
+          longest_streak: number
+          next_milestone_days: number | null
+          total_login_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number
+          next_milestone_days?: number | null
+          total_login_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_login_date?: string | null
+          longest_streak?: number
+          next_milestone_days?: number | null
+          total_login_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_workout_goals: {
         Row: {

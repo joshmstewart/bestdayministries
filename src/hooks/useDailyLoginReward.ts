@@ -67,6 +67,9 @@ export const useDailyLoginReward = () => {
         if (data?.success && data?.amount) {
           showCoinNotification(data.amount, "Welcome back! Daily login bonus");
         }
+
+        // Also update streak (fire and forget)
+        supabase.functions.invoke("claim-streak-reward").catch(console.error);
       } catch (error) {
         console.error("Error checking daily login reward:", error);
       } finally {
