@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
-import { Flame, Trophy } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Flame, Trophy, Gift, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Milestone {
   id: string;
@@ -61,7 +63,6 @@ export function StreakMeter() {
     if (!user) return;
 
     try {
-      // Load milestones and user streak in parallel
       const [milestonesRes, streakRes] = await Promise.all([
         supabase
           .from("streak_milestones")
@@ -81,13 +82,11 @@ export function StreakMeter() {
 
       if (streakRes.data) {
         setStreak(streakRes.data);
-        // Find next milestone
         const next = (milestonesRes.data || []).find(
           (m) => m.days_required > (streakRes.data?.current_streak || 0)
         );
         setNextMilestone(next || null);
       } else {
-        // Create initial streak record
         const { data: newStreak } = await supabase
           .from("user_streaks")
           .insert({
@@ -130,40 +129,129 @@ export function StreakMeter() {
       ? Math.min(100, ((currentStreak / nextMilestone.days_required) * 100))
       : 100;
 
+  // Find achieved milestones
+  const achievedMilestones = milestones.filter(m => m.days_required <= currentStreak);
+
   return (
-    <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border border-orange-200/50">
-      {/* Flame + streak count */}
-      <div className="flex items-center gap-1.5">
-        <div className="p-1.5 rounded-full bg-gradient-to-br from-orange-400 to-red-500">
-          <Flame className="w-4 h-4 text-white" />
-        </div>
-        <span className="text-lg font-bold text-orange-600">{currentStreak}</span>
-      </div>
-
-      {/* Progress bar + next reward */}
-      {nextMilestone && (
-        <div className="flex-1 flex items-center gap-2">
-          <div className="flex-1 relative">
-            <Progress
-              value={progressWithinSegment}
-              className="h-2 bg-orange-100 dark:bg-orange-900/30"
-            />
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-full",
+            "bg-gradient-to-r from-orange-100 to-yellow-100 dark:from-orange-900/30 dark:to-yellow-900/30",
+            "border border-orange-200/50 dark:border-orange-700/50",
+            "hover:from-orange-200 hover:to-yellow-200 dark:hover:from-orange-900/50 dark:hover:to-yellow-900/50",
+            "transition-all duration-200 hover:scale-105 active:scale-95"
+          )}
+        >
+          <div className="p-1 rounded-full bg-gradient-to-br from-orange-400 to-red-500">
+            <Flame className="w-3.5 h-3.5 text-white" />
           </div>
-          <div className="flex items-center gap-1 text-xs whitespace-nowrap">
-            <span className="text-muted-foreground">{daysToNext}d →</span>
-            <span className="text-yellow-600 font-medium">+{nextMilestone.bonus_coins}</span>
-            <span className="text-purple-600 font-medium">+{nextMilestone.free_sticker_packs}📦</span>
+          <span className="text-sm font-bold text-orange-600 dark:text-orange-400">{currentStreak}</span>
+          {nextMilestone && (
+            <div className="w-12 h-1.5 bg-orange-200/50 dark:bg-orange-900/50 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-orange-400 to-yellow-500 rounded-full transition-all"
+                style={{ width: `${progressWithinSegment}%` }}
+              />
+            </div>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-4" align="end">
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-gradient-to-br from-orange-400 to-red-500">
+              <Flame className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground">Daily Streak</h4>
+              <p className="text-xs text-muted-foreground">Keep visiting to earn rewards!</p>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* All milestones reached */}
-      {!nextMilestone && (
-        <div className="flex items-center gap-1.5">
-          <Trophy className="w-4 h-4 text-yellow-600" />
-          <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">Legend!</span>
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-orange-600">{currentStreak}</p>
+              <p className="text-xs text-muted-foreground">Current Streak</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-foreground">{streak.longest_streak || currentStreak}</p>
+              <p className="text-xs text-muted-foreground">Best Streak</p>
+            </div>
+          </div>
+
+          {/* Next Milestone */}
+          {nextMilestone ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Next reward in {daysToNext} day{daysToNext !== 1 ? 's' : ''}</span>
+                <span className="font-medium text-orange-600">{nextMilestone.days_required} days</span>
+              </div>
+              <Progress value={progressWithinSegment} className="h-2 bg-orange-100 dark:bg-orange-900/30" />
+              <div className="flex items-center gap-2 text-xs">
+                <Gift className="w-3.5 h-3.5 text-yellow-600" />
+                <span className="text-yellow-700 dark:text-yellow-400">+{nextMilestone.bonus_coins} coins</span>
+                {nextMilestone.free_sticker_packs > 0 && (
+                  <>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-purple-600 dark:text-purple-400">+{nextMilestone.free_sticker_packs} sticker pack{nextMilestone.free_sticker_packs > 1 ? 's' : ''}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 rounded-lg">
+              <Trophy className="w-5 h-5 text-yellow-600" />
+              <div>
+                <p className="font-medium text-yellow-800 dark:text-yellow-300">Legend Status!</p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-400">All milestones achieved</p>
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Milestones */}
+          {milestones.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Milestones</p>
+              <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                {milestones.slice(0, 6).map((milestone) => {
+                  const isAchieved = milestone.days_required <= currentStreak;
+                  const isNext = milestone.id === nextMilestone?.id;
+                  return (
+                    <div 
+                      key={milestone.id}
+                      className={cn(
+                        "flex items-center justify-between text-xs p-2 rounded-md",
+                        isAchieved && "bg-green-50 dark:bg-green-900/20",
+                        isNext && "bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-300 dark:ring-orange-700",
+                        !isAchieved && !isNext && "bg-muted/30"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isAchieved ? (
+                          <Sparkles className="w-3.5 h-3.5 text-green-600" />
+                        ) : (
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-muted-foreground/30" />
+                        )}
+                        <span className={cn(isAchieved && "text-green-700 dark:text-green-400")}>
+                          {milestone.days_required} days
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <span>+{milestone.bonus_coins}</span>
+                        {milestone.free_sticker_packs > 0 && <span>+{milestone.free_sticker_packs}📦</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }
