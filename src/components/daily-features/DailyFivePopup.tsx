@@ -210,9 +210,29 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-        <p className="text-sm text-muted-foreground">Loading today's puzzle...</p>
+      <div className="flex flex-col items-center py-4 space-y-3">
+        {/* Theme skeleton */}
+        <div className="h-5 w-32 bg-muted animate-pulse rounded" />
+        {/* Grid skeleton */}
+        <div className="flex flex-col gap-1">
+          {[...Array(3)].map((_, row) => (
+            <div key={row} className="flex gap-1 justify-center">
+              {[...Array(5)].map((_, col) => (
+                <div key={col} className="w-10 h-10 bg-muted animate-pulse rounded border-2 border-border" />
+              ))}
+            </div>
+          ))}
+        </div>
+        {/* Keyboard skeleton */}
+        <div className="flex flex-col gap-1 items-center mt-2">
+          {[10, 9, 7].map((count, row) => (
+            <div key={row} className="flex gap-0.5">
+              {[...Array(count)].map((_, key) => (
+                <div key={key} className="w-7 h-9 bg-muted animate-pulse rounded" />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
