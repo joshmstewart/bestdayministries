@@ -61,19 +61,38 @@ serve(async (req) => {
       // No body or invalid JSON, use defaults
     }
 
-    // Get user's role to determine default easy mode
-    const { data: userRole } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .single();
+    // Get today's date in MST
+    const now = new Date();
+    const mstOffset = -7 * 60;
+    const mstDate = new Date(now.getTime() + mstOffset * 60 * 1000);
+    const today = mstDate.toISOString().split('T')[0];
+    
+    // Use requested date or default to today
+    const targetDate = requestedDate || today;
+    const isToday = targetDate === today;
 
-    // Get user's easy mode preference
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("wordle_easy_mode_enabled")
-      .eq("id", user.id)
-      .single();
+    // Run all queries in parallel for performance
+    const [userRoleResult, profileResult, dailyWordResult] = await Promise.all([
+      supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single(),
+      supabaseAdmin
+        .from("profiles")
+        .select("wordle_easy_mode_enabled")
+        .eq("id", user.id)
+        .single(),
+      supabaseAdmin
+        .from("wordle_daily_words")
+        .select("*, wordle_themes(*)")
+        .eq("word_date", targetDate)
+        .single()
+    ]);
+
+    const userRole = userRoleResult.data;
+    const profile = profileResult.data;
+    const dailyWord = dailyWordResult.data;
 
     // Determine if easy mode should be used
     // Priority: 1) explicit request, 2) user preference, 3) role default (bestie = true)
@@ -87,23 +106,6 @@ serve(async (req) => {
     } else {
       useEasyMode = isBestie;
     }
-
-    // Get today's date in MST
-    const now = new Date();
-    const mstOffset = -7 * 60;
-    const mstDate = new Date(now.getTime() + mstOffset * 60 * 1000);
-    const today = mstDate.toISOString().split('T')[0];
-    
-    // Use requested date or default to today
-    const targetDate = requestedDate || today;
-    const isToday = targetDate === today;
-
-    // Get the word for the target date
-    const { data: dailyWord } = await supabaseAdmin
-      .from("wordle_daily_words")
-      .select("*, wordle_themes(*)")
-      .eq("word_date", targetDate)
-      .single();
 
     if (!dailyWord) {
       return new Response(
