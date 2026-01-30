@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
 import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
 import { useDailyScratchCardStatus } from "@/hooks/useDailyScratchCardStatus";
+import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
 
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
@@ -48,6 +49,7 @@ export function DailyBar() {
   const { icons, loading } = useDailyBarIcons();
   const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
   const { hasAvailableCard, loading: cardStatusLoading } = useDailyScratchCardStatus();
+  const { canSeeFeature } = useDailyEngagementSettings();
 
   if (!isAuthenticated) return null;
 
@@ -81,6 +83,11 @@ export function DailyBar() {
           
           <div className="flex items-center gap-2 sm:gap-3">
             {icons.map((item) => {
+              // Hide stickers button if daily_scratch_widget feature is disabled
+              if (item.item_key === "stickers" && !canSeeFeature('daily_scratch_widget')) {
+                return null;
+              }
+              
               const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
               const fallback = FALLBACK_ICONS[item.item_key] || FALLBACK_ICONS.mood;
               const isStickers = item.item_key === "stickers";

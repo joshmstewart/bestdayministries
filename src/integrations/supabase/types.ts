@@ -3013,6 +3013,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_engagement_settings: {
+        Row: {
+          created_at: string | null
+          feature_key: string
+          feature_name: string
+          id: string
+          is_enabled: boolean | null
+          updated_at: string | null
+          visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Insert: {
+          created_at?: string | null
+          feature_key: string
+          feature_name: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Update: {
+          created_at?: string | null
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          is_enabled?: boolean | null
+          updated_at?: string | null
+          visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
+        }
+        Relationships: []
+      }
       daily_fortune_likes: {
         Row: {
           created_at: string
