@@ -341,45 +341,48 @@ const Community = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-16 pb-12">
         <div className="max-w-6xl mx-auto space-y-4">
-          {/* Community Tabs */}
+          {/* Community Tabs + Streak Meter */}
           <Tabs 
             value={activeTab} 
             onValueChange={handleTabChange}
             className="w-full"
           >
-            <TabsList className={`grid w-full max-w-[400px] mx-auto mb-2 gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
-              <TabsTrigger 
-                value="community" 
-                className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-              >
-                <Users className="w-4 h-4" />
-                Home
-              </TabsTrigger>
-              <TabsTrigger 
-                value="apps" 
-                className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                Apps
-              </TabsTrigger>
-              {canAccessFeed() && (
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <TabsTrigger 
-                  value="feed" 
-                  className="gap-2 relative px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                  value="community" 
+                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                 >
-                  <Rss className="w-4 h-4" />
-                  Feed
-                  {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
-                    >
-                      {unseenCount > 99 ? '99+' : unseenCount}
-                    </Badge>
-                  )}
+                  <Users className="w-4 h-4" />
+                  Home
                 </TabsTrigger>
-              )}
-            </TabsList>
+                <TabsTrigger 
+                  value="apps" 
+                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Apps
+                </TabsTrigger>
+                {canAccessFeed() && (
+                  <TabsTrigger 
+                    value="feed" 
+                    className="gap-2 relative px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                  >
+                    <Rss className="w-4 h-4" />
+                    Feed
+                    {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
+                      >
+                        {unseenCount > 99 ? '99+' : unseenCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                )}
+              </TabsList>
+              {user && <StreakMeter />}
+            </div>
 
             {/* What's New Feed Tab - only render if user has access */}
             {canAccessFeed() && (
@@ -396,12 +399,7 @@ const Community = () => {
             {/* Community Tab - existing content */}
             <TabsContent value="community" className="mt-6 space-y-6">
               {/* Daily Bar - always show at top for authenticated users */}
-              {user && (
-                <div className="space-y-4">
-                  <DailyBar />
-                  <StreakMeter />
-                </div>
-              )}
+              {user && <DailyBar />}
               
           {sectionOrder.map(({ key, visible }) => {
             if (!visible || key === 'newsfeed') return null;
