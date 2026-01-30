@@ -90,7 +90,7 @@ export function DailyBar() {
                     activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
                   )}
                 >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
                     {/* For stickers, show featured sticker image if available */}
                     {item.item_key === "stickers" && featuredStickerUrl ? (
                       <img 
