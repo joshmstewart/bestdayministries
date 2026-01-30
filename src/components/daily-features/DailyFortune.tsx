@@ -174,6 +174,8 @@ export function DailyFortune() {
         return <ThumbsUp className="w-4 h-4" />;
       case "discussion_starter":
         return <MessageCircle className="w-4 h-4" />;
+      case "proverbs":
+        return <BookOpen className="w-4 h-4" />;
       default:
         return <Quote className="w-4 h-4" />;
     }
@@ -191,6 +193,8 @@ export function DailyFortune() {
         return "Gratitude Prompt";
       case "discussion_starter":
         return "Discussion Starter";
+      case "proverbs":
+        return "Biblical Wisdom";
       default:
         return "Quote";
     }
