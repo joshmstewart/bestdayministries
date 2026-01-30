@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { useUnseenFeedCount } from "@/hooks/useUnseenFeedCount";
 import { AppsGrid } from "@/components/community/AppsGrid";
 import { useTabClickTracking } from "@/hooks/useTabClickTracking";
+import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const Community = () => {
   const { user, profile: authProfile, role, loading: authLoading, isAuthenticated } = useAuth();
   const { unseenCount, showBadge } = useUnseenFeedCount();
   const { trackTabClick } = useTabClickTracking();
+  const { canSeeFeature } = useDailyEngagementSettings();
   
   // Tab state from URL params
   const activeTab = searchParams.get("tab") || "community";
@@ -381,7 +383,7 @@ const Community = () => {
                   </TabsTrigger>
                 )}
               </TabsList>
-              {user && (
+              {user && canSeeFeature('login_streak_button') && (
                 <div className="absolute right-0 top-1/2 -translate-y-1/2">
                   <StreakMeter />
                 </div>
@@ -402,8 +404,8 @@ const Community = () => {
 
             {/* Community Tab - existing content */}
             <TabsContent value="community" className="mt-6 space-y-6">
-              {/* Daily Bar - always show at top for authenticated users */}
-              {user && <DailyBar />}
+              {/* Daily Bar - show at top for authenticated users if enabled */}
+              {user && canSeeFeature('daily_bar') && <DailyBar />}
               
           {sectionOrder.map(({ key, visible }) => {
             if (!visible || key === 'newsfeed') return null;
