@@ -360,7 +360,6 @@ Format as JSON array:
       reference: f.reference || null,
       is_approved: false,
       is_used: false,
-      created_by: user.id,
     }));
 
     const { data: insertedData, error: insertError } = await adminClient
