@@ -240,6 +240,40 @@ Format as JSON array:
         .trim();
     };
 
+    // Parse a Bible reference like "Matthew 1:1-3" into components
+    const parseBibleReference = (ref: string): { book: string; chapter: number; startVerse: number; endVerse: number } | null => {
+      if (!ref) return null;
+      
+      // Match patterns like "Matthew 1:1-3", "Psalm 23:1", "1 John 3:16-18"
+      const match = ref.match(/^(\d?\s*[A-Za-z]+(?:\s+[A-Za-z]+)?)\s+(\d+):(\d+)(?:-(\d+))?$/i);
+      if (!match) return null;
+      
+      const book = match[1].toLowerCase().replace(/\s+/g, ' ').trim();
+      const chapter = parseInt(match[2], 10);
+      const startVerse = parseInt(match[3], 10);
+      const endVerse = match[4] ? parseInt(match[4], 10) : startVerse;
+      
+      return { book, chapter, startVerse, endVerse };
+    };
+
+    // Check if two Bible verse references overlap
+    const doBibleReferencesOverlap = (ref1: string | null, ref2: string | null): boolean => {
+      if (!ref1 || !ref2) return false;
+      
+      const parsed1 = parseBibleReference(ref1);
+      const parsed2 = parseBibleReference(ref2);
+      
+      if (!parsed1 || !parsed2) return false;
+      
+      // Must be same book and chapter
+      if (parsed1.book !== parsed2.book || parsed1.chapter !== parsed2.chapter) {
+        return false;
+      }
+      
+      // Check verse range overlap: ranges overlap if start1 <= end2 AND end1 >= start2
+      return parsed1.startVerse <= parsed2.endVerse && parsed1.endVerse >= parsed2.startVerse;
+    };
+
     // Check if two strings are soft matches (one contains significant portion of other)
     const isSoftMatch = (newText: string, existingText: string): boolean => {
       const normalizedNew = normalizeText(newText);
@@ -270,6 +304,11 @@ Format as JSON array:
       (existingFortunes || []).map(f => normalizeText(f.content))
     );
 
+    // Build list of existing Bible references for overlap checking
+    const existingBibleReferences = (existingFortunes || [])
+      .filter(f => f.reference)
+      .map(f => f.reference as string);
+
     // Filter out duplicates
     const uniqueFortunes = fortunes.filter((f: any) => {
       const normalizedContent = normalizeText(f.content);
@@ -278,6 +317,16 @@ Format as JSON array:
       if (existingContentSet.has(normalizedContent)) {
         console.log(`Skipping exact match: "${f.content.substring(0, 50)}..."`);
         return false;
+      }
+      
+      // Check Bible reference overlap (for bible_verse type)
+      if (source_type === "bible_verse" && f.reference) {
+        for (const existingRef of existingBibleReferences) {
+          if (doBibleReferencesOverlap(f.reference, existingRef)) {
+            console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with "${existingRef}"`);
+            return false;
+          }
+        }
       }
       
       // Check soft matches against all existing
@@ -290,7 +339,6 @@ Format as JSON array:
       
       return true;
     });
-
     console.log(`Generated ${fortunes.length} fortunes, ${uniqueFortunes.length} are unique after deduplication`);
 
     if (uniqueFortunes.length === 0) {
