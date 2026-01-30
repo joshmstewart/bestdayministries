@@ -10,6 +10,7 @@ import { DailyScratchCard } from "@/components/DailyScratchCard";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
+import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
   mood: { icon: <span className="text-2xl">🌈</span>, emoji: "🌈" },
@@ -43,6 +44,7 @@ export function DailyBar() {
   const navigate = useNavigate();
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const { icons, loading } = useDailyBarIcons();
+  const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
 
   if (!isAuthenticated) return null;
 
@@ -94,7 +96,14 @@ export function DailyBar() {
                     gradientStyles.gradient,
                     "text-white"
                   )}>
-                    {item.icon_url ? (
+                    {/* For stickers, show featured sticker image if available */}
+                    {item.item_key === "stickers" && featuredStickerUrl ? (
+                      <img 
+                        src={featuredStickerUrl} 
+                        alt={item.label} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : item.icon_url ? (
                       <img 
                         src={item.icon_url} 
                         alt={item.label} 
