@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, PenTool, Loader2, ExternalLink } from "lucide-react";
+import { Sparkles, PenTool, Loader2, ExternalLink, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
 import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
+import { useDailyCompletions } from "@/hooks/useDailyCompletions";
 
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
@@ -40,11 +41,18 @@ export function DailyBar() {
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const { icons, loading } = useDailyBarIcons();
   const { canSeeFeature } = useDailyEngagementSettings();
+  const { completions, refresh: refreshCompletions } = useDailyCompletions();
 
   if (!isAuthenticated) return null;
 
   const handleItemClick = (itemId: string) => {
     setActivePopup(itemId);
+  };
+
+  const handlePopupClose = (itemId: string) => {
+    setActivePopup(null);
+    // Refresh completion status after closing a popup
+    refreshCompletions();
   };
   
   // Filter out stickers - that's handled by the floating Daily Scratch Widget
@@ -73,6 +81,7 @@ export function DailyBar() {
             {filteredIcons.map((item) => {
               const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
               const fallback = FALLBACK_ICONS[item.item_key] || FALLBACK_ICONS.mood;
+              const isCompleted = completions[item.item_key as keyof typeof completions] || false;
               
               return (
                 <button
@@ -85,7 +94,10 @@ export function DailyBar() {
                     activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
                   )}
                 >
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                  <div 
+                    className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center relative"
+                    style={isCompleted ? { filter: 'grayscale(100%)', opacity: 0.6 } : undefined}
+                  >
                     {item.icon_url ? (
                       <img 
                         src={item.icon_url} 
@@ -103,8 +115,19 @@ export function DailyBar() {
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                    {item.label}
+                  {/* Completion checkmark */}
+                  {isCompleted && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                      <Check className="w-3 h-3 text-white" />
+                    </span>
+                  )}
+                  <span className={cn(
+                    "text-[10px] sm:text-xs font-medium transition-colors",
+                    isCompleted 
+                      ? "text-green-600 dark:text-green-400" 
+                      : "text-muted-foreground group-hover:text-foreground"
+                  )}>
+                    {isCompleted ? "Done ✓" : item.label}
                   </span>
                 </button>
               );
@@ -114,7 +137,7 @@ export function DailyBar() {
       </div>
 
       {/* Mood Popup */}
-      <Dialog open={activePopup === "mood"} onOpenChange={(open) => !open && setActivePopup(null)}>
+      <Dialog open={activePopup === "mood"} onOpenChange={(open) => !open && handlePopupClose("mood")}>
         <DialogContent className="max-w-md" hideCloseButton>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -127,12 +150,12 @@ export function DailyBar() {
               Select your mood for today
             </DialogDescription>
           </DialogHeader>
-          <QuickMoodPicker onComplete={() => setActivePopup(null)} />
+          <QuickMoodPicker onComplete={() => handlePopupClose("mood")} />
         </DialogContent>
       </Dialog>
 
       {/* Fortune Popup */}
-      <Dialog open={activePopup === "fortune"} onOpenChange={(open) => !open && setActivePopup(null)}>
+      <Dialog open={activePopup === "fortune"} onOpenChange={(open) => !open && handlePopupClose("fortune")}>
         <DialogContent className="max-w-lg" hideCloseButton>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -145,12 +168,12 @@ export function DailyBar() {
               Today's inspirational message
             </DialogDescription>
           </DialogHeader>
-          <DailyFortunePopup onClose={() => setActivePopup(null)} />
+          <DailyFortunePopup onClose={() => handlePopupClose("fortune")} />
         </DialogContent>
       </Dialog>
 
       {/* Daily Five Popup */}
-      <Dialog open={activePopup === "daily-five"} onOpenChange={(open) => !open && setActivePopup(null)}>
+      <Dialog open={activePopup === "daily-five"} onOpenChange={(open) => !open && handlePopupClose("daily-five")}>
         <DialogContent className="max-w-sm sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
@@ -164,7 +187,7 @@ export function DailyBar() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setActivePopup(null);
+                  handlePopupClose("daily-five");
                   navigate("/games/daily-five");
                 }}
                 className="text-xs text-muted-foreground"
@@ -177,7 +200,7 @@ export function DailyBar() {
               Play today's word puzzle
             </DialogDescription>
           </DialogHeader>
-          <DailyFivePopup onComplete={() => setActivePopup(null)} />
+          <DailyFivePopup onComplete={() => handlePopupClose("daily-five")} />
         </DialogContent>
       </Dialog>
 

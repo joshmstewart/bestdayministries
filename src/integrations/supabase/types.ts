@@ -3107,6 +3107,38 @@ export type Database = {
           },
         ]
       }
+      daily_fortune_views: {
+        Row: {
+          created_at: string
+          fortune_post_id: string
+          id: string
+          user_id: string
+          view_date: string
+        }
+        Insert: {
+          created_at?: string
+          fortune_post_id: string
+          id?: string
+          user_id: string
+          view_date: string
+        }
+        Update: {
+          created_at?: string
+          fortune_post_id?: string
+          id?: string
+          user_id?: string
+          view_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_fortune_views_fortune_post_id_fkey"
+            columns: ["fortune_post_id"]
+            isOneToOne: false
+            referencedRelation: "daily_fortune_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_fortunes: {
         Row: {
           approved_at: string | null
