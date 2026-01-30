@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { TextToSpeech } from "@/components/TextToSpeech";
-import { Flame, Gift, Trophy, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Flame, Trophy } from "lucide-react";
 
 interface Milestone {
   id: string;
@@ -112,17 +109,8 @@ export function StreakMeter() {
     }
   };
 
-  if (authLoading || loading) {
-    return (
-      <Card className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border-orange-200/50">
-        <CardContent className="flex items-center justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!isAuthenticated || !streak) {
+  // Don't show anything while loading, not authenticated, no streak data, or streak < 2
+  if (authLoading || loading || !isAuthenticated || !streak || (streak.current_streak || 0) < 2) {
     return null;
   }
 
@@ -130,133 +118,52 @@ export function StreakMeter() {
   const daysToNext = nextMilestone
     ? nextMilestone.days_required - currentStreak
     : 0;
-  const progressToNext = nextMilestone
-    ? Math.min(100, ((currentStreak / nextMilestone.days_required) * 100))
-    : 100;
 
-  // Get previous milestone for context
+  // Get previous milestone for progress calculation
   const prevMilestone = milestones.find(
     (m, i) => milestones[i + 1]?.days_required > currentStreak && m.days_required <= currentStreak
   ) || null;
 
   const progressWithinSegment = nextMilestone && prevMilestone
     ? ((currentStreak - prevMilestone.days_required) / (nextMilestone.days_required - prevMilestone.days_required)) * 100
-    : progressToNext;
+    : nextMilestone 
+      ? Math.min(100, ((currentStreak / nextMilestone.days_required) * 100))
+      : 100;
 
   return (
-    <Card className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border-orange-200/50">
-      <CardContent className="py-4 space-y-3">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "p-2 rounded-full",
-              currentStreak > 0 
-                ? "bg-gradient-to-br from-orange-400 to-red-500 animate-pulse" 
-                : "bg-gray-200 dark:bg-gray-700"
-            )}>
-              <Flame className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <span className="text-2xl font-bold text-orange-600">
-                  {currentStreak}
-                </span>
-                <span className="text-sm text-muted-foreground">day streak</span>
-              </div>
-            </div>
-          </div>
-          <TextToSpeech
-            text={`You have a ${currentStreak} day login streak! ${nextMilestone ? `${daysToNext} more days to unlock ${nextMilestone.badge_name}` : 'You reached all milestones!'}`}
-            size="icon"
-          />
+    <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border border-orange-200/50">
+      {/* Flame + streak count */}
+      <div className="flex items-center gap-1.5">
+        <div className="p-1.5 rounded-full bg-gradient-to-br from-orange-400 to-red-500">
+          <Flame className="w-4 h-4 text-white" />
         </div>
+        <span className="text-lg font-bold text-orange-600">{currentStreak}</span>
+      </div>
 
-        {/* Progress bar */}
-        {nextMilestone && (
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{prevMilestone ? `${prevMilestone.days_required} days` : "Start"}</span>
-              <span className="font-medium text-orange-600">
-                {nextMilestone.badge_icon} {nextMilestone.days_required} days
-              </span>
-            </div>
-            <div className="relative">
-              <Progress
-                value={progressWithinSegment}
-                className="h-3 bg-orange-100 dark:bg-orange-900/30"
-              />
-              {/* Flame indicator on progress */}
-              <div
-                className="absolute top-1/2 -translate-y-1/2 transition-all duration-500"
-                style={{ left: `calc(${Math.min(95, progressWithinSegment)}% - 8px)` }}
-              >
-                <Flame className="w-4 h-4 text-orange-500 drop-shadow-md" />
-              </div>
-            </div>
+      {/* Progress bar + next reward */}
+      {nextMilestone && (
+        <div className="flex-1 flex items-center gap-2">
+          <div className="flex-1 relative">
+            <Progress
+              value={progressWithinSegment}
+              className="h-2 bg-orange-100 dark:bg-orange-900/30"
+            />
           </div>
-        )}
-
-        {/* Next reward preview */}
-        {nextMilestone && (
-          <div className="flex items-center justify-between p-2 rounded-lg bg-white/60 dark:bg-gray-800/60">
-            <div className="flex items-center gap-2">
-              <Gift className="w-4 h-4 text-purple-500" />
-              <span className="text-sm">
-                <span className="font-medium">{daysToNext}</span> days to:
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-yellow-600 font-medium">
-                +{nextMilestone.bonus_coins} coins
-              </span>
-              <span className="text-purple-600 font-medium">
-                +{nextMilestone.free_sticker_packs} pack{nextMilestone.free_sticker_packs > 1 ? 's' : ''}
-              </span>
-            </div>
+          <div className="flex items-center gap-1 text-xs whitespace-nowrap">
+            <span className="text-muted-foreground">{daysToNext}d →</span>
+            <span className="text-yellow-600 font-medium">+{nextMilestone.bonus_coins}</span>
+            <span className="text-purple-600 font-medium">+{nextMilestone.free_sticker_packs}📦</span>
           </div>
-        )}
-
-        {/* All milestones reached */}
-        {!nextMilestone && currentStreak > 0 && (
-          <div className="flex items-center justify-center gap-2 p-2 rounded-lg bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30">
-            <Trophy className="w-5 h-5 text-yellow-600" />
-            <span className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
-              All milestones reached! You're a legend!
-            </span>
-          </div>
-        )}
-
-        {/* Milestone dots */}
-        <div className="flex justify-between items-center pt-1">
-          {milestones.slice(0, 6).map((milestone) => {
-            const achieved = currentStreak >= milestone.days_required;
-            return (
-              <div
-                key={milestone.id}
-                className={cn(
-                  "flex flex-col items-center",
-                  achieved ? "opacity-100" : "opacity-40"
-                )}
-              >
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-xs",
-                    achieved
-                      ? "bg-gradient-to-br from-orange-400 to-yellow-400 text-white shadow-md"
-                      : "bg-gray-200 dark:bg-gray-700"
-                  )}
-                >
-                  {achieved ? "✓" : milestone.days_required}
-                </div>
-                <span className="text-[10px] mt-0.5 text-muted-foreground">
-                  {milestone.badge_icon || "🏆"}
-                </span>
-              </div>
-            );
-          })}
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      {/* All milestones reached */}
+      {!nextMilestone && (
+        <div className="flex items-center gap-1.5">
+          <Trophy className="w-4 h-4 text-yellow-600" />
+          <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400">Legend!</span>
+        </div>
+      )}
+    </div>
   );
 }
