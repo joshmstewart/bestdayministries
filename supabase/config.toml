@@ -311,3 +311,7 @@ schedule = "* * * * *"
 [functions.award-time-trial-rewards]
 verify_jwt = false
 schedule = "0 8 1 * *"
+
+[functions.generate-wordle-word-scheduled]
+verify_jwt = false
+schedule = "5 7 * * *"
