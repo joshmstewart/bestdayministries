@@ -39,6 +39,7 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
   const [likesCount, setLikesCount] = useState(0);
   const [liking, setLiking] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [viewRecorded, setViewRecorded] = useState(false);
 
   const getMSTDate = () => {
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -220,7 +221,25 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
 
       {/* Fortune content - tap to reveal */}
       <button
-        onClick={() => setRevealed(true)}
+        onClick={async () => {
+          setRevealed(true);
+          // Record the view for completion tracking (only once per session)
+          if (!viewRecorded && user && fortunePost) {
+            setViewRecorded(true);
+            try {
+              await supabase
+                .from("daily_fortune_views")
+                .upsert({
+                  user_id: user.id,
+                  fortune_post_id: fortunePost.id,
+                  view_date: getMSTDate(),
+                }, { onConflict: 'user_id,view_date' });
+            } catch (error) {
+              // Silently fail - not critical
+              console.error("Error recording fortune view:", error);
+            }
+          }
+        }}
         className={cn(
           "w-full text-left transition-all duration-500 p-6 rounded-xl",
           revealed
