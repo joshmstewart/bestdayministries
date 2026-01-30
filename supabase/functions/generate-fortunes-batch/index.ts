@@ -62,9 +62,14 @@ serve(async (req) => {
     if (source_type === "bible_verse") {
       prompt = `Generate ${count} unique, uplifting Bible verses that would encourage adults with intellectual and developmental disabilities. For each verse, provide:
 1. The verse text (KJV or NIV preferred)
-2. The reference (e.g., "John 3:16")
+2. The FULL Bible reference in standard format (e.g., "John 3:16", "Psalm 23:1", "Mark 1:1")
 
-Format as JSON array with objects containing: content, reference
+CRITICAL: Every verse MUST include the reference field with the book name, chapter, and verse number.
+
+Format as JSON array with objects containing: 
+- content: the verse text
+- reference: the Bible reference (e.g., "Philippians 4:13", "Jeremiah 29:11")
+
 Focus on verses about love, hope, joy, being valued, God's care, and encouragement.`;
     } else if (source_type === "affirmation") {
       prompt = `Generate ${count} unique, positive affirmations suitable for adults with intellectual and developmental disabilities. Make them:
@@ -76,12 +81,16 @@ Focus on verses about love, hope, joy, being valued, God's care, and encourageme
 Format as JSON array with objects containing: content (the affirmation text)`;
     } else {
       prompt = `Generate ${count} unique, inspirational quotes suitable for adults with intellectual and developmental disabilities. Include:
-- Famous inspirational quotes
+- Famous inspirational quotes from well-known figures
 - Simple wisdom quotes
 - Motivational sayings
 
-For each quote, provide the author if known.
-Format as JSON array with objects containing: content, author (or null if unknown)
+CRITICAL: Every quote MUST include the author field. Only use quotes where the author is known.
+
+Format as JSON array with objects containing: 
+- content: the quote text
+- author: the person who said it (REQUIRED - e.g., "Helen Keller", "Winston Churchill", "Dr. Seuss")
+
 Make them encouraging, easy to understand, and uplifting.`;
     }
 
