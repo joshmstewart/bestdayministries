@@ -77,7 +77,7 @@ export function DailyBar() {
   return (
     <div className="w-full">
       {/* Daily Bar Container */}
-      <div className="bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-2xl p-3 border border-border/50">
+      <div className="bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-2xl p-1.5 border border-border/50">
         <div className="flex items-center justify-center gap-2 sm:gap-4">
           <span className="text-sm font-medium text-muted-foreground hidden sm:block">Daily:</span>
           
@@ -98,14 +98,14 @@ export function DailyBar() {
                   key={item.id}
                   onClick={() => handleItemClick(item.item_key)}
                   className={cn(
-                    "group relative flex flex-col items-center gap-1 p-2 sm:p-3 rounded-xl",
+                    "group relative flex flex-col items-center gap-0.5 p-1 sm:p-2 rounded-xl",
                     "transition-all duration-300",
                     "hover:scale-110 active:scale-95",
                     activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
                   )}
                   style={isStickersGrayed ? { filter: 'grayscale(100%)' } : undefined}
                 >
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
                     {/* For stickers, show featured sticker image if available */}
                     {isStickers && featuredStickerUrl ? (
                       <img 
