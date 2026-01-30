@@ -94,6 +94,7 @@ import { JokeLibraryManager } from "@/components/admin/JokeLibraryManager";
 import { JokeCategoriesManager } from "@/components/admin/JokeCategoriesManager";
 import { JokeDuplicatesManager } from "@/components/admin/JokeDuplicatesManager";
 import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
+import { FortunesManager } from "@/components/admin/FortunesManager";
 import { CoinTransactionsManager } from "@/components/admin/CoinTransactionsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
@@ -628,6 +629,7 @@ const Admin = () => {
                     </TabsTrigger>
                     <TabsTrigger value="cash-register">Cash Register</TabsTrigger>
                     <TabsTrigger value="chores">Chores</TabsTrigger>
+                    <TabsTrigger value="daily-features">Daily Features</TabsTrigger>
                     <TabsTrigger value="workout">Workout</TabsTrigger>
                     <TabsTrigger value="cards">Card Creator</TabsTrigger>
                   </TabsList>
@@ -702,6 +704,10 @@ const Admin = () => {
                         <ChoreChallengeManager />
                       </TabsContent>
                     </Tabs>
+                  </TabsContent>
+
+                  <TabsContent value="daily-features">
+                    <FortunesManager />
                   </TabsContent>
 
                   <TabsContent value="workout">
