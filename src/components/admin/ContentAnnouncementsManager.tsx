@@ -55,7 +55,7 @@ const ANNOUNCEABLE_APPS = [
   { id: "cash_register_time_trial", label: "Cash Register Time Trials", emoji: "⏱️", table: "feature_announcement", linkPath: "/games/cash-register" },
   { id: "card_template", label: "Card Templates", emoji: "💌", table: "card_templates", linkPath: "/games/card-creator" },
   { id: "avatar", label: "Avatars", emoji: "👤", table: "avatars", linkPath: "/profile" },
-  { id: "workout_location_pack", label: "Workout Location Packs", emoji: "🏋️", table: "workout_location_packs", linkPath: "/games/exercise" },
+  { id: "workout_location_pack", label: "Workout Location Packs", emoji: "🏋️", table: "workout_location_packs", linkPath: "/workout-tracker" },
 ];
 
 export const ContentAnnouncementsManager = () => {
