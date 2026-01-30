@@ -2980,6 +2980,39 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_bar_icons: {
+        Row: {
+          created_at: string
+          display_order: number
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          item_key: string
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          item_key: string
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          item_key?: string
+          label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_fortune_likes: {
         Row: {
           created_at: string
