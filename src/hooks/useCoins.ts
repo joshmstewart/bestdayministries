@@ -1,12 +1,16 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Generate a unique ID for each hook instance
+let hookInstanceCounter = 0;
 
 export const useCoins = () => {
   const { user, profile, isAuthenticated, loading: authLoading } = useAuth();
   const [coins, setCoins] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const instanceIdRef = useRef<number>(++hookInstanceCounter);
 
   // Initialize coins from profile when available
   useEffect(() => {
@@ -42,7 +46,7 @@ export const useCoins = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user?.id) {
       setLoading(false);
       return;
     }
@@ -50,18 +54,27 @@ export const useCoins = () => {
     // Always fetch fresh coins on mount to ensure we have latest data
     fetchCoins();
 
-    // Subscribe to realtime updates for coins
+    // Subscribe to realtime updates for coins - use unique channel name per instance
+    const channelName = `coins-changes-${user.id}-${instanceIdRef.current}`;
     const channel = supabase
-      .channel('coins-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'profiles',
-          filter: `id=eq.${user?.id}`,
+          filter: `id=eq.${user.id}`,
         },
-        () => fetchCoins()
+        (payload) => {
+          // Directly update from payload for immediate response
+          const newCoins = (payload.new as { coins?: number })?.coins;
+          if (typeof newCoins === 'number') {
+            setCoins(newCoins);
+          } else {
+            fetchCoins();
+          }
+        }
       )
       .subscribe();
 
