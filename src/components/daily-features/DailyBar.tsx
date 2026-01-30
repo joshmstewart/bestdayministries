@@ -1,73 +1,70 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sparkles, PenTool, BookOpen, Package } from "lucide-react";
+import { Sparkles, PenTool, Package, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
 import { DailyScratchCard } from "@/components/DailyScratchCard";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
 
-interface DailyBarItem {
-  id: string;
-  icon: React.ReactNode;
-  label: string;
-  emoji?: string;
-  gradient: string;
-  bgGradient: string;
-}
+// Fallback icons when no custom image is uploaded
+const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
+  mood: { icon: <span className="text-2xl">🌈</span>, emoji: "🌈" },
+  "daily-five": { icon: <PenTool className="w-5 h-5" />, emoji: "🎯" },
+  fortune: { icon: <Sparkles className="w-5 h-5" />, emoji: "✨" },
+  stickers: { icon: <Package className="w-5 h-5" />, emoji: "🎁" },
+};
 
-const DAILY_ITEMS: DailyBarItem[] = [
-  {
-    id: "mood",
-    icon: <span className="text-2xl">🌈</span>,
-    label: "Mood",
+// Gradient styles for each item type
+const GRADIENTS: Record<string, { gradient: string; bgGradient: string }> = {
+  mood: {
     gradient: "from-purple-500 to-pink-500",
     bgGradient: "from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20",
   },
-  {
-    id: "daily-five",
-    icon: <PenTool className="w-5 h-5" />,
-    label: "Daily Five",
-    emoji: "🎯",
+  "daily-five": {
     gradient: "from-teal-500 to-cyan-500",
     bgGradient: "from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20",
   },
-  {
-    id: "fortune",
-    icon: <Sparkles className="w-5 h-5" />,
-    label: "Fortune",
-    emoji: "✨",
+  fortune: {
     gradient: "from-indigo-500 to-purple-500",
     bgGradient: "from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20",
   },
-  {
-    id: "stickers",
-    icon: <Package className="w-5 h-5" />,
-    label: "Stickers",
-    emoji: "🎁",
+  stickers: {
     gradient: "from-orange-500 to-yellow-500",
     bgGradient: "from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20",
   },
-];
+};
 
 export function DailyBar() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activePopup, setActivePopup] = useState<string | null>(null);
+  const { icons, loading } = useDailyBarIcons();
 
   if (!isAuthenticated) return null;
 
   const handleItemClick = (itemId: string) => {
     if (itemId === "daily-five") {
-      // Navigate to Daily Five game
       navigate("/games/daily-five");
     } else {
       setActivePopup(itemId);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-2xl p-3 border border-border/50">
+          <div className="flex items-center justify-center">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -77,37 +74,50 @@ export function DailyBar() {
           <span className="text-sm font-medium text-muted-foreground hidden sm:block">Daily:</span>
           
           <div className="flex items-center gap-2 sm:gap-3">
-            {DAILY_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleItemClick(item.id)}
-                className={cn(
-                  "group relative flex flex-col items-center gap-1 p-2 sm:p-3 rounded-xl",
-                  "bg-gradient-to-br transition-all duration-300",
-                  item.bgGradient,
-                  "hover:scale-110 hover:shadow-lg active:scale-95",
-                  "border border-transparent hover:border-primary/20",
-                  activePopup === item.id && "ring-2 ring-primary ring-offset-2"
-                )}
-              >
-                <div className={cn(
-                  "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center",
-                  "bg-gradient-to-br shadow-md transition-transform",
-                  item.gradient,
-                  "text-white"
-                )}>
-                  {item.icon}
-                </div>
-                <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                  {item.label}
-                </span>
-                
-                {/* Pulse indicator for items with activity */}
-                {item.id === "stickers" && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse" />
-                )}
-              </button>
-            ))}
+            {icons.map((item) => {
+              const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
+              const fallback = FALLBACK_ICONS[item.item_key] || FALLBACK_ICONS.mood;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleItemClick(item.item_key)}
+                  className={cn(
+                    "group relative flex flex-col items-center gap-1 p-2 sm:p-3 rounded-xl",
+                    "bg-gradient-to-br transition-all duration-300",
+                    gradientStyles.bgGradient,
+                    "hover:scale-110 hover:shadow-lg active:scale-95",
+                    "border border-transparent hover:border-primary/20",
+                    activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
+                  )}
+                >
+                  <div className={cn(
+                    "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center overflow-hidden",
+                    "bg-gradient-to-br shadow-md transition-transform",
+                    gradientStyles.gradient,
+                    "text-white"
+                  )}>
+                    {item.icon_url ? (
+                      <img 
+                        src={item.icon_url} 
+                        alt={item.label} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      fallback.icon
+                    )}
+                  </div>
+                  <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                    {item.label}
+                  </span>
+                  
+                  {/* Pulse indicator for stickers */}
+                  {item.item_key === "stickers" && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full animate-pulse" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -95,6 +95,7 @@ import { JokeCategoriesManager } from "@/components/admin/JokeCategoriesManager"
 import { JokeDuplicatesManager } from "@/components/admin/JokeDuplicatesManager";
 import { CoinRewardsManager } from "@/components/admin/CoinRewardsManager";
 import { FortunesManager } from "@/components/admin/FortunesManager";
+import { DailyBarIconsManager } from "@/components/admin/DailyBarIconsManager";
 import { CoinTransactionsManager } from "@/components/admin/CoinTransactionsManager";
 import WelcomeModalManager from "@/components/admin/WelcomeModalManager";
 import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
@@ -706,7 +707,8 @@ const Admin = () => {
                     </Tabs>
                   </TabsContent>
 
-                  <TabsContent value="daily-features">
+                  <TabsContent value="daily-features" className="space-y-6">
+                    <DailyBarIconsManager />
                     <FortunesManager />
                   </TabsContent>
 
