@@ -144,7 +144,7 @@ export function DailyBar() {
                       ? "text-green-600 dark:text-green-400" 
                       : "text-muted-foreground group-hover:text-foreground"
                   )}>
-                    {isCompleted ? "Done ✓" : item.label}
+                    {item.label}
                   </span>
                 </button>
               );
