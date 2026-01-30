@@ -747,6 +747,13 @@ const Community = () => {
       </main>
       
       <Footer />
+      
+      {/* Floating Daily Scratch Widget - bottom right corner */}
+      {user && canSeeFeature('daily_scratch_widget') && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <DailyScratchCard />
+        </div>
+      )}
     </div>
   );
 };
