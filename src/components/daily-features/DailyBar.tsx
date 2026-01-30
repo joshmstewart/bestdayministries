@@ -11,12 +11,14 @@ import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
 import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
 import { useDailyCompletions } from "@/hooks/useDailyCompletions";
+import { useDailyScratchCardStatus } from "@/hooks/useDailyScratchCardStatus";
 
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
   mood: { icon: <span className="text-2xl">🌈</span>, emoji: "🌈" },
   "daily-five": { icon: <PenTool className="w-5 h-5" />, emoji: "🎯" },
   fortune: { icon: <Sparkles className="w-5 h-5" />, emoji: "✨" },
+  stickers: { icon: <span className="text-2xl">🎁</span>, emoji: "🎁" },
 };
 
 // Gradient styles for each item type
@@ -42,6 +44,7 @@ export function DailyBar() {
   const { icons, loading } = useDailyBarIcons();
   const { canSeeFeature } = useDailyEngagementSettings();
   const { completions, refresh: refreshCompletions } = useDailyCompletions();
+  const { hasAvailableCard, previewStickerUrl } = useDailyScratchCardStatus();
 
   if (!isAuthenticated) return null;
 
@@ -80,12 +83,27 @@ export function DailyBar() {
             {icons.map((item) => {
               const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
               const fallback = FALLBACK_ICONS[item.item_key] || FALLBACK_ICONS.mood;
-              const isCompleted = completions[item.item_key as keyof typeof completions] || false;
+              
+              // For stickers, use scratch card availability; for others, use completion status
+              const isStickers = item.item_key === 'stickers';
+              const isCompleted = isStickers 
+                ? !hasAvailableCard  // Stickers is "done" when no card available
+                : (completions[item.item_key as keyof typeof completions] || false);
+              
+              // For stickers, use the preview sticker URL from the scratch card system
+              const iconUrl = isStickers ? previewStickerUrl : item.icon_url;
               
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleItemClick(item.item_key)}
+                  onClick={() => {
+                    if (isStickers) {
+                      // Stickers click navigates to sticker album
+                      navigate('/sticker-album');
+                    } else {
+                      handleItemClick(item.item_key);
+                    }
+                  }}
                   className={cn(
                     "group relative flex flex-col items-center gap-0.5 p-1 sm:p-2 rounded-xl",
                     "transition-all duration-300",
@@ -97,9 +115,9 @@ export function DailyBar() {
                     className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center relative"
                     style={isCompleted ? { filter: 'grayscale(100%)', opacity: 0.6 } : undefined}
                   >
-                    {item.icon_url ? (
+                    {iconUrl ? (
                       <img 
-                        src={item.icon_url} 
+                        src={iconUrl} 
                         alt={item.label} 
                         className="w-full h-full object-contain"
                       />

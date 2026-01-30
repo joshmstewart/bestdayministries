@@ -6,6 +6,7 @@ import { useLocation } from "react-router-dom";
 interface DailyScratchCardStatus {
   hasAvailableCard: boolean;
   loading: boolean;
+  previewStickerUrl: string | null;
 }
 
 // Helper function to get current date in MST (UTC-7)
@@ -18,15 +19,17 @@ const getMSTDate = () => {
 };
 
 export function useDailyScratchCardStatus(): DailyScratchCardStatus {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const location = useLocation();
   const [hasAvailableCard, setHasAvailableCard] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [previewStickerUrl, setPreviewStickerUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setLoading(false);
       setHasAvailableCard(false);
+      setPreviewStickerUrl(null);
       return;
     }
 
@@ -35,32 +38,65 @@ export function useDailyScratchCardStatus(): DailyScratchCardStatus {
         const mstDate = getMSTDate();
         const today = mstDate.toISOString().split('T')[0];
 
-        // Check for unscratched daily card
-        const { data: dailyCard } = await supabase
-          .from('daily_scratch_cards')
-          .select('id, is_scratched')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .eq('is_bonus_card', false)
-          .maybeSingle();
+        // Batch queries for efficiency
+        const [
+          { data: dailyCard },
+          { data: bonusCards },
+          { data: featuredCollection }
+        ] = await Promise.all([
+          // Check for daily card
+          supabase
+            .from('daily_scratch_cards')
+            .select('id, is_scratched, collection_id')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .eq('is_bonus_card', false)
+            .maybeSingle(),
+          // Check for unscratched bonus cards
+          supabase
+            .from('daily_scratch_cards')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .eq('is_bonus_card', true)
+            .eq('is_scratched', false)
+            .limit(1),
+          // Get featured collection with preview sticker
+          supabase
+            .from('sticker_collections')
+            .select(`
+              id,
+              preview_sticker_id,
+              preview_sticker:stickers!preview_sticker_id(image_url)
+            `)
+            .eq('is_active', true)
+            .eq('is_featured', true)
+            .single()
+        ]);
 
-        // Check for unscratched bonus cards
-        const { data: bonusCards } = await supabase
-          .from('daily_scratch_cards')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('date', today)
-          .eq('is_bonus_card', true)
-          .eq('is_scratched', false)
-          .limit(1);
-
-        // Has available card if:
-        // 1. Daily card exists and is not scratched, OR
-        // 2. Daily card is scratched but there are unscratched bonus cards
+        // Determine available card status
         const hasDaily = dailyCard && !dailyCard.is_scratched;
         const hasBonus = bonusCards && bonusCards.length > 0;
-        
         setHasAvailableCard(hasDaily || hasBonus);
+
+        // Get preview sticker URL from featured collection
+        if (featuredCollection?.preview_sticker?.image_url) {
+          setPreviewStickerUrl(featuredCollection.preview_sticker.image_url);
+        } else if (dailyCard?.collection_id) {
+          // Fallback: fetch first sticker from the card's collection
+          const { data: firstSticker } = await supabase
+            .from('stickers')
+            .select('image_url')
+            .eq('collection_id', dailyCard.collection_id)
+            .eq('is_active', true)
+            .order('display_order')
+            .limit(1)
+            .single();
+          
+          if (firstSticker?.image_url) {
+            setPreviewStickerUrl(firstSticker.image_url);
+          }
+        }
       } catch (error) {
         console.error('Error checking card status:', error);
         setHasAvailableCard(false);
@@ -87,7 +123,7 @@ export function useDailyScratchCardStatus(): DailyScratchCardStatus {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, location.key]);
+  }, [user?.id, role, location.key]);
 
-  return { hasAvailableCard, loading };
+  return { hasAvailableCard, loading, previewStickerUrl };
 }
