@@ -777,6 +777,7 @@ const Admin = () => {
                     <TabsTrigger value="about">About</TabsTrigger>
                     <TabsTrigger value="community">Community</TabsTrigger>
                     <TabsTrigger value="apps-grid">Apps Grid</TabsTrigger>
+                    <TabsTrigger value="daily">Daily</TabsTrigger>
                     <TabsTrigger value="coffee-shop">Coffee Shop</TabsTrigger>
                     <TabsTrigger value="joy-house-stores">Joy House Stores</TabsTrigger>
                     <TabsTrigger value="welcome-modal">Welcome Modal</TabsTrigger>
@@ -805,6 +806,11 @@ const Admin = () => {
 
                   <TabsContent value="apps-grid">
                     <AppConfigManager />
+                  </TabsContent>
+
+                  <TabsContent value="daily" className="space-y-6">
+                    <DailyBarIconsManager />
+                    <DailyEngagementSettingsManager />
                   </TabsContent>
 
                   <TabsContent value="coffee-shop">
