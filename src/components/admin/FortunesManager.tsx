@@ -39,7 +39,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-type FortuneSourceType = "bible_verse" | "affirmation" | "quote" | "life_lesson" | "gratitude_prompt" | "discussion_starter";
+type FortuneSourceType = "bible_verse" | "affirmation" | "quote" | "life_lesson" | "gratitude_prompt" | "discussion_starter" | "proverbs";
 
 interface Fortune {
   id: string;
@@ -231,6 +231,8 @@ export function FortunesManager() {
         return <ThumbsUp className="h-4 w-4" />;
       case "discussion_starter":
         return <MessageCircle className="h-4 w-4" />;
+      case "proverbs":
+        return <Book className="h-4 w-4" />;
       default:
         return <Quote className="h-4 w-4" />;
     }
@@ -248,6 +250,8 @@ export function FortunesManager() {
         return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
       case "discussion_starter":
         return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      case "proverbs":
+        return "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200";
       default:
         return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
     }
@@ -289,6 +293,7 @@ export function FortunesManager() {
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="bible_verse">Bible Verses</SelectItem>
+              <SelectItem value="proverbs">Biblical Wisdom</SelectItem>
               <SelectItem value="affirmation">Affirmations</SelectItem>
               <SelectItem value="quote">Quotes</SelectItem>
               <SelectItem value="life_lesson">Life Lessons</SelectItem>
@@ -514,6 +519,12 @@ export function FortunesManager() {
                       Discussion Starters
                     </div>
                   </SelectItem>
+                  <SelectItem value="proverbs">
+                    <div className="flex items-center gap-2">
+                      <Book className="h-4 w-4 text-teal-500" />
+                      Biblical Wisdom (Proverbs)
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -574,6 +585,7 @@ export function FortunesManager() {
                 <SelectContent>
                   <SelectItem value="affirmation">Affirmation</SelectItem>
                   <SelectItem value="bible_verse">Bible Verse</SelectItem>
+                  <SelectItem value="proverbs">Biblical Wisdom</SelectItem>
                   <SelectItem value="quote">Quote</SelectItem>
                   <SelectItem value="life_lesson">Life Lesson</SelectItem>
                   <SelectItem value="gratitude_prompt">Gratitude Prompt</SelectItem>

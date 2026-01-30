@@ -156,6 +156,32 @@ EXAMPLES:
 
 Format as JSON array:
 [{"content": "the discussion question text"}]`;
+    } else if (source_type === "proverbs") {
+      prompt = `Generate ${count} REAL biblical proverbs and wisdom sayings. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
+
+Focus on timeless wisdom about:
+- Living wisely and making good choices
+- Treating others with kindness
+- The value of hard work and patience
+- Friendship and relationships
+- Honesty and integrity
+- Finding peace and contentment
+
+EXAMPLES of valid proverbs:
+- "A gentle answer turns away wrath, but a harsh word stirs up anger." - Proverbs 15:1
+- "Trust in the Lord with all your heart and lean not on your own understanding." - Proverbs 3:5
+- "A friend loves at all times." - Proverbs 17:17
+- "Do unto others as you would have them do unto you." - Luke 6:31
+- "The truth will set you free." - John 8:32
+
+CRITICAL REQUIREMENTS:
+- These must be REAL Bible verses or accurate paraphrases of biblical wisdom
+- Include the Bible reference when possible
+- Choose accessible, practical wisdom that applies to daily life
+- Keep language simple and understandable
+
+Format as JSON array:
+[{"content": "the proverb or wisdom text", "reference": "Book Chapter:Verse (if applicable)"}]`;
     } else {
       // Default: inspirational_quote
       prompt = `Generate ${count} REAL, VERIFIED inspirational quotes from famous people. These must be actual quotes that can be attributed to real historical or contemporary figures.
