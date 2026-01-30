@@ -218,8 +218,91 @@ Format as JSON array:
       throw new Error("Failed to parse AI response as JSON");
     }
 
-    // Insert fortunes into database
-    const fortunesToInsert = fortunes.map((f: any) => ({
+    // Fetch existing fortunes for deduplication
+    const { data: existingFortunes, error: fetchError } = await adminClient
+      .from("daily_fortunes")
+      .select("content, author, reference");
+    
+    if (fetchError) {
+      console.error("Failed to fetch existing fortunes:", fetchError);
+      throw new Error("Failed to check for duplicates");
+    }
+
+    // Normalize text for comparison (lowercase, remove punctuation, trim)
+    const normalizeText = (text: string): string => {
+      return text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '') // Remove punctuation
+        .replace(/\s+/g, ' ')    // Normalize whitespace
+        .trim();
+    };
+
+    // Check if two strings are soft matches (one contains significant portion of other)
+    const isSoftMatch = (newText: string, existingText: string): boolean => {
+      const normalizedNew = normalizeText(newText);
+      const normalizedExisting = normalizeText(existingText);
+      
+      // Exact match after normalization
+      if (normalizedNew === normalizedExisting) return true;
+      
+      // Check if one contains the other (for quotes that might have slight variations)
+      if (normalizedNew.includes(normalizedExisting) || normalizedExisting.includes(normalizedNew)) {
+        return true;
+      }
+      
+      // Check word overlap - if 80% of words match, consider it a soft match
+      const newWords = normalizedNew.split(' ').filter(w => w.length > 3); // Only meaningful words
+      const existingWords = new Set(normalizedExisting.split(' ').filter(w => w.length > 3));
+      
+      if (newWords.length === 0) return false;
+      
+      const matchingWords = newWords.filter(w => existingWords.has(w)).length;
+      const overlapRatio = matchingWords / newWords.length;
+      
+      return overlapRatio >= 0.8;
+    };
+
+    // Build set of existing normalized content for quick lookup
+    const existingContentSet = new Set(
+      (existingFortunes || []).map(f => normalizeText(f.content))
+    );
+
+    // Filter out duplicates
+    const uniqueFortunes = fortunes.filter((f: any) => {
+      const normalizedContent = normalizeText(f.content);
+      
+      // Check exact match (after normalization)
+      if (existingContentSet.has(normalizedContent)) {
+        console.log(`Skipping exact match: "${f.content.substring(0, 50)}..."`);
+        return false;
+      }
+      
+      // Check soft matches against all existing
+      for (const existing of (existingFortunes || [])) {
+        if (isSoftMatch(f.content, existing.content)) {
+          console.log(`Skipping soft match: "${f.content.substring(0, 50)}..." matches "${existing.content.substring(0, 50)}..."`);
+          return false;
+        }
+      }
+      
+      return true;
+    });
+
+    console.log(`Generated ${fortunes.length} fortunes, ${uniqueFortunes.length} are unique after deduplication`);
+
+    if (uniqueFortunes.length === 0) {
+      return new Response(JSON.stringify({
+        success: true,
+        count: 0,
+        message: "All generated fortunes were duplicates of existing ones",
+        fortunes: [],
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Insert only unique fortunes into database
+    const fortunesToInsert = uniqueFortunes.map((f: any) => ({
       content: f.content,
       source_type,
       author: f.author || null,
