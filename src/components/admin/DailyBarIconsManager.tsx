@@ -173,11 +173,11 @@ export function DailyBarIconsManager() {
         <CardTitle>Daily Bar Icons</CardTitle>
         <p className="text-sm text-muted-foreground">
           Customize the icons displayed in the Daily Bar on the Community page.
-          Upload custom images or use the default emojis.
+          Upload custom images or use the default emojis. (Stickers icon is managed automatically based on scratch card availability.)
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {icons.map((icon) => (
+        {icons.filter(icon => icon.item_key !== "stickers").map((icon) => (
           <div
             key={icon.id}
             className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20"

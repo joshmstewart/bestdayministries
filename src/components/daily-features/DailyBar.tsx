@@ -55,8 +55,7 @@ export function DailyBar() {
     refreshCompletions();
   };
   
-  // Filter out stickers - that's handled by the floating Daily Scratch Widget
-  const filteredIcons = icons.filter(icon => icon.item_key !== "stickers");
+  // All icons are shown - stickers uses same availability logic as Daily Scratch Widget
 
   if (loading) {
     return (
@@ -78,7 +77,7 @@ export function DailyBar() {
           <span className="text-sm font-medium text-muted-foreground hidden sm:block">Daily:</span>
           
           <div className="flex items-center gap-2 sm:gap-3">
-            {filteredIcons.map((item) => {
+            {icons.map((item) => {
               const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
               const fallback = FALLBACK_ICONS[item.item_key] || FALLBACK_ICONS.mood;
               const isCompleted = completions[item.item_key as keyof typeof completions] || false;
