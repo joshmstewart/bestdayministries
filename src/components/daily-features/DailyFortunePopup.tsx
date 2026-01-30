@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink } from "lucide-react";
+import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -167,6 +167,12 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
         return <BookOpen className="w-4 h-4" />;
       case "affirmation":
         return <Star className="w-4 h-4" />;
+      case "life_lesson":
+        return <Lightbulb className="w-4 h-4" />;
+      case "gratitude_prompt":
+        return <ThumbsUp className="w-4 h-4" />;
+      case "discussion_starter":
+        return <MessageCircle className="w-4 h-4" />;
       default:
         return <Quote className="w-4 h-4" />;
     }
@@ -178,6 +184,12 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
         return "Scripture";
       case "affirmation":
         return "Affirmation";
+      case "life_lesson":
+        return "Life Lesson";
+      case "gratitude_prompt":
+        return "Gratitude Prompt";
+      case "discussion_starter":
+        return "Discussion Starter";
       default:
         return "Quote";
     }

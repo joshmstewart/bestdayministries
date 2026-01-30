@@ -34,12 +34,17 @@ import {
   Book,
   Heart,
   Quote,
+  Lightbulb,
+  ThumbsUp,
+  MessageCircle,
 } from "lucide-react";
+
+type FortuneSourceType = "bible_verse" | "affirmation" | "quote" | "life_lesson" | "gratitude_prompt" | "discussion_starter";
 
 interface Fortune {
   id: string;
   content: string;
-  source_type: "bible_verse" | "affirmation" | "quote";
+  source_type: FortuneSourceType;
   author: string | null;
   reference: string | null;
   is_approved: boolean;
@@ -61,7 +66,7 @@ export function FortunesManager() {
   const [generateType, setGenerateType] = useState<string>("affirmation");
   const [newFortune, setNewFortune] = useState({
     content: "",
-    source_type: "affirmation" as "bible_verse" | "affirmation" | "quote",
+    source_type: "affirmation" as FortuneSourceType,
     author: "",
     reference: "",
   });
@@ -220,6 +225,12 @@ export function FortunesManager() {
         return <Book className="h-4 w-4" />;
       case "affirmation":
         return <Heart className="h-4 w-4" />;
+      case "life_lesson":
+        return <Lightbulb className="h-4 w-4" />;
+      case "gratitude_prompt":
+        return <ThumbsUp className="h-4 w-4" />;
+      case "discussion_starter":
+        return <MessageCircle className="h-4 w-4" />;
       default:
         return <Quote className="h-4 w-4" />;
     }
@@ -231,6 +242,12 @@ export function FortunesManager() {
         return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
       case "affirmation":
         return "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200";
+      case "life_lesson":
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
+      case "gratitude_prompt":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case "discussion_starter":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
       default:
         return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
     }
@@ -274,6 +291,9 @@ export function FortunesManager() {
               <SelectItem value="bible_verse">Bible Verses</SelectItem>
               <SelectItem value="affirmation">Affirmations</SelectItem>
               <SelectItem value="quote">Quotes</SelectItem>
+              <SelectItem value="life_lesson">Life Lessons</SelectItem>
+              <SelectItem value="gratitude_prompt">Gratitude Prompts</SelectItem>
+              <SelectItem value="discussion_starter">Discussion Starters</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -476,6 +496,24 @@ export function FortunesManager() {
                       Inspirational Quotes
                     </div>
                   </SelectItem>
+                  <SelectItem value="life_lesson">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="h-4 w-4 text-emerald-500" />
+                      Life Lessons
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="gratitude_prompt">
+                    <div className="flex items-center gap-2">
+                      <ThumbsUp className="h-4 w-4 text-purple-500" />
+                      Gratitude Prompts
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="discussion_starter">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="h-4 w-4 text-orange-500" />
+                      Discussion Starters
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -537,6 +575,9 @@ export function FortunesManager() {
                   <SelectItem value="affirmation">Affirmation</SelectItem>
                   <SelectItem value="bible_verse">Bible Verse</SelectItem>
                   <SelectItem value="quote">Quote</SelectItem>
+                  <SelectItem value="life_lesson">Life Lesson</SelectItem>
+                  <SelectItem value="gratitude_prompt">Gratitude Prompt</SelectItem>
+                  <SelectItem value="discussion_starter">Discussion Starter</SelectItem>
                 </SelectContent>
               </Select>
             </div>

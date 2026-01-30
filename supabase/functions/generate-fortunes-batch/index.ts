@@ -60,38 +60,125 @@ serve(async (req) => {
     
     let prompt = "";
     if (source_type === "bible_verse") {
-      prompt = `Generate ${count} unique, uplifting Bible verses that would encourage adults with intellectual and developmental disabilities. For each verse, provide:
-1. The verse text (KJV or NIV preferred)
-2. The FULL Bible reference in standard format (e.g., "John 3:16", "Psalm 23:1", "Mark 1:1")
+      prompt = `Generate ${count} REAL, ACTUAL Bible verses from the NIV or KJV translation. These must be genuine scripture that can be verified.
 
-CRITICAL: Every verse MUST include the reference field with the book name, chapter, and verse number.
+For each verse, provide:
+1. The EXACT verse text as it appears in the Bible (NIV or KJV)
+2. The precise Bible reference (Book Chapter:Verse format)
 
-Format as JSON array with objects containing: 
-- content: the verse text
-- reference: the Bible reference (e.g., "Philippians 4:13", "Jeremiah 29:11")
+EXAMPLES of valid verses:
+- "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life." - John 3:16
+- "I can do all things through Christ who strengthens me." - Philippians 4:13
+- "The Lord is my shepherd; I shall not want." - Psalm 23:1
+- "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go." - Joshua 1:9
 
-Focus on verses about love, hope, joy, being valued, God's care, and encouragement.`;
+Focus on verses about: love, hope, joy, being valued, God's care, encouragement, strength, peace, and friendship.
+
+CRITICAL REQUIREMENTS:
+- These must be REAL Bible verses, not made-up spiritual sayings
+- Include the EXACT reference (e.g., "John 3:16", "Psalm 23:1-2", "Romans 8:28")
+- Use common, encouraging passages that are accessible to all readers
+
+Format as JSON array:
+[{"content": "exact verse text", "reference": "Book Chapter:Verse"}]`;
     } else if (source_type === "affirmation") {
-      prompt = `Generate ${count} unique, positive affirmations suitable for adults with intellectual and developmental disabilities. Make them:
-- Simple and easy to understand
-- Empowering and encouraging
-- First-person statements starting with "I am" or "I can"
-- Focused on self-worth, abilities, and positive qualities
+      prompt = `Generate ${count} unique, positive affirmations for adults with intellectual and developmental disabilities.
 
-Format as JSON array with objects containing: content (the affirmation text)`;
+Make them:
+- Simple sentences (8-15 words max)
+- First-person statements ("I am...", "I can...", "I have...")
+- Focused on self-worth, abilities, belonging, and positive qualities
+- Easy to remember and repeat daily
+
+EXAMPLES:
+- "I am loved and valued exactly as I am."
+- "I can do hard things with help from my friends."
+- "My feelings matter and it's okay to express them."
+- "I am getting better every day."
+- "I belong here and I am important."
+
+Format as JSON array:
+[{"content": "the affirmation text"}]`;
+    } else if (source_type === "life_lesson") {
+      prompt = `Generate ${count} simple life lessons and wisdom for adults with intellectual and developmental disabilities.
+
+Focus on practical wisdom about:
+- Friendship and relationships
+- Handling emotions
+- Being kind to yourself
+- Trying new things
+- Dealing with disappointment
+- Celebrating small wins
+
+Make them conversational and relatable, like advice from a caring friend.
+
+EXAMPLES:
+- "It's okay to ask for help. That's what friends are for."
+- "Making mistakes means you're trying something new. That's brave!"
+- "A bad day doesn't mean a bad life. Tomorrow is a fresh start."
+
+Format as JSON array:
+[{"content": "the life lesson text"}]`;
+    } else if (source_type === "gratitude_prompt") {
+      prompt = `Generate ${count} gratitude prompts to help adults with intellectual and developmental disabilities reflect on the good things in life.
+
+Make them:
+- Simple questions or statements that prompt reflection
+- Related to everyday experiences (friends, activities, small pleasures)
+- Easy to connect to their daily life
+
+EXAMPLES:
+- "What made you smile today?"
+- "Think of someone who helps you. What do you appreciate about them?"
+- "What's your favorite thing about where you live?"
+- "What food are you grateful for?"
+
+Format as JSON array:
+[{"content": "the gratitude prompt text"}]`;
+    } else if (source_type === "discussion_starter") {
+      prompt = `Generate ${count} thought-provoking discussion questions for adults with intellectual and developmental disabilities.
+
+Topics should encourage sharing experiences and opinions about:
+- Favorite things (food, activities, places)
+- Dreams and goals
+- Friendship and helping others
+- Handling challenges
+- What makes them happy
+
+EXAMPLES:
+- "If you could have any superpower, what would it be and why?"
+- "What's the nicest thing someone did for you recently?"
+- "If you could learn to do anything, what would you choose?"
+- "What does being a good friend mean to you?"
+
+Format as JSON array:
+[{"content": "the discussion question text"}]`;
     } else {
-      prompt = `Generate ${count} unique, inspirational quotes suitable for adults with intellectual and developmental disabilities. Include:
-- Famous inspirational quotes from well-known figures
-- Simple wisdom quotes
-- Motivational sayings
+      // Default: inspirational_quote
+      prompt = `Generate ${count} REAL, VERIFIED inspirational quotes from famous people. These must be actual quotes that can be attributed to real historical or contemporary figures.
 
-CRITICAL: Every quote MUST include the author field. Only use quotes where the author is known.
+CRITICAL: Only use quotes that are genuinely from these people, not misattributed or made-up quotes.
 
-Format as JSON array with objects containing: 
-- content: the quote text
-- author: the person who said it (REQUIRED - e.g., "Helen Keller", "Winston Churchill", "Dr. Seuss")
+Include quotes from well-known figures like:
+- Helen Keller, Walt Disney, Mr. Rogers, Dr. Seuss
+- Maya Angelou, Nelson Mandela, Winston Churchill
+- Oprah Winfrey, Michael Jordan, Albert Einstein
+- Martin Luther King Jr., Mahatma Gandhi
 
-Make them encouraging, easy to understand, and uplifting.`;
+EXAMPLES of valid quotes:
+- "The only thing we have to fear is fear itself." - Franklin D. Roosevelt
+- "Be the change you wish to see in the world." - Mahatma Gandhi
+- "You're braver than you believe, stronger than you seem, and smarter than you think." - A.A. Milne
+- "No one can make you feel inferior without your consent." - Eleanor Roosevelt
+
+REQUIREMENTS:
+- Every quote MUST include the author
+- Only use quotes you are confident are accurately attributed
+- Choose encouraging, uplifting quotes about courage, kindness, perseverance, and self-worth
+- Avoid complex or abstract quotes - keep them accessible
+
+Format as JSON array:
+[{"content": "quote text", "author": "Person Name"}]`;
     }
 
     const aiResponse = await fetch(`${aiGatewayUrl}/chat/completions`, {
