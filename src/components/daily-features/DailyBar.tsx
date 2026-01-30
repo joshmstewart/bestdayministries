@@ -90,27 +90,29 @@ export function DailyBar() {
                     activePopup === item.item_key && "ring-2 ring-primary ring-offset-2"
                   )}
                 >
-                  <div className={cn(
-                    "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center overflow-hidden",
-                    "bg-gradient-to-br shadow-md transition-transform",
-                    gradientStyles.gradient,
-                    "text-white"
-                  )}>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
                     {/* For stickers, show featured sticker image if available */}
                     {item.item_key === "stickers" && featuredStickerUrl ? (
                       <img 
                         src={featuredStickerUrl} 
                         alt={item.label} 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : item.icon_url ? (
                       <img 
                         src={item.icon_url} 
                         alt={item.label} 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
-                      fallback.icon
+                      <div className={cn(
+                        "w-full h-full rounded-full flex items-center justify-center",
+                        "bg-gradient-to-br shadow-md",
+                        gradientStyles.gradient,
+                        "text-white"
+                      )}>
+                        {fallback.icon}
+                      </div>
                     )}
                   </div>
                   <span className="text-[10px] sm:text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
