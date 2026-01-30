@@ -3013,6 +3013,30 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_engagement_completions: {
+        Row: {
+          coins_awarded: number
+          completion_date: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          coins_awarded?: number
+          completion_date: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          coins_awarded?: number
+          completion_date?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_engagement_settings: {
         Row: {
           created_at: string | null

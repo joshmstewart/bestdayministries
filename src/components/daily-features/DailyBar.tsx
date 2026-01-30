@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, PenTool, Loader2, ExternalLink, Check } from "lucide-react";
@@ -12,6 +12,7 @@ import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
 import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
 import { useDailyCompletions } from "@/hooks/useDailyCompletions";
 import { useDailyScratchCardStatus } from "@/hooks/useDailyScratchCardStatus";
+import { useDailyEngagementBonus } from "@/hooks/useDailyEngagementBonus";
 
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
@@ -45,6 +46,15 @@ export function DailyBar() {
   const { canSeeFeature } = useDailyEngagementSettings();
   const { completions, refresh: refreshCompletions } = useDailyCompletions();
   const { hasAvailableCard, previewStickerUrl } = useDailyScratchCardStatus();
+
+  // Calculate if all daily items are completed
+  const allCompleted = useMemo(() => {
+    const stickersCompleted = !hasAvailableCard;
+    return completions.mood && completions.fortune && completions["daily-five"] && stickersCompleted;
+  }, [completions, hasAvailableCard]);
+
+  // Track and award bonus for completing all daily activities
+  useDailyEngagementBonus({ allCompleted });
 
   if (!isAuthenticated) return null;
 
