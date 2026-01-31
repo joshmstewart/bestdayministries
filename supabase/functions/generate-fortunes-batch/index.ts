@@ -257,15 +257,18 @@ Format as JSON array:
       throw new Error("Failed to parse AI response as JSON");
     }
 
-    // Fetch existing fortunes for deduplication
+    // Fetch ALL existing fortunes for deduplication (including archived ones)
+    // We explicitly don't filter by is_archived to ensure archived items are also checked
     const { data: existingFortunes, error: fetchError } = await adminClient
       .from("daily_fortunes")
-      .select("content, author, reference");
+      .select("content, author, reference, is_archived");
     
     if (fetchError) {
       console.error("Failed to fetch existing fortunes:", fetchError);
       throw new Error("Failed to check for duplicates");
     }
+    
+    console.log(`Checking against ${existingFortunes?.length || 0} existing fortunes (including ${existingFortunes?.filter(f => f.is_archived).length || 0} archived)`);
 
     // Normalize text for comparison (lowercase, remove punctuation, trim)
     const normalizeText = (text: string): string => {
