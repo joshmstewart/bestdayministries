@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -410,11 +411,14 @@ export const UserManagement = () => {
   const handleLoginAs = async (email: string, password: string, displayName: string) => {
     setLoggingInAs(email);
     try {
-      // Sign out current user
-      await supabase.auth.signOut();
+      // Sign out from BOTH clients to ensure clean state
+      await Promise.all([
+        supabase.auth.signOut(),
+        supabasePersistent.auth.signOut(),
+      ]);
       
-      // Sign in as test user
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Sign in using the persistent client (primary auth client)
+      const { data, error } = await supabasePersistent.auth.signInWithPassword({
         email,
         password,
       });
@@ -423,7 +427,7 @@ export const UserManagement = () => {
 
       // Check if user is a vendor
       if (data.user) {
-        const { data: vendor } = await supabase
+        const { data: vendor } = await supabasePersistent
           .from('vendors')
           .select('status')
           .eq('user_id', data.user.id)
