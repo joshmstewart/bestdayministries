@@ -8,7 +8,7 @@ import { BackButton } from '@/components/BackButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles } from 'lucide-react';
+import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
@@ -22,6 +22,16 @@ interface EmotionType {
   color: string;
   category: string;
   coping_suggestions: string[] | null;
+}
+
+interface MoodEntry {
+  id: string;
+  mood_emoji: string;
+  mood_label: string;
+  note: string | null;
+  audio_url: string | null;
+  entry_date: string;
+  ai_response?: string | null;
 }
 
 // Theme styles based on category
@@ -61,6 +71,37 @@ const DEFAULT_THEME = {
   cardBg: "bg-white/80",
 };
 
+// Map mood labels to categories for theming
+const MOOD_CATEGORY_MAP: Record<string, string> = {
+  "Happy": "positive",
+  "Loved": "positive",
+  "Excited": "positive",
+  "Calm": "positive",
+  "Proud": "positive",
+  "Grateful": "positive",
+  "Neutral": "neutral",
+  "Confused": "neutral",
+  "Tired": "neutral",
+  "Sad": "negative",
+  "Angry": "negative",
+  "Anxious": "negative",
+  "Worried": "negative",
+  "Frustrated": "negative",
+  "Scared": "negative",
+  "Lonely": "negative",
+};
+
+// Get MST date
+const getMSTDate = () => {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
+};
+
 export default function EmotionJournal() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -70,6 +111,10 @@ export default function EmotionJournal() {
   const [showNotes, setShowNotes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('log');
+  
+  // Today's mood entry state (from daily bar)
+  const [todaysMoodEntry, setTodaysMoodEntry] = useState<MoodEntry | null>(null);
+  const [loadingTodaysEntry, setLoadingTodaysEntry] = useState(true);
   
   // AI response state
   const [aiResponse, setAiResponse] = useState<string | null>(null);
@@ -81,6 +126,65 @@ export default function EmotionJournal() {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Check for today's mood entry from daily bar
+  useEffect(() => {
+    const checkTodaysMoodEntry = async () => {
+      if (!user) {
+        setLoadingTodaysEntry(false);
+        return;
+      }
+
+      try {
+        const today = getMSTDate();
+        const { data, error } = await supabase
+          .from("mood_entries")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("entry_date", today)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setTodaysMoodEntry(data);
+          // Generate an encouraging message for the existing entry
+          await fetchEncouragingMessage(data.mood_emoji, data.mood_label);
+        }
+      } catch (error) {
+        console.error("Error checking today's mood entry:", error);
+      } finally {
+        setLoadingTodaysEntry(false);
+      }
+    };
+
+    if (!authLoading && user) {
+      checkTodaysMoodEntry();
+    }
+  }, [user, authLoading]);
+
+  // Fetch encouraging message for existing mood entry
+  const fetchEncouragingMessage = async (emoji: string, label: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("mood_messages")
+        .select("message")
+        .eq("mood_emoji", emoji)
+        .eq("is_active", true);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const randomMessage = data[Math.floor(Math.random() * data.length)];
+        setAiResponse(randomMessage.message);
+      } else {
+        setAiResponse(`Thanks for checking in! We see you're feeling ${label.toLowerCase()}. That's okay!`);
+      }
+    } catch (error) {
+      console.error("Error fetching message:", error);
+      setAiResponse(`Thanks for sharing how you feel! Have a great day!`);
+    }
+  };
 
   // Load emotion types
   useEffect(() => {
@@ -103,33 +207,64 @@ export default function EmotionJournal() {
     loadEmotionTypes();
   }, []);
 
-  // Get current theme based on selected emotion
-  const currentTheme = selectedEmotion 
-    ? CATEGORY_THEMES[selectedEmotion.category as keyof typeof CATEGORY_THEMES] || CATEGORY_THEMES.neutral
-    : DEFAULT_THEME;
+  // Get current theme based on selected emotion or today's entry
+  const getTheme = () => {
+    if (todaysMoodEntry) {
+      const category = MOOD_CATEGORY_MAP[todaysMoodEntry.mood_label] || 'neutral';
+      return CATEGORY_THEMES[category as keyof typeof CATEGORY_THEMES] || CATEGORY_THEMES.neutral;
+    }
+    if (selectedEmotion) {
+      return CATEGORY_THEMES[selectedEmotion.category as keyof typeof CATEGORY_THEMES] || CATEGORY_THEMES.neutral;
+    }
+    return DEFAULT_THEME;
+  };
+  
+  const currentTheme = getTheme();
 
   const handleEmotionSelect = (emotion: EmotionType) => {
+    if (todaysMoodEntry) return; // Already checked in today
     setSelectedEmotion(emotion);
     setAiResponse(null);
   };
 
   const handleSave = async (withAiResponse: boolean) => {
-    if (!user || !selectedEmotion) return;
+    if (!user || !selectedEmotion || todaysMoodEntry) return;
 
     setIsSaving(true);
     try {
-      // Save to database
+      // Save to emotion_journal_entries
       const { error } = await supabase
         .from('emotion_journal_entries')
         .insert({
           user_id: user.id,
           emotion: selectedEmotion.name,
           emotion_emoji: selectedEmotion.emoji,
-          intensity: 3, // Default intensity
+          intensity: 3,
           journal_text: journalText.trim() || null,
         });
 
       if (error) throw error;
+
+      // Also save to mood_entries so daily bar knows about it
+      const today = getMSTDate();
+      const { data: moodData, error: moodError } = await supabase
+        .from("mood_entries")
+        .insert({
+          user_id: user.id,
+          mood_emoji: selectedEmotion.emoji,
+          mood_label: selectedEmotion.name,
+          note: journalText.trim() || null,
+          entry_date: today,
+          coins_awarded: 5, // Default coins
+        })
+        .select()
+        .single();
+
+      if (moodError) {
+        console.error("Error saving to mood_entries:", moodError);
+      } else {
+        setTodaysMoodEntry(moodData);
+      }
 
       // If user wants AI response, fetch it
       if (withAiResponse) {
@@ -152,16 +287,14 @@ export default function EmotionJournal() {
         } finally {
           setIsGeneratingResponse(false);
         }
+      } else {
+        // Get a pre-generated message
+        await fetchEncouragingMessage(selectedEmotion.emoji, selectedEmotion.name);
       }
 
       toast.success(`${selectedEmotion.emoji} Feeling logged!`, {
         description: 'Great job checking in with yourself!',
       });
-
-      // Reset form only if not showing AI response
-      if (!withAiResponse) {
-        resetForm();
-      }
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');
@@ -174,10 +307,13 @@ export default function EmotionJournal() {
     setSelectedEmotion(null);
     setJournalText('');
     setShowNotes(false);
-    setAiResponse(null);
+    // Don't reset aiResponse if there's a today's entry
+    if (!todaysMoodEntry) {
+      setAiResponse(null);
+    }
   };
 
-  if (authLoading) {
+  if (authLoading || loadingTodaysEntry) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <UnifiedHeader />
@@ -190,6 +326,11 @@ export default function EmotionJournal() {
   }
 
   if (!user) return null;
+
+  // Determine display state
+  const hasCheckedInToday = !!todaysMoodEntry;
+  const displayEmoji = todaysMoodEntry?.mood_emoji || selectedEmotion?.emoji;
+  const displayLabel = todaysMoodEntry?.mood_label || selectedEmotion?.name;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -206,8 +347,8 @@ export default function EmotionJournal() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3">
-            {selectedEmotion ? (
-              <span className="text-5xl animate-bounce">{selectedEmotion.emoji}</span>
+            {displayEmoji ? (
+              <span className="text-5xl animate-bounce">{displayEmoji}</span>
             ) : (
               <Heart className={cn(
                 "h-10 w-10 text-white p-2 rounded-full",
@@ -218,19 +359,19 @@ export default function EmotionJournal() {
               "text-3xl font-bold bg-clip-text text-transparent",
               `bg-gradient-to-r ${currentTheme.headerGradient}`
             )}>
-              {selectedEmotion ? `Feeling ${selectedEmotion.name}` : 'Emotion Journal'}
+              {displayLabel ? `Feeling ${displayLabel}` : 'Emotion Journal'}
             </h1>
             <TextToSpeech 
-              text={selectedEmotion 
-                ? `You're feeling ${selectedEmotion.name}. That's okay!` 
+              text={displayLabel 
+                ? `You're feeling ${displayLabel}. That's okay!` 
                 : "Emotion Journal. How are you feeling today? It's okay to feel any way!"
               } 
               size="default" 
             />
           </div>
           <p className="text-muted-foreground mt-2 text-lg">
-            {selectedEmotion 
-              ? `It's okay to feel ${selectedEmotion.name.toLowerCase()}. Let's explore this feeling together.`
+            {displayLabel 
+              ? `It's okay to feel ${displayLabel.toLowerCase()}. Let's explore this feeling together.`
               : "How are you feeling today? It's okay to feel any way!"
             }
           </p>
@@ -255,55 +396,97 @@ export default function EmotionJournal() {
 
           {/* Log Feeling Tab */}
           <TabsContent value="log" className="space-y-4">
-            {/* Simple Emotion Grid */}
-            <div className={cn(
-              "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500",
-              currentTheme.cardBg,
-              currentTheme.border,
-              "border"
-            )}>
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-xl font-bold">🎭 How are you feeling?</span>
-                <TextToSpeech 
-                  text="How are you feeling? Choose an emotion from the options below." 
-                  size="icon" 
-                />
+            {/* Today's Check-in Complete State */}
+            {hasCheckedInToday && (
+              <div className={cn(
+                "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500 text-center",
+                currentTheme.cardBg,
+                currentTheme.border,
+                "border"
+              )}>
+                <div className="text-6xl mb-4">{todaysMoodEntry.mood_emoji}</div>
+                <h2 className="text-xl font-semibold mb-2">
+                  You're feeling {todaysMoodEntry.mood_label} today
+                </h2>
+                
+                {/* Show notes if they exist */}
+                {todaysMoodEntry.note && (
+                  <div className="bg-white/60 rounded-lg p-4 mb-4 text-left">
+                    <p className="text-sm text-muted-foreground mb-1">Your note:</p>
+                    <p className="italic">"{todaysMoodEntry.note}"</p>
+                  </div>
+                )}
+                
+                {/* AI Response / Encouraging Message */}
+                {aiResponse && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 mb-4">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <span className="font-medium text-primary">A message for you:</span>
+                      <TextToSpeech text={aiResponse} size="icon" />
+                    </div>
+                    <p className="text-base leading-relaxed italic">"{aiResponse}"</p>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-center gap-2 text-green-600">
+                  <Check className="w-5 h-5" />
+                  <span className="font-medium">Check-in complete for today!</span>
+                </div>
               </div>
-              
-              {/* Emoji Grid */}
-              <div className="flex flex-wrap justify-center gap-2">
-                {emotionTypes.map((emotion) => (
-                  <button
-                    key={emotion.id}
-                    onClick={() => handleEmotionSelect(emotion)}
-                    disabled={isSaving}
-                    className={cn(
-                      "flex flex-col items-center p-3 rounded-xl transition-all duration-300",
-                      "hover:scale-110 hover:shadow-md focus:outline-none focus:ring-2",
-                      "bg-white/80 border-2",
-                      selectedEmotion?.id === emotion.id
-                        ? "shadow-lg scale-105"
-                        : "border-transparent hover:border-gray-200"
-                    )}
-                    style={{
-                      borderColor: selectedEmotion?.id === emotion.id ? emotion.color : undefined,
-                      backgroundColor: selectedEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
-                    }}
-                  >
-                    <span className="text-3xl">{emotion.emoji}</span>
-                    <span 
-                      className="text-xs font-medium mt-1"
-                      style={{ color: selectedEmotion?.id === emotion.id ? emotion.color : undefined }}
-                    >
-                      {emotion.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
-            {/* Show options after selecting emotion */}
-            {selectedEmotion && !aiResponse && (
+            {/* Emotion Picker (only if not checked in) */}
+            {!hasCheckedInToday && (
+              <div className={cn(
+                "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500",
+                currentTheme.cardBg,
+                currentTheme.border,
+                "border"
+              )}>
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <span className="text-xl font-bold">🎭 How are you feeling?</span>
+                  <TextToSpeech 
+                    text="How are you feeling? Choose an emotion from the options below." 
+                    size="icon" 
+                  />
+                </div>
+                
+                {/* Emoji Grid */}
+                <div className="flex flex-wrap justify-center gap-2">
+                  {emotionTypes.map((emotion) => (
+                    <button
+                      key={emotion.id}
+                      onClick={() => handleEmotionSelect(emotion)}
+                      disabled={isSaving}
+                      className={cn(
+                        "flex flex-col items-center p-3 rounded-xl transition-all duration-300",
+                        "hover:scale-110 hover:shadow-md focus:outline-none focus:ring-2",
+                        "bg-white/80 border-2",
+                        selectedEmotion?.id === emotion.id
+                          ? "shadow-lg scale-105"
+                          : "border-transparent hover:border-gray-200"
+                      )}
+                      style={{
+                        borderColor: selectedEmotion?.id === emotion.id ? emotion.color : undefined,
+                        backgroundColor: selectedEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
+                      }}
+                    >
+                      <span className="text-3xl">{emotion.emoji}</span>
+                      <span 
+                        className="text-xs font-medium mt-1"
+                        style={{ color: selectedEmotion?.id === emotion.id ? emotion.color : undefined }}
+                      >
+                        {emotion.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Show options after selecting emotion (only if not checked in) */}
+            {selectedEmotion && !hasCheckedInToday && !aiResponse && (
               <div className={cn(
                 "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500 space-y-4",
                 currentTheme.cardBg,
@@ -385,8 +568,8 @@ export default function EmotionJournal() {
               </div>
             )}
 
-            {/* AI Response Card */}
-            {aiResponse && (
+            {/* AI Response Card (after saving from this page) */}
+            {aiResponse && !hasCheckedInToday && (
               <div className={cn(
                 "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500",
                 "border border-primary/30 bg-primary/5"
