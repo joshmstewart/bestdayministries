@@ -79,6 +79,15 @@ Authentication system (`/auth`) with signup/login, role assignment, terms accept
 **Trigger:** On version change or first login
 **Versions:** `CURRENT_TERMS_VERSION = "1.0"`, `CURRENT_PRIVACY_VERSION = "1.0"` (in `useTermsCheck.ts`)
 
+### Auth Storage Sync (Critical)
+Some clients use IndexedDB-backed auth storage (for iOS PWA persistence), but much of the app (including the terms check) uses the standard client.
+
+**Rule:** `AuthProvider` must mirror the persistent session into the standard client, and clear ONLY local standard-client auth when persistent logs out.
+
+**Why:** Prevents unauthenticated `terms_acceptance` queries (which cause the Terms dialog to re-open immediately) and prevents “ghost user” UI (showing a previous user).
+
+**Implementation:** `src/contexts/AuthContext.tsx` → `syncStandardClientSession()`.
+
 ## Vendor Status Check
 **Check:** After login, queries `vendors` table by `user_id`
 **Redirect:** Has vendor record → `/vendor-dashboard`, Others → `/community`
