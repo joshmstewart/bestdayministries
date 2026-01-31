@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink, Eye, EyeOff, Lightbulb, HelpCircle } from "lucide-react";
+import { Loader2, ExternalLink, Eye, EyeOff, Lightbulb, Delete, CornerDownLeft } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
@@ -39,6 +39,8 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
   const [maxGuesses, setMaxGuesses] = useState(6);
   const [roundEnded, setRoundEnded] = useState(false);
   const [canContinue, setCanContinue] = useState(false);
+  const [easyMode, setEasyMode] = useState(false);
+  const [scrambledLetters, setScrambledLetters] = useState<string[] | null>(null);
 
   // Build keyboard status from guesses
   const keyboardStatus = useCallback(() => {
@@ -92,6 +94,8 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
           setMaxGuesses(newData.maxGuesses || 6);
           setRoundEnded(newData.roundEnded || false);
           setCanContinue(newData.canContinue || false);
+          setEasyMode(newData.easyMode || false);
+          setScrambledLetters(newData.scrambledLetters || null);
         }
       } else {
         setNoWordAvailable(false);
@@ -107,6 +111,8 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
         setMaxGuesses(data.maxGuesses || 6);
         setRoundEnded(data.roundEnded || false);
         setCanContinue(data.canContinue || false);
+        setEasyMode(data.easyMode || false);
+        setScrambledLetters(data.scrambledLetters || null);
       }
     } catch (error) {
       console.error("Error loading game state:", error);
@@ -331,7 +337,84 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
     return <div className="flex flex-col gap-1 mb-4">{rows}</div>;
   };
 
-  // Compact keyboard
+  // Easy mode keyboard (Letter Mode) - shows scrambled letters
+  const renderEasyKeyboard = () => {
+    if (!scrambledLetters) return null;
+    const status = keyboardStatus();
+    
+    return (
+      <div className="flex flex-col gap-2 items-center">
+        <div className="text-xs text-muted-foreground">
+          Arrange these letters:
+        </div>
+        
+        {/* Letter tiles */}
+        <div className="flex gap-1.5 flex-wrap justify-center">
+          {scrambledLetters.map((letter, index) => {
+            const keyStatus = status[letter];
+            const timesAvailable = scrambledLetters.slice(0, index + 1).filter(l => l === letter).length;
+            const usedCount = currentGuess.split('').filter(l => l === letter).length;
+            const isUsed = usedCount >= timesAvailable;
+            
+            return (
+              <button
+                key={`${letter}-${index}`}
+                onClick={() => !isUsed && handleKeyPress(letter)}
+                disabled={gameOver || submitting || roundEnded || isUsed}
+                className={cn(
+                  "w-10 h-10 flex items-center justify-center font-bold text-base rounded-lg transition-all",
+                  "border-2",
+                  isUsed && "opacity-30 scale-90",
+                  !isUsed && "hover:scale-105 active:scale-95",
+                  !keyStatus && "bg-muted text-foreground border-muted-foreground/30",
+                  keyStatus === "correct" && "bg-green-500 text-white border-green-600",
+                  keyStatus === "present" && "bg-yellow-500 text-white border-yellow-600",
+                  keyStatus === "absent" && "bg-zinc-700 text-zinc-400 border-zinc-600"
+                )}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-1.5 mt-2">
+          <button
+            onClick={() => handleKeyPress("BACKSPACE")}
+            disabled={gameOver || submitting || roundEnded || currentGuess.length === 0}
+            className={cn(
+              "flex items-center justify-center gap-1 px-3 h-8 text-xs font-semibold rounded-lg transition-all",
+              "bg-muted text-foreground hover:opacity-80 active:scale-95",
+              "disabled:opacity-50"
+            )}
+          >
+            <Delete className="h-4 w-4" />
+            <span>Delete</span>
+          </button>
+          
+          <button
+            onClick={() => handleKeyPress("ENTER")}
+            disabled={gameOver || submitting || roundEnded || currentGuess.length !== 5}
+            className={cn(
+              "flex items-center justify-center gap-1 px-4 h-8 text-xs font-semibold rounded-lg transition-all",
+              "bg-primary text-primary-foreground hover:opacity-80 active:scale-95",
+              "disabled:opacity-50"
+            )}
+          >
+            {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : (
+              <>
+                <CornerDownLeft className="h-4 w-4" />
+                <span>Enter</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Compact keyboard (standard QWERTY)
   const renderKeyboard = () => {
     const KEYBOARD_ROWS = [
       ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -477,7 +560,7 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
               </Button>
             </div>
           )}
-          {renderKeyboard()}
+          {easyMode && scrambledLetters ? renderEasyKeyboard() : renderKeyboard()}
         </>
       ) : (
         <div className="flex flex-col gap-2 w-full">
