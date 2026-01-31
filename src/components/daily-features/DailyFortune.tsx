@@ -274,12 +274,21 @@ export function DailyFortune() {
         <button
           onClick={async () => {
             if (!revealed && user && fortunePost) {
-              // Record the view
-              await supabase.from("daily_fortune_views").upsert({
+              // Record the view with error handling
+              const viewDate = getMSTDate();
+              console.log("Recording fortune view for date:", viewDate, "fortune_post_id:", fortunePost.id);
+              
+              const { error } = await supabase.from("daily_fortune_views").upsert({
                 user_id: user.id, 
-                view_date: getMSTDate(),
+                view_date: viewDate,
                 fortune_post_id: fortunePost.id,
               }, { onConflict: "user_id,view_date" });
+              
+              if (error) {
+                console.error("Failed to record fortune view:", error);
+              } else {
+                console.log("Fortune view recorded successfully for", viewDate);
+              }
             }
             setRevealed(true);
           }}
