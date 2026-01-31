@@ -225,7 +225,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      * Handles auth state changes from either client.
      * For SIGNED_IN events, treats the event's session as authoritative.
      */
-    const handleAuthChange = async (event: string, eventSession: Session | null) => {
+    const handleAuthChange = async (
+      source: "persistent" | "standard",
+      event: string,
+      eventSession: Session | null
+    ) => {
       if (!mounted) return;
       
       // Skip if we're currently mirroring (to prevent infinite loops)
@@ -249,19 +253,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Mark the session as processed to avoid duplicates
         lastProcessedSessionIdRef.current = sessionId;
         
-        // Mirror to both clients (with guard to prevent loops)
+        // Mirror ONLY to the other client (never call setSession on the emitting client)
+        // Calling setSession on both clients here can cause event storms and UI hangs.
         mirroringInProgressRef.current = true;
         try {
-          await Promise.all([
-            supabase.auth.setSession({
+          if (source === "persistent") {
+            await supabase.auth.setSession({
               access_token: eventSession.access_token,
               refresh_token: eventSession.refresh_token,
-            }),
-            supabasePersistent.auth.setSession({
+            });
+            console.log("[AuthContext] Mirrored SIGNED_IN session to standard client");
+          } else {
+            await supabasePersistent.auth.setSession({
               access_token: eventSession.access_token,
               refresh_token: eventSession.refresh_token,
-            }),
-          ]);
+            });
+            console.log("[AuthContext] Mirrored SIGNED_IN session to persistent client");
+          }
         } catch (e) {
           console.warn("[AuthContext] Failed to mirror SIGNED_IN session:", e);
         } finally {
@@ -300,13 +308,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription: persistentSub },
     } = supabasePersistent.auth.onAuthStateChange((event, session) => {
-      handleAuthChange(event, session);
+      handleAuthChange("persistent", event, session);
     });
 
     const {
       data: { subscription: standardSub },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      handleAuthChange(event, session);
+      handleAuthChange("standard", event, session);
     });
 
     return () => {

@@ -13,8 +13,8 @@ The app uses **two Supabase clients** for auth:
 **Reconciliation:** `AuthContext.tsx` validates and syncs sessions between both clients:
 - Validates each session server-side via `getUser()`
 - Clears invalid sessions locally (without calling signOut endpoints to avoid revoking fresh tokens)
-- Mirrors valid sessions to both clients
-- For `SIGNED_IN` events, the event session is treated as authoritative
+- Mirrors the winning session to the *other* client when needed (persistent is the source of truth)
+- For `SIGNED_IN` events, the event session is treated as authoritative and mirrored only to the other client
 
 ## Database Tables
 **auth.users** (Supabase managed)
@@ -87,7 +87,7 @@ Uses the same persistent client and redirect logic as email/password login:
 
 **SIGNED_IN Event Handling:**
 - When `onAuthStateChange` fires with `SIGNED_IN`, the event's session is treated as authoritative
-- Immediately mirrored to both clients without expiry comparison
+- Immediately mirrored to the other client (never call `setSession` on the emitting client)
 - Prevents old sessions with later `expires_at` from "winning"
 
 ## Terms Acceptance Guard
