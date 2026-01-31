@@ -201,7 +201,7 @@ export default function EmotionJournal() {
         )}
       >
         <div className="container max-w-4xl mx-auto px-4">
-          <BackButton label="Back to Community" />
+          <BackButton to="/" label="Back to Home" />
 
         {/* Header */}
         <div className="text-center mb-8">
