@@ -8,7 +8,7 @@ import { BackButton } from '@/components/BackButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles, Check } from 'lucide-react';
+import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles, Check, Pencil, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
@@ -119,6 +119,10 @@ export default function EmotionJournal() {
   // AI response state
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+  
+  // Edit notes state
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [editNoteText, setEditNoteText] = useState('');
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -313,6 +317,36 @@ export default function EmotionJournal() {
     }
   };
 
+  // Save notes to existing mood entry
+  const handleSaveNotes = async () => {
+    if (!user || !todaysMoodEntry) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('mood_entries')
+        .update({ note: editNoteText.trim() || null })
+        .eq('id', todaysMoodEntry.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setTodaysMoodEntry({ ...todaysMoodEntry, note: editNoteText.trim() || null });
+      setIsEditingNotes(false);
+      toast.success('Notes saved!');
+    } catch (error) {
+      console.error('Error saving notes:', error);
+      toast.error('Failed to save notes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const startEditingNotes = () => {
+    setEditNoteText(todaysMoodEntry?.note || '');
+    setIsEditingNotes(true);
+  };
+
   if (authLoading || loadingTodaysEntry) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -409,12 +443,69 @@ export default function EmotionJournal() {
                   You're feeling {todaysMoodEntry.mood_label} today
                 </h2>
                 
-                {/* Show notes if they exist */}
-                {todaysMoodEntry.note && (
+                {/* Show notes if they exist OR editing mode */}
+                {isEditingNotes ? (
+                  <div className="bg-white/60 rounded-lg p-4 mb-4 text-left space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">✍️ Add a note about how you feel:</span>
+                      <TextToSpeech text="Add a note about how you feel" size="icon" />
+                    </div>
+                    <Textarea
+                      value={editNoteText}
+                      onChange={(e) => setEditNoteText(e.target.value)}
+                      placeholder="Write about your feelings..."
+                      className="min-h-[80px] text-base resize-none"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingNotes(false)}
+                        disabled={isSaving}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveNotes}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : (
+                          <Save className="h-4 w-4 mr-1" />
+                        )}
+                        Save Note
+                      </Button>
+                    </div>
+                  </div>
+                ) : todaysMoodEntry.note ? (
                   <div className="bg-white/60 rounded-lg p-4 mb-4 text-left">
-                    <p className="text-sm text-muted-foreground mb-1">Your note:</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground">Your note:</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={startEditingNotes}
+                        className="h-7 px-2"
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
                     <p className="italic">"{todaysMoodEntry.note}"</p>
                   </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={startEditingNotes}
+                    className="mb-4"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Add a note about your feelings
+                  </Button>
                 )}
                 
                 {/* AI Response / Encouraging Message */}
@@ -429,7 +520,7 @@ export default function EmotionJournal() {
                   </div>
                 )}
                 
-                <div className="flex items-center justify-center gap-2 text-green-600">
+                <div className="flex items-center justify-center gap-2 text-emerald-600">
                   <Check className="w-5 h-5" />
                   <span className="font-medium">Check-in complete for today!</span>
                 </div>
