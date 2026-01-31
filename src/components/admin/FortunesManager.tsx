@@ -149,7 +149,9 @@ export function FortunesManager() {
 
       toast.success(`Approved ${ids.length} fortune(s)`);
       setSelectedFortunes(new Set());
-      loadFortunes();
+      // Optimistically remove approved items from pending view
+      const idsSet = new Set(ids);
+      setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
     } catch (error) {
       console.error("Error approving fortunes:", error);
       toast.error("Failed to approve fortunes");
@@ -167,7 +169,9 @@ export function FortunesManager() {
 
       toast.success(`Deleted ${ids.length} fortune(s)`);
       setSelectedFortunes(new Set());
-      loadFortunes();
+      // Optimistically remove deleted items from list
+      const idsSet = new Set(ids);
+      setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
     } catch (error) {
       console.error("Error deleting fortunes:", error);
       toast.error("Failed to delete fortunes");
@@ -206,7 +210,9 @@ export function FortunesManager() {
 
       toast.success(`Restored ${ids.length} fortune(s)`);
       setSelectedFortunes(new Set());
-      loadFortunes();
+      // Optimistically remove restored items from archived view
+      const idsSet = new Set(ids);
+      setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
     } catch (error) {
       console.error("Error restoring fortunes:", error);
       toast.error("Failed to restore fortunes");
