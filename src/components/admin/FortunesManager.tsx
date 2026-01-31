@@ -37,6 +37,8 @@ import {
   Lightbulb,
   ThumbsUp,
   MessageCircle,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 
 type FortuneSourceType = "bible_verse" | "affirmation" | "quote" | "life_lesson" | "gratitude_prompt" | "discussion_starter" | "proverbs";
@@ -49,6 +51,7 @@ interface Fortune {
   reference: string | null;
   is_approved: boolean;
   is_used: boolean;
+  is_archived: boolean;
   used_date: string | null;
   created_at: string;
 }
@@ -88,11 +91,16 @@ export function FortunesManager() {
       }
 
       if (selectedStatus === "pending") {
-        query = query.eq("is_approved", false);
+        query = query.eq("is_approved", false).eq("is_archived", false);
       } else if (selectedStatus === "approved") {
-        query = query.eq("is_approved", true).eq("is_used", false);
+        query = query.eq("is_approved", true).eq("is_used", false).eq("is_archived", false);
       } else if (selectedStatus === "used") {
         query = query.eq("is_used", true);
+      } else if (selectedStatus === "archived") {
+        query = query.eq("is_archived", true);
+      } else {
+        // "all" - show non-archived by default
+        query = query.eq("is_archived", false);
       }
 
       const { data, error } = await query.limit(200);
@@ -163,6 +171,42 @@ export function FortunesManager() {
     } catch (error) {
       console.error("Error deleting fortunes:", error);
       toast.error("Failed to delete fortunes");
+    }
+  };
+
+  const handleArchive = async (ids: string[]) => {
+    try {
+      const { error } = await supabase
+        .from("daily_fortunes")
+        .update({ is_archived: true })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      toast.success(`Archived ${ids.length} fortune(s)`);
+      setSelectedFortunes(new Set());
+      loadFortunes();
+    } catch (error) {
+      console.error("Error archiving fortunes:", error);
+      toast.error("Failed to archive fortunes");
+    }
+  };
+
+  const handleUnarchive = async (ids: string[]) => {
+    try {
+      const { error } = await supabase
+        .from("daily_fortunes")
+        .update({ is_archived: false })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      toast.success(`Restored ${ids.length} fortune(s)`);
+      setSelectedFortunes(new Set());
+      loadFortunes();
+    } catch (error) {
+      console.error("Error restoring fortunes:", error);
+      toast.error("Failed to restore fortunes");
     }
   };
 
@@ -313,7 +357,8 @@ export function FortunesManager() {
               <SelectItem value="pending">Pending Review</SelectItem>
               <SelectItem value="approved">Approved (Unused)</SelectItem>
               <SelectItem value="used">Used</SelectItem>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+              <SelectItem value="all">All Active</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -325,26 +370,57 @@ export function FortunesManager() {
       </div>
 
       {/* Bulk actions */}
-      {selectedFortunes.size > 0 && selectedStatus === "pending" && (
+      {selectedFortunes.size > 0 && (
         <div className="flex gap-2 items-center bg-muted p-3 rounded-lg">
           <span className="text-sm font-medium">
             {selectedFortunes.size} selected
           </span>
-          <Button
-            size="sm"
-            onClick={() => handleApprove(Array.from(selectedFortunes))}
-          >
-            <Check className="h-4 w-4 mr-1" />
-            Approve
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => handleReject(Array.from(selectedFortunes))}
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Delete
-          </Button>
+          {selectedStatus === "pending" && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => handleApprove(Array.from(selectedFortunes))}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleArchive(Array.from(selectedFortunes))}
+              >
+                <Archive className="h-4 w-4 mr-1" />
+                Archive
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleReject(Array.from(selectedFortunes))}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            </>
+          )}
+          {selectedStatus === "archived" && (
+            <>
+              <Button
+                size="sm"
+                onClick={() => handleUnarchive(Array.from(selectedFortunes))}
+              >
+                <ArchiveRestore className="h-4 w-4 mr-1" />
+                Restore
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleReject(Array.from(selectedFortunes))}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -393,7 +469,7 @@ export function FortunesManager() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {selectedStatus === "pending" && fortunes.length > 0 && (
+          {(selectedStatus === "pending" || selectedStatus === "archived") && fortunes.length > 0 && (
             <div className="flex items-center gap-2 mb-4">
               <Checkbox
                 checked={selectedFortunes.size === fortunes.length}
@@ -407,14 +483,14 @@ export function FortunesManager() {
             <Card key={fortune.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex gap-3">
-                  {selectedStatus === "pending" && (
+                  {(selectedStatus === "pending" || selectedStatus === "archived") && (
                     <Checkbox
                       checked={selectedFortunes.has(fortune.id)}
                       onCheckedChange={() => toggleSelect(fortune.id)}
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2 mb-2">
+                    <div className="flex items-start gap-2 mb-2 flex-wrap">
                       <Badge className={getTypeBadgeColor(fortune.source_type)}>
                         {getTypeIcon(fortune.source_type)}
                         <span className="ml-1 capitalize">
@@ -429,6 +505,12 @@ export function FortunesManager() {
                       {fortune.is_used && (
                         <Badge variant="secondary">Used</Badge>
                       )}
+                      {fortune.is_archived && (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          <Archive className="h-3 w-3 mr-1" />
+                          Archived
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-foreground leading-relaxed">
                       "{fortune.content}"
@@ -440,28 +522,62 @@ export function FortunesManager() {
                       </p>
                     )}
                   </div>
-                  {!fortune.is_approved && (
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                        onClick={() => handleApprove([fortune.id])}
-                        title="Approve"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleReject([fortune.id])}
-                        title="Delete"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                  {/* Action buttons */}
+                  <div className="flex flex-col gap-1">
+                    {!fortune.is_approved && !fortune.is_archived && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => handleApprove([fortune.id])}
+                          title="Approve"
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => handleArchive([fortune.id])}
+                          title="Archive"
+                        >
+                          <Archive className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleReject([fortune.id])}
+                          title="Delete"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    {fortune.is_archived && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={() => handleUnarchive([fortune.id])}
+                          title="Restore"
+                        >
+                          <ArchiveRestore className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleReject([fortune.id])}
+                          title="Delete"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
