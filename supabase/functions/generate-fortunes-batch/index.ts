@@ -347,6 +347,13 @@ Format as JSON array:
     const existingBibleReferences = (existingFortunes || [])
       .filter(f => f.reference)
       .map(f => f.reference as string);
+    
+    // Build set of exact Bible references for catching different translations
+    const existingExactReferences = new Set(
+      (existingFortunes || [])
+        .filter(f => f.reference)
+        .map(f => (f.reference as string).toLowerCase().replace(/\s+/g, ''))
+    );
 
     // Filter out duplicates
     const uniqueFortunes = fortunes.filter((f: any) => {
@@ -358,8 +365,16 @@ Format as JSON array:
         return false;
       }
       
-      // Check Bible reference overlap (for bible_verse type)
-      if (source_type === "bible_verse" && f.reference) {
+      // Check Bible reference for bible_verse AND proverbs types
+      if ((source_type === "bible_verse" || source_type === "proverbs") && f.reference) {
+        // First check exact reference match (catches different translations of same verse)
+        const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
+        if (existingExactReferences.has(normalizedRef)) {
+          console.log(`Skipping duplicate Bible reference: "${f.reference}" (different translation)`);
+          return false;
+        }
+        
+        // Then check verse range overlap
         for (const existingRef of existingBibleReferences) {
           if (doBibleReferencesOverlap(f.reference, existingRef)) {
             console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with "${existingRef}"`);
