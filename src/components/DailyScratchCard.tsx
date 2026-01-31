@@ -12,7 +12,7 @@ export const DailyScratchCard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const [card, setCard] = useState<any>(null);
   const [bonusCard, setBonusCard] = useState<any>(null);
   const [sampleSticker, setSampleSticker] = useState<string>("");
@@ -36,6 +36,11 @@ export const DailyScratchCard = () => {
   };
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking card status
+    if (authLoading) {
+      return;
+    }
+    
     if (!user) {
       setLoading(false);
       return;
@@ -80,7 +85,7 @@ export const DailyScratchCard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, location.key]); // Refetch whenever navigation occurs or user changes
+  }, [user?.id, location.key, authLoading]); // Refetch whenever navigation occurs or user changes
 
   const checkDailyCard = async () => {
     if (!user) {
