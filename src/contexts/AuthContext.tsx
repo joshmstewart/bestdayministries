@@ -40,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const syncInProgressRef = useRef(false);
+  const mirroringInProgressRef = useRef(false);
+  const lastProcessedSessionIdRef = useRef<string | null>(null);
 
   /**
    * Validates a session by calling getUser() on the server.
@@ -225,13 +227,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      */
     const handleAuthChange = async (event: string, eventSession: Session | null) => {
       if (!mounted) return;
+      
+      // Skip if we're currently mirroring (to prevent infinite loops)
+      if (mirroringInProgressRef.current) {
+        console.log("[AuthContext] Skipping auth change - mirroring in progress");
+        return;
+      }
+
+      // Skip if we already processed this exact session (by session_id)
+      const sessionId = eventSession?.user?.id ? `${eventSession.user.id}-${eventSession.expires_at}` : null;
+      if (sessionId && sessionId === lastProcessedSessionIdRef.current) {
+        console.log("[AuthContext] Skipping auth change - already processed this session");
+        return;
+      }
 
       // For SIGNED_IN events, the event session is authoritative - use it directly
       // This prevents old sessions with later expires_at from "winning"
       if (event === "SIGNED_IN" && eventSession?.access_token) {
         console.log("[AuthContext] SIGNED_IN event - using event session as authoritative");
         
-        // Mirror to both clients
+        // Mark the session as processed to avoid duplicates
+        lastProcessedSessionIdRef.current = sessionId;
+        
+        // Mirror to both clients (with guard to prevent loops)
+        mirroringInProgressRef.current = true;
         try {
           await Promise.all([
             supabase.auth.setSession({
@@ -245,6 +264,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ]);
         } catch (e) {
           console.warn("[AuthContext] Failed to mirror SIGNED_IN session:", e);
+        } finally {
+          mirroringInProgressRef.current = false;
         }
 
         setSession(eventSession);
