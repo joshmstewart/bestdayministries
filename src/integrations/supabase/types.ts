@@ -3172,6 +3172,7 @@ export type Database = {
           created_at: string
           id: string
           is_approved: boolean
+          is_archived: boolean
           is_used: boolean
           reference: string | null
           source_type: string
@@ -3185,6 +3186,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_approved?: boolean
+          is_archived?: boolean
           is_used?: boolean
           reference?: string | null
           source_type: string
@@ -3198,6 +3200,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_approved?: boolean
+          is_archived?: boolean
           is_used?: boolean
           reference?: string | null
           source_type?: string
