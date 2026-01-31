@@ -357,36 +357,50 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
       selectedMood && `bg-gradient-to-br ${currentTheme.bgGradient}`
     )}>
       {/* Mood Selector */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-2">
         {moodOptions.map((mood) => (
           <button
             key={mood.label}
             onClick={() => handleMoodSelect(mood)}
             disabled={saving}
             className={cn(
-              "flex flex-col items-center p-2 rounded-xl transition-all duration-300",
-              "hover:scale-110 hover:shadow-md focus:outline-none focus:ring-2",
-              "bg-white/80 dark:bg-gray-800/80 border-2",
-              selectedMood?.label === mood.label
-                ? "shadow-lg scale-105"
-                : "border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+              "flex flex-col items-center transition-all duration-300",
+              "hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full",
+              selectedMood?.label === mood.label && "scale-105"
             )}
-            style={{
-              borderColor: selectedMood?.label === mood.label ? mood.color : undefined,
-              backgroundColor: selectedMood?.label === mood.label ? `${mood.color}20` : undefined,
-            }}
           >
             {mood.avatarImageUrl ? (
               <img 
                 src={mood.avatarImageUrl} 
                 alt={mood.label} 
-                className="w-14 h-14 rounded-full object-cover"
+                className={cn(
+                  "w-16 h-16 rounded-full object-cover transition-all",
+                  selectedMood?.label === mood.label 
+                    ? "ring-[3px] ring-offset-2 shadow-lg" 
+                    : "hover:shadow-md"
+                )}
+                style={{
+                  outlineColor: selectedMood?.label === mood.label ? mood.color : undefined,
+                  boxShadow: selectedMood?.label === mood.label ? `0 0 0 3px ${mood.color}` : undefined,
+                }}
               />
             ) : (
-              <span className="text-3xl">{mood.emoji}</span>
+              <span 
+                className={cn(
+                  "text-4xl w-16 h-16 flex items-center justify-center rounded-full transition-all",
+                  selectedMood?.label === mood.label 
+                    ? "shadow-lg" 
+                    : "hover:shadow-md"
+                )}
+                style={{
+                  boxShadow: selectedMood?.label === mood.label ? `0 0 0 3px ${mood.color}` : undefined,
+                }}
+              >
+                {mood.emoji}
+              </span>
             )}
             <span 
-              className="text-xs font-medium mt-1.5"
+              className="text-xs font-medium mt-1"
               style={{ color: selectedMood?.label === mood.label ? mood.color : undefined }}
             >
               {mood.label}
