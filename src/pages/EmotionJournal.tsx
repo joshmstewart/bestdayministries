@@ -3,16 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ArrowLeft, Heart, Calendar, TrendingUp, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { EmotionSelector } from '@/components/emotion-journal/EmotionSelector';
-import { JournalEntry } from '@/components/emotion-journal/JournalEntry';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
 import { TextToSpeech } from '@/components/TextToSpeech';
+import { cn } from '@/lib/utils';
 
 interface EmotionType {
   id: string;
@@ -23,23 +21,56 @@ interface EmotionType {
   coping_suggestions: string[] | null;
 }
 
+// Theme styles based on category
+const CATEGORY_THEMES = {
+  positive: {
+    bgGradient: "from-green-50 via-emerald-50 to-teal-50",
+    buttonGradient: "from-green-500 to-emerald-500",
+    border: "border-green-300",
+    text: "text-green-700",
+    headerGradient: "from-green-500 to-emerald-500",
+    cardBg: "bg-green-50/50",
+  },
+  neutral: {
+    bgGradient: "from-slate-50 via-gray-50 to-zinc-50",
+    buttonGradient: "from-slate-500 to-gray-500",
+    border: "border-slate-300",
+    text: "text-slate-700",
+    headerGradient: "from-slate-500 to-gray-500",
+    cardBg: "bg-slate-50/50",
+  },
+  negative: {
+    bgGradient: "from-rose-50 via-red-50 to-orange-50",
+    buttonGradient: "from-rose-500 to-red-500",
+    border: "border-rose-300",
+    text: "text-rose-700",
+    headerGradient: "from-rose-500 to-red-500",
+    cardBg: "bg-rose-50/50",
+  },
+};
+
+const DEFAULT_THEME = {
+  bgGradient: "from-purple-50 via-pink-50 to-blue-50",
+  buttonGradient: "from-purple-500 to-pink-500",
+  border: "border-purple-200",
+  text: "text-purple-700",
+  headerGradient: "from-purple-500 to-pink-500",
+  cardBg: "bg-white/80",
+};
+
 export default function EmotionJournal() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [emotionTypes, setEmotionTypes] = useState<EmotionType[]>([]);
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
-  const [intensity, setIntensity] = useState<number | null>(null);
   const [journalText, setJournalText] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('log');
   
   // AI response state
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
-
-  // Collapsible states
-  const [intensityOpen, setIntensityOpen] = useState(false);
-  const [journalOpen, setJournalOpen] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -69,67 +100,65 @@ export default function EmotionJournal() {
     loadEmotionTypes();
   }, []);
 
+  // Get current theme based on selected emotion
+  const currentTheme = selectedEmotion 
+    ? CATEGORY_THEMES[selectedEmotion.category as keyof typeof CATEGORY_THEMES] || CATEGORY_THEMES.neutral
+    : DEFAULT_THEME;
+
   const handleEmotionSelect = (emotion: EmotionType) => {
     setSelectedEmotion(emotion);
-    setAiResponse(null); // Reset AI response when emotion changes
-  };
-
-  const generateAiResponse = async () => {
-    if (!selectedEmotion) return;
-    
-    setIsGeneratingResponse(true);
     setAiResponse(null);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('emotion-journal-response', {
-        body: {
-          emotion: selectedEmotion.name,
-          emoji: selectedEmotion.emoji,
-          intensity,
-          journalText: journalText.trim() || null,
-        },
-      });
-
-      if (error) throw error;
-      
-      setAiResponse(data.response);
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      // Fallback response
-      setAiResponse(`${selectedEmotion.emoji} Thank you for sharing that you feel ${selectedEmotion.name.toLowerCase()}. It's good to check in with your feelings!`);
-    } finally {
-      setIsGeneratingResponse(false);
-    }
   };
 
-  const handleSaveEntry = async () => {
+  const handleSave = async (withAiResponse: boolean) => {
     if (!user || !selectedEmotion) return;
 
     setIsSaving(true);
     try {
+      // Save to database
       const { error } = await supabase
         .from('emotion_journal_entries')
         .insert({
           user_id: user.id,
           emotion: selectedEmotion.name,
           emotion_emoji: selectedEmotion.emoji,
-          intensity: intensity || 3, // Default to 3 if not set
-          journal_text: journalText || null,
+          intensity: 3, // Default intensity
+          journal_text: journalText.trim() || null,
         });
 
       if (error) throw error;
+
+      // If user wants AI response, fetch it
+      if (withAiResponse) {
+        setIsGeneratingResponse(true);
+        try {
+          const { data, error: aiError } = await supabase.functions.invoke('emotion-journal-response', {
+            body: {
+              emotion: selectedEmotion.name,
+              emoji: selectedEmotion.emoji,
+              intensity: null,
+              journalText: journalText.trim() || null,
+            },
+          });
+
+          if (aiError) throw aiError;
+          setAiResponse(data.response);
+        } catch (aiErr) {
+          console.error('Error generating AI response:', aiErr);
+          setAiResponse(`${selectedEmotion.emoji} Thank you for sharing that you feel ${selectedEmotion.name.toLowerCase()}. It's good to check in with your feelings!`);
+        } finally {
+          setIsGeneratingResponse(false);
+        }
+      }
 
       toast.success(`${selectedEmotion.emoji} Feeling logged!`, {
         description: 'Great job checking in with yourself!',
       });
 
-      // Reset form
-      setSelectedEmotion(null);
-      setIntensity(null);
-      setJournalText('');
-      setAiResponse(null);
-      setIntensityOpen(false);
-      setJournalOpen(false);
+      // Reset form only if not showing AI response
+      if (!withAiResponse) {
+        resetForm();
+      }
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');
@@ -138,57 +167,29 @@ export default function EmotionJournal() {
     }
   };
 
+  const resetForm = () => {
+    setSelectedEmotion(null);
+    setJournalText('');
+    setShowNotes(false);
+    setAiResponse(null);
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!user) return null;
 
-  // Get theme colors based on selected emotion
-  const getThemeStyles = () => {
-    if (!selectedEmotion) {
-      return {
-        background: 'from-purple-50 via-pink-50 to-blue-50',
-        headerGradient: 'from-purple-500 to-pink-500',
-        cardBorder: 'border-purple-200',
-        cardBg: 'bg-white/80',
-      };
-    }
-    
-    // Map emotion categories to vibrant color themes
-    const categoryThemes: Record<string, { background: string; headerGradient: string; cardBorder: string; cardBg: string }> = {
-      positive: {
-        background: 'from-green-50 via-emerald-50 to-teal-50',
-        headerGradient: 'from-green-500 to-emerald-500',
-        cardBorder: 'border-green-300',
-        cardBg: 'bg-green-50/50',
-      },
-      neutral: {
-        background: 'from-slate-50 via-gray-50 to-zinc-50',
-        headerGradient: 'from-slate-500 to-gray-500',
-        cardBorder: 'border-slate-300',
-        cardBg: 'bg-slate-50/50',
-      },
-      negative: {
-        background: 'from-rose-50 via-red-50 to-orange-50',
-        headerGradient: 'from-rose-500 to-red-500',
-        cardBorder: 'border-rose-300',
-        cardBg: 'bg-rose-50/50',
-      },
-    };
-    
-    return categoryThemes[selectedEmotion.category] || categoryThemes.neutral;
-  };
-
-  const theme = getThemeStyles();
-
   return (
     <main 
-      className={`min-h-screen bg-gradient-to-br ${theme.background} pt-24 pb-12 transition-all duration-500`}
+      className={cn(
+        "min-h-screen bg-gradient-to-br pt-24 pb-12 transition-all duration-500",
+        currentTheme.bgGradient
+      )}
     >
       <div className="container max-w-4xl mx-auto px-4">
         {/* Back Button */}
@@ -208,9 +209,15 @@ export default function EmotionJournal() {
             {selectedEmotion ? (
               <span className="text-5xl animate-bounce">{selectedEmotion.emoji}</span>
             ) : (
-              <Heart className={`h-10 w-10 bg-gradient-to-br ${theme.headerGradient} text-white p-2 rounded-full`} />
+              <Heart className={cn(
+                "h-10 w-10 text-white p-2 rounded-full",
+                `bg-gradient-to-br ${currentTheme.headerGradient}`
+              )} />
             )}
-            <h1 className={`text-3xl font-bold bg-gradient-to-r ${theme.headerGradient} bg-clip-text text-transparent`}>
+            <h1 className={cn(
+              "text-3xl font-bold bg-clip-text text-transparent",
+              `bg-gradient-to-r ${currentTheme.headerGradient}`
+            )}>
               {selectedEmotion ? `Feeling ${selectedEmotion.name}` : 'Emotion Journal'}
             </h1>
             <TextToSpeech 
@@ -248,177 +255,160 @@ export default function EmotionJournal() {
 
           {/* Log Feeling Tab */}
           <TabsContent value="log" className="space-y-4">
-            {/* Emotion Selector */}
-            <Card className={`${theme.cardBg} ${theme.cardBorder} backdrop-blur-sm shadow-lg transition-all duration-500`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <span className="text-2xl">🎭</span>
-                  How are you feeling?
-                  <TextToSpeech 
-                    text="How are you feeling? Choose an emotion from the options below." 
-                    size="icon" 
-                  />
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <EmotionSelector
-                  emotions={emotionTypes}
-                  selectedEmotion={selectedEmotion}
-                  onSelect={handleEmotionSelect}
+            {/* Simple Emotion Grid */}
+            <div className={cn(
+              "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500",
+              currentTheme.cardBg,
+              currentTheme.border,
+              "border"
+            )}>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <span className="text-xl font-bold">🎭 How are you feeling?</span>
+                <TextToSpeech 
+                  text="How are you feeling? Choose an emotion from the options below." 
+                  size="icon" 
                 />
-              </CardContent>
-            </Card>
+              </div>
+              
+              {/* Emoji Grid */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {emotionTypes.map((emotion) => (
+                  <button
+                    key={emotion.id}
+                    onClick={() => handleEmotionSelect(emotion)}
+                    disabled={isSaving}
+                    className={cn(
+                      "flex flex-col items-center p-3 rounded-xl transition-all duration-300",
+                      "hover:scale-110 hover:shadow-md focus:outline-none focus:ring-2",
+                      "bg-white/80 border-2",
+                      selectedEmotion?.id === emotion.id
+                        ? "shadow-lg scale-105"
+                        : "border-transparent hover:border-gray-200"
+                    )}
+                    style={{
+                      borderColor: selectedEmotion?.id === emotion.id ? emotion.color : undefined,
+                      backgroundColor: selectedEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
+                    }}
+                  >
+                    <span className="text-3xl">{emotion.emoji}</span>
+                    <span 
+                      className="text-xs font-medium mt-1"
+                      style={{ color: selectedEmotion?.id === emotion.id ? emotion.color : undefined }}
+                    >
+                      {emotion.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Show options after selecting emotion */}
-            {selectedEmotion && (
-              <>
-                {/* Optional Intensity - Collapsible */}
-                <Collapsible open={intensityOpen} onOpenChange={setIntensityOpen}>
-                  <Card>
-                    <CollapsibleTrigger className="w-full">
-                      <CardHeader className="pb-3 cursor-pointer hover:bg-accent/50 rounded-t-lg transition-colors">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <span className="text-muted-foreground">(Optional)</span>
-                            How strong is this feeling?
-                            <TextToSpeech 
-                              text="Optional. How strong is this feeling? Choose from 1 to 5." 
-                              size="icon" 
-                            />
-                            {intensity !== null && (
-                              <span className="text-sm font-normal bg-primary/10 px-2 py-0.5 rounded">
-                                {intensity}/5
-                              </span>
-                            )}
-                          </CardTitle>
-                          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${intensityOpen ? 'rotate-180' : ''}`} />
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        <div className="flex justify-center gap-2">
-                          {[1, 2, 3, 4, 5].map((level) => (
-                            <button
-                              key={level}
-                              onClick={() => setIntensity(level)}
-                              className={`w-12 h-12 rounded-full text-xl transition-all ${
-                                intensity !== null && intensity >= level
-                                  ? 'scale-110'
-                                  : 'opacity-40 grayscale'
-                              }`}
-                              style={{
-                                backgroundColor: intensity !== null && intensity >= level ? selectedEmotion.color : 'transparent',
-                                border: `2px solid ${selectedEmotion.color}`,
-                              }}
-                            >
-                              {level <= 2 ? '😊' : level === 3 ? '😐' : level === 4 ? '😣' : '🔥'}
-                            </button>
-                          ))}
-                        </div>
-                        {intensity !== null && (
-                          <p className="text-center text-sm text-muted-foreground mt-2">
-                            {intensity === 1 && "Just a little bit"}
-                            {intensity === 2 && "A small amount"}
-                            {intensity === 3 && "Medium feeling"}
-                            {intensity === 4 && "Pretty strong"}
-                            {intensity === 5 && "Very strong!"}
-                          </p>
-                        )}
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-
-                {/* Optional Journal Entry - Collapsible */}
-                <Collapsible open={journalOpen} onOpenChange={setJournalOpen}>
-                  <Card>
-                    <CollapsibleTrigger className="w-full">
-                      <CardHeader className="pb-3 cursor-pointer hover:bg-accent/50 rounded-t-lg transition-colors">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            <span className="text-muted-foreground">(Optional)</span>
-                            Want to say more?
-                            <TextToSpeech 
-                              text="Optional. Want to say more? You can speak or type about your feelings." 
-                              size="icon" 
-                            />
-                            {journalText.trim() && (
-                              <span className="text-sm font-normal bg-primary/10 px-2 py-0.5 rounded">
-                                ✓ Added
-                              </span>
-                            )}
-                          </CardTitle>
-                          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${journalOpen ? 'rotate-180' : ''}`} />
-                        </div>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        <JournalEntry
-                          value={journalText}
-                          onChange={setJournalText}
-                          emotion={selectedEmotion}
-                        />
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-
-                {/* Generate AI Response Button */}
-                <Button
-                  onClick={generateAiResponse}
-                  disabled={isGeneratingResponse}
-                  variant="secondary"
-                  className="w-full h-12"
+            {selectedEmotion && !aiResponse && (
+              <div className={cn(
+                "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500 space-y-4",
+                currentTheme.cardBg,
+                currentTheme.border,
+                "border"
+              )}>
+                {/* Expand for notes toggle */}
+                <button
+                  onClick={() => setShowNotes(!showNotes)}
+                  className="flex items-center justify-center gap-1 w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
-                  {isGeneratingResponse ? (
+                  {showNotes ? (
                     <>
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                      Thinking...
+                      <ChevronUp className="w-4 h-4" />
+                      Hide notes
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-5 w-5 mr-2" />
-                      Get a Friendly Response ✨
+                      <ChevronDown className="w-4 h-4" />
+                      Add a note (optional)
                     </>
                   )}
-                </Button>
+                </button>
 
-                {/* AI Response */}
-                {aiResponse && (
-                  <Card className="border-primary/30 bg-primary/5">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium text-primary">A message for you:</span>
-                            <TextToSpeech text={aiResponse} size="icon" />
-                          </div>
-                          <p className="text-base leading-relaxed">{aiResponse}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {/* Notes section */}
+                {showNotes && (
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <Textarea
+                      value={journalText}
+                      onChange={(e) => setJournalText(e.target.value)}
+                      placeholder="What's on your mind? How are you feeling?"
+                      className="min-h-[100px] resize-none bg-white/50"
+                    />
+                  </div>
                 )}
 
-                {/* Save Button */}
-                <Button
-                  onClick={handleSaveEntry}
-                  disabled={isSaving}
-                  className="w-full h-14 text-lg"
-                  size="lg"
-                >
-                  {isSaving ? (
-                    'Saving...'
-                  ) : (
-                    <>
-                      Save My Feeling {selectedEmotion.emoji}
-                    </>
-                  )}
-                </Button>
-              </>
+                {/* Two action buttons side by side */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  {/* Just Save button */}
+                  <button
+                    onClick={() => handleSave(false)}
+                    disabled={isSaving}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-2 p-6 rounded-xl",
+                      "border-2 transition-all duration-200",
+                      "hover:scale-[1.02] active:scale-[0.98]",
+                      "bg-white/80",
+                      currentTheme.border
+                    )}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Save className={cn("w-10 h-10", currentTheme.text)} />
+                    )}
+                    <span className="text-sm font-medium">Just Save</span>
+                  </button>
+
+                  {/* Chat / Get Response button */}
+                  <button
+                    onClick={() => handleSave(true)}
+                    disabled={isSaving || isGeneratingResponse}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-2 p-6 rounded-xl",
+                      "border-2 transition-all duration-200",
+                      "hover:scale-[1.02] active:scale-[0.98]",
+                      `bg-gradient-to-br ${currentTheme.buttonGradient}`,
+                      "text-white border-transparent"
+                    )}
+                  >
+                    {isSaving || isGeneratingResponse ? (
+                      <Loader2 className="w-10 h-10 animate-spin" />
+                    ) : (
+                      <MessageCircle className="w-10 h-10" />
+                    )}
+                    <span className="text-sm font-medium">Chat More</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* AI Response Card */}
+            {aiResponse && (
+              <div className={cn(
+                "rounded-xl p-6 backdrop-blur-sm shadow-lg transition-all duration-500",
+                "border border-primary/30 bg-primary/5"
+              )}>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <span className="font-medium text-primary">A message for you:</span>
+                      <TextToSpeech text={aiResponse} size="icon" />
+                    </div>
+                    <p className="text-base leading-relaxed mb-4">{aiResponse}</p>
+                    <Button
+                      onClick={resetForm}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      Log Another Feeling
+                    </Button>
+                  </div>
+                </div>
+              </div>
             )}
           </TabsContent>
 
