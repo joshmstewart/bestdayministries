@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck } from "lucide-react";
+import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck, Home } from "lucide-react";
 import { VendorBestieAssetManager } from "@/components/vendor/VendorBestieAssetManager";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
@@ -50,6 +50,8 @@ const VendorDashboard = () => {
     totalSales: 0,
     pendingOrders: 0
   });
+  const [isHomepage, setIsHomepage] = useState(false);
+  const [homepageLoading, setHomepageLoading] = useState(false);
 
   const selectedVendor = vendors.find(v => v.id === selectedVendorId);
   const [activeTab, setActiveTab] = useState("products");
@@ -126,6 +128,15 @@ const VendorDashboard = () => {
       }
       
       setCurrentUserId(user.id);
+
+      // Check user's homepage preference
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('default_homepage')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      setIsHomepage(profileData?.default_homepage === 'vendor-dashboard');
 
       // Check if user is admin/owner
       const { data: roleData } = await supabase
@@ -298,6 +309,38 @@ const VendorDashboard = () => {
     setSearchParams({ vendor: vendorId });
   };
 
+  const toggleHomepage = async () => {
+    if (!currentUserId) return;
+    
+    setHomepageLoading(true);
+    try {
+      const newValue = isHomepage ? null : 'vendor-dashboard';
+      const { error } = await supabase
+        .from('profiles')
+        .update({ default_homepage: newValue })
+        .eq('id', currentUserId);
+      
+      if (error) throw error;
+      
+      setIsHomepage(!isHomepage);
+      toast({
+        title: isHomepage ? "Homepage reset" : "Homepage set",
+        description: isHomepage 
+          ? "You'll now go to Community when you log in" 
+          : "You'll now come here when you log in"
+      });
+    } catch (error) {
+      console.error('Error updating homepage preference:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update homepage preference",
+        variant: "destructive"
+      });
+    } finally {
+      setHomepageLoading(false);
+    }
+  };
+
   if (loading) {
     return <PageLoadingState message="Loading vendor dashboard..." />;
   }
@@ -337,6 +380,19 @@ const VendorDashboard = () => {
       <UnifiedHeader />
       
       <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
+        {/* Homepage toggle - visible for all vendor users */}
+        <div className="mb-4 flex justify-end">
+          <Button
+            variant={isHomepage ? "secondary" : "outline"}
+            size="sm"
+            onClick={toggleHomepage}
+            disabled={homepageLoading}
+          >
+            <Home className="h-4 w-4 mr-1" />
+            {homepageLoading ? "Updating..." : isHomepage ? "Reset Homepage" : "Make This My Homepage"}
+          </Button>
+        </div>
+
         {/* Vendor Selector - show if multiple vendors */}
         {vendors.length > 1 && (
           <div className="mb-6 flex items-center gap-4">

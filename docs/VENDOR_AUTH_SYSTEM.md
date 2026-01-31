@@ -47,6 +47,13 @@ if (hasVendorAccess) {
 }
 ```
 
+## Homepage Preference
+Vendors can set the Vendor Dashboard as their default homepage on login:
+- **Button:** "Make This My Homepage" / "Reset Homepage" toggle in top-right of dashboard
+- **Storage:** `profiles.default_homepage` column (NULL = default /community, 'vendor-dashboard' = go to dashboard)
+- **Login Check:** Auth.tsx checks this preference and redirects accordingly
+- **Reset:** Click "Reset Homepage" to return to default /community redirect
+
 ## Key Difference from Old System
 - **Old:** Vendor was a separate role, users needed vendor-specific login
 - **New:** Vendor is a status, any user can apply while keeping their primary role
