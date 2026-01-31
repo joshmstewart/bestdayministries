@@ -1,37 +1,15 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTermsCheck } from "@/hooks/useTermsCheck";
 import { TermsAcceptanceDialog } from "./TermsAcceptanceDialog";
 
 export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }) => {
-  const [userId, setUserId] = useState<string | undefined>();
-  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
-  const [checkComplete, setCheckComplete] = useState(false);
-  const { needsAcceptance, loading, recordAcceptance } = useTermsCheck(userId);
-  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id;
+  const userCreatedAt = user?.created_at || null;
+  
+  const { needsAcceptance, loading: termsLoading } = useTermsCheck(userId);
   const location = useLocation();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUserId(session?.user?.id);
-      setUserCreatedAt(session?.user?.created_at || null);
-      setCheckComplete(true);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUserId(session?.user?.id);
-      setUserCreatedAt(session?.user?.created_at || null);
-      setCheckComplete(true);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const handleAccepted = async () => {
     // Force a re-check of terms status after acceptance
@@ -49,8 +27,8 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
   const publicPages = ['/auth', '/auth/vendor', '/terms', '/privacy', '/', '/newsletter'];
   const isPublicPage = publicPages.includes(location.pathname);
 
-  // Wait for initial check to complete
-  if (!checkComplete || loading) {
+  // Wait for auth and terms check to complete
+  if (authLoading || termsLoading) {
     return <>{children}</>;
   }
 
