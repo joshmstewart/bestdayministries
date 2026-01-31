@@ -383,8 +383,9 @@ const Community = () => {
                   </TabsTrigger>
                 )}
               </TabsList>
+              {/* Streak Meter - hidden on small screens to avoid overlapping tabs */}
               {user && canSeeFeature('login_streak_button') && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                <div className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2">
                   <StreakMeter />
                 </div>
               )}

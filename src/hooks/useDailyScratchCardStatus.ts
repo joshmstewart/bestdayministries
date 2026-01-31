@@ -21,7 +21,8 @@ const getMSTDate = () => {
 export function useDailyScratchCardStatus(): DailyScratchCardStatus {
   const { user, role, loading: authLoading } = useAuth();
   const location = useLocation();
-  const [hasAvailableCard, setHasAvailableCard] = useState(false);
+  // Start with null to indicate "not yet loaded" - prevents flash of wrong state
+  const [hasAvailableCard, setHasAvailableCard] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewStickerUrl, setPreviewStickerUrl] = useState<string | null>(null);
 
@@ -155,5 +156,6 @@ export function useDailyScratchCardStatus(): DailyScratchCardStatus {
     };
   }, [user?.id, role, location.key, authLoading]);
 
-  return { hasAvailableCard, loading, previewStickerUrl };
+  // Only return false when explicitly determined (not during initial null state)
+  return { hasAvailableCard: hasAvailableCard ?? false, loading, previewStickerUrl };
 }
