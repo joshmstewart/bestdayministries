@@ -439,9 +439,20 @@ export default function EmotionJournal() {
                 "border"
               )}>
                 <div className="text-6xl mb-4">{todaysMoodEntry.mood_emoji}</div>
-                <h2 className="text-xl font-semibold mb-2">
-                  You're feeling {todaysMoodEntry.mood_label} today
-                </h2>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <h2 className="text-xl font-semibold">
+                    You're feeling {todaysMoodEntry.mood_label} today
+                  </h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={startEditingNotes}
+                    className="h-8 w-8"
+                    title={todaysMoodEntry.note ? "Edit note" : "Add a note"}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
                 
                 {/* Show notes if they exist OR editing mode */}
                 {isEditingNotes ? (
@@ -482,31 +493,10 @@ export default function EmotionJournal() {
                   </div>
                 ) : todaysMoodEntry.note ? (
                   <div className="bg-white/60 rounded-lg p-4 mb-4 text-left">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-muted-foreground">Your note:</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={startEditingNotes}
-                        className="h-7 px-2"
-                      >
-                        <Pencil className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">Your note:</p>
                     <p className="italic">"{todaysMoodEntry.note}"</p>
                   </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={startEditingNotes}
-                    className="mb-4"
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Add a note about your feelings
-                  </Button>
-                )}
+                ) : null}
                 
                 {/* AI Response / Encouraging Message */}
                 {aiResponse && (
