@@ -349,9 +349,16 @@ const Community = () => {
             onValueChange={handleTabChange}
             className="w-full"
           >
-            <div className="flex flex-col items-center gap-2 mb-2">
+            <div className="flex flex-col items-center gap-3 mb-2">
+              {/* StreakMeter - shows above tabs on mobile */}
+              {user && canSeeFeature('login_streak_button') && (
+                <div className="md:hidden">
+                  <StreakMeter />
+                </div>
+              )}
+              
               {/* Tabs and Streak Meter row - responsive layout */}
-              <div className="flex items-center justify-center gap-2 w-full flex-wrap">
+              <div className="flex items-center justify-center gap-3">
                 <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   <TabsTrigger 
                     value="community" 
@@ -385,9 +392,12 @@ const Community = () => {
                     </TabsTrigger>
                   )}
                 </TabsList>
-                {/* Streak Meter - inline with tabs, wraps to next line on very small screens */}
+                
+                {/* StreakMeter - shows beside tabs on desktop only */}
                 {user && canSeeFeature('login_streak_button') && (
-                  <StreakMeter />
+                  <div className="hidden md:block">
+                    <StreakMeter />
+                  </div>
                 )}
               </div>
             </div>
