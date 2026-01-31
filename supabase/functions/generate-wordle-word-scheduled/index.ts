@@ -83,7 +83,12 @@ Deno.serve(async (req) => {
     const prompt = `Generate a single 5-letter English word related to the theme "${randomTheme.name}" (${randomTheme.description}). 
 The word must:
 - Be exactly 5 letters long
-- Be a common, recognizable English word that most people would know
+- Be a STANDARD, COMMON English word found in major dictionaries (Merriam-Webster, Oxford)
+- Be a word most English speakers would recognize and use regularly
+- Use standard/formal spelling (e.g., "AUNT" not "AUNTY", "READY" not "REDDY")
+- NOT be a proper noun, name, surname, or brand name
+- NOT be slang, informal variants, or regional spellings
+- NOT be an abbreviation or acronym
 - Be appropriate for all ages (family-friendly)
 - Be related to the theme "${randomTheme.name}"
 - NOT be any of these recently used words: ${usedWordsList || "none yet"}
