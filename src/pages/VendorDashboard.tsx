@@ -380,60 +380,58 @@ const VendorDashboard = () => {
       <UnifiedHeader />
       
       <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
-        {/* Homepage toggle - visible for all vendor users */}
-        <div className="mb-4 flex justify-end">
-          <Button
-            variant={isHomepage ? "secondary" : "outline"}
-            size="sm"
-            onClick={toggleHomepage}
-            disabled={homepageLoading}
-          >
-            <Home className="h-4 w-4 mr-1" />
-            {homepageLoading ? "Updating..." : isHomepage ? "Reset Homepage" : "Make This My Homepage"}
-          </Button>
-        </div>
-
         {/* Vendor Selector - show if multiple vendors */}
         {vendors.length > 1 && (
-          <div className="mb-6 flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Select vendor:</span>
-            <Select value={selectedVendorId || ''} onValueChange={handleVendorChange}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select a vendor" />
-              </SelectTrigger>
-              <SelectContent>
-                {vendors.map((vendor) => (
-                  <SelectItem key={vendor.id} value={vendor.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{vendor.business_name}</span>
-                      {vendor.status === 'approved' && (
-                        <CheckCircle className="h-3 w-3 text-green-500" />
-                      )}
-                      {vendor.status === 'pending' && (
-                        <Clock className="h-3 w-3 text-yellow-500" />
-                      )}
-                      {vendor.status === 'rejected' && (
-                        <XCircle className="h-3 w-3 text-red-500" />
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button 
-              variant="outline" 
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">Select vendor:</span>
+              <Select value={selectedVendorId || ''} onValueChange={handleVendorChange}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Select a vendor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors.map((vendor) => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{vendor.business_name}</span>
+                        {vendor.status === 'approved' && (
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        )}
+                        {vendor.status === 'pending' && (
+                          <Clock className="h-3 w-3 text-yellow-500" />
+                        )}
+                        {vendor.status === 'rejected' && (
+                          <XCircle className="h-3 w-3 text-red-500" />
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/vendor-auth?new=true')}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Vendor
+              </Button>
+            </div>
+            <Button
+              variant={isHomepage ? "secondary" : "outline"}
               size="sm"
-              onClick={() => navigate('/vendor-auth?new=true')}
+              onClick={toggleHomepage}
+              disabled={homepageLoading}
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Vendor
+              <Home className="h-4 w-4 mr-1" />
+              {homepageLoading ? "..." : isHomepage ? "Reset Homepage" : "Make Homepage"}
             </Button>
           </div>
         )}
 
-        {/* Single vendor - show add button */}
+        {/* Single vendor - show add button and homepage toggle */}
         {vendors.length === 1 && (
-          <div className="mb-6 flex justify-end">
+          <div className="mb-6 flex items-center justify-between">
             <Button 
               variant="outline" 
               size="sm"
@@ -441,6 +439,15 @@ const VendorDashboard = () => {
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Another Vendor
+            </Button>
+            <Button
+              variant={isHomepage ? "secondary" : "outline"}
+              size="sm"
+              onClick={toggleHomepage}
+              disabled={homepageLoading}
+            >
+              <Home className="h-4 w-4 mr-1" />
+              {homepageLoading ? "..." : isHomepage ? "Reset Homepage" : "Make Homepage"}
             </Button>
           </div>
         )}
