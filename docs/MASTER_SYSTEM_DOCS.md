@@ -697,6 +697,12 @@ DB:app_settings.coffee_shop_content[JSONB]
 ADMIN:edit-hero|mission|buttons|location|menu-toggle
 FRONTEND:Hero|Mission|Hours|Menu[conditional]
 
+## COFFEE_VENDOR_PRODUCTS
+ADMIN:Admin→Vendors→Coffee→Products
+DB:coffee_products[images:text[]-public-URLs]
+STORAGE:app-assets/coffee-products/
+UPLOAD:save-auto-uploads-selected/cropped-image-if-not-added|filename-sanitization-required
+
 ## COMMUNITY_PREVIEWS
 CRITICAL:fetch-profiles_public[role]→effectiveRole→loadContent
 DISCUSSION:is_moderated=true-NO-approval_status→limit-1
