@@ -269,7 +269,7 @@ Format as JSON array:
         return true;
       }
       
-      // Check word overlap - if 80% of words match, consider it a soft match
+      // Check word overlap - if 60% of words match, consider it a soft match (lowered from 80%)
       const newWords = normalizedNew.split(' ').filter(w => w.length > 3); // Only meaningful words
       const existingWords = new Set(normalizedExisting.split(' ').filter(w => w.length > 3));
       
@@ -278,7 +278,57 @@ Format as JSON array:
       const matchingWords = newWords.filter(w => existingWords.has(w)).length;
       const overlapRatio = matchingWords / newWords.length;
       
-      return overlapRatio >= 0.8;
+      return overlapRatio >= 0.6; // Lowered threshold to catch more similar content
+    };
+
+    // AI-powered semantic similarity check for content that passes word overlap
+    const checkSemanticSimilarity = async (newContent: string, existingContents: string[]): Promise<boolean> => {
+      if (existingContents.length === 0) return false;
+      
+      // Take a sample of existing content to compare (max 20 to keep prompt manageable)
+      const samplesToCheck = existingContents.slice(0, 20);
+      
+      try {
+        const semanticResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite", // Fast model for quick checks
+            messages: [
+              {
+                role: "system",
+                content: "You are a semantic similarity checker. Respond with ONLY 'YES' if the new content is semantically the same as ANY existing content (asking the same question, conveying the same meaning, or prompting the same type of response), or 'NO' if it's genuinely different."
+              },
+              {
+                role: "user",
+                content: `NEW CONTENT: "${newContent}"\n\nEXISTING CONTENT:\n${samplesToCheck.map((c, i) => `${i + 1}. "${c}"`).join('\n')}\n\nIs the new content semantically the same as any existing content? Answer YES or NO only.`
+              }
+            ],
+            temperature: 0.1, // Low temperature for consistent judgment
+            max_tokens: 10,
+          }),
+        });
+
+        if (!semanticResponse.ok) {
+          console.error("Semantic check failed, allowing content through");
+          return false;
+        }
+
+        const semanticData = await semanticResponse.json();
+        const answer = (semanticData.choices?.[0]?.message?.content || "").trim().toUpperCase();
+        
+        if (answer.includes("YES")) {
+          console.log(`Semantic match detected for: "${newContent.substring(0, 50)}..."`);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Semantic check error:", error);
+        return false; // On error, allow the content through
+      }
     };
 
     // Fetch ALL existing fortunes for deduplication (including archived ones)
@@ -411,6 +461,17 @@ Format as JSON array:
           }
         }
         if (isSoft) continue;
+        
+        // AI semantic check - catches questions/prompts that ask the same thing differently
+        // Apply to categories where semantic similarity matters most
+        if (["discussion_starter", "gratitude_prompt", "affirmation", "life_lesson"].includes(source_type)) {
+          const existingContentForSemantic = allExistingForSoftMatch.map(e => e.content);
+          const isSemanticallyDuplicate = await checkSemanticSimilarity(f.content, existingContentForSemantic);
+          if (isSemanticallyDuplicate) {
+            console.log(`Skipping semantic duplicate: "${f.content.substring(0, 50)}..."`);
+            continue;
+          }
+        }
         
         // This one is unique! Add it to our collection and tracking sets
         collectedUniqueFortunes.push(f);
