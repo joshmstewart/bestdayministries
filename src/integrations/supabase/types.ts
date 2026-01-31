@@ -614,7 +614,7 @@ export type Database = {
       }
       avatar_emotion_images: {
         Row: {
-          avatar_number: number
+          avatar_id: string
           created_at: string
           emotion_type_id: string
           generation_notes: string | null
@@ -625,7 +625,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          avatar_number: number
+          avatar_id: string
           created_at?: string
           emotion_type_id: string
           generation_notes?: string | null
@@ -636,7 +636,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          avatar_number?: number
+          avatar_id?: string
           created_at?: string
           emotion_type_id?: string
           generation_notes?: string | null
@@ -648,11 +648,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "avatar_emotion_images_avatar_number_fkey"
-            columns: ["avatar_number"]
+            foreignKeyName: "avatar_emotion_images_avatar_id_fkey"
+            columns: ["avatar_id"]
             isOneToOne: false
-            referencedRelation: "avatars"
-            referencedColumns: ["avatar_number"]
+            referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "avatar_emotion_images_emotion_type_id_fkey"

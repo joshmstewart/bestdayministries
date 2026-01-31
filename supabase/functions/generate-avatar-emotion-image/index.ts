@@ -57,16 +57,25 @@ serve(async (req) => {
       });
     }
 
-    const { avatarNumber, emotionTypeId, prompt, notes } = await req.json();
+    const { avatarId, emotionTypeId, prompt, notes } = await req.json();
 
-    if (!avatarNumber || !emotionTypeId || !prompt) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+    if (!avatarId || !emotionTypeId || !prompt) {
+      return new Response(JSON.stringify({ error: "Missing required fields: avatarId, emotionTypeId, prompt" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`Generating avatar emotion image: avatar=${avatarNumber}, emotion=${emotionTypeId}`);
+    // Get the fitness avatar to include its name in the filename
+    const { data: avatarData } = await supabaseAdmin
+      .from("fitness_avatars")
+      .select("name")
+      .eq("id", avatarId)
+      .single();
+
+    const avatarName = avatarData?.name?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() || 'avatar';
+
+    console.log(`Generating avatar emotion image: avatar=${avatarId} (${avatarName}), emotion=${emotionTypeId}`);
 
     // Generate the image using Lovable AI Gateway
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -105,7 +114,7 @@ serve(async (req) => {
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     
-    const fileName = `avatar-${avatarNumber}-emotion-${emotionTypeId}-${Date.now()}.png`;
+    const fileName = `${avatarName}-${emotionTypeId.slice(0, 8)}-${Date.now()}.png`;
     const filePath = `avatar-emotions/${fileName}`;
 
     const { error: uploadError } = await supabaseAdmin.storage
@@ -131,7 +140,7 @@ serve(async (req) => {
     const { error: dbError } = await supabaseAdmin
       .from("avatar_emotion_images")
       .upsert({
-        avatar_number: avatarNumber,
+        avatar_id: avatarId,
         emotion_type_id: emotionTypeId,
         image_url: publicUrl,
         prompt_used: prompt,
@@ -139,7 +148,7 @@ serve(async (req) => {
         is_approved: false,
         updated_at: new Date().toISOString(),
       }, {
-        onConflict: "avatar_number,emotion_type_id",
+        onConflict: "avatar_id,emotion_type_id",
       });
 
     if (dbError) {

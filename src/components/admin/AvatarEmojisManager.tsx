@@ -9,12 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Check, X, RefreshCw, Trash2 } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { getAvatarConfig, getAvatarName } from "@/lib/avatarConfig";
-import { AvatarThumbnail } from "./AvatarThumbnail";
 
-interface Avatar {
-  avatar_number: number;
-  category: string;
+interface FitnessAvatar {
+  id: string;
+  name: string;
+  preview_image_url: string | null;
+  image_url: string | null;
+  character_prompt: string | null;
+  category: string | null;
+  is_active: boolean;
 }
 
 interface EmotionType {
@@ -27,7 +30,7 @@ interface EmotionType {
 
 interface AvatarEmotionImage {
   id: string;
-  avatar_number: number;
+  avatar_id: string;
   emotion_type_id: string;
   image_url: string | null;
   prompt_used: string | null;
@@ -38,11 +41,11 @@ interface AvatarEmotionImage {
 
 export function AvatarEmojisManager() {
   const { toast } = useToast();
-  const [avatars, setAvatars] = useState<Avatar[]>([]);
+  const [fitnessAvatars, setFitnessAvatars] = useState<FitnessAvatar[]>([]);
   const [emotions, setEmotions] = useState<EmotionType[]>([]);
   const [existingImages, setExistingImages] = useState<AvatarEmotionImage[]>([]);
   
-  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
   const [generationNotes, setGenerationNotes] = useState("");
@@ -59,12 +62,12 @@ export function AvatarEmojisManager() {
     setLoading(true);
     try {
       const [avatarsRes, emotionsRes, imagesRes] = await Promise.all([
-        supabase.from("avatars").select("avatar_number, category").eq("is_active", true).order("avatar_number"),
+        supabase.from("fitness_avatars").select("id, name, preview_image_url, image_url, character_prompt, category, is_active").eq("is_active", true).order("name"),
         supabase.from("emotion_types").select("id, name, emoji, color, category").eq("is_active", true).order("display_order"),
         supabase.from("avatar_emotion_images").select("*").order("created_at", { ascending: false })
       ]);
 
-      if (avatarsRes.data) setAvatars(avatarsRes.data);
+      if (avatarsRes.data) setFitnessAvatars(avatarsRes.data);
       if (emotionsRes.data) setEmotions(emotionsRes.data);
       if (imagesRes.data) setExistingImages(imagesRes.data as AvatarEmotionImage[]);
     } catch (error) {
@@ -75,22 +78,29 @@ export function AvatarEmojisManager() {
     }
   };
 
+  const getSelectedAvatar = () => {
+    return fitnessAvatars.find(a => a.id === selectedAvatarId);
+  };
+
   const getSelectedEmotionDetails = () => {
     return emotions.find(e => e.id === selectedEmotion);
   };
 
   const getExistingImage = () => {
-    if (!selectedAvatar || !selectedEmotion) return null;
+    if (!selectedAvatarId || !selectedEmotion) return null;
     return existingImages.find(
-      img => img.avatar_number === selectedAvatar && img.emotion_type_id === selectedEmotion
+      img => img.avatar_id === selectedAvatarId && img.emotion_type_id === selectedEmotion
     );
   };
 
   const buildDefaultPrompt = () => {
     const emotion = getSelectedEmotionDetails();
-    if (!emotion || !selectedAvatar) return "";
+    const avatar = getSelectedAvatar();
+    if (!emotion || !avatar) return "";
     
-    return `A cute, friendly character (avatar #${selectedAvatar}) expressing the emotion "${emotion.name}" (${emotion.emoji}). 
+    const basePrompt = avatar.character_prompt || avatar.name;
+    
+    return `${basePrompt}, expressing the emotion "${emotion.name}" (${emotion.emoji}). 
 The character should clearly show this ${emotion.category} emotion through their facial expression and body language.
 Style: Warm, approachable, suitable for adults with intellectual disabilities. 
 Background: Simple, non-distracting, using the color ${emotion.color} as an accent.
@@ -98,7 +108,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
   };
 
   const handleGenerate = async () => {
-    if (!selectedAvatar || !selectedEmotion) {
+    if (!selectedAvatarId || !selectedEmotion) {
       toast({ title: "Please select both an avatar and emotion", variant: "destructive" });
       return;
     }
@@ -112,7 +122,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
       // Call the AI gateway to generate the image
       const response = await supabase.functions.invoke("generate-avatar-emotion-image", {
         body: {
-          avatarNumber: selectedAvatar,
+          avatarId: selectedAvatarId,
           emotionTypeId: selectedEmotion,
           prompt: promptToUse,
           notes: generationNotes
@@ -193,11 +203,16 @@ The image should be positive and encouraging, even for challenging emotions.`;
     }
   };
 
+  const getAvatarById = (id: string) => {
+    return fitnessAvatars.find(a => a.id === id);
+  };
+
   const existingImage = getExistingImage();
   const selectedEmotionDetails = getSelectedEmotionDetails();
+  const selectedAvatar = getSelectedAvatar();
 
   // Stats
-  const totalCombinations = avatars.length * emotions.length;
+  const totalCombinations = fitnessAvatars.length * emotions.length;
   const generatedCount = existingImages.length;
   const approvedCount = existingImages.filter(img => img.is_approved).length;
 
@@ -218,7 +233,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
             <div className="text-2xl font-bold">{totalCombinations}</div>
             <div className="text-sm text-muted-foreground">Total Combinations</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {avatars.length} avatars × {emotions.length} emotions
+              {fitnessAvatars.length} avatars × {emotions.length} emotions
             </div>
           </CardContent>
         </Card>
@@ -227,7 +242,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
             <div className="text-2xl font-bold">{generatedCount}</div>
             <div className="text-sm text-muted-foreground">Generated</div>
             <div className="text-xs text-muted-foreground mt-1">
-              {((generatedCount / totalCombinations) * 100).toFixed(1)}% complete
+              {totalCombinations > 0 ? ((generatedCount / totalCombinations) * 100).toFixed(1) : 0}% complete
             </div>
           </CardContent>
         </Card>
@@ -250,28 +265,36 @@ The image should be positive and encouraging, even for challenging emotions.`;
             Generate Avatar Emotion Image
           </CardTitle>
           <CardDescription>
-            Select an avatar and emotion, then generate and iterate until you're happy with the result.
+            Select a fitness avatar and emotion, then generate and iterate until you're happy with the result.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {/* Avatar Selection */}
             <div className="space-y-2">
-              <Label>Avatar</Label>
+              <Label>Fitness Avatar</Label>
               <Select 
-                value={selectedAvatar?.toString() || ""} 
-                onValueChange={(v) => setSelectedAvatar(parseInt(v))}
+                value={selectedAvatarId || ""} 
+                onValueChange={setSelectedAvatarId}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select avatar..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {avatars.map((avatar) => (
-                    <SelectItem key={avatar.avatar_number} value={avatar.avatar_number.toString()}>
+                  {fitnessAvatars.map((avatar) => (
+                    <SelectItem key={avatar.id} value={avatar.id}>
                       <div className="flex items-center gap-2">
-                        <AvatarThumbnail avatarNumber={avatar.avatar_number} size="sm" />
-                        <span>{getAvatarName(avatar.avatar_number)}</span>
-                        <Badge variant="outline" className="text-xs">{avatar.category}</Badge>
+                        {avatar.preview_image_url && (
+                          <img 
+                            src={avatar.preview_image_url} 
+                            alt={avatar.name}
+                            className="w-6 h-6 rounded object-cover"
+                          />
+                        )}
+                        <span>{avatar.name}</span>
+                        {avatar.category && (
+                          <Badge variant="outline" className="text-xs">{avatar.category}</Badge>
+                        )}
                       </div>
                     </SelectItem>
                   ))}
@@ -338,7 +361,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
           {/* Generate Button */}
           <Button 
             onClick={handleGenerate} 
-            disabled={!selectedAvatar || !selectedEmotion || isGenerating}
+            disabled={!selectedAvatarId || !selectedEmotion || isGenerating}
             className="w-full"
           >
             {isGenerating ? (
@@ -362,7 +385,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
       </Card>
 
       {/* Preview / Result */}
-      {(existingImage || generatedImageUrl) && selectedEmotionDetails && (
+      {(existingImage || generatedImageUrl) && selectedEmotionDetails && selectedAvatar && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -381,7 +404,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
                 <AspectRatio ratio={1} className="bg-muted rounded-lg overflow-hidden">
                   <img 
                     src={generatedImageUrl || existingImage?.image_url || ""} 
-                    alt={`Avatar ${selectedAvatar} - ${selectedEmotionDetails.name}`}
+                    alt={`${selectedAvatar.name} - ${selectedEmotionDetails.name}`}
                     className="w-full h-full object-cover"
                   />
                 </AspectRatio>
@@ -423,11 +446,17 @@ The image should be positive and encouraging, even for challenging emotions.`;
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Combination</h4>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <AvatarThumbnail avatarNumber={selectedAvatar} size="md" />
-                        <span className="text-sm">{getAvatarName(selectedAvatar)}</span>
-                      </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      {selectedAvatar.preview_image_url && (
+                        <img 
+                          src={selectedAvatar.preview_image_url} 
+                          alt={selectedAvatar.name}
+                          className="w-10 h-10 rounded object-cover"
+                        />
+                      )}
+                      <span className="text-sm">{selectedAvatar.name}</span>
+                    </div>
                     <span className="text-muted-foreground">+</span>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{selectedEmotionDetails.emoji}</span>
@@ -482,16 +511,17 @@ The image should be positive and encouraging, even for challenging emotions.`;
             <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
               {existingImages.map((img) => {
                 const emotion = emotions.find(e => e.id === img.emotion_type_id);
+                const avatar = getAvatarById(img.avatar_id);
                 return (
                   <button
                     key={img.id}
                     onClick={() => {
-                      setSelectedAvatar(img.avatar_number);
+                      setSelectedAvatarId(img.avatar_id);
                       setSelectedEmotion(img.emotion_type_id);
                       setGeneratedImageUrl(img.image_url);
                     }}
                     className={`relative rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
-                      selectedAvatar === img.avatar_number && selectedEmotion === img.emotion_type_id
+                      selectedAvatarId === img.avatar_id && selectedEmotion === img.emotion_type_id
                         ? "border-primary ring-2 ring-primary/20"
                         : img.is_approved 
                           ? "border-green-500/50" 
@@ -501,7 +531,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
                     <AspectRatio ratio={1}>
                       <img 
                         src={img.image_url || ""} 
-                        alt={`Avatar ${img.avatar_number} - ${emotion?.name}`}
+                        alt={`${avatar?.name || 'Avatar'} - ${emotion?.name}`}
                         className="w-full h-full object-cover"
                       />
                     </AspectRatio>
@@ -512,7 +542,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
                     )}
                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex items-center justify-center gap-1">
                       <span>{emotion?.emoji}</span>
-                      <span>{getAvatarName(img.avatar_number)}</span>
+                      <span className="truncate">{avatar?.name || 'Unknown'}</span>
                     </div>
                   </button>
                 );
