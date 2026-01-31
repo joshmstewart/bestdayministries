@@ -3067,6 +3067,41 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_fortune_comments: {
+        Row: {
+          content: string
+          created_at: string
+          fortune_post_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          fortune_post_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          fortune_post_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_fortune_comments_fortune_post_id_fkey"
+            columns: ["fortune_post_id"]
+            isOneToOne: false
+            referencedRelation: "daily_fortune_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_fortune_likes: {
         Row: {
           created_at: string

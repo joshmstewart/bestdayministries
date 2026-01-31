@@ -3,11 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle } from "lucide-react";
+import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
+import { FortuneComments } from "./FortuneComments";
 interface Fortune {
   id: string;
   content: string;
@@ -40,6 +40,7 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
   const [liking, setLiking] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [viewRecorded, setViewRecorded] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const getMSTDate = () => {
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -296,7 +297,7 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
               disabled={!isAuthenticated || liking}
               className={cn(
                 "gap-1",
-                hasLiked && "text-red-500 hover:text-red-600"
+                hasLiked && "text-destructive hover:text-destructive/80"
               )}
             >
               <Heart className={cn("w-4 h-4", hasLiked && "fill-current")} />
@@ -305,12 +306,16 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleComment}
-              disabled={!isAuthenticated}
+              onClick={() => setShowComments(!showComments)}
               className="gap-1"
             >
               <MessageSquare className="w-4 h-4" />
-              <span className="text-xs">Discuss</span>
+              <span className="text-xs">Comment</span>
+              {showComments ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
             </Button>
           </div>
           <Button
@@ -322,6 +327,13 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
             <Share2 className="w-4 h-4" />
             <span className="text-xs">Share</span>
           </Button>
+        </div>
+      )}
+
+      {/* Inline comments section */}
+      {revealed && showComments && fortunePost && (
+        <div className="border-t pt-3">
+          <FortuneComments fortunePostId={fortunePost.id} />
         </div>
       )}
 
