@@ -56,7 +56,10 @@ export function DailyBar() {
   // Track and award bonus for completing all daily activities
   useDailyEngagementBonus({ allCompleted });
 
-  if (!isAuthenticated) return null;
+  // Check if user can see the daily bar based on role settings
+  const canSeeDailyBar = canSeeFeature('daily_bar');
+
+  if (!isAuthenticated || !canSeeDailyBar) return null;
 
   const handleItemClick = (itemId: string) => {
     setActivePopup(itemId);
