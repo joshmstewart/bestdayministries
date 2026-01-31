@@ -341,7 +341,7 @@ const Community = () => {
       <UnifiedHeader />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 pt-16 pb-12">
+      <main className="container mx-auto px-4 pt-16 pb-12 relative">
         <div className="max-w-6xl mx-auto space-y-4">
           {/* Community Tabs + Streak Meter */}
           <Tabs 
@@ -744,24 +744,24 @@ const Community = () => {
             </TabsContent>
           </Tabs>
         </div>
+        
+        {/* Daily Scratch Widget - right side, upper portion - Home tab only */}
+        {user && activeTab === 'community' && canSeeFeature('daily_scratch_widget') && (
+          <div
+            className={`absolute right-4 top-8 z-40 hidden lg:block ${
+              !isProblematicIOSVersion()
+                ? '[transform:rotate(8deg)] [will-change:transform] [backface-visibility:hidden]'
+                : ''
+            }`}
+          >
+            <ErrorBoundary fallback={null}>
+              <DailyScratchCard />
+            </ErrorBoundary>
+          </div>
+        )}
       </main>
       
       <Footer />
-      
-      {/* Floating Daily Scratch Widget - right side, upper portion - Home tab only */}
-      {user && activeTab === 'community' && canSeeFeature('daily_scratch_widget') && (
-        <div
-          className={`fixed right-4 top-52 z-40 ${
-            !isProblematicIOSVersion()
-              ? '[transform:rotate(8deg)] [will-change:transform] [backface-visibility:hidden]'
-              : ''
-          }`}
-        >
-          <ErrorBoundary fallback={null}>
-            <DailyScratchCard />
-          </ErrorBoundary>
-        </div>
-      )}
     </div>
   );
 };
