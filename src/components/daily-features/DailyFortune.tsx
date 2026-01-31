@@ -36,6 +36,7 @@ export function DailyFortune() {
   const [likesCount, setLikesCount] = useState(0);
   const [liking, setLiking] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   // Get MST date
   const getMSTDate = () => {
@@ -80,16 +81,37 @@ export function DailyFortune() {
           setFortune(fortuneData);
         }
 
-        // Check if user has liked
+        // Check if user has liked and if already viewed today
         if (user) {
-          const { data: like } = await supabase
-            .from("daily_fortune_likes")
-            .select("id")
-            .eq("fortune_post_id", post.id)
-            .eq("user_id", user.id)
-            .maybeSingle();
+          const [likeResult, viewResult, commentsResult] = await Promise.all([
+            supabase
+              .from("daily_fortune_likes")
+              .select("id")
+              .eq("fortune_post_id", post.id)
+              .eq("user_id", user.id)
+              .maybeSingle(),
+            supabase
+              .from("daily_fortune_views")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("view_date", today)
+              .maybeSingle(),
+            supabase
+              .from("daily_fortune_comments")
+              .select("id", { count: "exact", head: true })
+              .eq("fortune_post_id", post.id),
+          ]);
           
-          setHasLiked(!!like);
+          setHasLiked(!!likeResult.data);
+          setRevealed(!!viewResult.data);
+          setCommentCount(commentsResult.count || 0);
+        } else {
+          // For non-authenticated users, just get comment count
+          const { count } = await supabase
+            .from("daily_fortune_comments")
+            .select("id", { count: "exact", head: true })
+            .eq("fortune_post_id", post.id);
+          setCommentCount(count || 0);
         }
       }
     } catch (error) {
@@ -250,7 +272,17 @@ export function DailyFortune() {
 
         {/* Fortune content - tap to reveal */}
         <button
-          onClick={() => setRevealed(true)}
+          onClick={async () => {
+            if (!revealed && user && fortunePost) {
+              // Record the view
+              await supabase.from("daily_fortune_views").upsert({
+                user_id: user.id, 
+                view_date: getMSTDate(),
+                fortune_post_id: fortunePost.id,
+              }, { onConflict: "user_id,view_date" });
+            }
+            setRevealed(true);
+          }}
           className={cn(
             "w-full text-left transition-all duration-500 p-4 rounded-xl",
             revealed
@@ -306,6 +338,11 @@ export function DailyFortune() {
               >
                 <MessageSquare className="w-4 h-4" />
                 <span className="text-xs">Discuss</span>
+                {commentCount > 0 && (
+                  <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">
+                    {commentCount}
+                  </span>
+                )}
               </Button>
             </div>
             <Button
