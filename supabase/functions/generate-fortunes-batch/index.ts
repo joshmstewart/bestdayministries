@@ -61,6 +61,39 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
     
+    // Fetch existing references BEFORE generating to include in prompt
+    const { data: existingFortunesForPrompt } = await adminClient
+      .from("daily_fortunes")
+      .select("reference, author, content")
+      .eq("source_type", source_type);
+    
+    // Build exclusion list based on source type
+    let exclusionList = "";
+    if (source_type === "bible_verse" || source_type === "proverbs") {
+      const existingRefs = (existingFortunesForPrompt || [])
+        .filter(f => f.reference)
+        .map(f => f.reference)
+        .slice(0, 100); // Limit to avoid huge prompts
+      if (existingRefs.length > 0) {
+        exclusionList = `\n\nIMPORTANT - DO NOT generate any of these verses (we already have them):\n${existingRefs.join(", ")}\n\nGenerate DIFFERENT verses not on this list.`;
+      }
+    } else if (source_type === "inspirational_quote") {
+      const existingAuthors = [...new Set((existingFortunesForPrompt || [])
+        .filter(f => f.author)
+        .map(f => f.author))];
+      if (existingAuthors.length > 0) {
+        exclusionList = `\n\nWe already have quotes from: ${existingAuthors.slice(0, 30).join(", ")}.\nPrioritize quotes from OTHER people not on this list, though you can include them if the quote is truly exceptional and different.`;
+      }
+    } else {
+      // For affirmations, life lessons, etc. - include some existing content to avoid
+      const existingSamples = (existingFortunesForPrompt || [])
+        .map(f => f.content)
+        .slice(0, 20);
+      if (existingSamples.length > 0) {
+        exclusionList = `\n\nIMPORTANT - Generate DIFFERENT content from these existing items:\n${existingSamples.map(s => `- "${s}"`).join("\n")}\n\nBe creative and generate fresh, original content.`;
+      }
+    }
+    
     let prompt = "";
     if (source_type === "bible_verse") {
       prompt = `Generate ${count} REAL, ACTUAL Bible verses from the NIV or KJV translation. These must be genuine scripture that can be verified.
@@ -69,18 +102,16 @@ For each verse, provide:
 1. The EXACT verse text as it appears in the Bible (NIV or KJV)
 2. The precise Bible reference (Book Chapter:Verse format)
 
-EXAMPLES of valid verses:
-- "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life." - John 3:16
-- "I can do all things through Christ who strengthens me." - Philippians 4:13
-- "The Lord is my shepherd; I shall not want." - Psalm 23:1
-- "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go." - Joshua 1:9
+Focus on LESSER-KNOWN but still encouraging verses. Avoid the most commonly quoted verses and dig deeper into Scripture.
 
-Focus on verses about: love, hope, joy, being valued, God's care, encouragement, strength, peace, and friendship.
+Topics: love, hope, joy, being valued, God's care, encouragement, strength, peace, friendship, wisdom, patience, gratitude.
+
+Books to explore: Psalms (beyond Psalm 23), Isaiah, Philippians, Colossians, Ephesians, James, 1 Peter, 1 John, Hebrews, Deuteronomy, Zephaniah, Micah, Lamentations, Song of Solomon.${exclusionList}
 
 CRITICAL REQUIREMENTS:
 - These must be REAL Bible verses, not made-up spiritual sayings
-- Include the EXACT reference (e.g., "John 3:16", "Psalm 23:1-2", "Romans 8:28")
-- Use common, encouraging passages that are accessible to all readers
+- Include the EXACT reference (e.g., "Isaiah 41:10", "Zephaniah 3:17", "Lamentations 3:22-23")
+- Prioritize verses that are encouraging but less commonly quoted
 
 Format as JSON array:
 [{"content": "exact verse text", "reference": "Book Chapter:Verse"}]`;
@@ -92,13 +123,7 @@ Make them:
 - First-person statements ("I am...", "I can...", "I have...")
 - Focused on self-worth, abilities, belonging, and positive qualities
 - Easy to remember and repeat daily
-
-EXAMPLES:
-- "I am loved and valued exactly as I am."
-- "I can do hard things with help from my friends."
-- "My feelings matter and it's okay to express them."
-- "I am getting better every day."
-- "I belong here and I am important."
+- FRESH and CREATIVE - not generic or overused${exclusionList}
 
 Format as JSON array:
 [{"content": "the affirmation text"}]`;
@@ -111,16 +136,7 @@ Style guidelines:
 - Wise but simple - no complex vocabulary
 - Feels like advice from a wise friend
 - Can be understood by anyone
-
-EXAMPLES of the style we want:
-- "Look for happiness and you will find it."
-- "Don't let others define you."
-- "Small steps lead to big changes."
-- "Kindness costs nothing but means everything."
-- "Your smile can brighten someone's day."
-- "Every ending is a new beginning."
-- "The best time to start is now."
-- "You are stronger than you think."
+- Be CREATIVE and ORIGINAL - avoid clichés${exclusionList}
 
 Topics to cover:
 - Happiness and positivity
@@ -139,12 +155,7 @@ Make them:
 - Simple questions or statements that prompt reflection
 - Related to everyday experiences (friends, activities, small pleasures)
 - Easy to connect to their daily life
-
-EXAMPLES:
-- "What made you smile today?"
-- "Think of someone who helps you. What do you appreciate about them?"
-- "What's your favorite thing about where you live?"
-- "What food are you grateful for?"
+- VARIED and CREATIVE - explore different aspects of gratitude${exclusionList}
 
 Format as JSON array:
 [{"content": "the gratitude prompt text"}]`;
@@ -157,64 +168,46 @@ Topics should encourage sharing experiences and opinions about:
 - Friendship and helping others
 - Handling challenges
 - What makes them happy
-
-EXAMPLES:
-- "If you could have any superpower, what would it be and why?"
-- "What's the nicest thing someone did for you recently?"
-- "If you could learn to do anything, what would you choose?"
-- "What does being a good friend mean to you?"
+- Memories and experiences
+- Creativity and imagination${exclusionList}
 
 Format as JSON array:
 [{"content": "the discussion question text"}]`;
     } else if (source_type === "proverbs") {
       prompt = `Generate ${count} REAL biblical proverbs and wisdom sayings. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
 
-Focus on timeless wisdom about:
-- Living wisely and making good choices
-- Treating others with kindness
-- The value of hard work and patience
-- Friendship and relationships
-- Honesty and integrity
-- Finding peace and contentment
-
-EXAMPLES of valid proverbs:
-- "A gentle answer turns away wrath, but a harsh word stirs up anger." - Proverbs 15:1
-- "Trust in the Lord with all your heart and lean not on your own understanding." - Proverbs 3:5
-- "A friend loves at all times." - Proverbs 17:17
-- "Do unto others as you would have them do unto you." - Luke 6:31
-- "The truth will set you free." - John 8:32
+Focus on LESSER-KNOWN proverbs and wisdom passages. Dig deep into Proverbs chapters 10-31, Ecclesiastes, and the teachings of Jesus in the Gospels.${exclusionList}
 
 CRITICAL REQUIREMENTS:
 - These must be REAL Bible verses or accurate paraphrases of biblical wisdom
-- Include the Bible reference when possible
+- Include the Bible reference
 - Choose accessible, practical wisdom that applies to daily life
 - Keep language simple and understandable
+- Prioritize verses that are less commonly quoted
 
 Format as JSON array:
-[{"content": "the proverb or wisdom text", "reference": "Book Chapter:Verse (if applicable)"}]`;
+[{"content": "the proverb or wisdom text", "reference": "Book Chapter:Verse"}]`;
     } else {
       // Default: inspirational_quote
       prompt = `Generate ${count} REAL, VERIFIED inspirational quotes from famous people. These must be actual quotes that can be attributed to real historical or contemporary figures.
 
 CRITICAL: Only use quotes that are genuinely from these people, not misattributed or made-up quotes.
 
-Include quotes from well-known figures like:
-- Helen Keller, Walt Disney, Mr. Rogers, Dr. Seuss
-- Maya Angelou, Nelson Mandela, Winston Churchill
-- Oprah Winfrey, Michael Jordan, Albert Einstein
-- Martin Luther King Jr., Mahatma Gandhi
-
-EXAMPLES of valid quotes:
-- "The only thing we have to fear is fear itself." - Franklin D. Roosevelt
-- "Be the change you wish to see in the world." - Mahatma Gandhi
-- "You're braver than you believe, stronger than you seem, and smarter than you think." - A.A. Milne
-- "No one can make you feel inferior without your consent." - Eleanor Roosevelt
+Explore quotes from a WIDE VARIETY of people, including:
+- Authors and poets (Maya Angelou, Toni Morrison, Langston Hughes, Rumi, Khalil Gibran)
+- Leaders (Nelson Mandela, Winston Churchill, Theodore Roosevelt, Abraham Lincoln)
+- Scientists (Marie Curie, Albert Einstein, Carl Sagan, Jane Goodall)
+- Athletes (Muhammad Ali, Serena Williams, Michael Jordan, Jackie Robinson)
+- Entertainers (Dolly Parton, Jim Henson, Robin Williams, Audrey Hepburn)
+- Activists (Rosa Parks, Malala Yousafzai, Harriet Tubman, Frederick Douglass)
+- Philosophers (Marcus Aurelius, Confucius, Lao Tzu)${exclusionList}
 
 REQUIREMENTS:
 - Every quote MUST include the author
 - Only use quotes you are confident are accurately attributed
 - Choose encouraging, uplifting quotes about courage, kindness, perseverance, and self-worth
 - Avoid complex or abstract quotes - keep them accessible
+- Prioritize lesser-known quotes over the most famous ones
 
 Format as JSON array:
 [{"content": "quote text", "author": "Person Name"}]`;
