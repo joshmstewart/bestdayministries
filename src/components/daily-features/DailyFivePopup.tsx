@@ -251,8 +251,9 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
     const rows = [];
     const totalRows = Math.min(maxGuesses, 6); // Show max 6 rows in popup
     
-    // Completed guesses
-    for (const { guess, result } of guessResults.slice(-5)) { // Show last 5 guesses
+    // Completed guesses (show last ones that fit)
+    const displayedGuesses = guessResults.slice(-(totalRows - 1));
+    for (const { guess, result } of displayedGuesses) {
       rows.push(
         <div key={`guess-${rows.length}`} className="flex gap-1 justify-center">
           {guess.split("").map((letter, i) => (
@@ -299,6 +300,32 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
           })}
         </div>
       );
+    }
+    
+    // Empty rows for remaining guesses
+    if (!gameOver && !roundEnded) {
+      const startRow = rows.length;
+      for (let i = startRow; i < totalRows; i++) {
+        rows.push(
+          <div key={`empty-${i}`} className="flex gap-1 justify-center">
+            {Array(5).fill(null).map((_, j) => {
+              const hint = letterHints.find(h => h.position === j);
+              
+              return (
+                <div
+                  key={j}
+                  className={cn(
+                    "w-10 h-10 flex items-center justify-center text-lg font-bold rounded border-2",
+                    hint ? "border-green-500/30 bg-green-500/5" : "border-border"
+                  )}
+                >
+                  {hint && <span className="text-green-600/30 text-sm">{hint.letter}</span>}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
     }
     
     return <div className="flex flex-col gap-1 mb-4">{rows}</div>;
