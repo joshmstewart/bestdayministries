@@ -349,46 +349,47 @@ const Community = () => {
             onValueChange={handleTabChange}
             className="w-full"
           >
-            <div className="relative flex items-center justify-center mb-2">
-              <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                <TabsTrigger 
-                  value="community" 
-                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                >
-                  <Users className="w-4 h-4" />
-                  Home
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="apps" 
-                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  Apps
-                </TabsTrigger>
-                {canAccessFeed() && (
+            <div className="flex flex-col items-center gap-2 mb-2">
+              {/* Tabs and Streak Meter row - responsive layout */}
+              <div className="flex items-center justify-center gap-2 w-full flex-wrap">
+                <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   <TabsTrigger 
-                    value="feed" 
-                    className="gap-2 relative px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                    value="community" 
+                    className="gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                   >
-                    <Rss className="w-4 h-4" />
-                    Feed
-                    {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
-                      >
-                        {unseenCount > 99 ? '99+' : unseenCount}
-                      </Badge>
-                    )}
+                    <Users className="w-4 h-4" />
+                    <span className="hidden xs:inline">Home</span>
                   </TabsTrigger>
-                )}
-              </TabsList>
-              {/* Streak Meter - hidden on small screens to avoid overlapping tabs */}
-              {user && canSeeFeature('login_streak_button') && (
-                <div className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2">
+                  <TabsTrigger 
+                    value="apps" 
+                    className="gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    <span className="hidden xs:inline">Apps</span>
+                  </TabsTrigger>
+                  {canAccessFeed() && (
+                    <TabsTrigger 
+                      value="feed" 
+                      className="gap-2 relative px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                    >
+                      <Rss className="w-4 h-4" />
+                      <span className="hidden xs:inline">Feed</span>
+                      {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
+                        <Badge 
+                          variant="destructive" 
+                          className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center p-0 text-[10px] sm:text-xs rounded-full"
+                        >
+                          {unseenCount > 99 ? '99+' : unseenCount}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+                {/* Streak Meter - inline with tabs, wraps to next line on very small screens */}
+                {user && canSeeFeature('login_streak_button') && (
                   <StreakMeter />
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* What's New Feed Tab - only render if user has access */}

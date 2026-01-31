@@ -29,6 +29,7 @@ export function useDailyScratchCardStatus(): DailyScratchCardStatus {
   useEffect(() => {
     // Wait for auth to finish loading before checking card status
     if (authLoading) {
+      setLoading(true);
       return;
     }
     
@@ -38,6 +39,9 @@ export function useDailyScratchCardStatus(): DailyScratchCardStatus {
       setPreviewStickerUrl(null);
       return;
     }
+
+    // Reset loading state when we start checking
+    setLoading(true);
 
     const checkCardStatus = async () => {
       try {
