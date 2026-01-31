@@ -7489,6 +7489,7 @@ export type Database = {
           created_at: string
           custom_avatar_type: string | null
           custom_avatar_url: string | null
+          default_homepage: string | null
           display_name: string
           email: string | null
           feed_last_seen_at: string | null
@@ -7512,6 +7513,7 @@ export type Database = {
           created_at?: string
           custom_avatar_type?: string | null
           custom_avatar_url?: string | null
+          default_homepage?: string | null
           display_name: string
           email?: string | null
           feed_last_seen_at?: string | null
@@ -7535,6 +7537,7 @@ export type Database = {
           created_at?: string
           custom_avatar_type?: string | null
           custom_avatar_url?: string | null
+          default_homepage?: string | null
           display_name?: string
           email?: string | null
           feed_last_seen_at?: string | null

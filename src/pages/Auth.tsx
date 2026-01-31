@@ -162,19 +162,21 @@ const Auth = () => {
           return;
         }
 
-        // If user has vendor access (owner OR accepted team member), take them to vendor dashboard
-        const [{ data: owned }, { data: team }] = await Promise.all([
-          supabase.from('vendors').select('id').eq('user_id', userId).limit(1),
-          supabase
-            .from('vendor_team_members')
-            .select('id')
-            .eq('user_id', userId)
-            .not('accepted_at', 'is', null)
-            .limit(1),
-        ]);
+        // Check user's homepage preference from profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('default_homepage')
+          .eq('id', userId)
+          .maybeSingle();
 
-        const hasVendorAccess = (owned?.length ?? 0) > 0 || (team?.length ?? 0) > 0;
-        navigate(hasVendorAccess ? "/vendor-dashboard" : "/community", { replace: true });
+        // If user has set vendor-dashboard as their homepage, go there
+        if (profile?.default_homepage === 'vendor-dashboard') {
+          navigate("/vendor-dashboard", { replace: true });
+          return;
+        }
+
+        // Default: go to community
+        navigate("/community", { replace: true });
       } catch (err) {
         navigate("/community", { replace: true });
       }
