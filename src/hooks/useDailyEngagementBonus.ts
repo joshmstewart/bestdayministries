@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { awardCoinReward } from "@/utils/awardCoinReward";
 
+const DAILY_ENGAGEMENT_COINS = 50;
+
 // Get MST date string (YYYY-MM-DD format)
 const getMSTDate = () => {
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -18,10 +20,19 @@ interface DailyEngagementBonusProps {
   allCompleted: boolean;
 }
 
-export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusProps) {
+interface DailyEngagementBonusResult {
+  bonusClaimed: boolean;
+  checking: boolean;
+  showCelebration: boolean;
+  setShowCelebration: (show: boolean) => void;
+  coinsAwarded: number;
+}
+
+export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusProps): DailyEngagementBonusResult {
   const { user } = useAuth();
   const [bonusClaimed, setBonusClaimed] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
   const claimingRef = useRef(false);
 
   // Check if bonus was already claimed today
@@ -62,7 +73,7 @@ export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusPr
         .insert({
           user_id: user.id,
           completion_date: today,
-          coins_awarded: 50,
+          coins_awarded: DAILY_ENGAGEMENT_COINS,
         });
 
       if (insertError) {
@@ -77,6 +88,9 @@ export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusPr
       // Award the coins
       await awardCoinReward(user.id, "daily_engagement_complete", "🎉 All Daily Activities Complete!");
       setBonusClaimed(true);
+      
+      // Trigger celebration
+      setShowCelebration(true);
     } catch (error) {
       console.error("Error claiming daily engagement bonus:", error);
     } finally {
@@ -96,5 +110,11 @@ export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusPr
     }
   }, [allCompleted, bonusClaimed, checking, user, claimBonus]);
 
-  return { bonusClaimed, checking };
+  return { 
+    bonusClaimed, 
+    checking, 
+    showCelebration, 
+    setShowCelebration,
+    coinsAwarded: DAILY_ENGAGEMENT_COINS,
+  };
 }

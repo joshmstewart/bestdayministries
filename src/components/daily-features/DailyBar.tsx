@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
 import { DailyFivePopup } from "./DailyFivePopup";
+import { DailyCompletionCelebration } from "./DailyCompletionCelebration";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
@@ -54,7 +55,7 @@ export function DailyBar() {
   }, [completions, hasAvailableCard]);
 
   // Track and award bonus for completing all daily activities
-  useDailyEngagementBonus({ allCompleted });
+  const { showCelebration, setShowCelebration, coinsAwarded } = useDailyEngagementBonus({ allCompleted });
 
   // Check if user can see the daily bar based on role settings
   const canSeeDailyBar = canSeeFeature('daily_bar');
@@ -233,6 +234,13 @@ export function DailyBar() {
           <DailyFivePopup onComplete={() => handlePopupClose("daily-five")} />
         </DialogContent>
       </Dialog>
+
+      {/* Completion Celebration */}
+      <DailyCompletionCelebration
+        open={showCelebration}
+        onOpenChange={setShowCelebration}
+        coinsAwarded={coinsAwarded}
+      />
 
     </div>
   );
