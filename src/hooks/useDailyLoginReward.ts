@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { showCoinNotification } from "@/utils/coinNotification";
@@ -8,6 +8,21 @@ let globalCheckInProgress = false;
 
 // Session-level tracking to prevent re-checks during same browser session
 const SESSION_KEY = "daily_login_checked_date";
+
+export interface MilestoneAwarded {
+  badge_name: string;
+  badge_icon: string | null;
+  bonus_coins: number;
+  free_sticker_packs: number;
+  description: string | null;
+}
+
+export interface StreakRewardResult {
+  milestoneAwarded: MilestoneAwarded | null;
+  currentStreak: number;
+  showCelebration: boolean;
+  setShowCelebration: (show: boolean) => void;
+}
 
 /**
  * Get today's date in MST timezone using proper timezone handling.
@@ -26,10 +41,14 @@ function getMSTDate(): string {
  * Hook to check and award daily login coins on first load each day.
  * Uses MST timezone for day calculation (same as sticker packs).
  * Calls Edge Function for atomic server-side processing.
+ * Returns streak milestone data for celebration UI.
  */
-export const useDailyLoginReward = () => {
+export const useDailyLoginReward = (): StreakRewardResult => {
   const { user, isAuthenticated, loading } = useAuth();
   const hasChecked = useRef(false);
+  const [milestoneAwarded, setMilestoneAwarded] = useState<MilestoneAwarded | null>(null);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     if (loading || !isAuthenticated || !user || hasChecked.current) return;
@@ -68,8 +87,19 @@ export const useDailyLoginReward = () => {
           showCoinNotification(data.amount, "Welcome back! Daily login bonus");
         }
 
-        // Also update streak (fire and forget)
-        supabase.functions.invoke("claim-streak-reward").catch(console.error);
+        // Call streak reward and capture response
+        const { data: streakData, error: streakError } = await supabase.functions.invoke("claim-streak-reward");
+        
+        if (!streakError && streakData?.success) {
+          setCurrentStreak(streakData.current_streak || 0);
+          
+          // Check if milestone was awarded
+          if (streakData.milestones_awarded && streakData.milestones_awarded.length > 0) {
+            const milestone = streakData.milestones_awarded[0];
+            setMilestoneAwarded(milestone);
+            setShowCelebration(true);
+          }
+        }
       } catch (error) {
         console.error("Error checking daily login reward:", error);
       } finally {
@@ -79,4 +109,11 @@ export const useDailyLoginReward = () => {
 
     checkAndAwardDailyLogin();
   }, [loading, isAuthenticated, user]);
+
+  return {
+    milestoneAwarded,
+    currentStreak,
+    showCelebration,
+    setShowCelebration,
+  };
 };
