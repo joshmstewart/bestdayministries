@@ -856,7 +856,7 @@ WORKFLOWS:Signup[checkbox→record-immediate→no-second-dialog✓]|Update[versi
 SECURITY:audit-trail-IP-timestamp|non-dismissible|unique-constraint|edge-adds-metadata
 FIXED-2025-10-25:double-terms-prompt-eliminated→record-during-signup-not-deferred
 
-AUTH-SYNC-CRITICAL:iOS-PWA-IndexedDB-auth→AuthProvider-mirrors-session-to-standard-client→prevents-terms-loop+ghost-user
+AUTH-SYNC-CRITICAL:iOS-PWA-IndexedDB-auth→AuthProvider-mirrors-session-to-other-client-only (never setSession on emitting client)→prevents-terms-loop+ghost-user+auth-event-storms
 
 
 ## SPONSOR_PAGE

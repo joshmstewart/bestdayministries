@@ -63,9 +63,19 @@ export const PicturePasswordLogin = () => {
         });
 
         // Use shared redirect logic (same as email/password login)
+        // Derive userId from the persisted session (edge function response does not include user).
+        const {
+          data: { user },
+          error: userError,
+        } = await supabasePersistent.auth.getUser();
+
+        if (userError || !user) {
+          throw new Error("Signed in, but user session could not be loaded. Please try again.");
+        }
+
         const redirectPath = searchParams.get("redirect");
         const bestieId = searchParams.get("bestieId");
-        const destination = await getPostLoginRedirect(data.session.user.id, {
+        const destination = await getPostLoginRedirect(user.id, {
           redirectPath: redirectPath || undefined,
           bestieId: bestieId || undefined,
         });
