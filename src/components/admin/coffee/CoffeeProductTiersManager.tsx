@@ -4,12 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Edit, Check, X } from "lucide-react";
 
 interface PricingTier {
   id: string;
   min_quantity: number;
   price_per_unit: number;
+}
+
+interface EditingTier {
+  id: string;
+  quantity: string;
+  price: string;
 }
 
 interface CoffeeProductTiersManagerProps {
@@ -21,6 +27,7 @@ export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProduc
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingTier, setEditingTier] = useState<EditingTier | null>(null);
   
   // New tier form state
   const [newQuantity, setNewQuantity] = useState("");
@@ -55,6 +62,85 @@ export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProduc
       setLoading(false);
     }
   }, [productId]);
+
+  const startEditing = (tier: PricingTier) => {
+    setEditingTier({
+      id: tier.id,
+      quantity: tier.min_quantity.toString(),
+      price: tier.price_per_unit.toString(),
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingTier(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingTier) return;
+
+    const quantity = parseInt(editingTier.quantity);
+    const price = parseFloat(editingTier.price);
+
+    if (!quantity || quantity < 1) {
+      toast({
+        title: "Invalid quantity",
+        description: "Minimum quantity must be at least 1",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!price || price < 0) {
+      toast({
+        title: "Invalid price",
+        description: "Price per unit must be a positive number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate quantity (excluding current tier)
+    if (tiers.some(t => t.min_quantity === quantity && t.id !== editingTier.id)) {
+      toast({
+        title: "Duplicate tier",
+        description: `A tier for ${quantity}+ units already exists`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("coffee_product_tiers")
+        .update({
+          min_quantity: quantity,
+          price_per_unit: price,
+        })
+        .eq("id", editingTier.id);
+
+      if (error) throw error;
+
+      setTiers(prev => 
+        prev.map(t => 
+          t.id === editingTier.id 
+            ? { ...t, min_quantity: quantity, price_per_unit: price }
+            : t
+        ).sort((a, b) => a.min_quantity - b.min_quantity)
+      );
+      setEditingTier(null);
+      toast({ title: "Pricing tier updated" });
+    } catch (error: any) {
+      console.error("Error updating tier:", error);
+      toast({
+        title: "Error updating tier",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const addTier = async () => {
     const quantity = parseInt(newQuantity);
@@ -168,8 +254,58 @@ export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProduc
       {tiers.length > 0 ? (
         <div className="space-y-2">
           {tiers.map((tier) => {
+            const isEditing = editingTier?.id === tier.id;
             const savings = basePrice - tier.price_per_unit;
             const savingsPercent = basePrice > 0 ? ((savings / basePrice) * 100).toFixed(0) : 0;
+            
+            if (isEditing) {
+              return (
+                <div
+                  key={tier.id}
+                  className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-primary/50"
+                >
+                  <div className="flex-1 grid grid-cols-2 gap-3">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={editingTier.quantity}
+                      onChange={(e) => setEditingTier({ ...editingTier, quantity: e.target.value })}
+                      className="h-8"
+                      placeholder="Quantity"
+                    />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editingTier.price}
+                      onChange={(e) => setEditingTier({ ...editingTier, price: e.target.value })}
+                      className="h-8"
+                      placeholder="Price"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-primary hover:text-primary"
+                    onClick={saveEdit}
+                    disabled={saving}
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={cancelEditing}
+                    disabled={saving}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            }
             
             return (
               <div
@@ -185,7 +321,7 @@ export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProduc
                     <span className="text-muted-foreground">Pay </span>
                     <span className="font-medium">${tier.price_per_unit.toFixed(2)}/ea</span>
                     {savings > 0 && (
-                      <span className="ml-2 text-xs text-green-600">
+                      <span className="ml-2 text-xs text-primary">
                         (save {savingsPercent}%)
                       </span>
                     )}
@@ -195,8 +331,19 @@ export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProduc
                   type="button"
                   variant="ghost"
                   size="icon"
+                  className="h-8 w-8"
+                  onClick={() => startEditing(tier)}
+                  title="Edit tier"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-destructive hover:text-destructive"
                   onClick={() => deleteTier(tier.id)}
+                  title="Delete tier"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
