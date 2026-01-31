@@ -25,18 +25,31 @@ interface Comment {
 
 interface FortuneCommentsProps {
   fortunePostId: string;
+  onDiscussionCreated?: (discussionPostId: string) => void;
 }
 
-export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
+export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneCommentsProps) {
   const { user, isAuthenticated } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [showVoiceInput, setShowVoiceInput] = useState(false);
+  const [discussionPostId, setDiscussionPostId] = useState<string | null>(null);
 
   const loadComments = useCallback(async () => {
     try {
+      // Check if there's already a discussion post linked
+      const { data: fortunePost } = await supabase
+        .from("daily_fortune_posts")
+        .select("discussion_post_id")
+        .eq("id", fortunePostId)
+        .single();
+      
+      if (fortunePost?.discussion_post_id) {
+        setDiscussionPostId(fortunePost.discussion_post_id);
+      }
+
       const { data, error } = await supabase
         .from("daily_fortune_comments")
         .select("id, user_id, content, created_at")
@@ -99,6 +112,50 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
 
     setSubmitting(true);
     try {
+      // Check if this is the first comment (no discussion post yet)
+      const isFirstComment = comments.length === 0 && !discussionPostId;
+      
+      if (isFirstComment) {
+        // Fetch the fortune details to create a discussion post
+        const { data: fortunePost } = await supabase
+          .from("daily_fortune_posts")
+          .select("fortune_id, daily_fortunes(content, author, reference, source_type)")
+          .eq("id", fortunePostId)
+          .single();
+        
+        if (fortunePost?.daily_fortunes) {
+          const fortune = fortunePost.daily_fortunes as { content: string; author: string | null; reference: string | null; source_type: string };
+          const title = `Daily Inspiration: ${fortune.content.substring(0, 50)}${fortune.content.length > 50 ? '...' : ''}`;
+          const content = `"${fortune.content}"${fortune.author ? `\n\n— ${fortune.author}` : ''}${fortune.reference ? ` (${fortune.reference})` : ''}`;
+          
+          // Create the discussion post
+          const { data: newDiscussionPost, error: discussionError } = await supabase
+            .from("discussion_posts")
+            .insert({
+              author_id: user.id,
+              title,
+              content,
+              is_moderated: true,
+              approval_status: "approved",
+            })
+            .select("id")
+            .single();
+          
+          if (discussionError) throw discussionError;
+          
+          if (newDiscussionPost) {
+            // Link the discussion post to the fortune post
+            await supabase
+              .from("daily_fortune_posts")
+              .update({ discussion_post_id: newDiscussionPost.id })
+              .eq("id", fortunePostId);
+            
+            setDiscussionPostId(newDiscussionPost.id);
+            onDiscussionCreated?.(newDiscussionPost.id);
+          }
+        }
+      }
+
       const { error } = await supabase.from("daily_fortune_comments").insert({
         fortune_post_id: fortunePostId,
         user_id: user.id,
