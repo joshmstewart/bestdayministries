@@ -297,7 +297,7 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
                     imagePreview={imagePreview}
                     onImageChange={handleImageChange}
                     aspectRatio="1:1"
-                    allowAspectRatioChange={false}
+                    allowAspectRatioChange={true}
                   />
                 </div>
                 {imagePreview && (
