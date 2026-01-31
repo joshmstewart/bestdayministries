@@ -98,21 +98,19 @@ export function AvatarEmojisManager() {
     const avatar = getSelectedAvatar();
     if (!emotion || !avatar) return "";
     
-    return `Generate a single emoji-style HEAD SHOT of ${avatar.name} expressing the ${emotion.name} emotion ${emotion.emoji}.
+    // Use image-to-image approach like generate-workout-image
+    return `Use the EXACT same character from the reference image. Show ONLY their HEAD/FACE expressing the ${emotion.name} emotion ${emotion.emoji}.
 
 CRITICAL REQUIREMENTS:
-- HEAD AND FACE ONLY - no body, no shoulders, just the head/face like a real emoji
-- Match the EXACT expression style of the official ${emotion.emoji} emoji
-- Clear, exaggerated facial expression that UNMISTAKABLY conveys ${emotion.name}
-- Simple, clean solid color background
-- Cartoon/emoji art style - round, friendly, highly expressive features
-- Bold colors, crisp edges, high contrast
-- The expression should be INSTANTLY recognizable as ${emotion.name}
+- Keep the character COMPLETELY identical - same face, hair, art style, species, colors, and all distinctive features
+- ONLY the HEAD and FACE - crop just above the shoulders, like an emoji
+- Make the facial expression CLEARLY and UNMISTAKABLY show ${emotion.name}
+- Match the expression style of the official ${emotion.emoji} emoji
+- Simple solid color background (use ${emotion.color || 'a complementary color'})
+- Maintain the exact same art style and quality as the reference image
+- The expression should be exaggerated and instantly recognizable
 
-Character: ${avatar.name} (${avatar.category || 'fitness avatar'})
-${avatar.character_prompt ? `Description: ${avatar.character_prompt}` : ''}
-
-REFERENCE: Look at the official ${emotion.emoji} emoji and replicate that exact facial expression on this character's face.`;
+${avatar.character_prompt ? `Character details to preserve: ${avatar.character_prompt}` : ''}`
   };
 
   const handleGenerate = async () => {
