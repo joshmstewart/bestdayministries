@@ -149,23 +149,39 @@ EXAMPLES:
 Format as JSON array:
 [{"content": "the gratitude prompt text"}]`;
     } else if (source_type === "discussion_starter") {
-      prompt = `Generate ${count} thought-provoking discussion questions for adults with intellectual and developmental disabilities.
+      prompt = `Generate ${count} contemplative thought starters for adults with intellectual and developmental disabilities. These should feel like gentle wisdom that invites reflection - more like fortune cookie musings than direct questions.
 
-Topics should encourage sharing experiences and opinions about:
-- Favorite things (food, activities, places)
-- Dreams and goals
-- Friendship and helping others
-- Handling challenges
-- What makes them happy
+The tone should be:
+- Rhetorical and poetic, not interrogative
+- Inviting personal reflection without demanding an answer
+- Wise and warm, like a thought to sit with
+- Feel natural as a "daily fortune" or inspiration
 
-EXAMPLES:
-- "If you could have any superpower, what would it be and why?"
-- "What's the nicest thing someone did for you recently?"
-- "If you could learn to do anything, what would you choose?"
-- "What does being a good friend mean to you?"
+GOOD EXAMPLES (contemplative, fortune-like):
+- "The people who make us laugh are treasures worth keeping close."
+- "Sometimes the bravest thing is simply trying again."
+- "A kind word can change someone's whole day."
+- "Home isn't always a place - sometimes it's a feeling."
+- "The things we're most proud of usually took the most work."
+- "Real friends make the hard days a little easier."
+- "What we choose to celebrate says a lot about who we are."
+
+AVOID these styles (too question-like):
+- "What is your favorite food?" (too simple, too direct)
+- "If you could have any superpower, what would it be?" (feels like a survey)
+- "What makes you happy?" (too basic)
+
+Topics to explore contemplatively:
+- What makes a good friend
+- Finding joy in small moments
+- Overcoming challenges
+- What "home" or "belonging" means
+- Being proud of yourself
+- How we help each other
+- What matters most in life
 
 Format as JSON array:
-[{"content": "the discussion question text"}]`;
+[{"content": "the contemplative thought starter text"}]`;
     } else if (source_type === "proverbs") {
       prompt = `Generate ${count} REAL biblical proverbs and wisdom sayings. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
 
