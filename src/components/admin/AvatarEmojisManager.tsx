@@ -93,10 +93,33 @@ export function AvatarEmojisManager() {
     );
   };
 
+  // Get background color based on emotion category/sentiment
+  const getEmotionBackgroundColor = (emotionName: string, category?: string) => {
+    const name = emotionName.toLowerCase();
+    const cat = category?.toLowerCase() || '';
+    
+    // Positive emotions - green tones
+    const positiveEmotions = ['happy', 'joy', 'excited', 'loved', 'grateful', 'proud', 'hopeful', 'content', 'peaceful', 'amused', 'delighted', 'cheerful', 'optimistic', 'confident', 'enthusiastic', 'calm', 'relaxed'];
+    if (positiveEmotions.some(e => name.includes(e)) || cat === 'positive') {
+      return 'bright green (#4CAF50)';
+    }
+    
+    // Negative emotions - red tones
+    const negativeEmotions = ['sad', 'angry', 'scared', 'anxious', 'frustrated', 'disappointed', 'hurt', 'lonely', 'jealous', 'embarrassed', 'ashamed', 'guilty', 'worried', 'stressed', 'overwhelmed', 'depressed', 'fear', 'mad', 'upset', 'tired', 'exhausted', 'bored'];
+    if (negativeEmotions.some(e => name.includes(e)) || cat === 'negative') {
+      return 'soft red (#EF5350)';
+    }
+    
+    // Neutral emotions - gray tones
+    return 'neutral gray (#9E9E9E)';
+  };
+
   const buildDefaultPrompt = () => {
     const emotion = getSelectedEmotionDetails();
     const avatar = getSelectedAvatar();
     if (!emotion || !avatar) return "";
+    
+    const bgColor = getEmotionBackgroundColor(emotion.name, emotion.category);
     
     // STRICT head-only emoji generation
     return `TRANSFORM the character from the reference image into an EMOJI.
@@ -121,7 +144,7 @@ EXPRESSION:
 - Eyes, eyebrows, and mouth should clearly convey ${emotion.name}
 
 STYLE:
-- Simple solid ${emotion.color || 'complementary'} color background
+- Simple solid ${bgColor} color background
 - Clean, crisp emoji aesthetic
 - High contrast, bold features`
   };
