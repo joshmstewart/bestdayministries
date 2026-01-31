@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw, Coffee, Package, Truck, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { CoffeeProductsManager } from "./coffee/CoffeeProductsManager";
+import { CoffeeShippingSettings } from "./coffee/CoffeeShippingSettings";
 
 interface ShipStationOrder {
   orderId: number;
@@ -253,12 +254,17 @@ export const CoffeeVendorManager = () => {
       <Tabs defaultValue="products" className="space-y-4">
         <TabsList>
           <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="shipping">Shipping</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products">
           <CoffeeProductsManager />
+        </TabsContent>
+
+        <TabsContent value="shipping">
+          <CoffeeShippingSettings />
         </TabsContent>
 
         <TabsContent value="orders">
