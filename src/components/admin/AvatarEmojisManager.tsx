@@ -98,13 +98,21 @@ export function AvatarEmojisManager() {
     const avatar = getSelectedAvatar();
     if (!emotion || !avatar) return "";
     
-    const basePrompt = avatar.character_prompt || avatar.name;
-    
-    return `${basePrompt}, expressing the emotion "${emotion.name}" (${emotion.emoji}). 
-The character should clearly show this ${emotion.category} emotion through their facial expression and body language.
-Style: Warm, approachable, suitable for adults with intellectual disabilities. 
-Background: Simple, non-distracting, using the color ${emotion.color} as an accent.
-The image should be positive and encouraging, even for challenging emotions.`;
+    return `Generate a single emoji-style HEAD SHOT of ${avatar.name} expressing the ${emotion.name} emotion ${emotion.emoji}.
+
+CRITICAL REQUIREMENTS:
+- HEAD AND FACE ONLY - no body, no shoulders, just the head/face like a real emoji
+- Match the EXACT expression style of the official ${emotion.emoji} emoji
+- Clear, exaggerated facial expression that UNMISTAKABLY conveys ${emotion.name}
+- Simple, clean solid color background
+- Cartoon/emoji art style - round, friendly, highly expressive features
+- Bold colors, crisp edges, high contrast
+- The expression should be INSTANTLY recognizable as ${emotion.name}
+
+Character: ${avatar.name} (${avatar.category || 'fitness avatar'})
+${avatar.character_prompt ? `Description: ${avatar.character_prompt}` : ''}
+
+REFERENCE: Look at the official ${emotion.emoji} emoji and replicate that exact facial expression on this character's face.`;
   };
 
   const handleGenerate = async () => {
