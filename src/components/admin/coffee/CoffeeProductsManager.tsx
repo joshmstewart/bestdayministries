@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Loader2, Coffee } from "lucide-react";
 import { CoffeeProductForm } from "./CoffeeProductForm";
+import ImageLightbox from "@/components/ImageLightbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +39,20 @@ export function CoffeeProductsManager() {
   const [editingProduct, setEditingProduct] = useState<CoffeeProduct | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<CoffeeProduct | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string }[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const handleImageClick = (product: CoffeeProduct) => {
+    if (product.images && product.images.length > 0) {
+      setLightboxImages(product.images.map((url, i) => ({ 
+        image_url: url, 
+        caption: i === 0 ? product.name : `${product.name} - Image ${i + 1}` 
+      })));
+      setLightboxIndex(0);
+      setLightboxOpen(true);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -167,7 +182,8 @@ export function CoffeeProductsManager() {
                         <img 
                           src={product.images[0]} 
                           alt={product.name}
-                          className="w-12 h-12 object-contain rounded border"
+                          className="w-12 h-12 object-contain rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleImageClick(product)}
                         />
                       ) : (
                         <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
@@ -234,6 +250,19 @@ export function CoffeeProductsManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onPrevious={() => setLightboxIndex((prev) => 
+          prev === 0 ? lightboxImages.length - 1 : prev - 1
+        )}
+        onNext={() => setLightboxIndex((prev) => 
+          prev === lightboxImages.length - 1 ? 0 : prev + 1
+        )}
+      />
     </Card>
   );
 }
