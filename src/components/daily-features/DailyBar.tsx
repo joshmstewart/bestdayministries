@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, PenTool, Loader2, ExternalLink, Check } from "lucide-react";
@@ -7,13 +7,16 @@ import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
 import { DailyFivePopup } from "./DailyFivePopup";
 import { DailyCompletionCelebration } from "./DailyCompletionCelebration";
-import { useNavigate } from "react-router-dom";
+import { PackOpeningDialog } from "@/components/PackOpeningDialog";
+import { CollectionSelectorDialog } from "@/components/CollectionSelectorDialog";
+import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
 import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
 import { useDailyCompletions } from "@/hooks/useDailyCompletions";
 import { useDailyScratchCardStatus } from "@/hooks/useDailyScratchCardStatus";
 import { useDailyEngagementBonus } from "@/hooks/useDailyEngagementBonus";
+import { supabase } from "@/integrations/supabase/client";
 
 // Fallback icons when no custom image is uploaded
 const FALLBACK_ICONS: Record<string, { icon: React.ReactNode; emoji: string }> = {
@@ -40,13 +43,23 @@ const GRADIENTS: Record<string, { gradient: string; bgGradient: string }> = {
 };
 
 export function DailyBar() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated, role } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activePopup, setActivePopup] = useState<string | null>(null);
   const { icons, loading: iconsLoading } = useDailyBarIcons();
   const { canSeeFeature } = useDailyEngagementSettings();
   const { completions, loading: completionsLoading, refresh: refreshCompletions } = useDailyCompletions();
   const { hasAvailableCard, loading: scratchLoading, previewStickerUrl } = useDailyScratchCardStatus();
+  
+  // Sticker pack dialog states - matching DailyScratchCard logic exactly
+  const [showStickerDialog, setShowStickerDialog] = useState(false);
+  const [showBonusStickerDialog, setShowBonusStickerDialog] = useState(false);
+  const [showCollectionSelector, setShowCollectionSelector] = useState(false);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [dailyCard, setDailyCard] = useState<any>(null);
+  const [bonusCard, setBonusCard] = useState<any>(null);
+  const [cardsLoading, setCardsLoading] = useState(false);
   
   // Combined loading state - don't render until all statuses are known
   const loading = iconsLoading || completionsLoading || scratchLoading;
@@ -63,7 +76,87 @@ export function DailyBar() {
   // Check if user can see the daily bar based on role settings
   const canSeeDailyBar = canSeeFeature('daily_bar');
 
-  if (!isAuthenticated || !canSeeDailyBar) return null;
+  // Helper function to get current date in MST (UTC-7)
+  const getMSTDate = () => {
+    const now = new Date();
+    const mstOffset = -7 * 60;
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const mstTime = new Date(utc + (mstOffset * 60000));
+    return mstTime;
+  };
+
+  // Load card data when stickers are clicked - matches DailyScratchCard logic
+  const loadCardData = async () => {
+    if (!user) return;
+    
+    setCardsLoading(true);
+    try {
+      const mstDate = getMSTDate();
+      const today = mstDate.toISOString().split('T')[0];
+
+      // Fetch daily card and bonus cards
+      const [{ data: existingCard }, { data: existingBonusCards }] = await Promise.all([
+        supabase
+          .from('daily_scratch_cards')
+          .select('id, is_scratched, collection_id, expires_at')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .eq('is_bonus_card', false)
+          .maybeSingle(),
+        supabase
+          .from('daily_scratch_cards')
+          .select('id, is_scratched, collection_id, expires_at')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .eq('is_bonus_card', true)
+          .eq('is_scratched', false)
+          .order('purchase_number', { ascending: true })
+      ]);
+
+      let cardToUse = existingCard;
+
+      // Generate card if none exists
+      if (!cardToUse) {
+        const { data: newCardId } = await supabase
+          .rpc('generate_daily_scratch_card', { _user_id: user.id });
+
+        if (newCardId) {
+          const { data: fetchedCard } = await supabase
+            .from('daily_scratch_cards')
+            .select('id, is_scratched, collection_id, expires_at')
+            .eq('id', newCardId)
+            .maybeSingle();
+          cardToUse = fetchedCard;
+        }
+      }
+
+      setDailyCard(cardToUse);
+      setBonusCard(existingBonusCards?.[0] || null);
+
+      // Determine which dialog to show - matching DailyScratchCard logic exactly
+      if (cardToUse && !cardToUse.is_scratched) {
+        // Daily card available - show pack dialog
+        setShowStickerDialog(true);
+      } else if (existingBonusCards && existingBonusCards.length > 0) {
+        // Daily scratched but bonus available
+        setShowBonusStickerDialog(true);
+      } else {
+        // All scratched - navigate to album
+        navigate('/sticker-album');
+      }
+    } catch (error) {
+      console.error('Error loading card data:', error);
+      navigate('/sticker-album');
+    } finally {
+      setCardsLoading(false);
+    }
+  };
+
+  const handleCardOpened = () => {
+    setDailyCard(null);
+    setBonusCard(null);
+    refreshCompletions();
+  };
 
   const handleItemClick = (itemId: string) => {
     setActivePopup(itemId);
@@ -75,7 +168,7 @@ export function DailyBar() {
     refreshCompletions();
   };
   
-  // All icons are shown - stickers uses same availability logic as Daily Scratch Widget
+  if (!isAuthenticated || !canSeeDailyBar) return null;
 
   if (loading) {
     return (
@@ -113,10 +206,11 @@ export function DailyBar() {
               return (
                 <button
                   key={item.id}
+                  disabled={isStickers && cardsLoading}
                   onClick={() => {
                     if (isStickers) {
-                      // Stickers click navigates to sticker album
-                      navigate('/sticker-album');
+                      // Load card data and show appropriate dialog - matches DailyScratchCard exactly
+                      loadCardData();
                     } else {
                       handleItemClick(item.item_key);
                     }
@@ -244,6 +338,63 @@ export function DailyBar() {
         onOpenChange={setShowCelebration}
         coinsAwarded={coinsAwarded}
       />
+
+      {/* Daily sticker pack dialog - matches DailyScratchCard exactly */}
+      {dailyCard && !dailyCard.is_scratched && (
+        <PackOpeningDialog
+          open={showStickerDialog}
+          onOpenChange={setShowStickerDialog}
+          cardId={dailyCard.id}
+          onOpened={handleCardOpened}
+          onChangeCollection={() => {
+            setShowStickerDialog(false);
+            setShowCollectionSelector(true);
+          }}
+        />
+      )}
+
+      {/* Bonus sticker pack dialog */}
+      {bonusCard && (
+        <PackOpeningDialog
+          open={showBonusStickerDialog}
+          onOpenChange={setShowBonusStickerDialog}
+          cardId={bonusCard.id}
+          onOpened={handleCardOpened}
+          onChangeCollection={() => {
+            setShowBonusStickerDialog(false);
+            setShowCollectionSelector(true);
+          }}
+        />
+      )}
+
+      {/* Collection selector dialog */}
+      <CollectionSelectorDialog
+        open={showCollectionSelector}
+        onOpenChange={setShowCollectionSelector}
+        onSelectCollection={(collectionId) => {
+          setSelectedCollectionId(collectionId);
+          setShowCollectionSelector(false);
+        }}
+        isDailyPack={dailyCard && !dailyCard.is_scratched}
+      />
+
+      {/* Selected collection pack dialog */}
+      {selectedCollectionId && (
+        <PackOpeningDialog
+          open={!!selectedCollectionId}
+          onOpenChange={(open) => !open && setSelectedCollectionId(null)}
+          cardId={(dailyCard && !dailyCard.is_scratched) ? dailyCard.id : (bonusCard?.id || null)}
+          collectionId={selectedCollectionId}
+          onOpened={() => {
+            setSelectedCollectionId(null);
+            handleCardOpened();
+          }}
+          onChangeCollection={() => {
+            setSelectedCollectionId(null);
+            setShowCollectionSelector(true);
+          }}
+        />
+      )}
 
     </div>
   );
