@@ -19,13 +19,18 @@ const getMSTDate = () => {
 };
 
 export function useDailyScratchCardStatus(): DailyScratchCardStatus {
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const location = useLocation();
   const [hasAvailableCard, setHasAvailableCard] = useState(false);
   const [loading, setLoading] = useState(true);
   const [previewStickerUrl, setPreviewStickerUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking card status
+    if (authLoading) {
+      return;
+    }
+    
     if (!user) {
       setLoading(false);
       setHasAvailableCard(false);
@@ -123,7 +128,7 @@ export function useDailyScratchCardStatus(): DailyScratchCardStatus {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, role, location.key]);
+  }, [user?.id, role, location.key, authLoading]);
 
   return { hasAvailableCard, loading, previewStickerUrl };
 }
