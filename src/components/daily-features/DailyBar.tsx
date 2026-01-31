@@ -43,10 +43,13 @@ export function DailyBar() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activePopup, setActivePopup] = useState<string | null>(null);
-  const { icons, loading } = useDailyBarIcons();
+  const { icons, loading: iconsLoading } = useDailyBarIcons();
   const { canSeeFeature } = useDailyEngagementSettings();
-  const { completions, refresh: refreshCompletions } = useDailyCompletions();
-  const { hasAvailableCard, previewStickerUrl } = useDailyScratchCardStatus();
+  const { completions, loading: completionsLoading, refresh: refreshCompletions } = useDailyCompletions();
+  const { hasAvailableCard, loading: scratchLoading, previewStickerUrl } = useDailyScratchCardStatus();
+  
+  // Combined loading state - don't render until all statuses are known
+  const loading = iconsLoading || completionsLoading || scratchLoading;
 
   // Calculate if all daily items are completed
   const allCompleted = useMemo(() => {
