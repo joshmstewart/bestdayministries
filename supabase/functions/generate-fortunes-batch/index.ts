@@ -282,11 +282,14 @@ Format as JSON array:
     };
 
     // AI-powered semantic similarity check for content that passes word overlap
-    const checkSemanticSimilarity = async (newContent: string, existingContents: string[]): Promise<boolean> => {
-      if (existingContents.length === 0) return false;
+    // This is the last line of defense against semantic duplicates
+    const checkSemanticSimilarity = async (newContent: string, existingContents: string[], sessionCollected: string[] = []): Promise<boolean> => {
+      // Combine existing DB content with items collected in this session
+      const allToCheck = [...sessionCollected, ...existingContents];
+      if (allToCheck.length === 0) return false;
       
-      // Take a sample of existing content to compare (max 20 to keep prompt manageable)
-      const samplesToCheck = existingContents.slice(0, 20);
+      // Take a larger sample for better coverage (max 50)
+      const samplesToCheck = allToCheck.slice(0, 50);
       
       try {
         const semanticResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -300,11 +303,20 @@ Format as JSON array:
             messages: [
               {
                 role: "system",
-                content: "You are a semantic similarity checker. Respond with ONLY 'YES' if the new content is semantically the same as ANY existing content (asking the same question, conveying the same meaning, or prompting the same type of response), or 'NO' if it's genuinely different."
+                content: `You are a STRICT semantic similarity checker for discussion questions and prompts.
+                
+Answer 'YES' if the NEW content:
+- Asks about the SAME TOPIC as any existing content (e.g., both ask about creativity, hobbies, or self-expression)
+- Would elicit SIMILAR TYPES of responses
+- Has significant conceptual overlap (even if phrased differently)
+
+Answer 'NO' ONLY if the new content explores a genuinely DIFFERENT topic or angle.
+
+Be STRICT - when in doubt, say YES. Variety is essential.`
               },
               {
                 role: "user",
-                content: `NEW CONTENT: "${newContent}"\n\nEXISTING CONTENT:\n${samplesToCheck.map((c, i) => `${i + 1}. "${c}"`).join('\n')}\n\nIs the new content semantically the same as any existing content? Answer YES or NO only.`
+                content: `NEW CONTENT: "${newContent}"\n\nEXISTING CONTENT:\n${samplesToCheck.map((c, i) => `${i + 1}. "${c}"`).join('\n')}\n\nIs the new content semantically the same as OR covers the same topic as any existing content? Answer YES or NO only.`
               }
             ],
             temperature: 0.1, // Low temperature for consistent judgment
@@ -466,7 +478,9 @@ Format as JSON array:
         // Apply to categories where semantic similarity matters most
         if (["discussion_starter", "gratitude_prompt", "affirmation", "life_lesson"].includes(source_type)) {
           const existingContentForSemantic = allExistingForSoftMatch.map(e => e.content);
-          const isSemanticallyDuplicate = await checkSemanticSimilarity(f.content, existingContentForSemantic);
+          // Also pass items already collected this session to prevent same-batch duplicates
+          const sessionCollectedContent = collectedUniqueFortunes.map(u => u.content);
+          const isSemanticallyDuplicate = await checkSemanticSimilarity(f.content, existingContentForSemantic, sessionCollectedContent);
           if (isSemanticallyDuplicate) {
             console.log(`Skipping semantic duplicate: "${f.content.substring(0, 50)}..."`);
             continue;
