@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, X, Plus } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { CoffeeProductTiersManager } from "./CoffeeProductTiersManager";
 
 const formSchema = z.object({
   name: z.string().min(1, "Product name is required").max(200),
@@ -396,6 +397,16 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
                 )}
               />
             </div>
+
+            {/* Pricing Tiers - only show for existing products */}
+            {product && (
+              <div className="pt-4 border-t">
+                <CoffeeProductTiersManager
+                  productId={product.id}
+                  basePrice={form.watch("selling_price")}
+                />
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting || isUploadingImage}>
