@@ -144,7 +144,8 @@ EXPRESSION:
 - Eyes, eyebrows, and mouth should clearly convey ${emotion.name}
 
 STYLE:
-- Simple solid ${bgColor} color background
+- SOLID ${bgColor} background that fills the ENTIRE image to ALL EDGES - no circles, no vignettes, no black borders
+- The background color must extend completely to every corner and edge of the square image
 - Clean, crisp emoji aesthetic
 - High contrast, bold features`
   };
