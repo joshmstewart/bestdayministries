@@ -17,6 +17,7 @@ interface StreakMilestoneCelebrationProps {
   onOpenChange: (open: boolean) => void;
   milestone: MilestoneAwarded;
   currentStreak: number;
+  onOpenPack?: () => void;
 }
 
 export function StreakMilestoneCelebration({
@@ -24,6 +25,7 @@ export function StreakMilestoneCelebration({
   onOpenChange,
   milestone,
   currentStreak,
+  onOpenPack,
 }: StreakMilestoneCelebrationProps) {
   const confettiFired = useRef(false);
 
@@ -72,6 +74,11 @@ export function StreakMilestoneCelebration({
       confettiFired.current = false;
     }
   }, [open]);
+
+  const handleOpenPack = () => {
+    onOpenChange(false);
+    onOpenPack?.();
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -140,12 +147,28 @@ export function StreakMilestoneCelebration({
           </div>
         </div>
 
-        <Button 
-          onClick={() => onOpenChange(false)}
-          className="w-full bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 hover:from-orange-600 hover:via-red-600 hover:to-yellow-600 text-white font-semibold"
-        >
-          Keep It Going! 🔥
-        </Button>
+        {/* Action buttons */}
+        <div className="flex flex-col gap-2">
+          {milestone.free_sticker_packs > 0 && onOpenPack && (
+            <Button 
+              onClick={handleOpenPack}
+              className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 hover:from-purple-600 hover:via-pink-600 hover:to-purple-600 text-white font-semibold"
+            >
+              <Gift className="w-5 h-5 mr-2" />
+              Open Sticker Pack! 🎁
+            </Button>
+          )}
+          <Button 
+            onClick={() => onOpenChange(false)}
+            variant={milestone.free_sticker_packs > 0 && onOpenPack ? "outline" : "default"}
+            className={milestone.free_sticker_packs > 0 && onOpenPack 
+              ? "w-full" 
+              : "w-full bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 hover:from-orange-600 hover:via-red-600 hover:to-yellow-600 text-white font-semibold"
+            }
+          >
+            {milestone.free_sticker_packs > 0 && onOpenPack ? "Maybe Later" : "Keep It Going! 🔥"}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

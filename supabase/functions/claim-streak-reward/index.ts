@@ -150,6 +150,7 @@ serve(async (req) => {
     // Check if we just hit a milestone
     const hitMilestone = milestones?.find((m) => m.days_required === newStreak);
     let milestonesAwarded: any[] = [];
+    let bonusCardId: string | null = null;
 
     if (hitMilestone) {
       // Check if already awarded
@@ -204,7 +205,26 @@ serve(async (req) => {
               .maybeSingle();
 
             if (collection) {
-              for (let i = 0; i < hitMilestone.free_sticker_packs; i++) {
+              // Create the first pack and capture the ID
+              const { data: firstCard } = await adminClient
+                .from("daily_scratch_cards")
+                .insert({
+                  user_id: user.id,
+                  date: todayMST,
+                  collection_id: collection.id,
+                  is_bonus_card: true,
+                  purchase_number: Date.now(),
+                  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                })
+                .select("id")
+                .single();
+
+              if (firstCard) {
+                bonusCardId = firstCard.id;
+              }
+
+              // Create any additional packs
+              for (let i = 1; i < hitMilestone.free_sticker_packs; i++) {
                 await adminClient
                   .from("daily_scratch_cards")
                   .insert({
@@ -236,6 +256,7 @@ serve(async (req) => {
       longest_streak: newLongest,
       total_login_days: newTotal,
       milestones_awarded: milestonesAwarded,
+      bonus_card_id: bonusCardId,
       next_milestone: nextMilestone ? {
         days_required: nextMilestone.days_required,
         badge_name: nextMilestone.badge_name,
