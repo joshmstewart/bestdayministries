@@ -90,6 +90,7 @@ const JoyHouseStores = lazy(() => import("./pages/JoyHouseStores"));
 const PrayerRequests = lazy(() => import("./pages/PrayerRequests"));
 const DailyCheckin = lazy(() => import("./pages/DailyCheckin"));
 const MyFortunes = lazy(() => import("./pages/MyFortunes"));
+const CoffeeProductDetail = lazy(() => import("./pages/CoffeeProductDetail"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -318,6 +319,7 @@ const App = () => {
             <Route path="/virtual-pet" element={<VirtualPetPage />} />
             <Route path="/store" element={<StorePage />} />
             <Route path="/store/product/:productId" element={<ProductDetail />} />
+            <Route path="/store/coffee/:productId" element={<CoffeeProductDetail />} />
             <Route path="/sticker-album" element={<StickerAlbumPage />} />
             <Route path="/install" element={<InstallApp />} />
             <Route path="/workout-tracker" element={<WorkoutTracker />} />
