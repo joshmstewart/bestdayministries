@@ -90,7 +90,7 @@ export function ImageUploadWithCrop({
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-full h-48 object-cover"
+              className="w-full h-auto object-contain"
             />
             <div className="absolute top-2 right-2 flex gap-2">
               <Button
