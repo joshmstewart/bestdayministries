@@ -453,17 +453,11 @@ const Community = () => {
 
               case 'featured_item':
                 return (
-                  <div key={key} data-tour-target="featured-item" className="relative">
+                  <div key={key} data-tour-target="featured-item">
                     <FeaturedItem 
                       canLoad={canLoadSection('featured_item')}
                       onLoadComplete={() => markSectionLoaded('featured_item')}
                     />
-                    {/* Daily Scratch Card overlay on featured item */}
-                    {user && canSeeFeature('daily_scratch_widget') && (
-                      <div className="absolute top-4 right-4 z-10">
-                        <DailyScratchCard />
-                      </div>
-                    )}
                   </div>
                 );
 
@@ -754,7 +748,12 @@ const Community = () => {
       
       <Footer />
       
-      {/* Floating Daily Scratch Widget - bottom right corner */}
+      {/* Floating Daily Scratch Widget - right side, upper portion */}
+      {user && canSeeFeature('daily_scratch_widget') && (
+        <div className="fixed top-40 right-4 z-40">
+          <DailyScratchCard />
+        </div>
+      )}
     </div>
   );
 };
