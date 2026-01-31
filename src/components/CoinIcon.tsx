@@ -11,11 +11,14 @@ interface CoinIconProps {
 let cachedCoinUrl: string | null = null;
 let cachePromise: Promise<string | null> | null = null;
 let cacheVersion = 0;
+let hasFetched = false;
 
-const fetchCoinUrl = async (): Promise<string | null> => {
-  if (cachedCoinUrl !== null) return cachedCoinUrl;
+const fetchCoinUrl = async (forceRefresh = false): Promise<string | null> => {
+  // If we've already fetched and have a cached value (or confirmed null), return it
+  if (hasFetched && !forceRefresh && cachedCoinUrl !== null) return cachedCoinUrl;
   
-  if (cachePromise) return cachePromise;
+  // If a fetch is already in progress, wait for it
+  if (cachePromise && !forceRefresh) return cachePromise;
   
   cachePromise = (async () => {
     try {
@@ -27,9 +30,11 @@ const fetchCoinUrl = async (): Promise<string | null> => {
       
       const settingValue = data?.setting_value as { url?: string } | null;
       cachedCoinUrl = settingValue?.url || null;
+      hasFetched = true;
       return cachedCoinUrl;
     } catch (error) {
       console.error("Failed to load custom coin image:", error);
+      hasFetched = true;
       return null;
     }
   })();
@@ -41,6 +46,7 @@ const fetchCoinUrl = async (): Promise<string | null> => {
 export const invalidateCoinCache = () => {
   cachedCoinUrl = null;
   cachePromise = null;
+  hasFetched = false;
   cacheVersion++;
 };
 
@@ -52,25 +58,25 @@ export const CoinIcon = ({ className = "", size = 16 }: CoinIconProps) => {
   const [version, setVersion] = useState(cacheVersion);
   
   useEffect(() => {
-    // Check if cache was invalidated
-    if (version !== cacheVersion) {
-      setVersion(cacheVersion);
-    }
+    let isMounted = true;
     
-    fetchCoinUrl().then((url) => {
-      if (url) setCoinUrl(url);
-      else setCoinUrl(defaultCoinImage);
+    // Force a fresh fetch on first mount to ensure we have the latest
+    fetchCoinUrl(true).then((url) => {
+      if (isMounted) {
+        setCoinUrl(url || defaultCoinImage);
+      }
     });
-  }, [version, cacheVersion]);
+    
+    return () => { isMounted = false; };
+  }, []);
   
   // Also listen for cache invalidation
   useEffect(() => {
     const interval = setInterval(() => {
       if (version !== cacheVersion) {
         setVersion(cacheVersion);
-        fetchCoinUrl().then((url) => {
-          if (url) setCoinUrl(url);
-          else setCoinUrl(defaultCoinImage);
+        fetchCoinUrl(true).then((url) => {
+          setCoinUrl(url || defaultCoinImage);
         });
       }
     }, 1000);
