@@ -5714,6 +5714,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mood_responses: {
+        Row: {
+          created_at: string
+          emoji: string
+          emotion: string
+          id: string
+          is_active: boolean
+          response: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          emotion: string
+          id?: string
+          is_active?: boolean
+          response: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          emotion?: string
+          id?: string
+          is_active?: boolean
+          response?: string
+        }
+        Relationships: []
+      }
       navigation_links: {
         Row: {
           bestie_emoji: string | null
