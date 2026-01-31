@@ -14,6 +14,7 @@ import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
 import { TextToSpeech } from '@/components/TextToSpeech';
 import { cn } from '@/lib/utils';
+import { useAvatarEmotionImage } from '@/hooks/useAvatarEmotionImage';
 
 interface EmotionType {
   id: string;
@@ -124,6 +125,15 @@ export default function EmotionJournal() {
   const [isEditing, setIsEditing] = useState(false);
   const [editNoteText, setEditNoteText] = useState('');
   const [editingEmotion, setEditingEmotion] = useState<EmotionType | null>(null);
+
+  // Get the current emotion name for avatar image lookup
+  const currentEmotionName = todaysMoodEntry?.mood_label || selectedEmotion?.name;
+  
+  // Fetch avatar emotion image for the selected/today's emotion
+  const { imageUrl: avatarEmotionImageUrl, emotionEmoji } = useAvatarEmotionImage(
+    user?.id,
+    currentEmotionName
+  );
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -413,7 +423,13 @@ export default function EmotionJournal() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3">
-            {displayEmoji ? (
+            {avatarEmotionImageUrl ? (
+              <img 
+                src={avatarEmotionImageUrl} 
+                alt={displayLabel || "Emotion"} 
+                className="w-14 h-14 rounded-full object-cover animate-bounce shadow-lg"
+              />
+            ) : displayEmoji ? (
               <span className="text-5xl animate-bounce">{displayEmoji}</span>
             ) : (
               <Heart className={cn(
@@ -470,7 +486,15 @@ export default function EmotionJournal() {
                 currentTheme.border,
                 "border"
               )}>
-                <div className="text-6xl mb-4">{isEditing ? (editingEmotion?.emoji || todaysMoodEntry.mood_emoji) : todaysMoodEntry.mood_emoji}</div>
+                {avatarEmotionImageUrl && !isEditing ? (
+                  <img 
+                    src={avatarEmotionImageUrl} 
+                    alt={todaysMoodEntry.mood_label} 
+                    className="w-20 h-20 rounded-full object-cover mb-4 mx-auto shadow-lg"
+                  />
+                ) : (
+                  <div className="text-6xl mb-4">{isEditing ? (editingEmotion?.emoji || todaysMoodEntry.mood_emoji) : todaysMoodEntry.mood_emoji}</div>
+                )}
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <h2 className="text-xl font-semibold">
                     You're feeling {isEditing ? (editingEmotion?.name || todaysMoodEntry.mood_label) : todaysMoodEntry.mood_label} today
