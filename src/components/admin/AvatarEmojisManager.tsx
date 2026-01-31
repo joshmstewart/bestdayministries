@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Check, X, RefreshCw, Trash2 } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { getAvatarConfig, getAvatarName } from "@/lib/avatarConfig";
+import { AvatarThumbnail } from "./AvatarThumbnail";
 
 interface Avatar {
   avatar_number: number;
@@ -267,12 +269,8 @@ The image should be positive and encouraging, even for challenging emotions.`;
                   {avatars.map((avatar) => (
                     <SelectItem key={avatar.avatar_number} value={avatar.avatar_number.toString()}>
                       <div className="flex items-center gap-2">
-                        <img 
-                          src={`/avatars/composite-${avatar.avatar_number}.png`} 
-                          alt={`Avatar ${avatar.avatar_number}`}
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                        <span>Avatar {avatar.avatar_number}</span>
+                        <AvatarThumbnail avatarNumber={avatar.avatar_number} size="sm" />
+                        <span>{getAvatarName(avatar.avatar_number)}</span>
                         <Badge variant="outline" className="text-xs">{avatar.category}</Badge>
                       </div>
                     </SelectItem>
@@ -425,15 +423,11 @@ The image should be positive and encouraging, even for challenging emotions.`;
               <div className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-2">Combination</h4>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <img 
-                        src={`/avatars/composite-${selectedAvatar}.png`} 
-                        alt={`Avatar ${selectedAvatar}`}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                      <span className="text-sm">Avatar {selectedAvatar}</span>
-                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <AvatarThumbnail avatarNumber={selectedAvatar} size="md" />
+                        <span className="text-sm">{getAvatarName(selectedAvatar)}</span>
+                      </div>
                     <span className="text-muted-foreground">+</span>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{selectedEmotionDetails.emoji}</span>
@@ -518,7 +512,7 @@ The image should be positive and encouraging, even for challenging emotions.`;
                     )}
                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex items-center justify-center gap-1">
                       <span>{emotion?.emoji}</span>
-                      <span>#{img.avatar_number}</span>
+                      <span>{getAvatarName(img.avatar_number)}</span>
                     </div>
                   </button>
                 );
