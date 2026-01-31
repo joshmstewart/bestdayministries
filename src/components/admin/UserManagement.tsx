@@ -438,6 +438,8 @@ export const UserManagement = () => {
             title: "Logged in successfully",
             description: `You are now logged in as ${displayName} (Vendor)`,
           });
+          // Small delay to ensure session is fully synced before redirect
+          await new Promise(resolve => setTimeout(resolve, 300));
           window.location.href = "/vendor-dashboard";
           return;
         }
@@ -448,6 +450,9 @@ export const UserManagement = () => {
         description: `You are now logged in as ${displayName}`,
       });
 
+      // Small delay to ensure session is fully synced before redirect
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       // Redirect to community page
       window.location.href = "/community";
     } catch (error: any) {
