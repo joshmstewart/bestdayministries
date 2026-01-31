@@ -4,11 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, Calendar, Award, BarChart2 } from 'lucide-react';
 import { startOfWeek, endOfWeek, format, subDays } from 'date-fns';
 
-interface EmotionStats {
+interface MoodStats {
   totalEntries: number;
-  mostFrequentEmotion: { emotion: string; emoji: string; count: number } | null;
+  mostFrequentMood: { mood: string; emoji: string; count: number } | null;
   weeklyBreakdown: { [key: string]: number };
-  averageIntensity: number;
   streakDays: number;
 }
 
@@ -17,7 +16,7 @@ interface EmotionStatsProps {
 }
 
 export function EmotionStats({ userId }: EmotionStatsProps) {
-  const [stats, setStats] = useState<EmotionStats | null>(null);
+  const [stats, setStats] = useState<MoodStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,41 +27,40 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
     setLoading(true);
     try {
       // Get all entries for the last 30 days
-      const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+      const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd');
       
       const { data: entries, error } = await supabase
-        .from('emotion_journal_entries')
-        .select('*')
+        .from('mood_entries')
+        .select('id, mood_emoji, mood_label, entry_date')
         .eq('user_id', userId)
-        .gte('created_at', thirtyDaysAgo)
-        .order('created_at', { ascending: false });
+        .gte('entry_date', thirtyDaysAgo)
+        .order('entry_date', { ascending: false });
 
       if (error) throw error;
 
       if (!entries || entries.length === 0) {
         setStats({
           totalEntries: 0,
-          mostFrequentEmotion: null,
+          mostFrequentMood: null,
           weeklyBreakdown: {},
-          averageIntensity: 0,
           streakDays: 0,
         });
         return;
       }
 
-      // Calculate most frequent emotion
-      const emotionCounts: { [key: string]: { count: number; emoji: string } } = {};
+      // Calculate most frequent mood
+      const moodCounts: { [key: string]: { count: number; emoji: string } } = {};
       entries.forEach(entry => {
-        if (!emotionCounts[entry.emotion]) {
-          emotionCounts[entry.emotion] = { count: 0, emoji: entry.emotion_emoji };
+        if (!moodCounts[entry.mood_label]) {
+          moodCounts[entry.mood_label] = { count: 0, emoji: entry.mood_emoji };
         }
-        emotionCounts[entry.emotion].count++;
+        moodCounts[entry.mood_label].count++;
       });
 
-      const sortedEmotions = Object.entries(emotionCounts)
+      const sortedMoods = Object.entries(moodCounts)
         .sort((a, b) => b[1].count - a[1].count);
       
-      const mostFrequent = sortedEmotions[0];
+      const mostFrequent = sortedMoods[0];
 
       // Calculate weekly breakdown (this week)
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
@@ -73,20 +71,15 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
       };
 
       entries.forEach(entry => {
-        const entryDate = new Date(entry.created_at);
+        const entryDate = new Date(entry.entry_date + 'T12:00:00');
         if (entryDate >= weekStart && entryDate <= weekEnd) {
           const day = format(entryDate, 'EEE');
           weeklyBreakdown[day]++;
         }
       });
 
-      // Calculate average intensity
-      const avgIntensity = entries.reduce((sum, e) => sum + e.intensity, 0) / entries.length;
-
       // Calculate streak (consecutive days with at least one entry)
-      const uniqueDays = new Set(
-        entries.map(e => format(new Date(e.created_at), 'yyyy-MM-dd'))
-      );
+      const uniqueDays = new Set(entries.map(e => e.entry_date));
       
       let streak = 0;
       let checkDate = new Date();
@@ -98,11 +91,10 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
 
       setStats({
         totalEntries: entries.length,
-        mostFrequentEmotion: mostFrequent 
-          ? { emotion: mostFrequent[0], emoji: mostFrequent[1].emoji, count: mostFrequent[1].count }
+        mostFrequentMood: mostFrequent 
+          ? { mood: mostFrequent[0], emoji: mostFrequent[1].emoji, count: mostFrequent[1].count }
           : null,
         weeklyBreakdown,
-        averageIntensity: Math.round(avgIntensity * 10) / 10,
         streakDays: streak,
       });
     } catch (error) {
@@ -157,8 +149,8 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
         </Card>
       </div>
 
-      {/* Most Frequent Emotion */}
-      {stats.mostFrequentEmotion && (
+      {/* Most Frequent Mood */}
+      {stats.mostFrequentMood && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -167,10 +159,10 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center py-4">
-            <div className="text-6xl mb-3">{stats.mostFrequentEmotion.emoji}</div>
-            <div className="text-xl font-medium">{stats.mostFrequentEmotion.emotion}</div>
+            <div className="text-6xl mb-3">{stats.mostFrequentMood.emoji}</div>
+            <div className="text-xl font-medium">{stats.mostFrequentMood.mood}</div>
             <div className="text-sm text-muted-foreground">
-              Logged {stats.mostFrequentEmotion.count} times
+              Logged {stats.mostFrequentMood.count} times
             </div>
           </CardContent>
         </Card>
@@ -202,29 +194,6 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
         </CardContent>
       </Card>
 
-      {/* Average Intensity */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Average Intensity</div>
-              <div className="text-2xl font-bold">{stats.averageIntensity} / 5</div>
-            </div>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className={`w-4 h-4 rounded-full ${
-                    i <= Math.round(stats.averageIntensity)
-                      ? 'bg-primary'
-                      : 'bg-muted'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
