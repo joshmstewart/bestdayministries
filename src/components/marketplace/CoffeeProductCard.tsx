@@ -99,13 +99,18 @@ export const CoffeeProductCard = ({ product }: CoffeeProductCardProps) => {
         )}
 
         <div className="mt-auto">
-          <p className="text-2xl font-bold text-primary">
-            ${Number(product.selling_price).toFixed(2)}
-          </p>
-          
-          {lowestTierPrice && lowestTierPrice < product.selling_price && (
-            <p className="text-sm text-primary/80">
-              As low as ${lowestTierPrice.toFixed(2)} with bulk pricing
+          {lowestTierPrice && lowestTierPrice < product.selling_price ? (
+            <>
+              <p className="text-2xl font-bold text-primary">
+                ${lowestTierPrice.toFixed(2)}+
+              </p>
+              <p className="text-sm text-muted-foreground">
+                ${Number(product.selling_price).toFixed(2)} each
+              </p>
+            </>
+          ) : (
+            <p className="text-2xl font-bold text-primary">
+              ${Number(product.selling_price).toFixed(2)}
             </p>
           )}
         </div>
