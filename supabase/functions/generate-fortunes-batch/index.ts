@@ -213,56 +213,6 @@ Format as JSON array:
 [{"content": "quote text", "author": "Person Name"}]`;
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant that generates uplifting content. Always respond with valid JSON arrays only, no markdown."
-          },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.8,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      throw new Error(`AI request failed: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const rawContent = aiData.choices?.[0]?.message?.content || "[]";
-    
-    // Parse the JSON response
-    let fortunes: any[] = [];
-    try {
-      // Remove potential markdown code blocks
-      const cleanContent = rawContent.replace(/```json\n?|\n?```/g, "").trim();
-      fortunes = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", rawContent);
-      throw new Error("Failed to parse AI response as JSON");
-    }
-
-    // Fetch ALL existing fortunes for deduplication (including archived ones)
-    // We explicitly don't filter by is_archived to ensure archived items are also checked
-    const { data: existingFortunes, error: fetchError } = await adminClient
-      .from("daily_fortunes")
-      .select("content, author, reference, is_archived");
-    
-    if (fetchError) {
-      console.error("Failed to fetch existing fortunes:", fetchError);
-      throw new Error("Failed to check for duplicates");
-    }
-    
-    console.log(`Checking against ${existingFortunes?.length || 0} existing fortunes (including ${existingFortunes?.filter(f => f.is_archived).length || 0} archived)`);
-
     // Normalize text for comparison (lowercase, remove punctuation, trim)
     const normalizeText = (text: string): string => {
       return text
@@ -331,68 +281,157 @@ Format as JSON array:
       return overlapRatio >= 0.8;
     };
 
-    // Build set of existing normalized content for quick lookup
-    const existingContentSet = new Set(
+    // Fetch ALL existing fortunes for deduplication (including archived ones)
+    const { data: existingFortunes, error: fetchError } = await adminClient
+      .from("daily_fortunes")
+      .select("content, author, reference, is_archived");
+    
+    if (fetchError) {
+      console.error("Failed to fetch existing fortunes:", fetchError);
+      throw new Error("Failed to check for duplicates");
+    }
+
+    // Build mutable sets that will grow as we find unique fortunes
+    let existingContentSet = new Set(
       (existingFortunes || []).map(f => normalizeText(f.content))
     );
 
-    // Build list of existing Bible references for overlap checking
-    const existingBibleReferences = (existingFortunes || [])
+    let existingBibleReferences = (existingFortunes || [])
       .filter(f => f.reference)
       .map(f => f.reference as string);
     
-    // Build set of exact Bible references for catching different translations
-    const existingExactReferences = new Set(
+    let existingExactReferences = new Set(
       (existingFortunes || [])
         .filter(f => f.reference)
         .map(f => (f.reference as string).toLowerCase().replace(/\s+/g, ''))
     );
 
-    // Filter out duplicates
-    const uniqueFortunes = fortunes.filter((f: any) => {
-      const normalizedContent = normalizeText(f.content);
+    // All existing for soft match checking
+    let allExistingForSoftMatch = [...(existingFortunes || [])];
+
+    console.log(`Starting generation. Existing fortunes: ${existingFortunes?.length || 0} (including ${existingFortunes?.filter(f => f.is_archived).length || 0} archived)`);
+
+    // Retry loop to accumulate unique fortunes
+    const collectedUniqueFortunes: any[] = [];
+    const maxAttempts = 5;
+    let attempt = 0;
+
+    while (collectedUniqueFortunes.length < count && attempt < maxAttempts) {
+      attempt++;
+      const remaining = count - collectedUniqueFortunes.length;
       
-      // Check exact match (after normalization)
-      if (existingContentSet.has(normalizedContent)) {
-        console.log(`Skipping exact match: "${f.content.substring(0, 50)}..."`);
-        return false;
+      // Build dynamic exclusion list that includes what we've already collected this session
+      let dynamicExclusion = exclusionList;
+      if ((source_type === "bible_verse" || source_type === "proverbs") && collectedUniqueFortunes.length > 0) {
+        const sessionRefs = collectedUniqueFortunes.filter(f => f.reference).map(f => f.reference);
+        dynamicExclusion += `\n\nALSO DO NOT generate these (already collected this session): ${sessionRefs.join(", ")}`;
       }
       
-      // Check Bible reference for bible_verse AND proverbs types
-      if ((source_type === "bible_verse" || source_type === "proverbs") && f.reference) {
-        // First check exact reference match (catches different translations of same verse)
-        const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
-        if (existingExactReferences.has(normalizedRef)) {
-          console.log(`Skipping duplicate Bible reference: "${f.reference}" (different translation)`);
-          return false;
+      // Update prompt with current exclusion and remaining count
+      let currentPrompt = prompt.replace(new RegExp(`Generate ${count}`), `Generate ${remaining + 5}`); // Ask for a few extra
+      currentPrompt = currentPrompt.replace(exclusionList, dynamicExclusion);
+      
+      console.log(`Attempt ${attempt}/${maxAttempts}: Need ${remaining} more, requesting ${remaining + 5}`);
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that generates uplifting content. Always respond with valid JSON arrays only, no markdown. CRITICALLY IMPORTANT: Generate UNIQUE content that is NOT on any exclusion list provided."
+            },
+            { role: "user", content: currentPrompt }
+          ],
+          temperature: 0.9 + (attempt * 0.05), // Increase temperature on retries for variety
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        console.error(`AI request failed on attempt ${attempt}: ${aiResponse.status}`);
+        continue;
+      }
+
+      const aiData = await aiResponse.json();
+      const rawContent = aiData.choices?.[0]?.message?.content || "[]";
+      
+      // Parse the JSON response
+      let fortunes: any[] = [];
+      try {
+        const cleanContent = rawContent.replace(/```json\n?|\n?```/g, "").trim();
+        fortunes = JSON.parse(cleanContent);
+      } catch (parseError) {
+        console.error(`Failed to parse AI response on attempt ${attempt}:`, rawContent);
+        continue;
+      }
+
+      // Filter out duplicates
+      for (const f of fortunes) {
+        if (collectedUniqueFortunes.length >= count) break;
+        
+        const normalizedContent = normalizeText(f.content);
+        
+        // Check exact match (after normalization)
+        if (existingContentSet.has(normalizedContent)) {
+          console.log(`Skipping exact match: "${f.content.substring(0, 50)}..."`);
+          continue;
         }
         
-        // Then check verse range overlap
-        for (const existingRef of existingBibleReferences) {
-          if (doBibleReferencesOverlap(f.reference, existingRef)) {
-            console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with "${existingRef}"`);
-            return false;
+        // Check Bible reference for bible_verse AND proverbs types
+        if ((source_type === "bible_verse" || source_type === "proverbs") && f.reference) {
+          const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
+          if (existingExactReferences.has(normalizedRef)) {
+            console.log(`Skipping duplicate Bible reference: "${f.reference}"`);
+            continue;
+          }
+          
+          let hasOverlap = false;
+          for (const existingRef of existingBibleReferences) {
+            if (doBibleReferencesOverlap(f.reference, existingRef)) {
+              console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with "${existingRef}"`);
+              hasOverlap = true;
+              break;
+            }
+          }
+          if (hasOverlap) continue;
+        }
+        
+        // Check soft matches against all existing
+        let isSoft = false;
+        for (const existing of allExistingForSoftMatch) {
+          if (isSoftMatch(f.content, existing.content)) {
+            console.log(`Skipping soft match: "${f.content.substring(0, 50)}..."`);
+            isSoft = true;
+            break;
           }
         }
-      }
-      
-      // Check soft matches against all existing
-      for (const existing of (existingFortunes || [])) {
-        if (isSoftMatch(f.content, existing.content)) {
-          console.log(`Skipping soft match: "${f.content.substring(0, 50)}..." matches "${existing.content.substring(0, 50)}..."`);
-          return false;
+        if (isSoft) continue;
+        
+        // This one is unique! Add it to our collection and tracking sets
+        collectedUniqueFortunes.push(f);
+        existingContentSet.add(normalizedContent);
+        if (f.reference) {
+          existingBibleReferences.push(f.reference);
+          existingExactReferences.add(f.reference.toLowerCase().replace(/\s+/g, ''));
         }
+        allExistingForSoftMatch.push({ content: f.content, author: f.author || null, reference: f.reference || null, is_archived: false });
+        
+        console.log(`✓ Unique fortune collected: "${f.content.substring(0, 40)}..." (${collectedUniqueFortunes.length}/${count})`);
       }
-      
-      return true;
-    });
-    console.log(`Generated ${fortunes.length} fortunes, ${uniqueFortunes.length} are unique after deduplication`);
+    }
 
-    if (uniqueFortunes.length === 0) {
+    console.log(`Finished after ${attempt} attempts. Collected ${collectedUniqueFortunes.length}/${count} unique fortunes`);
+
+    if (collectedUniqueFortunes.length === 0) {
       return new Response(JSON.stringify({
         success: true,
         count: 0,
-        message: "All generated fortunes were duplicates of existing ones",
+        message: `Could not find unique fortunes after ${maxAttempts} attempts`,
         fortunes: [],
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -400,7 +439,7 @@ Format as JSON array:
     }
 
     // Insert only unique fortunes into database
-    const fortunesToInsert = uniqueFortunes.map((f: any) => ({
+    const fortunesToInsert = collectedUniqueFortunes.map((f: any) => ({
       content: f.content,
       source_type,
       author: f.author || null,
