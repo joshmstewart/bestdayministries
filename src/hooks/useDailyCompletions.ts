@@ -55,8 +55,32 @@ export function useDailyCompletions() {
           .eq("view_date", today)
           .maybeSingle(),
         
-        // Daily Five: use the edge function to get game state
-        supabase.functions.invoke("get-wordle-state", {}).catch(() => ({ data: null })),
+        // Daily Five: check wordle_attempts directly for completed status
+        // This is faster and more reliable than the edge function
+        (async () => {
+          // First get today's word
+          const { data: dailyWord } = await supabase
+            .from("wordle_daily_words")
+            .select("id")
+            .eq("word_date", today)
+            .maybeSingle();
+          
+          if (!dailyWord) return { data: null };
+          
+          // Then check if user has a completed attempt
+          const { data: attempt } = await supabase
+            .from("wordle_attempts")
+            .select("status")
+            .eq("user_id", user.id)
+            .eq("daily_word_id", dailyWord.id)
+            .maybeSingle();
+          
+          return { 
+            data: { 
+              gameOver: attempt?.status === "won" || attempt?.status === "lost" 
+            } 
+          };
+        })()
       ]);
 
       setCompletions({
