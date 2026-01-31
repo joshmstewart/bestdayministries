@@ -98,19 +98,32 @@ export function AvatarEmojisManager() {
     const avatar = getSelectedAvatar();
     if (!emotion || !avatar) return "";
     
-    // Use image-to-image approach like generate-workout-image
-    return `Use the EXACT same character from the reference image. Show ONLY their HEAD/FACE expressing the ${emotion.name} emotion ${emotion.emoji}.
+    // STRICT head-only emoji generation
+    return `TRANSFORM the character from the reference image into an EMOJI.
 
-CRITICAL REQUIREMENTS:
-- Keep the character COMPLETELY identical - same face, hair, art style, species, colors, and all distinctive features
-- ONLY the HEAD and FACE - crop just above the shoulders, like an emoji
-- Make the facial expression CLEARLY and UNMISTAKABLY show ${emotion.name}
-- Match the expression style of the official ${emotion.emoji} emoji
-- Simple solid color background (use ${emotion.color || 'a complementary color'})
-- Maintain the exact same art style and quality as the reference image
-- The expression should be exaggerated and instantly recognizable
+OUTPUT: A single EMOJI showing the ${emotion.name} expression ${emotion.emoji}
 
-${avatar.character_prompt ? `Character details to preserve: ${avatar.character_prompt}` : ''}`
+CRITICAL - HEAD ONLY:
+- Show ONLY the HEAD - absolutely NO neck, NO shoulders, NO body, NO clothing
+- Crop TIGHTLY around the face: forehead to chin, ear to ear
+- Like a floating head emoji - imagine 😀 but with this character's face
+- The head should fill most of the frame with minimal background
+
+CHARACTER CONSISTENCY:
+- Keep the EXACT same face, hair/head features, skin/fur color, species
+- Same art style and visual quality as the reference
+- Only change the FACIAL EXPRESSION
+
+EXPRESSION:
+- Make the face clearly show ${emotion.name} ${emotion.emoji}
+- Copy the exact expression style from the ${emotion.emoji} emoji
+- Exaggerated, obvious, instantly recognizable emotion
+- Eyes, eyebrows, and mouth should clearly convey ${emotion.name}
+
+STYLE:
+- Simple solid ${emotion.color || 'complementary'} color background
+- Clean, crisp emoji aesthetic
+- High contrast, bold features`
   };
 
   const handleGenerate = async () => {
