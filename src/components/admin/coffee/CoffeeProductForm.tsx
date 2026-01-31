@@ -13,6 +13,7 @@ import { ImageUploadWithCrop } from "@/components/common/ImageUploadWithCrop";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, X, Plus } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
 
 const formSchema = z.object({
   name: z.string().min(1, "Product name is required").max(200),
@@ -46,9 +47,37 @@ interface CoffeeProductFormProps {
 
 export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [images, setImages] = useState<string[]>(product?.images || []);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const sanitizeFilename = (originalName: string) =>
+    originalName
+      .replace(/[^a-zA-Z0-9.-]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+  const uploadCoffeeProductImage = async (file: File) => {
+    // IMPORTANT: derive sanitized name from the original File name
+    const originalName = file.name;
+    const sanitizedName = sanitizeFilename(originalName);
+    const fileName = `coffee-products/${Date.now()}-${sanitizedName || "image.jpg"}`;
+
+    // Keep uploads small/reliable
+    const compressed = await compressImage(file, 5);
+
+    const { error: uploadError } = await supabase.storage
+      .from("app-assets")
+      .upload(fileName, compressed);
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from("app-assets")
+      .getPublicUrl(fileName);
+
+    return urlData.publicUrl;
+  };
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -70,26 +99,25 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
 
   const addImage = async () => {
     if (!imageFile || !imagePreview) return;
+    if (isUploadingImage) return;
 
     try {
-      const fileName = `coffee-products/${Date.now()}-${imageFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("app-assets")
-        .upload(fileName, imageFile);
+      setIsUploadingImage(true);
+      const publicUrl = await uploadCoffeeProductImage(imageFile);
 
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("app-assets")
-        .getPublicUrl(fileName);
-
-      setImages([...images, urlData.publicUrl]);
+      setImages((prev) => [...prev, publicUrl]);
       setImageFile(null);
       setImagePreview(null);
       toast({ title: "Image added" });
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast({ title: "Failed to upload image", variant: "destructive" });
+      toast({
+        title: "Failed to upload image",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -98,8 +126,31 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
   };
 
   const onSubmit = async (data: FormData) => {
+    if (isUploadingImage) {
+      toast({
+        title: "Image upload in progress",
+        description: "Please wait for the image upload to finish, then try saving again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      // If the user selected/cropped an image but didn't click "Add",
+      // upload it automatically during save so it can't be lost.
+      let finalImages = images;
+      if (imageFile && imagePreview) {
+        setIsUploadingImage(true);
+        const publicUrl = await uploadCoffeeProductImage(imageFile);
+        finalImages = [...images, publicUrl];
+        setImages(finalImages);
+        setImageFile(null);
+        setImagePreview(null);
+        toast({ title: "Image added" });
+        setIsUploadingImage(false);
+      }
+
       if (product) {
         const { error } = await supabase
           .from("coffee_products")
@@ -111,7 +162,7 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
             shipstation_sku: data.shipstation_sku,
             is_active: data.is_active,
             display_order: data.display_order,
-            images,
+            images: finalImages,
           })
           .eq("id", product.id);
         if (error) throw error;
@@ -127,7 +178,7 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
             shipstation_sku: data.shipstation_sku,
             is_active: data.is_active,
             display_order: data.display_order,
-            images,
+            images: finalImages,
           }]);
         if (error) throw error;
         toast({ title: "Product created successfully" });
@@ -143,6 +194,7 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
       });
     } finally {
       setIsSubmitting(false);
+      setIsUploadingImage(false);
     }
   };
 
@@ -301,9 +353,13 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
                   />
                 </div>
                 {imagePreview && (
-                  <Button type="button" onClick={addImage} variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add
+                  <Button type="button" onClick={addImage} variant="outline" disabled={isUploadingImage}>
+                    {isUploadingImage ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-2" />
+                    )}
+                    {isUploadingImage ? "Uploading..." : "Add"}
                   </Button>
                 )}
               </div>
@@ -342,7 +398,7 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || isUploadingImage}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {product ? "Update Product" : "Create Product"}
               </Button>
