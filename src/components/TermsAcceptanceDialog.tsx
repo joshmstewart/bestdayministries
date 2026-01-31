@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from "@/hooks/useTermsCheck";
 
 interface TermsAcceptanceDialogProps {
@@ -37,8 +37,8 @@ export const TermsAcceptanceDialog = ({ isOpen, onAccepted }: TermsAcceptanceDia
     setLoading(true);
     
     try {
-      // 🚀 PRODUCTION FIX: Ensure session is stable before calling edge function
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Use persistent client for consistency with the rest of auth
+      const { data: { session }, error: sessionError } = await supabasePersistent.auth.getSession();
       
       if (sessionError || !session) {
         throw new Error("Session not available. Please try logging in again.");
@@ -50,7 +50,7 @@ export const TermsAcceptanceDialog = ({ isOpen, onAccepted }: TermsAcceptanceDia
       
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-          const { error } = await supabase.functions.invoke("record-terms-acceptance", {
+          const { error } = await supabasePersistent.functions.invoke("record-terms-acceptance", {
             body: {
               termsVersion: CURRENT_TERMS_VERSION,
               privacyVersion: CURRENT_PRIVACY_VERSION,

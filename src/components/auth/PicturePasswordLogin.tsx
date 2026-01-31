@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PicturePasswordGrid } from "./PicturePasswordGrid";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,9 +7,10 @@ import { ArrowLeft, Loader2, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { useToast } from "@/hooks/use-toast";
-
+import { getPostLoginRedirect } from "@/lib/authRedirect";
 export const PicturePasswordLogin = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [selectedSequence, setSelectedSequence] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +62,14 @@ export const PicturePasswordLogin = () => {
           description: "You've been signed in successfully.",
         });
 
-        navigate("/community");
+        // Use shared redirect logic (same as email/password login)
+        const redirectPath = searchParams.get("redirect");
+        const bestieId = searchParams.get("bestieId");
+        const destination = await getPostLoginRedirect(data.session.user.id, {
+          redirectPath: redirectPath || undefined,
+          bestieId: bestieId || undefined,
+        });
+        navigate(destination);
       } else {
         // Failed attempt
         const newAttempts = attempts + 1;

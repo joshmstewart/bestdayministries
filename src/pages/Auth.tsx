@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
+import { getPostLoginRedirect } from "@/lib/authRedirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,35 +155,15 @@ const Auth = () => {
     }
 
     const checkAndRedirect = async (userId: string) => {
-      try {
-        // If there's a redirect path specified, use it
-        if (redirectPath) {
-          const fullPath = bestieId ? `${redirectPath}?bestieId=${bestieId}` : redirectPath;
-          navigate(fullPath, { replace: true });
-          return;
-        }
-
-        // Check user's homepage preference from profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('default_homepage')
-          .eq('id', userId)
-          .maybeSingle();
-
-        // If user has set vendor-dashboard as their homepage, go there
-        if (profile?.default_homepage === 'vendor-dashboard') {
-          navigate("/vendor-dashboard", { replace: true });
-          return;
-        }
-
-        // Default: go to community
-        navigate("/community", { replace: true });
-      } catch (err) {
-        navigate("/community", { replace: true });
-      }
+      const destination = await getPostLoginRedirect(userId, {
+        redirectPath: redirectPath || undefined,
+        bestieId: bestieId || undefined,
+      });
+      navigate(destination, { replace: true });
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Use persistent client for the initial session check to avoid stale localStorage sessions
+    supabasePersistent.auth.getSession().then(({ data: { session } }) => {
       if (session?.user && !recoveryMode && !isPasswordRecovery && !recoveryTokenHash) {
         checkAndRedirect(session.user.id);
       }
@@ -215,9 +196,10 @@ const Auth = () => {
       }
     };
 
+    // Listen on persistent client since that's where login sessions are created
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabasePersistent.auth.onAuthStateChange((event, session) => {
       // Supabase may emit either PASSWORD_RECOVERY or SIGNED_IN for recovery links,
       // depending on auth flow (implicit vs PKCE). Treat both as recovery when the URL indicates it.
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && recoveryMode)) {
@@ -271,11 +253,11 @@ const Auth = () => {
 
         if (error) throw error;
 
-        // Record terms acceptance immediately after successful signup
+        // Record terms acceptance immediately after successful signup using persistent client
         // AWAIT the edge function to ensure it completes before redirect
         if (data.user && acceptedTerms) {
           try {
-            const termsResult = await supabase.functions.invoke("record-terms-acceptance", {
+            const termsResult = await supabasePersistent.functions.invoke("record-terms-acceptance", {
               body: {
                 termsVersion: "1.0",
                 privacyVersion: "1.0",

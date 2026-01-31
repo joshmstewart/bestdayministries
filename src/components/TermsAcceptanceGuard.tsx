@@ -23,9 +23,14 @@ export const TermsAcceptanceGuard = ({ children }: { children: React.ReactNode }
     return accountAge < 60000; // Less than 60 seconds old
   };
 
-  // Don't show dialog on auth pages or terms/privacy pages
-  const publicPages = ['/auth', '/auth/vendor', '/terms', '/privacy', '/', '/newsletter'];
-  const isPublicPage = publicPages.includes(location.pathname);
+  // Don't show dialog on any auth pages or terms/privacy pages
+  // Using startsWith('/auth') to cover all auth sub-routes (/auth, /auth/vendor, /auth/picture, etc.)
+  const isPublicPage = 
+    location.pathname.startsWith('/auth') ||
+    location.pathname === '/terms' ||
+    location.pathname === '/privacy' ||
+    location.pathname === '/' ||
+    location.pathname === '/newsletter';
 
   // Wait for auth and terms check to complete
   if (authLoading || termsLoading) {
