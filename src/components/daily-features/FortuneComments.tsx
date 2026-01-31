@@ -18,6 +18,7 @@ interface Comment {
   profile?: {
     display_name: string | null;
     avatar_number: number | null;
+    avatar_url: string | null;
   };
 }
 
@@ -48,7 +49,7 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
         const userIds = [...new Set(data.map((c) => c.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, display_name, avatar_number")
+          .select("id, display_name, avatar_number, avatar_url")
           .in("id", userIds);
 
         const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
@@ -229,7 +230,13 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
             >
               <Avatar className="w-8 h-8 shrink-0">
                 <AvatarImage
-                  src={`/avatars/composite-${comment.profile?.avatar_number || 1}.png`}
+                  src={
+                    comment.profile?.avatar_url
+                      ? comment.profile.avatar_url.startsWith('http') || comment.profile.avatar_url.startsWith('/')
+                        ? comment.profile.avatar_url
+                        : `https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/avatars/${comment.profile.avatar_url}`
+                      : `/avatars/composite-${comment.profile?.avatar_number || 1}.png`
+                  }
                   alt={comment.profile?.display_name || "User"}
                 />
                 <AvatarFallback className="text-xs">
