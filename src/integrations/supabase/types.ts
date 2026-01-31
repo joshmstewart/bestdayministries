@@ -2138,6 +2138,41 @@ export type Database = {
           },
         ]
       }
+      coffee_product_tiers: {
+        Row: {
+          created_at: string
+          id: string
+          min_quantity: number
+          price_per_unit: number
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_quantity: number
+          price_per_unit: number
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_quantity?: number
+          price_per_unit?: number
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coffee_product_tiers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coffee_products: {
         Row: {
           cost_price: number
