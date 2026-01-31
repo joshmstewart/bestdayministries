@@ -22,6 +22,7 @@ export interface StreakRewardResult {
   currentStreak: number;
   showCelebration: boolean;
   setShowCelebration: (show: boolean) => void;
+  bonusCardId: string | null;
 }
 
 /**
@@ -49,6 +50,7 @@ export const useDailyLoginReward = (): StreakRewardResult => {
   const [milestoneAwarded, setMilestoneAwarded] = useState<MilestoneAwarded | null>(null);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [bonusCardId, setBonusCardId] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading || !isAuthenticated || !user || hasChecked.current) return;
@@ -93,6 +95,11 @@ export const useDailyLoginReward = (): StreakRewardResult => {
         if (!streakError && streakData?.success) {
           setCurrentStreak(streakData.current_streak || 0);
           
+          // Capture bonus card ID if one was created
+          if (streakData.bonus_card_id) {
+            setBonusCardId(streakData.bonus_card_id);
+          }
+          
           // Check if milestone was awarded
           if (streakData.milestones_awarded && streakData.milestones_awarded.length > 0) {
             const milestone = streakData.milestones_awarded[0];
@@ -115,5 +122,6 @@ export const useDailyLoginReward = (): StreakRewardResult => {
     currentStreak,
     showCelebration,
     setShowCelebration,
+    bonusCardId,
   };
 };
