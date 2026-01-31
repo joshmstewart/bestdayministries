@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
+import { UnifiedHeader } from '@/components/UnifiedHeader';
+import Footer from '@/components/Footer';
+import { BackButton } from '@/components/BackButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
@@ -176,8 +179,12 @@ export default function EmotionJournal() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col bg-background">
+        <UnifiedHeader />
+        <div className="flex-1 flex items-center justify-center pt-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -185,23 +192,16 @@ export default function EmotionJournal() {
   if (!user) return null;
 
   return (
-    <main 
-      className={cn(
-        "min-h-screen bg-gradient-to-br pt-24 pb-12 transition-all duration-500",
-        currentTheme.bgGradient
-      )}
-    >
-      <div className="container max-w-4xl mx-auto px-4">
-        {/* Back Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="mb-6 bg-white/80 backdrop-blur-sm hover:bg-white/90"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+    <div className="min-h-screen flex flex-col">
+      <UnifiedHeader />
+      <main 
+        className={cn(
+          "flex-1 bg-gradient-to-br pt-24 pb-12 transition-all duration-500",
+          currentTheme.bgGradient
+        )}
+      >
+        <div className="container max-w-4xl mx-auto px-4">
+          <BackButton label="Back to Community" />
 
         {/* Header */}
         <div className="text-center mb-8">
@@ -421,8 +421,10 @@ export default function EmotionJournal() {
           <TabsContent value="stats">
             <EmotionStats userId={user.id} />
           </TabsContent>
-        </Tabs>
-      </div>
-    </main>
+          </Tabs>
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 }
