@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Loader2, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { useToast } from "@/hooks/use-toast";
 
 export const PicturePasswordLogin = () => {
@@ -48,8 +49,9 @@ export const PicturePasswordLogin = () => {
       if (error) throw error;
 
       if (data.success && data.session) {
-        // Set the session
-        await supabase.auth.setSession({
+        // Set the session on the persistent client (source of truth for the app).
+        // AuthContext will reconcile/mirror into the standard client.
+        await supabasePersistent.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
         });
