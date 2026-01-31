@@ -9,6 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { VoiceInput } from "@/components/VoiceInput";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
 
 interface Comment {
   id: string;
@@ -228,21 +229,11 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
               key={comment.id}
               className="flex gap-2 p-2 rounded-lg bg-muted/50"
             >
-              <Avatar className="w-8 h-8 shrink-0">
-                <AvatarImage
-                  src={
-                    comment.profile?.avatar_url
-                      ? comment.profile.avatar_url.startsWith('http') || comment.profile.avatar_url.startsWith('/')
-                        ? comment.profile.avatar_url
-                        : `https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/avatars/${comment.profile.avatar_url}`
-                      : `/avatars/composite-${comment.profile?.avatar_number || 1}.png`
-                  }
-                  alt={comment.profile?.display_name || "User"}
-                />
-                <AvatarFallback className="text-xs">
-                  {(comment.profile?.display_name || "U").charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarDisplay
+                avatarNumber={comment.profile?.avatar_number}
+                displayName={comment.profile?.display_name || "User"}
+                size="sm"
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium truncate">
