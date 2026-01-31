@@ -15,6 +15,7 @@ interface MoodOption {
   category: "positive" | "neutral" | "negative";
   emotionTypeId?: string;
   avatarImageUrl?: string | null;
+  avatarCropScale?: number;
 }
 
 // Theme styles based on category
@@ -85,7 +86,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
         if (emotionError) throw emotionError;
 
         // If user is logged in, fetch their selected avatar's emotion images
-        let avatarEmotionImages: Record<string, string> = {};
+        let avatarEmotionImages: Record<string, { url: string; cropScale: number }> = {};
         
         if (user) {
           // Get user's selected fitness avatar
@@ -100,14 +101,17 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
             // Fetch all approved emotion images for this avatar
             const { data: emotionImages } = await supabase
               .from("avatar_emotion_images")
-              .select("emotion_type_id, image_url")
+              .select("emotion_type_id, image_url, crop_scale")
               .eq("avatar_id", userAvatar.avatar_id)
               .eq("is_approved", true);
 
             if (emotionImages) {
               emotionImages.forEach(img => {
                 if (img.image_url) {
-                  avatarEmotionImages[img.emotion_type_id] = img.image_url;
+                  avatarEmotionImages[img.emotion_type_id] = {
+                    url: img.image_url,
+                    cropScale: (img.crop_scale as number) || 1.0
+                  };
                 }
               });
             }
@@ -123,14 +127,18 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
             return aOrder - bOrder;
           });
 
-          const options: MoodOption[] = sorted.map(e => ({
-            emoji: e.emoji,
-            label: e.name,
-            color: e.color,
-            category: e.category as "positive" | "neutral" | "negative",
-            emotionTypeId: e.id,
-            avatarImageUrl: avatarEmotionImages[e.id] || null,
-          }));
+          const options: MoodOption[] = sorted.map(e => {
+            const avatarData = avatarEmotionImages[e.id];
+            return {
+              emoji: e.emoji,
+              label: e.name,
+              color: e.color,
+              category: e.category as "positive" | "neutral" | "negative",
+              emotionTypeId: e.id,
+              avatarImageUrl: avatarData?.url || null,
+              avatarCropScale: avatarData?.cropScale || 1.0,
+            };
+          });
           setMoodOptions(options);
         }
       } catch (error) {
@@ -370,20 +378,27 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
             )}
           >
             {mood.avatarImageUrl ? (
-              <img 
-                src={mood.avatarImageUrl} 
-                alt={mood.label} 
+              <div 
                 className={cn(
-                  "w-16 h-16 rounded-full object-cover transition-all",
+                  "w-16 h-16 rounded-full overflow-hidden transition-all",
                   selectedMood?.label === mood.label 
                     ? "ring-[3px] ring-offset-2 shadow-lg" 
                     : "hover:shadow-md"
                 )}
                 style={{
-                  outlineColor: selectedMood?.label === mood.label ? mood.color : undefined,
                   boxShadow: selectedMood?.label === mood.label ? `0 0 0 3px ${mood.color}` : undefined,
                 }}
-              />
+              >
+                <img 
+                  src={mood.avatarImageUrl} 
+                  alt={mood.label} 
+                  className="w-full h-full object-cover"
+                  style={{
+                    transform: `scale(${mood.avatarCropScale || 1})`,
+                    transformOrigin: 'center center',
+                  }}
+                />
+              </div>
             ) : (
               <span 
                 className={cn(

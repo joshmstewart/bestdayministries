@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Check, X, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Sparkles, Check, X, RefreshCw, Trash2, ZoomIn } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Slider } from "@/components/ui/slider";
 
 interface FitnessAvatar {
   id: string;
@@ -36,6 +37,7 @@ interface AvatarEmotionImage {
   prompt_used: string | null;
   generation_notes: string | null;
   is_approved: boolean;
+  crop_scale: number;
   created_at: string;
 }
 
@@ -53,6 +55,8 @@ export function AvatarEmojisManager() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cropScale, setCropScale] = useState(1.0);
+  const [savingCropScale, setSavingCropScale] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -246,6 +250,25 @@ STYLE:
     }
   };
 
+  const handleSaveCropScale = async (imageId: string, scale: number) => {
+    setSavingCropScale(true);
+    try {
+      const { error } = await supabase
+        .from("avatar_emotion_images")
+        .update({ crop_scale: scale })
+        .eq("id", imageId);
+
+      if (error) throw error;
+      
+      toast({ title: "Crop scale saved!" });
+      await loadData();
+    } catch (error) {
+      toast({ title: "Error saving crop scale", variant: "destructive" });
+    } finally {
+      setSavingCropScale(false);
+    }
+  };
+
   const getAvatarById = (id: string) => {
     return fitnessAvatars.find(a => a.id === id);
   };
@@ -254,6 +277,14 @@ STYLE:
   const selectedEmotionDetails = getSelectedEmotionDetails();
   const selectedAvatar = getSelectedAvatar();
 
+  // Sync crop scale when existing image changes
+  useEffect(() => {
+    if (existingImage) {
+      setCropScale(existingImage.crop_scale || 1.0);
+    } else {
+      setCropScale(1.0);
+    }
+  }, [existingImage?.id]);
   // Stats
   const totalCombinations = fitnessAvatars.length * emotions.length;
   const generatedCount = existingImages.length;
@@ -451,6 +482,58 @@ STYLE:
                     className="w-full h-full object-cover"
                   />
                 </AspectRatio>
+                
+                {/* Circle Crop Preview */}
+                {existingImage && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ZoomIn className="h-4 w-4 text-muted-foreground" />
+                      <Label>Circle Crop Preview</Label>
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/50 shadow-md">
+                        <img 
+                          src={existingImage.image_url || ""} 
+                          alt="Circle preview"
+                          className="w-full h-full object-cover"
+                          style={{
+                            transform: `scale(${cropScale})`,
+                            transformOrigin: 'center center',
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Zoom: {cropScale.toFixed(1)}x</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSaveCropScale(existingImage.id, cropScale)}
+                          disabled={savingCropScale || cropScale === (existingImage.crop_scale || 1.0)}
+                        >
+                          {savingCropScale ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Save Zoom"
+                          )}
+                        </Button>
+                      </div>
+                      <Slider
+                        value={[cropScale]}
+                        onValueChange={(value) => setCropScale(value[0])}
+                        min={1}
+                        max={2}
+                        step={0.05}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>1x (full)</span>
+                        <span>2x (zoomed)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Action Buttons */}
                 {existingImage && (
