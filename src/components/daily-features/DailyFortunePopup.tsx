@@ -41,6 +41,7 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
   const [revealed, setRevealed] = useState(false);
   const [viewRecorded, setViewRecorded] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   const getMSTDate = () => {
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -81,6 +82,14 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
         if (fortuneData) {
           setFortune(fortuneData);
         }
+
+        // Fetch comment count
+        const { count } = await supabase
+          .from("daily_fortune_comments")
+          .select("*", { count: "exact", head: true })
+          .eq("fortune_post_id", post.id);
+        
+        setCommentCount(count || 0);
 
         if (user) {
           // Check like status AND existing view in parallel
@@ -326,6 +335,9 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
             >
               <MessageSquare className="w-4 h-4" />
               <span className="text-xs">Comment</span>
+              {commentCount > 0 && (
+                <span className="text-xs text-muted-foreground">({commentCount})</span>
+              )}
               {showComments ? (
                 <ChevronUp className="w-3 h-3" />
               ) : (
