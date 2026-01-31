@@ -83,14 +83,29 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
         }
 
         if (user) {
-          const { data: like } = await supabase
-            .from("daily_fortune_likes")
-            .select("id")
-            .eq("fortune_post_id", post.id)
-            .eq("user_id", user.id)
-            .maybeSingle();
+          // Check like status AND existing view in parallel
+          const [likeResult, viewResult] = await Promise.all([
+            supabase
+              .from("daily_fortune_likes")
+              .select("id")
+              .eq("fortune_post_id", post.id)
+              .eq("user_id", user.id)
+              .maybeSingle(),
+            supabase
+              .from("daily_fortune_views")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("view_date", today)
+              .maybeSingle(),
+          ]);
           
-          setHasLiked(!!like);
+          setHasLiked(!!likeResult.data);
+          
+          // Auto-reveal if already viewed today
+          if (viewResult.data) {
+            setRevealed(true);
+            setViewRecorded(true);
+          }
         }
       }
     } catch (error) {
