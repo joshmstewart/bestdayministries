@@ -85,11 +85,11 @@ export default function MyFortunes() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/")}
               className="gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back
+              Back to Home
             </Button>
 
             <div className="flex items-center gap-3">
