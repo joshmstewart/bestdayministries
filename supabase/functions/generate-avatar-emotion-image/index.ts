@@ -66,16 +66,48 @@ serve(async (req) => {
       });
     }
 
-    // Get the fitness avatar to include its name in the filename
-    const { data: avatarData } = await supabaseAdmin
+    // Get the fitness avatar to include its name and image in the generation
+    const { data: avatarData, error: avatarFetchError } = await supabaseAdmin
       .from("fitness_avatars")
-      .select("name")
+      .select("name, image_url, preview_image_url, character_prompt")
       .eq("id", avatarId)
       .single();
 
+    if (avatarFetchError || !avatarData) {
+      throw new Error("Avatar not found");
+    }
+
     const avatarName = avatarData?.name?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() || 'avatar';
+    
+    // Use image-to-image if avatar has an image (like generate-workout-image does)
+    const avatarImageUrl = avatarData.image_url || avatarData.preview_image_url;
 
     console.log(`Generating avatar emotion image: avatar=${avatarId} (${avatarName}), emotion=${emotionTypeId}`);
+    console.log(`Avatar image URL for reference: ${avatarImageUrl}`);
+
+    // Build message content - use image-to-image if avatar has an image
+    let messageContent: any;
+    
+    if (avatarImageUrl) {
+      // Use image-to-image editing with the avatar's actual image as reference
+      messageContent = [
+        {
+          type: "text",
+          text: prompt,
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: avatarImageUrl,
+          },
+        },
+      ];
+      console.log("Using image-to-image with avatar reference image");
+    } else {
+      // Fallback to text-only generation if no avatar image
+      messageContent = `${avatarData.character_prompt || avatarData.name}, ${prompt}`;
+      console.log("Fallback: Using text-only generation (no avatar image)");
+    }
 
     // Generate the image using Lovable AI Gateway
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -89,7 +121,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: prompt,
+            content: messageContent,
           },
         ],
         modalities: ["image", "text"],
