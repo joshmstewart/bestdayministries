@@ -15,17 +15,6 @@ interface MoodOption {
   category: "positive" | "neutral" | "negative";
 }
 
-const MOOD_OPTIONS: MoodOption[] = [
-  { emoji: "😊", label: "Happy", color: "#22c55e", category: "positive" },
-  { emoji: "🥰", label: "Loved", color: "#ec4899", category: "positive" },
-  { emoji: "🤩", label: "Excited", color: "#f59e0b", category: "positive" },
-  { emoji: "😐", label: "Neutral", color: "#9ca3af", category: "neutral" },
-  { emoji: "😢", label: "Sad", color: "#3b82f6", category: "negative" },
-  { emoji: "😠", label: "Angry", color: "#ef4444", category: "negative" },
-  { emoji: "😰", label: "Anxious", color: "#8b5cf6", category: "negative" },
-  { emoji: "😴", label: "Tired", color: "#6366f1", category: "negative" },
-];
-
 // Theme styles based on category
 const CATEGORY_THEMES = {
   positive: {
@@ -55,6 +44,7 @@ interface QuickMoodPickerProps {
 export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
+  const [moodOptions, setMoodOptions] = useState<MoodOption[]>([]);
   const [note, setNote] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -79,16 +69,53 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
     return formatter.format(new Date());
   };
 
+  // Fetch emotion types from database
+  useEffect(() => {
+    const fetchEmotionTypes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("emotion_types")
+          .select("id, name, emoji, color, category")
+          .order("category")
+          .order("name");
+
+        if (error) throw error;
+
+        if (data) {
+          // Sort: positive first, then neutral, then negative
+          const categoryOrder = { positive: 0, neutral: 1, negative: 2 };
+          const sorted = data.sort((a, b) => {
+            const aOrder = categoryOrder[a.category as keyof typeof categoryOrder] ?? 1;
+            const bOrder = categoryOrder[b.category as keyof typeof categoryOrder] ?? 1;
+            return aOrder - bOrder;
+          });
+
+          const options: MoodOption[] = sorted.map(e => ({
+            emoji: e.emoji,
+            label: e.name,
+            color: e.color,
+            category: e.category as "positive" | "neutral" | "negative",
+          }));
+          setMoodOptions(options);
+        }
+      } catch (error) {
+        console.error("Error fetching emotion types:", error);
+      }
+    };
+
+    fetchEmotionTypes();
+  }, []);
+
   useEffect(() => {
     if (authLoading || !isAuthenticated || !user) {
       setLoading(false);
       return;
     }
     checkTodaysEntry();
-  }, [user, isAuthenticated, authLoading]);
+  }, [user, isAuthenticated, authLoading, moodOptions]);
 
   const checkTodaysEntry = async () => {
-    if (!user) return;
+    if (!user || moodOptions.length === 0) return;
     
     setLoading(true);
     try {
@@ -104,9 +131,10 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
       
       if (data) {
         setTodaysEntry(data);
-        setSelectedMood(MOOD_OPTIONS.find(m => m.emoji === data.mood_emoji) || null);
+        const foundMood = moodOptions.find(m => m.emoji === data.mood_emoji);
+        setSelectedMood(foundMood || null);
         // Fetch encouraging message for completed entry
-        fetchEncouragingMessage(data.mood_emoji, MOOD_OPTIONS.find(m => m.emoji === data.mood_emoji)?.label || "", null);
+        fetchEncouragingMessage(data.mood_emoji, foundMood?.label || data.mood_label || "", null);
       }
     } catch (error) {
       console.error("Error checking mood entry:", error);
@@ -244,7 +272,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
 
   // Already checked in - show encouraging message
   if (todaysEntry) {
-    const entryMood = MOOD_OPTIONS.find(m => m.emoji === todaysEntry.mood_emoji);
+    const entryMood = moodOptions.find(m => m.emoji === todaysEntry.mood_emoji);
     const completedTheme = entryMood ? CATEGORY_THEMES[entryMood.category] : CATEGORY_THEMES.neutral;
     
     return (
@@ -287,7 +315,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
     )}>
       {/* Mood Selector */}
       <div className="flex flex-wrap justify-center gap-2">
-        {MOOD_OPTIONS.map((mood) => (
+        {moodOptions.map((mood) => (
           <button
             key={mood.label}
             onClick={() => handleMoodSelect(mood)}
