@@ -185,7 +185,10 @@ export function FortunesManager() {
 
       toast.success(`Archived ${ids.length} fortune(s)`);
       setSelectedFortunes(new Set());
-      loadFortunes();
+      // Optimistically remove archived items from current list instead of refetching
+      // This maintains the visual order - items below simply move up
+      const idsSet = new Set(ids);
+      setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
     } catch (error) {
       console.error("Error archiving fortunes:", error);
       toast.error("Failed to archive fortunes");
