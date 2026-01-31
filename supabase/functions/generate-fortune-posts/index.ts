@@ -48,19 +48,38 @@ serve(async (req) => {
       });
     }
 
-    // Get an approved, unused fortune
-    const { data: fortune, error: fortuneError } = await adminClient
+    // Get a random approved, unused fortune
+    let { data: fortune, error: fortuneError } = await adminClient
       .from("daily_fortunes")
       .select("*")
       .eq("is_approved", true)
-      .eq("is_used", false)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .eq("is_used", false);
 
     if (fortuneError) throw fortuneError;
 
-    if (!fortune) {
+    // If no unused fortunes, reset all approved fortunes
+    if (!fortune || fortune.length === 0) {
+      console.log("No unused fortunes available, resetting all approved fortunes...");
+      
+      const { error: resetError } = await adminClient
+        .from("daily_fortunes")
+        .update({ is_used: false, used_date: null })
+        .eq("is_approved", true);
+
+      if (resetError) throw resetError;
+
+      // Fetch again after reset
+      const { data: resetFortunes, error: refetchError } = await adminClient
+        .from("daily_fortunes")
+        .select("*")
+        .eq("is_approved", true)
+        .eq("is_used", false);
+
+      if (refetchError) throw refetchError;
+      fortune = resetFortunes;
+    }
+
+    if (!fortune || fortune.length === 0) {
       return new Response(JSON.stringify({
         success: false,
         reason: "no_approved_fortunes",
@@ -70,6 +89,10 @@ serve(async (req) => {
       });
     }
 
+    // Pick a random fortune from the available ones
+    const randomIndex = Math.floor(Math.random() * fortune.length);
+    const selectedFortune = fortune[randomIndex];
+
     // Mark fortune as used
     await adminClient
       .from("daily_fortunes")
@@ -77,13 +100,13 @@ serve(async (req) => {
         is_used: true,
         used_date: todayMST,
       })
-      .eq("id", fortune.id);
+      .eq("id", selectedFortune.id);
 
     // Create the daily fortune post
     const { data: newPost, error: postError } = await adminClient
       .from("daily_fortune_posts")
       .insert({
-        fortune_id: fortune.id,
+        fortune_id: selectedFortune.id,
         post_date: todayMST,
       })
       .select()
@@ -101,9 +124,9 @@ serve(async (req) => {
       .maybeSingle();
 
     if (adminUser) {
-      const sourceTypeLabel = fortune.source_type === "bible_verse" 
+      const sourceTypeLabel = selectedFortune.source_type === "bible_verse" 
         ? "Scripture" 
-        : fortune.source_type === "affirmation" 
+        : selectedFortune.source_type === "affirmation" 
           ? "Affirmation" 
           : "Quote";
 
@@ -112,7 +135,7 @@ serve(async (req) => {
         .insert({
           author_id: adminUser.user_id,
           title: `✨ Daily Inspiration: ${sourceTypeLabel} of the Day`,
-          content: `"${fortune.content}"${fortune.author ? `\n\n— ${fortune.author}` : ""}${fortune.reference ? ` (${fortune.reference})` : ""}\n\nHow does this resonate with you today? Share your thoughts!`,
+          content: `"${selectedFortune.content}"${selectedFortune.author ? `\n\n— ${selectedFortune.author}` : ""}${selectedFortune.reference ? ` (${selectedFortune.reference})` : ""}\n\nHow does this resonate with you today? Share your thoughts!`,
           is_moderated: true,
           approval_status: "approved",
         })
@@ -131,10 +154,10 @@ serve(async (req) => {
       success: true,
       post_id: newPost.id,
       fortune: {
-        content: fortune.content,
-        source_type: fortune.source_type,
-        author: fortune.author,
-        reference: fortune.reference,
+        content: selectedFortune.content,
+        source_type: selectedFortune.source_type,
+        author: selectedFortune.author,
+        reference: selectedFortune.reference,
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
