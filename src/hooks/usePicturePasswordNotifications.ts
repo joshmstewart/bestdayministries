@@ -39,7 +39,7 @@ export function usePicturePasswordNotifications() {
   const checkFeaturePrompt = useCallback(async () => {
     if (!user) return false;
 
-    // Check if user has already dismissed with "don't show again"
+    // FIRST: Check if user has already dismissed with "don't show again" - this takes priority
     const { data: existingNotification } = await supabase
       .from("picture_password_notifications")
       .select("*")
@@ -48,40 +48,59 @@ export function usePicturePasswordNotifications() {
       .maybeSingle();
 
     if (existingNotification) {
-      // If don't show again is set, don't show
-      if (existingNotification.dont_show_again) return false;
+      // If don't show again is set, NEVER show
+      if (existingNotification.dont_show_again) {
+        console.log("[PicturePassword] User has dont_show_again set, skipping prompt");
+        return false;
+      }
       
       // If remind_after is set and we're still before that date, don't show
       if (existingNotification.remind_after) {
         const remindDate = new Date(existingNotification.remind_after);
-        if (new Date() < remindDate) return false;
+        if (new Date() < remindDate) {
+          console.log("[PicturePassword] Remind date not reached yet, skipping prompt");
+          return false;
+        }
       }
     }
 
+    // SECOND: Check if user already has a picture password - if so, check besties
+    const { data: userPassword, error: userPasswordError } = await supabase
+      .from("picture_passwords")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (userPasswordError) {
+      console.error("[PicturePassword] Error checking user password:", userPasswordError);
+    }
+
+    const userHasPassword = !!userPassword;
+    setUserHasPicturePassword(userHasPassword);
+
     // For guardians, check if they or their linked besties don't have picture passwords
     if (isGuardian) {
-      // Check if guardian themselves has a picture password
-      const { data: guardianPassword } = await supabase
-        .from("picture_passwords")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const guardianHasPassword = !!guardianPassword;
-      setUserHasPicturePassword(guardianHasPassword);
-      const { data: links } = await supabase
+      const { data: links, error: linksError } = await supabase
         .from("caregiver_bestie_links")
         .select("bestie_id, profiles!caregiver_bestie_links_bestie_id_fkey(id, display_name)")
         .eq("caregiver_id", user.id);
+
+      if (linksError) {
+        console.error("[PicturePassword] Error fetching linked besties:", linksError);
+      }
 
       if (links && links.length > 0) {
         const bestieIds = links.map(l => l.bestie_id);
         
         // Check which besties have picture passwords
-        const { data: passwords } = await supabase
+        const { data: passwords, error: passwordsError } = await supabase
           .from("picture_passwords")
           .select("user_id")
           .in("user_id", bestieIds);
+
+        if (passwordsError) {
+          console.error("[PicturePassword] Error checking bestie passwords:", passwordsError);
+        }
 
         const passwordUserIds = new Set(passwords?.map(p => p.user_id) || []);
         
@@ -93,24 +112,24 @@ export function usePicturePasswordNotifications() {
 
         setLinkedBesties(bestiesData);
 
-        // Show prompt if guardian doesn't have one OR any bestie doesn't have a picture password
+        // Check if any besties still need picture passwords
         const hasUnsetBesties = bestiesData.some(b => !b.hasPicturePassword);
-        return !guardianHasPassword || hasUnsetBesties;
+        
+        // Only show if guardian doesn't have one OR there are besties without passwords
+        const shouldShow = !userHasPassword || hasUnsetBesties;
+        console.log("[PicturePassword] Guardian check:", { userHasPassword, hasUnsetBesties, shouldShow, bestiesData });
+        return shouldShow;
       }
 
-      // Guardian has no linked besties - show prompt if they don't have a picture password
-      return !guardianHasPassword;
+      // Guardian has no linked besties - only show if they don't have a picture password
+      console.log("[PicturePassword] Guardian with no besties:", { userHasPassword });
+      return !userHasPassword;
     }
 
     // For besties, check if they have a picture password
     if (isBestie) {
-      const { data: password } = await supabase
-        .from("picture_passwords")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      return !password; // Show prompt if no picture password
+      console.log("[PicturePassword] Bestie check:", { userHasPassword });
+      return !userHasPassword; // Show prompt if no picture password
     }
 
     return false;
