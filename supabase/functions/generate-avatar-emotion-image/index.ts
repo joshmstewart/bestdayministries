@@ -142,23 +142,41 @@ serve(async (req) => {
       throw new Error("No image returned from AI");
     }
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage with retry logic
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     
     const fileName = `${avatarName}-${emotionTypeId.slice(0, 8)}-${Date.now()}.png`;
     const filePath = `avatar-emotions/${fileName}`;
 
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("app-assets")
-      .upload(filePath, imageBuffer, {
-        contentType: "image/png",
-        upsert: true,
-      });
+    let uploadError: Error | null = null;
+    const maxRetries = 3;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const { error } = await supabaseAdmin.storage
+        .from("app-assets")
+        .upload(filePath, imageBuffer, {
+          contentType: "image/png",
+          upsert: true,
+        });
+
+      if (!error) {
+        uploadError = null;
+        console.log(`Upload succeeded on attempt ${attempt}`);
+        break;
+      }
+      
+      console.error(`Upload attempt ${attempt}/${maxRetries} failed:`, error);
+      uploadError = error;
+      
+      if (attempt < maxRetries) {
+        // Wait before retry (exponential backoff: 1s, 2s)
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      }
+    }
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
-      throw new Error(`Failed to upload image: ${uploadError.message}`);
+      throw new Error(`Failed to upload image after ${maxRetries} attempts: ${uploadError.message}`);
     }
 
     // Get public URL
