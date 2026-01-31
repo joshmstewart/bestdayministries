@@ -54,13 +54,22 @@ export const invalidateCoinCache = () => {
 export const getCacheVersion = () => cacheVersion;
 
 export const CoinIcon = ({ className = "", size = 16 }: CoinIconProps) => {
-  const [coinUrl, setCoinUrl] = useState<string>(defaultCoinImage);
+  const [coinUrl, setCoinUrl] = useState<string | null>(
+    // Use cached value immediately if available, otherwise null (don't show default yet)
+    hasFetched ? (cachedCoinUrl || defaultCoinImage) : null
+  );
   const [version, setVersion] = useState(cacheVersion);
   
   useEffect(() => {
     let isMounted = true;
     
-    // Force a fresh fetch on first mount to ensure we have the latest
+    // If we already have a cached value, use it immediately
+    if (hasFetched && cachedCoinUrl !== null) {
+      setCoinUrl(cachedCoinUrl || defaultCoinImage);
+      return;
+    }
+    
+    // Otherwise fetch fresh
     fetchCoinUrl(true).then((url) => {
       if (isMounted) {
         setCoinUrl(url || defaultCoinImage);
@@ -82,6 +91,16 @@ export const CoinIcon = ({ className = "", size = 16 }: CoinIconProps) => {
     }, 1000);
     return () => clearInterval(interval);
   }, [version]);
+  
+  // Don't render anything until we know which coin to show
+  if (coinUrl === null) {
+    return (
+      <div 
+        className={className}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   
   return (
     <img 
