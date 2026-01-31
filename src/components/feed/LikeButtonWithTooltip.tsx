@@ -34,15 +34,25 @@ export function LikeButtonWithTooltip({
   const [likers, setLikers] = useState<LikerInfo[]>([]);
   const [loadingLikers, setLoadingLikers] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
-  // If the count changes (e.g. user just liked/unliked), refetch on next hover.
+  // If the count changes (e.g. user just liked/unliked) and card is open, refetch immediately
   useEffect(() => {
     setHasFetched(false);
     setLikers([]);
-  }, [itemId, itemType, likesCount]);
+  }, [itemId, itemType]);
 
-  const fetchLikers = useCallback(async () => {
-    if (likesCount === 0 || hasFetched) return;
+  // Refetch when likesCount changes if the tooltip is already open
+  useEffect(() => {
+    if (isOpen && likesCount > 0) {
+      setHasFetched(false);
+      fetchLikersInternal();
+    } else if (likesCount === 0) {
+      setLikers([]);
+    }
+  }, [likesCount]);
+
+  const fetchLikersInternal = useCallback(async () => {
     
     setLoadingLikers(true);
     try {
@@ -159,12 +169,13 @@ export function LikeButtonWithTooltip({
     } finally {
       setLoadingLikers(false);
     }
-  }, [itemId, itemType, likesCount, hasFetched]);
+  }, [itemId, itemType]);
 
-  // Reset fetched state when likes count changes
+  // Handle hover card open/close
   const handleOpenChange = (open: boolean) => {
-    if (open && likesCount > 0) {
-      fetchLikers();
+    setIsOpen(open);
+    if (open && likesCount > 0 && !hasFetched) {
+      fetchLikersInternal();
     }
   };
 
