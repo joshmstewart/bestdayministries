@@ -357,7 +357,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
       selectedMood && `bg-gradient-to-br ${currentTheme.bgGradient}`
     )}>
       {/* Mood Selector */}
-      <div className="flex flex-wrap justify-center gap-2">
+      <div className="grid grid-cols-4 gap-3">
         {moodOptions.map((mood) => (
           <button
             key={mood.label}
@@ -380,13 +380,13 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
               <img 
                 src={mood.avatarImageUrl} 
                 alt={mood.label} 
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-14 h-14 rounded-full object-cover"
               />
             ) : (
-              <span className="text-2xl">{mood.emoji}</span>
+              <span className="text-3xl">{mood.emoji}</span>
             )}
             <span 
-              className="text-xs font-medium mt-1"
+              className="text-xs font-medium mt-1.5"
               style={{ color: selectedMood?.label === mood.label ? mood.color : undefined }}
             >
               {mood.label}
