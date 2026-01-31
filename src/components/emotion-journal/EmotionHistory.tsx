@@ -6,13 +6,13 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { Calendar, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface EmotionEntry {
+interface MoodEntry {
   id: string;
-  emotion: string;
-  emotion_emoji: string;
-  intensity: number;
-  journal_text: string | null;
+  mood_emoji: string;
+  mood_label: string;
+  note: string | null;
   created_at: string;
+  entry_date: string;
 }
 
 interface EmotionHistoryProps {
@@ -20,7 +20,7 @@ interface EmotionHistoryProps {
 }
 
 export function EmotionHistory({ userId }: EmotionHistoryProps) {
-  const [entries, setEntries] = useState<EmotionEntry[]>([]);
+  const [entries, setEntries] = useState<MoodEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -34,10 +34,10 @@ export function EmotionHistory({ userId }: EmotionHistoryProps) {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('emotion_journal_entries')
-        .select('*')
+        .from('mood_entries')
+        .select('id, mood_emoji, mood_label, note, created_at, entry_date')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+        .order('entry_date', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
       if (error) throw error;
@@ -57,7 +57,7 @@ export function EmotionHistory({ userId }: EmotionHistoryProps) {
 
     try {
       const { error } = await supabase
-        .from('emotion_journal_entries')
+        .from('mood_entries')
         .delete()
         .eq('id', id);
 
@@ -112,37 +112,25 @@ export function EmotionHistory({ userId }: EmotionHistoryProps) {
             >
               {/* Emoji */}
               <div className="text-4xl flex-shrink-0">
-                {entry.emotion_emoji}
+                {entry.mood_emoji}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">{entry.emotion}</span>
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-2 h-2 rounded-full ${
-                          i < entry.intensity
-                            ? 'bg-primary'
-                            : 'bg-muted'
-                        }`}
-                      />
-                    ))}
-                  </div>
+                  <span className="font-medium">{entry.mood_label}</span>
                 </div>
 
-                {entry.journal_text && (
+                {entry.note && (
                   <p className="text-sm text-muted-foreground line-clamp-2">
-                    {entry.journal_text}
+                    {entry.note}
                   </p>
                 )}
 
                 <p className="text-xs text-muted-foreground mt-2">
-                  {format(new Date(entry.created_at), 'MMM d, yyyy h:mm a')}
+                  {format(new Date(entry.entry_date), 'MMM d, yyyy')}
                   {' · '}
-                  {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(entry.entry_date), { addSuffix: true })}
                 </p>
               </div>
 
