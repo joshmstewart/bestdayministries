@@ -163,11 +163,11 @@ export function CoffeeProductsManager() {
                 return (
                   <TableRow key={product.id}>
                     <TableCell>
-                      {product.images?.[0] ? (
+                      {product.images && product.images.length > 0 && product.images[0] ? (
                         <img 
                           src={product.images[0]} 
                           alt={product.name}
-                          className="w-12 h-12 object-cover rounded"
+                          className="w-12 h-12 object-contain rounded border"
                         />
                       ) : (
                         <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
