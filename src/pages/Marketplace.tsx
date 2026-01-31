@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ProductGrid } from "@/components/marketplace/ProductGrid";
 import { ProductSection } from "@/components/marketplace/ProductSection";
+import { CoffeeProductGrid } from "@/components/marketplace/CoffeeProductGrid";
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { useShopifyCartStore } from "@/stores/shopifyCartStore";
@@ -138,20 +139,28 @@ const Marketplace = () => {
   const { data: categoryStatus } = useQuery({
     queryKey: ['category-status-with-images'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          id,
-          images,
-          default_image_index,
-          default_image_url,
-          is_printify_product,
-          vendor_id,
-          vendor:vendors(is_house_vendor)
-        `)
-        .eq('is_active', true);
+      const [productsRes, coffeeRes] = await Promise.all([
+        supabase
+          .from('products')
+          .select(`
+            id,
+            images,
+            default_image_index,
+            default_image_url,
+            is_printify_product,
+            vendor_id,
+            vendor:vendors(is_house_vendor)
+          `)
+          .eq('is_active', true),
+        supabase
+          .from('coffee_products')
+          .select('id')
+          .eq('is_active', true)
+          .limit(1)
+      ]);
 
-      if (error) throw error;
+      if (productsRes.error) throw productsRes.error;
+      const data = productsRes.data;
       
       const merchProducts = data?.filter(p => 
         p.is_printify_product === true || 
@@ -176,6 +185,7 @@ const Marketplace = () => {
       return { 
         hasMerch: merchProducts.length > 0, 
         hasHandmade: handmadeProducts.length > 0,
+        hasCoffee: (coffeeRes.data?.length || 0) > 0,
         merchImages: getProductImages(merchProducts),
         handmadeImages: getProductImages(handmadeProducts),
         allImages: getProductImages(data?.slice(0, 3) || [])
@@ -183,7 +193,7 @@ const Marketplace = () => {
     }
   });
 
-  const activeCategoryCount = (categoryStatus?.hasMerch ? 1 : 0) + (categoryStatus?.hasHandmade ? 1 : 0);
+  const activeCategoryCount = (categoryStatus?.hasMerch ? 1 : 0) + (categoryStatus?.hasHandmade ? 1 : 0) + (categoryStatus?.hasCoffee ? 1 : 0);
 
   // Fetch cart count using session-aware filter
   const { data: cartCount } = useQuery({
@@ -342,20 +352,33 @@ const Marketplace = () => {
                     >
                       All Products
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="handmade" 
-                      onClick={() => setSelectedCategory('handmade')} 
-                      className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                    >
-                      Artisan-Made
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="merch" 
-                      onClick={() => setSelectedCategory('merch')} 
-                      className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
-                    >
-                      Official Merch
-                    </TabsTrigger>
+                    {categoryStatus?.hasHandmade && (
+                      <TabsTrigger 
+                        value="handmade" 
+                        onClick={() => setSelectedCategory('handmade')} 
+                        className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                      >
+                        Artisan-Made
+                      </TabsTrigger>
+                    )}
+                    {categoryStatus?.hasMerch && (
+                      <TabsTrigger 
+                        value="merch" 
+                        onClick={() => setSelectedCategory('merch')} 
+                        className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                      >
+                        Official Merch
+                      </TabsTrigger>
+                    )}
+                    {categoryStatus?.hasCoffee && (
+                      <TabsTrigger 
+                        value="coffee" 
+                        onClick={() => setSelectedCategory('coffee')} 
+                        className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                      >
+                        ☕ Coffee
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 )}
                 
@@ -490,6 +513,10 @@ const Marketplace = () => {
               
               <TabsContent value="handmade">
                 <ProductGrid category="handmade" sortBy={sortBy} searchQuery={searchQuery} categoryFilters={selectedCategories} />
+              </TabsContent>
+              
+              <TabsContent value="coffee">
+                <CoffeeProductGrid sortBy={sortBy} searchQuery={searchQuery} />
               </TabsContent>
             </Tabs>
           </div>
