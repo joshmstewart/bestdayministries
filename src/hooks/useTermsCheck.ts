@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { useToast } from "@/hooks/use-toast";
 
 export const CURRENT_TERMS_VERSION = "1.0";
@@ -21,8 +21,18 @@ export const useTermsCheck = (userId: string | undefined) => {
 
   const checkTermsAcceptance = async () => {
     try {
-      // Check if user has accepted current version
-      const { data, error } = await supabase
+      // Defense-in-depth: verify we have a valid authenticated session before querying
+      // This prevents false "needs acceptance" when auth is momentarily unavailable
+      const { data: { user }, error: userError } = await supabasePersistent.auth.getUser();
+      
+      if (userError || !user) {
+        console.log("[useTermsCheck] No valid user session, staying in loading state");
+        // Don't set needsAcceptance to true - just stay loading until auth resolves
+        return;
+      }
+
+      // Check if user has accepted current version using the persistent client
+      const { data, error } = await supabasePersistent
         .from("terms_acceptance")
         .select("*")
         .eq("user_id", userId)
@@ -35,6 +45,8 @@ export const useTermsCheck = (userId: string | undefined) => {
       setNeedsAcceptance(!data);
     } catch (error) {
       console.error("Error checking terms acceptance:", error);
+      // On error, don't show the modal - safer to assume accepted than block user
+      setNeedsAcceptance(false);
     } finally {
       setLoading(false);
     }
@@ -44,7 +56,8 @@ export const useTermsCheck = (userId: string | undefined) => {
     const maxRetries = 3;
     
     try {
-      const { error } = await supabase.functions.invoke("record-terms-acceptance", {
+      // Use persistent client for consistency
+      const { error } = await supabasePersistent.functions.invoke("record-terms-acceptance", {
         body: {
           termsVersion: CURRENT_TERMS_VERSION,
           privacyVersion: CURRENT_PRIVACY_VERSION,
