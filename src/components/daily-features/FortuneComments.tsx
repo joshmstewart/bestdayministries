@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, Trash2 } from "lucide-react";
+import { Loader2, Send, Trash2, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { TextToSpeech } from "@/components/TextToSpeech";
+import { VoiceInput } from "@/components/VoiceInput";
 
 interface Comment {
   id: string;
@@ -28,6 +31,7 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
 
   const loadComments = useCallback(async () => {
     try {
@@ -102,6 +106,7 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
       if (error) throw error;
 
       setNewComment("");
+      setShowVoiceInput(false);
       toast.success("Comment added!");
     } catch (error) {
       console.error("Error posting comment:", error);
@@ -126,10 +131,9 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
     }
   };
 
-  const getAvatarUrl = (avatarNumber: number | null) => {
-    const num = avatarNumber || 1;
-    return `/avatars/composite-${num}.png`;
-  };
+  const handleVoiceTranscript = useCallback((text: string) => {
+    setNewComment((prev) => (prev ? `${prev} ${text}` : text));
+  }, []);
 
   if (loading) {
     return (
@@ -143,31 +147,71 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
     <div className="space-y-3">
       {/* Comment input */}
       {isAuthenticated ? (
-        <div className="flex gap-2">
-          <Textarea
-            placeholder="Share your thoughts..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-[60px] text-sm resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-          />
-          <Button
-            size="icon"
-            onClick={handleSubmit}
-            disabled={!newComment.trim() || submitting}
-            className="shrink-0"
-          >
-            {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
+        <div className="space-y-2">
+          {showVoiceInput ? (
+            <div className="space-y-2">
+              <VoiceInput
+                onTranscript={handleVoiceTranscript}
+                placeholder="Tap the microphone and speak your comment..."
+                showTranscript={true}
+                autoStop={true}
+                silenceStopSeconds={15}
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowVoiceInput(false)}
+                >
+                  Type instead
+                </Button>
+                {newComment.trim() && (
+                  <Button size="sm" onClick={handleSubmit} disabled={submitting}>
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    <span className="ml-1">Send</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Textarea
+                placeholder="Share your thoughts..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[60px] text-sm resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+              />
+              <div className="flex flex-col gap-1">
+                <Button
+                  size="icon"
+                  onClick={handleSubmit}
+                  disabled={!newComment.trim() || submitting}
+                  className="shrink-0"
+                >
+                  {submitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setShowVoiceInput(true)}
+                  className="shrink-0"
+                  title="Use voice input"
+                >
+                  <Mic className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground text-center py-2">
@@ -183,17 +227,22 @@ export function FortuneComments({ fortunePostId }: FortuneCommentsProps) {
               key={comment.id}
               className="flex gap-2 p-2 rounded-lg bg-muted/50"
             >
-              <img
-                src={getAvatarUrl(comment.profile?.avatar_number ?? null)}
-                alt=""
-                className="w-8 h-8 rounded-full shrink-0"
-              />
+              <Avatar className="w-8 h-8 shrink-0">
+                <AvatarImage
+                  src={`/avatars/composite-${comment.profile?.avatar_number || 1}.png`}
+                  alt={comment.profile?.display_name || "User"}
+                />
+                <AvatarFallback className="text-xs">
+                  {(comment.profile?.display_name || "U").charAt(0)}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-medium truncate">
                     {comment.profile?.display_name || "User"}
                   </span>
                   <div className="flex items-center gap-1">
+                    <TextToSpeech text={comment.content} size="icon" />
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(comment.created_at), {
                         addSuffix: true,
