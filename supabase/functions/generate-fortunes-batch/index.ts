@@ -288,8 +288,8 @@ Format as JSON array:
       const allToCheck = [...sessionCollected, ...existingContents];
       if (allToCheck.length === 0) return false;
       
-      // Take a larger sample for better coverage (max 50)
-      const samplesToCheck = allToCheck.slice(0, 50);
+      // Take a focused sample (max 25) - enough for good coverage without being slow
+      const samplesToCheck = allToCheck.slice(0, 25);
       
       try {
         const semanticResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -303,20 +303,21 @@ Format as JSON array:
             messages: [
               {
                 role: "system",
-                content: `You are a STRICT semantic similarity checker for discussion questions and prompts.
-                
-Answer 'YES' if the NEW content:
-- Asks about the SAME TOPIC as any existing content (e.g., both ask about creativity, hobbies, or self-expression)
-- Would elicit SIMILAR TYPES of responses
-- Has significant conceptual overlap (even if phrased differently)
+                content: `You are a semantic duplicate detector for gratitude/discussion prompts.
 
-Answer 'NO' ONLY if the new content explores a genuinely DIFFERENT topic or angle.
+Answer 'YES' ONLY if the NEW content is essentially asking THE SAME SPECIFIC QUESTION as an existing one. Examples of duplicates:
+- "What made you smile today?" vs "What is one thing that made you smile today?" (same question)
+- "Who is someone you're grateful for?" vs "Name a person you appreciate" (same question)
 
-Be STRICT - when in doubt, say YES. Variety is essential.`
+Answer 'NO' if the questions are DIFFERENT even if they share a broad theme like happiness or gratitude. Examples of NON-duplicates:
+- "What made you smile today?" vs "What is your favorite part of the day?" (different questions)
+- "Name something soft you like" vs "What color makes you happy?" (different questions)
+
+Focus on the SPECIFIC QUESTION being asked, not the general theme.`
               },
               {
                 role: "user",
-                content: `NEW CONTENT: "${newContent}"\n\nEXISTING CONTENT:\n${samplesToCheck.map((c, i) => `${i + 1}. "${c}"`).join('\n')}\n\nIs the new content semantically the same as OR covers the same topic as any existing content? Answer YES or NO only.`
+                content: `NEW: "${newContent}"\n\nEXISTING:\n${samplesToCheck.map((c, i) => `${i + 1}. "${c}"`).join('\n')}\n\nIs the NEW asking the same specific question as any existing? YES or NO only.`
               }
             ],
             temperature: 0.1, // Low temperature for consistent judgment
@@ -432,15 +433,25 @@ Be STRICT - when in doubt, say YES. Variety is essential.`
         continue;
       }
 
-      // Filter out duplicates
+      // Filter out duplicates - track consecutive rejections to detect when we're stuck
+      let consecutiveRejections = 0;
+      const maxConsecutiveRejections = 15; // If 15 items in a row are rejected, we're likely exhausted
+      
       for (const f of fortunes) {
         if (collectedUniqueFortunes.length >= count) break;
+        
+        // Early exit if we're stuck in a rejection loop
+        if (consecutiveRejections >= maxConsecutiveRejections) {
+          console.log(`Breaking early: ${consecutiveRejections} consecutive rejections - topic likely saturated`);
+          break;
+        }
         
         const normalizedContent = normalizeText(f.content);
         
         // Check exact match (after normalization)
         if (existingContentSet.has(normalizedContent)) {
           console.log(`Skipping exact match: "${f.content.substring(0, 50)}..."`);
+          consecutiveRejections++;
           continue;
         }
         
@@ -449,6 +460,7 @@ Be STRICT - when in doubt, say YES. Variety is essential.`
           const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
           if (existingExactReferences.has(normalizedRef)) {
             console.log(`Skipping duplicate Bible reference: "${f.reference}"`);
+            consecutiveRejections++;
             continue;
           }
           
@@ -460,7 +472,10 @@ Be STRICT - when in doubt, say YES. Variety is essential.`
               break;
             }
           }
-          if (hasOverlap) continue;
+          if (hasOverlap) {
+            consecutiveRejections++;
+            continue;
+          }
         }
         
         // Check soft matches against all existing
@@ -472,7 +487,10 @@ Be STRICT - when in doubt, say YES. Variety is essential.`
             break;
           }
         }
-        if (isSoft) continue;
+        if (isSoft) {
+          consecutiveRejections++;
+          continue;
+        }
         
         // AI semantic check - catches questions/prompts that ask the same thing differently
         // Apply to categories where semantic similarity matters most
@@ -483,11 +501,13 @@ Be STRICT - when in doubt, say YES. Variety is essential.`
           const isSemanticallyDuplicate = await checkSemanticSimilarity(f.content, existingContentForSemantic, sessionCollectedContent);
           if (isSemanticallyDuplicate) {
             console.log(`Skipping semantic duplicate: "${f.content.substring(0, 50)}..."`);
+            consecutiveRejections++;
             continue;
           }
         }
         
         // This one is unique! Add it to our collection and tracking sets
+        consecutiveRejections = 0; // Reset counter on success
         collectedUniqueFortunes.push(f);
         existingContentSet.add(normalizedContent);
         if (f.reference) {
@@ -497,6 +517,12 @@ Be STRICT - when in doubt, say YES. Variety is essential.`
         allExistingForSoftMatch.push({ content: f.content, author: f.author || null, reference: f.reference || null, is_archived: false });
         
         console.log(`✓ Unique fortune collected: "${f.content.substring(0, 40)}..." (${collectedUniqueFortunes.length}/${count})`);
+      }
+      
+      // If this attempt yielded nothing after processing all items, we might be exhausted
+      if (consecutiveRejections >= maxConsecutiveRejections) {
+        console.log(`Topic appears saturated after attempt ${attempt}. Stopping early.`);
+        break;
       }
     }
 
