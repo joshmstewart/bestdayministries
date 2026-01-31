@@ -175,11 +175,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
       setTodaysEntry(data);
       await fetchEncouragingMessage(selectedMood.emoji, selectedMood.label);
       toast.success("Mood logged! 🎉");
-      
-      // Close popup after a brief delay to show the success state
-      setTimeout(() => {
-        onComplete?.();
-      }, 1500);
+      // User will manually close via the "Close" button in the completed state
     } catch (error) {
       console.error("Error saving mood:", error);
       toast.error("Failed to save mood");
@@ -260,10 +256,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
       setTodaysEntry(data);
       await fetchEncouragingMessage(selectedMood.emoji, selectedMood.label);
       toast.success("Mood logged with details! 🎉");
-      
-      setTimeout(() => {
-        onComplete?.();
-      }, 1500);
+      // User will manually close via the "Close" button in the completed state
     } catch (error) {
       console.error("Error saving mood:", error);
       toast.error("Failed to save mood");
