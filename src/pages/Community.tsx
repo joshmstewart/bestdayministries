@@ -748,8 +748,8 @@ const Community = () => {
       
       <Footer />
       
-      {/* Floating Daily Scratch Widget - right side, upper portion */}
-      {user && canSeeFeature('daily_scratch_widget') && (
+      {/* Floating Daily Scratch Widget - right side, upper portion - Home tab only */}
+      {user && activeTab === 'community' && canSeeFeature('daily_scratch_widget') && (
         <div
           className={`fixed right-4 top-52 z-40 ${
             !isProblematicIOSVersion()
