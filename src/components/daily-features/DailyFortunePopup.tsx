@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle, ChevronDown, ChevronUp, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FortuneComments } from "./FortuneComments";
+import { useSavedFortunes } from "@/hooks/useSavedFortunes";
+
 interface Fortune {
   id: string;
   content: string;
@@ -42,6 +44,7 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
   const [viewRecorded, setViewRecorded] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
+  const { isSaved, toggleSave } = useSavedFortunes();
 
   const getMSTDate = () => {
     const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -344,6 +347,22 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
                 <ChevronDown className="w-3 h-3" />
               )}
             </Button>
+            {fortunePost && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleSave(fortunePost.id)}
+                disabled={!isAuthenticated}
+                className={cn(
+                  "gap-1",
+                  isSaved(fortunePost.id) && "text-primary hover:text-primary/80"
+                )}
+                title={isSaved(fortunePost.id) ? "Remove from My Fortunes" : "Save to My Fortunes"}
+              >
+                <Bookmark className={cn("w-4 h-4", isSaved(fortunePost.id) && "fill-current")} />
+                <span className="text-xs">{isSaved(fortunePost.id) ? "Saved" : "Save"}</span>
+              </Button>
+            )}
           </div>
           <Button
             variant="ghost"
@@ -375,6 +394,19 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
           View Full Discussion
         </Button>
       )}
+
+      {/* View My Fortunes link */}
+      <Button
+        variant="outline"
+        className="w-full gap-2"
+        onClick={() => {
+          onClose?.();
+          navigate("/my-fortunes");
+        }}
+      >
+        <Bookmark className="w-4 h-4" />
+        View My Fortunes
+      </Button>
 
       {/* Close button */}
       <Button variant="ghost" className="w-full" onClick={onClose}>

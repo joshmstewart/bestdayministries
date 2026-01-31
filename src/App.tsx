@@ -89,6 +89,7 @@ const GuardianResourceDetail = lazy(() => import("./pages/GuardianResourceDetail
 const JoyHouseStores = lazy(() => import("./pages/JoyHouseStores"));
 const PrayerRequests = lazy(() => import("./pages/PrayerRequests"));
 const DailyCheckin = lazy(() => import("./pages/DailyCheckin"));
+const MyFortunes = lazy(() => import("./pages/MyFortunes"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -308,6 +309,7 @@ const App = () => {
             <Route path="/games/daily-five" element={<WordleGame />} />
             <Route path="/games/emotion-journal" element={<EmotionJournal />} />
             <Route path="/daily-checkin" element={<DailyCheckin />} />
+            <Route path="/my-fortunes" element={<MyFortunes />} />
             <Route path="/games/beat-pad" element={<BeatPad />} />
             <Route path="/games/cash-register" element={<MoneyCounting />} />
             <Route path="/games/jokes" element={<JokeGenerator />} />

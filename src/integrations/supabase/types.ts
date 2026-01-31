@@ -9865,6 +9865,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_saved_fortunes: {
+        Row: {
+          created_at: string
+          fortune_post_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fortune_post_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fortune_post_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_saved_fortunes_fortune_post_id_fkey"
+            columns: ["fortune_post_id"]
+            isOneToOne: false
+            referencedRelation: "daily_fortune_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_stickers: {
         Row: {
           collection_id: string
