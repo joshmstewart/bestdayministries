@@ -748,7 +748,7 @@ const Community = () => {
         {/* Daily Scratch Widget - right side, upper portion - Home tab only */}
         {user && activeTab === 'community' && canSeeFeature('daily_scratch_widget') && (
           <div
-            className={`absolute right-4 top-8 z-40 hidden lg:block ${
+            className={`absolute right-4 top-32 z-40 hidden lg:block ${
               !isProblematicIOSVersion()
                 ? '[transform:rotate(8deg)] [will-change:transform] [backface-visibility:hidden]'
                 : ''
