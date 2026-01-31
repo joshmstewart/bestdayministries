@@ -120,9 +120,10 @@ export default function EmotionJournal() {
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
   
-  // Edit notes state
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  // Edit state (notes and emotion)
+  const [isEditing, setIsEditing] = useState(false);
   const [editNoteText, setEditNoteText] = useState('');
+  const [editingEmotion, setEditingEmotion] = useState<EmotionType | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -317,34 +318,65 @@ export default function EmotionJournal() {
     }
   };
 
-  // Save notes to existing mood entry
-  const handleSaveNotes = async () => {
+  // Save edits (emotion and/or notes) to existing mood entry
+  const handleSaveEdits = async () => {
     if (!user || !todaysMoodEntry) return;
     
     setIsSaving(true);
     try {
+      const updates: { note?: string | null; mood_emoji?: string; mood_label?: string } = {};
+      
+      // Update note
+      updates.note = editNoteText.trim() || null;
+      
+      // Update emotion if changed
+      if (editingEmotion) {
+        updates.mood_emoji = editingEmotion.emoji;
+        updates.mood_label = editingEmotion.name;
+      }
+
       const { error } = await supabase
         .from('mood_entries')
-        .update({ note: editNoteText.trim() || null })
+        .update(updates)
         .eq('id', todaysMoodEntry.id);
 
       if (error) throw error;
 
       // Update local state
-      setTodaysMoodEntry({ ...todaysMoodEntry, note: editNoteText.trim() || null });
-      setIsEditingNotes(false);
-      toast.success('Notes saved!');
+      setTodaysMoodEntry({ 
+        ...todaysMoodEntry, 
+        note: updates.note ?? todaysMoodEntry.note,
+        mood_emoji: updates.mood_emoji ?? todaysMoodEntry.mood_emoji,
+        mood_label: updates.mood_label ?? todaysMoodEntry.mood_label,
+      });
+      setIsEditing(false);
+      setEditingEmotion(null);
+      toast.success('Changes saved!');
+      
+      // Refresh AI message if emotion changed
+      if (editingEmotion) {
+        await fetchEncouragingMessage(editingEmotion.emoji, editingEmotion.name);
+      }
     } catch (error) {
-      console.error('Error saving notes:', error);
-      toast.error('Failed to save notes');
+      console.error('Error saving edits:', error);
+      toast.error('Failed to save changes');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const startEditingNotes = () => {
+  const startEditing = () => {
     setEditNoteText(todaysMoodEntry?.note || '');
-    setIsEditingNotes(true);
+    // Find and set the current emotion
+    const currentEmotion = emotionTypes.find(e => e.name === todaysMoodEntry?.mood_label);
+    setEditingEmotion(currentEmotion || null);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditingEmotion(null);
+    setEditNoteText('');
   };
 
   if (authLoading || loadingTodaysEntry) {
@@ -438,57 +470,95 @@ export default function EmotionJournal() {
                 currentTheme.border,
                 "border"
               )}>
-                <div className="text-6xl mb-4">{todaysMoodEntry.mood_emoji}</div>
+                <div className="text-6xl mb-4">{isEditing ? (editingEmotion?.emoji || todaysMoodEntry.mood_emoji) : todaysMoodEntry.mood_emoji}</div>
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <h2 className="text-xl font-semibold">
-                    You're feeling {todaysMoodEntry.mood_label} today
+                    You're feeling {isEditing ? (editingEmotion?.name || todaysMoodEntry.mood_label) : todaysMoodEntry.mood_label} today
                   </h2>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={startEditingNotes}
-                    className="h-8 w-8"
-                    title={todaysMoodEntry.note ? "Edit note" : "Add a note"}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  {!isEditing && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={startEditing}
+                      className="h-8 w-8"
+                      title="Edit entry"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
                 
-                {/* Show notes if they exist OR editing mode */}
-                {isEditingNotes ? (
-                  <div className="bg-white/60 rounded-lg p-4 mb-4 text-left space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">✍️ Add a note about how you feel:</span>
-                      <TextToSpeech text="Add a note about how you feel" size="icon" />
+                {/* Edit mode: emotion picker + notes */}
+                {isEditing ? (
+                  <div className="space-y-4">
+                    {/* Emotion picker in edit mode */}
+                    <div className="bg-white/60 rounded-lg p-4">
+                      <p className="text-sm text-muted-foreground mb-3 text-center">Change your feeling:</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {emotionTypes.map((emotion) => (
+                          <button
+                            key={emotion.id}
+                            onClick={() => setEditingEmotion(emotion)}
+                            className={cn(
+                              "flex flex-col items-center p-2 rounded-lg transition-all duration-200",
+                              "hover:scale-105 focus:outline-none focus:ring-2",
+                              "bg-white/80 border-2",
+                              editingEmotion?.id === emotion.id
+                                ? "shadow-md scale-105"
+                                : "border-transparent hover:border-gray-200"
+                            )}
+                            style={{
+                              borderColor: editingEmotion?.id === emotion.id ? emotion.color : undefined,
+                              backgroundColor: editingEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
+                            }}
+                          >
+                            <span className="text-2xl">{emotion.emoji}</span>
+                            <span 
+                              className="text-xs font-medium mt-0.5"
+                              style={{ color: editingEmotion?.id === emotion.id ? emotion.color : undefined }}
+                            >
+                              {emotion.name}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <Textarea
-                      value={editNoteText}
-                      onChange={(e) => setEditNoteText(e.target.value)}
-                      placeholder="Write about your feelings..."
-                      className="min-h-[80px] text-base resize-none"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsEditingNotes(false)}
-                        disabled={isSaving}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveNotes}
-                        disabled={isSaving}
-                      >
-                        {isSaving ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-1" />
-                        )}
-                        Save Note
-                      </Button>
+
+                    {/* Notes input */}
+                    <div className="bg-white/60 rounded-lg p-4 text-left space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">✍️ Add a note about how you feel:</span>
+                        <TextToSpeech text="Add a note about how you feel" size="icon" />
+                      </div>
+                      <Textarea
+                        value={editNoteText}
+                        onChange={(e) => setEditNoteText(e.target.value)}
+                        placeholder="Write about your feelings..."
+                        className="min-h-[80px] text-base resize-none"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={cancelEditing}
+                          disabled={isSaving}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveEdits}
+                          disabled={isSaving}
+                        >
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-1" />
+                          )}
+                          Save Changes
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ) : todaysMoodEntry.note ? (
