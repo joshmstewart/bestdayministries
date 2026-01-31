@@ -103,22 +103,32 @@ EXAMPLES:
 Format as JSON array:
 [{"content": "the affirmation text"}]`;
     } else if (source_type === "life_lesson") {
-      prompt = `Generate ${count} simple life lessons and wisdom for adults with intellectual and developmental disabilities.
+      prompt = `Generate ${count} short, wise sayings about life - like fortune cookie wisdom. These should be timeless, universal truths in simple words.
 
-Focus on practical wisdom about:
-- Friendship and relationships
-- Handling emotions
-- Being kind to yourself
-- Trying new things
-- Dealing with disappointment
-- Celebrating small wins
+Style guidelines:
+- SHORT and memorable (5-12 words ideal)
+- Universal truths that apply to everyone
+- Wise but simple - no complex vocabulary
+- Feels like advice from a wise friend
+- Can be understood by anyone
 
-Make them conversational and relatable, like advice from a caring friend.
+EXAMPLES of the style we want:
+- "Look for happiness and you will find it."
+- "Don't let others define you."
+- "Small steps lead to big changes."
+- "Kindness costs nothing but means everything."
+- "Your smile can brighten someone's day."
+- "Every ending is a new beginning."
+- "The best time to start is now."
+- "You are stronger than you think."
 
-EXAMPLES:
-- "It's okay to ask for help. That's what friends are for."
-- "Making mistakes means you're trying something new. That's brave!"
-- "A bad day doesn't mean a bad life. Tomorrow is a fresh start."
+Topics to cover:
+- Happiness and positivity
+- Self-belief and confidence
+- Kindness and friendship
+- Patience and perseverance
+- Being yourself
+- Hope and new beginnings
 
 Format as JSON array:
 [{"content": "the life lesson text"}]`;
