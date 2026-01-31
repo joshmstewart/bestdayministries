@@ -79,20 +79,45 @@ export function useDailyScratchCardStatus(): DailyScratchCardStatus {
             .single()
         ]);
 
+        // IMPORTANT: A user may have no row yet for today's daily card.
+        // The sticker system treats that as "available" (DailyScratchCard will generate one via RPC).
+        // To keep DailyBar consistent, generate/retrieve today's card if missing.
+        let effectiveDailyCard = dailyCard;
+        if (!effectiveDailyCard) {
+          const { data: newCardId, error: genError } = await supabase
+            .rpc('generate_daily_scratch_card', { _user_id: user.id });
+
+          if (genError) {
+            console.error('Error generating daily scratch card:', genError);
+          } else if (newCardId) {
+            const { data: generatedCard, error: fetchError } = await supabase
+              .from('daily_scratch_cards')
+              .select('id, is_scratched, collection_id')
+              .eq('id', newCardId)
+              .maybeSingle();
+
+            if (fetchError) {
+              console.error('Error fetching generated daily scratch card:', fetchError);
+            } else if (generatedCard) {
+              effectiveDailyCard = generatedCard;
+            }
+          }
+        }
+
         // Determine available card status
-        const hasDaily = dailyCard && !dailyCard.is_scratched;
+        const hasDaily = effectiveDailyCard && !effectiveDailyCard.is_scratched;
         const hasBonus = bonusCards && bonusCards.length > 0;
         setHasAvailableCard(hasDaily || hasBonus);
 
         // Get preview sticker URL from featured collection
         if (featuredCollection?.preview_sticker?.image_url) {
           setPreviewStickerUrl(featuredCollection.preview_sticker.image_url);
-        } else if (dailyCard?.collection_id) {
+        } else if (effectiveDailyCard?.collection_id) {
           // Fallback: fetch first sticker from the card's collection
           const { data: firstSticker } = await supabase
             .from('stickers')
             .select('image_url')
-            .eq('collection_id', dailyCard.collection_id)
+            .eq('collection_id', effectiveDailyCard.collection_id)
             .eq('is_active', true)
             .order('display_order')
             .limit(1)
