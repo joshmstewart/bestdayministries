@@ -109,6 +109,7 @@ import { GuardianResourcesManager } from "@/components/admin/GuardianResourcesMa
 import JoyHouseStoresManager from "@/components/admin/JoyHouseStoresManager";
 import { AiUsageManager } from "@/components/admin/AiUsageManager";
 import { CoffeeVendorManager } from "@/components/admin/CoffeeVendorManager";
+import { AvatarEmojisManager } from "@/components/admin/AvatarEmojisManager";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -631,6 +632,7 @@ const Admin = () => {
                     </TabsTrigger>
                     <TabsTrigger value="cash-register">Cash Register</TabsTrigger>
                     <TabsTrigger value="chores">Chores</TabsTrigger>
+                    <TabsTrigger value="emotions">Emotions</TabsTrigger>
                     <TabsTrigger value="daily-features">Daily Features</TabsTrigger>
                     <TabsTrigger value="workout">Workout</TabsTrigger>
                     <TabsTrigger value="cards">Card Creator</TabsTrigger>
@@ -704,6 +706,17 @@ const Admin = () => {
                       </TabsContent>
                       <TabsContent value="challenges">
                         <ChoreChallengeManager />
+                      </TabsContent>
+                    </Tabs>
+                  </TabsContent>
+
+                  <TabsContent value="emotions">
+                    <Tabs defaultValue="avatar-emojis" className="space-y-4">
+                      <TabsList>
+                        <TabsTrigger value="avatar-emojis">Avatar Emojis</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="avatar-emojis">
+                        <AvatarEmojisManager />
                       </TabsContent>
                     </Tabs>
                   </TabsContent>
