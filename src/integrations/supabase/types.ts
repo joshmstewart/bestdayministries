@@ -612,6 +612,57 @@ export type Database = {
           },
         ]
       }
+      avatar_emotion_images: {
+        Row: {
+          avatar_number: number
+          created_at: string
+          emotion_type_id: string
+          generation_notes: string | null
+          id: string
+          image_url: string | null
+          is_approved: boolean | null
+          prompt_used: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_number: number
+          created_at?: string
+          emotion_type_id: string
+          generation_notes?: string | null
+          id?: string
+          image_url?: string | null
+          is_approved?: boolean | null
+          prompt_used?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_number?: number
+          created_at?: string
+          emotion_type_id?: string
+          generation_notes?: string | null
+          id?: string
+          image_url?: string | null
+          is_approved?: boolean | null
+          prompt_used?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avatar_emotion_images_avatar_number_fkey"
+            columns: ["avatar_number"]
+            isOneToOne: false
+            referencedRelation: "avatars"
+            referencedColumns: ["avatar_number"]
+          },
+          {
+            foreignKeyName: "avatar_emotion_images_emotion_type_id_fkey"
+            columns: ["emotion_type_id"]
+            isOneToOne: false
+            referencedRelation: "emotion_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avatars: {
         Row: {
           avatar_number: number
