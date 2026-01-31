@@ -750,8 +750,16 @@ const Community = () => {
       
       {/* Floating Daily Scratch Widget - right side, upper portion */}
       {user && canSeeFeature('daily_scratch_widget') && (
-        <div className="fixed top-40 right-4 z-40">
-          <DailyScratchCard />
+        <div
+          className={`fixed right-4 top-44 z-40 ${
+            !isProblematicIOSVersion()
+              ? '[transform:rotate(-8deg)] [will-change:transform] [backface-visibility:hidden]'
+              : ''
+          }`}
+        >
+          <ErrorBoundary fallback={null}>
+            <DailyScratchCard />
+          </ErrorBoundary>
         </div>
       )}
     </div>
