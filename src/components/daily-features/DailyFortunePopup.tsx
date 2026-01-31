@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle, ChevronDown, ChevronUp, Bookmark } from "lucide-react";
+import { Heart, MessageSquare, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle, ChevronDown, ChevronUp, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -169,25 +169,6 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
     }
   };
 
-  const handleShare = async () => {
-    if (!fortune) return;
-    
-    const shareText = `${fortune.content}${fortune.author ? ` - ${fortune.author}` : ""}${fortune.reference ? ` (${fortune.reference})` : ""}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Daily Inspiration",
-          text: shareText,
-        });
-      } catch (error) {
-        // User cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(shareText);
-      toast.success("Copied to clipboard!");
-    }
-  };
 
   const getSourceIcon = (type: string) => {
     switch (type) {
@@ -364,15 +345,6 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
               </Button>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleShare}
-            className="gap-1"
-          >
-            <Share2 className="w-4 h-4" />
-            <span className="text-xs">Share</span>
-          </Button>
         </div>
       )}
 
