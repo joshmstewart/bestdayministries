@@ -114,16 +114,30 @@ serve(async (req) => {
 
     if (postError) throw postError;
 
-    // Optionally create a discussion post for comments
-    // Get an admin user to be the author
-    const { data: adminUser } = await adminClient
-      .from("user_roles")
-      .select("user_id")
-      .in("role", ["admin", "owner"])
-      .limit(1)
+    // Create a discussion post for comments using the system user
+    // First, try to get the dedicated system user from app_settings
+    const { data: systemUserSetting } = await adminClient
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "system_user_id")
       .maybeSingle();
 
-    if (adminUser) {
+    let authorId: string | null = systemUserSetting?.setting_value as string | null;
+
+    // Fall back to first admin/owner if system user not configured
+    if (!authorId) {
+      const { data: adminUser } = await adminClient
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["admin", "owner"])
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      
+      authorId = adminUser?.user_id || null;
+    }
+
+    if (authorId) {
       const sourceTypeLabel = selectedFortune.source_type === "bible_verse" 
         ? "Scripture" 
         : selectedFortune.source_type === "affirmation" 
@@ -133,7 +147,7 @@ serve(async (req) => {
       const { data: discussionPost } = await adminClient
         .from("discussion_posts")
         .insert({
-          author_id: adminUser.user_id,
+          author_id: authorId,
           title: `✨ Daily Inspiration: ${sourceTypeLabel} of the Day`,
           content: `"${selectedFortune.content}"${selectedFortune.author ? `\n\n— ${selectedFortune.author}` : ""}${selectedFortune.reference ? ` (${selectedFortune.reference})` : ""}\n\nHow does this resonate with you today? Share your thoughts!`,
           is_moderated: true,
