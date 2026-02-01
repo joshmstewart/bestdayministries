@@ -67,11 +67,26 @@ export function AppConfigManager() {
     }));
   };
 
-  const handleActiveChange = (appId: string, isActive: boolean) => {
+  const handleActiveChange = async (appId: string, isActive: boolean) => {
+    const config = editedConfigs[appId];
+    if (!config) return;
+    
+    // Update local state immediately for responsive UI
     setEditedConfigs((prev) => ({
       ...prev,
       [appId]: { ...prev[appId], is_active: isActive },
     }));
+    
+    // Auto-save the active change
+    setSaving(appId);
+    await updateConfiguration(appId, {
+      display_name: config.display_name,
+      is_active: isActive,
+      visible_to_roles: config.visible_to_roles,
+      category: config.category,
+      icon_url: config.icon_url,
+    });
+    setSaving(null);
   };
 
   const handleRoleToggle = (appId: string, role: UserRole) => {
