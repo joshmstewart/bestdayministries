@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle, Mic, MicOff } from "lucide-react";
-import { useSpeechToText } from "@/hooks/useSpeechToText";
+import { VoiceInput } from "@/components/VoiceInput";
+import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { showCoinNotification } from "@/utils/coinNotification";
 import { cn } from "@/lib/utils";
@@ -65,19 +65,10 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
   const [userVoice, setUserVoice] = useState<string>('Sarah');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Speech-to-text for notes
-  const { isListening, isSupported: sttSupported, toggleListening } = useSpeechToText({
-    onResult: (transcript) => {
-      setNote(prev => prev ? `${prev} ${transcript}` : transcript);
-    },
-    onError: (error) => {
-      if (error === "not-allowed") {
-        toast.error("Microphone access denied. Please enable it in your browser settings.");
-      } else {
-        toast.error("Speech recognition error. Please try again.");
-      }
-    },
-  });
+  // Handle voice input transcript
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    setNote(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
 
   // Load user's TTS voice preference
   useEffect(() => {
@@ -544,40 +535,22 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
 
           {/* Notes section */}
           {showDetails && (
-            <div className="space-y-2 pt-2 border-t border-border/50">
-              <div className="relative">
-                <Textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="What's on your mind?"
-                  className="min-h-[80px] resize-none bg-white/50 dark:bg-gray-900/50 pr-12"
-                />
-                {sttSupported && (
-                  <button
-                    type="button"
-                    onClick={toggleListening}
-                    className={cn(
-                      "absolute right-2 top-2 p-2 rounded-full transition-all duration-200",
-                      isListening 
-                        ? "bg-red-500 text-white animate-pulse" 
-                        : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                    )}
-                    title={isListening ? "Stop listening" : "Speak your note"}
-                  >
-                    {isListening ? (
-                      <MicOff className="w-5 h-5" />
-                    ) : (
-                      <Mic className="w-5 h-5" />
-                    )}
-                  </button>
-                )}
-              </div>
-              {isListening && (
-                <p className="text-xs text-muted-foreground animate-pulse flex items-center gap-1">
-                  <span className="w-2 h-2 bg-red-500 rounded-full" />
-                  Listening... speak now
-                </p>
-              )}
+            <div className="space-y-3 pt-2 border-t border-border/50">
+              <Textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="What's on your mind?"
+                className="min-h-[80px] resize-none bg-white/50 dark:bg-gray-900/50"
+              />
+              <VoiceInput
+                onTranscript={handleVoiceTranscript}
+                placeholder="Tap microphone to add notes by voice..."
+                buttonSize="sm"
+                showTranscript={false}
+                autoStop={true}
+                silenceStopSeconds={15}
+                maxDuration={60}
+              />
             </div>
           )}
 
