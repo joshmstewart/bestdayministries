@@ -1372,3 +1372,11 @@ ERRORS:unsupported-pattern-format→showErrorToastWithCopy(persistent+copy)
 ## COLORING_BOOK|/games/coloring-book|game
 TABS:books|community|gallery
 DEEP-LINK:TAB-PARAM→/games/coloring-book?tab=community|?tab=gallery|default=books
+
+## DAILY_FORTUNES|/admin→Daily-Engagement-tab|admin
+OVERVIEW:Fortune content library + AI batch generation with approvals.
+DB:daily_fortunes[theme|is_approved|is_archived]
+ADMIN:FortunesManager[Generate-with-AI|bulk approve/archive/delete|Theme Coverage Dashboard]
+THEME_COVERAGE_REALTIME:FortunesManager subscribes to daily_fortunes changes and debounced-refreshes theme coverage counts automatically (no manual refresh).
+NOTE:Theme Coverage Dashboard counts include ONLY approved + non-archived fortunes; pending items won’t increase counts until approved.
+FILES:src/components/admin/FortunesManager.tsx
