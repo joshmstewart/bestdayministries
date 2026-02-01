@@ -137,7 +137,7 @@ export function BadgeEarnedDialog({ badge, open, onOpenChange, onSpinWheel }: Ba
                 }}
                 className="px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
               >
-                🎡 Spin the Wheel!
+                Spin the Wheel!
               </Button>
             )}
             <Button 
