@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, RotateCcw } from "lucide-react";
+import { Loader2, Save, RotateCcw, Upload, X } from "lucide-react";
 import { useAppConfigurations, AppConfiguration, AppCategory } from "@/hooks/useAppConfigurations";
 import { AVAILABLE_APPS, APP_CATEGORIES } from "@/components/community/appsConfig";
 import { cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 const ALL_ROLES: UserRole[] = ["supporter", "bestie", "caregiver", "moderator", "admin", "owner"];
@@ -21,6 +23,7 @@ interface EditableConfig {
   is_active: boolean;
   visible_to_roles: UserRole[];
   category: AppCategory;
+  icon_url: string | null;
 }
 
 export function AppConfigManager() {
@@ -50,6 +53,7 @@ export function AppConfigManager() {
         is_active: existing?.is_active ?? true,
         visible_to_roles: existing?.visible_to_roles || [...ALL_ROLES],
         category: (existing?.category || app.category) as AppCategory,
+        icon_url: existing?.icon_url || null,
       };
     });
     setEditedConfigs(configs);
@@ -111,6 +115,7 @@ export function AppConfigManager() {
       is_active: config.is_active,
       visible_to_roles: config.visible_to_roles,
       category: config.category,
+      icon_url: config.icon_url,
     });
     setSaving(null);
   };
@@ -127,8 +132,87 @@ export function AppConfigManager() {
         is_active: true,
         visible_to_roles: [...ALL_ROLES],
         category: app.category as AppCategory,
+        icon_url: null,
       },
     }));
+  };
+
+  const handleIconUpload = async (appId: string, file: File) => {
+    try {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select an image file");
+        return;
+      }
+
+      // Validate file size (max 2MB for icons)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image must be less than 2MB");
+        return;
+      }
+
+      setSaving(appId);
+
+      // Upload to storage
+      const fileName = `app-icons/${appId}-${Date.now()}.${file.name.split('.').pop()}`;
+      const { error: uploadError } = await supabase.storage
+        .from("app-assets")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("app-assets")
+        .getPublicUrl(fileName);
+
+      const iconUrl = urlData.publicUrl;
+
+      // Update local state
+      setEditedConfigs((prev) => ({
+        ...prev,
+        [appId]: { ...prev[appId], icon_url: iconUrl },
+      }));
+
+      // Save to database
+      const config = editedConfigs[appId];
+      await updateConfiguration(appId, {
+        display_name: config.display_name,
+        is_active: config.is_active,
+        visible_to_roles: config.visible_to_roles,
+        category: config.category,
+        icon_url: iconUrl,
+      });
+
+      toast.success("Icon uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading icon:", error);
+      toast.error("Failed to upload icon");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const handleRemoveIcon = async (appId: string) => {
+    setEditedConfigs((prev) => ({
+      ...prev,
+      [appId]: { ...prev[appId], icon_url: null },
+    }));
+
+    // Auto-save the removal
+    const config = editedConfigs[appId];
+    setSaving(appId);
+    await updateConfiguration(appId, {
+      display_name: config.display_name,
+      is_active: config.is_active,
+      visible_to_roles: config.visible_to_roles,
+      category: config.category,
+      icon_url: null,
+    });
+    setSaving(null);
+    toast.success("Icon removed");
   };
 
   if (loading) {
@@ -173,6 +257,7 @@ export function AppConfigManager() {
                   config.display_name !== (existingConfig?.display_name || app.name) ||
                   config.is_active !== (existingConfig?.is_active ?? true) ||
                   config.category !== (existingConfig?.category || app.category) ||
+                  config.icon_url !== (existingConfig?.icon_url || null) ||
                   JSON.stringify(config.visible_to_roles.sort()) !==
                     JSON.stringify((existingConfig?.visible_to_roles || [...ALL_ROLES]).sort());
 
@@ -185,14 +270,50 @@ export function AppConfigManager() {
                     )}
                   >
                     <div className="flex items-center gap-4">
-                      {/* App Icon */}
-                      <div
-                        className={cn(
-                          "w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br shadow-sm",
-                          app.color
-                        )}
-                      >
-                        <Icon className="w-6 h-6 text-white" />
+                      {/* App Icon with upload option */}
+                      <div className="flex flex-col items-center gap-1">
+                        <div
+                          className={cn(
+                            "relative w-12 h-12 rounded-xl flex items-center justify-center shadow-sm overflow-hidden group",
+                            !config.icon_url && "bg-gradient-to-br",
+                            !config.icon_url && app.color
+                          )}
+                        >
+                          {config.icon_url ? (
+                            <>
+                              <img 
+                                src={config.icon_url} 
+                                alt={app.name} 
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                onClick={() => handleRemoveIcon(app.id)}
+                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                title="Remove icon"
+                              >
+                                <X className="w-5 h-5 text-white" />
+                              </button>
+                            </>
+                          ) : (
+                            <Icon className="w-6 h-6 text-white" />
+                          )}
+                        </div>
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleIconUpload(app.id, file);
+                              e.target.value = '';
+                            }}
+                          />
+                          <span className="text-xs text-primary hover:underline flex items-center gap-1">
+                            <Upload className="w-3 h-3" />
+                            {config.icon_url ? "Change" : "Upload"}
+                          </span>
+                        </label>
                       </div>
 
                       {/* Name Input */}

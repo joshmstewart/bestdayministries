@@ -17,6 +17,7 @@ export interface AppConfiguration {
   visible_to_roles: UserRole[];
   display_order: number;
   category: AppCategory | null;
+  icon_url: string | null;
 }
 
 const ALL_ROLES: UserRole[] = ["supporter", "bestie", "caregiver", "moderator", "admin", "owner"];
@@ -77,7 +78,7 @@ export function useAppConfigurations() {
 
   const updateConfiguration = async (
     appId: string,
-    updates: Partial<Pick<AppConfiguration, "display_name" | "is_active" | "visible_to_roles" | "display_order" | "category">>
+    updates: Partial<Pick<AppConfiguration, "display_name" | "is_active" | "visible_to_roles" | "display_order" | "category" | "icon_url">>
   ) => {
     try {
       // Check if config exists
@@ -92,6 +93,7 @@ export function useAppConfigurations() {
             visible_to_roles: updates.visible_to_roles as UserRole[],
             display_order: updates.display_order,
             category: updates.category,
+            icon_url: updates.icon_url,
           })
           .eq("app_id", appId);
 
@@ -107,6 +109,7 @@ export function useAppConfigurations() {
             visible_to_roles: updates.visible_to_roles as UserRole[],
             display_order: updates.display_order,
             category: updates.category,
+            icon_url: updates.icon_url,
           });
 
         if (error) throw error;

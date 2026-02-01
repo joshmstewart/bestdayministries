@@ -40,6 +40,9 @@ export function AppsGrid() {
   // Get admin-configured apps (respects visibility and custom names)
   const configuredApps = getConfiguredApps();
 
+  // Define typed interface for apps with config
+  type ConfiguredApp = typeof configuredApps[number];
+
   // In edit mode, show all configured apps; otherwise filter by user preferences
   const visibleApps = editMode 
     ? configuredApps 
@@ -52,7 +55,7 @@ export function AppsGrid() {
     }
     acc[app.category].push(app);
     return acc;
-  }, {} as Record<string, AppConfig[]>);
+  }, {} as Record<string, ConfiguredApp[]>);
 
   // Sort categories by order
   const sortedCategories = Object.entries(appsByCategory)
