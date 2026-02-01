@@ -52,6 +52,18 @@ interface ShippingCalculationResult {
   requires_calculated_shipping: boolean;
 }
 
+interface CoffeeShippingSettings {
+  shipping_mode: 'flat' | 'calculated' | null;
+  ship_from_zip: string;
+  ship_from_city: string;
+  ship_from_state: string;
+  flat_rate_amount: number | null;
+  free_shipping_threshold: number | null;
+  disable_free_shipping: boolean;
+}
+
+const COFFEE_VENDOR_ID = "coffee-vendor";
+
 interface UnifiedCartSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -116,8 +128,39 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   const hasCoffeeItems = coffeeCartItems.length > 0;
   const hasStoreItems = storeCartItems.length > 0;
 
+  // Fetch coffee shipping settings
+  const { data: coffeeShippingSettings } = useQuery({
+    queryKey: ['coffee-shipping-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'coffee_shipping_settings')
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!data?.setting_value) return null;
+      
+      const rawSettings = typeof data.setting_value === 'string' 
+        ? JSON.parse(data.setting_value) 
+        : data.setting_value;
+      
+      return rawSettings as CoffeeShippingSettings;
+    },
+    enabled: open && hasCoffeeItems
+  });
+
   // Shipping constants (fallback only)
   const FLAT_SHIPPING_RATE = 6.99;
+
+  // Calculate coffee subtotal
+  const coffeeSubtotal = useMemo(() => {
+    return coffeeCartItems.reduce((sum, item: any) => {
+      const vi = (item.variant_info || {}) as any;
+      const pricePerUnit = Number(vi?.price_per_unit ?? item.coffee_product?.selling_price ?? 0);
+      return sum + (pricePerUnit * item.quantity);
+    }, 0);
+  }, [coffeeCartItems]);
 
   // Calculate totals by vendor for shipping (including vendor-specific thresholds and flat-rate amounts)
   const vendorTotals = storeCartItems.reduce((acc, item: any) => {
@@ -149,19 +192,72 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     return acc;
   }, {} as Record<string, { subtotal: number; vendorName: string; freeShippingThreshold: number | null; disableFreeShipping: boolean; shippingMode: string; flatRateCents: number }>);
 
-  const cartSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0);
+  // Combined cart subtotal (store + coffee)
+  const cartSubtotal = Object.values(vendorTotals).reduce((sum, v) => sum + v.subtotal, 0) + coffeeSubtotal;
+
+  // Check if coffee uses calculated shipping
+  const coffeeNeedsCalculatedShipping = useMemo(() => {
+    if (!hasCoffeeItems || !coffeeShippingSettings) return false;
+    if (coffeeShippingSettings.shipping_mode !== 'calculated') return false;
+    
+    // Check if free shipping threshold is met
+    const freeThreshold = coffeeShippingSettings.free_shipping_threshold;
+    if (!coffeeShippingSettings.disable_free_shipping && freeThreshold != null && coffeeSubtotal >= freeThreshold) {
+      return false; // Free shipping threshold met
+    }
+    return true;
+  }, [hasCoffeeItems, coffeeShippingSettings, coffeeSubtotal]);
 
   // Check if any vendor uses calculated shipping AND hasn't met their free shipping threshold
   const hasCalculatedShippingVendor = useMemo(() => {
-    if (!storeCartItems || storeCartItems.length === 0) return false;
-    return Object.values(vendorTotals).some(vendor => {
+    // Check store vendors
+    const storeNeedsCalculated = Object.values(vendorTotals).some(vendor => {
       if (vendor.shippingMode !== 'calculated') return false;
       // If they have a threshold and it's met, no need for calculated shipping
       const hasThreshold = !vendor.disableFreeShipping && vendor.freeShippingThreshold != null && vendor.freeShippingThreshold > 0;
       const thresholdMet = hasThreshold && vendor.freeShippingThreshold != null && vendor.subtotal >= vendor.freeShippingThreshold;
       return !thresholdMet; // Only requires calculation if threshold NOT met
     });
-  }, [storeCartItems, vendorTotals]);
+    
+    return storeNeedsCalculated || coffeeNeedsCalculatedShipping;
+  }, [vendorTotals, coffeeNeedsCalculatedShipping]);
+
+  // Get coffee shipping display
+  const getCoffeeShippingDisplay = (): { label: string; isPending: boolean; shippingCents: number } => {
+    // If we have a calculated result from the edge function
+    if (shippingResult?.success) {
+      const coffeeResult = shippingResult.vendor_shipping.find(v => v.vendor_id === COFFEE_VENDOR_ID);
+      if (coffeeResult) {
+        if (coffeeResult.shipping_cents === 0) return { label: 'FREE', isPending: false, shippingCents: 0 };
+        return { label: `$${(coffeeResult.shipping_cents / 100).toFixed(2)}`, isPending: false, shippingCents: coffeeResult.shipping_cents };
+      }
+    }
+
+    // No coffee items
+    if (!hasCoffeeItems) return { label: '—', isPending: false, shippingCents: 0 };
+
+    // No settings configured - use default
+    if (!coffeeShippingSettings || !coffeeShippingSettings.shipping_mode) {
+      return { label: `$${FLAT_SHIPPING_RATE.toFixed(2)}`, isPending: false, shippingCents: Math.round(FLAT_SHIPPING_RATE * 100) };
+    }
+
+    // Check free shipping threshold
+    const freeThreshold = coffeeShippingSettings.free_shipping_threshold;
+    if (!coffeeShippingSettings.disable_free_shipping && freeThreshold != null && coffeeSubtotal >= freeThreshold) {
+      return { label: 'FREE', isPending: false, shippingCents: 0 };
+    }
+
+    // Calculated shipping requires ZIP
+    if (coffeeShippingSettings.shipping_mode === 'calculated') {
+      return { label: 'Pending', isPending: true, shippingCents: 0 };
+    }
+
+    // Flat rate
+    const flatRate = coffeeShippingSettings.flat_rate_amount ?? FLAT_SHIPPING_RATE;
+    return { label: `$${flatRate.toFixed(2)}`, isPending: false, shippingCents: Math.round(flatRate * 100) };
+  };
+
+  const coffeeShipping = getCoffeeShippingDisplay();
 
   const getVendorShippingDisplay = (vendorId: string): { label: string; isPending: boolean } => {
     const vendor = vendorTotals[vendorId];
@@ -193,27 +289,53 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     // Flat vendors can show known shipping immediately
     return { label: `$${(vendor.flatRateCents / 100).toFixed(2)}`, isPending: false };
   };
+
+  // Check if coffee has free shipping configured
+  const coffeeHasFreeShippingConfig = useMemo(() => {
+    if (!coffeeShippingSettings) return false;
+    return !coffeeShippingSettings.disable_free_shipping && 
+           coffeeShippingSettings.free_shipping_threshold != null && 
+           coffeeShippingSettings.free_shipping_threshold > 0;
+  }, [coffeeShippingSettings]);
   
   const hasAnyConfiguredFreeShipping = useMemo(() => {
-    return Object.values(vendorTotals).some((v) =>
+    const vendorHasFreeShipping = Object.values(vendorTotals).some((v) =>
       !v.disableFreeShipping &&
       v.freeShippingThreshold != null &&
       v.freeShippingThreshold > 0
     );
-  }, [vendorTotals]);
+    return vendorHasFreeShipping || coffeeHasFreeShippingConfig;
+  }, [vendorTotals, coffeeHasFreeShippingConfig]);
 
-  // Use calculated shipping if available; when dynamic shipping is enabled and not calculated yet, show pending (no estimate)
-  const shippingTotal: number | null = shippingResult?.success
-    ? shippingResult.shipping_total_cents / 100
-    : hasCalculatedShippingVendor
-      ? null
-      : Object.values(vendorTotals).reduce((sum, v) => {
-          // Check if threshold is met (applies to all shipping modes)
-          const hasThreshold = !v.disableFreeShipping && v.freeShippingThreshold != null && v.freeShippingThreshold > 0;
-          const thresholdMet = hasThreshold && v.freeShippingThreshold != null && v.subtotal >= v.freeShippingThreshold;
-          if (thresholdMet) return sum; // Free shipping for this vendor
-          return sum + (v.flatRateCents / 100);
-        }, 0);
+  // Calculate shipping total - includes both store vendors and coffee
+  const shippingTotal: number | null = useMemo(() => {
+    // If we have calculated result from edge function, use it
+    if (shippingResult?.success) {
+      return shippingResult.shipping_total_cents / 100;
+    }
+    
+    // If we need calculated shipping but haven't gotten it yet
+    if (hasCalculatedShippingVendor) {
+      return null;
+    }
+    
+    // Calculate flat-rate totals for store vendors
+    let total = Object.values(vendorTotals).reduce((sum, v) => {
+      const hasThreshold = !v.disableFreeShipping && v.freeShippingThreshold != null && v.freeShippingThreshold > 0;
+      const thresholdMet = hasThreshold && v.freeShippingThreshold != null && v.subtotal >= v.freeShippingThreshold;
+      if (thresholdMet) return sum;
+      return sum + (v.flatRateCents / 100);
+    }, 0);
+    
+    // Add coffee shipping
+    if (hasCoffeeItems && !coffeeShipping.isPending) {
+      total += coffeeShipping.shippingCents / 100;
+    } else if (hasCoffeeItems && coffeeShipping.isPending) {
+      return null; // Coffee needs calculation
+    }
+    
+    return total;
+  }, [shippingResult, hasCalculatedShippingVendor, vendorTotals, hasCoffeeItems, coffeeShipping]);
   
   const cartTotal: number | null = shippingTotal == null ? null : cartSubtotal + shippingTotal;
 
@@ -615,6 +737,31 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Coffee Free Shipping Progress */}
+                    {coffeeHasFreeShippingConfig && coffeeShippingSettings?.free_shipping_threshold && (
+                      <FreeShippingProgress 
+                        currentSubtotal={coffeeSubtotal} 
+                        threshold={coffeeShippingSettings.free_shipping_threshold}
+                        vendorName="Café"
+                      />
+                    )}
+
+                    {/* Coffee shipping line */}
+                    <div className="flex justify-between items-center text-sm pt-3 mt-2 border-t border-border/50">
+                      <span className="text-muted-foreground font-medium">Café Shipping</span>
+                      <span
+                        className={
+                          coffeeShipping.isPending
+                            ? "text-accent-foreground font-semibold italic"
+                            : coffeeShipping.label === 'FREE'
+                              ? "text-primary font-semibold"
+                              : "font-semibold"
+                        }
+                      >
+                        {coffeeShipping.label}
+                      </span>
                     </div>
                   </div>
                 )}
