@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Loader2, Coffee } from "lucide-react";
 import { CoffeeProductForm } from "./CoffeeProductForm";
 import ImageLightbox from "@/components/ImageLightbox";
+import { CoffeeTiersDialog } from "./CoffeeTiersDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+interface PricingTier {
+  id: string;
+  product_id: string;
+  min_quantity: number;
+  price_per_unit: number;
+}
 
 interface CoffeeProduct {
   id: string;
@@ -34,6 +42,7 @@ interface CoffeeProduct {
 
 export function CoffeeProductsManager() {
   const [products, setProducts] = useState<CoffeeProduct[]>([]);
+  const [productTiers, setProductTiers] = useState<Record<string, PricingTier[]>>({});
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<CoffeeProduct | null>(null);
@@ -42,6 +51,7 @@ export function CoffeeProductsManager() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string }[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [tiersDialogProduct, setTiersDialogProduct] = useState<CoffeeProduct | null>(null);
 
   const handleImageClick = (product: CoffeeProduct) => {
     if (product.images && product.images.length > 0) {
@@ -56,13 +66,31 @@ export function CoffeeProductsManager() {
 
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from("coffee_products")
-        .select("*")
-        .order("display_order", { ascending: true });
+      const [productsRes, tiersRes] = await Promise.all([
+        supabase
+          .from("coffee_products")
+          .select("*")
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("coffee_product_tiers")
+          .select("*")
+          .order("min_quantity", { ascending: true }),
+      ]);
 
-      if (error) throw error;
-      setProducts(data || []);
+      if (productsRes.error) throw productsRes.error;
+      if (tiersRes.error) throw tiersRes.error;
+
+      setProducts(productsRes.data || []);
+
+      // Group tiers by product_id
+      const tiersMap: Record<string, PricingTier[]> = {};
+      (tiersRes.data || []).forEach((tier) => {
+        if (!tiersMap[tier.product_id]) {
+          tiersMap[tier.product_id] = [];
+        }
+        tiersMap[tier.product_id].push(tier);
+      });
+      setProductTiers(tiersMap);
     } catch (error: any) {
       console.error("Error fetching coffee products:", error);
       toast({
@@ -163,6 +191,7 @@ export function CoffeeProductsManager() {
                 <TableHead>SKU</TableHead>
                 <TableHead className="text-right">Cost</TableHead>
                 <TableHead className="text-right">Price</TableHead>
+                <TableHead className="text-right">Lowest</TableHead>
                 <TableHead className="text-right">Margin</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -174,6 +203,11 @@ export function CoffeeProductsManager() {
                 const marginPercent = product.cost_price > 0 
                   ? ((margin / product.cost_price) * 100).toFixed(0) 
                   : 0;
+                
+                const tiers = productTiers[product.id] || [];
+                const lowestTierPrice = tiers.length > 0 
+                  ? Math.min(...tiers.map(t => t.price_per_unit))
+                  : null;
                 
                 return (
                   <TableRow key={product.id}>
@@ -195,6 +229,18 @@ export function CoffeeProductsManager() {
                     <TableCell className="font-mono text-sm">{product.shipstation_sku}</TableCell>
                     <TableCell className="text-right">${product.cost_price.toFixed(2)}</TableCell>
                     <TableCell className="text-right">${product.selling_price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      {lowestTierPrice !== null ? (
+                        <button
+                          onClick={() => setTiersDialogProduct(product)}
+                          className="text-primary hover:underline cursor-pointer font-medium"
+                        >
+                          ${lowestTierPrice.toFixed(2)}
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <span className={margin >= 0 ? "text-green-600" : "text-destructive"}>
                         ${margin.toFixed(2)} ({marginPercent}%)
@@ -263,6 +309,17 @@ export function CoffeeProductsManager() {
           prev === lightboxImages.length - 1 ? 0 : prev + 1
         )}
       />
+
+      {tiersDialogProduct && (
+        <CoffeeTiersDialog
+          open={!!tiersDialogProduct}
+          onOpenChange={(open) => !open && setTiersDialogProduct(null)}
+          productName={tiersDialogProduct.name}
+          costPrice={tiersDialogProduct.cost_price}
+          sellingPrice={tiersDialogProduct.selling_price}
+          tiers={productTiers[tiersDialogProduct.id] || []}
+        />
+      )}
     </Card>
   );
 }
