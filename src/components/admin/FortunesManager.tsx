@@ -113,7 +113,7 @@ export function FortunesManager() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generateCount, setGenerateCount] = useState(20);
-  const [generateType, setGenerateType] = useState<string>("affirmation");
+  const [generateType, setGenerateType] = useState<string>("all");
   const [generateTheme, setGenerateTheme] = useState<string>("any");
   const [themeCoverage, setThemeCoverage] = useState<ThemeCoverage[]>([]);
   const [showThemeCoverage, setShowThemeCoverage] = useState(false);
@@ -828,6 +828,12 @@ export function FortunesManager() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      All Types (Random Mix)
+                    </div>
+                  </SelectItem>
                   <SelectItem value="affirmation">
                     <div className="flex items-center gap-2">
                       <Heart className="h-4 w-4 text-pink-500" />
