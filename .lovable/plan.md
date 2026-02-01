@@ -1,97 +1,71 @@
 
 Goal
-- Make the Reward Wheel reliably clickable again in the Admin “Test Reward Wheel” dialog (no “not-allowed” cursor unless it’s genuinely disabled, and clicks always start a spin).
+- Make the reward wheel have perfect visual symmetry: every other slice is a sticker pack slice (i.e., coin, pack, coin, pack… all the way around).
+- Eliminate the current “I fixed one and broke another” behavior by removing the fragile “probability → slice counts → interleave → patch” approach that can still produce streaks.
 
-What I found (from current code)
-- In `ChoreRewardWheelDialog.tsx`, the wheel is rendered with:
-  - `onSpinStart={startSpin}`
-  - `disabled={hasSpunToday || loading}`
-- In `SpinningWheel.tsx`, the clickable element is now a `<button>` with:
-  - `disabled={disabled || isAnimating || spinning}`
-  - cursor styles that switch to `cursor-not-allowed` when `(disabled || isAnimating || spinning)` is true.
-- This means “wheel shown but click ignored / blocked cursor” can only happen if:
-  1) `spinning` prop is true, or
-  2) `isAnimating` is stuck true, or
-  3) the click never reaches the `<button>` (some overlay is intercepting pointer events).
+What’s actually going wrong (root cause)
+- In `src/components/chores/SpinningWheel.tsx`, the wheel currently tries to:
+  1) Convert probabilities into 16 slice counts via rounding.
+  2) Split slices into `coinSlices` and `packSlices`.
+  3) Interleave them.
+- That interleaving is not guaranteed to alternate because the computed counts can be unbalanced (e.g., 9 coin slices vs 7 pack slices). When one list runs out, it appends the remainder from the other list, creating adjacent coins (and with wrap-around, it can create “3 10s in a row”).
+- The recent `breakUpTenRunsCircular` patch only targets long runs of “10 coins”, not the actual requirement (strict alternation), so it can “fix” one run while causing a new undesirable arrangement elsewhere.
 
-High-confidence likely root causes
-1) State not being reset on dialog open
-- In `ChoreRewardWheelDialog.tsx` when `open` becomes true, the effect resets `loading` and `wonPrize`, but it does NOT reset `spinning` and `claiming`.
-- If the dialog was closed mid-spin or mid-claim, `spinning` can remain `true`, making the wheel’s `<button disabled>` and giving you the “not clickable” cursor even though the UI looks “fresh”.
+Your current wheel config confirms why this happens
+- Your `chore_wheel_config` “balanced” preset has 8 segments alternating coin/pack already, but the code ignores that order and rebuilds a 16-slice layout from probabilities, which can produce 9 coins / 7 packs and then streaks.
 
-2) Decorative overlay elements intercepting clicks
-- `SpinningWheel.tsx` renders an absolute “outer glow ring” and an absolute pointer above the wheel.
-- They currently do not explicitly use `pointer-events: none;`.
-- If either overlaps the wheel’s clickable area (especially near the top where people click), clicks can be swallowed even though the wheel appears interactive.
+Solution design (simple + deterministic)
+- Stop deriving the visual layout from probabilities.
+- Build the 16 visible slices with a deterministic alternating pattern:
+  - Slice indices 0,2,4,… (even) are coins
+  - Slice indices 1,3,5,… (odd) are packs
+- Choose which coin/pack goes in each slot by cycling through the configured coin segments and pack segments in their existing order (round-robin).
+  - This preserves your intended “10, pack, 10, pack…” feel, and guarantees every other slice is a pack.
+  - It also guarantees every segment still appears (and uses the same object references, so the current equality check `slice.segment === winningSegment` keeps working).
 
-3) Timer cleanup / animation state edge case
-- `SpinningWheel.tsx` uses `setTimeout` to end animation after 4s but does not clear it on unmount.
-- If the component unmounts/remounts during a spin, it can create “stuck” state scenarios (less likely than #1, but worth hardening).
+Planned code changes (implementation steps)
+1) Read/confirm existing patterns
+   - Re-check `SpinningWheel.tsx` and `ChoreRewardWheelDialog.tsx` to ensure the spin outcome is chosen by probability (it is: `selectSegment()` uses `segment.probability`), and the slices are only for where the spinner lands visually.
+2) Replace the expanded slice builder in `SpinningWheel.tsx`
+   - Remove (or bypass) the whole block that:
+     - computes `rawCounts` / `sliceCounts`
+     - generates `coinSlices` / `packSlices`
+     - interleaves them
+     - runs `breakUpTenRunsCircular`
+   - Replace it with a new layout builder that:
+     - `coinSource = segments.filter(s => s.type === 'coins')`
+     - `packSource = segments.filter(s => s.type === 'sticker_pack')`
+     - If either source is empty: fallback to a simple repeat of `segments` to reach 16 (no alternation possible).
+     - Else generate `arranged[16]`:
+       - for i=0..15:
+         - if i even: `arranged[i] = coinSource[coinIdx % coinSource.length]; coinIdx++`
+         - if i odd:  `arranged[i] = packSource[packIdx % packSource.length]; packIdx++`
+     - Build `spreadSlices` from `arranged` with equal angles.
+3) Keep probabilities exactly as-is for outcomes
+   - Do not change `selectSegment()` (so your configured probabilities remain the source of truth for what you win).
+   - This is important: you get perfect visual symmetry without changing the reward distribution.
+4) Optional: add a dev-only console log for sanity
+   - Log the final 16-slice sequence (types + labels) to quickly verify it’s alternating and stable.
+5) Verify no other code depends on the old slice-count logic
+   - Confirm `generateSegments()` and SVG rendering use only `expandedSlices.slices` and do not depend on remainders/counts logic.
+   - Confirm `spin()` always finds matching slices for the winning segment (it will, because every segment is cycled into the wheel).
 
-Plan (implementation steps)
-1) Add a “wheel debug banner” (temporary, removable later)
-- In `ChoreRewardWheelDialog.tsx`, render a small debug line under the title when in admin testing mode showing:
-  - `loading`, `spinning`, `hasSpunToday`, `claiming`, `segments.length`
-- Purpose: immediately confirm whether the wheel is actually disabled due to state vs. click interception.
+Testing checklist (what you should see immediately)
+- Open `/admin` → “Test Reward Wheel”
+- Visually confirm:
+  - Every other slice is a pack slice (no exceptions).
+  - No “10,10,10” streaks (impossible with strict alternation).
+- Spin a bunch of times:
+  - Ensure the wheel lands and calls the backend claim function successfully for coins and packs.
+  - Ensure “Open Sticker Pack” button still appears when you win a pack and works after closing/reopening the dialog.
 
-2) Reset dialog state on open to guarantee a clean slate
-- In `ChoreRewardWheelDialog.tsx`, inside the `useEffect` that runs when `open` changes to true:
-  - Set `setSpinning(false)` at the start
-  - Set `setClaiming(false)` at the start
-  - Set `setHasSpunToday(false)` at the start (then re-compute it from the DB query)
-  - Keep existing `setLoading(true)` and `setWonPrize(null)`
-- Result: reopening the dialog cannot be “stuck disabled” from previous state.
+Notes / tradeoffs (transparent)
+- With this fix, slice frequency on the wheel will no longer try to approximate the probabilities. The probabilities are still honored for the actual reward selection (so functionality stays correct), but the wheel becomes a purely visual, symmetric display—which is exactly what you’re asking for.
+- If later you want “alternation + slice frequencies roughly match probabilities,” we can do a second pass that assigns exactly 8 coin slots / 8 pack slots proportionally within each type. But for now, strict alternation is the priority.
 
-3) Make the disabled logic explicit and consistent
-- In `ChoreRewardWheelDialog.tsx`, define a single derived boolean:
-  - `const wheelDisabled = loading || hasSpunToday || claiming;`
-- Pass that to the wheel:
-  - `disabled={wheelDisabled}`
-- And use the same boolean for the “Spin the Wheel!” button disabled state (or keep its current logic, but ensure it matches the wheel).
-- Result: cursor/disabled state matches the real interaction rules, and claiming state can’t accidentally allow extra clicks.
-
-4) Ensure no overlay element can intercept clicks
-- In `SpinningWheel.tsx`, add `pointer-events-none` (Tailwind) to:
-  - The outer glow ring `<div>`
-  - The pointer `<div>` wrapper and/or the `<svg>`
-- Also add `aria-label` and keep the clickable surface only on the button.
-- Result: every click that visually targets the wheel reaches the `<button>`.
-
-5) Remove the fragile pointerEvents inline style on the button
-- Right now the button style includes `pointerEvents: disabled ? "none" : "auto"`.
-- This is risky because it uses only the `disabled` prop, while the actual `<button disabled>` condition also includes `isAnimating || spinning`.
-- Plan: remove the inline `pointerEvents` style entirely and rely on:
-  - the `disabled` attribute
-  - cursor/opacity classes
-- Result: no mismatch between “disabled” behavior and pointer-events.
-
-6) Harden animation lifecycle so `isAnimating` can’t get stuck
-- In `SpinningWheel.tsx`:
-  - Store the `setTimeout` id in a ref
-  - Clear it on unmount and before starting a new spin
-  - Also cancel the tick requestAnimationFrame on unmount (already done) and ensure it’s cleared on spin end too.
-- Result: even if the dialog closes mid-spin, reopening won’t inherit broken animation state.
-
-7) Verify end-to-end in the Admin flow
-- Steps to test after changes:
-  1) Admin → Chores → Reward Wheel → “Test Reward Wheel” opens and shows wheel + “Spin the Wheel!” button
-  2) Clicking the wheel anywhere starts spin (cursor is pointer)
-  3) Closing dialog mid-spin, reopening: wheel is still clickable (spinning resets)
-  4) Winning a prize transitions to claiming state and disables wheel + button only while claiming
-  5) Reset Today’s Spin in Admin then re-open dialog: should be “fresh” and clickable again
-
-Files that will be changed (once approved)
-- `src/components/chores/ChoreRewardWheelDialog.tsx`
-  - Reset state on open, unify disabled logic, add temporary debug banner
-- `src/components/chores/SpinningWheel.tsx`
-  - Add pointer-events-none to decorative elements, remove inline pointerEvents, add timer cleanup
-
-Notes / non-goals
-- This plan focuses on restoring click reliability first. Once stable, we can keep your prettier gradients/background work and continue iterating on design safely.
-
-PRE-CHANGE CHECKLIST:
-□ Searched docs for: reward wheel, chore_wheel, spin-chore-wheel, ChoreRewardWheel (no docs found)
-□ Read files: src/components/chores/SpinningWheel.tsx, src/components/chores/ChoreRewardWheelDialog.tsx, src/components/admin/ChoreRewardWheelManager.tsx, supabase/functions/spin-chore-wheel/index.ts
-□ Searched code for: spin-chore-wheel, ChoreRewardWheelDialog usage
-□ Found patterns: yes — dialog loads config + checks today’s spin; wheel uses internal isAnimating + external spinning prop
+PRE-CHANGE CHECKLIST (to be output again right before implementation in default mode)
+□ Searched docs for: chore_wheel, reward wheel, SpinningWheel
+□ Read files: src/components/chores/SpinningWheel.tsx, src/components/chores/ChoreRewardWheelDialog.tsx, src/components/admin/ChoreRewardWheelManager.tsx
+□ Searched code for: expandedSlices, TARGET_SLICES, chore_wheel_config
+□ Found patterns: yes — current logic derives 16 slices from probabilities then interleaves, which can produce streaks
 □ Ready: yes
