@@ -1,165 +1,107 @@
 
 
-# Plan: Expand Fortune Topics with Theme-Based Generation
+# Plan: Add Bible Translation Selection for Fortune Generation
 
 ## Summary
-Enhance the fortune generation system to support **theme/topic-based generation** across all content types, enabling you to bulk up underrepresented life advice topics like time management, simplicity, humor, and action vs. overthinking.
+Add a translation preference dropdown to the fortune generation dialog that appears when generating Bible-related content. This allows you to select modern, easier-to-understand translations like NIV, NLT, or ESV instead of older translations like KJV.
 
 ---
 
-## Approach: Theme-Guided AI Generation
+## Implementation Details
 
-The best approach is to **enhance the existing AI generation system** to accept a **topic/theme parameter** that guides the AI to generate content on specific themes across all source types (quotes, bible verses, life lessons, etc.).
+### Available Translation Options
 
-### Why This Approach?
-1. **Efficient**: Leverages existing `generate-fortunes-batch` edge function
-2. **Comprehensive**: Can generate themed content for ALL source types at once
-3. **Quality**: AI can find real quotes, actual Bible verses, and create prompts all on specific themes
-4. **Scalable**: Easy to add new themes as you identify gaps
+| Translation | Description |
+|-------------|-------------|
+| **NIV (New International Version)** | Balance of accuracy and readability, widely used |
+| **NLT (New Living Translation)** | Very easy to read, thought-for-thought translation |
+| **ESV (English Standard Version)** | Accurate, slightly more formal but readable |
+| **CSB (Christian Standard Bible)** | Modern, clear language |
+| **NASB (New American Standard)** | Very literal, word-for-word accurate |
+| **The Message** | Paraphrase, very casual/conversational |
+| **KJV (King James Version)** | Classic, beautiful language but archaic |
+
+**Default**: NLT (New Living Translation) - most accessible for your audience
 
 ---
 
-## Implementation Plan
+### Changes to Make
 
-### Phase 1: Database Enhancement
-Add a `theme` column to track what topic each fortune covers:
+**1. Edge Function (`generate-fortunes-batch`)**
+- Add `translation` parameter to the request body
+- Update the Bible verse and Proverbs prompts to specify the chosen translation
+- Example prompt update:
+  ```
+  Generate 20 REAL Bible verses from the NLT (New Living Translation).
+  Use the EXACT text as it appears in this translation...
+  ```
 
-```sql
-ALTER TABLE daily_fortunes 
-ADD COLUMN theme TEXT;
-```
+**2. Admin UI (`FortunesManager.tsx`)**
+- Add `generateTranslation` state (default: "nlt")
+- Add translation dropdown that **only shows** when Type is:
+  - "Bible Verses"
+  - "Biblical Wisdom (Proverbs)"
+  - "All Types (Random Mix)"
+- Pass translation to the edge function
 
-This enables:
-- Tracking coverage of different themes
-- Ensuring balanced rotation
-- Analytics on which themes resonate
+---
 
-### Phase 2: Themed Generation in Edge Function
-Update `generate-fortunes-batch` to accept an optional `theme` parameter:
+### UI Preview
 
-**Request format:**
-```json
-{
-  "source_type": "quote",
-  "count": 20,
-  "theme": "time_preciousness"
-}
-```
+The generate dialog will show a conditional "Bible Translation" field:
 
-**Theme definitions** (15 new themes):
-| Theme ID | Description |
-|----------|-------------|
-| `time_preciousness` | Value of time, not wasting it, living fully |
-| `simplicity_focus` | Less is more, focus, avoiding overwhelm |
-| `action_over_thinking` | Starting now, avoiding paralysis |
-| `humor_lightness` | Playful wisdom, not taking life too seriously |
-| `self_care` | Rest, boundaries, recharging |
-| `listening_communication` | Being a good listener, thoughtful words |
-| `curiosity_learning` | Staying curious, growth mindset |
-| `nature_connection` | Lessons from nature, environmental wisdom |
-| `creative_expression` | Making things, expressing yourself |
-| `failure_resilience` | Learning from mistakes, bouncing back |
-| `relationships_depth` | Quality over quantity in friendships |
-| `solitude_reflection` | Value of alone time, introspection |
-| `money_contentment` | Enough-ness, not chasing wealth |
-| `health_body` | Taking care of physical self |
-| `mortality_perspective` | Living with awareness of limited time |
-
-### Phase 3: Update AI Prompts
-Modify prompts to incorporate themes. Example for quotes with `time_preciousness`:
-
-```
-Generate 20 REAL, VERIFIED inspirational quotes about the preciousness and value of time...
-- Seneca: "It is not that we have a short time to live, but that we waste a lot of it"
-- Marcus Aurelius on using time wisely
-- Modern thinkers on not wasting the one resource you can't get back
-```
-
-For Bible verses with same theme:
-```
-Generate 20 REAL Bible verses about the preciousness of time, making the most of each day...
-- Psalm 90:12 about numbering our days
-- Ecclesiastes on seasons and timing
-- Ephesians 5:16 on redeeming the time
-```
-
-### Phase 4: Admin UI Enhancement
-Add theme selection to the generate dialog in FortunesManager:
-
-```tsx
-<Select value={generateTheme} onValueChange={setGenerateTheme}>
-  <SelectItem value="">Any Theme (default)</SelectItem>
-  <SelectItem value="time_preciousness">⏰ Time & Its Preciousness</SelectItem>
-  <SelectItem value="simplicity_focus">🎯 Simplicity & Focus</SelectItem>
-  <SelectItem value="action_over_thinking">🚀 Action Over Thinking</SelectItem>
-  {/* ... all 15 themes */}
-</Select>
-```
-
-### Phase 5: Theme Coverage Dashboard
-Add a stats section showing theme coverage:
-
-```
-Theme Coverage:
-⏰ Time/Urgency: 0 fortunes (⚠️ needs content)
-🎯 Simplicity: 2 fortunes (⚠️ needs content)
-💪 Perseverance: 45 fortunes (✓ well covered)
+```text
+┌─ Generate Fortunes with AI ─────────────────────┐
+│                                                  │
+│  Type of Content                                 │
+│  [All Types (Random Mix)           ▼]           │
+│                                                  │
+│  Theme (Optional)                               │
+│  [⏰ Time & Its Preciousness       ▼]           │
+│                                                  │
+│  Bible Translation  ← NEW (appears for Bible)   │
+│  [NLT - New Living Translation     ▼]           │
+│  "Most accessible for your audience"            │
+│                                                  │
+│  Number to Generate                             │
+│  [20                               ]            │
+│                                                  │
+│              [Cancel]  [Generate]               │
+└──────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Example Output
-
-After implementation, generating "20 quotes on time_preciousness" might yield:
-
-| Quote | Author |
-|-------|--------|
-| "The cost of a thing is the amount of life you exchange for it." | Henry David Thoreau |
-| "Lost time is never found again." | Benjamin Franklin |
-| "Time is what we want most, but what we use worst." | William Penn |
-| "How we spend our days is how we spend our lives." | Annie Dillard |
-
-And "10 bible verses on time_preciousness":
-
-| Verse | Reference |
-|-------|-----------|
-| "Teach us to number our days, that we may gain a heart of wisdom." | Psalm 90:12 |
-| "Making the best use of the time, because the days are evil." | Ephesians 5:16 |
-| "There is a time for everything, and a season for every activity under the heavens." | Ecclesiastes 3:1 |
-
----
-
-## Files to Modify
+### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/generate-fortunes-batch/index.ts` | Add theme parameter, themed prompts for all source types |
-| `src/components/admin/FortunesManager.tsx` | Add theme dropdown to generate dialog, theme filter, coverage stats |
-| Database migration | Add `theme` column to `daily_fortunes` table |
+| `supabase/functions/generate-fortunes-batch/index.ts` | Add `translation` parameter, update Bible/Proverbs prompts |
+| `src/components/admin/FortunesManager.tsx` | Add translation dropdown (conditional), state management |
 
 ---
 
-## Technical Notes
+### Technical Notes
 
-1. **Deduplication still works**: The existing soft-match and semantic checks prevent duplicates even with themed generation
+1. **Conditional Display**: Translation dropdown only appears for Bible-related types, keeping the UI clean for other content types
 
-2. **Theme is optional**: Default generation (no theme) works as before for general inspiration
+2. **AI Prompt Engineering**: The prompt will explicitly request the specific translation to ensure accuracy:
+   ```
+   Generate verses from the NLT (New Living Translation). 
+   Use the EXACT wording as it appears in this specific translation.
+   DO NOT mix translations or use paraphrases.
+   ```
 
-3. **Cross-type themes**: Same theme generates appropriate content for each source type:
-   - Quote → Famous person's quote about time
-   - Bible verse → Scripture about making most of days
-   - Life lesson → Simple wisdom about not wasting time
-   - Discussion starter → "What would you do if you had one extra hour today?"
+3. **Default to NLT**: New Living Translation is the most accessible for adults with IDD while still being accurate
 
-4. **AI cost**: Uses existing Lovable AI gateway, no additional API keys needed
+4. **Backwards Compatible**: If no translation is specified, defaults to NLT (changing from the previous NIV/KJV default)
 
 ---
 
-## Estimated Effort
-- Database: 5 minutes (simple column add)
-- Edge function: 30 minutes (prompt engineering for themes)
-- Admin UI: 20 minutes (dropdown + coverage stats)
-- Testing: 10 minutes
+### Estimated Effort
+- Edge function: 10 minutes (add parameter, update prompts)
+- Admin UI: 10 minutes (add conditional dropdown)
+- Testing: 5 minutes
 
-Total: ~1 hour implementation
+Total: ~25 minutes
 
