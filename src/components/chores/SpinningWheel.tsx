@@ -190,16 +190,69 @@ export function SpinningWheel({
     };
   }, []);
 
-  // Calculate cumulative angles for probability-based slice sizes
-  const getSegmentAngles = (): { startAngle: number; endAngle: number; segmentAngle: number }[] => {
-    let cumulative = 0;
-    return segments.map((segment) => {
-      const startAngle = cumulative * 360;
-      const segmentAngle = segment.probability * 360;
-      cumulative += segment.probability;
-      return { startAngle, endAngle: startAngle + segmentAngle, segmentAngle };
+  // Expand segments into equal slices based on probability
+  // Higher probability items get more slices, spread around the wheel
+  const expandedSlices = (() => {
+    // Find the smallest probability to determine slice size
+    const minProb = Math.min(...segments.map(s => s.probability));
+    // Use 5% as the base unit (or the minimum probability if smaller)
+    const sliceUnit = Math.min(0.05, minProb);
+    
+    // Calculate how many slices each segment gets
+    const sliceCounts = segments.map(segment => ({
+      segment,
+      count: Math.max(1, Math.round(segment.probability / sliceUnit))
+    }));
+    
+    const totalSlices = sliceCounts.reduce((sum, s) => sum + s.count, 0);
+    const sliceAngle = 360 / totalSlices;
+    
+    // Create array of all slices
+    const allSlices: { segment: WheelSegment; sliceIndex: number }[] = [];
+    sliceCounts.forEach(({ segment, count }) => {
+      for (let i = 0; i < count; i++) {
+        allSlices.push({ segment, sliceIndex: i });
+      }
     });
-  };
+    
+    // Spread slices out - interleave different segments
+    const spreadSlices: { segment: WheelSegment; startAngle: number; segmentAngle: number }[] = [];
+    const usedIndices = new Set<number>();
+    
+    // Group slices by segment
+    const slicesBySegment = new Map<WheelSegment, number>();
+    segments.forEach(s => slicesBySegment.set(s, 0));
+    
+    // Distribute slices evenly around the wheel
+    let currentAngle = 0;
+    const segmentQueue = [...sliceCounts.flatMap(({ segment, count }) => 
+      Array(count).fill(segment)
+    )];
+    
+    // Shuffle to spread them out better
+    const shuffled: WheelSegment[] = [];
+    const remaining = [...sliceCounts];
+    
+    while (remaining.some(r => r.count > 0)) {
+      for (const r of remaining) {
+        if (r.count > 0) {
+          shuffled.push(r.segment);
+          r.count--;
+        }
+      }
+    }
+    
+    shuffled.forEach((segment) => {
+      spreadSlices.push({
+        segment,
+        startAngle: currentAngle,
+        segmentAngle: sliceAngle
+      });
+      currentAngle += sliceAngle;
+    });
+    
+    return { slices: spreadSlices, sliceAngle, totalSlices };
+  })();
 
   const selectSegment = (): WheelSegment => {
     const random = Math.random();
@@ -217,15 +270,20 @@ export function SpinningWheel({
     if (isAnimating) return;
 
     const winningSegment = selectSegment();
-    const winningIndex = segments.indexOf(winningSegment);
-    const segmentAngles = getSegmentAngles();
+    
+    // Find a random slice that belongs to the winning segment
+    const matchingSlices = expandedSlices.slices
+      .map((slice, index) => ({ slice, index }))
+      .filter(({ slice }) => slice.segment === winningSegment);
+    
+    const randomSlice = matchingSlices[Math.floor(Math.random() * matchingSlices.length)];
+    const { sliceAngle } = expandedSlices;
 
     const baseSpins = 5;
-    // Calculate the center of the winning segment
-    const winningAngles = segmentAngles[winningIndex];
-    const targetAngle = winningAngles.startAngle + winningAngles.segmentAngle / 2;
-    // Add some randomness within the segment (but not too close to edges)
-    const wobbleRange = winningAngles.segmentAngle * 0.3;
+    // Calculate the center of the winning slice
+    const targetAngle = randomSlice.slice.startAngle + sliceAngle / 2;
+    // Add some randomness within the slice (but not too close to edges)
+    const wobbleRange = sliceAngle * 0.3;
     const randomOffset = (Math.random() - 0.5) * wobbleRange;
     const finalRotation = rotation + (baseSpins * 360) + (360 - targetAngle) + randomOffset;
 
@@ -261,15 +319,34 @@ export function SpinningWheel({
   const centerX = radius;
   const centerY = radius;
 
-  const generateSegments = () => {
-    const segmentAngles = getSegmentAngles();
+  // Helper to wrap text into multiple lines
+  const wrapText = (text: string, maxCharsPerLine: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
     
-    return segments.map((segment, index) => {
-      const { startAngle: rawStartAngle, segmentAngle } = segmentAngles[index];
+    words.forEach(word => {
+      if (currentLine.length + word.length + 1 <= maxCharsPerLine) {
+        currentLine = currentLine ? `${currentLine} ${word}` : word;
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    });
+    if (currentLine) lines.push(currentLine);
+    
+    return lines;
+  };
+
+  const generateSegments = () => {
+    const { slices, sliceAngle } = expandedSlices;
+    
+    return slices.map((slice, index) => {
+      const { segment, startAngle: rawStartAngle } = slice;
       
       // Offset by -90 so first segment starts at top
       const startAngle = rawStartAngle - 90;
-      const endAngle = startAngle + segmentAngle;
+      const endAngle = startAngle + sliceAngle;
       
       const startRad = (startAngle * Math.PI) / 180;
       const endRad = (endAngle * Math.PI) / 180;
@@ -279,18 +356,18 @@ export function SpinningWheel({
       const x2 = centerX + radius * Math.cos(endRad);
       const y2 = centerY + radius * Math.sin(endRad);
       
-      const largeArcFlag = segmentAngle > 180 ? 1 : 0;
+      const largeArcFlag = sliceAngle > 180 ? 1 : 0;
       const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
       
       // Calculate text position
-      const textAngle = startAngle + segmentAngle / 2;
+      const textAngle = startAngle + sliceAngle / 2;
       const textRad = (textAngle * Math.PI) / 180;
-      const textRadius = radius * 0.65;
+      const textRadius = radius * 0.62;
       const textX = centerX + textRadius * Math.cos(textRad);
       const textY = centerY + textRadius * Math.sin(textRad);
 
       // Gradient calculation
-      const midAngle = startAngle + segmentAngle / 2;
+      const midAngle = startAngle + sliceAngle / 2;
       const midRad = (midAngle * Math.PI) / 180;
       const gradientId = `segment-gradient-${index}`;
       
@@ -302,10 +379,14 @@ export function SpinningWheel({
 
       const gradient = getGradientForColor(segment.color);
       
-      // Dynamically adjust font size based on segment size
-      const baseFontSize = size / 20;
-      const fontScale = Math.min(1, segmentAngle / 45); // Scale down for small segments
-      const fontSize = Math.max(baseFontSize * fontScale, size / 35); // Minimum readable size
+      // Calculate font size based on slice width and radius
+      const sliceArcLength = (sliceAngle / 360) * 2 * Math.PI * radius * 0.6;
+      const fontSize = Math.min(size / 22, sliceArcLength / 4);
+      
+      // Wrap text if needed - calculate max chars based on available space
+      const maxCharsPerLine = Math.max(4, Math.floor(sliceArcLength / (fontSize * 0.6)));
+      const textLines = wrapText(segment.label, maxCharsPerLine);
+      const lineHeight = fontSize * 1.1;
       
       return (
         <g key={index}>
@@ -325,7 +406,7 @@ export function SpinningWheel({
             d={pathData}
             fill={`url(#${gradientId})`}
             stroke="hsl(0 0% 100% / 0.9)"
-            strokeWidth="3"
+            strokeWidth="2"
             style={{
               filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.15))"
             }}
@@ -340,11 +421,19 @@ export function SpinningWheel({
             dominantBaseline="middle"
             transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}
             style={{ 
-              textShadow: "1px 1px 3px rgba(0,0,0,0.6), 0 0 8px rgba(0,0,0,0.3)",
+              textShadow: "1px 1px 2px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.4)",
               pointerEvents: "none"
             }}
           >
-            {segment.label}
+            {textLines.map((line, lineIndex) => (
+              <tspan
+                key={lineIndex}
+                x={textX}
+                dy={lineIndex === 0 ? -((textLines.length - 1) * lineHeight) / 2 : lineHeight}
+              >
+                {line}
+              </tspan>
+            ))}
           </text>
         </g>
       );
