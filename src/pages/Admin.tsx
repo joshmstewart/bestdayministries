@@ -103,6 +103,7 @@ import { StoreAccessManager } from "@/components/admin/StoreAccessManager";
 import { PicturePasswordImagesViewer } from "@/components/admin/PicturePasswordImagesViewer";
 import { ChoreBadgeManager } from "@/components/admin/ChoreBadgeManager";
 import { ChoreChallengeManager } from "@/components/admin/ChoreChallengeManager";
+import { ChoreRewardWheelManager } from "@/components/admin/ChoreRewardWheelManager";
 import { WorkoutManager } from "@/components/admin/WorkoutManager";
 import { CardManager } from "@/components/admin/CardManager";
 import { GuardianResourcesManager } from "@/components/admin/GuardianResourcesManager";
@@ -700,12 +701,16 @@ const Admin = () => {
                       <TabsList>
                         <TabsTrigger value="badges">Badges</TabsTrigger>
                         <TabsTrigger value="challenges">Monthly Challenges</TabsTrigger>
+                        <TabsTrigger value="reward-wheel">Reward Wheel</TabsTrigger>
                       </TabsList>
                       <TabsContent value="badges">
                         <ChoreBadgeManager />
                       </TabsContent>
                       <TabsContent value="challenges">
                         <ChoreChallengeManager />
+                      </TabsContent>
+                      <TabsContent value="reward-wheel">
+                        <ChoreRewardWheelManager />
                       </TabsContent>
                     </Tabs>
                   </TabsContent>
