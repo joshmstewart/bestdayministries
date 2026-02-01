@@ -190,48 +190,50 @@ export function SpinningWheel({
     };
   }, []);
 
-  // Expand segments into equal slices based on probability
+  // Expand segments into exactly 16 equal slices based on probability
   // Higher probability items get more slices, spread around the wheel
   const expandedSlices = (() => {
-    // Find the smallest probability to determine slice size
-    const minProb = Math.min(...segments.map(s => s.probability));
-    // Use 6.25% as the base unit for 16 total slices (larger text)
-    const sliceUnit = Math.min(0.0625, minProb);
+    const TARGET_SLICES = 16;
+    const sliceAngle = 360 / TARGET_SLICES;
     
-    // Calculate how many slices each segment gets
-    const sliceCounts = segments.map(segment => ({
+    // Calculate how many slices each segment gets (proportional to probability)
+    // Round to distribute 16 slices total
+    const rawCounts = segments.map(segment => ({
       segment,
-      count: Math.max(1, Math.round(segment.probability / sliceUnit))
+      rawCount: segment.probability * TARGET_SLICES
     }));
     
-    const totalSlices = sliceCounts.reduce((sum, s) => sum + s.count, 0);
-    const sliceAngle = 360 / totalSlices;
+    // Round down first, then distribute remaining slices to highest remainders
+    let sliceCounts = rawCounts.map(({ segment, rawCount }) => ({
+      segment,
+      count: Math.floor(rawCount),
+      remainder: rawCount - Math.floor(rawCount)
+    }));
     
-    // Create array of all slices
-    const allSlices: { segment: WheelSegment; sliceIndex: number }[] = [];
-    sliceCounts.forEach(({ segment, count }) => {
-      for (let i = 0; i < count; i++) {
-        allSlices.push({ segment, sliceIndex: i });
+    let totalAssigned = sliceCounts.reduce((sum, s) => sum + s.count, 0);
+    
+    // Distribute remaining slices based on highest remainders
+    while (totalAssigned < TARGET_SLICES) {
+      // Find segment with highest remainder that hasn't been bumped
+      sliceCounts.sort((a, b) => b.remainder - a.remainder);
+      for (const sc of sliceCounts) {
+        if (sc.remainder > 0) {
+          sc.count++;
+          sc.remainder = 0;
+          totalAssigned++;
+          break;
+        }
       }
-    });
+      // Safety: if all remainders are 0, give to first segment
+      if (sliceCounts.every(s => s.remainder === 0) && totalAssigned < TARGET_SLICES) {
+        sliceCounts[0].count++;
+        totalAssigned++;
+      }
+    }
     
-    // Spread slices out - interleave different segments
-    const spreadSlices: { segment: WheelSegment; startAngle: number; segmentAngle: number }[] = [];
-    const usedIndices = new Set<number>();
-    
-    // Group slices by segment
-    const slicesBySegment = new Map<WheelSegment, number>();
-    segments.forEach(s => slicesBySegment.set(s, 0));
-    
-    // Distribute slices evenly around the wheel
-    let currentAngle = 0;
-    const segmentQueue = [...sliceCounts.flatMap(({ segment, count }) => 
-      Array(count).fill(segment)
-    )];
-    
-    // Shuffle to spread them out better
+    // Shuffle to spread them out - interleave different segments
     const shuffled: WheelSegment[] = [];
-    const remaining = [...sliceCounts];
+    const remaining = sliceCounts.map(sc => ({ segment: sc.segment, count: sc.count }));
     
     while (remaining.some(r => r.count > 0)) {
       for (const r of remaining) {
@@ -242,6 +244,10 @@ export function SpinningWheel({
       }
     }
     
+    // Build the spread slices
+    const spreadSlices: { segment: WheelSegment; startAngle: number; segmentAngle: number }[] = [];
+    let currentAngle = 0;
+    
     shuffled.forEach((segment) => {
       spreadSlices.push({
         segment,
@@ -251,7 +257,7 @@ export function SpinningWheel({
       currentAngle += sliceAngle;
     });
     
-    return { slices: spreadSlices, sliceAngle, totalSlices };
+    return { slices: spreadSlices, sliceAngle, totalSlices: TARGET_SLICES };
   })();
 
   const selectSegment = (): WheelSegment => {
