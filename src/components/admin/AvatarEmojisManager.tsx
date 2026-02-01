@@ -193,9 +193,17 @@ STYLE:
 - High contrast, bold features`
   };
 
+  const [generatingAllProgress, setGeneratingAllProgress] = useState<{ current: number; total: number } | null>(null);
+
   const handleGenerate = async () => {
     if (!selectedAvatarId || !selectedEmotion) {
       toast({ title: "Please select both an avatar and emotion", variant: "destructive" });
+      return;
+    }
+
+    // Handle "All Missing" option
+    if (selectedEmotion === "__all_missing__") {
+      await handleGenerateAllMissing();
       return;
     }
 
@@ -236,6 +244,130 @@ STYLE:
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleGenerateAllMissing = async () => {
+    if (!selectedAvatarId) return;
+
+    // Find all missing emotions for this avatar
+    const missingEmotions = emotions.filter(
+      e => !existingImages.some(img => img.avatar_id === selectedAvatarId && img.emotion_type_id === e.id)
+    );
+
+    if (missingEmotions.length === 0) {
+      toast({ title: "All emotions already generated for this avatar!" });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratingAllProgress({ current: 0, total: missingEmotions.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < missingEmotions.length; i++) {
+      const emotion = missingEmotions[i];
+      setGeneratingAllProgress({ current: i + 1, total: missingEmotions.length });
+
+      try {
+        // Temporarily set the emotion to build the prompt
+        const tempSelectedEmotion = emotion.id;
+        const avatar = getSelectedAvatar();
+        if (!avatar) continue;
+
+        const bgColor = getEmotionBackgroundColor(emotion.name, emotion.category);
+        const emotionName = emotion.name.toLowerCase();
+        
+        let expressionDetails = `- Make the face clearly show ${emotion.name} ${emotion.emoji}
+- Copy the exact expression style from the ${emotion.emoji} emoji
+- Exaggerated, obvious, instantly recognizable emotion
+- Eyes, eyebrows, and mouth should clearly convey ${emotion.name}`;
+        
+        if (emotionName === 'tired') {
+          expressionDetails = `- Make the face clearly show ${emotion.name} ${emotion.emoji}
+- Eyes should be droopy, half-closed or closed, appearing sleepy
+- Mouth should be slightly open with LARGE, BOLD "ZZZ" or "Zzz" symbols emerging FROM THE MOUTH/LIPS
+- The Zs must be BIG and PROMINENT - easily visible even at small icon sizes
+- Make the Z letters large enough to be clearly seen (about 1/4 to 1/3 the size of the face)
+- The sleep Zs should come directly from the open mouth, NOT floating above the head
+- Use dark/black color for the Zs so they stand out clearly against the face
+- This allows the head to fill more of the frame while still showing sleepiness`;
+        }
+        
+        if (emotionName === 'bored') {
+          expressionDetails = `- Make the face clearly show EXTREME BOREDOM - like they're bored out of their mind
+- Eyes should be VERY heavy-lidded, droopy, half-closed with absolutely NO spark or interest
+- Eyebrows should be flat, slightly lowered, showing complete disinterest
+- Mouth should be completely flat/neutral or slightly turned down - NO smile whatsoever
+- The overall expression should scream "I couldn't care less" or "this is so boring I'm dying inside"
+- Think of someone who has been waiting in a long line for hours or sitting through an incredibly dull meeting
+- The face should look completely unamused, unimpressed, and utterly disengaged
+- Capture that classic "are you serious right now" or "I'm so done" look`;
+        }
+        
+        if (emotionName === 'okay') {
+          expressionDetails = `- Make the face clearly show a NEUTRAL, content expression ${emotion.emoji}
+- This is NOT happy or excited - just "okay", fine, neutral
+- Slight, closed-mouth, minimal smile - almost no smile at all
+- Relaxed, calm eyes - not wide or excited
+- Overall expression should say "I'm fine" or "meh, okay" - content but not enthusiastic
+- Think of someone who is doing alright, nothing special, just existing peacefully`;
+        }
+        
+        const prompt = `TRANSFORM the character from the reference image into an EMOJI.
+
+OUTPUT: A single EMOJI showing the ${emotion.name} expression ${emotion.emoji}
+
+CRITICAL - HEAD ONLY:
+- Show ONLY the HEAD - absolutely NO neck, NO shoulders, NO body, NO clothing
+- Crop TIGHTLY around the face: forehead to chin, ear to ear
+- Like a floating head emoji - imagine 😀 but with this character's face
+- The head should fill most of the frame with minimal background
+
+CHARACTER CONSISTENCY:
+- Keep the EXACT same face, hair/head features, skin/fur color, species
+- Same art style and visual quality as the reference
+- Only change the FACIAL EXPRESSION
+
+EXPRESSION:
+${expressionDetails}
+
+STYLE:
+- SOLID ${bgColor} background that fills the ENTIRE image to ALL EDGES - no circles, no vignettes, no black borders
+- The background color must extend completely to every corner and edge of the square image
+- Clean, crisp emoji aesthetic
+- High contrast, bold features`;
+
+        const response = await supabase.functions.invoke("generate-avatar-emotion-image", {
+          body: {
+            avatarId: selectedAvatarId,
+            emotionTypeId: emotion.id,
+            prompt,
+            notes: `Batch generated - ${emotion.name}`
+          }
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+
+        if (response.data?.imageUrl) {
+          successCount++;
+        }
+      } catch (error: any) {
+        console.error(`Error generating ${emotion.name}:`, error);
+        errorCount++;
+      }
+    }
+
+    setIsGenerating(false);
+    setGeneratingAllProgress(null);
+    await loadData();
+
+    toast({
+      title: "Batch generation complete!",
+      description: `Generated ${successCount} images${errorCount > 0 ? `, ${errorCount} failed` : ''}`
+    });
   };
 
   const handleApprove = async (imageId: string) => {
@@ -426,21 +558,41 @@ STYLE:
                   <SelectValue placeholder="Select emotion..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {emotions.map((emotion) => (
-                    <SelectItem key={emotion.id} value={emotion.id}>
+                  {/* All Missing option */}
+                  {selectedAvatarId && (
+                    <SelectItem value="__all_missing__">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">{emotion.emoji}</span>
-                        <span>{emotion.name}</span>
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs"
-                          style={{ borderColor: emotion.color, color: emotion.color }}
-                        >
-                          {emotion.category}
+                        <span className="text-xl">✨</span>
+                        <span className="font-medium">All Missing</span>
+                        <Badge variant="outline" className="text-xs">
+                          {emotions.filter(e => !existingImages.some(img => img.avatar_id === selectedAvatarId && img.emotion_type_id === e.id)).length} to generate
                         </Badge>
                       </div>
                     </SelectItem>
-                  ))}
+                  )}
+                  {emotions.map((emotion) => {
+                    const hasImage = selectedAvatarId && existingImages.some(
+                      img => img.avatar_id === selectedAvatarId && img.emotion_type_id === emotion.id
+                    );
+                    return (
+                      <SelectItem key={emotion.id} value={emotion.id}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{emotion.emoji}</span>
+                          <span>{emotion.name}</span>
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs"
+                            style={{ borderColor: emotion.color, color: emotion.color }}
+                          >
+                            {emotion.category}
+                          </Badge>
+                          {hasImage && (
+                            <Check className="h-3 w-3 text-green-500" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -480,7 +632,15 @@ STYLE:
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
+                {generatingAllProgress 
+                  ? `Generating ${generatingAllProgress.current}/${generatingAllProgress.total}...`
+                  : "Generating..."
+                }
+              </>
+            ) : selectedEmotion === "__all_missing__" ? (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate All Missing Emotions
               </>
             ) : existingImage ? (
               <>
@@ -659,12 +819,12 @@ STYLE:
         </Card>
       )}
 
-      {/* Gallery of Existing Images */}
+      {/* Gallery of Existing Images - Grouped by Avatar */}
       <Card>
         <CardHeader>
           <CardTitle>Generated Images Gallery</CardTitle>
           <CardDescription>
-            All generated avatar emotion images. Click to select for editing.
+            All generated avatar emotion images grouped by avatar. Click to select for editing.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -673,45 +833,74 @@ STYLE:
               No images generated yet. Select an avatar and emotion above to get started!
             </p>
           ) : (
-            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-              {existingImages.map((img) => {
-                const emotion = emotions.find(e => e.id === img.emotion_type_id);
-                const avatar = getAvatarById(img.avatar_id);
-                return (
-                  <button
-                    key={img.id}
-                    onClick={() => {
-                      setSelectedAvatarId(img.avatar_id);
-                      setSelectedEmotion(img.emotion_type_id);
-                      setGeneratedImageUrl(img.image_url);
-                    }}
-                    className={`relative rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
-                      selectedAvatarId === img.avatar_id && selectedEmotion === img.emotion_type_id
-                        ? "border-primary ring-2 ring-primary/20"
-                        : img.is_approved 
-                          ? "border-green-500/50" 
-                          : "border-transparent"
-                    }`}
-                  >
-                    <AspectRatio ratio={1}>
-                      <img 
-                        src={img.image_url || ""} 
-                        alt={`${avatar?.name || 'Avatar'} - ${emotion?.name}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </AspectRatio>
-                    {img.is_approved && (
-                      <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
-                        <Check className="h-3 w-3 text-white" />
+            <div className="space-y-6">
+              {/* Group images by avatar */}
+              {fitnessAvatars
+                .filter(avatar => existingImages.some(img => img.avatar_id === avatar.id))
+                .map(avatar => {
+                  const avatarImages = existingImages.filter(img => img.avatar_id === avatar.id);
+                  const approvedCount = avatarImages.filter(img => img.is_approved).length;
+                  return (
+                    <div key={avatar.id} className="space-y-3">
+                      {/* Avatar Header */}
+                      <div className="flex items-center gap-3 pb-2 border-b">
+                        {avatar.preview_image_url && (
+                          <img 
+                            src={avatar.preview_image_url} 
+                            alt={avatar.name}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-muted"
+                          />
+                        )}
+                        <div>
+                          <h4 className="font-semibold">{avatar.name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {avatarImages.length} images • {approvedCount} approved • {emotions.length - avatarImages.length} missing
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex items-center justify-center gap-1">
-                      <span>{emotion?.emoji}</span>
-                      <span className="truncate">{avatar?.name || 'Unknown'}</span>
+                      {/* Avatar's Emotion Images */}
+                      <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                        {avatarImages.map((img) => {
+                          const emotion = emotions.find(e => e.id === img.emotion_type_id);
+                          return (
+                            <button
+                              key={img.id}
+                              onClick={() => {
+                                setSelectedAvatarId(img.avatar_id);
+                                setSelectedEmotion(img.emotion_type_id);
+                                setGeneratedImageUrl(img.image_url);
+                              }}
+                              className={`relative rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                                selectedAvatarId === img.avatar_id && selectedEmotion === img.emotion_type_id
+                                  ? "border-primary ring-2 ring-primary/20"
+                                  : img.is_approved 
+                                    ? "border-green-500/50" 
+                                    : "border-transparent"
+                              }`}
+                            >
+                              <AspectRatio ratio={1}>
+                                <img 
+                                  src={img.image_url || ""} 
+                                  alt={`${avatar.name} - ${emotion?.name}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </AspectRatio>
+                              {img.is_approved && (
+                                <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex items-center justify-center gap-1">
+                                <span>{emotion?.emoji}</span>
+                                <span className="truncate">{emotion?.name || 'Unknown'}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </button>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </CardContent>
