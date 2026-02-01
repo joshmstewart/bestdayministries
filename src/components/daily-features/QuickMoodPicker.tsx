@@ -362,7 +362,9 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
   return (
     <div className={cn(
       "space-y-4 p-4 rounded-xl transition-all duration-500",
-      selectedMood && `bg-gradient-to-br ${currentTheme.bgGradient}`
+      selectedMood 
+        ? `bg-gradient-to-br ${currentTheme.bgGradient}`
+        : "bg-gradient-to-b from-green-100 via-yellow-50 to-red-100 dark:from-green-900/40 dark:via-yellow-900/20 dark:to-red-900/40"
     )}>
       {/* Mood Selector */}
       <div className="grid grid-cols-4 gap-2">
