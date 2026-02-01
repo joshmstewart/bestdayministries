@@ -404,6 +404,7 @@ export function CoffeeProductForm({ product, onSuccess, onCancel }: CoffeeProduc
                 <CoffeeProductTiersManager
                   productId={product.id}
                   basePrice={form.watch("selling_price")}
+                  costPrice={form.watch("cost_price")}
                 />
               </div>
             )}

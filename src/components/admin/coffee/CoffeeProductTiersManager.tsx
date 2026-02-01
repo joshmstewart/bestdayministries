@@ -21,9 +21,10 @@ interface EditingTier {
 interface CoffeeProductTiersManagerProps {
   productId: string;
   basePrice: number;
+  costPrice: number;
 }
 
-export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProductTiersManagerProps) {
+export function CoffeeProductTiersManager({ productId, basePrice, costPrice }: CoffeeProductTiersManagerProps) {
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -257,6 +258,8 @@ export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProduc
             const isEditing = editingTier?.id === tier.id;
             const savings = basePrice - tier.price_per_unit;
             const savingsPercent = basePrice > 0 ? ((savings / basePrice) * 100).toFixed(0) : 0;
+            const margin = tier.price_per_unit - costPrice;
+            const marginPercent = tier.price_per_unit > 0 ? ((margin / tier.price_per_unit) * 100).toFixed(0) : 0;
             
             if (isEditing) {
               return (
@@ -317,14 +320,17 @@ export function CoffeeProductTiersManager({ productId, basePrice }: CoffeeProduc
                     <span className="text-muted-foreground">Buy </span>
                     <span className="font-medium">{tier.min_quantity}+</span>
                   </div>
-                  <div>
+                  <div className="flex flex-wrap items-center gap-x-2">
                     <span className="text-muted-foreground">Pay </span>
                     <span className="font-medium">${tier.price_per_unit.toFixed(2)}/ea</span>
                     {savings > 0 && (
-                      <span className="ml-2 text-xs text-primary">
+                      <span className="text-xs text-primary">
                         (save {savingsPercent}%)
                       </span>
                     )}
+                    <span className={`text-xs ${margin > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                      (margin ${margin.toFixed(2)} / {marginPercent}%)
+                    </span>
                   </div>
                 </div>
                 <Button
