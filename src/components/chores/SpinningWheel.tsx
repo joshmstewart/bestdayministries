@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import defaultCoinImage from "@/assets/joycoin.png";
-import stickerPackIcon from "@/assets/sticker-pack-icon.png";
 
 export interface WheelSegment {
   label: string;
@@ -106,31 +105,45 @@ export function SpinningWheel({
   const [rotation, setRotation] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [coinImageUrl, setCoinImageUrl] = useState<string>(defaultCoinImage);
+  const [packCoverUrl, setPackCoverUrl] = useState<string | null>(null);
   const wheelRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
   const audioPoolRef = useRef<HTMLAudioElement[]>([]);
   const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch custom coin image
+  // Fetch custom coin image and featured pack cover
   useEffect(() => {
-    const fetchCoinImage = async () => {
+    const fetchImages = async () => {
       try {
-        const { data } = await supabase
+        // Fetch custom coin image
+        const { data: coinData } = await supabase
           .from("app_settings")
           .select("setting_value")
           .eq("setting_key", "custom_coin_image")
           .maybeSingle();
         
-        const settingValue = data?.setting_value as { url?: string } | null;
+        const settingValue = coinData?.setting_value as { url?: string } | null;
         if (settingValue?.url) {
           setCoinImageUrl(settingValue.url);
         }
+
+        // Fetch featured collection's pack cover
+        const { data: featuredCollection } = await supabase
+          .from('sticker_collections')
+          .select('pack_image_url')
+          .eq('is_active', true)
+          .eq('is_featured', true)
+          .maybeSingle();
+
+        if (featuredCollection?.pack_image_url) {
+          setPackCoverUrl(featuredCollection.pack_image_url);
+        }
       } catch (error) {
-        console.error("Failed to load custom coin image:", error);
+        console.error("Failed to load wheel images:", error);
       }
     };
-    fetchCoinImage();
+    fetchImages();
   }, []);
 
   const getAudioFromPool = useCallback(() => {
@@ -417,10 +430,10 @@ export function SpinningWheel({
 
       const gradient = getGradientForColor(segment.color);
       
-      // Calculate icon/number size - scaled to fit nicely in the donut
+      // Calculate icon/number size - smaller for cleaner look
       const availableSpace = radius - innerRadius;
-      const iconSize = Math.min(availableSpace * 0.6, 40);
-      const fontSize = Math.min(availableSpace * 0.45, 28);
+      const iconSize = Math.min(availableSpace * 0.35, 24);
+      const fontSize = Math.min(availableSpace * 0.4, 24);
       
       return (
         <g key={index}>
@@ -495,18 +508,22 @@ export function SpinningWheel({
             >
               {segment.amount}
             </text>
-            {/* Icon - coin or pack */}
-            <image
-              href={segment.type === 'coins' ? coinImageUrl : stickerPackIcon}
-              x={textX - iconSize * 0.4}
-              y={textY + iconSize * 0.05}
-              width={iconSize * 0.8}
-              height={iconSize * 0.8}
-              style={{ 
-                pointerEvents: "none",
-                filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.4))"
-              }}
-            />
+            {/* Icon - coin or pack cover */}
+            {(segment.type === 'coins' || packCoverUrl) && (
+              <image
+                href={segment.type === 'coins' ? coinImageUrl : (packCoverUrl || '')}
+                x={textX - iconSize * 0.5}
+                y={textY + iconSize * 0.15}
+                width={iconSize}
+                height={iconSize}
+                preserveAspectRatio="xMidYMid slice"
+                style={{ 
+                  pointerEvents: "none",
+                  filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))",
+                  borderRadius: segment.type === 'sticker_pack' ? '2px' : '0'
+                }}
+              />
+            )}
           </g>
         </g>
       );
