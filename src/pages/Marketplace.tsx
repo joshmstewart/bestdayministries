@@ -376,7 +376,7 @@ const Marketplace = () => {
                         onClick={() => setSelectedCategory('coffee')} 
                         className="whitespace-nowrap px-6 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
                       >
-                        ☕ Coffee
+                        Coffee
                       </TabsTrigger>
                     )}
                   </TabsList>
