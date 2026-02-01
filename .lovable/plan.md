@@ -31,6 +31,11 @@ All phases have been implemented:
   - `CoffeeVendorManager.tsx`  
   - `calculate-shipping-rates/index.ts`
 
+### Phase 6: Cart Data Fix ✅ (Added 2026-02-01)
+- Fixed `useCoffeeCart.ts` to include `tier_quantity` and `unit_price` when inserting/updating cart items
+- Updated `CoffeeProductDetail.tsx` to pass `tierQuantity` to cart hook
+- These fields are required by `create-marketplace-checkout` for proper line item creation
+
 ## Order Flow (Now Complete)
 
 ```

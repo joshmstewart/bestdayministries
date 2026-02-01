@@ -8,6 +8,7 @@ interface CoffeeCartItem {
   productName: string;
   quantity: number;
   pricePerUnit: number;
+  tierQuantity: number; // Number of units in the selected tier (e.g., 1, 3, 6)
 }
 
 export function useCoffeeCart() {
@@ -65,6 +66,8 @@ export function useCoffeeCart() {
           .from('shopping_cart')
           .update({ 
             quantity: newQuantity,
+            tier_quantity: item.tierQuantity,
+            unit_price: item.pricePerUnit,
             variant_info: variantInfo
           })
           .eq('id', existingItem.id);
@@ -72,9 +75,12 @@ export function useCoffeeCart() {
         if (error) throw error;
       } else {
         // Insert new item with coffee_product_id (not product_id)
+        // Include tier_quantity and unit_price for checkout flow
         const insertData: any = {
           coffee_product_id: item.productId,
           quantity: item.quantity,
+          tier_quantity: item.tierQuantity,
+          unit_price: item.pricePerUnit,
           variant_info: variantInfo,
         };
 
