@@ -65,13 +65,18 @@ export function ChoreRewardWheelDialog({
   }, [soundEffects]);
 
   // Load wheel config and check if already spun today
+  // CRITICAL: Reset ALL interactive state when dialog opens to prevent stuck states
   useEffect(() => {
     if (!open) return;
     
+    // Reset state immediately when dialog opens - prevents "stuck" from previous sessions
+    setSpinning(false);
+    setClaiming(false);
+    setHasSpunToday(false);
+    setWonPrize(null);
+    setLoading(true);
+    
     const loadData = async () => {
-      setLoading(true);
-      setWonPrize(null);
-      
       try {
         // Load wheel config from app_settings
         const { data: configData, error: configError } = await supabase
@@ -133,8 +138,11 @@ export function ChoreRewardWheelDialog({
     playSound("button_click");
   };
 
+  // Unified disabled state for wheel and button
+  const wheelDisabled = loading || hasSpunToday || claiming;
+
   const startSpin = () => {
-    if (hasSpunToday || spinning || loading) return;
+    if (wheelDisabled || spinning) return;
     setSpinning(true);
     handleSpinStart();
   };
@@ -258,7 +266,7 @@ export function ChoreRewardWheelDialog({
                 onSpinEnd={handleSpinEnd}
                 spinning={spinning}
                 onSpinStart={startSpin}
-                disabled={hasSpunToday || loading}
+                disabled={wheelDisabled}
                 size={280}
                 clickSoundUrl={wheelClickSound?.url}
                 clickSoundVolume={wheelClickSound?.volume}
@@ -302,7 +310,7 @@ export function ChoreRewardWheelDialog({
                 <Button
                   size="lg"
                   onClick={startSpin}
-                  disabled={spinning}
+                  disabled={wheelDisabled || spinning}
                   className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all"
                 >
                   {spinning ? (

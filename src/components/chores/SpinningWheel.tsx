@@ -106,6 +106,7 @@ export function SpinningWheel({
   const audioContextRef = useRef<AudioContext | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
   const audioPoolRef = useRef<HTMLAudioElement[]>([]);
+  const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getAudioFromPool = useCallback(() => {
     if (!clickSoundUrl) return null;
@@ -172,10 +173,16 @@ export function SpinningWheel({
     tickIntervalRef.current = requestAnimationFrame(tick);
   }, [clickSoundUrl, clickSoundVolume, getAudioFromPool, getAudioContext]);
 
+  // Cleanup on unmount - clear all timers and audio context
   useEffect(() => {
     return () => {
       if (tickIntervalRef.current) {
         cancelAnimationFrame(tickIntervalRef.current);
+        tickIntervalRef.current = null;
+      }
+      if (spinTimeoutRef.current) {
+        clearTimeout(spinTimeoutRef.current);
+        spinTimeoutRef.current = null;
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
@@ -216,8 +223,14 @@ export function SpinningWheel({
       });
     });
 
-    setTimeout(() => {
+    // Clear any existing timeout before setting a new one
+    if (spinTimeoutRef.current) {
+      clearTimeout(spinTimeoutRef.current);
+    }
+
+    spinTimeoutRef.current = setTimeout(() => {
       setIsAnimating(false);
+      spinTimeoutRef.current = null;
       onSpinEnd(winningSegment);
     }, 4000);
   };
@@ -321,11 +334,14 @@ export function SpinningWheel({
     }
   };
 
+  // Compute whether the wheel is truly disabled for interaction
+  const isDisabled = disabled || isAnimating || spinning;
+
   return (
     <div className="relative flex flex-col items-center gap-4">
-      {/* Decorative outer glow ring */}
+      {/* Decorative outer glow ring - pointer-events-none so clicks pass through */}
       <div 
-        className="absolute rounded-full animate-pulse"
+        className="absolute rounded-full animate-pulse pointer-events-none"
         style={{
           width: size + 24,
           height: size + 24,
@@ -337,16 +353,16 @@ export function SpinningWheel({
         }}
       />
       
-      {/* Pointer at top */}
+      {/* Pointer at top - pointer-events-none so clicks pass through */}
       <div 
-        className="absolute z-10"
+        className="absolute z-10 pointer-events-none"
         style={{
           top: -10,
           left: "50%",
           transform: "translateX(-50%)",
         }}
       >
-        <svg width="36" height="32" viewBox="0 0 36 32">
+        <svg width="36" height="32" viewBox="0 0 36 32" className="pointer-events-none">
           <defs>
             <linearGradient id="pointer-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
               <stop offset="0%" stopColor="hsl(24 85% 60%)" />
@@ -366,15 +382,16 @@ export function SpinningWheel({
         </svg>
       </div>
       
-      {/* Wheel container with decorative border - now clickable */}
+      {/* Wheel container with decorative border - clickable button */}
       <button
         type="button"
         onClick={handleClick}
-        disabled={disabled || isAnimating || spinning}
+        disabled={isDisabled}
+        aria-label="Spin the reward wheel"
         className={cn(
-          "relative rounded-full transition-transform border-none outline-none",
-          !disabled && !isAnimating && !spinning && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
-          (disabled || isAnimating || spinning) && "opacity-70 cursor-not-allowed"
+          "relative rounded-full transition-transform border-none outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+          !isDisabled && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+          isDisabled && "opacity-70 cursor-not-allowed"
         )}
         style={{
           width: size + 12,
@@ -382,15 +399,11 @@ export function SpinningWheel({
           padding: 6,
           background: "linear-gradient(135deg, hsl(46 95% 60%) 0%, hsl(24 85% 50%) 50%, hsl(46 95% 55%) 100%)",
           boxShadow: "0 8px 32px hsl(24 85% 40% / 0.4), inset 0 2px 4px hsl(0 0% 100% / 0.3)",
-          pointerEvents: disabled ? "none" : "auto",
         }}
       >
         <div
           ref={wheelRef}
-          className={cn(
-            "relative rounded-full overflow-hidden",
-            isAnimating && "cursor-not-allowed"
-          )}
+          className="relative rounded-full overflow-hidden"
           style={{
             width: size,
             height: size,
@@ -403,7 +416,7 @@ export function SpinningWheel({
             width={size}
             height={size}
             viewBox={`0 0 ${size} ${size}`}
-            className="rounded-full"
+            className="rounded-full pointer-events-none"
           >
             {generateSegments()}
             {/* Center circle with gradient */}
