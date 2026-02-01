@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -39,7 +38,28 @@ import {
   MessageCircle,
   Archive,
   ArchiveRestore,
+  Clock,
+  Target,
+  Zap,
+  Smile,
+  Coffee,
+  Ear,
+  Compass,
+  Leaf,
+  Palette,
+  TrendingUp,
+  Users,
+  Moon,
+  DollarSign,
+  Activity,
+  Hourglass,
+  BarChart3,
 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 type FortuneSourceType = "bible_verse" | "affirmation" | "quote" | "life_lesson" | "gratitude_prompt" | "discussion_starter" | "proverbs";
 
@@ -49,11 +69,37 @@ interface Fortune {
   source_type: FortuneSourceType;
   author: string | null;
   reference: string | null;
+  theme: string | null;
   is_approved: boolean;
   is_used: boolean;
   is_archived: boolean;
   used_date: string | null;
   created_at: string;
+}
+
+// Theme definitions matching the edge function
+const THEME_OPTIONS = [
+  { value: "", label: "Any Theme (default)", icon: Sparkles, color: "text-muted-foreground" },
+  { value: "time_preciousness", label: "⏰ Time & Its Preciousness", icon: Clock, color: "text-orange-500" },
+  { value: "simplicity_focus", label: "🎯 Simplicity & Focus", icon: Target, color: "text-blue-500" },
+  { value: "action_over_thinking", label: "🚀 Action Over Thinking", icon: Zap, color: "text-yellow-500" },
+  { value: "humor_lightness", label: "😄 Humor & Lightness", icon: Smile, color: "text-pink-500" },
+  { value: "self_care", label: "☕ Self-Care & Rest", icon: Coffee, color: "text-amber-600" },
+  { value: "listening_communication", label: "👂 Listening & Communication", icon: Ear, color: "text-indigo-500" },
+  { value: "curiosity_learning", label: "🧭 Curiosity & Learning", icon: Compass, color: "text-cyan-500" },
+  { value: "nature_connection", label: "🌿 Nature & Creation", icon: Leaf, color: "text-green-500" },
+  { value: "creative_expression", label: "🎨 Creative Expression", icon: Palette, color: "text-purple-500" },
+  { value: "failure_resilience", label: "📈 Failure & Resilience", icon: TrendingUp, color: "text-red-500" },
+  { value: "relationships_depth", label: "👥 Relationships & Depth", icon: Users, color: "text-rose-500" },
+  { value: "solitude_reflection", label: "🌙 Solitude & Reflection", icon: Moon, color: "text-slate-500" },
+  { value: "money_contentment", label: "💰 Money & Contentment", icon: DollarSign, color: "text-emerald-500" },
+  { value: "health_body", label: "💪 Health & Body", icon: Activity, color: "text-teal-500" },
+  { value: "mortality_perspective", label: "⏳ Mortality & Perspective", icon: Hourglass, color: "text-gray-500" },
+];
+
+interface ThemeCoverage {
+  theme: string | null;
+  count: number;
 }
 
 export function FortunesManager() {
@@ -62,11 +108,15 @@ export function FortunesManager() {
   const [generating, setGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("pending");
+  const [selectedThemeFilter, setSelectedThemeFilter] = useState<string>("all");
   const [selectedFortunes, setSelectedFortunes] = useState<Set<string>>(new Set());
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generateCount, setGenerateCount] = useState(20);
   const [generateType, setGenerateType] = useState<string>("affirmation");
+  const [generateTheme, setGenerateTheme] = useState<string>("");
+  const [themeCoverage, setThemeCoverage] = useState<ThemeCoverage[]>([]);
+  const [showThemeCoverage, setShowThemeCoverage] = useState(false);
   const [newFortune, setNewFortune] = useState({
     content: "",
     source_type: "affirmation" as FortuneSourceType,
@@ -76,7 +126,11 @@ export function FortunesManager() {
 
   useEffect(() => {
     loadFortunes();
-  }, [selectedType, selectedStatus]);
+  }, [selectedType, selectedStatus, selectedThemeFilter]);
+
+  useEffect(() => {
+    loadThemeCoverage();
+  }, []);
 
   const loadFortunes = async () => {
     setLoading(true);
@@ -88,6 +142,14 @@ export function FortunesManager() {
 
       if (selectedType !== "all") {
         query = query.eq("source_type", selectedType);
+      }
+
+      if (selectedThemeFilter !== "all") {
+        if (selectedThemeFilter === "none") {
+          query = query.is("theme", null);
+        } else {
+          query = query.eq("theme", selectedThemeFilter);
+        }
       }
 
       if (selectedStatus === "pending") {
@@ -115,6 +177,36 @@ export function FortunesManager() {
     }
   };
 
+  const loadThemeCoverage = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("daily_fortunes")
+        .select("theme")
+        .eq("is_archived", false);
+
+      if (error) throw error;
+
+      // Count by theme
+      const counts: Record<string, number> = {};
+      (data || []).forEach((f) => {
+        const key = f.theme || "none";
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      const coverage: ThemeCoverage[] = Object.entries(counts).map(([theme, count]) => ({
+        theme: theme === "none" ? null : theme,
+        count,
+      }));
+
+      // Sort by count ascending (least covered first)
+      coverage.sort((a, b) => a.count - b.count);
+
+      setThemeCoverage(coverage);
+    } catch (error) {
+      console.error("Error loading theme coverage:", error);
+    }
+  };
+
   const handleGenerate = async () => {
     setGenerating(true);
     try {
@@ -122,14 +214,25 @@ export function FortunesManager() {
       if (!session) throw new Error("Not authenticated");
 
       const response = await supabase.functions.invoke("generate-fortunes-batch", {
-        body: { source_type: generateType, count: generateCount },
+        body: { 
+          source_type: generateType, 
+          count: generateCount,
+          theme: generateTheme || null,
+        },
       });
 
       if (response.error) throw response.error;
 
-      toast.success(`Generated ${response.data.count} ${generateType}s!`);
+      const themeLabel = generateTheme 
+        ? THEME_OPTIONS.find(t => t.value === generateTheme)?.label 
+        : null;
+      
+      toast.success(
+        `Generated ${response.data.count} ${generateType}s${themeLabel ? ` on theme: ${themeLabel}` : ""}!`
+      );
       setGenerateDialogOpen(false);
       loadFortunes();
+      loadThemeCoverage();
     } catch (error) {
       console.error("Error generating fortunes:", error);
       toast.error("Failed to generate fortunes");
@@ -172,6 +275,7 @@ export function FortunesManager() {
       // Optimistically remove deleted items from list
       const idsSet = new Set(ids);
       setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
+      loadThemeCoverage();
     } catch (error) {
       console.error("Error deleting fortunes:", error);
       toast.error("Failed to delete fortunes");
@@ -310,9 +414,21 @@ export function FortunesManager() {
     }
   };
 
+  const getThemeLabel = (themeValue: string | null) => {
+    if (!themeValue) return null;
+    const theme = THEME_OPTIONS.find(t => t.value === themeValue);
+    return theme?.label || themeValue;
+  };
+
   // Count stats
   const pendingCount = fortunes.filter(f => !f.is_approved).length;
   const approvedCount = fortunes.filter(f => f.is_approved && !f.is_used).length;
+
+  // Get themes that need content (less than 10 items)
+  const themesNeedingContent = THEME_OPTIONS.filter(t => t.value).filter(themeOption => {
+    const coverage = themeCoverage.find(c => c.theme === themeOption.value);
+    return !coverage || coverage.count < 10;
+  });
 
   return (
     <div className="space-y-6">
@@ -334,6 +450,87 @@ export function FortunesManager() {
           </Button>
         </div>
       </div>
+
+      {/* Theme Coverage Dashboard */}
+      <Collapsible open={showThemeCoverage} onOpenChange={setShowThemeCoverage}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Theme Coverage Dashboard
+                  {themesNeedingContent.length > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {themesNeedingContent.length} need content
+                    </Badge>
+                  )}
+                </CardTitle>
+                <span className="text-sm text-muted-foreground">
+                  {showThemeCoverage ? "Hide" : "Show"}
+                </span>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {THEME_OPTIONS.filter(t => t.value).map(themeOption => {
+                  const coverage = themeCoverage.find(c => c.theme === themeOption.value);
+                  const count = coverage?.count || 0;
+                  const Icon = themeOption.icon;
+                  const needsContent = count < 10;
+                  
+                  return (
+                    <div
+                      key={themeOption.value}
+                      className={`flex items-center gap-3 p-3 rounded-lg border ${
+                        needsContent 
+                          ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30" 
+                          : "border-border bg-background"
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 ${themeOption.color}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {themeOption.label.replace(/^[^\s]+\s/, "")}
+                        </div>
+                        <div className={`text-xs ${needsContent ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
+                          {count} fortune{count !== 1 ? "s" : ""}
+                          {needsContent && " ⚠️ needs content"}
+                        </div>
+                      </div>
+                      {needsContent && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setGenerateTheme(themeOption.value);
+                            setGenerateDialogOpen(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {/* No theme assigned */}
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                  <Sparkles className="h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">No Theme Assigned</div>
+                    <div className="text-xs text-muted-foreground">
+                      {themeCoverage.find(c => c.theme === null)?.count || 0} fortunes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4">
@@ -368,6 +565,24 @@ export function FortunesManager() {
               <SelectItem value="used">Used</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
               <SelectItem value="all">All Active</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Label>Theme:</Label>
+          <Select value={selectedThemeFilter} onValueChange={setSelectedThemeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Themes</SelectItem>
+              <SelectItem value="none">No Theme</SelectItem>
+              {THEME_OPTIONS.filter(t => t.value).map(theme => (
+                <SelectItem key={theme.value} value={theme.value}>
+                  {theme.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -506,6 +721,11 @@ export function FortunesManager() {
                           {fortune.source_type.replace("_", " ")}
                         </span>
                       </Badge>
+                      {fortune.theme && (
+                        <Badge variant="outline" className="text-xs">
+                          {getThemeLabel(fortune.theme)}
+                        </Badge>
+                      )}
                       {fortune.is_approved && (
                         <Badge variant="outline" className="text-green-600">
                           Approved
@@ -596,7 +816,7 @@ export function FortunesManager() {
 
       {/* Generate Dialog */}
       <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Generate Fortunes with AI</DialogTitle>
           </DialogHeader>
@@ -652,6 +872,40 @@ export function FortunesManager() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Theme (Optional)</Label>
+              <Select value={generateTheme} onValueChange={setGenerateTheme}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a theme..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {THEME_OPTIONS.map(theme => {
+                    const Icon = theme.icon;
+                    const coverage = themeCoverage.find(c => c.theme === (theme.value || null));
+                    const count = coverage?.count || 0;
+                    const needsContent = theme.value && count < 10;
+                    
+                    return (
+                      <SelectItem key={theme.value || "any"} value={theme.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className={`h-4 w-4 ${theme.color}`} />
+                          <span>{theme.label}</span>
+                          {theme.value && (
+                            <span className={`text-xs ml-1 ${needsContent ? "text-amber-600" : "text-muted-foreground"}`}>
+                              ({count})
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Select a theme to generate focused content on specific life topics.
+              </p>
             </div>
 
             <div className="space-y-2">

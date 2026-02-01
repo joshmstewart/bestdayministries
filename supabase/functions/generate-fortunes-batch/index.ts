@@ -6,6 +6,85 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Theme definitions with descriptions for AI prompts
+const THEME_DEFINITIONS: Record<string, { label: string; description: string; examples: string }> = {
+  time_preciousness: {
+    label: "Time & Its Preciousness",
+    description: "Value of time, not wasting it, living fully, making each moment count",
+    examples: "Seneca on wasted time, 'Lost time is never found again' (Franklin), Psalm 90:12 on numbering our days",
+  },
+  simplicity_focus: {
+    label: "Simplicity & Focus",
+    description: "Less is more, avoiding overwhelm, staying focused on what matters, decluttering",
+    examples: "Thoreau on simplicity, 'Do less, better', Matthew 6:34 on not worrying about tomorrow",
+  },
+  action_over_thinking: {
+    label: "Action Over Thinking",
+    description: "Starting now, avoiding paralysis by analysis, imperfect action beats perfect inaction",
+    examples: "'Done is better than perfect', 'The journey of a thousand miles begins with a single step'",
+  },
+  humor_lightness: {
+    label: "Humor & Lightness",
+    description: "Playful wisdom, not taking life too seriously, joy and laughter as medicine",
+    examples: "Proverbs 17:22 on cheerful heart, 'Blessed are those who can laugh at themselves'",
+  },
+  self_care: {
+    label: "Self-Care & Rest",
+    description: "Rest, boundaries, recharging, taking care of yourself first, sabbath rest",
+    examples: "Matthew 11:28-29 on rest, 'You cannot pour from an empty cup'",
+  },
+  listening_communication: {
+    label: "Listening & Communication",
+    description: "Being a good listener, thoughtful words, the power of silence, speaking kindly",
+    examples: "James 1:19 on being slow to speak, 'We have two ears and one mouth'",
+  },
+  curiosity_learning: {
+    label: "Curiosity & Learning",
+    description: "Staying curious, growth mindset, never stop learning, asking questions",
+    examples: "'The more I learn, the more I realize I don't know' (Einstein), Proverbs 18:15 on seeking knowledge",
+  },
+  nature_connection: {
+    label: "Nature & Creation",
+    description: "Lessons from nature, creation's wisdom, environmental stewardship, outdoor peace",
+    examples: "Psalm 19:1 on heavens declaring glory, 'Look deep into nature' (Einstein)",
+  },
+  creative_expression: {
+    label: "Creative Expression",
+    description: "Making things, expressing yourself, using your gifts, creativity as worship",
+    examples: "Exodus 35:31-35 on creative gifts, 'Every child is an artist' (Picasso)",
+  },
+  failure_resilience: {
+    label: "Failure & Resilience",
+    description: "Learning from mistakes, bouncing back, failure as teacher, perseverance through trials",
+    examples: "'Fall seven times, stand up eight', Romans 5:3-4 on suffering producing perseverance",
+  },
+  relationships_depth: {
+    label: "Relationships & Depth",
+    description: "Quality over quantity in friendships, deep connections, investing in people",
+    examples: "Proverbs 17:17 on friends, 'A true friend walks in when everyone else walks out'",
+  },
+  solitude_reflection: {
+    label: "Solitude & Reflection",
+    description: "Value of alone time, introspection, meditation, quiet moments with God",
+    examples: "Luke 5:16 on Jesus withdrawing to pray, 'In quietness and trust is your strength' (Isaiah 30:15)",
+  },
+  money_contentment: {
+    label: "Money & Contentment",
+    description: "Enough-ness, not chasing wealth, contentment, generosity over greed",
+    examples: "1 Timothy 6:6-10 on contentment, 'The love of money is the root of all evil'",
+  },
+  health_body: {
+    label: "Health & Body",
+    description: "Taking care of physical self, body as temple, rest and exercise, healthy habits",
+    examples: "1 Corinthians 6:19-20 on body as temple, 'Take care of your body, it's the only place you have to live'",
+  },
+  mortality_perspective: {
+    label: "Mortality & Perspective",
+    description: "Living with awareness of limited time, making it count, legacy, eternal perspective",
+    examples: "Psalm 39:4-5 on brevity of life, 'Teach us to number our days' (Psalm 90:12)",
+  },
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -53,7 +132,10 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { source_type = "affirmation", count = 20 } = body;
+    const { source_type = "affirmation", count = 20, theme = null } = body;
+
+    // Get theme info if specified
+    const themeInfo = theme ? THEME_DEFINITIONS[theme] : null;
 
     // Generate fortunes using AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -94,8 +176,17 @@ serve(async (req) => {
       }
     }
     
+    // Build theme-specific prompt addition
+    const themePromptAddition = themeInfo 
+      ? `\n\n🎯 THEME FOCUS: "${themeInfo.label}"\nDescription: ${themeInfo.description}\nExamples for inspiration: ${themeInfo.examples}\n\nALL generated content MUST relate to this theme. Be creative but stay on topic.`
+      : "";
+
     let prompt = "";
     if (source_type === "bible_verse") {
+      const topicGuidance = themeInfo 
+        ? `Focus SPECIFICALLY on verses about: ${themeInfo.description}\nExample verses on this theme: ${themeInfo.examples}`
+        : "Topics: love, hope, joy, being valued, God's care, encouragement, strength, peace, friendship, wisdom, patience, gratitude.";
+      
       prompt = `Generate ${count} REAL, ACTUAL Bible verses from the NIV or KJV translation. These must be genuine scripture that can be verified.
 
 For each verse, provide:
@@ -104,30 +195,45 @@ For each verse, provide:
 
 Focus on LESSER-KNOWN but still encouraging verses. Avoid the most commonly quoted verses and dig deeper into Scripture.
 
-Topics: love, hope, joy, being valued, God's care, encouragement, strength, peace, friendship, wisdom, patience, gratitude.
+${topicGuidance}
 
-Books to explore: Psalms (beyond Psalm 23), Isaiah, Philippians, Colossians, Ephesians, James, 1 Peter, 1 John, Hebrews, Deuteronomy, Zephaniah, Micah, Lamentations, Song of Solomon.${exclusionList}
+Books to explore: Psalms (beyond Psalm 23), Isaiah, Philippians, Colossians, Ephesians, James, 1 Peter, 1 John, Hebrews, Deuteronomy, Zephaniah, Micah, Lamentations, Song of Solomon, Ecclesiastes.${exclusionList}${themePromptAddition}
 
 CRITICAL REQUIREMENTS:
 - These must be REAL Bible verses, not made-up spiritual sayings
 - Include the EXACT reference (e.g., "Isaiah 41:10", "Zephaniah 3:17", "Lamentations 3:22-23")
 - Prioritize verses that are encouraging but less commonly quoted
+${themeInfo ? `- Every verse must relate to the theme: "${themeInfo.label}"` : ""}
 
 Format as JSON array:
 [{"content": "exact verse text", "reference": "Book Chapter:Verse"}]`;
     } else if (source_type === "affirmation") {
+      const focusGuidance = themeInfo
+        ? `Focus on affirmations about: ${themeInfo.description}`
+        : "Focused on self-worth, abilities, belonging, and positive qualities";
+      
       prompt = `Generate ${count} unique, positive affirmations for adults with intellectual and developmental disabilities.
 
 Make them:
 - Simple sentences (8-15 words max)
 - First-person statements ("I am...", "I can...", "I have...")
-- Focused on self-worth, abilities, belonging, and positive qualities
+- ${focusGuidance}
 - Easy to remember and repeat daily
-- FRESH and CREATIVE - not generic or overused${exclusionList}
+- FRESH and CREATIVE - not generic or overused${exclusionList}${themePromptAddition}
 
 Format as JSON array:
 [{"content": "the affirmation text"}]`;
     } else if (source_type === "life_lesson") {
+      const topicGuidance = themeInfo
+        ? `Focus on wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
+        : `Topics to cover:
+- Happiness and positivity
+- Self-belief and confidence
+- Kindness and friendship
+- Patience and perseverance
+- Being yourself
+- Hope and new beginnings`;
+
       prompt = `Generate ${count} short, wise sayings about life - like fortune cookie wisdom. These should be timeless, universal truths in simple words.
 
 Style guidelines:
@@ -136,47 +242,53 @@ Style guidelines:
 - Wise but simple - no complex vocabulary
 - Feels like advice from a wise friend
 - Can be understood by anyone
-- Be CREATIVE and ORIGINAL - avoid clichés${exclusionList}
+- Be CREATIVE and ORIGINAL - avoid clichés${exclusionList}${themePromptAddition}
 
-Topics to cover:
-- Happiness and positivity
-- Self-belief and confidence
-- Kindness and friendship
-- Patience and perseverance
-- Being yourself
-- Hope and new beginnings
+${topicGuidance}
 
 Format as JSON array:
 [{"content": "the life lesson text"}]`;
     } else if (source_type === "gratitude_prompt") {
+      const focusGuidance = themeInfo
+        ? `Focus prompts on gratitude related to: ${themeInfo.description}`
+        : "Related to everyday experiences (friends, activities, small pleasures)";
+
       prompt = `Generate ${count} gratitude prompts to help adults with intellectual and developmental disabilities reflect on the good things in life.
 
 Make them:
 - Simple questions or statements that prompt reflection
-- Related to everyday experiences (friends, activities, small pleasures)
+- ${focusGuidance}
 - Easy to connect to their daily life
-- VARIED and CREATIVE - explore different aspects of gratitude${exclusionList}
+- VARIED and CREATIVE - explore different aspects of gratitude${exclusionList}${themePromptAddition}
 
 Format as JSON array:
 [{"content": "the gratitude prompt text"}]`;
     } else if (source_type === "discussion_starter") {
-      prompt = `Generate ${count} thought-provoking discussion questions for adults with intellectual and developmental disabilities.
-
-Topics should encourage sharing experiences and opinions about:
+      const topicGuidance = themeInfo
+        ? `Focus questions on: ${themeInfo.description}\nRelated topics: ${themeInfo.examples}`
+        : `Topics should encourage sharing experiences and opinions about:
 - Favorite things (food, activities, places)
 - Dreams and goals
 - Friendship and helping others
 - Handling challenges
 - What makes them happy
 - Memories and experiences
-- Creativity and imagination${exclusionList}
+- Creativity and imagination`;
+
+      prompt = `Generate ${count} thought-provoking discussion questions for adults with intellectual and developmental disabilities.
+
+${topicGuidance}${exclusionList}${themePromptAddition}
 
 Format as JSON array:
 [{"content": "the discussion question text"}]`;
     } else if (source_type === "proverbs") {
+      const focusGuidance = themeInfo
+        ? `Focus on biblical wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
+        : "Focus on LESSER-KNOWN proverbs and wisdom passages.";
+
       prompt = `Generate ${count} REAL biblical proverbs and wisdom sayings. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
 
-Focus on LESSER-KNOWN proverbs and wisdom passages. Dig deep into Proverbs chapters 10-31, Ecclesiastes, and the teachings of Jesus in the Gospels.${exclusionList}
+${focusGuidance} Dig deep into Proverbs chapters 10-31, Ecclesiastes, and the teachings of Jesus in the Gospels.${exclusionList}${themePromptAddition}
 
 CRITICAL REQUIREMENTS:
 - These must be REAL Bible verses or accurate paraphrases of biblical wisdom
@@ -184,11 +296,16 @@ CRITICAL REQUIREMENTS:
 - Choose accessible, practical wisdom that applies to daily life
 - Keep language simple and understandable
 - Prioritize verses that are less commonly quoted
+${themeInfo ? `- Every proverb must relate to the theme: "${themeInfo.label}"` : ""}
 
 Format as JSON array:
 [{"content": "the proverb or wisdom text", "reference": "Book Chapter:Verse"}]`;
     } else {
       // Default: inspirational_quote
+      const topicGuidance = themeInfo
+        ? `Focus on quotes about: ${themeInfo.description}\nExamples for inspiration: ${themeInfo.examples}`
+        : "";
+
       prompt = `Generate ${count} REAL, VERIFIED inspirational quotes from famous people. These must be actual quotes that can be attributed to real historical or contemporary figures.
 
 CRITICAL: Only use quotes that are genuinely from these people, not misattributed or made-up quotes.
@@ -200,12 +317,14 @@ Explore quotes from a WIDE VARIETY of people, including:
 - Athletes (Muhammad Ali, Serena Williams, Michael Jordan, Jackie Robinson)
 - Entertainers (Dolly Parton, Jim Henson, Robin Williams, Audrey Hepburn)
 - Activists (Rosa Parks, Malala Yousafzai, Harriet Tubman, Frederick Douglass)
-- Philosophers (Marcus Aurelius, Confucius, Lao Tzu)${exclusionList}
+- Philosophers (Marcus Aurelius, Confucius, Lao Tzu, Seneca)${exclusionList}${themePromptAddition}
+
+${topicGuidance}
 
 REQUIREMENTS:
 - Every quote MUST include the author
 - Only use quotes you are confident are accurately attributed
-- Choose encouraging, uplifting quotes about courage, kindness, perseverance, and self-worth
+${themeInfo ? `- Focus on quotes about: "${themeInfo.label}" - ${themeInfo.description}` : "- Choose encouraging, uplifting quotes about courage, kindness, perseverance, and self-worth"}
 - Avoid complex or abstract quotes - keep them accessible
 - Prioritize lesser-known quotes over the most famous ones
 
@@ -373,6 +492,9 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
     let allExistingForSoftMatch = [...(existingFortunes || [])];
 
     console.log(`Starting generation. Existing fortunes: ${existingFortunes?.length || 0} (including ${existingFortunes?.filter(f => f.is_archived).length || 0} archived)`);
+    if (theme) {
+      console.log(`Theme: ${theme} (${themeInfo?.label})`);
+    }
 
     // Retry loop to accumulate unique fortunes
     const collectedUniqueFortunes: any[] = [];
@@ -545,6 +667,7 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
       source_type,
       author: f.author || null,
       reference: f.reference || null,
+      theme: theme || null, // Include theme in the insert
       is_approved: false,
       is_used: false,
     }));
@@ -559,6 +682,7 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
     return new Response(JSON.stringify({
       success: true,
       count: insertedData?.length || 0,
+      theme: theme || null,
       fortunes: insertedData,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

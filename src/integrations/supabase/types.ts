@@ -3300,6 +3300,7 @@ export type Database = {
           is_used: boolean
           reference: string | null
           source_type: string
+          theme: string | null
           used_date: string | null
         }
         Insert: {
@@ -3314,6 +3315,7 @@ export type Database = {
           is_used?: boolean
           reference?: string | null
           source_type: string
+          theme?: string | null
           used_date?: string | null
         }
         Update: {
@@ -3328,6 +3330,7 @@ export type Database = {
           is_used?: boolean
           reference?: string | null
           source_type?: string
+          theme?: string | null
           used_date?: string | null
         }
         Relationships: []
