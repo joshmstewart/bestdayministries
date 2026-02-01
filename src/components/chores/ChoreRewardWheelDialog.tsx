@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Gift, Coins, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showCoinNotification } from "@/utils/coinNotification";
 import { SpinningWheel, WheelSegment } from "./SpinningWheel";
 import confetti from "canvas-confetti";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
@@ -180,7 +181,7 @@ export function ChoreRewardWheelDialog({
         setHasSpunToday(true);
         
         if (segment.type === "coins") {
-          toast.success(`You won ${segment.amount} coins! 🪙`);
+          showCoinNotification(segment.amount, "Won from Reward Wheel!");
         } else {
           toast.success(`You won ${segment.amount} sticker pack${segment.amount > 1 ? 's' : ''}! 🎁`);
         }
