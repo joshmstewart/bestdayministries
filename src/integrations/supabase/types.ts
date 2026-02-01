@@ -423,6 +423,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           display_order: number | null
+          icon_url: string | null
           id: string
           is_active: boolean | null
           updated_at: string
@@ -434,6 +435,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           display_order?: number | null
+          icon_url?: string | null
           id?: string
           is_active?: boolean | null
           updated_at?: string
@@ -445,6 +447,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           display_order?: number | null
+          icon_url?: string | null
           id?: string
           is_active?: boolean | null
           updated_at?: string

@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { AppConfig } from "./appsConfig";
 import { cn } from "@/lib/utils";
+import { AppConfiguration } from "@/hooks/useAppConfigurations";
 
 interface AppIconProps {
-  app: AppConfig;
+  app: AppConfig & { config?: AppConfiguration };
   editMode?: boolean;
   isHidden?: boolean;
   onToggle?: () => void;
@@ -12,6 +13,7 @@ interface AppIconProps {
 export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: AppIconProps) {
   const navigate = useNavigate();
   const Icon = app.icon;
+  const customIconUrl = app.config?.icon_url;
 
   const handleClick = () => {
     if (editMode && onToggle) {
@@ -30,16 +32,24 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
         isHidden && "opacity-40"
       )}
     >
-      {/* App icon with gradient background */}
+      {/* App icon with gradient background or custom image */}
       <div
         className={cn(
-          "relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center shadow-lg",
-          "bg-gradient-to-br",
-          app.color,
+          "relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden",
+          !customIconUrl && "bg-gradient-to-br",
+          !customIconUrl && app.color,
           !editMode && "hover:scale-105 active:scale-95 transition-transform"
         )}
       >
-        <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-white drop-shadow-md" />
+        {customIconUrl ? (
+          <img 
+            src={customIconUrl} 
+            alt={app.name} 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-white drop-shadow-md" />
+        )}
         
         {/* Edit mode checkbox indicator */}
         {editMode && (
