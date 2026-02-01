@@ -266,7 +266,7 @@ export function DailyBar() {
 
       {/* Mood Popup */}
       <Dialog open={activePopup === "mood"} onOpenChange={(open) => !open && handlePopupClose("mood")}>
-        <DialogContent className="max-w-md" hideCloseButton>
+        <DialogContent className="max-w-md bg-gradient-to-b from-green-100 via-yellow-50 to-red-100 dark:from-green-900/40 dark:via-yellow-900/20 dark:to-red-900/40" hideCloseButton>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="text-2xl">🌈</span>
