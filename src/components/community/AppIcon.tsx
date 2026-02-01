@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { AppConfiguration } from "@/hooks/useAppConfigurations";
 import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
 import { useCustomCoinImage } from "@/hooks/useCustomCoinImage";
+import { useLatestMemoryMatchCardBack } from "@/hooks/useLatestMemoryMatchCardBack";
 
 interface AppIconProps {
   app: AppConfig & { config?: AppConfiguration };
@@ -17,13 +18,15 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
   const Icon = app.icon;
   const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
   const { imageUrl: customCoinUrl } = useCustomCoinImage();
+  const { imageUrl: memoryMatchCardBackUrl } = useLatestMemoryMatchCardBack();
   
-  // For sticker-album, automatically use featured pack cover unless admin uploaded custom icon
-  // For store (Coin Store), automatically use custom coin image unless admin uploaded custom icon
+  // Auto-use dynamic icons for specific apps unless admin uploaded custom icon
   const customIconUrl = app.id === 'sticker-album' && !app.config?.icon_url
     ? featuredStickerUrl
     : app.id === 'store' && !app.config?.icon_url
     ? customCoinUrl
+    : app.id === 'memory-match' && !app.config?.icon_url
+    ? memoryMatchCardBackUrl
     : app.config?.icon_url;
   const handleClick = () => {
     if (editMode && onToggle) {
