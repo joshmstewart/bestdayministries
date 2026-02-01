@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const FLAT_SHIPPING_RATE_CENTS = 699; // $6.99 fallback
 const DEFAULT_FREE_SHIPPING_THRESHOLD_CENTS = 3500;
-const COFFEE_VENDOR_ID = "coffee-vendor"; // Virtual vendor ID for coffee products
+const COFFEE_VENDOR_ID = "f8c7d9e6-5a4b-3c2d-1e0f-9a8b7c6d5e4f"; // Best Day Ever Coffee house vendor
 
 interface CoffeeShippingSettings {
   shipping_mode: 'flat' | 'calculated' | null;

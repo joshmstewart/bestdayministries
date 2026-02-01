@@ -62,7 +62,7 @@ interface CoffeeShippingSettings {
   disable_free_shipping: boolean;
 }
 
-const COFFEE_VENDOR_ID = "coffee-vendor";
+const COFFEE_VENDOR_ID = "f8c7d9e6-5a4b-3c2d-1e0f-9a8b7c6d5e4f";
 const COFFEE_VENDOR_NAME = "Best Day Ever Coffee";
 
 interface UnifiedCartSheetProps {

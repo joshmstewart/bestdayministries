@@ -6716,6 +6716,7 @@ export type Database = {
       order_items: {
         Row: {
           carrier: string | null
+          coffee_product_id: string | null
           created_at: string
           delivered_at: string | null
           fulfillment_status: Database["public"]["Enums"]["fulfillment_status"]
@@ -6750,6 +6751,7 @@ export type Database = {
         }
         Insert: {
           carrier?: string | null
+          coffee_product_id?: string | null
           created_at?: string
           delivered_at?: string | null
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
@@ -6784,6 +6786,7 @@ export type Database = {
         }
         Update: {
           carrier?: string | null
+          coffee_product_id?: string | null
           created_at?: string
           delivered_at?: string | null
           fulfillment_status?: Database["public"]["Enums"]["fulfillment_status"]
@@ -6817,6 +6820,13 @@ export type Database = {
           weight_oz?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_coffee_product_id_fkey"
+            columns: ["coffee_product_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
