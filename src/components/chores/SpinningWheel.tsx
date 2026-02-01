@@ -195,8 +195,8 @@ export function SpinningWheel({
   const expandedSlices = (() => {
     // Find the smallest probability to determine slice size
     const minProb = Math.min(...segments.map(s => s.probability));
-    // Use 5% as the base unit (or the minimum probability if smaller)
-    const sliceUnit = Math.min(0.05, minProb);
+    // Use 6.25% as the base unit for 16 total slices (larger text)
+    const sliceUnit = Math.min(0.0625, minProb);
     
     // Calculate how many slices each segment gets
     const sliceCounts = segments.map(segment => ({
