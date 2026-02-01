@@ -5,7 +5,7 @@ import {
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
   Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2, Copy,
-  Activity, User, MapPin, Package, Clock
+  Activity, User, MapPin, Package, Clock, Sparkles
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import { CoinIcon } from "@/components/CoinIcon";
 
 export interface FeedItemData {
   id: string;
-  item_type: 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke' | 'announcement';
+  item_type: 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke' | 'announcement' | 'fortune';
   title: string;
   description: string | null;
   author_id: string;
@@ -65,6 +65,7 @@ const typeConfig: Record<string, { label: string; appName: string; icon: React.E
   drink: { label: "Drink", appName: "Drink Creator", icon: GlassWater, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20", buttonColor: "bg-cyan-500 hover:bg-cyan-600 text-white", routeBase: "/games/drink-creator", idParam: "drink" },
   joke: { label: "Joke", appName: "Joke Generator", icon: Laugh, color: "bg-lime-500/10 text-lime-500 border-lime-500/20", buttonColor: "bg-lime-500 hover:bg-lime-600 text-white", routeBase: "/games/jokes", idParam: "joke" },
   announcement: { label: "New!", appName: "Check it out!", icon: Megaphone, color: "bg-primary/10 text-primary border-primary/20", buttonColor: "bg-primary hover:bg-primary/90 text-primary-foreground", routeBase: "", idParam: "" },
+  fortune: { label: "Fortune", appName: "Daily Fortune", icon: Sparkles, color: "bg-indigo-400/10 text-indigo-400 border-indigo-400/20", buttonColor: "bg-indigo-400 hover:bg-indigo-500 text-white", routeBase: "/community", idParam: "" },
 };
 
 // Helper to count active steps in a beat pattern
