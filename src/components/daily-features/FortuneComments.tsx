@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, Trash2, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { VoiceInput } from "@/components/VoiceInput";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
@@ -112,49 +111,9 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
 
     setSubmitting(true);
     try {
-      // Check if this is the first comment (no discussion post yet)
-      const isFirstComment = comments.length === 0 && !discussionPostId;
-      
-      if (isFirstComment) {
-        // Fetch the fortune details to create a discussion post
-        const { data: fortunePost } = await supabase
-          .from("daily_fortune_posts")
-          .select("fortune_id, daily_fortunes(content, author, reference, source_type)")
-          .eq("id", fortunePostId)
-          .single();
-        
-        if (fortunePost?.daily_fortunes) {
-          const fortune = fortunePost.daily_fortunes as { content: string; author: string | null; reference: string | null; source_type: string };
-          const title = `Daily Inspiration: ${fortune.content.substring(0, 50)}${fortune.content.length > 50 ? '...' : ''}`;
-          const content = `"${fortune.content}"${fortune.author ? `\n\n— ${fortune.author}` : ''}${fortune.reference ? ` (${fortune.reference})` : ''}`;
-          
-          // Create the discussion post
-          const { data: newDiscussionPost, error: discussionError } = await supabase
-            .from("discussion_posts")
-            .insert({
-              author_id: user.id,
-              title,
-              content,
-              is_moderated: true,
-              approval_status: "approved",
-            })
-            .select("id")
-            .single();
-          
-          if (discussionError) throw discussionError;
-          
-          if (newDiscussionPost) {
-            // Link the discussion post to the fortune post
-            await supabase
-              .from("daily_fortune_posts")
-              .update({ discussion_post_id: newDiscussionPost.id })
-              .eq("id", fortunePostId);
-            
-            setDiscussionPostId(newDiscussionPost.id);
-            onDiscussionCreated?.(newDiscussionPost.id);
-          }
-        }
-      }
+      // Discussion posts are now created by the generate-fortune-posts edge function
+      // using the system user. This frontend fallback has been removed to prevent
+      // regular users from becoming the author of daily inspiration posts.
 
       const { error } = await supabase.from("daily_fortune_comments").insert({
         fortune_post_id: fortunePostId,
