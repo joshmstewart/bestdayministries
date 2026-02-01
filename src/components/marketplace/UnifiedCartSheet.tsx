@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2, Info } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2, Info, Coffee } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -89,7 +89,8 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
         .from('shopping_cart')
         .select(`
           *,
-          product:products(*, vendors(*))
+          product:products(*, vendors(*)),
+          coffee_product:coffee_products(*)
         `);
       
       if ('user_id' in filter) {
@@ -108,12 +109,20 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   // All database cart items (both house vendor merch and handmade)
   const allCartItems = cartItems || [];
 
+  // Coffee cart items have product_id = null, so `product` relation is null.
+  // Keep them separate so vendor-based shipping / checkout logic doesn't crash.
+  const coffeeCartItems = allCartItems.filter((item: any) => !item?.product && !!item?.coffee_product_id);
+  const storeCartItems = allCartItems.filter((item: any) => !!item?.product);
+  const hasCoffeeItems = coffeeCartItems.length > 0;
+  const hasStoreItems = storeCartItems.length > 0;
+
   // Shipping constants (fallback only)
   const FLAT_SHIPPING_RATE = 6.99;
 
   // Calculate totals by vendor for shipping (including vendor-specific thresholds and flat-rate amounts)
-  const vendorTotals = allCartItems.reduce((acc, item) => {
-    const vendorId = item.product.vendor_id;
+  const vendorTotals = storeCartItems.reduce((acc, item: any) => {
+    const vendorId = item?.product?.vendor_id;
+    if (!vendorId) return acc;
     const price = typeof item.product.price === 'string' 
       ? parseFloat(item.product.price) 
       : item.product.price;
@@ -144,7 +153,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
   // Check if any vendor uses calculated shipping AND hasn't met their free shipping threshold
   const hasCalculatedShippingVendor = useMemo(() => {
-    if (!allCartItems || allCartItems.length === 0) return false;
+    if (!storeCartItems || storeCartItems.length === 0) return false;
     return Object.values(vendorTotals).some(vendor => {
       if (vendor.shippingMode !== 'calculated') return false;
       // If they have a threshold and it's met, no need for calculated shipping
@@ -152,7 +161,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       const thresholdMet = hasThreshold && vendor.freeShippingThreshold != null && vendor.subtotal >= vendor.freeShippingThreshold;
       return !thresholdMet; // Only requires calculation if threshold NOT met
     });
-  }, [allCartItems, vendorTotals]);
+  }, [storeCartItems, vendorTotals]);
 
   const getVendorShippingDisplay = (vendorId: string): { label: string; isPending: boolean } => {
     const vendor = vendorTotals[vendorId];
@@ -525,12 +534,98 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                 )}
 
                 {/* Separator if both sections have items */}
-                {shopifyItems.length > 0 && allCartItems.length > 0 && (
+                {shopifyItems.length > 0 && (hasStoreItems || hasCoffeeItems) && (
+                  <Separator />
+                )}
+
+                {/* Coffee Items Section */}
+                {hasCoffeeItems && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Coffee className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold text-lg">Café Items</h3>
+                    </div>
+
+                    <div className="space-y-3">
+                      {coffeeCartItems.map((item: any) => {
+                        const coffee = item.coffee_product;
+                        const vi = (item.variant_info || {}) as any;
+                        const name = coffee?.name || vi?.product_name || 'Coffee item';
+                        const pricePerUnit = Number(vi?.price_per_unit ?? coffee?.selling_price ?? 0);
+                        const imageUrl = coffee?.images?.[0] || '/placeholder.svg';
+
+                        return (
+                          <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
+                            <Link
+                              to={`/store/coffee/${item.coffee_product_id}`}
+                              onClick={() => onOpenChange(false)}
+                              className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={name}
+                                className="w-16 h-16 object-cover rounded-md"
+                              />
+                            </Link>
+
+                            <div className="flex-1 min-w-0">
+                              <Link
+                                to={`/store/coffee/${item.coffee_product_id}`}
+                                onClick={() => onOpenChange(false)}
+                                className="hover:text-primary transition-colors"
+                              >
+                                <h4 className="font-medium truncate text-sm">{name}</h4>
+                              </Link>
+                              <p className="font-semibold text-sm text-primary">
+                                ${pricePerUnit.toFixed(2)}
+                                <span className="text-muted-foreground font-normal"> each</span>
+                              </p>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={() => removeHandmadeItem(item.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => updateHandmadeQuantity(item.id, item.quantity, -1)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-6 text-center text-sm">{item.quantity}</span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => updateHandmadeQuantity(item.id, item.quantity, 1)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Separator between Café and Store sections */}
+                {hasCoffeeItems && hasStoreItems && (
                   <Separator />
                 )}
 
                 {/* Store Items Section - grouped by vendor */}
-                {allCartItems.length > 0 && (
+                {hasStoreItems && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Package className="h-5 w-5 text-primary" />
@@ -539,7 +634,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
                     {/* Group items by vendor */}
                     {Object.entries(vendorTotals).map(([vendorId, vendor], index) => {
-                      const vendorItems = allCartItems.filter(item => item.product.vendor_id === vendorId);
+                      const vendorItems = storeCartItems.filter((item: any) => item?.product?.vendor_id === vendorId);
                       // Show progress bar for ANY vendor with a configured threshold (including calculated shipping)
                       const showFreeShippingProgress =
                         !vendor.disableFreeShipping &&
