@@ -721,7 +721,7 @@ export default function ChoreChart() {
                       <Gift className="h-4 w-4 mr-2" />
                       Spin the Wheel!
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               )}
             </CardContent>
