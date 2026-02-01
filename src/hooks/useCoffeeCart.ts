@@ -25,13 +25,14 @@ export function useCoffeeCart() {
       return false;
     }
 
-    const insertData = getCartInsertData(item.productId, item.quantity, {
+    const variantInfo = {
       type: 'coffee',
       price_per_unit: item.pricePerUnit,
       product_name: item.productName,
-    });
+    };
 
-    if (!insertData) {
+    const filter = getCartFilter();
+    if (!filter) {
       toast({
         title: "Error",
         description: "Unable to add to cart. Please try again.",
@@ -41,14 +42,11 @@ export function useCoffeeCart() {
     }
 
     try {
-      // Check if item already exists in cart
-      const filter = getCartFilter();
-      if (!filter) throw new Error("No cart filter available");
-
+      // Check if item already exists in cart (using coffee_product_id, not product_id)
       let existingQuery = supabase
         .from('shopping_cart')
         .select('id, quantity')
-        .eq('product_id', item.productId);
+        .eq('coffee_product_id', item.productId);
 
       if ('user_id' in filter) {
         existingQuery = existingQuery.eq('user_id', filter.user_id);
@@ -67,17 +65,25 @@ export function useCoffeeCart() {
           .from('shopping_cart')
           .update({ 
             quantity: newQuantity,
-            variant_info: {
-              type: 'coffee',
-              price_per_unit: item.pricePerUnit,
-              product_name: item.productName,
-            }
+            variant_info: variantInfo
           })
           .eq('id', existingItem.id);
 
         if (error) throw error;
       } else {
-        // Insert new item
+        // Insert new item with coffee_product_id (not product_id)
+        const insertData: any = {
+          coffee_product_id: item.productId,
+          quantity: item.quantity,
+          variant_info: variantInfo,
+        };
+
+        if (filter && 'user_id' in filter) {
+          insertData.user_id = filter.user_id;
+        } else if (filter && 'session_id' in filter) {
+          insertData.session_id = filter.session_id;
+        }
+
         const { error } = await supabase
           .from('shopping_cart')
           .insert(insertData);
