@@ -82,10 +82,15 @@ export function ChoreRewardWheelDialog({
 
         if (configData?.setting_value) {
           const config = configData.setting_value as unknown as WheelConfig;
-          const activePreset = config.presets[config.active_preset];
-          if (activePreset) {
+          const activePresetKey = config.active_preset || "balanced";
+          const activePreset = config.presets?.[activePresetKey];
+          if (activePreset?.segments && Array.isArray(activePreset.segments)) {
             setSegments(activePreset.segments);
+          } else {
+            console.warn("Wheel config missing segments:", config);
           }
+        } else {
+          console.warn("No wheel config found in app_settings");
         }
 
         // Check if user has already spun today (use MST date)
