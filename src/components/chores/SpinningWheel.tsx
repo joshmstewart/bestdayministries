@@ -367,12 +367,14 @@ export function SpinningWheel({
       </div>
       
       {/* Wheel container with decorative border - now clickable */}
-      <div
+      <button
+        type="button"
         onClick={handleClick}
+        disabled={disabled || isAnimating || spinning}
         className={cn(
-          "relative rounded-full transition-transform",
-          !disabled && !isAnimating && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
-          disabled && "opacity-70 cursor-not-allowed"
+          "relative rounded-full transition-transform border-none outline-none",
+          !disabled && !isAnimating && !spinning && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+          (disabled || isAnimating || spinning) && "opacity-70 cursor-not-allowed"
         )}
         style={{
           width: size + 12,
@@ -380,6 +382,7 @@ export function SpinningWheel({
           padding: 6,
           background: "linear-gradient(135deg, hsl(46 95% 60%) 0%, hsl(24 85% 50%) 50%, hsl(46 95% 55%) 100%)",
           boxShadow: "0 8px 32px hsl(24 85% 40% / 0.4), inset 0 2px 4px hsl(0 0% 100% / 0.3)",
+          pointerEvents: disabled ? "none" : "auto",
         }}
       >
         <div
@@ -434,7 +437,7 @@ export function SpinningWheel({
             </text>
           </svg>
         </div>
-      </div>
+      </button>
     </div>
   );
 }
