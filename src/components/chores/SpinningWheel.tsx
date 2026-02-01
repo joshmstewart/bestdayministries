@@ -359,10 +359,10 @@ export function SpinningWheel({
       const largeArcFlag = sliceAngle > 180 ? 1 : 0;
       const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
       
-      // Calculate text position
+      // Calculate text position - closer to outer edge for larger text
       const textAngle = startAngle + sliceAngle / 2;
       const textRad = (textAngle * Math.PI) / 180;
-      const textRadius = radius * 0.62;
+      const textRadius = radius * 0.75; // Moved from 0.62 to 0.75 for outer edge
       const textX = centerX + textRadius * Math.cos(textRad);
       const textY = centerY + textRadius * Math.sin(textRad);
 
@@ -379,14 +379,14 @@ export function SpinningWheel({
 
       const gradient = getGradientForColor(segment.color);
       
-      // Calculate font size based on slice width and radius
-      const sliceArcLength = (sliceAngle / 360) * 2 * Math.PI * radius * 0.6;
-      const fontSize = Math.min(size / 22, sliceArcLength / 4);
+      // Calculate font size - larger now that text is near outer edge
+      const sliceArcLength = (sliceAngle / 360) * 2 * Math.PI * radius * 0.75;
+      const fontSize = Math.min(size / 16, sliceArcLength / 3); // Increased from size/22 to size/16
       
       // Wrap text if needed - calculate max chars based on available space
-      const maxCharsPerLine = Math.max(4, Math.floor(sliceArcLength / (fontSize * 0.6)));
+      const maxCharsPerLine = Math.max(5, Math.floor(sliceArcLength / (fontSize * 0.55)));
       const textLines = wrapText(segment.label, maxCharsPerLine);
-      const lineHeight = fontSize * 1.1;
+      const lineHeight = fontSize * 1.15;
       
       return (
         <g key={index}>
