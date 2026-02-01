@@ -111,9 +111,21 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
 
     setSubmitting(true);
     try {
-      // Discussion posts are now created by the generate-fortune-posts edge function
-      // using the system user. This frontend fallback has been removed to prevent
-      // regular users from becoming the author of daily inspiration posts.
+      // Check if discussion post exists, if not, create one via edge function
+      // This ensures the first commenter triggers the post creation with system user as author
+      if (!discussionPostId) {
+        const { data: createResult, error: createError } = await supabase.functions.invoke('create-fortune-discussion-post', {
+          body: { fortunePostId }
+        });
+        
+        if (createError) {
+          console.error("Error creating discussion post:", createError);
+          // Don't block commenting, just log the error
+        } else if (createResult?.discussionPostId) {
+          setDiscussionPostId(createResult.discussionPostId);
+          onDiscussionCreated?.(createResult.discussionPostId);
+        }
+      }
 
       const { error } = await supabase.from("daily_fortune_comments").insert({
         fortune_post_id: fortunePostId,
