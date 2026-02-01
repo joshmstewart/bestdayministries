@@ -436,13 +436,14 @@ export function SpinningWheel({
       
       // Pack images are larger and positioned toward outer edge
       const packIconSize = Math.min(availableSpace * 0.55, 36);
-      const coinIconSize = Math.min(availableSpace * 0.35, 24);
-      const fontSize = Math.min(availableSpace * 0.4, 24);
+      // Coins smaller and also toward outer edge
+      const coinIconSize = Math.min(availableSpace * 0.22, 16);
+      const fontSize = Math.min(availableSpace * 0.28, 16);
       
-      // Position pack images closer to outer edge
-      const packTextRadius = radius - availableSpace * 0.35;
-      const packTextX = centerX + packTextRadius * Math.cos(textRad);
-      const packTextY = centerY + packTextRadius * Math.sin(textRad);
+      // Position both packs and coins closer to outer edge
+      const outerLabelRadius = radius - availableSpace * 0.35;
+      const outerTextX = centerX + outerLabelRadius * Math.cos(textRad);
+      const outerTextY = centerY + outerLabelRadius * Math.sin(textRad);
       
       // Calculate rotation for labels to face outward
       const labelRotation = textAngle + 90;
@@ -487,13 +488,13 @@ export function SpinningWheel({
           />
           
           {/* Text/Icon group */}
-          <g transform={`rotate(${labelRotation}, ${isPackSegment ? packTextX : textX}, ${isPackSegment ? packTextY : textY})`}>
+          <g transform={`rotate(${labelRotation}, ${outerTextX}, ${outerTextY})`}>
             {/* For coins: show number and coin icon */}
             {!isPackSegment && (
               <>
                 <text
-                  x={textX}
-                  y={textY - fontSize * 0.15}
+                  x={outerTextX}
+                  y={outerTextY - fontSize * 0.15}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="hsl(0 0% 100%)"
@@ -508,8 +509,8 @@ export function SpinningWheel({
                 </text>
                 <image
                   href={coinImageUrl}
-                  x={textX - coinIconSize * 0.5}
-                  y={textY + coinIconSize * 0.15}
+                  x={outerTextX - coinIconSize * 0.5}
+                  y={outerTextY + coinIconSize * 0.15}
                   width={coinIconSize}
                   height={coinIconSize}
                   preserveAspectRatio="xMidYMid slice"
@@ -524,8 +525,8 @@ export function SpinningWheel({
             {isPackSegment && packCoverUrl && (
               <image
                 href={packCoverUrl}
-                x={packTextX - packIconSize * 0.5}
-                y={packTextY - packIconSize * 0.5}
+                x={outerTextX - packIconSize * 0.5}
+                y={outerTextY - packIconSize * 0.5}
                 width={packIconSize}
                 height={packIconSize}
                 preserveAspectRatio="xMidYMid slice"
