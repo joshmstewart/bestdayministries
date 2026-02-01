@@ -403,31 +403,32 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
   }
 
   return (
-    <div className={cn(
-      "space-y-4 transition-all duration-500 relative"
-    )}>
-      {/* TTS Toggle Button - Top Right */}
-      <button
-        onClick={() => setTtsEnabled(!ttsEnabled)}
-        className={cn(
-          "absolute -top-2 right-0 p-2 rounded-full transition-all duration-200",
-          "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
-          ttsEnabled 
-            ? "bg-primary/10 text-primary" 
-            : "bg-muted/50 text-muted-foreground"
-        )}
-        title={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
-        aria-label={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
-      >
-        {ttsEnabled ? (
-          <Volume2 className={cn("w-5 h-5", isSpeaking && "animate-pulse")} />
-        ) : (
-          <VolumeX className="w-5 h-5" />
-        )}
-      </button>
+    <div className="space-y-4 transition-all duration-500">
+      {/* Header with TTS Toggle */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-foreground">How are you feeling?</h3>
+        <button
+          onClick={() => setTtsEnabled(!ttsEnabled)}
+          className={cn(
+            "p-2 rounded-full transition-all duration-200",
+            "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
+            ttsEnabled 
+              ? "bg-primary/10 text-primary" 
+              : "bg-muted/50 text-muted-foreground"
+          )}
+          title={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+          aria-label={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+        >
+          {ttsEnabled ? (
+            <Volume2 className={cn("w-5 h-5", isSpeaking && "animate-pulse")} />
+          ) : (
+            <VolumeX className="w-5 h-5" />
+          )}
+        </button>
+      </div>
 
       {/* Mood Selector */}
-      <div className="grid grid-cols-4 gap-2 pt-6">
+      <div className="grid grid-cols-4 gap-2">
         {moodOptions.map((mood) => (
           <button
             key={mood.label}
