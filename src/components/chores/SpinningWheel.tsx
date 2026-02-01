@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import defaultCoinImage from "@/assets/joycoin.png";
 
 export interface WheelSegment {
   label: string;
@@ -102,11 +104,33 @@ export function SpinningWheel({
 }: SpinningWheelProps) {
   const [rotation, setRotation] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [coinImageUrl, setCoinImageUrl] = useState<string>(defaultCoinImage);
   const wheelRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
   const audioPoolRef = useRef<HTMLAudioElement[]>([]);
   const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch custom coin image
+  useEffect(() => {
+    const fetchCoinImage = async () => {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("setting_value")
+          .eq("setting_key", "custom_coin_image")
+          .maybeSingle();
+        
+        const settingValue = data?.setting_value as { url?: string } | null;
+        if (settingValue?.url) {
+          setCoinImageUrl(settingValue.url);
+        }
+      } catch (error) {
+        console.error("Failed to load custom coin image:", error);
+      }
+    };
+    fetchCoinImage();
+  }, []);
 
   const getAudioFromPool = useCallback(() => {
     if (!clickSoundUrl) return null;
@@ -441,30 +465,60 @@ export function SpinningWheel({
               filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.15))"
             }}
           />
-          <text
-            x={textX}
-            y={textY}
-            fill="#fff"
-            fontSize={fontSize}
-            fontWeight="bold"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}
-            style={{ 
-              textShadow: "1px 1px 2px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.4)",
-              pointerEvents: "none"
-            }}
-          >
-            {textLines.map((line, lineIndex) => (
-              <tspan
-                key={lineIndex}
+          {segment.type === 'coins' ? (
+            // Render coin amount + coin icon
+            <g transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}>
+              <text
                 x={textX}
-                dy={lineIndex === 0 ? -((textLines.length - 1) * lineHeight) / 2 : lineHeight}
+                y={textY - fontSize * 0.15}
+                fill="#fff"
+                fontSize={fontSize * 1.2}
+                fontWeight="bold"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{ 
+                  textShadow: "1px 1px 2px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.4)",
+                  pointerEvents: "none"
+                }}
               >
-                {line}
-              </tspan>
-            ))}
-          </text>
+                {segment.amount}
+              </text>
+              <image
+                href={coinImageUrl}
+                x={textX - fontSize * 0.45}
+                y={textY + fontSize * 0.4}
+                width={fontSize * 0.9}
+                height={fontSize * 0.9}
+                style={{ pointerEvents: "none" }}
+              />
+            </g>
+          ) : (
+            // Render sticker pack label normally
+            <text
+              x={textX}
+              y={textY}
+              fill="#fff"
+              fontSize={fontSize}
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}
+              style={{ 
+                textShadow: "1px 1px 2px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.4)",
+                pointerEvents: "none"
+              }}
+            >
+              {textLines.map((line, lineIndex) => (
+                <tspan
+                  key={lineIndex}
+                  x={textX}
+                  dy={lineIndex === 0 ? -((textLines.length - 1) * lineHeight) / 2 : lineHeight}
+                >
+                  {line}
+                </tspan>
+              ))}
+            </text>
+          )}
         </g>
       );
     });
