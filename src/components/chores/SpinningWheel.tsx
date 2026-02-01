@@ -230,6 +230,7 @@ export function SpinningWheel({
 
   // Build exactly 16 slices with STRICT alternation: coin, pack, coin, pack...
   // This is purely visual - probabilities still control what you actually win.
+  // Custom coin layout: 3×10, 3×20, 1×30, 1×50 with 30 and 50 opposite each other
   const expandedSlices = (() => {
     const TARGET_SLICES = 16;
     const sliceAngle = 360 / TARGET_SLICES;
@@ -252,25 +253,33 @@ export function SpinningWheel({
       return { slices: spreadSlices, sliceAngle, totalSlices: TARGET_SLICES };
     }
 
-    // Deterministic alternation: even indices = coins, odd indices = packs
-    // Round-robin through each source to include variety
-    const arranged: WheelSegment[] = [];
-    let coinIdx = 0;
-    let packIdx = 0;
+    // Find specific coin segments by amount
+    const coin10 = coinSource.find(s => s.amount === 10) || coinSource[0];
+    const coin20 = coinSource.find(s => s.amount === 20) || coinSource[0];
+    const coin30 = coinSource.find(s => s.amount === 30) || coinSource[0];
+    const coin50 = coinSource.find(s => s.amount === 50) || coinSource[0];
 
+    // 8 coin slots at even indices (0,2,4,6,8,10,12,14)
+    // Layout: 3×10, 3×20, 1×30, 1×50 spread out, with 30 and 50 opposite (4 slots apart = 180°)
+    // Slot 0: 10, Slot 2: 20, Slot 4: 30 (opposite of 50), Slot 6: 10, Slot 8: 20, Slot 10: 10, Slot 12: 50 (opposite of 30), Slot 14: 20
+    const coinLayout = [coin10, coin20, coin30, coin10, coin20, coin10, coin50, coin20];
+
+    // 8 pack slots at odd indices - cycle through available packs
+    const packLayout = Array.from({ length: 8 }, (_, i) => packSource[i % packSource.length]);
+
+    // Build the 16-slice array alternating coin/pack
+    const arranged: WheelSegment[] = [];
     for (let i = 0; i < TARGET_SLICES; i++) {
       if (i % 2 === 0) {
-        // Even slot → coin
-        arranged.push(coinSource[coinIdx % coinSource.length]);
-        coinIdx++;
+        // Even slot → coin from our custom layout
+        arranged.push(coinLayout[i / 2]);
       } else {
         // Odd slot → pack
-        arranged.push(packSource[packIdx % packSource.length]);
-        packIdx++;
+        arranged.push(packLayout[(i - 1) / 2]);
       }
     }
 
-    // Dev sanity log (can remove later)
+    // Dev sanity log
     console.log("[SpinningWheel] Final 16-slice layout:", arranged.map(s => `${s.type}:${s.amount}`));
 
     const spreadSlices = arranged.map((segment, i) => ({
