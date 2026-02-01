@@ -232,6 +232,101 @@ export function SpinningWheel({
   const expandedSlices = (() => {
     const TARGET_SLICES = 16;
     const sliceAngle = 360 / TARGET_SLICES;
+
+    const isTenCoin = (s: WheelSegment) => s.type === "coins" && s.amount === 10;
+
+    // The wheel is circular, so adjacency wraps around.
+    // This reorders ONLY the visual slices (counts stay identical) to avoid
+    // long runs of 10-coin slices (e.g. three 10s in a row).
+    const breakUpTenRunsCircular = (input: WheelSegment[]) => {
+      const arr = [...input];
+      const n = arr.length;
+      if (n < 3) return arr;
+
+      const inRun = (start: number, len: number, idx: number) => {
+        for (let k = 0; k < len; k++) {
+          if (((start + k) % n) === idx) return true;
+        }
+        return false;
+      };
+
+      const findRun = () => {
+        // Scan the circular array by walking 2n elements.
+        let best: { start: number; len: number } | null = null;
+        let currentLen = 0;
+        let currentStart = 0;
+
+        for (let i = 0; i < n * 2; i++) {
+          const idx = i % n;
+          if (isTenCoin(arr[idx])) {
+            if (currentLen === 0) currentStart = i;
+            currentLen++;
+          } else {
+            if (currentLen >= 3) {
+              const start = currentStart % n;
+              const len = Math.min(currentLen, n);
+              // Only consider runs that begin within the first loop.
+              if (currentStart < n) {
+                best = best && best.len >= len ? best : { start, len };
+              }
+            }
+            currentLen = 0;
+          }
+        }
+
+        // Handle run that ends at the end of the scan.
+        if (currentLen >= 3 && currentStart < n) {
+          const start = currentStart % n;
+          const len = Math.min(currentLen, n);
+          best = best && best.len >= len ? best : { start, len };
+        }
+
+        return best;
+      };
+
+      // Iteratively swap the middle of a 10-run with a non-10 slice (prefer packs)
+      for (let guard = 0; guard < n * 4; guard++) {
+        const run = findRun();
+        if (!run) break;
+
+        const mid = (run.start + Math.floor(run.len / 2)) % n;
+
+        // Find a swap candidate not inside the run. Prefer sticker packs first.
+        const candidates = arr
+          .map((seg, idx) => ({ seg, idx }))
+          .filter(({ seg, idx }) => !isTenCoin(seg) && !inRun(run.start, run.len, idx));
+
+        if (candidates.length === 0) break;
+
+        const pickBest = (preferPacks: boolean) => {
+          const filtered = preferPacks
+            ? candidates.filter(c => c.seg.type === "sticker_pack")
+            : candidates;
+          const list = filtered.length > 0 ? filtered : candidates;
+
+          // Choose the closest candidate to the mid index (circular distance)
+          return list.reduce((best, cur) => {
+            const dist = Math.min(
+              Math.abs(cur.idx - mid),
+              n - Math.abs(cur.idx - mid)
+            );
+            const bestDist = best
+              ? Math.min(Math.abs(best.idx - mid), n - Math.abs(best.idx - mid))
+              : Number.POSITIVE_INFINITY;
+            return dist < bestDist ? cur : best;
+          }, null as { seg: WheelSegment; idx: number } | null);
+        };
+
+        const chosen = pickBest(true) ?? pickBest(false);
+        if (!chosen) break;
+
+        const tmp = arr[mid];
+        arr[mid] = arr[chosen.idx];
+        arr[chosen.idx] = tmp;
+      }
+
+      return arr;
+    };
     
     const rawCounts = segments.map(segment => ({
       segment,
@@ -295,10 +390,13 @@ export function SpinningWheel({
       if (i < packSlices.length) shuffled.push(packSlices[i]);
     }
     
+    // Final visual ordering pass to avoid long runs of 10-coin slices (circular)
+    const arranged = breakUpTenRunsCircular(shuffled);
+
     const spreadSlices: { segment: WheelSegment; startAngle: number; segmentAngle: number }[] = [];
     let currentAngle = 0;
     
-    shuffled.forEach((segment) => {
+    arranged.forEach((segment) => {
       spreadSlices.push({
         segment,
         startAngle: currentAngle,
