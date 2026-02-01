@@ -67,7 +67,6 @@ interface CoffeeCartItem {
     id: string;
     name: string;
     selling_price: number;
-    shipping_weight_oz?: number;
   };
 }
 
@@ -151,8 +150,7 @@ serve(async (req) => {
         coffee_product:coffee_products (
           id,
           name,
-          selling_price,
-          shipping_weight_oz
+          selling_price
         )
       `);
 
@@ -387,7 +385,7 @@ serve(async (req) => {
       for (const item of coffeeCartItems) {
         const pricePerUnit = (item.variant_info as any)?.price_per_unit ?? item.coffee_product?.selling_price ?? 0;
         coffeeSubtotalCents += Math.round(pricePerUnit * 100) * item.quantity;
-        coffeeTotalWeightOz += (item.coffee_product?.shipping_weight_oz || 16) * item.quantity;
+        coffeeTotalWeightOz += 16 * item.quantity; // Default 1 lb per coffee item
       }
       
       logStep("Coffee items calculated", { coffeeSubtotalCents, coffeeTotalWeightOz, itemCount: coffeeCartItems.length });
