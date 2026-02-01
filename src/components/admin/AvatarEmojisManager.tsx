@@ -108,8 +108,8 @@ export function AvatarEmojisManager() {
       return 'bright green (#4CAF50)';
     }
     
-    // Negative emotions - red tones
-    const negativeEmotions = ['sad', 'angry', 'scared', 'anxious', 'frustrated', 'disappointed', 'hurt', 'lonely', 'jealous', 'embarrassed', 'ashamed', 'guilty', 'worried', 'stressed', 'overwhelmed', 'depressed', 'fear', 'mad', 'upset', 'tired', 'exhausted', 'bored'];
+    // Negative emotions - red tones (removed 'tired' - it's neutral per database)
+    const negativeEmotions = ['sad', 'angry', 'scared', 'anxious', 'frustrated', 'disappointed', 'hurt', 'lonely', 'jealous', 'embarrassed', 'ashamed', 'guilty', 'worried', 'stressed', 'overwhelmed', 'depressed', 'fear', 'mad', 'upset', 'exhausted', 'bored'];
     if (negativeEmotions.some(e => name.includes(e)) || cat === 'negative') {
       return 'soft red (#EF5350)';
     }
