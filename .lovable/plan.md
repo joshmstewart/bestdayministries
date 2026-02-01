@@ -1,62 +1,61 @@
 
-# Fix: Announcement Timestamp Bug ("56 years ago")
+# Plan: Daily Fortune Dedicated Page + Remove Daily Check-in
 
-## Root Cause Analysis
+## Overview
+Create a dedicated Daily Fortune page and remove the redundant Daily Check-in page since mood tracking is handled by the Emotion Journal.
 
-The `community_feed_items` view uses `published_at` as the timestamp for content announcements:
-```sql
-ca.published_at AS created_at
-```
+## Changes
 
-However, the Valentine's Day Stickers announcement was created on Jan 28 but has `published_at = NULL`. This causes:
-1. **"56 years ago" display** - JavaScript's date-fns treats NULL as the Unix epoch (1970)
-2. **Floating to top** - NULL values sort unpredictably, often appearing first
+### 1. Create New Daily Fortune Page
+**New file:** `src/pages/DailyFortune.tsx`
+- Standard page layout (UnifiedHeader, Footer)
+- "Back to Home" button (per memory standard)
+- Uses existing `DailyFortune` component as main content
+- Also shows `FortuneComments` below the fortune for discussion
+- Link to "My Fortunes" (saved bookmarks) in header
 
-## Solution
+### 2. Update App Routes
+**File:** `src/App.tsx`
+- Add route: `/daily-fortune` → `DailyFortune` page
+- Remove route: `/daily-checkin` → `DailyCheckin` page
+- Remove lazy import for `DailyCheckin`
 
-Update the view to use `COALESCE(ca.published_at, ca.created_at)` so it falls back to the actual creation date when `published_at` is NULL.
+### 3. Update Apps Grid Configuration
+**File:** `src/components/community/appsConfig.ts`
+- Change the "daily-checkin" entry:
+  - ID: `daily-fortune`
+  - Name: "Daily Fortune" (or "Daily Inspiration")
+  - Route: `/daily-fortune`
+  - Icon: Sparkles
+  - Description: "Today's inspiration"
 
-## Implementation
+### 4. Update Internal Pages Registry
+**File:** `src/lib/internalPages.ts`
+- Remove `/daily-checkin` entry
+- Add `/daily-fortune` entry
 
-### 1. Database Migration
+### 5. Delete Redundant Files
+**Delete:** `src/pages/DailyCheckin.tsx`
+**Keep:** `src/components/daily-features/DailyHub.tsx` (may be useful for other purposes, or can be deleted if unused)
 
-Update the `community_feed_items` view to fix the announcement timestamp:
+### 6. Update DailyBar Fortune Behavior (Optional Enhancement)
+**File:** `src/components/daily-features/DailyBar.tsx`
+- Add "Full Page" link to Fortune popup (like Daily Five has)
+- Links to `/daily-fortune`
 
-```sql
--- In the Content Announcements section of the view (line ~241):
-COALESCE(ca.published_at, ca.created_at) AS created_at,
-```
+## Summary
 
-This ensures:
-- If `published_at` exists → use it (for scheduled posts)
-- If `published_at` is NULL → fall back to `created_at`
+| Change | Action |
+|--------|--------|
+| New `/daily-fortune` page | Create |
+| `/daily-checkin` route | Remove |
+| Apps grid config | Update ID/name/route |
+| Internal pages registry | Update |
+| `DailyCheckin.tsx` | Delete |
+| DailyBar popup | Add "Full Page" link |
 
-### 2. Optionally Fix the Existing Record
-
-Update the Valentine's Day announcement to have a proper `published_at`:
-
-```sql
-UPDATE content_announcements 
-SET published_at = created_at 
-WHERE id = 'b74150e2-8fdb-4405-b609-d01c291cd097';
-```
-
-## Technical Details
-
-| Item | Current | Fixed |
-|------|---------|-------|
-| View column | `ca.published_at` | `COALESCE(ca.published_at, ca.created_at)` |
-| Valentine post timestamp | NULL → 1970 | Jan 28, 2026 |
-| Sort behavior | Unpredictable | Correct chronological order |
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| New migration SQL | Recreate view with COALESCE fix |
-
-## Benefits
-
-- Posts without `published_at` will use their actual creation date
-- No more "56 years ago" display bugs
-- Proper chronological sorting in the feed
+## Result
+- Fortune gets its own dedicated page at `/daily-fortune`
+- Streak stays where it is (Community/Homepage)
+- Mood tracking goes through Emotion Journal
+- No more duplicate Daily Check-in page
