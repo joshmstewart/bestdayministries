@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
 import { TextToSpeech } from '@/components/TextToSpeech';
+import { VoiceInput } from '@/components/VoiceInput';
 import { cn } from '@/lib/utils';
 import { useAvatarEmotionImage } from '@/hooks/useAvatarEmotionImage';
 
@@ -221,6 +222,15 @@ export default function EmotionJournal() {
       setMoodSpeaking(false);
     }
   }, [moodTtsEnabled, moodTtsVoice]);
+
+  // Voice transcript handlers for notes dictation (matches DailyBar pattern)
+  const handleVoiceTranscriptJournal = useCallback((transcript: string) => {
+    setJournalText(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
+
+  const handleVoiceTranscriptEdit = useCallback((transcript: string) => {
+    setEditNoteText(prev => prev ? `${prev} ${transcript}` : transcript);
+  }, []);
   
   // Today's mood entry state (from daily bar)
   const [todaysMoodEntry, setTodaysMoodEntry] = useState<MoodEntry | null>(null);
@@ -797,6 +807,15 @@ export default function EmotionJournal() {
                         placeholder="Write about your feelings..."
                         className="min-h-[80px] text-base resize-none"
                       />
+                      <VoiceInput
+                        onTranscript={handleVoiceTranscriptEdit}
+                        placeholder="Tap microphone to add notes by voice..."
+                        buttonSize="sm"
+                        showTranscript={false}
+                        autoStop={true}
+                        silenceStopSeconds={15}
+                        maxDuration={60}
+                      />
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
@@ -980,6 +999,15 @@ export default function EmotionJournal() {
                       onChange={(e) => setJournalText(e.target.value)}
                       placeholder="What's on your mind? How are you feeling?"
                       className="min-h-[100px] resize-none bg-white/50"
+                    />
+                    <VoiceInput
+                      onTranscript={handleVoiceTranscriptJournal}
+                      placeholder="Tap microphone to add notes by voice..."
+                      buttonSize="sm"
+                      showTranscript={false}
+                      autoStop={true}
+                      silenceStopSeconds={15}
+                      maxDuration={60}
                     />
                   </div>
                 )}
