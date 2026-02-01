@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import defaultCoinImage from "@/assets/joycoin.png";
+import stickerPackIcon from "@/assets/sticker-pack-icon.png";
 
 export interface WheelSegment {
   label: string;
@@ -11,29 +12,29 @@ export interface WheelSegment {
   probability: number;
 }
 
-// Gradient definitions for wheel segments
-const SEGMENT_GRADIENTS: Record<string, { start: string; end: string }> = {
-  // Coin gradients (warm tones)
-  "#FFD700": { start: "hsl(46 95% 60%)", end: "hsl(36 95% 45%)" }, // Gold
-  "#FFA500": { start: "hsl(33 100% 60%)", end: "hsl(24 85% 45%)" }, // Orange
-  "#FF8C00": { start: "hsl(30 100% 55%)", end: "hsl(20 90% 40%)" }, // Dark Orange
-  "#DAA520": { start: "hsl(43 74% 55%)", end: "hsl(38 80% 40%)" }, // Goldenrod
-  // Sticker pack gradients (purple/lilac tones)
-  "#9370DB": { start: "hsl(270 60% 70%)", end: "hsl(280 60% 50%)" }, // Medium Purple
-  "#8A2BE2": { start: "hsl(271 80% 60%)", end: "hsl(281 85% 45%)" }, // Blue Violet
-  "#DDA0DD": { start: "hsl(300 47% 80%)", end: "hsl(290 50% 60%)" }, // Plum/Lilac
-  "#BA55D3": { start: "hsl(288 60% 65%)", end: "hsl(298 70% 45%)" }, // Medium Orchid
-  "#E6E6FA": { start: "hsl(240 67% 94%)", end: "hsl(260 60% 75%)" }, // Lavender
-  "#9932CC": { start: "hsl(280 75% 60%)", end: "hsl(290 80% 40%)" }, // Dark Orchid
+// Enhanced gradient definitions for wheel segments with 3D depth
+const SEGMENT_GRADIENTS: Record<string, { start: string; mid: string; end: string }> = {
+  // Coin gradients (warm tones) - enhanced with mid-tone for depth
+  "#FFD700": { start: "hsl(48 100% 70%)", mid: "hsl(43 95% 55%)", end: "hsl(36 90% 40%)" },
+  "#FFA500": { start: "hsl(38 100% 70%)", mid: "hsl(33 100% 55%)", end: "hsl(24 85% 38%)" },
+  "#FF8C00": { start: "hsl(35 100% 65%)", mid: "hsl(30 100% 50%)", end: "hsl(20 90% 35%)" },
+  "#DAA520": { start: "hsl(48 80% 65%)", mid: "hsl(43 74% 50%)", end: "hsl(38 80% 35%)" },
+  // Sticker pack gradients (purple/lilac tones) - enhanced with richer colors
+  "#9370DB": { start: "hsl(275 70% 78%)", mid: "hsl(270 60% 62%)", end: "hsl(280 55% 45%)" },
+  "#8A2BE2": { start: "hsl(276 85% 72%)", mid: "hsl(271 80% 55%)", end: "hsl(281 85% 40%)" },
+  "#DDA0DD": { start: "hsl(305 55% 85%)", mid: "hsl(300 47% 70%)", end: "hsl(290 50% 55%)" },
+  "#BA55D3": { start: "hsl(293 70% 75%)", mid: "hsl(288 60% 58%)", end: "hsl(298 70% 42%)" },
+  "#E6E6FA": { start: "hsl(245 75% 92%)", mid: "hsl(240 67% 82%)", end: "hsl(260 60% 68%)" },
+  "#9932CC": { start: "hsl(285 80% 70%)", mid: "hsl(280 75% 52%)", end: "hsl(290 80% 38%)" },
 };
 
 // Fallback gradient generator based on base color
-const getGradientForColor = (baseColor: string): { start: string; end: string } => {
+const getGradientForColor = (baseColor: string): { start: string; mid: string; end: string } => {
   if (SEGMENT_GRADIENTS[baseColor]) {
     return SEGMENT_GRADIENTS[baseColor];
   }
   // Default gradient - make it slightly lighter and darker
-  return { start: baseColor, end: baseColor };
+  return { start: baseColor, mid: baseColor, end: baseColor };
 };
 
 // Create a click/tick sound using Web Audio API
@@ -215,19 +216,15 @@ export function SpinningWheel({
   }, []);
 
   // Expand segments into exactly 16 equal slices based on probability
-  // Higher probability items get more slices, spread around the wheel
   const expandedSlices = (() => {
     const TARGET_SLICES = 16;
     const sliceAngle = 360 / TARGET_SLICES;
     
-    // Calculate how many slices each segment gets (proportional to probability)
-    // Round to distribute 16 slices total
     const rawCounts = segments.map(segment => ({
       segment,
       rawCount: segment.probability * TARGET_SLICES
     }));
     
-    // Round down first, then distribute remaining slices to highest remainders
     let sliceCounts = rawCounts.map(({ segment, rawCount }) => ({
       segment,
       count: Math.floor(rawCount),
@@ -236,9 +233,7 @@ export function SpinningWheel({
     
     let totalAssigned = sliceCounts.reduce((sum, s) => sum + s.count, 0);
     
-    // Distribute remaining slices based on highest remainders
     while (totalAssigned < TARGET_SLICES) {
-      // Find segment with highest remainder that hasn't been bumped
       sliceCounts.sort((a, b) => b.remainder - a.remainder);
       for (const sc of sliceCounts) {
         if (sc.remainder > 0) {
@@ -248,7 +243,6 @@ export function SpinningWheel({
           break;
         }
       }
-      // Safety: if all remainders are 0, give to first segment
       if (sliceCounts.every(s => s.remainder === 0) && totalAssigned < TARGET_SLICES) {
         sliceCounts[0].count++;
         totalAssigned++;
@@ -259,11 +253,9 @@ export function SpinningWheel({
     const coinSegments = sliceCounts.filter(sc => sc.segment.type === 'coins' && sc.count > 0);
     const packSegments = sliceCounts.filter(sc => sc.segment.type === 'sticker_pack' && sc.count > 0);
     
-    // Build arrays of all coin and pack slices
     const coinSlices: WheelSegment[] = [];
     const packSlices: WheelSegment[] = [];
     
-    // Distribute coin slices evenly across different coin amounts
     while (coinSegments.some(s => s.count > 0)) {
       for (const s of coinSegments) {
         if (s.count > 0) {
@@ -273,7 +265,6 @@ export function SpinningWheel({
       }
     }
     
-    // Distribute pack slices evenly across different pack amounts
     while (packSegments.some(s => s.count > 0)) {
       for (const s of packSegments) {
         if (s.count > 0) {
@@ -283,7 +274,6 @@ export function SpinningWheel({
       }
     }
     
-    // Interleave coins and packs around the wheel
     const shuffled: WheelSegment[] = [];
     const maxLen = Math.max(coinSlices.length, packSlices.length);
     
@@ -292,7 +282,6 @@ export function SpinningWheel({
       if (i < packSlices.length) shuffled.push(packSlices[i]);
     }
     
-    // Build the spread slices
     const spreadSlices: { segment: WheelSegment; startAngle: number; segmentAngle: number }[] = [];
     let currentAngle = 0;
     
@@ -325,7 +314,6 @@ export function SpinningWheel({
 
     const winningSegment = selectSegment();
     
-    // Find a random slice that belongs to the winning segment
     const matchingSlices = expandedSlices.slices
       .map((slice, index) => ({ slice, index }))
       .filter(({ slice }) => slice.segment === winningSegment);
@@ -334,9 +322,7 @@ export function SpinningWheel({
     const { sliceAngle } = expandedSlices;
 
     const baseSpins = 5;
-    // Calculate the center of the winning slice
     const targetAngle = randomSlice.slice.startAngle + sliceAngle / 2;
-    // Add some randomness within the slice (but not too close to edges)
     const wobbleRange = sliceAngle * 0.3;
     const randomOffset = (Math.random() - 0.5) * wobbleRange;
     const finalRotation = rotation + (baseSpins * 360) + (360 - targetAngle) + randomOffset;
@@ -350,7 +336,6 @@ export function SpinningWheel({
       });
     });
 
-    // Clear any existing timeout before setting a new one
     if (spinTimeoutRef.current) {
       clearTimeout(spinTimeoutRef.current);
     }
@@ -372,25 +357,7 @@ export function SpinningWheel({
   const radius = size / 2;
   const centerX = radius;
   const centerY = radius;
-
-  // Helper to wrap text into multiple lines
-  const wrapText = (text: string, maxCharsPerLine: number): string[] => {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-    
-    words.forEach(word => {
-      if (currentLine.length + word.length + 1 <= maxCharsPerLine) {
-        currentLine = currentLine ? `${currentLine} ${word}` : word;
-      } else {
-        if (currentLine) lines.push(currentLine);
-        currentLine = word;
-      }
-    });
-    if (currentLine) lines.push(currentLine);
-    
-    return lines;
-  };
+  const innerRadius = size / 6.5; // For center hub
 
   const generateSegments = () => {
     const { slices, sliceAngle } = expandedSlices;
@@ -405,18 +372,34 @@ export function SpinningWheel({
       const startRad = (startAngle * Math.PI) / 180;
       const endRad = (endAngle * Math.PI) / 180;
       
+      // Outer arc points
       const x1 = centerX + radius * Math.cos(startRad);
       const y1 = centerY + radius * Math.sin(startRad);
       const x2 = centerX + radius * Math.cos(endRad);
       const y2 = centerY + radius * Math.sin(endRad);
       
-      const largeArcFlag = sliceAngle > 180 ? 1 : 0;
-      const pathData = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+      // Inner arc points (for the donut shape)
+      const ix1 = centerX + innerRadius * Math.cos(startRad);
+      const iy1 = centerY + innerRadius * Math.sin(startRad);
+      const ix2 = centerX + innerRadius * Math.cos(endRad);
+      const iy2 = centerY + innerRadius * Math.sin(endRad);
       
-      // Calculate text position - closer to outer edge for larger text
+      const largeArcFlag = sliceAngle > 180 ? 1 : 0;
+      
+      // Create donut slice path
+      const pathData = `
+        M ${ix1} ${iy1}
+        L ${x1} ${y1}
+        A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}
+        L ${ix2} ${iy2}
+        A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${ix1} ${iy1}
+        Z
+      `;
+      
+      // Calculate text/icon position - in the middle of the donut
       const textAngle = startAngle + sliceAngle / 2;
       const textRad = (textAngle * Math.PI) / 180;
-      const textRadius = radius * 0.75; // Moved from 0.62 to 0.75 for outer edge
+      const textRadius = (radius + innerRadius) / 2;
       const textX = centerX + textRadius * Math.cos(textRad);
       const textY = centerY + textRadius * Math.sin(textRad);
 
@@ -424,6 +407,7 @@ export function SpinningWheel({
       const midAngle = startAngle + sliceAngle / 2;
       const midRad = (midAngle * Math.PI) / 180;
       const gradientId = `segment-gradient-${index}`;
+      const highlightId = `segment-highlight-${index}`;
       
       // Calculate gradient direction (from center outward)
       const gradX1 = 50;
@@ -433,18 +417,15 @@ export function SpinningWheel({
 
       const gradient = getGradientForColor(segment.color);
       
-      // Calculate font size - larger now that text is near outer edge
-      const sliceArcLength = (sliceAngle / 360) * 2 * Math.PI * radius * 0.75;
-      const fontSize = Math.min(size / 16, sliceArcLength / 3); // Increased from size/22 to size/16
-      
-      // Wrap text if needed - calculate max chars based on available space
-      const maxCharsPerLine = Math.max(5, Math.floor(sliceArcLength / (fontSize * 0.55)));
-      const textLines = wrapText(segment.label, maxCharsPerLine);
-      const lineHeight = fontSize * 1.15;
+      // Calculate icon/number size - scaled to fit nicely in the donut
+      const availableSpace = radius - innerRadius;
+      const iconSize = Math.min(availableSpace * 0.6, 40);
+      const fontSize = Math.min(availableSpace * 0.45, 28);
       
       return (
         <g key={index}>
           <defs>
+            {/* Main gradient with 3 stops for depth */}
             <linearGradient
               id={gradientId}
               x1={`${gradX1}%`}
@@ -453,72 +434,80 @@ export function SpinningWheel({
               y2={`${gradY2}%`}
             >
               <stop offset="0%" stopColor={gradient.start} />
+              <stop offset="50%" stopColor={gradient.mid} />
               <stop offset="100%" stopColor={gradient.end} />
             </linearGradient>
+            {/* Inner highlight for 3D effect */}
+            <linearGradient
+              id={highlightId}
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor="hsl(0 0% 100% / 0.25)" />
+              <stop offset="50%" stopColor="hsl(0 0% 100% / 0.05)" />
+              <stop offset="100%" stopColor="hsl(0 0% 0% / 0.15)" />
+            </linearGradient>
           </defs>
+          
+          {/* Main segment fill */}
           <path
             d={pathData}
             fill={`url(#${gradientId})`}
-            stroke="hsl(0 0% 100% / 0.9)"
-            strokeWidth="2"
-            style={{
-              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.15))"
-            }}
+            stroke="hsl(0 0% 100% / 0.4)"
+            strokeWidth="1"
           />
-          {segment.type === 'coins' ? (
-            // Render coin amount + coin icon
-            <g transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}>
-              <text
-                x={textX}
-                y={textY - fontSize * 0.15}
-                fill="#fff"
-                fontSize={fontSize * 1.2}
-                fontWeight="bold"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                style={{ 
-                  textShadow: "1px 1px 2px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.4)",
-                  pointerEvents: "none"
-                }}
-              >
-                {segment.amount}
-              </text>
-              <image
-                href={coinImageUrl}
-                x={textX - fontSize * 0.45}
-                y={textY + fontSize * 0.4}
-                width={fontSize * 0.9}
-                height={fontSize * 0.9}
-                style={{ pointerEvents: "none" }}
-              />
-            </g>
-          ) : (
-            // Render sticker pack label normally
+          
+          {/* Highlight overlay for 3D depth */}
+          <path
+            d={pathData}
+            fill={`url(#${highlightId})`}
+            stroke="none"
+          />
+          
+          {/* Inner edge shadow line */}
+          <path
+            d={pathData}
+            fill="none"
+            stroke="hsl(0 0% 0% / 0.15)"
+            strokeWidth="1"
+            style={{ strokeDasharray: "none" }}
+          />
+          
+          {/* Segment content - number + icon */}
+          <g transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}>
+            {/* Amount number */}
             <text
               x={textX}
-              y={textY}
+              y={textY - iconSize * 0.35}
               fill="#fff"
               fontSize={fontSize}
-              fontWeight="bold"
+              fontWeight="800"
+              fontFamily="system-ui, -apple-system, sans-serif"
               textAnchor="middle"
               dominantBaseline="middle"
-              transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}
               style={{ 
-                textShadow: "1px 1px 2px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.4)",
-                pointerEvents: "none"
+                textShadow: "0 2px 4px rgba(0,0,0,0.5), 0 0 8px rgba(0,0,0,0.3)",
+                pointerEvents: "none",
+                letterSpacing: "-0.02em"
               }}
             >
-              {textLines.map((line, lineIndex) => (
-                <tspan
-                  key={lineIndex}
-                  x={textX}
-                  dy={lineIndex === 0 ? -((textLines.length - 1) * lineHeight) / 2 : lineHeight}
-                >
-                  {line}
-                </tspan>
-              ))}
+              {segment.amount}
             </text>
-          )}
+            {/* Icon - coin or pack */}
+            <image
+              href={segment.type === 'coins' ? coinImageUrl : stickerPackIcon}
+              x={textX - iconSize * 0.4}
+              y={textY + iconSize * 0.05}
+              width={iconSize * 0.8}
+              height={iconSize * 0.8}
+              style={{ 
+                pointerEvents: "none",
+                filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.4))"
+              }}
+            />
+          </g>
         </g>
       );
     });
@@ -530,55 +519,65 @@ export function SpinningWheel({
     }
   };
 
-  // Compute whether the wheel is truly disabled for interaction
   const isDisabled = disabled || isAnimating || spinning;
 
   return (
     <div className="relative flex flex-col items-center gap-4">
-      {/* Decorative outer glow ring - pointer-events-none so clicks pass through */}
+      {/* Ambient glow effect */}
       <div 
         className="absolute rounded-full animate-pulse pointer-events-none"
         style={{
-          width: size + 24,
-          height: size + 24,
-          top: -12,
+          width: size + 60,
+          height: size + 60,
+          top: -30,
           left: "50%",
           transform: "translateX(-50%)",
-          background: "radial-gradient(circle, hsl(46 95% 55% / 0.3) 0%, transparent 70%)",
-          filter: "blur(8px)",
+          background: "radial-gradient(circle, hsl(46 95% 55% / 0.25) 0%, hsl(24 85% 50% / 0.15) 40%, transparent 70%)",
+          filter: "blur(12px)",
         }}
       />
       
-      {/* Pointer at top - pointer-events-none so clicks pass through */}
+      {/* Pointer at top */}
       <div 
-        className="absolute z-10 pointer-events-none"
+        className="absolute z-20 pointer-events-none"
         style={{
-          top: -10,
+          top: -14,
           left: "50%",
           transform: "translateX(-50%)",
         }}
       >
-        <svg width="36" height="32" viewBox="0 0 36 32" className="pointer-events-none">
+        <svg width="40" height="36" viewBox="0 0 40 36" className="pointer-events-none">
           <defs>
-            <linearGradient id="pointer-gradient" x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="hsl(24 85% 60%)" />
-              <stop offset="100%" stopColor="hsl(24 95% 45%)" />
+            <linearGradient id="pointer-gradient-main" x1="50%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%" stopColor="hsl(46 95% 70%)" />
+              <stop offset="50%" stopColor="hsl(36 90% 55%)" />
+              <stop offset="100%" stopColor="hsl(24 85% 45%)" />
+            </linearGradient>
+            <linearGradient id="pointer-highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="hsl(0 0% 100% / 0.6)" />
+              <stop offset="100%" stopColor="hsl(0 0% 100% / 0)" />
             </linearGradient>
             <filter id="pointer-shadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.4" />
+              <feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity="0.5" />
             </filter>
           </defs>
+          {/* Main pointer */}
           <polygon 
-            points="18,30 4,0 32,0" 
-            fill="url(#pointer-gradient)"
+            points="20,34 4,2 36,2" 
+            fill="url(#pointer-gradient-main)"
             stroke="hsl(0 0% 100%)"
-            strokeWidth="2"
+            strokeWidth="2.5"
             filter="url(#pointer-shadow)"
+          />
+          {/* Highlight */}
+          <polygon 
+            points="20,28 10,6 20,4" 
+            fill="url(#pointer-highlight)"
           />
         </svg>
       </div>
       
-      {/* Wheel container with decorative border - clickable button */}
+      {/* Main wheel container with premium metallic rim */}
       <button
         type="button"
         onClick={handleClick}
@@ -587,25 +586,71 @@ export function SpinningWheel({
         className={cn(
           "relative rounded-full transition-transform border-none outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
           !isDisabled && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
-          isDisabled && "opacity-70 cursor-not-allowed"
+          isDisabled && "opacity-80 cursor-not-allowed"
         )}
         style={{
-          width: size + 12,
-          height: size + 12,
-          padding: 6,
-          background: "linear-gradient(135deg, hsl(46 95% 60%) 0%, hsl(24 85% 50%) 50%, hsl(46 95% 55%) 100%)",
-          boxShadow: "0 8px 32px hsl(24 85% 40% / 0.4), inset 0 2px 4px hsl(0 0% 100% / 0.3)",
+          width: size + 24,
+          height: size + 24,
+          padding: 0,
+          background: "transparent",
         }}
       >
+        {/* Outer metallic rim */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `
+              linear-gradient(135deg, 
+                hsl(46 90% 75%) 0%, 
+                hsl(36 85% 55%) 25%, 
+                hsl(24 80% 40%) 50%, 
+                hsl(36 85% 55%) 75%, 
+                hsl(46 90% 70%) 100%
+              )
+            `,
+            boxShadow: `
+              0 12px 40px hsl(24 80% 30% / 0.5),
+              0 4px 12px hsl(24 80% 30% / 0.3),
+              inset 0 2px 4px hsl(0 0% 100% / 0.4),
+              inset 0 -2px 4px hsl(24 80% 20% / 0.3)
+            `,
+          }}
+        />
+        
+        {/* Inner metallic ring (bevel effect) */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            top: 6,
+            left: 6,
+            right: 6,
+            bottom: 6,
+            background: `
+              linear-gradient(180deg, 
+                hsl(24 70% 35%) 0%, 
+                hsl(36 80% 50%) 50%, 
+                hsl(24 70% 35%) 100%
+              )
+            `,
+            boxShadow: `
+              inset 0 3px 6px hsl(0 0% 100% / 0.3),
+              inset 0 -3px 6px hsl(24 80% 20% / 0.4)
+            `,
+          }}
+        />
+        
+        {/* Wheel surface */}
         <div
           ref={wheelRef}
-          className="relative rounded-full overflow-hidden"
+          className="absolute rounded-full overflow-hidden"
           style={{
+            top: 12,
+            left: 12,
             width: size,
             height: size,
             transform: `rotate(${rotation}deg)`,
             transition: isAnimating ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
-            boxShadow: "inset 0 0 20px rgba(0,0,0,0.1)",
+            boxShadow: "inset 0 0 30px rgba(0,0,0,0.15)",
           }}
         >
           <svg
@@ -614,33 +659,61 @@ export function SpinningWheel({
             viewBox={`0 0 ${size} ${size}`}
             className="rounded-full pointer-events-none"
           >
-            {generateSegments()}
-            {/* Center circle with gradient */}
             <defs>
-              <radialGradient id="center-gradient" cx="50%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="hsl(0 0% 100%)" />
-                <stop offset="100%" stopColor="hsl(46 35% 96%)" />
+              {/* Premium center hub gradients */}
+              <radialGradient id="center-hub-bg" cx="50%" cy="35%" r="65%">
+                <stop offset="0%" stopColor="hsl(46 90% 85%)" />
+                <stop offset="70%" stopColor="hsl(36 85% 60%)" />
+                <stop offset="100%" stopColor="hsl(24 80% 45%)" />
               </radialGradient>
-              <linearGradient id="center-border" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="hsl(46 95% 60%)" />
-                <stop offset="100%" stopColor="hsl(24 85% 50%)" />
+              <radialGradient id="center-hub-shine" cx="30%" cy="25%" r="50%">
+                <stop offset="0%" stopColor="hsl(0 0% 100% / 0.7)" />
+                <stop offset="100%" stopColor="hsl(0 0% 100% / 0)" />
+              </radialGradient>
+              <linearGradient id="center-hub-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="hsl(46 95% 75%)" />
+                <stop offset="50%" stopColor="hsl(24 85% 45%)" />
+                <stop offset="100%" stopColor="hsl(46 95% 70%)" />
               </linearGradient>
             </defs>
+            
+            {generateSegments()}
+            
+            {/* Center hub - outer ring */}
             <circle
               cx={centerX}
               cy={centerY}
-              r={size / 8}
-              fill="url(#center-gradient)"
-              stroke="url(#center-border)"
-              strokeWidth="4"
-              style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))" }}
+              r={innerRadius + 4}
+              fill="url(#center-hub-ring)"
+              style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
             />
+            
+            {/* Center hub - main circle */}
+            <circle
+              cx={centerX}
+              cy={centerY}
+              r={innerRadius}
+              fill="url(#center-hub-bg)"
+              stroke="hsl(24 80% 35%)"
+              strokeWidth="2"
+            />
+            
+            {/* Center hub - shine overlay */}
+            <circle
+              cx={centerX}
+              cy={centerY}
+              r={innerRadius - 2}
+              fill="url(#center-hub-shine)"
+            />
+            
+            {/* Center emoji */}
             <text
               x={centerX}
               y={centerY}
-              fontSize={size / 12}
+              fontSize={innerRadius * 0.9}
               textAnchor="middle"
-              dominantBaseline="middle"
+              dominantBaseline="central"
+              style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.2))" }}
             >
               🎁
             </text>
