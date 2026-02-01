@@ -6,24 +6,37 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Coffee vendor ID - house vendor for Best Day Ever Coffee
+const COFFEE_VENDOR_ID = "f8c7d9e6-5a4b-3c2d-1e0f-9a8b7c6d5e4f";
+const DEFAULT_COFFEE_WEIGHT_OZ = 16; // Default 1lb per coffee product
+
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[SYNC-ORDER-SHIPSTATION] ${step}${detailsStr}`);
 };
 
-interface OrderItem {
+interface OrderItemWithProduct {
   id: string;
   order_id: string;
-  product_id: string;
+  product_id: string | null;
+  coffee_product_id: string | null;
   vendor_id: string;
   quantity: number;
   price_at_purchase: number;
-  products: {
+  shipstation_order_id: string | null;
+  // Joined product data (nullable)
+  products?: {
     id: string;
     name: string;
     sku?: string;
     weight?: number;
-  };
+  } | null;
+  // Joined coffee product data (nullable)
+  coffee_products?: {
+    id: string;
+    name: string;
+    shipstation_sku?: string;
+  } | null;
 }
 
 interface Order {
@@ -104,13 +117,14 @@ serve(async (req) => {
       );
     }
 
-    // Fetch order items (optionally filter by vendor)
+    // Fetch order items - join both products and coffee_products tables
     let itemsQuery = supabaseClient
       .from("order_items")
       .select(`
         id,
         order_id,
         product_id,
+        coffee_product_id,
         vendor_id,
         quantity,
         price_at_purchase,
@@ -120,6 +134,11 @@ serve(async (req) => {
           name,
           sku,
           weight
+        ),
+        coffee_products (
+          id,
+          name,
+          shipstation_sku
         )
       `)
       .eq("order_id", orderId)
@@ -138,7 +157,10 @@ serve(async (req) => {
       );
     }
 
-    if (!items || items.length === 0) {
+    // Type assertion
+    const typedItems = (items || []) as unknown as OrderItemWithProduct[];
+
+    if (typedItems.length === 0) {
       logStep("No unsynced items found");
       return new Response(
         JSON.stringify({ message: "No items to sync", synced: 0 }),
@@ -146,11 +168,11 @@ serve(async (req) => {
       );
     }
 
-    logStep("Found items to sync", { count: items.length });
+    logStep("Found items to sync", { count: typedItems.length });
 
     // Group items by vendor (each vendor gets their own ShipStation order)
-    const itemsByVendor = new Map<string, typeof items>();
-    for (const item of items) {
+    const itemsByVendor = new Map<string, OrderItemWithProduct[]>();
+    for (const item of typedItems) {
       const vid = item.vendor_id;
       if (!itemsByVendor.has(vid)) {
         itemsByVendor.set(vid, []);
@@ -189,21 +211,53 @@ serve(async (req) => {
             postalCode: typedOrder.shipping_address.postal_code,
             country: typedOrder.shipping_address.country,
           },
-          items: vendorItems.map((item: any) => ({
-            sku: item.products?.sku || item.product_id.slice(0, 8),
-            name: item.products?.name || "Product",
-            quantity: item.quantity,
-            unitPrice: item.price_at_purchase,
-            weight: {
-              value: item.products?.weight || 1,
-              units: "ounces",
-            },
-          })),
+          items: vendorItems.map((item) => {
+            // Determine if this is a coffee product or regular product
+            const isCoffee = item.coffee_product_id !== null;
+            
+            if (isCoffee && item.coffee_products) {
+              // Coffee product - use shipstation_sku from coffee_products
+              return {
+                sku: item.coffee_products.shipstation_sku || `COFFEE-${(item.coffee_product_id || 'UNKNOWN').slice(0, 8)}`,
+                name: item.coffee_products.name || "Coffee Product",
+                quantity: item.quantity,
+                unitPrice: item.price_at_purchase,
+                weight: {
+                  value: DEFAULT_COFFEE_WEIGHT_OZ,
+                  units: "ounces",
+                },
+              };
+            } else if (item.products) {
+              // Regular product
+              return {
+                sku: item.products.sku || (item.product_id ? item.product_id.slice(0, 8) : "UNKNOWN"),
+                name: item.products.name || "Product",
+                quantity: item.quantity,
+                unitPrice: item.price_at_purchase,
+                weight: {
+                  value: item.products.weight || 1,
+                  units: "ounces",
+                },
+              };
+            } else {
+              // Fallback for items without joined data
+              return {
+                sku: (item.product_id || item.coffee_product_id || "UNKNOWN").slice(0, 8),
+                name: "Product",
+                quantity: item.quantity,
+                unitPrice: item.price_at_purchase,
+                weight: {
+                  value: 1,
+                  units: "ounces",
+                },
+              };
+            }
+          }),
           amountPaid: vendorItems.reduce(
-            (sum: number, item: any) => sum + item.price_at_purchase * item.quantity,
+            (sum, item) => sum + item.price_at_purchase * item.quantity,
             0
           ),
-          internalNotes: `Lovable Order ID: ${orderId}, Vendor ID: ${vid}`,
+          internalNotes: `Lovable Order ID: ${orderId}, Vendor ID: ${vid}${vid === COFFEE_VENDOR_ID ? ' (Coffee)' : ''}`,
         };
 
         logStep("Creating ShipStation order", { vendorId: vid, orderKey: shipstationOrder.orderKey });

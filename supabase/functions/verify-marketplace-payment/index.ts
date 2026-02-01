@@ -466,6 +466,33 @@ serve(async (req) => {
         });
       }
 
+      // Trigger ShipStation sync for non-Printify items (handmade products, coffee, etc.)
+      try {
+        const shipstationResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/sync-order-to-shipstation`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({ orderId: order_id }),
+          }
+        );
+
+        const shipstationResult = await shipstationResponse.json();
+        logStep("ShipStation sync result", {
+          ok: shipstationResponse.ok,
+          status: shipstationResponse.status,
+          body: shipstationResult,
+        });
+      } catch (shipstationError) {
+        // Log but don't fail the payment verification if ShipStation sync fails
+        logStep("Warning: ShipStation sync failed", {
+          error: shipstationError instanceof Error ? shipstationError.message : String(shipstationError),
+        });
+      }
+
       // Send order confirmation email to customer
       try {
         const customerEmail = session.customer_details?.email || session.customer_email || order.customer_email;

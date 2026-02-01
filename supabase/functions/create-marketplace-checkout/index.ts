@@ -11,6 +11,9 @@ const corsHeaders = {
 const FLAT_SHIPPING_RATE_CENTS = 699; // $6.99
 const DEFAULT_FREE_SHIPPING_THRESHOLD_CENTS = 3500; // $35.00 default
 
+// Coffee vendor ID - house vendor for Best Day Ever Coffee
+const COFFEE_VENDOR_ID = "f8c7d9e6-5a4b-3c2d-1e0f-9a8b7c6d5e4f";
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[MARKETPLACE-CHECKOUT] ${step}${detailsStr}`);
@@ -35,6 +38,20 @@ interface CartItem {
       is_house_vendor: boolean;
       free_shipping_threshold: number | null;
     };
+  };
+}
+
+interface CoffeeCartItem {
+  id: string;
+  coffee_product_id: string;
+  quantity: number;
+  tier_quantity: number;
+  unit_price: number;
+  coffee_products: {
+    id: string;
+    name: string;
+    image_url: string | null;
+    shipstation_sku: string | null;
   };
 }
 
@@ -101,7 +118,8 @@ serve(async (req) => {
             free_shipping_threshold
           )
         )
-      `);
+      `)
+      .not("product_id", "is", null);
 
     if (user) {
       cartQuery = cartQuery.eq("user_id", user.id);
@@ -114,11 +132,48 @@ serve(async (req) => {
     const { data: cartItems, error: cartError } = await cartQuery;
 
     if (cartError) throw new Error(`Failed to fetch cart: ${cartError.message}`);
-    if (!cartItems || cartItems.length === 0) throw new Error("Cart is empty");
-    logStep("Cart items fetched", { count: cartItems.length, isGuest: !user });
-
+    
     // Type assertion for nested data
-    const typedCartItems = cartItems as unknown as CartItem[];
+    const typedCartItems = (cartItems || []) as unknown as CartItem[];
+
+    // Query coffee items from cart
+    let coffeeCartQuery = supabaseClient
+      .from("shopping_cart")
+      .select(`
+        id,
+        coffee_product_id,
+        quantity,
+        tier_quantity,
+        unit_price,
+        coffee_products (
+          id,
+          name,
+          image_url,
+          shipstation_sku
+        )
+      `)
+      .not("coffee_product_id", "is", null);
+
+    if (user) {
+      coffeeCartQuery = coffeeCartQuery.eq("user_id", user.id);
+    } else if (guestSessionId) {
+      coffeeCartQuery = coffeeCartQuery.eq("session_id", guestSessionId);
+    }
+
+    const { data: coffeeCartItems, error: coffeeCartError } = await coffeeCartQuery;
+    if (coffeeCartError) throw new Error(`Failed to fetch coffee cart: ${coffeeCartError.message}`);
+    
+    const typedCoffeeItems = (coffeeCartItems || []) as unknown as CoffeeCartItem[];
+    
+    logStep("Cart items fetched", { 
+      productCount: typedCartItems.length, 
+      coffeeCount: typedCoffeeItems.length,
+      isGuest: !user 
+    });
+
+    if (typedCartItems.length === 0 && typedCoffeeItems.length === 0) {
+      throw new Error("Cart is empty");
+    }
 
     // INVENTORY CHECK: Verify all items have sufficient stock before proceeding
     const inventoryIssues: string[] = [];
@@ -183,8 +238,15 @@ serve(async (req) => {
 
     logStep("Items categorized", { 
       officialMerchCount: officialMerchItems.length, 
-      vendorItemsCount: vendorItems.length 
+      vendorItemsCount: vendorItems.length,
+      coffeeItemsCount: typedCoffeeItems.length
     });
+
+    // Calculate coffee subtotal for grouping
+    let coffeeSubtotalCents = 0;
+    for (const coffeeItem of typedCoffeeItems) {
+      coffeeSubtotalCents += Math.round(coffeeItem.unit_price * 100) * coffeeItem.quantity;
+    }
 
     // Get commission percentage (only applies to regular vendor items)
     const { data: commissionData } = await supabaseClient
@@ -261,6 +323,34 @@ serve(async (req) => {
       groupData.items.push(item);
     }
 
+    // Add coffee vendor group if there are coffee items
+    if (typedCoffeeItems.length > 0) {
+      // Get coffee shipping settings for threshold
+      const { data: coffeeShippingSettings } = await supabaseClient
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "coffee_shipping_settings")
+        .single();
+      
+      const coffeeSettings = coffeeShippingSettings?.setting_value as any;
+      const coffeeFreeThreshold = coffeeSettings?.free_shipping_threshold 
+        ? Math.round(coffeeSettings.free_shipping_threshold * 100)
+        : DEFAULT_FREE_SHIPPING_THRESHOLD_CENTS;
+      
+      groupTotals.set(COFFEE_VENDOR_ID, {
+        groupKey: COFFEE_VENDOR_ID,
+        vendorId: COFFEE_VENDOR_ID,
+        stripeAccountId: null, // House vendor
+        isHouseVendor: true,
+        subtotal: coffeeSubtotalCents,
+        platformFee: coffeeSubtotalCents, // 100% to platform
+        vendorPayout: 0,
+        shippingFee: 0, // Will be calculated below
+        items: [], // Coffee items tracked separately
+        freeShippingThresholdCents: coffeeFreeThreshold
+      });
+    }
+
     // Calculate fees and shipping for each vendor group
     for (const groupData of groupTotals.values()) {
       // Check if we have pre-calculated shipping for this vendor
@@ -294,6 +384,7 @@ serve(async (req) => {
     const totalShipping = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.shippingFee, 0);
     const totalPlatformFee = Array.from(groupTotals.values()).reduce((sum, v) => sum + v.platformFee, 0);
     const hasOfficialMerch = Array.from(groupTotals.values()).some(g => g.isHouseVendor);
+    const hasCoffee = typedCoffeeItems.length > 0;
     
     // Calculate Stripe processing fee to pass to customer
     // Stripe charges 2.9% + $0.30 per transaction
@@ -309,7 +400,8 @@ serve(async (req) => {
       totalAmount, 
       totalPlatformFee, 
       groupCount: groupTotals.size,
-      hasOfficialMerch
+      hasOfficialMerch,
+      hasCoffee
     });
 
     // Check or create Stripe customer (only if we have an email)
@@ -337,6 +429,19 @@ serve(async (req) => {
       quantity: item.quantity,
     }));
 
+    // Create line items for coffee products
+    const coffeeLineItems = typedCoffeeItems.map(item => ({
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: `${item.coffee_products.name} (${item.tier_quantity}-pack)`,
+          images: item.coffee_products.image_url ? [item.coffee_products.image_url] : [],
+        },
+        unit_amount: Math.round(item.unit_price * 100),
+      },
+      quantity: item.quantity,
+    }));
+
     // Add processing fee as a separate line item with explanation
     const processingFeeLineItem = {
       price_data: {
@@ -351,7 +456,7 @@ serve(async (req) => {
     };
 
     // Note: Shipping is handled via shipping_options, not line items
-    const allLineItems = [...productLineItems, processingFeeLineItem];
+    const allLineItems = [...productLineItems, ...coffeeLineItems, processingFeeLineItem];
 
     // Create order record - use customer_id for authenticated users (matches OrderHistory.tsx)
     const { data: order, error: orderError } = await supabaseClient
@@ -372,7 +477,7 @@ serve(async (req) => {
     if (orderError) throw new Error(`Failed to create order: ${orderError.message}`);
     logStep("Order created", { orderId: order.id, customerId: order.customer_id, userId: order.user_id });
 
-    // Create order items with fee breakdown
+    // Create order items with fee breakdown (regular products)
     const orderItems = typedCartItems.map(item => {
       const groupData = groupTotals.get(item.products.vendor_id)!;
       const itemTotalCents = Math.round(item.products.price * 100) * item.quantity;
@@ -389,12 +494,32 @@ serve(async (req) => {
       };
     });
 
-    const { error: itemsError } = await supabaseClient
-      .from("order_items")
-      .insert(orderItems);
+    // Create order items for coffee products (use coffee_product_id, not product_id)
+    const coffeeOrderItems = typedCoffeeItems.map(item => ({
+      order_id: order.id,
+      coffee_product_id: item.coffee_product_id,
+      vendor_id: COFFEE_VENDOR_ID,
+      quantity: item.quantity,
+      price_at_purchase: item.unit_price,
+      platform_fee: item.unit_price * item.quantity, // 100% to platform
+      vendor_payout: 0,
+    }));
 
-    if (itemsError) throw new Error(`Failed to create order items: ${itemsError.message}`);
-    logStep("Order items created", { count: orderItems.length });
+    // Insert all order items
+    const allOrderItems = [...orderItems, ...coffeeOrderItems];
+    
+    if (allOrderItems.length > 0) {
+      const { error: itemsError } = await supabaseClient
+        .from("order_items")
+        .insert(allOrderItems);
+
+      if (itemsError) throw new Error(`Failed to create order items: ${itemsError.message}`);
+    }
+    
+    logStep("Order items created", { 
+      productCount: orderItems.length, 
+      coffeeCount: coffeeOrderItems.length 
+    });
 
     const origin = req.headers.get("origin") || "https://lovable.dev";
     logStep("Using origin for redirect", { origin });

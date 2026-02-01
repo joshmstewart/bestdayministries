@@ -57,8 +57,8 @@ interface CoffeeOrder {
   price_at_purchase: number;
 }
 
-// Coffee vendor ID - this would be stored in config in production
-const COFFEE_VENDOR_ID = "coffee-vendor"; // Placeholder - we'll need to set this up
+// Coffee vendor ID - house vendor for Best Day Ever Coffee
+const COFFEE_VENDOR_ID = "f8c7d9e6-5a4b-3c2d-1e0f-9a8b7c6d5e4f";
 
 export const CoffeeVendorManager = () => {
   const { toast } = useToast();
