@@ -144,10 +144,10 @@ export function ChoreRewardWheelDialog({
         const today = getMSTDate();
         const { data: spinData } = await supabase
           .from("chore_wheel_spins")
-          .select("id, prize_type, prize_amount")
+          .select("id, prize_type, prize_amount, card_ids")
           .eq("user_id", userId)
           .eq("spin_date", today)
-          .maybeSingle();
+          .maybeSingle() as { data: { id: string; prize_type: string; prize_amount: number; card_ids: string[] | null } | null; error: unknown };
 
         if (spinData) {
           setHasSpunToday(true);
@@ -161,6 +161,10 @@ export function ChoreRewardWheelDialog({
             color: spinData.prize_type === "coins" ? "#FFD700" : "#9370DB",
             probability: 0,
           });
+          // Load card IDs for "Open Sticker Pack" button
+          if (spinData.card_ids && spinData.card_ids.length > 0) {
+            setWonCardIds(spinData.card_ids);
+          }
         }
       } catch (error) {
         console.error("Error loading wheel data:", error);

@@ -2036,6 +2036,7 @@ export type Database = {
       }
       chore_wheel_spins: {
         Row: {
+          card_ids: string[] | null
           created_at: string
           id: string
           prize_amount: number
@@ -2045,6 +2046,7 @@ export type Database = {
           wheel_config: string
         }
         Insert: {
+          card_ids?: string[] | null
           created_at?: string
           id?: string
           prize_amount: number
@@ -2054,6 +2056,7 @@ export type Database = {
           wheel_config: string
         }
         Update: {
+          card_ids?: string[] | null
           created_at?: string
           id?: string
           prize_amount?: number

@@ -206,6 +206,15 @@ serve(async (req) => {
         }
       }
 
+      // Update the spin record with card IDs so they can be retrieved later
+      if (cardIds.length > 0) {
+        await adminClient
+          .from("chore_wheel_spins")
+          .update({ card_ids: cardIds })
+          .eq("user_id", user.id)
+          .eq("spin_date", mstDate);
+      }
+
       return new Response(JSON.stringify({ 
         success: true, 
         prizeType: "sticker_pack",
