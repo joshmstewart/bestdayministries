@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductCard } from "./ProductCard";
+import { CoffeeProductCard } from "./CoffeeProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductGridProps {
@@ -10,8 +11,19 @@ interface ProductGridProps {
   categoryFilters?: string[];
 }
 
+// Type for unified product display
+interface UnifiedProduct {
+  id: string;
+  name: string;
+  price: number;
+  created_at: string;
+  type: 'regular' | 'coffee';
+  data: any;
+}
+
 export const ProductGrid = ({ category, sortBy = "newest", searchQuery = "", categoryFilters = [] }: ProductGridProps) => {
-  const { data: products, isLoading } = useQuery({
+  // Fetch regular products
+  const { data: regularProducts, isLoading: regularLoading } = useQuery({
     queryKey: ['products', category, sortBy, searchQuery, categoryFilters],
     queryFn: async () => {
       const query = supabase
@@ -70,48 +82,89 @@ export const ProductGrid = ({ category, sortBy = "newest", searchQuery = "", cat
         });
       }
       
-      // Get view counts for popularity sorting
-      let viewCountsMap: Record<string, number> = {};
-      if (sortBy === 'popular') {
-        const productIds = vendorReadyProducts.map(p => p.id);
-        if (productIds.length > 0) {
-          const { data: viewData } = await supabase
-            .from('product_views')
-            .select('product_id')
-            .in('product_id', productIds);
-          
-          // Count views per product
-          viewData?.forEach(view => {
-            viewCountsMap[view.product_id] = (viewCountsMap[view.product_id] || 0) + 1;
-          });
-        }
-      }
-      
-      // Sort products based on sortBy option
-      const sortedProducts = [...vendorReadyProducts].sort((a, b) => {
-        switch (sortBy) {
-          case 'popular':
-            return (viewCountsMap[b.id] || 0) - (viewCountsMap[a.id] || 0);
-          case 'newest':
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-          case 'oldest':
-            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          case 'price-low':
-            return (a.price || 0) - (b.price || 0);
-          case 'price-high':
-            return (b.price || 0) - (a.price || 0);
-          case 'name-az':
-            return (a.name || '').localeCompare(b.name || '');
-          case 'name-za':
-            return (b.name || '').localeCompare(a.name || '');
-          default:
-            return 0;
-        }
-      });
-      
-      return sortedProducts;
+      return vendorReadyProducts;
     }
   });
+
+  // Fetch coffee products only when showing All Products (category is null)
+  const { data: coffeeProducts, isLoading: coffeeLoading } = useQuery({
+    queryKey: ['coffee-products-for-all', searchQuery],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('coffee_products')
+        .select('*')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      
+      let filtered = data || [];
+      
+      // Apply search filter
+      if (searchQuery.trim()) {
+        const searchLower = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter(p => 
+          p.name?.toLowerCase().includes(searchLower) ||
+          p.description?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return filtered;
+    },
+    enabled: category === null // Only fetch when showing All Products
+  });
+
+  const isLoading = regularLoading || (category === null && coffeeLoading);
+
+  // Combine and sort products
+  const combinedProducts = (() => {
+    const unified: UnifiedProduct[] = [];
+    
+    // Add regular products
+    regularProducts?.forEach(p => {
+      unified.push({
+        id: p.id,
+        name: p.name || '',
+        price: p.price || 0,
+        created_at: p.created_at,
+        type: 'regular',
+        data: p
+      });
+    });
+    
+    // Add coffee products only for All Products tab
+    if (category === null && coffeeProducts) {
+      coffeeProducts.forEach(p => {
+        unified.push({
+          id: p.id,
+          name: p.name || '',
+          price: p.selling_price || 0,
+          created_at: p.created_at,
+          type: 'coffee',
+          data: p
+        });
+      });
+    }
+    
+    // Sort combined products
+    return unified.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'price-low':
+          return a.price - b.price;
+        case 'price-high':
+          return b.price - a.price;
+        case 'name-az':
+          return a.name.localeCompare(b.name);
+        case 'name-za':
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
+      }
+    });
+  })();
 
   if (isLoading) {
     return (
@@ -127,7 +180,7 @@ export const ProductGrid = ({ category, sortBy = "newest", searchQuery = "", cat
     );
   }
 
-  if (!products || products.length === 0) {
+  if (combinedProducts.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground text-lg">No products found</p>
@@ -137,8 +190,10 @@ export const ProductGrid = ({ category, sortBy = "newest", searchQuery = "", cat
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
+      {combinedProducts.map((product) => (
+        product.type === 'coffee' 
+          ? <CoffeeProductCard key={`coffee-${product.id}`} product={product.data} />
+          : <ProductCard key={product.id} product={product.data} />
       ))}
     </div>
   );
