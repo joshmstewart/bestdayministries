@@ -132,7 +132,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { source_type = "affirmation", count = 20, theme = null, translation = "nlt" } = body;
+    let { source_type = "affirmation", count = 20, theme = null, translation = "nlt", selectedTypes = null } = body;
 
     // Bible translation mapping for prompts
     const TRANSLATION_NAMES: Record<string, string> = {
@@ -146,15 +146,20 @@ serve(async (req) => {
     };
     const translationName = TRANSLATION_NAMES[translation] || TRANSLATION_NAMES.nlt;
 
-    // Available source types for "all" mode
-    const ALL_SOURCE_TYPES = ["bible_verse", "affirmation", "quote", "life_lesson", "gratitude_prompt", "discussion_starter", "proverbs"];
+    // Available source types for "all" mode - can be customized via selectedTypes
+    const DEFAULT_SOURCE_TYPES = ["bible_verse", "affirmation", "quote", "life_lesson", "gratitude_prompt", "discussion_starter", "proverbs"];
+    
+    // Use selectedTypes if provided and valid, otherwise use all types
+    const ALL_SOURCE_TYPES = (Array.isArray(selectedTypes) && selectedTypes.length > 0) 
+      ? selectedTypes.filter((t: string) => DEFAULT_SOURCE_TYPES.includes(t))
+      : DEFAULT_SOURCE_TYPES;
     
     // If source_type is "all", we'll generate a true mix of types
     const isAllTypesMode = source_type === "all";
     let actualSourceType = source_type;
     
     if (isAllTypesMode) {
-      console.log(`"All Types" mode: will generate a mix across ${ALL_SOURCE_TYPES.length} types`);
+      console.log(`"All Types" mode: will generate a mix across ${ALL_SOURCE_TYPES.length} types: ${ALL_SOURCE_TYPES.join(", ")}`);
     }
 
     // Get theme info if specified

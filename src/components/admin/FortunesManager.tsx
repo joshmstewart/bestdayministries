@@ -116,6 +116,19 @@ export function FortunesManager() {
   const [generateType, setGenerateType] = useState<string>("all");
   const [generateTheme, setGenerateTheme] = useState<string>("any");
   const [generateTranslation, setGenerateTranslation] = useState<string>("nlt");
+  // For "all" mode, allow multi-select of which types to include
+  const ALL_CONTENT_TYPES = [
+    { value: "bible_verse", label: "Bible Verses", icon: Book, color: "text-blue-500" },
+    { value: "proverbs", label: "Biblical Wisdom (Proverbs)", icon: Book, color: "text-teal-500" },
+    { value: "affirmation", label: "Affirmations", icon: Heart, color: "text-pink-500" },
+    { value: "quote", label: "Inspirational Quotes", icon: Quote, color: "text-amber-500" },
+    { value: "life_lesson", label: "Life Lessons", icon: Lightbulb, color: "text-emerald-500" },
+    { value: "gratitude_prompt", label: "Gratitude Prompts", icon: ThumbsUp, color: "text-purple-500" },
+    { value: "discussion_starter", label: "Discussion Starters", icon: MessageCircle, color: "text-orange-500" },
+  ];
+  const [selectedContentTypes, setSelectedContentTypes] = useState<Set<string>>(
+    new Set(ALL_CONTENT_TYPES.map(t => t.value))
+  );
   const [themeCoverage, setThemeCoverage] = useState<ThemeCoverage[]>([]);
   const [showThemeCoverage, setShowThemeCoverage] = useState(false);
   const [newFortune, setNewFortune] = useState({
@@ -216,7 +229,9 @@ export function FortunesManager() {
       if (!session) throw new Error("Not authenticated");
 
       // Only include translation for Bible-related content types
-      const includeTranslation = generateType === "bible_verse" || generateType === "proverbs" || generateType === "all";
+      const selectedTypesArray = Array.from(selectedContentTypes);
+      const hasBibleContent = selectedTypesArray.includes("bible_verse") || selectedTypesArray.includes("proverbs");
+      const includeTranslation = generateType === "bible_verse" || generateType === "proverbs" || (generateType === "all" && hasBibleContent);
       
       const response = await supabase.functions.invoke("generate-fortunes-batch", {
         body: { 
@@ -224,6 +239,8 @@ export function FortunesManager() {
           count: generateCount,
           theme: generateTheme === "any" ? null : generateTheme,
           ...(includeTranslation && { translation: generateTranslation }),
+          // For "all" mode, send the selected types (if not all selected)
+          ...(generateType === "all" && selectedTypesArray.length < ALL_CONTENT_TYPES.length && { selectedTypes: selectedTypesArray }),
         },
       });
 
@@ -837,7 +854,7 @@ export function FortunesManager() {
                   <SelectItem value="all">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-primary" />
-                      All Types (Random Mix)
+                      All Types (Custom Mix)
                     </div>
                   </SelectItem>
                   <SelectItem value="affirmation">
@@ -886,6 +903,50 @@ export function FortunesManager() {
               </Select>
             </div>
 
+            {/* Multi-select content types when "All Types" is selected */}
+            {generateType === "all" && (
+              <div className="space-y-2">
+                <Label>Content Types to Include</Label>
+                <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                  {ALL_CONTENT_TYPES.map((type) => {
+                    const Icon = type.icon;
+                    const isSelected = selectedContentTypes.has(type.value);
+                    return (
+                      <div 
+                        key={type.value} 
+                        className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-1.5 rounded"
+                        onClick={() => {
+                          setSelectedContentTypes(prev => {
+                            const next = new Set(prev);
+                            if (next.has(type.value)) {
+                              // Don't allow deselecting all
+                              if (next.size > 1) {
+                                next.delete(type.value);
+                              }
+                            } else {
+                              next.add(type.value);
+                            }
+                            return next;
+                          });
+                        }}
+                      >
+                        <Checkbox 
+                          checked={isSelected} 
+                          onCheckedChange={() => {}} // Handled by parent onClick
+                          className="pointer-events-none"
+                        />
+                        <Icon className={`h-4 w-4 ${type.color}`} />
+                        <span className="text-sm">{type.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Deselect types you don't want in this batch. At least one must be selected.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Theme (Optional)</Label>
               <Select value={generateTheme} onValueChange={setGenerateTheme}>
@@ -921,7 +982,8 @@ export function FortunesManager() {
             </div>
 
             {/* Bible Translation - only show for Bible-related content */}
-            {(generateType === "bible_verse" || generateType === "proverbs" || generateType === "all") && (
+            {(generateType === "bible_verse" || generateType === "proverbs" || 
+              (generateType === "all" && (selectedContentTypes.has("bible_verse") || selectedContentTypes.has("proverbs")))) && (
               <div className="space-y-2">
                 <Label>Bible Translation</Label>
                 <Select value={generateTranslation} onValueChange={setGenerateTranslation}>
