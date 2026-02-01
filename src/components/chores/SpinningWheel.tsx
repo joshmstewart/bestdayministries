@@ -263,8 +263,8 @@ export function SpinningWheel({
     // 8 coin slots at even indices (0,2,4,6,8,10,12,14)
     // Layout: 3×10, 3×20, 1×30, 1×50 spread out maximally
     // 30 at slot index 2 (visual position 4), 50 at slot index 6 (visual position 12) = 180° apart
-    // Slot mapping: [0]=10, [1]=20, [2]=30, [3]=20, [4]=10, [5]=20, [6]=50, [7]=10
-    const coinLayout = [coin10, coin20, coin30, coin20, coin10, coin20, coin50, coin10];
+    // Clockwise from top: 20, pack, 10, pack, 30, pack, 20, pack, 10, pack, 20, pack, 50, pack, 10, pack
+    const coinLayout = [coin20, coin10, coin30, coin20, coin10, coin20, coin50, coin10];
 
     // 8 pack slots at odd indices - cycle through available packs
     const packLayout = Array.from({ length: 8 }, (_, i) => packSource[i % packSource.length]);
