@@ -8,6 +8,17 @@ const corsHeaders = {
 
 const FLAT_SHIPPING_RATE_CENTS = 699; // $6.99 fallback
 const DEFAULT_FREE_SHIPPING_THRESHOLD_CENTS = 3500;
+const COFFEE_VENDOR_ID = "coffee-vendor"; // Virtual vendor ID for coffee products
+
+interface CoffeeShippingSettings {
+  shipping_mode: 'flat' | 'calculated' | null;
+  ship_from_zip: string;
+  ship_from_city: string;
+  ship_from_state: string;
+  flat_rate_amount: number | null;
+  free_shipping_threshold: number | null;
+  disable_free_shipping: boolean;
+}
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -42,6 +53,21 @@ interface CartItemWithProduct {
       free_shipping_threshold: number | null;
       disable_free_shipping: boolean | null;
     };
+  };
+}
+
+interface CoffeeCartItem {
+  id: string;
+  coffee_product_id: string;
+  quantity: number;
+  variant_info?: {
+    price_per_unit?: number;
+  };
+  coffee_product?: {
+    id: string;
+    name: string;
+    selling_price: number;
+    shipping_weight_oz?: number;
   };
 }
 
@@ -94,13 +120,15 @@ serve(async (req) => {
       logStep("User authenticated", { userId: user?.id });
     }
 
-    // Build cart query
+    // Build cart query - include BOTH regular products AND coffee products
     let cartQuery = supabaseClient
       .from("shopping_cart")
       .select(`
         id,
         product_id,
+        coffee_product_id,
         quantity,
+        variant_info,
         products (
           id,
           name,
@@ -119,6 +147,12 @@ serve(async (req) => {
             free_shipping_threshold,
             disable_free_shipping
           )
+        ),
+        coffee_product:coffee_products (
+          id,
+          name,
+          selling_price,
+          shipping_weight_oz
         )
       `);
 
@@ -135,8 +169,28 @@ serve(async (req) => {
     if (cartError) throw new Error(`Failed to fetch cart: ${cartError.message}`);
     if (!cartItems || cartItems.length === 0) throw new Error("Cart is empty");
     
-    const typedCartItems = cartItems as unknown as CartItemWithProduct[];
-    logStep("Cart items fetched", { count: typedCartItems.length });
+    // Separate regular product items and coffee items
+    const regularCartItems = cartItems.filter((item: any) => item.product_id && item.products) as unknown as CartItemWithProduct[];
+    const coffeeCartItems = cartItems.filter((item: any) => item.coffee_product_id && item.coffee_product) as unknown as CoffeeCartItem[];
+    
+    logStep("Cart items fetched", { regularCount: regularCartItems.length, coffeeCount: coffeeCartItems.length });
+
+    // Fetch coffee shipping settings if there are coffee items
+    let coffeeShippingSettings: CoffeeShippingSettings | null = null;
+    if (coffeeCartItems.length > 0) {
+      const { data: coffeeSettings } = await supabaseClient
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "coffee_shipping_settings")
+        .maybeSingle();
+      
+      if (coffeeSettings?.setting_value) {
+        coffeeShippingSettings = typeof coffeeSettings.setting_value === 'string'
+          ? JSON.parse(coffeeSettings.setting_value)
+          : coffeeSettings.setting_value as CoffeeShippingSettings;
+        logStep("Coffee shipping settings loaded", coffeeShippingSettings);
+      }
+    }
 
     // Determine Stripe mode for EasyPost key selection
     const { data: appSettings } = await supabaseClient
@@ -152,14 +206,14 @@ serve(async (req) => {
 
     logStep("Using mode", { stripeMode, hasEasyPostKey: !!easyPostKey });
 
-    // Group cart items by vendor
+    // Group REGULAR cart items by vendor
     const vendorGroups = new Map<string, {
       vendor: CartItemWithProduct['products']['vendors'];
       items: CartItemWithProduct[];
       subtotal_cents: number;
     }>();
 
-    for (const item of typedCartItems) {
+    for (const item of regularCartItems) {
       const vendorId = item.products.vendor_id;
       const itemTotal = Math.round(item.products.price * 100) * item.quantity;
 
@@ -322,6 +376,161 @@ serve(async (req) => {
         shipping_method: 'flat',
         service_name: 'Standard Shipping',
       });
+    }
+
+    // ============ COFFEE SHIPPING CALCULATION ============
+    if (coffeeCartItems.length > 0) {
+      // Calculate coffee subtotal
+      let coffeeSubtotalCents = 0;
+      let coffeeTotalWeightOz = 0;
+      
+      for (const item of coffeeCartItems) {
+        const pricePerUnit = (item.variant_info as any)?.price_per_unit ?? item.coffee_product?.selling_price ?? 0;
+        coffeeSubtotalCents += Math.round(pricePerUnit * 100) * item.quantity;
+        coffeeTotalWeightOz += (item.coffee_product?.shipping_weight_oz || 16) * item.quantity;
+      }
+      
+      logStep("Coffee items calculated", { coffeeSubtotalCents, coffeeTotalWeightOz, itemCount: coffeeCartItems.length });
+
+      // Check if coffee shipping settings exist
+      if (coffeeShippingSettings && coffeeShippingSettings.shipping_mode) {
+        const freeThresholdCents = coffeeShippingSettings.free_shipping_threshold != null
+          ? Math.round(coffeeShippingSettings.free_shipping_threshold * 100)
+          : null;
+        
+        // Check for free shipping
+        if (!coffeeShippingSettings.disable_free_shipping && freeThresholdCents != null && coffeeSubtotalCents >= freeThresholdCents) {
+          logStep("Coffee: Free shipping threshold met", { threshold: freeThresholdCents, subtotal: coffeeSubtotalCents });
+          vendorResults.push({
+            vendor_id: COFFEE_VENDOR_ID,
+            vendor_name: "Best Day Ever Café",
+            subtotal_cents: coffeeSubtotalCents,
+            shipping_cents: 0,
+            shipping_method: 'free',
+            service_name: 'Free Shipping',
+          });
+        } else if (coffeeShippingSettings.shipping_mode === 'calculated' && coffeeShippingSettings.ship_from_zip && easyPostKey) {
+          // Calculate shipping via EasyPost
+          try {
+            logStep("Coffee: Calculating EasyPost rate", {
+              fromZip: coffeeShippingSettings.ship_from_zip,
+              toZip: shipping_address.zip,
+              weightOz: coffeeTotalWeightOz
+            });
+
+            const easyPostResponse = await fetch("https://api.easypost.com/v2/shipments", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${easyPostKey}`,
+              },
+              body: JSON.stringify({
+                shipment: {
+                  from_address: {
+                    zip: coffeeShippingSettings.ship_from_zip,
+                    city: coffeeShippingSettings.ship_from_city || undefined,
+                    state: coffeeShippingSettings.ship_from_state || undefined,
+                    country: "US",
+                  },
+                  to_address: {
+                    zip: shipping_address.zip,
+                    city: shipping_address.city || undefined,
+                    state: shipping_address.state || undefined,
+                    country: shipping_address.country || "US",
+                  },
+                  parcel: {
+                    weight: coffeeTotalWeightOz,
+                    length: 10,
+                    width: 8,
+                    height: 6,
+                  },
+                  carrier_accounts: [],
+                  carriers: ["USPS"],
+                },
+              }),
+            });
+
+            if (!easyPostResponse.ok) {
+              const errorText = await easyPostResponse.text();
+              throw new Error(`EasyPost API error: ${errorText}`);
+            }
+
+            const shipmentData = await easyPostResponse.json();
+            const rates = shipmentData.rates || [];
+            const uspsRates = rates.filter((r: any) => r.carrier === "USPS");
+
+            if (uspsRates.length > 0) {
+              uspsRates.sort((a: any, b: any) => parseFloat(a.rate) - parseFloat(b.rate));
+              const cheapestRate = uspsRates[0];
+              const rateCents = Math.round(parseFloat(cheapestRate.rate) * 100);
+
+              logStep("Coffee: EasyPost rate found", {
+                service: cheapestRate.service,
+                rateCents,
+                deliveryDays: cheapestRate.delivery_days
+              });
+
+              vendorResults.push({
+                vendor_id: COFFEE_VENDOR_ID,
+                vendor_name: "Best Day Ever Café",
+                subtotal_cents: coffeeSubtotalCents,
+                shipping_cents: rateCents,
+                shipping_method: 'calculated',
+                service_name: cheapestRate.service,
+                carrier: cheapestRate.carrier,
+                estimated_days: cheapestRate.delivery_days,
+              });
+            } else {
+              throw new Error("No USPS rates available for coffee");
+            }
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logStep("Coffee: EasyPost failed, using flat rate fallback", { error: errorMessage });
+            
+            // Fallback to flat rate
+            const flatRateCents = coffeeShippingSettings.flat_rate_amount != null
+              ? Math.round(coffeeShippingSettings.flat_rate_amount * 100)
+              : FLAT_SHIPPING_RATE_CENTS;
+            
+            vendorResults.push({
+              vendor_id: COFFEE_VENDOR_ID,
+              vendor_name: "Best Day Ever Café",
+              subtotal_cents: coffeeSubtotalCents,
+              shipping_cents: flatRateCents,
+              shipping_method: 'flat',
+              service_name: 'Standard Shipping',
+              error: `Calculated rate unavailable: ${errorMessage}`,
+            });
+          }
+        } else {
+          // Flat rate shipping for coffee
+          const flatRateCents = coffeeShippingSettings.flat_rate_amount != null
+            ? Math.round(coffeeShippingSettings.flat_rate_amount * 100)
+            : FLAT_SHIPPING_RATE_CENTS;
+          
+          logStep("Coffee: Using flat rate", { flatRateCents });
+          
+          vendorResults.push({
+            vendor_id: COFFEE_VENDOR_ID,
+            vendor_name: "Best Day Ever Café",
+            subtotal_cents: coffeeSubtotalCents,
+            shipping_cents: flatRateCents,
+            shipping_method: 'flat',
+            service_name: 'Standard Shipping',
+          });
+        }
+      } else {
+        // No coffee shipping settings configured - use default flat rate
+        logStep("Coffee: No shipping settings, using default flat rate");
+        vendorResults.push({
+          vendor_id: COFFEE_VENDOR_ID,
+          vendor_name: "Best Day Ever Café",
+          subtotal_cents: coffeeSubtotalCents,
+          shipping_cents: FLAT_SHIPPING_RATE_CENTS,
+          shipping_method: 'flat',
+          service_name: 'Standard Shipping',
+        });
+      }
     }
 
     const totalShippingCents = vendorResults.reduce((sum, v) => sum + v.shipping_cents, 0);
