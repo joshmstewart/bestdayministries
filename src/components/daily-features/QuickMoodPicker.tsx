@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const ttsSettingsCache = new Map<string, { voice: string; enabled: boolean }>();
 import { Textarea } from "@/components/ui/textarea";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle, Volume2, VolumeX } from "lucide-react";
+import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { showCoinNotification } from "@/utils/coinNotification";
 import { cn } from "@/lib/utils";
@@ -45,9 +45,11 @@ const CATEGORY_THEMES = {
 
 interface QuickMoodPickerProps {
   onComplete?: () => void;
+  ttsEnabled?: boolean;
+  onSpeakingChange?: (speaking: boolean) => void;
 }
 
-export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
+export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChange }: QuickMoodPickerProps) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [moodOptions, setMoodOptions] = useState<MoodOption[]>([]);
@@ -58,7 +60,6 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
   const [todaysEntry, setTodaysEntry] = useState<any>(null);
   const [encouragingMessage, setEncouragingMessage] = useState<string | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [userVoice, setUserVoice] = useState<string>('Sarah');
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -268,6 +269,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
     
     try {
       setIsSpeaking(true);
+      onSpeakingChange?.(true);
       
       // Stop any current audio
       if (audioRef.current) {
@@ -286,16 +288,23 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
         
-        audio.onended = () => setIsSpeaking(false);
-        audio.onerror = () => setIsSpeaking(false);
+        audio.onended = () => {
+          setIsSpeaking(false);
+          onSpeakingChange?.(false);
+        };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          onSpeakingChange?.(false);
+        };
         
         await audio.play();
       }
     } catch (error) {
       console.error('TTS error:', error);
       setIsSpeaking(false);
+      onSpeakingChange?.(false);
     }
-  }, [ttsEnabled, userVoice]);
+  }, [ttsEnabled, userVoice, onSpeakingChange]);
 
   const handleMoodSelect = (mood: MoodOption) => {
     if (todaysEntry) return;
@@ -437,29 +446,6 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
 
   return (
     <div className="space-y-4 transition-all duration-500">
-      {/* Header with TTS Toggle */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground">How are you feeling?</h3>
-        <button
-          onClick={() => setTtsEnabled(!ttsEnabled)}
-          className={cn(
-            "p-2 rounded-full transition-all duration-200",
-            "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
-            ttsEnabled 
-              ? "bg-primary/10 text-primary" 
-              : "bg-muted/50 text-muted-foreground"
-          )}
-          title={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
-          aria-label={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
-        >
-          {ttsEnabled ? (
-            <Volume2 className={cn("w-5 h-5", isSpeaking && "animate-pulse")} />
-          ) : (
-            <VolumeX className="w-5 h-5" />
-          )}
-        </button>
-      </div>
-
       {/* Mood Selector */}
       <div className="grid grid-cols-4 gap-2">
         {moodOptions.map((mood) => (

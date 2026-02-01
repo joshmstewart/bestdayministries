@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, PenTool, Loader2, ExternalLink, Check } from "lucide-react";
+import { Sparkles, PenTool, Loader2, ExternalLink, Check, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
@@ -60,6 +60,10 @@ export function DailyBar() {
   const [dailyCard, setDailyCard] = useState<any>(null);
   const [bonusCard, setBonusCard] = useState<any>(null);
   const [cardsLoading, setCardsLoading] = useState(false);
+  
+  // Mood TTS state
+  const [moodTtsEnabled, setMoodTtsEnabled] = useState(false);
+  const [moodSpeaking, setMoodSpeaking] = useState(false);
   
   // Combined loading state - don't render until all statuses are known
   const loading = iconsLoading || completionsLoading || scratchLoading;
@@ -268,17 +272,40 @@ export function DailyBar() {
       <Dialog open={activePopup === "mood"} onOpenChange={(open) => !open && handlePopupClose("mood")}>
         <DialogContent className="max-w-md bg-gradient-to-b from-green-100 via-yellow-50 to-red-100 dark:from-green-900/40 dark:via-yellow-900/20 dark:to-red-900/40" hideCloseButton>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-2xl">🌈</span>
-              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                How are you feeling?
-              </span>
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🌈</span>
+                <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  How are you feeling?
+                </span>
+              </div>
+              <button
+                onClick={() => setMoodTtsEnabled(!moodTtsEnabled)}
+                className={cn(
+                  "p-2 rounded-full transition-all duration-200",
+                  "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  moodTtsEnabled 
+                    ? "bg-primary/10 text-primary" 
+                    : "bg-muted/50 text-muted-foreground"
+                )}
+                title={moodTtsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+              >
+                {moodTtsEnabled ? (
+                  <Volume2 className={cn("w-5 h-5", moodSpeaking && "animate-pulse")} />
+                ) : (
+                  <VolumeX className="w-5 h-5" />
+                )}
+              </button>
             </DialogTitle>
             <DialogDescription className="sr-only">
               Select your mood for today
             </DialogDescription>
           </DialogHeader>
-          <QuickMoodPicker onComplete={() => handlePopupClose("mood")} />
+          <QuickMoodPicker 
+            onComplete={() => handlePopupClose("mood")} 
+            ttsEnabled={moodTtsEnabled}
+            onSpeakingChange={setMoodSpeaking}
+          />
         </DialogContent>
       </Dialog>
 
