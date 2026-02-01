@@ -42,6 +42,8 @@ Key UX goal: when a user has selected a fitness avatar, the emotion selection gr
 - `src/pages/EmotionJournal.tsx`
   - Loads `emotion_types` for the grid.
   - Loads today’s entry from `mood_entries` (MST date).
+  - **Mood TTS toggle (shared with Daily Bar):**
+    - Uses localStorage key `dailybar-mood-tts-enabled` to control TTS buttons for the emotion icon grid.
   - **Avatar emotion portraits (grid):**
     - Fetch selected avatar from `user_fitness_avatars`.
     - Fetch all approved rows from `avatar_emotion_images` for that avatar.

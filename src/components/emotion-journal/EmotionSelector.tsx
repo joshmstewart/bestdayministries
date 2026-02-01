@@ -18,7 +18,8 @@ interface EmotionSelectorProps {
   onSelect: (emotion: EmotionType) => void;
 }
 
-const TTS_STORAGE_KEY = 'emotion-journal-tts-enabled';
+// Shared with DailyBar mood module
+const TTS_STORAGE_KEY = 'dailybar-mood-tts-enabled';
 
 export function EmotionSelector({ emotions, selectedEmotion, onSelect }: EmotionSelectorProps) {
   // TTS toggle state - persisted in localStorage

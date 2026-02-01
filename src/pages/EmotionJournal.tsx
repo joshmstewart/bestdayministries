@@ -8,7 +8,7 @@ import { BackButton } from '@/components/BackButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles, Check, Pencil, X } from 'lucide-react';
+import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles, Check, Pencil, X, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
@@ -112,6 +112,25 @@ export default function EmotionJournal() {
   const [showNotes, setShowNotes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('log');
+
+  // Mood TTS toggle (shared with DailyBar mood module)
+  const MOOD_TTS_STORAGE_KEY = 'dailybar-mood-tts-enabled';
+  const [moodTtsEnabled, setMoodTtsEnabled] = useState(() => {
+    try {
+      const stored = localStorage.getItem(MOOD_TTS_STORAGE_KEY);
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MOOD_TTS_STORAGE_KEY, String(moodTtsEnabled));
+    } catch (e) {
+      console.warn('Failed to persist mood TTS preference:', e);
+    }
+  }, [moodTtsEnabled]);
   
   // Today's mood entry state (from daily bar)
   const [todaysMoodEntry, setTodaysMoodEntry] = useState<MoodEntry | null>(null);
@@ -584,7 +603,27 @@ export default function EmotionJournal() {
                   <div className="space-y-4">
                     {/* Emotion picker in edit mode - 4 per row, DailyBar order */}
                     <div className="bg-white/60 rounded-lg p-4">
-                      <p className="text-sm text-muted-foreground mb-3 text-center">Change your feeling:</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm text-muted-foreground text-center flex-1">Change your feeling:</p>
+                        <button
+                          type="button"
+                          onClick={() => setMoodTtsEnabled(!moodTtsEnabled)}
+                          className={cn(
+                            "p-2 rounded-full transition-all duration-200",
+                            "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
+                            moodTtsEnabled
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted/50 text-muted-foreground"
+                          )}
+                          title={moodTtsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+                        >
+                          {moodTtsEnabled ? (
+                            <Volume2 className="w-5 h-5" />
+                          ) : (
+                            <VolumeX className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
                       <div className="grid grid-cols-4 gap-1.5">
                         {[...emotionTypes]
                           .sort((a, b) => {
@@ -605,7 +644,7 @@ export default function EmotionJournal() {
                               >
                                 <div 
                                   className={cn(
-                                    "w-14 h-14 flex items-center justify-center rounded-full transition-all overflow-hidden",
+                                    "w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-full transition-all overflow-hidden",
                                     isSelected ? "shadow-lg" : "hover:shadow-md"
                                   )}
                                   style={{
@@ -626,20 +665,27 @@ export default function EmotionJournal() {
                                       }}
                                     />
                                   ) : (
-                                    <span className={cn("text-3xl transition-transform duration-300", isSelected && "animate-bounce")}>
+                                    <span className={cn("text-4xl transition-transform duration-300", isSelected && "animate-bounce")}>
                                       {emotion.emoji}
                                     </span>
                                   )}
                                 </div>
-                                <span 
-                                  className={cn(
-                                    "text-xs font-medium mt-1 transition-colors text-center",
-                                    isSelected ? "font-bold" : "text-gray-700"
+                                <div className="flex items-center gap-0.5 mt-1">
+                                  <span 
+                                    className={cn(
+                                      "text-xs font-medium transition-colors text-center",
+                                      isSelected ? "font-bold" : "text-gray-700"
+                                    )}
+                                    style={{ color: isSelected ? emotion.color : undefined }}
+                                  >
+                                    {emotion.name}
+                                  </span>
+                                  {isSelected && moodTtsEnabled && (
+                                    <div onClick={(e) => e.stopPropagation()} className="scale-75">
+                                      <TextToSpeech text={`I'm feeling ${emotion.name}`} size="icon" />
+                                    </div>
                                   )}
-                                  style={{ color: isSelected ? emotion.color : undefined }}
-                                >
-                                  {emotion.name}
-                                </span>
+                                </div>
                               </button>
                             );
                           })}
@@ -717,12 +763,34 @@ export default function EmotionJournal() {
                 currentTheme.border,
                 "border"
               )}>
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <span className="text-xl font-bold">🎭 How are you feeling?</span>
-                  <TextToSpeech 
-                    text="How are you feeling? Choose an emotion from the options below." 
-                    size="icon" 
-                  />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-bold">🎭 How are you feeling?</span>
+                    {moodTtsEnabled && (
+                      <TextToSpeech 
+                        text="How are you feeling? Choose an emotion from the options below." 
+                        size="icon" 
+                      />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMoodTtsEnabled(!moodTtsEnabled)}
+                    className={cn(
+                      "p-2 rounded-full transition-all duration-200",
+                      "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
+                      moodTtsEnabled
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted/50 text-muted-foreground"
+                    )}
+                    title={moodTtsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+                  >
+                    {moodTtsEnabled ? (
+                      <Volume2 className="w-5 h-5" />
+                    ) : (
+                      <VolumeX className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
                 
                 {/* Emoji Grid - 4 per row, DailyBar order */}
@@ -747,7 +815,7 @@ export default function EmotionJournal() {
                         >
                           <div 
                             className={cn(
-                              "w-14 h-14 flex items-center justify-center rounded-full transition-all overflow-hidden",
+                              "w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-full transition-all overflow-hidden",
                               isSelected ? "shadow-lg" : "hover:shadow-md"
                             )}
                             style={{
@@ -768,20 +836,27 @@ export default function EmotionJournal() {
                                 }}
                               />
                             ) : (
-                              <span className={cn("text-3xl transition-transform duration-300", isSelected && "animate-bounce")}>
+                              <span className={cn("text-4xl transition-transform duration-300", isSelected && "animate-bounce")}>
                                 {emotion.emoji}
                               </span>
                             )}
                           </div>
-                          <span 
-                            className={cn(
-                              "text-xs font-medium mt-1 transition-colors text-center",
-                              isSelected ? "font-bold" : "text-gray-700"
+                          <div className="flex items-center gap-0.5 mt-1">
+                            <span 
+                              className={cn(
+                                "text-xs font-medium transition-colors text-center",
+                                isSelected ? "font-bold" : "text-gray-700"
+                              )}
+                              style={{ color: isSelected ? emotion.color : undefined }}
+                            >
+                              {emotion.name}
+                            </span>
+                            {isSelected && moodTtsEnabled && (
+                              <div onClick={(e) => e.stopPropagation()} className="scale-75">
+                                <TextToSpeech text={`I'm feeling ${emotion.name}`} size="icon" />
+                              </div>
                             )}
-                            style={{ color: isSelected ? emotion.color : undefined }}
-                          >
-                            {emotion.name}
-                          </span>
+                          </div>
                         </button>
                       );
                     })}
