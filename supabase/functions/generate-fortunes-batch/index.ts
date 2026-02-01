@@ -132,7 +132,19 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { source_type = "affirmation", count = 20, theme = null } = body;
+    let { source_type = "affirmation", count = 20, theme = null, translation = "nlt" } = body;
+
+    // Bible translation mapping for prompts
+    const TRANSLATION_NAMES: Record<string, string> = {
+      nlt: "NLT (New Living Translation)",
+      niv: "NIV (New International Version)",
+      esv: "ESV (English Standard Version)",
+      csb: "CSB (Christian Standard Bible)",
+      msg: "The Message",
+      kjv: "KJV (King James Version)",
+      nasb: "NASB (New American Standard Bible)",
+    };
+    const translationName = TRANSLATION_NAMES[translation] || TRANSLATION_NAMES.nlt;
 
     // Available source types for "all" mode
     const ALL_SOURCE_TYPES = ["bible_verse", "affirmation", "quote", "life_lesson", "gratitude_prompt", "discussion_starter", "proverbs"];
@@ -198,10 +210,12 @@ serve(async (req) => {
         ? `Focus SPECIFICALLY on verses about: ${themeInfo.description}\nExample verses on this theme: ${themeInfo.examples}`
         : "Topics: love, hope, joy, being valued, God's care, encouragement, strength, peace, friendship, wisdom, patience, gratitude.";
       
-      prompt = `Generate ${count} REAL, ACTUAL Bible verses from the NIV or KJV translation. These must be genuine scripture that can be verified.
+      prompt = `Generate ${count} REAL, ACTUAL Bible verses from the ${translationName}. These must be genuine scripture that can be verified.
+
+CRITICAL: Use the EXACT text as it appears in the ${translationName}. Do NOT mix translations or use paraphrases. Every verse must be word-for-word accurate to this specific translation.
 
 For each verse, provide:
-1. The EXACT verse text as it appears in the Bible (NIV or KJV)
+1. The EXACT verse text as it appears in the ${translationName}
 2. The precise Bible reference (Book Chapter:Verse format)
 
 Focus on LESSER-KNOWN but still encouraging verses. Avoid the most commonly quoted verses and dig deeper into Scripture.
@@ -212,12 +226,13 @@ Books to explore: Psalms (beyond Psalm 23), Isaiah, Philippians, Colossians, Eph
 
 CRITICAL REQUIREMENTS:
 - These must be REAL Bible verses, not made-up spiritual sayings
+- Use the EXACT wording from the ${translationName} - do not paraphrase or use other translations
 - Include the EXACT reference (e.g., "Isaiah 41:10", "Zephaniah 3:17", "Lamentations 3:22-23")
 - Prioritize verses that are encouraging but less commonly quoted
 ${themeInfo ? `- Every verse must relate to the theme: "${themeInfo.label}"` : ""}
 
 Format as JSON array:
-[{"content": "exact verse text", "reference": "Book Chapter:Verse"}]`;
+[{"content": "exact verse text from ${translationName}", "reference": "Book Chapter:Verse"}]`;
     } else if (actualSourceType === "affirmation") {
       const focusGuidance = themeInfo
         ? `Focus on affirmations about: ${themeInfo.description}`
@@ -297,12 +312,15 @@ Format as JSON array:
         ? `Focus on biblical wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
         : "Focus on LESSER-KNOWN proverbs and wisdom passages.";
 
-      prompt = `Generate ${count} REAL biblical proverbs and wisdom sayings. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
+      prompt = `Generate ${count} REAL biblical proverbs and wisdom sayings from the ${translationName}. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
+
+CRITICAL: Use the EXACT text as it appears in the ${translationName}. Do NOT mix translations or use paraphrases.
 
 ${focusGuidance} Dig deep into Proverbs chapters 10-31, Ecclesiastes, and the teachings of Jesus in the Gospels.${exclusionList}${themePromptAddition}
 
 CRITICAL REQUIREMENTS:
-- These must be REAL Bible verses or accurate paraphrases of biblical wisdom
+- These must be REAL Bible verses from the ${translationName}
+- Use the EXACT wording - do not paraphrase or use other translations
 - Include the Bible reference
 - Choose accessible, practical wisdom that applies to daily life
 - Keep language simple and understandable
@@ -310,7 +328,7 @@ CRITICAL REQUIREMENTS:
 ${themeInfo ? `- Every proverb must relate to the theme: "${themeInfo.label}"` : ""}
 
 Format as JSON array:
-[{"content": "the proverb or wisdom text", "reference": "Book Chapter:Verse"}]`;
+[{"content": "the proverb or wisdom text from ${translationName}", "reference": "Book Chapter:Verse"}]`;
     } else {
       // Default: inspirational_quote
       const topicGuidance = themeInfo
@@ -515,10 +533,12 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
           ? `Focus SPECIFICALLY on verses about: ${themeInfo.description}\nExample verses on this theme: ${themeInfo.examples}`
           : "Topics: love, hope, joy, being valued, God's care, encouragement, strength, peace, friendship, wisdom, patience, gratitude.";
         
-        typePrompt = `Generate ${targetCount} REAL, ACTUAL Bible verses from the NIV or KJV translation. These must be genuine scripture that can be verified.
+        typePrompt = `Generate ${targetCount} REAL, ACTUAL Bible verses from the ${translationName}. These must be genuine scripture that can be verified.
+
+CRITICAL: Use the EXACT text as it appears in the ${translationName}. Do NOT mix translations or use paraphrases. Every verse must be word-for-word accurate to this specific translation.
 
 For each verse, provide:
-1. The EXACT verse text as it appears in the Bible (NIV or KJV)
+1. The EXACT verse text as it appears in the ${translationName}
 2. The precise Bible reference (Book Chapter:Verse format)
 
 Focus on LESSER-KNOWN but still encouraging verses. Avoid the most commonly quoted verses and dig deeper into Scripture.
@@ -529,12 +549,13 @@ Books to explore: Psalms (beyond Psalm 23), Isaiah, Philippians, Colossians, Eph
 
 CRITICAL REQUIREMENTS:
 - These must be REAL Bible verses, not made-up spiritual sayings
+- Use the EXACT wording from the ${translationName} - do not paraphrase or use other translations
 - Include the EXACT reference (e.g., "Isaiah 41:10", "Zephaniah 3:17", "Lamentations 3:22-23")
 - Prioritize verses that are encouraging but less commonly quoted
 ${themeInfo ? `- Every verse must relate to the theme: "${themeInfo.label}"` : ""}
 
 Format as JSON array:
-[{"content": "exact verse text", "reference": "Book Chapter:Verse"}]`;
+[{"content": "exact verse text from ${translationName}", "reference": "Book Chapter:Verse"}]`;
       } else if (targetType === "affirmation") {
         const focusGuidance = themeInfo
           ? `Focus on affirmations about: ${themeInfo.description}`
@@ -614,12 +635,15 @@ Format as JSON array:
           ? `Focus on biblical wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
           : "Focus on LESSER-KNOWN proverbs and wisdom passages.";
 
-        typePrompt = `Generate ${targetCount} REAL biblical proverbs and wisdom sayings. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
+        typePrompt = `Generate ${targetCount} REAL biblical proverbs and wisdom sayings from the ${translationName}. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
+
+CRITICAL: Use the EXACT text as it appears in the ${translationName}. Do NOT mix translations or use paraphrases.
 
 ${focusGuidance} Dig deep into Proverbs chapters 10-31, Ecclesiastes, and the teachings of Jesus in the Gospels.${dynamicExclusion}${themePromptAddition}
 
 CRITICAL REQUIREMENTS:
-- These must be REAL Bible verses or accurate paraphrases of biblical wisdom
+- These must be REAL Bible verses from the ${translationName}
+- Use the EXACT wording - do not paraphrase or use other translations
 - Include the Bible reference
 - Choose accessible, practical wisdom that applies to daily life
 - Keep language simple and understandable
@@ -627,7 +651,7 @@ CRITICAL REQUIREMENTS:
 ${themeInfo ? `- Every proverb must relate to the theme: "${themeInfo.label}"` : ""}
 
 Format as JSON array:
-[{"content": "the proverb or wisdom text", "reference": "Book Chapter:Verse"}]`;
+[{"content": "the proverb or wisdom text from ${translationName}", "reference": "Book Chapter:Verse"}]`;
       } else {
         // Default: inspirational_quote
         const topicGuidance = themeInfo

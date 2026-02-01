@@ -115,6 +115,7 @@ export function FortunesManager() {
   const [generateCount, setGenerateCount] = useState(20);
   const [generateType, setGenerateType] = useState<string>("all");
   const [generateTheme, setGenerateTheme] = useState<string>("any");
+  const [generateTranslation, setGenerateTranslation] = useState<string>("nlt");
   const [themeCoverage, setThemeCoverage] = useState<ThemeCoverage[]>([]);
   const [showThemeCoverage, setShowThemeCoverage] = useState(false);
   const [newFortune, setNewFortune] = useState({
@@ -213,11 +214,15 @@ export function FortunesManager() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
+      // Only include translation for Bible-related content types
+      const includeTranslation = generateType === "bible_verse" || generateType === "proverbs" || generateType === "all";
+      
       const response = await supabase.functions.invoke("generate-fortunes-batch", {
         body: { 
           source_type: generateType, 
           count: generateCount,
           theme: generateTheme === "any" ? null : generateTheme,
+          ...(includeTranslation && { translation: generateTranslation }),
         },
       });
 
@@ -913,6 +918,59 @@ export function FortunesManager() {
                 Select a theme to generate focused content on specific life topics.
               </p>
             </div>
+
+            {/* Bible Translation - only show for Bible-related content */}
+            {(generateType === "bible_verse" || generateType === "proverbs" || generateType === "all") && (
+              <div className="space-y-2">
+                <Label>Bible Translation</Label>
+                <Select value={generateTranslation} onValueChange={setGenerateTranslation}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nlt">
+                      <div className="flex flex-col">
+                        <span className="font-medium">NLT - New Living Translation</span>
+                        <span className="text-xs text-muted-foreground">Very easy to read, thought-for-thought</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="niv">
+                      <div className="flex flex-col">
+                        <span className="font-medium">NIV - New International Version</span>
+                        <span className="text-xs text-muted-foreground">Balance of accuracy and readability</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="esv">
+                      <div className="flex flex-col">
+                        <span className="font-medium">ESV - English Standard Version</span>
+                        <span className="text-xs text-muted-foreground">Accurate, slightly more formal</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="csb">
+                      <div className="flex flex-col">
+                        <span className="font-medium">CSB - Christian Standard Bible</span>
+                        <span className="text-xs text-muted-foreground">Modern, clear language</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="msg">
+                      <div className="flex flex-col">
+                        <span className="font-medium">The Message</span>
+                        <span className="text-xs text-muted-foreground">Paraphrase, very casual/conversational</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="kjv">
+                      <div className="flex flex-col">
+                        <span className="font-medium">KJV - King James Version</span>
+                        <span className="text-xs text-muted-foreground">Classic, beautiful but archaic language</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  NLT recommended for easier understanding. Used for Bible Verses and Proverbs.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Number to Generate</Label>
