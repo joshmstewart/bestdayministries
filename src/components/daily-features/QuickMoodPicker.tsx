@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Cache TTS settings per user to avoid repeated fetches (shared with TextToSpeech component)
+const ttsSettingsCache = new Map<string, { voice: string; enabled: boolean }>();
 import { Textarea } from "@/components/ui/textarea";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle, Volume2, VolumeX } from "lucide-react";
@@ -57,7 +60,37 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [userVoice, setUserVoice] = useState<string>('Sarah');
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Load user's TTS voice preference
+  useEffect(() => {
+    const loadUserVoice = async () => {
+      if (!user) return;
+
+      // Check cache first
+      const cached = ttsSettingsCache.get(user.id);
+      if (cached) {
+        setUserVoice(cached.voice);
+        return;
+      }
+
+      // Fetch from DB
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tts_voice')
+        .eq('id', user.id)
+        .single();
+      
+      const fetchedVoice = profile?.tts_voice || 'Sarah';
+      
+      // Cache it
+      ttsSettingsCache.set(user.id, { voice: fetchedVoice, enabled: true });
+      setUserVoice(fetchedVoice);
+    };
+    
+    loadUserVoice();
+  }, [user?.id]);
 
   // Get current theme based on selected mood
   const currentTheme = selectedMood 
@@ -243,7 +276,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
       }
 
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text: emotionName, voice: 'Sarah' }
+        body: { text: emotionName, voice: userVoice }
       });
 
       if (error) throw error;
@@ -262,7 +295,7 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
       console.error('TTS error:', error);
       setIsSpeaking(false);
     }
-  }, [ttsEnabled]);
+  }, [ttsEnabled, userVoice]);
 
   const handleMoodSelect = (mood: MoodOption) => {
     if (todaysEntry) return;
