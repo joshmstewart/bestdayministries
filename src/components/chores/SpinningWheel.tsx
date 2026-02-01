@@ -494,7 +494,7 @@ export function SpinningWheel({
               <>
                 <text
                   x={outerTextX}
-                  y={outerTextY - fontSize * 0.15}
+                  y={outerTextY - fontSize * 0.7}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="hsl(0 0% 100%)"
@@ -510,7 +510,7 @@ export function SpinningWheel({
                 <image
                   href={coinImageUrl}
                   x={outerTextX - coinIconSize * 0.5}
-                  y={outerTextY + coinIconSize * 0.15}
+                  y={outerTextY + coinIconSize * 0.35}
                   width={coinIconSize}
                   height={coinIconSize}
                   preserveAspectRatio="xMidYMid slice"
