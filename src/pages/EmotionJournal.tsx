@@ -582,50 +582,67 @@ export default function EmotionJournal() {
                 {/* Edit mode: emotion picker + notes */}
                 {isEditing ? (
                   <div className="space-y-4">
-                    {/* Emotion picker in edit mode */}
+                    {/* Emotion picker in edit mode - 4 per row, DailyBar order */}
                     <div className="bg-white/60 rounded-lg p-4">
                       <p className="text-sm text-muted-foreground mb-3 text-center">Change your feeling:</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {emotionTypes.map((emotion) => (
-                          <button
-                            key={emotion.id}
-                            onClick={() => setEditingEmotion(emotion)}
-                            className={cn(
-                              "flex flex-col items-center p-2 rounded-lg transition-all duration-200",
-                              "hover:scale-105 focus:outline-none focus:ring-2",
-                              "bg-white/80 border-2",
-                              editingEmotion?.id === emotion.id
-                                ? "shadow-md scale-105"
-                                : "border-transparent hover:border-gray-200"
-                            )}
-                            style={{
-                              borderColor: editingEmotion?.id === emotion.id ? emotion.color : undefined,
-                              backgroundColor: editingEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
-                            }}
-                          >
-                             {!avatarEmotionImagesLoading && avatarEmotionImagesByEmotionTypeId[emotion.id]?.url ? (
-                               <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-sm">
-                                 <img
-                                   src={avatarEmotionImagesByEmotionTypeId[emotion.id].url}
-                                   alt={emotion.name}
-                                   className="w-full h-full object-cover"
-                                   style={{
-                                     transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
-                                     transformOrigin: "center",
-                                   }}
-                                 />
-                               </div>
-                             ) : (
-                               <span className="text-2xl">{emotion.emoji}</span>
-                             )}
-                            <span 
-                              className="text-xs font-medium mt-0.5"
-                              style={{ color: editingEmotion?.id === emotion.id ? emotion.color : undefined }}
-                            >
-                              {emotion.name}
-                            </span>
-                          </button>
-                        ))}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[...emotionTypes]
+                          .sort((a, b) => {
+                            const order = { positive: 0, neutral: 1, negative: 2 };
+                            return (order[a.category as keyof typeof order] ?? 1) - (order[b.category as keyof typeof order] ?? 1);
+                          })
+                          .map((emotion) => {
+                            const isSelected = editingEmotion?.id === emotion.id;
+                            return (
+                              <button
+                                key={emotion.id}
+                                onClick={() => setEditingEmotion(emotion)}
+                                className={cn(
+                                  "flex flex-col items-center p-1.5 rounded-lg transition-all duration-300",
+                                  "hover:scale-105 focus:outline-none focus-visible:outline-none",
+                                  isSelected && "scale-105"
+                                )}
+                              >
+                                <div 
+                                  className={cn(
+                                    "w-14 h-14 flex items-center justify-center rounded-full transition-all overflow-hidden",
+                                    isSelected ? "shadow-lg" : "hover:shadow-md"
+                                  )}
+                                  style={{
+                                    backgroundColor: isSelected ? `${emotion.color}30` : undefined,
+                                    boxShadow: isSelected 
+                                      ? `0 0 0 3px ${emotion.color}, 0 0 0 5px white, 0 0 0 7px ${emotion.color}40` 
+                                      : undefined,
+                                  }}
+                                >
+                                  {!avatarEmotionImagesLoading && avatarEmotionImagesByEmotionTypeId[emotion.id]?.url ? (
+                                    <img
+                                      src={avatarEmotionImagesByEmotionTypeId[emotion.id].url}
+                                      alt={emotion.name}
+                                      className="w-full h-full object-cover"
+                                      style={{
+                                        transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
+                                        transformOrigin: "center",
+                                      }}
+                                    />
+                                  ) : (
+                                    <span className={cn("text-3xl transition-transform duration-300", isSelected && "animate-bounce")}>
+                                      {emotion.emoji}
+                                    </span>
+                                  )}
+                                </div>
+                                <span 
+                                  className={cn(
+                                    "text-xs font-medium mt-1 transition-colors text-center",
+                                    isSelected ? "font-bold" : "text-gray-700"
+                                  )}
+                                  style={{ color: isSelected ? emotion.color : undefined }}
+                                >
+                                  {emotion.name}
+                                </span>
+                              </button>
+                            );
+                          })}
                       </div>
                     </div>
 
@@ -708,49 +725,66 @@ export default function EmotionJournal() {
                   />
                 </div>
                 
-                {/* Emoji Grid */}
-                <div className="flex flex-wrap justify-center gap-2">
-                  {emotionTypes.map((emotion) => (
-                    <button
-                      key={emotion.id}
-                      onClick={() => handleEmotionSelect(emotion)}
-                      disabled={isSaving}
-                      className={cn(
-                        "flex flex-col items-center p-3 rounded-xl transition-all duration-300",
-                        "hover:scale-110 hover:shadow-md focus:outline-none focus:ring-2",
-                        "bg-white/80 border-2",
-                        selectedEmotion?.id === emotion.id
-                          ? "shadow-lg scale-105"
-                          : "border-transparent hover:border-gray-200"
-                      )}
-                      style={{
-                        borderColor: selectedEmotion?.id === emotion.id ? emotion.color : undefined,
-                        backgroundColor: selectedEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
-                      }}
-                    >
-                      {!avatarEmotionImagesLoading && avatarEmotionImagesByEmotionTypeId[emotion.id]?.url ? (
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white shadow-sm">
-                          <img
-                            src={avatarEmotionImagesByEmotionTypeId[emotion.id].url}
-                            alt={emotion.name}
-                            className="w-full h-full object-cover"
+                {/* Emoji Grid - 4 per row, DailyBar order */}
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[...emotionTypes]
+                    .sort((a, b) => {
+                      const order = { positive: 0, neutral: 1, negative: 2 };
+                      return (order[a.category as keyof typeof order] ?? 1) - (order[b.category as keyof typeof order] ?? 1);
+                    })
+                    .map((emotion) => {
+                      const isSelected = selectedEmotion?.id === emotion.id;
+                      return (
+                        <button
+                          key={emotion.id}
+                          onClick={() => handleEmotionSelect(emotion)}
+                          disabled={isSaving}
+                          className={cn(
+                            "flex flex-col items-center p-1.5 rounded-lg transition-all duration-300",
+                            "hover:scale-105 focus:outline-none focus-visible:outline-none",
+                            isSelected && "scale-105"
+                          )}
+                        >
+                          <div 
+                            className={cn(
+                              "w-14 h-14 flex items-center justify-center rounded-full transition-all overflow-hidden",
+                              isSelected ? "shadow-lg" : "hover:shadow-md"
+                            )}
                             style={{
-                              transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
-                              transformOrigin: "center",
+                              backgroundColor: isSelected ? `${emotion.color}30` : undefined,
+                              boxShadow: isSelected 
+                                ? `0 0 0 3px ${emotion.color}, 0 0 0 5px white, 0 0 0 7px ${emotion.color}40` 
+                                : undefined,
                             }}
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-3xl">{emotion.emoji}</span>
-                      )}
-                      <span 
-                        className="text-xs font-medium mt-1"
-                        style={{ color: selectedEmotion?.id === emotion.id ? emotion.color : undefined }}
-                      >
-                        {emotion.name}
-                      </span>
-                    </button>
-                  ))}
+                          >
+                            {!avatarEmotionImagesLoading && avatarEmotionImagesByEmotionTypeId[emotion.id]?.url ? (
+                              <img
+                                src={avatarEmotionImagesByEmotionTypeId[emotion.id].url}
+                                alt={emotion.name}
+                                className="w-full h-full object-cover"
+                                style={{
+                                  transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
+                                  transformOrigin: "center",
+                                }}
+                              />
+                            ) : (
+                              <span className={cn("text-3xl transition-transform duration-300", isSelected && "animate-bounce")}>
+                                {emotion.emoji}
+                              </span>
+                            )}
+                          </div>
+                          <span 
+                            className={cn(
+                              "text-xs font-medium mt-1 transition-colors text-center",
+                              isSelected ? "font-bold" : "text-gray-700"
+                            )}
+                            style={{ color: isSelected ? emotion.color : undefined }}
+                          >
+                            {emotion.name}
+                          </span>
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             )}
