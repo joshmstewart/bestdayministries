@@ -132,7 +132,18 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { source_type = "affirmation", count = 20, theme = null } = body;
+    let { source_type = "affirmation", count = 20, theme = null } = body;
+
+    // Available source types for "all" mode
+    const ALL_SOURCE_TYPES = ["bible_verse", "affirmation", "quote", "life_lesson", "gratitude_prompt", "discussion_starter", "proverbs"];
+    
+    // If source_type is "all", randomly pick a type for this batch
+    // We'll generate the full count of a randomly selected type to maintain consistency
+    let actualSourceType = source_type;
+    if (source_type === "all") {
+      actualSourceType = ALL_SOURCE_TYPES[Math.floor(Math.random() * ALL_SOURCE_TYPES.length)];
+      console.log(`"All Types" mode: randomly selected "${actualSourceType}" for this batch`);
+    }
 
     // Get theme info if specified
     const themeInfo = theme ? THEME_DEFINITIONS[theme] : null;
@@ -147,11 +158,11 @@ serve(async (req) => {
     const { data: existingFortunesForPrompt } = await adminClient
       .from("daily_fortunes")
       .select("reference, author, content")
-      .eq("source_type", source_type);
+      .eq("source_type", actualSourceType);
     
     // Build exclusion list based on source type
     let exclusionList = "";
-    if (source_type === "bible_verse" || source_type === "proverbs") {
+    if (actualSourceType === "bible_verse" || actualSourceType === "proverbs") {
       const existingRefs = (existingFortunesForPrompt || [])
         .filter(f => f.reference)
         .map(f => f.reference)
@@ -159,7 +170,7 @@ serve(async (req) => {
       if (existingRefs.length > 0) {
         exclusionList = `\n\nIMPORTANT - DO NOT generate any of these verses (we already have them):\n${existingRefs.join(", ")}\n\nGenerate DIFFERENT verses not on this list.`;
       }
-    } else if (source_type === "inspirational_quote") {
+    } else if (actualSourceType === "inspirational_quote") {
       const existingAuthors = [...new Set((existingFortunesForPrompt || [])
         .filter(f => f.author)
         .map(f => f.author))];
@@ -182,7 +193,7 @@ serve(async (req) => {
       : "";
 
     let prompt = "";
-    if (source_type === "bible_verse") {
+    if (actualSourceType === "bible_verse") {
       const topicGuidance = themeInfo 
         ? `Focus SPECIFICALLY on verses about: ${themeInfo.description}\nExample verses on this theme: ${themeInfo.examples}`
         : "Topics: love, hope, joy, being valued, God's care, encouragement, strength, peace, friendship, wisdom, patience, gratitude.";
@@ -207,7 +218,7 @@ ${themeInfo ? `- Every verse must relate to the theme: "${themeInfo.label}"` : "
 
 Format as JSON array:
 [{"content": "exact verse text", "reference": "Book Chapter:Verse"}]`;
-    } else if (source_type === "affirmation") {
+    } else if (actualSourceType === "affirmation") {
       const focusGuidance = themeInfo
         ? `Focus on affirmations about: ${themeInfo.description}`
         : "Focused on self-worth, abilities, belonging, and positive qualities";
@@ -223,7 +234,7 @@ Make them:
 
 Format as JSON array:
 [{"content": "the affirmation text"}]`;
-    } else if (source_type === "life_lesson") {
+    } else if (actualSourceType === "life_lesson") {
       const topicGuidance = themeInfo
         ? `Focus on wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
         : `Topics to cover:
@@ -248,7 +259,7 @@ ${topicGuidance}
 
 Format as JSON array:
 [{"content": "the life lesson text"}]`;
-    } else if (source_type === "gratitude_prompt") {
+    } else if (actualSourceType === "gratitude_prompt") {
       const focusGuidance = themeInfo
         ? `Focus prompts on gratitude related to: ${themeInfo.description}`
         : "Related to everyday experiences (friends, activities, small pleasures)";
@@ -263,7 +274,7 @@ Make them:
 
 Format as JSON array:
 [{"content": "the gratitude prompt text"}]`;
-    } else if (source_type === "discussion_starter") {
+    } else if (actualSourceType === "discussion_starter") {
       const topicGuidance = themeInfo
         ? `Focus questions on: ${themeInfo.description}\nRelated topics: ${themeInfo.examples}`
         : `Topics should encourage sharing experiences and opinions about:
@@ -281,7 +292,7 @@ ${topicGuidance}${exclusionList}${themePromptAddition}
 
 Format as JSON array:
 [{"content": "the discussion question text"}]`;
-    } else if (source_type === "proverbs") {
+    } else if (actualSourceType === "proverbs") {
       const focusGuidance = themeInfo
         ? `Focus on biblical wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
         : "Focus on LESSER-KNOWN proverbs and wisdom passages.";
@@ -507,7 +518,7 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
       
       // Build dynamic exclusion list that includes what we've already collected this session
       let dynamicExclusion = exclusionList;
-      if ((source_type === "bible_verse" || source_type === "proverbs") && collectedUniqueFortunes.length > 0) {
+      if ((actualSourceType === "bible_verse" || actualSourceType === "proverbs") && collectedUniqueFortunes.length > 0) {
         const sessionRefs = collectedUniqueFortunes.filter(f => f.reference).map(f => f.reference);
         dynamicExclusion += `\n\nALSO DO NOT generate these (already collected this session): ${sessionRefs.join(", ")}`;
       }
@@ -578,7 +589,7 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
         }
         
         // Check Bible reference for bible_verse AND proverbs types
-        if ((source_type === "bible_verse" || source_type === "proverbs") && f.reference) {
+        if ((actualSourceType === "bible_verse" || actualSourceType === "proverbs") && f.reference) {
           const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
           if (existingExactReferences.has(normalizedRef)) {
             console.log(`Skipping duplicate Bible reference: "${f.reference}"`);
@@ -616,7 +627,7 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
         
         // AI semantic check - catches questions/prompts that ask the same thing differently
         // Apply to categories where semantic similarity matters most
-        if (["discussion_starter", "gratitude_prompt", "affirmation", "life_lesson"].includes(source_type)) {
+        if (["discussion_starter", "gratitude_prompt", "affirmation", "life_lesson"].includes(actualSourceType)) {
           const existingContentForSemantic = allExistingForSoftMatch.map(e => e.content);
           // Also pass items already collected this session to prevent same-batch duplicates
           const sessionCollectedContent = collectedUniqueFortunes.map(u => u.content);
@@ -664,7 +675,7 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
     // Insert only unique fortunes into database
     const fortunesToInsert = collectedUniqueFortunes.map((f: any) => ({
       content: f.content,
-      source_type,
+      source_type: actualSourceType,
       author: f.author || null,
       reference: f.reference || null,
       theme: theme || null, // Include theme in the insert
@@ -682,6 +693,8 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
     return new Response(JSON.stringify({
       success: true,
       count: insertedData?.length || 0,
+      source_type: actualSourceType,
+      random_selection: source_type === "all",
       theme: theme || null,
       fortunes: insertedData,
     }), {
