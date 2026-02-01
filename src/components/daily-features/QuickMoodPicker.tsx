@@ -117,8 +117,16 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
 
   // Fetch emotion types from database and avatar emotion images
   useEffect(() => {
+    // Wait for auth to finish loading before fetching
+    if (authLoading) {
+      console.log("QuickMoodPicker - waiting for auth to load");
+      return;
+    }
+
     const fetchEmotionTypesAndAvatarImages = async () => {
       try {
+        console.log("QuickMoodPicker - starting fetch, user:", user?.id, "isAuthenticated:", isAuthenticated);
+        
         // Fetch all emotion types
         const { data: emotionData, error: emotionError } = await supabase
           .from("emotion_types")
@@ -131,7 +139,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
         // If user is logged in, fetch their selected avatar's emotion images
         let avatarEmotionImages: Record<string, { url: string; cropScale: number }> = {};
         
-        if (user) {
+        if (user && isAuthenticated) {
           // Get user's selected fitness avatar
           const { data: userAvatar, error: avatarError } = await supabase
             .from("user_fitness_avatars")
@@ -169,7 +177,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
             }
           }
         } else {
-          console.log("QuickMoodPicker - no user available, skipping avatar fetch");
+          console.log("QuickMoodPicker - no user available or not authenticated, skipping avatar fetch");
         }
 
         if (emotionData) {
@@ -201,7 +209,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
     };
 
     fetchEmotionTypesAndAvatarImages();
-  }, [user]);
+  }, [user, isAuthenticated, authLoading]);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated || !user) {
