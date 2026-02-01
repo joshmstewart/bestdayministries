@@ -329,11 +329,25 @@ export function DailyBar() {
       <Dialog open={activePopup === "fortune"} onOpenChange={(open) => !open && handlePopupClose("fortune")}>
         <DialogContent className="max-w-lg" hideCloseButton>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-2xl">✨</span>
-              <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Daily Inspiration
-              </span>
+            <DialogTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">✨</span>
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Daily Inspiration
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handlePopupClose("fortune");
+                  navigate("/daily-fortune");
+                }}
+                className="text-xs text-muted-foreground"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Full Page
+              </Button>
             </DialogTitle>
             <DialogDescription className="sr-only">
               Today's inspirational message

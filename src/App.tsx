@@ -88,7 +88,7 @@ const GuardianResources = lazy(() => import("./pages/GuardianResources"));
 const GuardianResourceDetail = lazy(() => import("./pages/GuardianResourceDetail"));
 const JoyHouseStores = lazy(() => import("./pages/JoyHouseStores"));
 const PrayerRequests = lazy(() => import("./pages/PrayerRequests"));
-const DailyCheckin = lazy(() => import("./pages/DailyCheckin"));
+const DailyFortune = lazy(() => import("./pages/DailyFortune"));
 const MyFortunes = lazy(() => import("./pages/MyFortunes"));
 const CoffeeProductDetail = lazy(() => import("./pages/CoffeeProductDetail"));
 
@@ -309,7 +309,7 @@ const App = () => {
             <Route path="/games/coloring-book" element={<ColoringBook />} />
             <Route path="/games/daily-five" element={<WordleGame />} />
             <Route path="/games/emotion-journal" element={<EmotionJournal />} />
-            <Route path="/daily-checkin" element={<DailyCheckin />} />
+            <Route path="/daily-fortune" element={<DailyFortune />} />
             <Route path="/my-fortunes" element={<MyFortunes />} />
             <Route path="/games/beat-pad" element={<BeatPad />} />
             <Route path="/games/cash-register" element={<MoneyCounting />} />
