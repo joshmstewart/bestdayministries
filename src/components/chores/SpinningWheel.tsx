@@ -231,17 +231,41 @@ export function SpinningWheel({
       }
     }
     
-    // Shuffle to spread them out - interleave different segments
-    const shuffled: WheelSegment[] = [];
-    const remaining = sliceCounts.map(sc => ({ segment: sc.segment, count: sc.count }));
+    // Separate into coins and packs, then interleave them
+    const coinSegments = sliceCounts.filter(sc => sc.segment.type === 'coins' && sc.count > 0);
+    const packSegments = sliceCounts.filter(sc => sc.segment.type === 'sticker_pack' && sc.count > 0);
     
-    while (remaining.some(r => r.count > 0)) {
-      for (const r of remaining) {
-        if (r.count > 0) {
-          shuffled.push(r.segment);
-          r.count--;
+    // Build arrays of all coin and pack slices
+    const coinSlices: WheelSegment[] = [];
+    const packSlices: WheelSegment[] = [];
+    
+    // Distribute coin slices evenly across different coin amounts
+    while (coinSegments.some(s => s.count > 0)) {
+      for (const s of coinSegments) {
+        if (s.count > 0) {
+          coinSlices.push(s.segment);
+          s.count--;
         }
       }
+    }
+    
+    // Distribute pack slices evenly across different pack amounts
+    while (packSegments.some(s => s.count > 0)) {
+      for (const s of packSegments) {
+        if (s.count > 0) {
+          packSlices.push(s.segment);
+          s.count--;
+        }
+      }
+    }
+    
+    // Interleave coins and packs around the wheel
+    const shuffled: WheelSegment[] = [];
+    const maxLen = Math.max(coinSlices.length, packSlices.length);
+    
+    for (let i = 0; i < maxLen; i++) {
+      if (i < coinSlices.length) shuffled.push(coinSlices[i]);
+      if (i < packSlices.length) shuffled.push(packSlices[i]);
     }
     
     // Build the spread slices
