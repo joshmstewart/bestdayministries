@@ -135,6 +135,73 @@ export default function EmotionJournal() {
     currentEmotionName
   );
 
+  // Load ALL approved avatar emotion images for the user's selected avatar
+  const [avatarEmotionImagesByEmotionTypeId, setAvatarEmotionImagesByEmotionTypeId] = useState<
+    Record<string, { url: string; cropScale: number }>
+  >({});
+  const [avatarEmotionImagesLoading, setAvatarEmotionImagesLoading] = useState(false);
+
+  useEffect(() => {
+    const loadAvatarEmotionImages = async () => {
+      if (!user) {
+        setAvatarEmotionImagesByEmotionTypeId({});
+        return;
+      }
+
+      setAvatarEmotionImagesLoading(true);
+      try {
+        const { data: userAvatar, error: avatarError } = await supabase
+          .from("user_fitness_avatars")
+          .select("avatar_id")
+          .eq("user_id", user.id)
+          .eq("is_selected", true)
+          .maybeSingle();
+
+        if (avatarError) {
+          console.error("Error fetching selected avatar for EmotionJournal:", avatarError);
+          setAvatarEmotionImagesByEmotionTypeId({});
+          return;
+        }
+
+        if (!userAvatar?.avatar_id) {
+          setAvatarEmotionImagesByEmotionTypeId({});
+          return;
+        }
+
+        const { data: emotionImages, error: emotionImagesError } = await supabase
+          .from("avatar_emotion_images")
+          .select("emotion_type_id, image_url, crop_scale")
+          .eq("avatar_id", userAvatar.avatar_id)
+          .eq("is_approved", true);
+
+        if (emotionImagesError) {
+          console.error("Error fetching avatar emotion images for EmotionJournal:", emotionImagesError);
+          setAvatarEmotionImagesByEmotionTypeId({});
+          return;
+        }
+
+        const map: Record<string, { url: string; cropScale: number }> = {};
+        (emotionImages || []).forEach((img) => {
+          if (!img.image_url) return;
+          map[img.emotion_type_id] = {
+            url: img.image_url,
+            cropScale: (img.crop_scale as number) || 1.0,
+          };
+        });
+        setAvatarEmotionImagesByEmotionTypeId(map);
+      } catch (e) {
+        console.error("Error loading avatar emotion images for EmotionJournal:", e);
+        setAvatarEmotionImagesByEmotionTypeId({});
+      } finally {
+        setAvatarEmotionImagesLoading(false);
+      }
+    };
+
+    if (!authLoading && user) {
+      loadAvatarEmotionImages();
+    }
+  }, [authLoading, user?.id]);
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -536,7 +603,21 @@ export default function EmotionJournal() {
                               backgroundColor: editingEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
                             }}
                           >
-                            <span className="text-2xl">{emotion.emoji}</span>
+                             {!avatarEmotionImagesLoading && avatarEmotionImagesByEmotionTypeId[emotion.id]?.url ? (
+                               <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow-sm">
+                                 <img
+                                   src={avatarEmotionImagesByEmotionTypeId[emotion.id].url}
+                                   alt={emotion.name}
+                                   className="w-full h-full object-cover"
+                                   style={{
+                                     transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
+                                     transformOrigin: "center",
+                                   }}
+                                 />
+                               </div>
+                             ) : (
+                               <span className="text-2xl">{emotion.emoji}</span>
+                             )}
                             <span 
                               className="text-xs font-medium mt-0.5"
                               style={{ color: editingEmotion?.id === emotion.id ? emotion.color : undefined }}
@@ -647,7 +728,21 @@ export default function EmotionJournal() {
                         backgroundColor: selectedEmotion?.id === emotion.id ? `${emotion.color}20` : undefined,
                       }}
                     >
-                      <span className="text-3xl">{emotion.emoji}</span>
+                      {!avatarEmotionImagesLoading && avatarEmotionImagesByEmotionTypeId[emotion.id]?.url ? (
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white shadow-sm">
+                          <img
+                            src={avatarEmotionImagesByEmotionTypeId[emotion.id].url}
+                            alt={emotion.name}
+                            className="w-full h-full object-cover"
+                            style={{
+                              transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
+                              transformOrigin: "center",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-3xl">{emotion.emoji}</span>
+                      )}
                       <span 
                         className="text-xs font-medium mt-1"
                         style={{ color: selectedEmotion?.id === emotion.id ? emotion.color : undefined }}

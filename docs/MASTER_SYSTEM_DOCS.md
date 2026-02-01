@@ -1380,3 +1380,14 @@ ADMIN:FortunesManager[Generate-with-AI|bulk approve/archive/delete|Theme Coverag
 THEME_COVERAGE_REALTIME:FortunesManager subscribes to daily_fortunes changes and debounced-refreshes theme coverage counts automatically (no manual refresh).
 NOTE:Theme Coverage Dashboard counts include ONLY approved + non-archived fortunes; pending items won’t increase counts until approved.
 FILES:src/components/admin/FortunesManager.tsx
+
+## EMOTION_JOURNAL|/games/emotion-journal|auth
+OVERVIEW:User logs daily emotion + optional notes; shows avatar-specific emotion portraits when available.
+DB:emotion_types|user_fitness_avatars|avatar_emotion_images|mood_entries|emotion_journal_entries|mood_messages
+BACKEND-FUNCTIONS:emotion-journal-response[AI-or-prewritten encouraging response]
+AVATAR-EMOTION-IMAGES:
+  SOURCE:user_fitness_avatars[is_selected=true]→avatar_emotion_images[is_approved=true]
+  RENDER:Emotion grid shows avatar portrait per emotion (fallback to emoji)
+  CROP:use avatar_emotion_images.crop_scale to zoom inside circular frames
+FILES:src/pages/EmotionJournal.tsx|src/hooks/useAvatarEmotionImage.ts
+DOC:EMOTION_JOURNAL_SYSTEM.md
