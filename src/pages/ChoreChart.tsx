@@ -962,13 +962,8 @@ export default function ChoreChart() {
         <BadgeEarnedDialog
           badge={earnedBadge}
           open={showBadgeDialog}
-          onOpenChange={(open) => {
-            setShowBadgeDialog(open);
-            // When badge dialog closes, show the wheel dialog if not already claimed today
-            if (!open && !dailyRewardClaimed) {
-              setTimeout(() => setShowWheelDialog(true), 500);
-            }
-          }}
+          onOpenChange={setShowBadgeDialog}
+          onSpinWheel={!dailyRewardClaimed ? () => setTimeout(() => setShowWheelDialog(true), 300) : undefined}
         />
 
         {/* Gallery Button - Admin Only */}

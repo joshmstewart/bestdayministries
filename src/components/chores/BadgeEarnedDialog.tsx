@@ -9,9 +9,10 @@ interface BadgeEarnedDialogProps {
   badge: BadgeDefinition | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSpinWheel?: () => void;
 }
 
-export function BadgeEarnedDialog({ badge, open, onOpenChange }: BadgeEarnedDialogProps) {
+export function BadgeEarnedDialog({ badge, open, onOpenChange, onSpinWheel }: BadgeEarnedDialogProps) {
   const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
@@ -122,15 +123,31 @@ export function BadgeEarnedDialog({ badge, open, onOpenChange }: BadgeEarnedDial
             </span>
           </div>
 
-          {/* Close button */}
-          <Button 
-            onClick={() => onOpenChange(false)}
-            className={`mt-8 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white transition-all duration-500 delay-700 ${
+          {/* Action buttons */}
+          <div 
+            className={`mt-8 flex flex-col gap-3 transition-all duration-500 delay-700 ${
               showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
             }`}
           >
-            Awesome! 🙌
-          </Button>
+            {onSpinWheel && (
+              <Button 
+                onClick={() => {
+                  onOpenChange(false);
+                  onSpinWheel();
+                }}
+                className="px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+              >
+                🎡 Spin the Wheel!
+              </Button>
+            )}
+            <Button 
+              onClick={() => onOpenChange(false)}
+              variant={onSpinWheel ? "outline" : "default"}
+              className={onSpinWheel ? "px-8" : "px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"}
+            >
+              {onSpinWheel ? "Maybe Later" : "Awesome! 🙌"}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
