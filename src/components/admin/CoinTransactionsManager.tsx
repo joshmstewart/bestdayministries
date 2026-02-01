@@ -32,37 +32,46 @@ export const CoinTransactionsManager = () => {
   const [stats, setStats] = useState({ totalEarned: 0, totalSpent: 0, transactionCount: 0 });
 
   useEffect(() => {
-    fetchTransactions();
+    fetchData();
   }, []);
 
-  const fetchTransactions = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("coin_transactions")
-      .select(`
-        *,
-        profiles:user_id (
-          display_name,
-          email
-        )
-      `)
-      .order("created_at", { ascending: false })
-      .limit(500);
+    
+    // Fetch stats and transactions in parallel
+    const [statsResult, transactionsResult] = await Promise.all([
+      supabase.rpc("get_coin_transaction_stats"),
+      supabase
+        .from("coin_transactions")
+        .select(`
+          *,
+          profiles:user_id (
+            display_name,
+            email
+          )
+        `)
+        .order("created_at", { ascending: false })
+        .limit(500)
+    ]);
 
-    if (error) {
-      console.error("Error fetching transactions:", error);
-    } else {
-      setTransactions(data || []);
-      
-      // Calculate stats
-      const earned = (data || []).filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-      const spent = (data || []).filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    // Handle stats from RPC
+    if (statsResult.error) {
+      console.error("Error fetching stats:", statsResult.error);
+    } else if (statsResult.data && statsResult.data[0]) {
       setStats({
-        totalEarned: earned,
-        totalSpent: spent,
-        transactionCount: data?.length || 0
+        transactionCount: Number(statsResult.data[0].total_count) || 0,
+        totalEarned: Number(statsResult.data[0].total_earned) || 0,
+        totalSpent: Number(statsResult.data[0].total_spent) || 0
       });
     }
+
+    // Handle transactions for table
+    if (transactionsResult.error) {
+      console.error("Error fetching transactions:", transactionsResult.error);
+    } else {
+      setTransactions(transactionsResult.data || []);
+    }
+    
     setLoading(false);
   };
 

@@ -11628,6 +11628,14 @@ export type Database = {
           status: string
         }[]
       }
+      get_coin_transaction_stats: {
+        Args: never
+        Returns: {
+          total_count: number
+          total_earned: number
+          total_spent: number
+        }[]
+      }
       get_marketplace_access_settings: {
         Args: never
         Returns: {
