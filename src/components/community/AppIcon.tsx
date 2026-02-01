@@ -45,8 +45,8 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
       {/* App icon with gradient background or custom image */}
       <div
         className={cn(
-          "relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden",
-          !customIconUrl && "bg-gradient-to-br",
+          "relative w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center",
+          !customIconUrl && "rounded-2xl shadow-lg bg-gradient-to-br",
           !customIconUrl && app.color,
           !editMode && "hover:scale-105 active:scale-95 transition-transform"
         )}
@@ -55,7 +55,7 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
           <img 
             src={customIconUrl} 
             alt={app.name} 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain drop-shadow-lg"
           />
         ) : (
           <Icon className="w-8 h-8 lg:w-10 lg:h-10 text-white drop-shadow-md" />
