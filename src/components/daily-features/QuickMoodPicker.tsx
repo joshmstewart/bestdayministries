@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Textarea } from "@/components/ui/textarea";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle } from "lucide-react";
+import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { showCoinNotification } from "@/utils/coinNotification";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,9 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
   const [todaysEntry, setTodaysEntry] = useState<any>(null);
   const [encouragingMessage, setEncouragingMessage] = useState<string | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Get current theme based on selected mood
   const currentTheme = selectedMood 
@@ -226,9 +229,49 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
     }
   };
 
+  // Speak emotion name using TTS
+  const speakEmotionName = useCallback(async (emotionName: string) => {
+    if (!ttsEnabled) return;
+    
+    try {
+      setIsSpeaking(true);
+      
+      // Stop any current audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { text: emotionName, voice: 'Sarah' }
+      });
+
+      if (error) throw error;
+
+      if (data?.audioContent) {
+        const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        
+        audio.onended = () => setIsSpeaking(false);
+        audio.onerror = () => setIsSpeaking(false);
+        
+        await audio.play();
+      }
+    } catch (error) {
+      console.error('TTS error:', error);
+      setIsSpeaking(false);
+    }
+  }, [ttsEnabled]);
+
   const handleMoodSelect = (mood: MoodOption) => {
     if (todaysEntry) return;
     setSelectedMood(mood);
+    
+    // Speak the emotion name if TTS is enabled
+    if (ttsEnabled) {
+      speakEmotionName(mood.label);
+    }
   };
 
   const handleSave = async (withAiResponse: boolean) => {
@@ -361,10 +404,30 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
 
   return (
     <div className={cn(
-      "space-y-4 transition-all duration-500"
+      "space-y-4 transition-all duration-500 relative"
     )}>
+      {/* TTS Toggle Button - Top Right */}
+      <button
+        onClick={() => setTtsEnabled(!ttsEnabled)}
+        className={cn(
+          "absolute -top-2 right-0 p-2 rounded-full transition-all duration-200",
+          "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
+          ttsEnabled 
+            ? "bg-primary/10 text-primary" 
+            : "bg-muted/50 text-muted-foreground"
+        )}
+        title={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+        aria-label={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+      >
+        {ttsEnabled ? (
+          <Volume2 className={cn("w-5 h-5", isSpeaking && "animate-pulse")} />
+        ) : (
+          <VolumeX className="w-5 h-5" />
+        )}
+      </button>
+
       {/* Mood Selector */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2 pt-6">
         {moodOptions.map((mood) => (
           <button
             key={mood.label}
