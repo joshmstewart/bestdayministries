@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { AppConfig } from "./appsConfig";
 import { cn } from "@/lib/utils";
 import { AppConfiguration } from "@/hooks/useAppConfigurations";
+import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
 
 interface AppIconProps {
   app: AppConfig & { config?: AppConfiguration };
@@ -13,8 +14,12 @@ interface AppIconProps {
 export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: AppIconProps) {
   const navigate = useNavigate();
   const Icon = app.icon;
-  const customIconUrl = app.config?.icon_url;
-
+  const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
+  
+  // For sticker-album, automatically use featured pack cover unless admin uploaded custom icon
+  const customIconUrl = app.id === 'sticker-album' && !app.config?.icon_url
+    ? featuredStickerUrl
+    : app.config?.icon_url;
   const handleClick = () => {
     if (editMode && onToggle) {
       onToggle();
