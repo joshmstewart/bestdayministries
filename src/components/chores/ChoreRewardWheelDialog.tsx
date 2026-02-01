@@ -263,27 +263,57 @@ export function ChoreRewardWheelDialog({
   };
 
 
+  // Build gradient from all segment colors
+  const buildSliceGradient = () => {
+    if (segments.length === 0) {
+      return "linear-gradient(135deg, hsl(24 85% 95%) 0%, hsl(46 95% 95%) 25%, hsl(270 60% 95%) 50%, hsl(285 70% 95%) 75%, hsl(24 85% 95%) 100%)";
+    }
+    
+    // Get unique colors from segments
+    const colors = segments.map(s => {
+      const { h, s: sat } = hexToHsl(s.color);
+      return `hsl(${h} ${Math.min(sat, 70)}% 92%)`;
+    });
+    
+    // Create gradient stops evenly distributed
+    const stops = colors.map((color, i) => {
+      const percent = (i / (colors.length - 1)) * 100;
+      return `${color} ${percent}%`;
+    }).join(', ');
+    
+    return `linear-gradient(135deg, ${stops})`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="sm:max-w-md overflow-hidden" 
         hideCloseButton
         style={{
-          background: wonPrize 
-            ? `linear-gradient(180deg, ${hexToHslLight(wonPrize.color)} 0%, ${hexToHslLighter(wonPrize.color)} 50%, hsl(0 0% 100%) 100%)`
-            : "linear-gradient(180deg, hsl(24 85% 97%) 0%, hsl(33 100% 98%) 100%)"
+          background: buildSliceGradient()
         }}
       >
-        {/* Decorative background elements */}
+        {/* Decorative background elements using segment colors */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div 
-            className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20"
-            style={{ background: "radial-gradient(circle, hsl(46 95% 55%) 0%, transparent 70%)" }}
-          />
-          <div 
-            className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-15"
-            style={{ background: "radial-gradient(circle, hsl(24 85% 56%) 0%, transparent 70%)" }}
-          />
+          {segments.slice(0, 4).map((seg, i) => {
+            const { h, s: sat } = hexToHsl(seg.color);
+            const positions = [
+              { top: '-20%', right: '-15%' },
+              { bottom: '-15%', left: '-10%' },
+              { top: '20%', left: '-20%' },
+              { bottom: '30%', right: '-15%' },
+            ];
+            return (
+              <div 
+                key={i}
+                className="absolute w-32 h-32 rounded-full"
+                style={{ 
+                  ...positions[i],
+                  background: `radial-gradient(circle, hsl(${h} ${sat}% 60% / 0.25) 0%, transparent 70%)`,
+                }}
+              />
+            );
+          })}
         </div>
 
         <DialogHeader className="relative z-10">
