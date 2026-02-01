@@ -8289,9 +8289,10 @@ export type Database = {
       }
       shopping_cart: {
         Row: {
+          coffee_product_id: string | null
           created_at: string
           id: string
-          product_id: string
+          product_id: string | null
           quantity: number
           session_id: string | null
           updated_at: string
@@ -8299,9 +8300,10 @@ export type Database = {
           variant_info: Json | null
         }
         Insert: {
+          coffee_product_id?: string | null
           created_at?: string
           id?: string
-          product_id: string
+          product_id?: string | null
           quantity: number
           session_id?: string | null
           updated_at?: string
@@ -8309,9 +8311,10 @@ export type Database = {
           variant_info?: Json | null
         }
         Update: {
+          coffee_product_id?: string | null
           created_at?: string
           id?: string
-          product_id?: string
+          product_id?: string | null
           quantity?: number
           session_id?: string | null
           updated_at?: string
@@ -8319,6 +8322,13 @@ export type Database = {
           variant_info?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "shopping_cart_coffee_product_id_fkey"
+            columns: ["coffee_product_id"]
+            isOneToOne: false
+            referencedRelation: "coffee_products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shopping_cart_product_id_fkey"
             columns: ["product_id"]
