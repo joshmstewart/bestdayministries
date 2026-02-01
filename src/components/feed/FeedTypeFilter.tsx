@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Music, Palette, Image, MessageSquare, FolderOpen, Trophy,
-  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Filter, X, Megaphone
+  Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Filter, X, Megaphone, Sparkles
 } from "lucide-react";
 import { ItemType, ITEM_TYPE_LABELS } from "@/hooks/useCommunityFeed";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ const typeIcons: Record<ItemType, React.ElementType> = {
   drink: GlassWater,
   joke: Laugh,
   announcement: Megaphone,
+  fortune: Sparkles,
 };
 
 const typeColors: Record<ItemType, string> = {
@@ -48,11 +49,12 @@ const typeColors: Record<ItemType, string> = {
   drink: "text-cyan-500",
   joke: "text-lime-500",
   announcement: "text-primary",
+  fortune: "text-indigo-400",
 };
 
 const FILTER_ORDER: ItemType[] = [
   'post', 'album', 'event', 'beat', 'coloring', 
-  'recipe', 'drink', 'joke', 'prayer', 'workout', 'announcement'
+  'recipe', 'drink', 'joke', 'prayer', 'workout', 'announcement', 'fortune'
 ];
 
 export function FeedTypeFilter({ selectedTypes, onTypesChange }: FeedTypeFilterProps) {

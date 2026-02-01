@@ -4,12 +4,12 @@ import { FeedItemData } from "@/components/feed/FeedItem";
 
 const PAGE_SIZE = 12;
 
-export type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke' | 'announcement';
+export type ItemType = 'beat' | 'card' | 'coloring' | 'post' | 'album' | 'chore_art' | 'event' | 'prayer' | 'workout' | 'recipe' | 'drink' | 'joke' | 'announcement' | 'fortune';
 
-export const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke', 'announcement'];
+export const VALID_ITEM_TYPES: ItemType[] = ['beat', 'card', 'coloring', 'post', 'album', 'chore_art', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke', 'announcement', 'fortune'];
 
 // Types shown in the filter dropdown (excludes chore_art and card, includes announcement as "Updates")
-export const FILTERABLE_ITEM_TYPES: ItemType[] = ['beat', 'coloring', 'post', 'album', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke', 'announcement'];
+export const FILTERABLE_ITEM_TYPES: ItemType[] = ['beat', 'coloring', 'post', 'album', 'event', 'prayer', 'workout', 'recipe', 'drink', 'joke', 'announcement', 'fortune'];
 
 export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   beat: 'Beats',
@@ -25,6 +25,7 @@ export const ITEM_TYPE_LABELS: Record<ItemType, string> = {
   drink: 'Drinks',
   joke: 'Jokes',
   announcement: 'Updates',
+  fortune: 'Daily Fortunes',
 };
 
 interface UseCommunityFeedOptions {

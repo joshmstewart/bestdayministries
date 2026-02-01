@@ -3512,6 +3512,7 @@ export type Database = {
           event_id: string | null
           id: string
           image_url: string | null
+          is_fortune_post: boolean
           is_moderated: boolean | null
           moderated_at: string | null
           moderated_by: string | null
@@ -3519,6 +3520,7 @@ export type Database = {
           moderation_reason: string | null
           moderation_severity: string | null
           moderation_status: string | null
+          share_to_feed: boolean
           title: string
           updated_at: string
           video_cover_timestamp: number | null
@@ -3543,6 +3545,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           image_url?: string | null
+          is_fortune_post?: boolean
           is_moderated?: boolean | null
           moderated_at?: string | null
           moderated_by?: string | null
@@ -3550,6 +3553,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_severity?: string | null
           moderation_status?: string | null
+          share_to_feed?: boolean
           title: string
           updated_at?: string
           video_cover_timestamp?: number | null
@@ -3574,6 +3578,7 @@ export type Database = {
           event_id?: string | null
           id?: string
           image_url?: string | null
+          is_fortune_post?: boolean
           is_moderated?: boolean | null
           moderated_at?: string | null
           moderated_by?: string | null
@@ -3581,6 +3586,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_severity?: string | null
           moderation_status?: string | null
+          share_to_feed?: boolean
           title?: string
           updated_at?: string
           video_cover_timestamp?: number | null
