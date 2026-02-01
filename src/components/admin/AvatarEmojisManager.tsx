@@ -144,6 +144,18 @@ export function AvatarEmojisManager() {
 - This allows the head to fill more of the frame while still showing sleepiness`;
     }
     
+    // Special handling for Bored - extremely unamused, dead inside look
+    if (emotionName === 'bored') {
+      expressionDetails = `- Make the face clearly show EXTREME BOREDOM - like they're bored out of their mind
+- Eyes should be VERY heavy-lidded, droopy, half-closed with absolutely NO spark or interest
+- Eyebrows should be flat, slightly lowered, showing complete disinterest
+- Mouth should be completely flat/neutral or slightly turned down - NO smile whatsoever
+- The overall expression should scream "I couldn't care less" or "this is so boring I'm dying inside"
+- Think of someone who has been waiting in a long line for hours or sitting through an incredibly dull meeting
+- The face should look completely unamused, unimpressed, and utterly disengaged
+- Capture that classic "are you serious right now" or "I'm so done" look`;
+    }
+    
     // Special handling for Okay - should look neutral/content, NOT happy
     if (emotionName === 'okay') {
       expressionDetails = `- Make the face clearly show a NEUTRAL, content expression ${emotion.emoji}
