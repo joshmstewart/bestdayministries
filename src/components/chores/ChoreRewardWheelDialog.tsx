@@ -8,6 +8,7 @@ import { showCoinNotification } from "@/utils/coinNotification";
 import { SpinningWheel, WheelSegment } from "./SpinningWheel";
 import confetti from "canvas-confetti";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { cn } from "@/lib/utils";
 
 interface ChoreRewardWheelDialogProps {
   open: boolean;
@@ -206,8 +207,30 @@ export function ChoreRewardWheelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" hideCloseButton>
-        <DialogHeader>
+      <DialogContent 
+        className="sm:max-w-md overflow-hidden" 
+        hideCloseButton
+        style={{
+          background: wonPrize 
+            ? wonPrize.type === "coins"
+              ? "linear-gradient(180deg, hsl(46 95% 95%) 0%, hsl(33 100% 97%) 50%, hsl(0 0% 100%) 100%)"
+              : "linear-gradient(180deg, hsl(270 60% 95%) 0%, hsl(280 50% 97%) 50%, hsl(0 0% 100%) 100%)"
+            : "linear-gradient(180deg, hsl(24 85% 97%) 0%, hsl(33 100% 98%) 100%)"
+        }}
+      >
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            className="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-20"
+            style={{ background: "radial-gradient(circle, hsl(46 95% 55%) 0%, transparent 70%)" }}
+          />
+          <div 
+            className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full opacity-15"
+            style={{ background: "radial-gradient(circle, hsl(24 85% 56%) 0%, transparent 70%)" }}
+          />
+        </div>
+
+        <DialogHeader className="relative z-10">
           <DialogTitle className="flex items-center gap-2 text-center justify-center">
             <Gift className="h-5 w-5 text-primary" />
             Reward Wheel!
@@ -217,7 +240,7 @@ export function ChoreRewardWheelDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-6 py-4">
+        <div className="flex flex-col items-center gap-6 py-4 relative z-10">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -228,19 +251,29 @@ export function ChoreRewardWheelDialog({
             </p>
           ) : (
             <>
-                <SpinningWheel
-                  segments={segments}
-                  onSpinEnd={handleSpinEnd}
-                  spinning={spinning}
-                  onSpinStart={handleSpinStart}
-                  disabled={hasSpunToday}
-                  size={280}
-                  clickSoundUrl={wheelClickSound?.url}
-                  clickSoundVolume={wheelClickSound?.volume}
-                />
+              <SpinningWheel
+                segments={segments}
+                onSpinEnd={handleSpinEnd}
+                spinning={spinning}
+                onSpinStart={handleSpinStart}
+                disabled={hasSpunToday}
+                size={280}
+                clickSoundUrl={wheelClickSound?.url}
+                clickSoundVolume={wheelClickSound?.volume}
+              />
 
               {wonPrize && (
-                <div className="flex flex-col items-center gap-2 animate-fade-in">
+                <div 
+                  className={cn(
+                    "flex flex-col items-center gap-2 animate-fade-in p-4 rounded-xl",
+                    wonPrize.type === "coins" 
+                      ? "bg-gradient-to-br from-secondary/20 to-accent/10"
+                      : "bg-gradient-to-br from-purple-200/30 to-purple-100/20"
+                  )}
+                  style={{
+                    boxShadow: "0 4px 16px -4px hsl(var(--primary) / 0.15)"
+                  }}
+                >
                   <div className="flex items-center gap-2 text-lg font-bold">
                     {wonPrize.type === "coins" ? (
                       <>
@@ -268,7 +301,7 @@ export function ChoreRewardWheelDialog({
                   size="lg"
                   onClick={startSpin}
                   disabled={spinning}
-                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all"
                 >
                   {spinning ? (
                     <>
