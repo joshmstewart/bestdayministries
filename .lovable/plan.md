@@ -1,102 +1,63 @@
 
-# Plan: Fix Capped Transaction Statistics
+# Plan: Remove Frontend Discussion Post Creation Fallback
 
-## Problem
-The Admin → Transactions tab shows incorrect statistics because:
-1. The query fetches only 500 rows (`.limit(500)`)
-2. All three stats (Total Transactions, Total Earned, Total Spent) are calculated from those 500 rows
-3. The real totals are much higher but never shown
+## Root Cause Identified
+The `FortuneComments.tsx` component (lines 115-157) has fallback logic that creates the discussion post when a user submits the first comment AND no discussion post exists. **Joshie commented first, so he became the author.**
 
 ## Solution
-Use a **separate COUNT/SUM query** to get accurate totals, while keeping the limited query for the paginated table display.
+Remove this frontend fallback entirely. The discussion post should ONLY be created by the `generate-fortune-posts` edge function (which now uses the system user).
+
+---
 
 ## Implementation
 
-### File: `src/components/admin/CoinTransactionsManager.tsx`
+### File: `src/components/daily-features/FortuneComments.tsx`
 
-#### 1. Add a separate stats query using aggregate functions
+**Remove lines 115-157** - the entire `isFirstComment` block that creates discussion posts:
 
 ```typescript
-const fetchStats = async () => {
-  // Get total count
-  const { count } = await supabase
-    .from("coin_transactions")
-    .select("*", { count: "exact", head: true });
+// REMOVE THIS ENTIRE BLOCK:
+const isFirstComment = comments.length === 0 && !discussionPostId;
 
-  // Get sum of positive amounts (earned)
-  const { data: earnedData } = await supabase
-    .from("coin_transactions")
-    .select("amount")
-    .gt("amount", 0);
-
-  // Get sum of negative amounts (spent)
-  const { data: spentData } = await supabase
-    .from("coin_transactions")
-    .select("amount")
-    .lt("amount", 0);
-
-  const totalEarned = (earnedData || []).reduce((sum, t) => sum + t.amount, 0);
-  const totalSpent = (spentData || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-  setStats({
-    totalEarned,
-    totalSpent,
-    transactionCount: count || 0
-  });
-};
-```
-
-**Note:** Supabase doesn't have a direct `SUM()` aggregate via the JS client, so we either:
-- Option A: Fetch all amounts (just the `amount` column, not full rows) and sum client-side
-- Option B: Create a database view or RPC function for the aggregates
-
-#### 2. Alternative: Use an RPC function (more efficient)
-
-Create a database function:
-```sql
-CREATE OR REPLACE FUNCTION get_coin_transaction_stats()
-RETURNS TABLE (
-  total_count bigint,
-  total_earned numeric,
-  total_spent numeric
-) AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    COUNT(*)::bigint as total_count,
-    COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_earned,
-    COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) as total_spent
-  FROM coin_transactions;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-Then call it from the component:
-```typescript
-const { data: statsData } = await supabase.rpc("get_coin_transaction_stats");
-if (statsData && statsData[0]) {
-  setStats({
-    transactionCount: statsData[0].total_count,
-    totalEarned: statsData[0].total_earned,
-    totalSpent: statsData[0].total_spent
-  });
+if (isFirstComment) {
+  // Fetch the fortune details to create a discussion post
+  const { data: fortunePost } = await supabase
+    .from("daily_fortune_posts")
+    .select("fortune_id, daily_fortunes(content, author, reference, source_type)")
+    .eq("id", fortunePostId)
+    .single();
+  
+  if (fortunePost?.daily_fortunes) {
+    // ... creates discussion post with user.id as author
+  }
 }
 ```
 
-#### 3. Keep the table query limited for performance
-The existing `.limit(500)` for the table is fine—we just need to make the stats independent.
+**Replace with:** Nothing. Just let the comment insert proceed without creating a discussion post.
 
-## Changes Summary
+---
+
+## Why This Is Safe
+
+1. **The edge function now handles this** - It creates the discussion post with the system user ID
+2. **If edge function fails** - Comments still work (they go to `daily_fortune_comments` table, not the discussion post)
+3. **No orphaned fortunes** - The fortune card displays fine without a discussion post; comments are stored separately
+
+---
+
+## Optional Enhancement
+
+If you want to ensure EVERY fortune post has a discussion post, we can add a "healing" step to the edge function that:
+1. Finds any `daily_fortune_posts` where `discussion_post_id IS NULL`
+2. Creates the missing discussion posts using the system user
+
+This would fix today's Joshie situation and any future gaps.
+
+---
+
+## Summary of Changes
 
 | File | Change |
 |------|--------|
-| Database | Add `get_coin_transaction_stats()` RPC function |
-| `CoinTransactionsManager.tsx` | Call RPC for stats, keep `.limit(500)` for table |
-
-## Visual Update
-The footer text already says "(last 500)" which is correct for the table. The stats cards will now show the **true totals** across all transactions.
-
-## Benefits
-- Accurate statistics regardless of transaction volume
-- Single efficient SQL query for aggregates
-- Table remains performant with pagination limit
+| `src/components/daily-features/FortuneComments.tsx` | Remove lines 115-157 (fallback discussion post creation) |
+| `supabase/functions/generate-fortune-posts/index.ts` | (Optional) Add healing logic for missing discussion posts |
