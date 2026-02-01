@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/imageUtils";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 const ALL_ROLES: UserRole[] = ["supporter", "bestie", "caregiver", "moderator", "admin", "owner"];
@@ -145,19 +146,20 @@ export function AppConfigManager() {
         return;
       }
 
-      // Validate file size (max 2MB for icons)
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("Image must be less than 2MB");
-        return;
-      }
-
       setSaving(appId);
 
+      // Compress image if over 2MB (target 2MB max, 512px for icons)
+      let processedFile = file;
+      if (file.size > 2 * 1024 * 1024) {
+        toast.info("Compressing image...");
+        processedFile = await compressImage(file, 2, 512, 512);
+      }
+
       // Upload to storage
-      const fileName = `app-icons/${appId}-${Date.now()}.${file.name.split('.').pop()}`;
+      const fileName = `app-icons/${appId}-${Date.now()}.${processedFile.name.split('.').pop()}`;
       const { error: uploadError } = await supabase.storage
         .from("app-assets")
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, processedFile, { upsert: true });
 
       if (uploadError) {
         throw uploadError;
