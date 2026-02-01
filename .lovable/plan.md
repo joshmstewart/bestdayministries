@@ -1,107 +1,97 @@
 
+Goal
+- Make the Reward Wheel reliably clickable again in the Admin “Test Reward Wheel” dialog (no “not-allowed” cursor unless it’s genuinely disabled, and clicks always start a spin).
 
-# Plan: Add Bible Translation Selection for Fortune Generation
+What I found (from current code)
+- In `ChoreRewardWheelDialog.tsx`, the wheel is rendered with:
+  - `onSpinStart={startSpin}`
+  - `disabled={hasSpunToday || loading}`
+- In `SpinningWheel.tsx`, the clickable element is now a `<button>` with:
+  - `disabled={disabled || isAnimating || spinning}`
+  - cursor styles that switch to `cursor-not-allowed` when `(disabled || isAnimating || spinning)` is true.
+- This means “wheel shown but click ignored / blocked cursor” can only happen if:
+  1) `spinning` prop is true, or
+  2) `isAnimating` is stuck true, or
+  3) the click never reaches the `<button>` (some overlay is intercepting pointer events).
 
-## Summary
-Add a translation preference dropdown to the fortune generation dialog that appears when generating Bible-related content. This allows you to select modern, easier-to-understand translations like NIV, NLT, or ESV instead of older translations like KJV.
+High-confidence likely root causes
+1) State not being reset on dialog open
+- In `ChoreRewardWheelDialog.tsx` when `open` becomes true, the effect resets `loading` and `wonPrize`, but it does NOT reset `spinning` and `claiming`.
+- If the dialog was closed mid-spin or mid-claim, `spinning` can remain `true`, making the wheel’s `<button disabled>` and giving you the “not clickable” cursor even though the UI looks “fresh”.
 
----
+2) Decorative overlay elements intercepting clicks
+- `SpinningWheel.tsx` renders an absolute “outer glow ring” and an absolute pointer above the wheel.
+- They currently do not explicitly use `pointer-events: none;`.
+- If either overlaps the wheel’s clickable area (especially near the top where people click), clicks can be swallowed even though the wheel appears interactive.
 
-## Implementation Details
+3) Timer cleanup / animation state edge case
+- `SpinningWheel.tsx` uses `setTimeout` to end animation after 4s but does not clear it on unmount.
+- If the component unmounts/remounts during a spin, it can create “stuck” state scenarios (less likely than #1, but worth hardening).
 
-### Available Translation Options
+Plan (implementation steps)
+1) Add a “wheel debug banner” (temporary, removable later)
+- In `ChoreRewardWheelDialog.tsx`, render a small debug line under the title when in admin testing mode showing:
+  - `loading`, `spinning`, `hasSpunToday`, `claiming`, `segments.length`
+- Purpose: immediately confirm whether the wheel is actually disabled due to state vs. click interception.
 
-| Translation | Description |
-|-------------|-------------|
-| **NIV (New International Version)** | Balance of accuracy and readability, widely used |
-| **NLT (New Living Translation)** | Very easy to read, thought-for-thought translation |
-| **ESV (English Standard Version)** | Accurate, slightly more formal but readable |
-| **CSB (Christian Standard Bible)** | Modern, clear language |
-| **NASB (New American Standard)** | Very literal, word-for-word accurate |
-| **The Message** | Paraphrase, very casual/conversational |
-| **KJV (King James Version)** | Classic, beautiful language but archaic |
+2) Reset dialog state on open to guarantee a clean slate
+- In `ChoreRewardWheelDialog.tsx`, inside the `useEffect` that runs when `open` changes to true:
+  - Set `setSpinning(false)` at the start
+  - Set `setClaiming(false)` at the start
+  - Set `setHasSpunToday(false)` at the start (then re-compute it from the DB query)
+  - Keep existing `setLoading(true)` and `setWonPrize(null)`
+- Result: reopening the dialog cannot be “stuck disabled” from previous state.
 
-**Default**: NLT (New Living Translation) - most accessible for your audience
+3) Make the disabled logic explicit and consistent
+- In `ChoreRewardWheelDialog.tsx`, define a single derived boolean:
+  - `const wheelDisabled = loading || hasSpunToday || claiming;`
+- Pass that to the wheel:
+  - `disabled={wheelDisabled}`
+- And use the same boolean for the “Spin the Wheel!” button disabled state (or keep its current logic, but ensure it matches the wheel).
+- Result: cursor/disabled state matches the real interaction rules, and claiming state can’t accidentally allow extra clicks.
 
----
+4) Ensure no overlay element can intercept clicks
+- In `SpinningWheel.tsx`, add `pointer-events-none` (Tailwind) to:
+  - The outer glow ring `<div>`
+  - The pointer `<div>` wrapper and/or the `<svg>`
+- Also add `aria-label` and keep the clickable surface only on the button.
+- Result: every click that visually targets the wheel reaches the `<button>`.
 
-### Changes to Make
+5) Remove the fragile pointerEvents inline style on the button
+- Right now the button style includes `pointerEvents: disabled ? "none" : "auto"`.
+- This is risky because it uses only the `disabled` prop, while the actual `<button disabled>` condition also includes `isAnimating || spinning`.
+- Plan: remove the inline `pointerEvents` style entirely and rely on:
+  - the `disabled` attribute
+  - cursor/opacity classes
+- Result: no mismatch between “disabled” behavior and pointer-events.
 
-**1. Edge Function (`generate-fortunes-batch`)**
-- Add `translation` parameter to the request body
-- Update the Bible verse and Proverbs prompts to specify the chosen translation
-- Example prompt update:
-  ```
-  Generate 20 REAL Bible verses from the NLT (New Living Translation).
-  Use the EXACT text as it appears in this translation...
-  ```
+6) Harden animation lifecycle so `isAnimating` can’t get stuck
+- In `SpinningWheel.tsx`:
+  - Store the `setTimeout` id in a ref
+  - Clear it on unmount and before starting a new spin
+  - Also cancel the tick requestAnimationFrame on unmount (already done) and ensure it’s cleared on spin end too.
+- Result: even if the dialog closes mid-spin, reopening won’t inherit broken animation state.
 
-**2. Admin UI (`FortunesManager.tsx`)**
-- Add `generateTranslation` state (default: "nlt")
-- Add translation dropdown that **only shows** when Type is:
-  - "Bible Verses"
-  - "Biblical Wisdom (Proverbs)"
-  - "All Types (Random Mix)"
-- Pass translation to the edge function
+7) Verify end-to-end in the Admin flow
+- Steps to test after changes:
+  1) Admin → Chores → Reward Wheel → “Test Reward Wheel” opens and shows wheel + “Spin the Wheel!” button
+  2) Clicking the wheel anywhere starts spin (cursor is pointer)
+  3) Closing dialog mid-spin, reopening: wheel is still clickable (spinning resets)
+  4) Winning a prize transitions to claiming state and disables wheel + button only while claiming
+  5) Reset Today’s Spin in Admin then re-open dialog: should be “fresh” and clickable again
 
----
+Files that will be changed (once approved)
+- `src/components/chores/ChoreRewardWheelDialog.tsx`
+  - Reset state on open, unify disabled logic, add temporary debug banner
+- `src/components/chores/SpinningWheel.tsx`
+  - Add pointer-events-none to decorative elements, remove inline pointerEvents, add timer cleanup
 
-### UI Preview
+Notes / non-goals
+- This plan focuses on restoring click reliability first. Once stable, we can keep your prettier gradients/background work and continue iterating on design safely.
 
-The generate dialog will show a conditional "Bible Translation" field:
-
-```text
-┌─ Generate Fortunes with AI ─────────────────────┐
-│                                                  │
-│  Type of Content                                 │
-│  [All Types (Random Mix)           ▼]           │
-│                                                  │
-│  Theme (Optional)                               │
-│  [⏰ Time & Its Preciousness       ▼]           │
-│                                                  │
-│  Bible Translation  ← NEW (appears for Bible)   │
-│  [NLT - New Living Translation     ▼]           │
-│  "Most accessible for your audience"            │
-│                                                  │
-│  Number to Generate                             │
-│  [20                               ]            │
-│                                                  │
-│              [Cancel]  [Generate]               │
-└──────────────────────────────────────────────────┘
-```
-
----
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/generate-fortunes-batch/index.ts` | Add `translation` parameter, update Bible/Proverbs prompts |
-| `src/components/admin/FortunesManager.tsx` | Add translation dropdown (conditional), state management |
-
----
-
-### Technical Notes
-
-1. **Conditional Display**: Translation dropdown only appears for Bible-related types, keeping the UI clean for other content types
-
-2. **AI Prompt Engineering**: The prompt will explicitly request the specific translation to ensure accuracy:
-   ```
-   Generate verses from the NLT (New Living Translation). 
-   Use the EXACT wording as it appears in this specific translation.
-   DO NOT mix translations or use paraphrases.
-   ```
-
-3. **Default to NLT**: New Living Translation is the most accessible for adults with IDD while still being accurate
-
-4. **Backwards Compatible**: If no translation is specified, defaults to NLT (changing from the previous NIV/KJV default)
-
----
-
-### Estimated Effort
-- Edge function: 10 minutes (add parameter, update prompts)
-- Admin UI: 10 minutes (add conditional dropdown)
-- Testing: 5 minutes
-
-Total: ~25 minutes
-
+PRE-CHANGE CHECKLIST:
+□ Searched docs for: reward wheel, chore_wheel, spin-chore-wheel, ChoreRewardWheel (no docs found)
+□ Read files: src/components/chores/SpinningWheel.tsx, src/components/chores/ChoreRewardWheelDialog.tsx, src/components/admin/ChoreRewardWheelManager.tsx, supabase/functions/spin-chore-wheel/index.ts
+□ Searched code for: spin-chore-wheel, ChoreRewardWheelDialog usage
+□ Found patterns: yes — dialog loads config + checks today’s spin; wheel uses internal isAnimating + external spinning prop
+□ Ready: yes
