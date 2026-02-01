@@ -1,63 +1,71 @@
 
-# Plan: Remove Frontend Discussion Post Creation Fallback
+# Plan: Stop Daily Inspiration from Creating Main Feed Posts
 
-## Root Cause Identified
-The `FortuneComments.tsx` component (lines 115-157) has fallback logic that creates the discussion post when a user submits the first comment AND no discussion post exists. **Joshie commented first, so he became the author.**
+## Current Behavior
+The `generate-fortune-posts` edge function creates **both**:
+1. A `daily_fortune_posts` entry (the fortune card shown on the community page)
+2. A `discussion_posts` entry (for comments - BUT this automatically appears in the main feed)
+
+The `community_feed_items` view includes ALL discussion posts where `is_moderated = true`, which is why Daily Inspiration posts appear in the main feed.
 
 ## Solution
-Remove this frontend fallback entirely. The discussion post should ONLY be created by the `generate-fortune-posts` edge function (which now uses the system user).
+**Simply stop creating the discussion post entirely.** The fortune card already has its own comment system (`daily_fortune_comments` table) that works independently.
 
 ---
 
 ## Implementation
 
-### File: `src/components/daily-features/FortuneComments.tsx`
+### 1. Update Edge Function: `supabase/functions/generate-fortune-posts/index.ts`
 
-**Remove lines 115-157** - the entire `isFirstComment` block that creates discussion posts:
+**Remove lines 117-165** - the entire section that creates the discussion post:
 
 ```typescript
 // REMOVE THIS ENTIRE BLOCK:
-const isFirstComment = comments.length === 0 && !discussionPostId;
-
-if (isFirstComment) {
-  // Fetch the fortune details to create a discussion post
-  const { data: fortunePost } = await supabase
-    .from("daily_fortune_posts")
-    .select("fortune_id, daily_fortunes(content, author, reference, source_type)")
-    .eq("id", fortunePostId)
-    .single();
+// Create a discussion post for comments using the system user
+// First, try to get the dedicated system user from app_settings
+const { data: systemUserSetting } = await adminClient
+  .from("app_settings")
+  .select("setting_value")
+  .eq("setting_key", "system_user_id")
+  .maybeSingle();
   
-  if (fortunePost?.daily_fortunes) {
-    // ... creates discussion post with user.id as author
-  }
-}
+// ... all the way through the discussion post creation ...
 ```
 
-**Replace with:** Nothing. Just let the comment insert proceed without creating a discussion post.
+The fortune card already has:
+- Its own comments via `daily_fortune_comments` table
+- Its own likes via `daily_fortune_likes` table
+- No need for a separate `discussion_posts` entry
+
+### 2. Delete Today's Incorrectly Created Post
+
+Delete the discussion post created today (ID: `5923c4f4-0cbd-4f81-8348-4959ba3ef5b2`):
+
+```sql
+DELETE FROM discussion_posts 
+WHERE id = '5923c4f4-0cbd-4f81-8348-4959ba3ef5b2';
+```
+
+Also update today's fortune post to clear the link:
+
+```sql
+UPDATE daily_fortune_posts 
+SET discussion_post_id = NULL 
+WHERE discussion_post_id = '5923c4f4-0cbd-4f81-8348-4959ba3ef5b2';
+```
 
 ---
 
-## Why This Is Safe
+## Changes Summary
 
-1. **The edge function now handles this** - It creates the discussion post with the system user ID
-2. **If edge function fails** - Comments still work (they go to `daily_fortune_comments` table, not the discussion post)
-3. **No orphaned fortunes** - The fortune card displays fine without a discussion post; comments are stored separately
+| File/Table | Change |
+|------------|--------|
+| `generate-fortune-posts/index.ts` | Remove discussion post creation logic (lines 117-165) |
+| `discussion_posts` table | Delete today's post (ID: `5923c4f4-...`) |
+| `daily_fortune_posts` table | Clear the `discussion_post_id` reference |
 
----
-
-## Optional Enhancement
-
-If you want to ensure EVERY fortune post has a discussion post, we can add a "healing" step to the edge function that:
-1. Finds any `daily_fortune_posts` where `discussion_post_id IS NULL`
-2. Creates the missing discussion posts using the system user
-
-This would fix today's Joshie situation and any future gaps.
-
----
-
-## Summary of Changes
-
-| File | Change |
-|------|--------|
-| `src/components/daily-features/FortuneComments.tsx` | Remove lines 115-157 (fallback discussion post creation) |
-| `supabase/functions/generate-fortune-posts/index.ts` | (Optional) Add healing logic for missing discussion posts |
+## Benefits
+- Daily Inspiration stays on the fortune card only
+- Main community feed shows only user-generated content
+- Simpler architecture (no redundant discussion post)
+- Fortune comments continue to work via `daily_fortune_comments` table
