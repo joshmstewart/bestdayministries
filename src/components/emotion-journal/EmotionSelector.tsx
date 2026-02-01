@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { TextToSpeech } from '@/components/TextToSpeech';
+import { Volume2, VolumeX } from 'lucide-react';
 
 interface EmotionType {
   id: string;
@@ -16,7 +18,28 @@ interface EmotionSelectorProps {
   onSelect: (emotion: EmotionType) => void;
 }
 
+const TTS_STORAGE_KEY = 'emotion-journal-tts-enabled';
+
 export function EmotionSelector({ emotions, selectedEmotion, onSelect }: EmotionSelectorProps) {
+  // TTS toggle state - persisted in localStorage
+  const [ttsEnabled, setTtsEnabled] = useState(() => {
+    try {
+      const stored = localStorage.getItem(TTS_STORAGE_KEY);
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Persist TTS preference to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(TTS_STORAGE_KEY, String(ttsEnabled));
+    } catch (e) {
+      console.warn('Failed to persist emotion journal TTS preference:', e);
+    }
+  }, [ttsEnabled]);
+
   // Order emotions: positive first, then neutral, then negative (matching DailyBar mood order)
   const categoryOrder = { positive: 0, neutral: 1, negative: 2 };
   const orderedEmotions = [...emotions].sort((a, b) => {
@@ -29,15 +52,36 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
 
   return (
     <div className="space-y-3">
-      {/* Header with TTS */}
-      <div className="flex items-center justify-center gap-2">
-        <span className="text-lg font-bold bg-gradient-to-r from-green-600 via-gray-500 to-red-500 bg-clip-text text-transparent">
-          How are you feeling?
-        </span>
-        <TextToSpeech 
-          text={`How are you feeling? Choose from: ${allEmotionNames}`} 
-          size="icon" 
-        />
+      {/* Header with TTS toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-lg font-bold bg-gradient-to-r from-green-600 via-gray-500 to-red-500 bg-clip-text text-transparent">
+            How are you feeling?
+          </span>
+          {ttsEnabled && (
+            <TextToSpeech 
+              text={`How are you feeling? Choose from: ${allEmotionNames}`} 
+              size="icon" 
+            />
+          )}
+        </div>
+        <button
+          onClick={() => setTtsEnabled(!ttsEnabled)}
+          className={cn(
+            "p-2 rounded-full transition-all duration-200",
+            "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
+            ttsEnabled 
+              ? "bg-primary/10 text-primary" 
+              : "bg-muted/50 text-muted-foreground"
+          )}
+          title={ttsEnabled ? "Turn off voice reading" : "Turn on voice reading"}
+        >
+          {ttsEnabled ? (
+            <Volume2 className="w-5 h-5" />
+          ) : (
+            <VolumeX className="w-5 h-5" />
+          )}
+        </button>
       </div>
 
       {/* Emotion grid - 4 per row matching DailyBar */}
@@ -88,7 +132,7 @@ export function EmotionSelector({ emotions, selectedEmotion, onSelect }: Emotion
                 >
                   {emotion.name}
                 </span>
-                {isSelected && (
+                {isSelected && ttsEnabled && (
                   <div onClick={(e) => e.stopPropagation()} className="scale-75">
                     <TextToSpeech 
                       text={`I'm feeling ${emotion.name}`} 
