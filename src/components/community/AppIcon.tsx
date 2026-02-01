@@ -3,6 +3,7 @@ import { AppConfig } from "./appsConfig";
 import { cn } from "@/lib/utils";
 import { AppConfiguration } from "@/hooks/useAppConfigurations";
 import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
+import { useCustomCoinImage } from "@/hooks/useCustomCoinImage";
 
 interface AppIconProps {
   app: AppConfig & { config?: AppConfiguration };
@@ -15,10 +16,14 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
   const navigate = useNavigate();
   const Icon = app.icon;
   const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
+  const { imageUrl: customCoinUrl } = useCustomCoinImage();
   
   // For sticker-album, automatically use featured pack cover unless admin uploaded custom icon
+  // For store (Coin Store), automatically use custom coin image unless admin uploaded custom icon
   const customIconUrl = app.id === 'sticker-album' && !app.config?.icon_url
     ? featuredStickerUrl
+    : app.id === 'store' && !app.config?.icon_url
+    ? customCoinUrl
     : app.config?.icon_url;
   const handleClick = () => {
     if (editMode && onToggle) {
