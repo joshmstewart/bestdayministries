@@ -20,7 +20,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
@@ -840,12 +839,13 @@ export function FortunesManager() {
 
       {/* Generate Dialog */}
       <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
-        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col min-h-0">
           <DialogHeader>
             <DialogTitle>Generate Fortunes with AI</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4 py-4">
+          {/* Use native overflow scrolling for best cross-device behavior */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-4">
+            <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Type of Content</Label>
               <Select value={generateType} onValueChange={setGenerateType}>
@@ -1050,8 +1050,8 @@ export function FortunesManager() {
                 Generate 5-50 at a time. They will need approval before use.
               </p>
             </div>
+            </div>
           </div>
-          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setGenerateDialogOpen(false)}>
               Cancel
