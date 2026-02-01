@@ -253,16 +253,18 @@ export function SpinningWheel({
       return { slices: spreadSlices, sliceAngle, totalSlices: TARGET_SLICES };
     }
 
-    // Find specific coin segments by amount
-    const coin10 = coinSource.find(s => s.amount === 10) || coinSource[0];
-    const coin20 = coinSource.find(s => s.amount === 20) || coinSource[0];
-    const coin30 = coinSource.find(s => s.amount === 30) || coinSource[0];
-    const coin50 = coinSource.find(s => s.amount === 50) || coinSource[0];
+    // Find specific coin segments by amount, or create visual-only segments if missing
+    const baseCoin = coinSource[0];
+    const coin10 = coinSource.find(s => s.amount === 10) || { ...baseCoin, amount: 10, label: "10 Coins" };
+    const coin20 = coinSource.find(s => s.amount === 20) || { ...baseCoin, amount: 20, label: "20 Coins", color: "#FFA500" };
+    const coin30 = coinSource.find(s => s.amount === 30) || { ...baseCoin, amount: 30, label: "30 Coins", color: "#FF8C00" };
+    const coin50 = coinSource.find(s => s.amount === 50) || { ...baseCoin, amount: 50, label: "50 Coins", color: "#DAA520" };
 
     // 8 coin slots at even indices (0,2,4,6,8,10,12,14)
-    // Layout: 3×10, 3×20, 1×30, 1×50 spread out, with 30 and 50 opposite (4 slots apart = 180°)
-    // Slot 0: 10, Slot 2: 20, Slot 4: 30 (opposite of 50), Slot 6: 10, Slot 8: 20, Slot 10: 10, Slot 12: 50 (opposite of 30), Slot 14: 20
-    const coinLayout = [coin10, coin20, coin30, coin10, coin20, coin10, coin50, coin20];
+    // Layout: 3×10, 3×20, 1×30, 1×50 spread out maximally
+    // 30 at slot index 2 (visual position 4), 50 at slot index 6 (visual position 12) = 180° apart
+    // Slot mapping: [0]=10, [1]=20, [2]=30, [3]=20, [4]=10, [5]=20, [6]=50, [7]=10
+    const coinLayout = [coin10, coin20, coin30, coin20, coin10, coin20, coin50, coin10];
 
     // 8 pack slots at odd indices - cycle through available packs
     const packLayout = Array.from({ length: 8 }, (_, i) => packSource[i % packSource.length]);
