@@ -141,6 +141,17 @@ export function AvatarEmojisManager() {
 - This allows the head to fill more of the frame while still showing sleepiness`;
     }
     
+    // Special handling for Okay - should look neutral/content, NOT happy
+    if (emotionName === 'okay') {
+      expressionDetails = `- Make the face clearly show a NEUTRAL, content expression ${emotion.emoji}
+- This is NOT happy or excited - just "okay", fine, neutral
+- Slight, closed-mouth, minimal smile - almost no smile at all
+- Relaxed, calm eyes - not wide or excited
+- Overall expression should say "I'm fine" or "meh, okay" - content but not enthusiastic
+- Think of someone who is doing alright, nothing special, just existing peacefully
+- This allows the head to fill more of the frame while still showing sleepiness`;
+    }
+    
     // STRICT head-only emoji generation
     return `TRANSFORM the character from the reference image into an EMOJI.
 
