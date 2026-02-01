@@ -190,6 +190,17 @@ export function SpinningWheel({
     };
   }, []);
 
+  // Calculate cumulative angles for probability-based slice sizes
+  const getSegmentAngles = (): { startAngle: number; endAngle: number; segmentAngle: number }[] => {
+    let cumulative = 0;
+    return segments.map((segment) => {
+      const startAngle = cumulative * 360;
+      const segmentAngle = segment.probability * 360;
+      cumulative += segment.probability;
+      return { startAngle, endAngle: startAngle + segmentAngle, segmentAngle };
+    });
+  };
+
   const selectSegment = (): WheelSegment => {
     const random = Math.random();
     let cumulative = 0;
@@ -207,12 +218,16 @@ export function SpinningWheel({
 
     const winningSegment = selectSegment();
     const winningIndex = segments.indexOf(winningSegment);
+    const segmentAngles = getSegmentAngles();
 
-    const segmentAngle = 360 / segments.length;
     const baseSpins = 5;
-    const targetSegmentAngle = winningIndex * segmentAngle;
-    const offset = segmentAngle / 2;
-    const finalRotation = rotation + (baseSpins * 360) + (360 - targetSegmentAngle) - offset + (Math.random() * 20 - 10);
+    // Calculate the center of the winning segment
+    const winningAngles = segmentAngles[winningIndex];
+    const targetAngle = winningAngles.startAngle + winningAngles.segmentAngle / 2;
+    // Add some randomness within the segment (but not too close to edges)
+    const wobbleRange = winningAngles.segmentAngle * 0.3;
+    const randomOffset = (Math.random() - 0.5) * wobbleRange;
+    const finalRotation = rotation + (baseSpins * 360) + (360 - targetAngle) + randomOffset;
 
     setIsAnimating(true);
     playSpinSounds();
@@ -247,10 +262,13 @@ export function SpinningWheel({
   const centerY = radius;
 
   const generateSegments = () => {
-    const segmentAngle = 360 / segments.length;
+    const segmentAngles = getSegmentAngles();
     
     return segments.map((segment, index) => {
-      const startAngle = index * segmentAngle - 90;
+      const { startAngle: rawStartAngle, segmentAngle } = segmentAngles[index];
+      
+      // Offset by -90 so first segment starts at top
+      const startAngle = rawStartAngle - 90;
       const endAngle = startAngle + segmentAngle;
       
       const startRad = (startAngle * Math.PI) / 180;
@@ -284,6 +302,11 @@ export function SpinningWheel({
 
       const gradient = getGradientForColor(segment.color);
       
+      // Dynamically adjust font size based on segment size
+      const baseFontSize = size / 20;
+      const fontScale = Math.min(1, segmentAngle / 45); // Scale down for small segments
+      const fontSize = Math.max(baseFontSize * fontScale, size / 35); // Minimum readable size
+      
       return (
         <g key={index}>
           <defs>
@@ -311,7 +334,7 @@ export function SpinningWheel({
             x={textX}
             y={textY}
             fill="#fff"
-            fontSize={size / 20}
+            fontSize={fontSize}
             fontWeight="bold"
             textAnchor="middle"
             dominantBaseline="middle"
