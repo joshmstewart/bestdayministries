@@ -62,7 +62,8 @@ Tabs: Products, Orders, **Earnings** (new), **Settings** (updated)
 ### Vendor Payouts (Fulfillment-Triggered)
 - When vendor marks item as "shipped" → `submit-tracking` → `create-vendor-transfer`
 - **Intelligent fund detection**: If platform balance is insufficient (customer payment still settling), marks as `pending_funds`
-- **Auto-retry**: `retry-vendor-transfers` runs hourly, automatically completes transfers when funds available
+- **Auto-retry**: `retry-vendor-transfers` runs hourly via pg_cron, automatically completes transfers when funds available
+- **Email notification**: Vendors receive email when payout is successfully sent to their Stripe account
 - Transfer ID stored in `order_items.stripe_transfer_id`
 
 ### Transfer Status Tracking

@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SENDERS, SITE_URL } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +13,58 @@ const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[create-vendor-transfer] ${step}${detailsStr}`);
 };
+
+// Send payout notification email to vendor
+async function sendPayoutNotificationEmail(
+  vendorEmail: string,
+  vendorName: string,
+  amount: number,
+  orderId: string
+): Promise<void> {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendApiKey) {
+    logStep('Warning: RESEND_API_KEY not configured, skipping payout email');
+    return;
+  }
+
+  try {
+    const resend = new Resend(resendApiKey);
+    
+    await resend.emails.send({
+      from: SENDERS.store,
+      to: [vendorEmail],
+      subject: `💰 You've been paid $${amount.toFixed(2)}!`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #22c55e;">Payment Received! 🎉</h1>
+          
+          <p>Hi ${vendorName},</p>
+          
+          <p>Great news! A payout of <strong>$${amount.toFixed(2)}</strong> has been sent to your connected Stripe account.</p>
+          
+          <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Order:</strong> #${orderId.slice(0, 8).toUpperCase()}</p>
+            <p style="margin: 8px 0 0 0;"><strong>Amount:</strong> $${amount.toFixed(2)}</p>
+          </div>
+          
+          <p>The funds should appear in your bank account within 2-3 business days, depending on your payout schedule.</p>
+          
+          <p>You can view your earnings and order history in your <a href="${SITE_URL}/vendor-dashboard" style="color: #f97316;">Vendor Dashboard</a>.</p>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Thank you for being part of the Joy House Store!<br>
+            - The Best Day Ministries Team
+          </p>
+        </div>
+      `,
+    });
+
+    logStep('Payout notification email sent', { vendorEmail, amount });
+  } catch (emailError) {
+    logStep('Warning: Failed to send payout email', { error: emailError });
+    // Don't throw - email failure shouldn't block the payout process
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -84,10 +138,10 @@ serve(async (req) => {
       throw new Error(`Cannot transfer: item status is "${orderItem.fulfillment_status}", must be shipped or delivered`);
     }
 
-    // Get vendor's Stripe account
+    // Get vendor's Stripe account and email for notification
     const { data: vendor, error: vendorError } = await supabaseClient
       .from('vendors')
-      .select('id, stripe_account_id, stripe_charges_enabled, business_name')
+      .select('id, stripe_account_id, stripe_charges_enabled, business_name, user_id')
       .eq('id', orderItem.vendor_id)
       .single();
 
@@ -104,10 +158,22 @@ serve(async (req) => {
       throw new Error(`Vendor ${vendor.business_name}'s Stripe account is not fully set up for payouts`);
     }
 
+    // Get vendor's email from their profile
+    let vendorEmail: string | null = null;
+    if (vendor.user_id) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('email')
+        .eq('id', vendor.user_id)
+        .single();
+      vendorEmail = profile?.email || null;
+    }
+
     logStep('Vendor found', { 
       vendorId: vendor.id, 
       stripeAccountId: vendor.stripe_account_id,
-      businessName: vendor.business_name
+      businessName: vendor.business_name,
+      hasEmail: !!vendorEmail
     });
 
     // Determine Stripe mode
@@ -211,12 +277,23 @@ serve(async (req) => {
 
       logStep('Order item updated with transfer ID');
 
+      // Send payout notification email to vendor
+      if (vendorEmail) {
+        await sendPayoutNotificationEmail(
+          vendorEmail,
+          vendor.business_name,
+          orderItem.vendor_payout,
+          orderItem.order_id
+        );
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
           transferId: transfer.id,
           amount: orderItem.vendor_payout,
-          vendorName: vendor.business_name
+          vendorName: vendor.business_name,
+          emailSent: !!vendorEmail
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
