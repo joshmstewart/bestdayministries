@@ -736,6 +736,99 @@ Format as JSON array:
     // Main generation logic - differs for "all" mode vs single type
     let allGeneratedFortunes: any[] = [];
     
+    // Helper function to deduplicate fortunes within a batch (and against existing DB)
+    const deduplicateFortunes = (fortunes: any[]): any[] => {
+      const uniqueFortunes: any[] = [];
+      const seenContentInBatch = new Set<string>();
+      const seenReferencesInBatch = new Set<string>();
+      
+      for (const f of fortunes) {
+        const normalizedContent = normalizeText(f.content);
+        
+        // Check exact content match against existing DB
+        if (existingContentSet.has(normalizedContent)) {
+          console.log(`Skipping DB duplicate: "${f.content.substring(0, 50)}..."`);
+          continue;
+        }
+        
+        // Check exact content match within this batch
+        if (seenContentInBatch.has(normalizedContent)) {
+          console.log(`Skipping batch duplicate: "${f.content.substring(0, 50)}..."`);
+          continue;
+        }
+        
+        // Check Bible reference for bible_verse AND proverbs types
+        if ((f.source_type === "bible_verse" || f.source_type === "proverbs") && f.reference) {
+          const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
+          
+          // Check against existing DB references
+          if (existingExactReferences.has(normalizedRef)) {
+            console.log(`Skipping DB duplicate Bible reference: "${f.reference}"`);
+            continue;
+          }
+          
+          // Check against references seen in this batch
+          if (seenReferencesInBatch.has(normalizedRef)) {
+            console.log(`Skipping batch duplicate Bible reference: "${f.reference}"`);
+            continue;
+          }
+          
+          // Check overlapping references against DB
+          let hasOverlapWithDB = false;
+          for (const existingRef of existingBibleReferences) {
+            if (doBibleReferencesOverlap(f.reference, existingRef)) {
+              console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with DB "${existingRef}"`);
+              hasOverlapWithDB = true;
+              break;
+            }
+          }
+          if (hasOverlapWithDB) continue;
+          
+          // Check overlapping references within batch
+          let hasOverlapWithBatch = false;
+          for (const seenRef of seenReferencesInBatch) {
+            if (doBibleReferencesOverlap(f.reference, seenRef)) {
+              console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with batch "${seenRef}"`);
+              hasOverlapWithBatch = true;
+              break;
+            }
+          }
+          if (hasOverlapWithBatch) continue;
+          
+          // Mark this reference as seen
+          seenReferencesInBatch.add(normalizedRef);
+        }
+        
+        // Check soft matches against all existing
+        let isSoft = false;
+        for (const existing of allExistingForSoftMatch) {
+          if (isSoftMatch(f.content, existing.content)) {
+            console.log(`Skipping soft match: "${f.content.substring(0, 50)}..."`);
+            isSoft = true;
+            break;
+          }
+        }
+        if (isSoft) continue;
+        
+        // Also check soft match within batch
+        for (const unique of uniqueFortunes) {
+          if (isSoftMatch(f.content, unique.content)) {
+            console.log(`Skipping batch soft match: "${f.content.substring(0, 50)}..."`);
+            isSoft = true;
+            break;
+          }
+        }
+        if (isSoft) continue;
+        
+        // This one is unique!
+        seenContentInBatch.add(normalizedContent);
+        uniqueFortunes.push(f);
+        console.log(`✓ Unique fortune: "${f.content.substring(0, 40)}..." (${uniqueFortunes.length} collected)`);
+      }
+      
+      return uniqueFortunes;
+    };
+    
     if (isAllTypesMode) {
       // ALL TYPES MODE: Generate a mix across all source types
       // Distribute count across types (roughly equal, at least 2 each)
@@ -755,12 +848,15 @@ Format as JSON array:
       });
       
       const results = await Promise.all(typeGenerations);
-      allGeneratedFortunes = results.flat();
+      const rawFortunes = results.flat();
       
       // Shuffle the combined results for variety
-      allGeneratedFortunes = allGeneratedFortunes.sort(() => Math.random() - 0.5);
+      const shuffledFortunes = rawFortunes.sort(() => Math.random() - 0.5);
       
-      console.log(`All Types mode: generated ${allGeneratedFortunes.length} fortunes across types`);
+      // Apply deduplication to the combined batch
+      allGeneratedFortunes = deduplicateFortunes(shuffledFortunes);
+      
+      console.log(`All Types mode: ${rawFortunes.length} generated, ${allGeneratedFortunes.length} unique after deduplication`);
     } else {
       // SINGLE TYPE MODE: Use the retry loop for a specific type
       const collectedUniqueFortunes: any[] = [];
