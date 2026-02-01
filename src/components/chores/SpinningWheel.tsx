@@ -430,97 +430,109 @@ export function SpinningWheel({
 
       const gradient = getGradientForColor(segment.color);
       
-      // Calculate icon/number size - smaller for cleaner look
+      // Calculate icon/number size - different for coins vs packs
       const availableSpace = radius - innerRadius;
-      const iconSize = Math.min(availableSpace * 0.35, 24);
+      const isPackSegment = segment.type === 'sticker_pack';
+      
+      // Pack images are larger and positioned toward outer edge
+      const packIconSize = Math.min(availableSpace * 0.55, 36);
+      const coinIconSize = Math.min(availableSpace * 0.35, 24);
       const fontSize = Math.min(availableSpace * 0.4, 24);
+      
+      // Position pack images closer to outer edge
+      const packTextRadius = radius - availableSpace * 0.35;
+      const packTextX = centerX + packTextRadius * Math.cos(textRad);
+      const packTextY = centerY + packTextRadius * Math.sin(textRad);
+      
+      // Calculate rotation for labels to face outward
+      const labelRotation = textAngle + 90;
       
       return (
         <g key={index}>
           <defs>
-            {/* Main gradient with 3 stops for depth */}
-            <linearGradient
-              id={gradientId}
-              x1={`${gradX1}%`}
-              y1={`${gradY1}%`}
-              x2={`${gradX2}%`}
-              y2={`${gradY2}%`}
-            >
+            <linearGradient id={`segment-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={gradient.start} />
               <stop offset="50%" stopColor={gradient.mid} />
               <stop offset="100%" stopColor={gradient.end} />
             </linearGradient>
-            {/* Inner highlight for 3D effect */}
-            <linearGradient
-              id={highlightId}
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-            >
-              <stop offset="0%" stopColor="hsl(0 0% 100% / 0.25)" />
-              <stop offset="50%" stopColor="hsl(0 0% 100% / 0.05)" />
-              <stop offset="100%" stopColor="hsl(0 0% 0% / 0.15)" />
+            <linearGradient id={`segment-highlight-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
+              <stop offset="50%" stopColor="rgba(255,255,255,0.1)" />
+              <stop offset="100%" stopColor="rgba(0,0,0,0.1)" />
             </linearGradient>
           </defs>
           
-          {/* Main segment fill */}
+          {/* Main slice with gradient */}
           <path
             d={pathData}
-            fill={`url(#${gradientId})`}
-            stroke="hsl(0 0% 100% / 0.4)"
-            strokeWidth="1"
+            fill={`url(#segment-gradient-${index})`}
+            stroke="hsl(36 70% 35%)"
+            strokeWidth="1.5"
           />
           
-          {/* Highlight overlay for 3D depth */}
+          {/* Highlight overlay for 3D effect */}
           <path
             d={pathData}
-            fill={`url(#${highlightId})`}
-            stroke="none"
+            fill={`url(#segment-highlight-${index})`}
+            style={{ pointerEvents: "none" }}
           />
           
-          {/* Inner edge shadow line */}
+          {/* Inner edge highlight */}
           <path
-            d={pathData}
+            d={`M ${ix1} ${iy1} A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${ix2} ${iy2}`}
             fill="none"
-            stroke="hsl(0 0% 0% / 0.15)"
+            stroke="rgba(255,255,255,0.3)"
             strokeWidth="1"
-            style={{ strokeDasharray: "none" }}
+            style={{ pointerEvents: "none" }}
           />
           
-          {/* Segment content - number + icon */}
-          <g transform={`rotate(${textAngle + 90}, ${textX}, ${textY})`}>
-            {/* Amount number */}
-            <text
-              x={textX}
-              y={textY - iconSize * 0.35}
-              fill="#fff"
-              fontSize={fontSize}
-              fontWeight="800"
-              fontFamily="system-ui, -apple-system, sans-serif"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              style={{ 
-                textShadow: "0 2px 4px rgba(0,0,0,0.5), 0 0 8px rgba(0,0,0,0.3)",
-                pointerEvents: "none",
-                letterSpacing: "-0.02em"
-              }}
-            >
-              {segment.amount}
-            </text>
-            {/* Icon - coin or pack cover */}
-            {(segment.type === 'coins' || packCoverUrl) && (
+          {/* Text/Icon group */}
+          <g transform={`rotate(${labelRotation}, ${isPackSegment ? packTextX : textX}, ${isPackSegment ? packTextY : textY})`}>
+            {/* For coins: show number and coin icon */}
+            {!isPackSegment && (
+              <>
+                <text
+                  x={textX}
+                  y={textY - fontSize * 0.15}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fill="hsl(0 0% 100%)"
+                  fontSize={fontSize}
+                  fontWeight="bold"
+                  style={{ 
+                    pointerEvents: "none",
+                    textShadow: "0 2px 4px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)"
+                  }}
+                >
+                  {segment.amount}
+                </text>
+                <image
+                  href={coinImageUrl}
+                  x={textX - coinIconSize * 0.5}
+                  y={textY + coinIconSize * 0.15}
+                  width={coinIconSize}
+                  height={coinIconSize}
+                  preserveAspectRatio="xMidYMid slice"
+                  style={{ 
+                    pointerEvents: "none",
+                    filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))"
+                  }}
+                />
+              </>
+            )}
+            {/* For packs: just show larger pack image */}
+            {isPackSegment && packCoverUrl && (
               <image
-                href={segment.type === 'coins' ? coinImageUrl : (packCoverUrl || '')}
-                x={textX - iconSize * 0.5}
-                y={textY + iconSize * 0.15}
-                width={iconSize}
-                height={iconSize}
+                href={packCoverUrl}
+                x={packTextX - packIconSize * 0.5}
+                y={packTextY - packIconSize * 0.5}
+                width={packIconSize}
+                height={packIconSize}
                 preserveAspectRatio="xMidYMid slice"
                 style={{ 
                   pointerEvents: "none",
-                  filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))",
-                  borderRadius: segment.type === 'sticker_pack' ? '2px' : '0'
+                  filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))",
+                  borderRadius: '4px'
                 }}
               />
             )}
