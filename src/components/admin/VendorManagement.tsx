@@ -61,6 +61,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { PrintifyProductImporter } from "./PrintifyProductImporter";
 import { ProductEditDialog } from "./ProductEditDialog";
+import { HouseVendorSettings } from "./HouseVendorSettings";
 
 // Component to check Printify order status
 const CheckPrintifyStatusButton = ({ onStatusChecked }: { onStatusChecked: () => void }) => {
@@ -699,7 +700,7 @@ export const VendorManagement = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="orders">
-            <TabsList>
+            <TabsList className="flex-wrap">
               <TabsTrigger value="orders">Orders</TabsTrigger>
               <TabsTrigger value="vendors" className="relative">
                 Vendors
@@ -716,6 +717,10 @@ export const VendorManagement = () => {
               <TabsTrigger value="printify" className="gap-1">
                 <Printer className="w-3 h-3" />
                 Printify
+              </TabsTrigger>
+              <TabsTrigger value="official-store" className="gap-1">
+                <Store className="w-3 h-3" />
+                Official Store
               </TabsTrigger>
             </TabsList>
 
@@ -1069,6 +1074,10 @@ export const VendorManagement = () => {
 
             <TabsContent value="printify" className="space-y-4">
               <PrintifyProductImporter />
+            </TabsContent>
+
+            <TabsContent value="official-store" className="space-y-4">
+              <HouseVendorSettings />
             </TabsContent>
           </Tabs>
         </CardContent>
