@@ -10,11 +10,48 @@ import confetti from "canvas-confetti";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { cn } from "@/lib/utils";
 
+// Helper: Convert hex color to a light pastel HSL for backgrounds
+function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return { h: 0, s: 0, l: 95 };
+  
+  let r = parseInt(result[1], 16) / 255;
+  let g = parseInt(result[2], 16) / 255;
+  let b = parseInt(result[3], 16) / 255;
+  
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function hexToHslLight(hex: string): string {
+  const { h, s } = hexToHsl(hex);
+  return `hsl(${h} ${Math.min(s, 60)}% 95%)`;
+}
+
+function hexToHslLighter(hex: string): string {
+  const { h, s } = hexToHsl(hex);
+  return `hsl(${h} ${Math.min(s, 50)}% 97%)`;
+}
+
 interface ChoreRewardWheelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
   onPrizeWon?: (prizeType: string, amount: number, cardIds?: string[]) => void;
+  onOpenStickerPack?: (cardId: string) => void;
 }
 
 interface WheelConfig {
@@ -33,12 +70,14 @@ export function ChoreRewardWheelDialog({
   onOpenChange,
   userId,
   onPrizeWon,
+  onOpenStickerPack,
 }: ChoreRewardWheelDialogProps) {
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [hasSpunToday, setHasSpunToday] = useState(false);
   const [segments, setSegments] = useState<WheelSegment[]>([]);
   const [wonPrize, setWonPrize] = useState<WheelSegment | null>(null);
+  const [wonCardIds, setWonCardIds] = useState<string[]>([]);
   const [claiming, setClaiming] = useState(false);
   const [wheelClickSound, setWheelClickSound] = useState<{ url: string; volume: number } | null>(null);
   const { playSound, soundEffects } = useSoundEffects();
@@ -74,6 +113,7 @@ export function ChoreRewardWheelDialog({
     setClaiming(false);
     setHasSpunToday(false);
     setWonPrize(null);
+    setWonCardIds([]);
     setLoading(true);
     
     const loadData = async () => {
@@ -199,6 +239,10 @@ export function ChoreRewardWheelDialog({
           showCoinNotification(segment.amount, "Won from Reward Wheel!");
         } else {
           toast.success(`You won ${segment.amount} sticker pack${segment.amount > 1 ? 's' : ''}! 🎁`);
+          // Store card IDs for the "Open Sticker Pack" button
+          if (result.cardIds && result.cardIds.length > 0) {
+            setWonCardIds(result.cardIds);
+          }
         }
 
         // Notify parent about the prize
@@ -222,9 +266,7 @@ export function ChoreRewardWheelDialog({
         hideCloseButton
         style={{
           background: wonPrize 
-            ? wonPrize.type === "coins"
-              ? "linear-gradient(180deg, hsl(46 95% 95%) 0%, hsl(33 100% 97%) 50%, hsl(0 0% 100%) 100%)"
-              : "linear-gradient(180deg, hsl(270 60% 95%) 0%, hsl(280 50% 97%) 50%, hsl(0 0% 100%) 100%)"
+            ? `linear-gradient(180deg, ${hexToHslLight(wonPrize.color)} 0%, ${hexToHslLighter(wonPrize.color)} 50%, hsl(0 0% 100%) 100%)`
             : "linear-gradient(180deg, hsl(24 85% 97%) 0%, hsl(33 100% 98%) 100%)"
         }}
       >
@@ -328,9 +370,23 @@ export function ChoreRewardWheelDialog({
               )}
 
               {hasSpunToday && !spinning && (
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                  Close
-                </Button>
+                <div className="flex gap-3">
+                  {wonPrize?.type === "sticker_pack" && wonCardIds.length > 0 && onOpenStickerPack && (
+                    <Button 
+                      onClick={() => {
+                        onOpenChange(false);
+                        onOpenStickerPack(wonCardIds[0]);
+                      }}
+                      className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Open Sticker Pack
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    Close
+                  </Button>
+                </div>
               )}
             </>
           )}
