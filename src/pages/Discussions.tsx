@@ -94,6 +94,7 @@ const Discussions = () => {
   const [loading, setLoading] = useState(true);
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPost, setNewPost] = useState({ title: "", content: "", video_id: "", youtube_url: "", event_id: "" });
+  const [shareToFeed, setShareToFeed] = useState(true);
   const [canCreatePosts, setCanCreatePosts] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
   const [events, setEvents] = useState<Array<{ id: string; title: string; event_date: string }>>([]);
@@ -558,6 +559,7 @@ const Discussions = () => {
         allow_owner_claim: allowOwnerClaim,
         allow_admin_edit: allowAdminEdit,
         allow_owner_edit: allowOwnerEdit,
+        share_to_feed: shareToFeed,
         aspect_ratio: aspectRatioKey,
         updated_at: new Date().toISOString(),
       };
@@ -611,6 +613,7 @@ const Discussions = () => {
       setAllowOwnerClaim(false);
       setAllowAdminEdit(false);
       setAllowOwnerEdit(false);
+      setShareToFeed(true);
       setAspectRatioKey('16:9');
       setEditingPostId(null);
       loadPosts();
@@ -1034,6 +1037,25 @@ const Discussions = () => {
                   </div>
                 )}
 
+                {/* Share to Main Feed - with note */}
+                <div className="space-y-2 p-3 rounded-lg bg-muted/50 border">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="share-to-feed"
+                      checked={shareToFeed}
+                      onCheckedChange={(checked) => setShareToFeed(!!checked)}
+                    />
+                    <label htmlFor="share-to-feed" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Share to main community feed
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    {shareToFeed 
+                      ? "✅ This post will appear in the main community feed" 
+                      : "🔒 This post will only appear in Discussions (not the main feed)"}
+                  </p>
+                </div>
+
                 <div className="flex gap-2">
                   <Button onClick={handleCreatePost} disabled={uploadingImage || !newPost.title || !newPost.content}>
                     {uploadingImage ? (editingPostId ? "Updating..." : "Creating...") : (editingPostId ? "Update Post" : "Create Post")}
@@ -1047,6 +1069,7 @@ const Discussions = () => {
                     setAllowOwnerClaim(false);
                     setAllowAdminEdit(false);
                     setAllowOwnerEdit(false);
+                    setShareToFeed(true);
                     setAspectRatioKey('16:9');
                     setEditingPostId(null);
                   }}>

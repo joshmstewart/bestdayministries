@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ import { useFeedRepost } from "@/hooks/useFeedRepost";
 import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 import { CoinIcon } from "@/components/CoinIcon";
+import { DailyFortunePopup } from "@/components/daily-features/DailyFortunePopup";
 
 export interface FeedItemData {
   id: string;
@@ -103,6 +105,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const [isLiked, setIsLiked] = useState(isLikedInitial ?? false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [fortuneDialogOpen, setFortuneDialogOpen] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
   const { repostToFeed, removeRepost, isReposting } = useFeedRepost();
@@ -593,10 +596,30 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
           {/* Image or Joke Display - clicking opens dialog */}
           <div 
             className="cursor-pointer"
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              if (item.item_type === 'fortune') {
+                setFortuneDialogOpen(true);
+              } else {
+                setDialogOpen(true);
+              }
+            }}
           >
-            {/* Special display for jokes */}
-            {item.item_type === 'joke' && item.extra_data?.question ? (
+            {/* Special display for fortunes - hidden by default */}
+            {item.item_type === 'fortune' ? (
+              <div className="py-10 px-6 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-800/50 dark:to-purple-800/50 flex items-center justify-center">
+                    <Sparkles className="h-8 w-8 text-indigo-500 animate-pulse" />
+                  </div>
+                  <p className="text-center text-base font-medium text-foreground">
+                    Tap to reveal today's inspiration ✨
+                  </p>
+                  <p className="text-center text-sm text-muted-foreground">
+                    Open your daily fortune and share your thoughts
+                  </p>
+                </div>
+              </div>
+            ) : item.item_type === 'joke' && item.extra_data?.question ? (
               <div className="p-6 py-8 bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30">
                 <div className="space-y-5">
                   <div className="flex items-center justify-center gap-2 py-2">
@@ -896,6 +919,24 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
         routeBase={config.routeBase}
         idParam={config.idParam}
       />
+
+      {/* Fortune Dialog - opens DailyFortunePopup directly */}
+      {item.item_type === 'fortune' && (
+        <Dialog open={fortuneDialogOpen} onOpenChange={setFortuneDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-indigo-500" />
+                Daily Inspiration
+              </DialogTitle>
+              <DialogDescription>
+                Open your fortune and share your thoughts with the community
+              </DialogDescription>
+            </DialogHeader>
+            <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
