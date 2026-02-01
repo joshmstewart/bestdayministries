@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,6 +131,7 @@ export function FortunesManager() {
   );
   const [themeCoverage, setThemeCoverage] = useState<ThemeCoverage[]>([]);
   const [showThemeCoverage, setShowThemeCoverage] = useState(false);
+  const themeCoverageRefreshTimeoutRef = useRef<number | null>(null);
   const [newFortune, setNewFortune] = useState({
     content: "",
     source_type: "affirmation" as FortuneSourceType,
@@ -144,6 +145,35 @@ export function FortunesManager() {
 
   useEffect(() => {
     loadThemeCoverage();
+  }, []);
+
+  // Keep theme coverage counts in sync without requiring a manual refresh.
+  // Debounced to avoid thrashing when a batch operation updates many rows.
+  useEffect(() => {
+    const channel = supabase
+      .channel("daily-fortunes-theme-coverage")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "daily_fortunes" },
+        () => {
+          // Debounce to collapse bursts of changes into one reload
+          if (themeCoverageRefreshTimeoutRef.current) {
+            window.clearTimeout(themeCoverageRefreshTimeoutRef.current);
+          }
+          themeCoverageRefreshTimeoutRef.current = window.setTimeout(() => {
+            loadThemeCoverage();
+          }, 250);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (themeCoverageRefreshTimeoutRef.current) {
+        window.clearTimeout(themeCoverageRefreshTimeoutRef.current);
+        themeCoverageRefreshTimeoutRef.current = null;
+      }
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadFortunes = async () => {
@@ -278,6 +308,7 @@ export function FortunesManager() {
       // Optimistically remove approved items from pending view
       const idsSet = new Set(ids);
       setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
+      loadThemeCoverage();
     } catch (error) {
       console.error("Error approving fortunes:", error);
       toast.error("Failed to approve fortunes");
@@ -320,6 +351,7 @@ export function FortunesManager() {
       // This maintains the visual order - items below simply move up
       const idsSet = new Set(ids);
       setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
+      loadThemeCoverage();
     } catch (error) {
       console.error("Error archiving fortunes:", error);
       toast.error("Failed to archive fortunes");
@@ -340,6 +372,7 @@ export function FortunesManager() {
       // Optimistically remove restored items from archived view
       const idsSet = new Set(ids);
       setFortunes(prev => prev.filter(f => !idsSet.has(f.id)));
+      loadThemeCoverage();
     } catch (error) {
       console.error("Error restoring fortunes:", error);
       toast.error("Failed to restore fortunes");
@@ -373,6 +406,7 @@ export function FortunesManager() {
         reference: "",
       });
       loadFortunes();
+      loadThemeCoverage();
     } catch (error) {
       console.error("Error adding fortune:", error);
       toast.error("Failed to add fortune");
