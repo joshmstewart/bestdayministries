@@ -2,7 +2,7 @@ import {
   Gamepad2, Music, Palette, Calculator, ClipboardCheck, UtensilsCrossed, 
   CupSoda, Laugh, Square, BookOpen, Image, Heart, MessageSquare, Calendar, 
   Bell, User, History, Album, Dog, Brain, Grid3X3, PenTool, Dumbbell, Store, HandHeart,
-  Smile, Sparkles
+  Sparkles
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -127,13 +127,13 @@ export const AVAILABLE_APPS: AppConfig[] = [
     color: "from-indigo-500 to-blue-500"
   },
   {
-    id: "daily-checkin",
-    name: "Daily Check-in",
-    description: "Mood & inspiration",
-    icon: Smile,
-    route: "/daily-checkin",
+    id: "daily-fortune",
+    name: "Daily Fortune",
+    description: "Today's inspiration",
+    icon: Sparkles,
+    route: "/daily-fortune",
     category: "resources",
-    color: "from-purple-500 to-pink-500"
+    color: "from-indigo-500 to-purple-500"
   },
   {
     id: "virtual-pet",

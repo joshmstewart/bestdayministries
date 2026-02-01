@@ -86,7 +86,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   
   // Health & Wellness
   { value: "/workout-tracker", label: "Workout Tracker" },
-  { value: "/daily-checkin", label: "Daily Check-in" },
+  { value: "/daily-fortune", label: "Daily Fortune" },
   { value: "/games/emotion-journal", label: "Emotion Journal" },
   
   // Help & Support
