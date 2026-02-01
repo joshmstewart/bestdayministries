@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 import { FloatingCartButton } from "@/components/marketplace/FloatingCartButton";
 import { UnifiedCartSheet } from "@/components/marketplace/UnifiedCartSheet";
 import { useCartSession } from "@/hooks/useCartSession";
+import { useCoffeeCart } from "@/hooks/useCoffeeCart";
 
 interface CoffeeProductTier {
   id: string;
@@ -31,6 +32,7 @@ const CoffeeProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const { getCartFilter, isLoading: cartSessionLoading } = useCartSession();
+  const { addToCart: addCoffeeToCart, isLoading: addingToCart } = useCoffeeCart();
 
   // Fetch cart count
   const { data: cartCount } = useQuery({
@@ -117,11 +119,18 @@ const CoffeeProductDetail = () => {
   };
 
   const addToCart = async () => {
-    // For now, show coming soon message
-    toast({
-      title: "Coming Soon",
-      description: "Coffee ordering will be available soon!",
+    if (!product) return;
+    
+    const success = await addCoffeeToCart({
+      productId: product.id,
+      productName: product.name,
+      quantity,
+      pricePerUnit: currentPrice,
     });
+
+    if (success) {
+      setQuantity(1); // Reset quantity after adding
+    }
   };
 
   if (isLoading) {
@@ -335,9 +344,10 @@ const CoffeeProductDetail = () => {
               size="lg"
               className="w-full"
               onClick={addToCart}
+              disabled={addingToCart}
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
-              Add to Cart
+              {addingToCart ? "Adding..." : "Add to Cart"}
             </Button>
           </div>
         </div>
