@@ -126,6 +126,7 @@ const CoffeeProductDetail = () => {
       productName: product.name,
       quantity,
       pricePerUnit: currentPrice,
+      tierQuantity: quantity, // The quantity selected = tier quantity
     });
 
     if (success) {
