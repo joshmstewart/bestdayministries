@@ -132,12 +132,15 @@ export function AvatarEmojisManager() {
 - Exaggerated, obvious, instantly recognizable emotion
 - Eyes, eyebrows, and mouth should clearly convey ${emotion.name}`;
     
-    // Special handling for Tired - Zzz should come from mouth
+    // Special handling for Tired - Zzz should be LARGE and prominent
     if (emotionName === 'tired') {
       expressionDetails = `- Make the face clearly show ${emotion.name} ${emotion.emoji}
 - Eyes should be droopy, half-closed or closed, appearing sleepy
-- Mouth should be slightly open with a small "zzz" or "Z" symbol emerging FROM THE MOUTH/LIPS
+- Mouth should be slightly open with LARGE, BOLD "ZZZ" or "Zzz" symbols emerging FROM THE MOUTH/LIPS
+- The Zs must be BIG and PROMINENT - easily visible even at small icon sizes
+- Make the Z letters large enough to be clearly seen (about 1/4 to 1/3 the size of the face)
 - The sleep Zs should come directly from the open mouth, NOT floating above the head
+- Use dark/black color for the Zs so they stand out clearly against the face
 - This allows the head to fill more of the frame while still showing sleepiness`;
     }
     
