@@ -16,9 +16,19 @@ interface AppIconProps {
 export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: AppIconProps) {
   const navigate = useNavigate();
   const Icon = app.icon;
-  const { imageUrl: featuredStickerUrl } = useFeaturedSticker();
-  const { imageUrl: customCoinUrl } = useCustomCoinImage();
-  const { imageUrl: memoryMatchCardBackUrl } = useLatestMemoryMatchCardBack();
+  const { imageUrl: featuredStickerUrl, loading: stickerLoading } = useFeaturedSticker();
+  const { imageUrl: customCoinUrl, loading: coinLoading } = useCustomCoinImage();
+  const { imageUrl: memoryMatchCardBackUrl, loading: memoryLoading } = useLatestMemoryMatchCardBack();
+  
+  // Check if this app uses a dynamic icon and if it's still loading
+  const usesDynamicIcon = !app.config?.icon_url && 
+    (app.id === 'sticker-album' || app.id === 'store' || app.id === 'memory-match');
+  
+  const isDynamicIconLoading = usesDynamicIcon && (
+    (app.id === 'sticker-album' && stickerLoading) ||
+    (app.id === 'store' && coinLoading) ||
+    (app.id === 'memory-match' && memoryLoading)
+  );
   
   // Auto-use dynamic icons for specific apps unless admin uploaded custom icon
   const customIconUrl = app.id === 'sticker-album' && !app.config?.icon_url
@@ -49,12 +59,15 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
       <div
         className={cn(
           "relative w-16 h-16 lg:w-20 lg:h-20 flex items-center justify-center",
-          !customIconUrl && "rounded-2xl shadow-lg bg-gradient-to-br",
-          !customIconUrl && app.color,
+          !customIconUrl && !isDynamicIconLoading && "rounded-2xl shadow-lg bg-gradient-to-br",
+          !customIconUrl && !isDynamicIconLoading && app.color,
           !editMode && "hover:scale-105 active:scale-95 transition-transform"
         )}
       >
-        {customIconUrl ? (
+        {isDynamicIconLoading ? (
+          // Show empty placeholder while dynamic icon is loading
+          <div className="w-full h-full" />
+        ) : customIconUrl ? (
           <img 
             src={customIconUrl} 
             alt={app.name} 
