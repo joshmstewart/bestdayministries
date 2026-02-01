@@ -1,88 +1,78 @@
 
-# Plan: Add VoiceInput for Notes Dictation in EmotionJournal
+# Plan: Create System Account for Daily Inspiration Posts
 
-## Overview
-Add the `VoiceInput` component to the Emotion Journal page to enable voice-to-text dictation for notes, exactly mirroring the DailyBar QuickMoodPicker implementation.
+## Problem Analysis
+The `generate-fortune-posts` edge function creates a discussion post for each Daily Inspiration, and assigns authorship to "the first admin/owner found in `user_roles`". There's no `ORDER BY`, so the result is non-deterministic—currently it's picking Joshie because his `user_roles` row happens to be returned first.
 
-## Current State Analysis
-- **QuickMoodPicker** (DailyBar): Has `VoiceInput` below the `Textarea` (lines 564-572) with:
-  - `showTranscript={false}` - doesn't show its own transcript display
-  - `silenceStopSeconds={15}` - auto-stops after 15s silence
-  - `maxDuration={60}` - max 60s recording
-  - `handleVoiceTranscript` callback that directly appends to `note` state
+## Solution
+Create a dedicated **system account** that will author all automated content (Daily Inspiration posts, and potentially other future automated posts). This account:
+- Will have a profile with a clear "system" identity (name like "Best Day Ministries" or "Joy House")
+- Will have the `owner` role (so it has permissions to create approved posts)
+- Will NOT be used for login (no one knows the password)
+- The edge function will look for this specific account instead of "any admin"
 
-- **EmotionJournal**: Currently has:
-  - Initial entry: `Textarea` for `journalText` (lines 978-983) with **no VoiceInput**
-  - Edit mode: `Textarea` for `editNoteText` (lines 794-799) with **no VoiceInput**
+---
 
-## Implementation Details
+## Implementation Steps
 
-### File: `src/pages/EmotionJournal.tsx`
+### 1. Create the System User (Database)
+Use Supabase Auth Admin API (via edge function) to create a user with:
+- Email: `system@bestdayministries.app` (or similar non-deliverable address)
+- A random secure password (never shared)
+- Profile: `display_name = "Best Day Ministries"`, `avatar_number = null` (could use the logo instead)
 
-#### 1. Add VoiceInput Import
-```tsx
-import { VoiceInput } from '@/components/VoiceInput';
+### 2. Add User Role
+Insert a row into `user_roles` with `role = 'owner'` for the system user.
+
+### 3. Add App Setting for System User ID
+Store the system user's UUID in `app_settings` under a key like `system_user_id`. This makes it easy to query and update if needed.
+
+### 4. Update Edge Function
+Modify `generate-fortune-posts/index.ts` to:
+```typescript
+// Look for system user first
+const { data: systemUserSetting } = await adminClient
+  .from("app_settings")
+  .select("setting_value")
+  .eq("setting_key", "system_user_id")
+  .maybeSingle();
+
+const systemUserId = systemUserSetting?.setting_value;
+
+// Fall back to first admin/owner if system user not configured
+const authorId = systemUserId || (await getFirstAdminUser());
 ```
 
-#### 2. Add Voice Transcript Handler for Initial Entry
-Add callback to append transcript chunks directly to `journalText`:
-```tsx
-const handleVoiceTranscriptJournal = useCallback((transcript: string) => {
-  setJournalText(prev => prev ? `${prev} ${transcript}` : transcript);
-}, []);
-```
+---
 
-#### 3. Add Voice Transcript Handler for Edit Mode
-Add callback to append transcript chunks directly to `editNoteText`:
-```tsx
-const handleVoiceTranscriptEdit = useCallback((transcript: string) => {
-  setEditNoteText(prev => prev ? `${prev} ${transcript}` : transcript);
-}, []);
-```
+## Technical Details
 
-#### 4. Add VoiceInput Below Initial Entry Textarea (~line 984)
-After the `Textarea` in the notes section, add:
-```tsx
-<VoiceInput
-  onTranscript={handleVoiceTranscriptJournal}
-  placeholder="Tap microphone to add notes by voice..."
-  buttonSize="sm"
-  showTranscript={false}
-  autoStop={true}
-  silenceStopSeconds={15}
-  maxDuration={60}
-/>
-```
+### Database Changes
+| Table | Action |
+|-------|--------|
+| `auth.users` | New user via Admin API |
+| `profiles` | Auto-created by `handle_new_user` trigger |
+| `user_roles` | Insert `owner` role |
+| `app_settings` | Insert `system_user_id` setting |
 
-#### 5. Add VoiceInput Below Edit Mode Textarea (~line 799)
-After the edit mode `Textarea`, add:
-```tsx
-<VoiceInput
-  onTranscript={handleVoiceTranscriptEdit}
-  placeholder="Tap microphone to add notes by voice..."
-  buttonSize="sm"
-  showTranscript={false}
-  autoStop={true}
-  silenceStopSeconds={15}
-  maxDuration={60}
-/>
-```
-
-## Technical Notes
-- The `VoiceInput` component uses ElevenLabs Scribe realtime transcription
-- With `showTranscript={false}`, only the microphone button and recording indicator show
-- Transcript chunks are appended directly to the text state as they're committed (VAD-based)
-- No manual "merge" step needed - this matches DailyBar behavior exactly
-- The existing `JournalEntry.tsx` component with its "accumulate then merge" pattern is unused and can be cleaned up in a future task
-
-## Files to Modify
+### Edge Function Changes
 | File | Changes |
 |------|---------|
-| `src/pages/EmotionJournal.tsx` | Add import, two handlers, two VoiceInput components |
+| `supabase/functions/generate-fortune-posts/index.ts` | Query `system_user_id` from `app_settings`, use it as author instead of random admin |
 
-## Testing Checklist
-- [ ] Tap microphone on initial entry notes → speaks → text appears in textarea
-- [ ] Tap microphone on edit mode notes → speaks → text appears in textarea  
-- [ ] Silence auto-stop works after 15 seconds
-- [ ] Recording stops at 60 seconds max
-- [ ] Transcript appends to existing text (doesn't replace)
+### Profile Appearance
+- **Display Name**: "Best Day Ministries" (or your preference)
+- **Avatar**: Could be `null` (shows default), or we could set a custom `avatar_url` pointing to the logo
+
+---
+
+## Benefits
+1. **Clarity**: Users see "Best Day Ministries" posted the Daily Inspiration, not a real person
+2. **Consistency**: Always the same author, regardless of admin user order
+3. **Scalability**: Can reuse for other automated content (announcements, welcome posts, etc.)
+4. **Audit-friendly**: Easy to identify automated vs. human-authored content
+
+---
+
+## Alternative Considered
+Could hardcode a specific user ID in the edge function, but that's fragile—if the user is deleted or ID changes, it breaks silently. Using `app_settings` is more robust and visible.
