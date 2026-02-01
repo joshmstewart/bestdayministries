@@ -124,6 +124,22 @@ export function AvatarEmojisManager() {
     if (!emotion || !avatar) return "";
     
     const bgColor = getEmotionBackgroundColor(emotion.name, emotion.category);
+    const emotionName = emotion.name.toLowerCase();
+    
+    // Emotion-specific expression details
+    let expressionDetails = `- Make the face clearly show ${emotion.name} ${emotion.emoji}
+- Copy the exact expression style from the ${emotion.emoji} emoji
+- Exaggerated, obvious, instantly recognizable emotion
+- Eyes, eyebrows, and mouth should clearly convey ${emotion.name}`;
+    
+    // Special handling for Tired - Zzz should come from mouth
+    if (emotionName === 'tired') {
+      expressionDetails = `- Make the face clearly show ${emotion.name} ${emotion.emoji}
+- Eyes should be droopy, half-closed or closed, appearing sleepy
+- Mouth should be slightly open with a small "zzz" or "Z" symbol emerging FROM THE MOUTH/LIPS
+- The sleep Zs should come directly from the open mouth, NOT floating above the head
+- This allows the head to fill more of the frame while still showing sleepiness`;
+    }
     
     // STRICT head-only emoji generation
     return `TRANSFORM the character from the reference image into an EMOJI.
@@ -142,10 +158,7 @@ CHARACTER CONSISTENCY:
 - Only change the FACIAL EXPRESSION
 
 EXPRESSION:
-- Make the face clearly show ${emotion.name} ${emotion.emoji}
-- Copy the exact expression style from the ${emotion.emoji} emoji
-- Exaggerated, obvious, instantly recognizable emotion
-- Eyes, eyebrows, and mouth should clearly convey ${emotion.name}
+${expressionDetails}
 
 STYLE:
 - SOLID ${bgColor} background that fills the ENTIRE image to ALL EDGES - no circles, no vignettes, no black borders
