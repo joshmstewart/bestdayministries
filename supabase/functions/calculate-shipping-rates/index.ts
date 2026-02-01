@@ -403,7 +403,7 @@ serve(async (req) => {
           logStep("Coffee: Free shipping threshold met", { threshold: freeThresholdCents, subtotal: coffeeSubtotalCents });
           vendorResults.push({
             vendor_id: COFFEE_VENDOR_ID,
-            vendor_name: "Best Day Ever Café",
+            vendor_name: "Best Day Ever Coffee",
             subtotal_cents: coffeeSubtotalCents,
             shipping_cents: 0,
             shipping_method: 'free',
@@ -472,7 +472,7 @@ serve(async (req) => {
 
               vendorResults.push({
                 vendor_id: COFFEE_VENDOR_ID,
-                vendor_name: "Best Day Ever Café",
+                vendor_name: "Best Day Ever Coffee",
                 subtotal_cents: coffeeSubtotalCents,
                 shipping_cents: rateCents,
                 shipping_method: 'calculated',
@@ -494,7 +494,7 @@ serve(async (req) => {
             
             vendorResults.push({
               vendor_id: COFFEE_VENDOR_ID,
-              vendor_name: "Best Day Ever Café",
+              vendor_name: "Best Day Ever Coffee",
               subtotal_cents: coffeeSubtotalCents,
               shipping_cents: flatRateCents,
               shipping_method: 'flat',
@@ -512,7 +512,7 @@ serve(async (req) => {
           
           vendorResults.push({
             vendor_id: COFFEE_VENDOR_ID,
-            vendor_name: "Best Day Ever Café",
+            vendor_name: "Best Day Ever Coffee",
             subtotal_cents: coffeeSubtotalCents,
             shipping_cents: flatRateCents,
             shipping_method: 'flat',
@@ -524,7 +524,7 @@ serve(async (req) => {
         logStep("Coffee: No shipping settings, using default flat rate");
         vendorResults.push({
           vendor_id: COFFEE_VENDOR_ID,
-          vendor_name: "Best Day Ever Café",
+          vendor_name: "Best Day Ever Coffee",
           subtotal_cents: coffeeSubtotalCents,
           shipping_cents: FLAT_SHIPPING_RATE_CENTS,
           shipping_method: 'flat',

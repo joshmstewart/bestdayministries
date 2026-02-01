@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2, Info, Coffee } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Store, Package, MapPin, Edit2, Info } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -63,6 +63,7 @@ interface CoffeeShippingSettings {
 }
 
 const COFFEE_VENDOR_ID = "coffee-vendor";
+const COFFEE_VENDOR_NAME = "Best Day Ever Coffee";
 
 interface UnifiedCartSheetProps {
   open: boolean;
@@ -660,124 +661,118 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                   <Separator />
                 )}
 
-                {/* Coffee Items Section */}
-                {hasCoffeeItems && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Coffee className="h-5 w-5 text-primary" />
-                      <h3 className="font-semibold text-lg">Café Items</h3>
-                    </div>
-
-                    <div className="space-y-3">
-                      {coffeeCartItems.map((item: any) => {
-                        const coffee = item.coffee_product;
-                        const vi = (item.variant_info || {}) as any;
-                        const name = coffee?.name || vi?.product_name || 'Coffee item';
-                        const pricePerUnit = Number(vi?.price_per_unit ?? coffee?.selling_price ?? 0);
-                        const imageUrl = coffee?.images?.[0] || '/placeholder.svg';
-
-                        return (
-                          <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
-                            <Link
-                              to={`/store/coffee/${item.coffee_product_id}`}
-                              onClick={() => onOpenChange(false)}
-                              className="flex-shrink-0 hover:opacity-80 transition-opacity"
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={name}
-                                className="w-16 h-16 object-cover rounded-md"
-                              />
-                            </Link>
-
-                            <div className="flex-1 min-w-0">
-                              <Link
-                                to={`/store/coffee/${item.coffee_product_id}`}
-                                onClick={() => onOpenChange(false)}
-                                className="hover:text-primary transition-colors"
-                              >
-                                <h4 className="font-medium truncate text-sm">{name}</h4>
-                              </Link>
-                              <p className="font-semibold text-sm text-primary">
-                                ${pricePerUnit.toFixed(2)}
-                                <span className="text-muted-foreground font-normal"> each</span>
-                              </p>
-                            </div>
-
-                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-destructive hover:text-destructive"
-                                onClick={() => removeHandmadeItem(item.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => updateHandmadeQuantity(item.id, item.quantity, -1)}
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="w-6 text-center text-sm">{item.quantity}</span>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => updateHandmadeQuantity(item.id, item.quantity, 1)}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Coffee Free Shipping Progress */}
-                    {coffeeHasFreeShippingConfig && coffeeShippingSettings?.free_shipping_threshold && (
-                      <FreeShippingProgress 
-                        currentSubtotal={coffeeSubtotal} 
-                        threshold={coffeeShippingSettings.free_shipping_threshold}
-                        vendorName="Café"
-                      />
-                    )}
-
-                    {/* Coffee shipping line */}
-                    <div className="flex justify-between items-center text-sm pt-3 mt-2 border-t border-border/50">
-                      <span className="text-muted-foreground font-medium">Café Shipping</span>
-                      <span
-                        className={
-                          coffeeShipping.isPending
-                            ? "text-accent-foreground font-semibold italic"
-                            : coffeeShipping.label === 'FREE'
-                              ? "text-primary font-semibold"
-                              : "font-semibold"
-                        }
-                      >
-                        {coffeeShipping.label}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Separator between Café and Store sections */}
-                {hasCoffeeItems && hasStoreItems && (
-                  <Separator />
-                )}
-
-                {/* Store Items Section - grouped by vendor */}
-                {hasStoreItems && (
+                {/* Store Items Section - grouped by vendor (includes coffee as a vendor) */}
+                {(hasStoreItems || hasCoffeeItems) && (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Package className="h-5 w-5 text-primary" />
                       <h3 className="font-semibold text-lg">Store Items</h3>
                     </div>
+
+                    {/* Coffee Vendor Card - "Best Day Ever Coffee" */}
+                    {hasCoffeeItems && (
+                      <div className="rounded-xl border-2 border-border bg-muted/30 p-4 space-y-3">
+                        <div className="flex items-center gap-2 pb-2 border-b border-border">
+                          <Store className="h-5 w-5 text-primary" />
+                          <span className="font-semibold text-base">{COFFEE_VENDOR_NAME}</span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {coffeeCartItems.map((item: any) => {
+                            const coffee = item.coffee_product;
+                            const vi = (item.variant_info || {}) as any;
+                            const name = coffee?.name || vi?.product_name || 'Coffee item';
+                            const pricePerUnit = Number(vi?.price_per_unit ?? coffee?.selling_price ?? 0);
+                            const imageUrl = coffee?.images?.[0] || '/placeholder.svg';
+
+                            return (
+                              <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
+                                <Link
+                                  to={`/store/coffee/${item.coffee_product_id}`}
+                                  onClick={() => onOpenChange(false)}
+                                  className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                                >
+                                  <img
+                                    src={imageUrl}
+                                    alt={name}
+                                    className="w-16 h-16 object-cover rounded-md"
+                                  />
+                                </Link>
+
+                                <div className="flex-1 min-w-0">
+                                  <Link
+                                    to={`/store/coffee/${item.coffee_product_id}`}
+                                    onClick={() => onOpenChange(false)}
+                                    className="hover:text-primary transition-colors"
+                                  >
+                                    <h4 className="font-medium truncate text-sm">{name}</h4>
+                                  </Link>
+                                  <p className="font-semibold text-sm text-primary">
+                                    ${pricePerUnit.toFixed(2)}
+                                    <span className="text-muted-foreground font-normal"> each</span>
+                                  </p>
+                                </div>
+
+                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
+                                    onClick={() => removeHandmadeItem(item.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => updateHandmadeQuantity(item.id, item.quantity, -1)}
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="w-6 text-center text-sm">{item.quantity}</span>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => updateHandmadeQuantity(item.id, item.quantity, 1)}
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Coffee Free Shipping Progress */}
+                        {coffeeHasFreeShippingConfig && coffeeShippingSettings?.free_shipping_threshold && (
+                          <FreeShippingProgress 
+                            currentSubtotal={coffeeSubtotal} 
+                            threshold={coffeeShippingSettings.free_shipping_threshold}
+                          />
+                        )}
+
+                        {/* Coffee shipping line */}
+                        <div className="flex justify-between items-center text-sm pt-3 mt-2 border-t border-border/50">
+                          <span className="text-muted-foreground font-medium">Shipping</span>
+                          <span
+                            className={
+                              coffeeShipping.isPending
+                                ? "text-accent-foreground font-semibold italic"
+                                : coffeeShipping.label === 'FREE'
+                                  ? "text-primary font-semibold"
+                                  : "font-semibold"
+                            }
+                          >
+                            {coffeeShipping.label}
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Group items by vendor */}
                     {Object.entries(vendorTotals).map(([vendorId, vendor], index) => {
