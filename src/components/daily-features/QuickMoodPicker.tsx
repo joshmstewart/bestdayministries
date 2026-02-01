@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Cache TTS settings per user to avoid repeated fetches (shared with TextToSpeech component)
-const ttsSettingsCache = new Map<string, { voice: string; enabled: boolean }>();
 import { Textarea } from "@/components/ui/textarea";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { Check, Loader2, ChevronDown, ChevronUp, Save, MessageCircle, Mic, MicOff } from "lucide-react";
@@ -11,6 +8,9 @@ import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { toast } from "sonner";
 import { showCoinNotification } from "@/utils/coinNotification";
 import { cn } from "@/lib/utils";
+
+// Cache TTS settings per user to avoid repeated fetches (shared with TextToSpeech component)
+const ttsSettingsCache = new Map<string, { voice: string; enabled: boolean }>();
 
 interface MoodOption {
   emoji: string;
