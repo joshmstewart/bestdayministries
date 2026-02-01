@@ -1,71 +1,62 @@
 
-# Plan: Stop Daily Inspiration from Creating Main Feed Posts
+# Fix: Announcement Timestamp Bug ("56 years ago")
 
-## Current Behavior
-The `generate-fortune-posts` edge function creates **both**:
-1. A `daily_fortune_posts` entry (the fortune card shown on the community page)
-2. A `discussion_posts` entry (for comments - BUT this automatically appears in the main feed)
+## Root Cause Analysis
 
-The `community_feed_items` view includes ALL discussion posts where `is_moderated = true`, which is why Daily Inspiration posts appear in the main feed.
+The `community_feed_items` view uses `published_at` as the timestamp for content announcements:
+```sql
+ca.published_at AS created_at
+```
+
+However, the Valentine's Day Stickers announcement was created on Jan 28 but has `published_at = NULL`. This causes:
+1. **"56 years ago" display** - JavaScript's date-fns treats NULL as the Unix epoch (1970)
+2. **Floating to top** - NULL values sort unpredictably, often appearing first
 
 ## Solution
-**Simply stop creating the discussion post entirely.** The fortune card already has its own comment system (`daily_fortune_comments` table) that works independently.
 
----
+Update the view to use `COALESCE(ca.published_at, ca.created_at)` so it falls back to the actual creation date when `published_at` is NULL.
 
 ## Implementation
 
-### 1. Update Edge Function: `supabase/functions/generate-fortune-posts/index.ts`
+### 1. Database Migration
 
-**Remove lines 117-165** - the entire section that creates the discussion post:
-
-```typescript
-// REMOVE THIS ENTIRE BLOCK:
-// Create a discussion post for comments using the system user
-// First, try to get the dedicated system user from app_settings
-const { data: systemUserSetting } = await adminClient
-  .from("app_settings")
-  .select("setting_value")
-  .eq("setting_key", "system_user_id")
-  .maybeSingle();
-  
-// ... all the way through the discussion post creation ...
-```
-
-The fortune card already has:
-- Its own comments via `daily_fortune_comments` table
-- Its own likes via `daily_fortune_likes` table
-- No need for a separate `discussion_posts` entry
-
-### 2. Delete Today's Incorrectly Created Post
-
-Delete the discussion post created today (ID: `5923c4f4-0cbd-4f81-8348-4959ba3ef5b2`):
+Update the `community_feed_items` view to fix the announcement timestamp:
 
 ```sql
-DELETE FROM discussion_posts 
-WHERE id = '5923c4f4-0cbd-4f81-8348-4959ba3ef5b2';
+-- In the Content Announcements section of the view (line ~241):
+COALESCE(ca.published_at, ca.created_at) AS created_at,
 ```
 
-Also update today's fortune post to clear the link:
+This ensures:
+- If `published_at` exists → use it (for scheduled posts)
+- If `published_at` is NULL → fall back to `created_at`
+
+### 2. Optionally Fix the Existing Record
+
+Update the Valentine's Day announcement to have a proper `published_at`:
 
 ```sql
-UPDATE daily_fortune_posts 
-SET discussion_post_id = NULL 
-WHERE discussion_post_id = '5923c4f4-0cbd-4f81-8348-4959ba3ef5b2';
+UPDATE content_announcements 
+SET published_at = created_at 
+WHERE id = 'b74150e2-8fdb-4405-b609-d01c291cd097';
 ```
 
----
+## Technical Details
 
-## Changes Summary
+| Item | Current | Fixed |
+|------|---------|-------|
+| View column | `ca.published_at` | `COALESCE(ca.published_at, ca.created_at)` |
+| Valentine post timestamp | NULL → 1970 | Jan 28, 2026 |
+| Sort behavior | Unpredictable | Correct chronological order |
 
-| File/Table | Change |
-|------------|--------|
-| `generate-fortune-posts/index.ts` | Remove discussion post creation logic (lines 117-165) |
-| `discussion_posts` table | Delete today's post (ID: `5923c4f4-...`) |
-| `daily_fortune_posts` table | Clear the `discussion_post_id` reference |
+## Files Changed
+
+| File | Change |
+|------|--------|
+| New migration SQL | Recreate view with COALESCE fix |
 
 ## Benefits
-- Daily Inspiration stays on the fortune card only
-- Main community feed shows only user-generated content
-- Simpler architecture (no redundant discussion post)
-- Fortune comments continue to work via `daily_fortune_comments` table
+
+- Posts without `published_at` will use their actual creation date
+- No more "56 years ago" display bugs
+- Proper chronological sorting in the feed
