@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
@@ -839,10 +840,11 @@ export function FortunesManager() {
 
       {/* Generate Dialog */}
       <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Generate Fortunes with AI</DialogTitle>
           </DialogHeader>
+          <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Type of Content</Label>
@@ -1049,6 +1051,7 @@ export function FortunesManager() {
               </p>
             </div>
           </div>
+          </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setGenerateDialogOpen(false)}>
               Cancel
