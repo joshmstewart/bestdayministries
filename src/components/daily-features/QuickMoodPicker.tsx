@@ -133,20 +133,29 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
         
         if (user) {
           // Get user's selected fitness avatar
-          const { data: userAvatar } = await supabase
+          const { data: userAvatar, error: avatarError } = await supabase
             .from("user_fitness_avatars")
             .select("avatar_id")
             .eq("user_id", user.id)
             .eq("is_selected", true)
             .maybeSingle();
 
+          console.log("QuickMoodPicker - user avatar fetch:", { userId: user.id, userAvatar, avatarError });
+
           if (userAvatar?.avatar_id) {
             // Fetch all approved emotion images for this avatar
-            const { data: emotionImages } = await supabase
+            const { data: emotionImages, error: emotionImagesError } = await supabase
               .from("avatar_emotion_images")
               .select("emotion_type_id, image_url, crop_scale")
               .eq("avatar_id", userAvatar.avatar_id)
               .eq("is_approved", true);
+
+            console.log("QuickMoodPicker - emotion images fetch:", { 
+              avatarId: userAvatar.avatar_id, 
+              emotionImagesCount: emotionImages?.length, 
+              emotionImages,
+              emotionImagesError 
+            });
 
             if (emotionImages) {
               emotionImages.forEach(img => {
@@ -159,6 +168,8 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
               });
             }
           }
+        } else {
+          console.log("QuickMoodPicker - no user available, skipping avatar fetch");
         }
 
         if (emotionData) {
