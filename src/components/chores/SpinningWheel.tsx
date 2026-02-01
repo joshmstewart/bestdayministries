@@ -310,11 +310,25 @@ export function SpinningWheel({
 
     const winningSegment = selectSegment();
     
+    // Find matching slices - compare by type and amount since visual segments may be synthesized
     const matchingSlices = expandedSlices.slices
       .map((slice, index) => ({ slice, index }))
-      .filter(({ slice }) => slice.segment === winningSegment);
+      .filter(({ slice }) => 
+        slice.segment.type === winningSegment.type && 
+        slice.segment.amount === winningSegment.amount
+      );
     
-    const randomSlice = matchingSlices[Math.floor(Math.random() * matchingSlices.length)];
+    // Fallback: if no exact match, find any slice of the same type
+    const fallbackSlices = matchingSlices.length > 0 
+      ? matchingSlices 
+      : expandedSlices.slices
+          .map((slice, index) => ({ slice, index }))
+          .filter(({ slice }) => slice.segment.type === winningSegment.type);
+    
+    // Ultimate fallback: just pick any slice
+    const slicesToUse = fallbackSlices.length > 0 ? fallbackSlices : expandedSlices.slices.map((slice, index) => ({ slice, index }));
+    
+    const randomSlice = slicesToUse[Math.floor(Math.random() * slicesToUse.length)];
     const { sliceAngle } = expandedSlices;
 
     const baseSpins = 5;
