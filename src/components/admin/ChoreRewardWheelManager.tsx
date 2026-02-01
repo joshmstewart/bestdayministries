@@ -5,6 +5,7 @@ import { Gift, Sparkles, RefreshCw, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ChoreRewardWheelDialog } from "@/components/chores/ChoreRewardWheelDialog";
+import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,8 @@ export function ChoreRewardWheelManager() {
   const { user } = useAuth();
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [packCardId, setPackCardId] = useState<string | null>(null);
+  const [showPackDialog, setShowPackDialog] = useState(false);
 
   const { data: configData, refetch: refetchConfig } = useQuery({
     queryKey: ["chore-wheel-config"],
@@ -109,6 +112,11 @@ export function ChoreRewardWheelManager() {
   const handlePrizeWon = (prizeType: string, amount: number, cardIds?: string[]) => {
     console.log("Test prize won:", { prizeType, amount, cardIds });
     refetchSpin();
+  };
+
+  const handleOpenStickerPack = (cardId: string) => {
+    setPackCardId(cardId);
+    setShowPackDialog(true);
   };
 
   const activePresetKey = configData?.active_preset || "balanced";
@@ -217,6 +225,19 @@ export function ChoreRewardWheelManager() {
           onOpenChange={setTestDialogOpen}
           userId={user.id}
           onPrizeWon={handlePrizeWon}
+          onOpenStickerPack={handleOpenStickerPack}
+        />
+      )}
+
+      {packCardId && (
+        <PackOpeningDialog
+          open={showPackDialog}
+          onOpenChange={(open) => {
+            setShowPackDialog(open);
+            if (!open) setPackCardId(null);
+          }}
+          cardId={packCardId}
+          onOpened={() => {}}
         />
       )}
     </>
