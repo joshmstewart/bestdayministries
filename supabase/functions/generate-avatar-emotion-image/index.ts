@@ -77,17 +77,49 @@ serve(async (req) => {
       throw new Error("Avatar not found");
     }
 
+    // Get the emotion type details to determine background color
+    const { data: emotionData, error: emotionFetchError } = await supabaseAdmin
+      .from("emotion_types")
+      .select("name, category")
+      .eq("id", emotionTypeId)
+      .single();
+
+    if (emotionFetchError || !emotionData) {
+      throw new Error("Emotion type not found");
+    }
+
+    // Determine background color based on emotion category
+    const backgroundColors: Record<string, string> = {
+      positive: "#4CAF50", // Green
+      negative: "#EF5350", // Red
+      neutral: "#9E9E9E",  // Gray
+    };
+    const backgroundColor = backgroundColors[emotionData.category] || "#9E9E9E";
+    const emotionName = emotionData.name;
+
     const avatarName = avatarData?.name?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() || 'avatar';
     
     // Use image-to-image if avatar has an image (like generate-workout-image does)
     const avatarImageUrl = avatarData.image_url || avatarData.preview_image_url;
 
-    console.log(`Generating avatar emotion image: avatar=${avatarId} (${avatarName}), emotion=${emotionTypeId}`);
+    console.log(`Generating avatar emotion image: avatar=${avatarId} (${avatarName}), emotion=${emotionTypeId} (${emotionName}/${emotionData.category})`);
     console.log(`Avatar image URL for reference: ${avatarImageUrl}`);
+    console.log(`Using background color: ${backgroundColor}`);
 
-    // Build message content - use image-to-image if avatar has an image
-    // Use explicit directive to force image generation, not text description
-    const enhancedPrompt = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${prompt}`;
+    // Special handling for Grateful - show prayer hands instead of floating head
+    const isGrateful = emotionName.toLowerCase() === "grateful";
+    
+    // Build the enhanced prompt with correct background color
+    let imageDescription: string;
+    if (isGrateful) {
+      // For Grateful, show the avatar's hands in prayer position
+      imageDescription = `The character's hands pressed together in a prayer/namaste position, palms touching with fingers pointed upward. Show ONLY the hands and wrists, no face or body. The hands should match the character's skin tone and style. Solid ${backgroundColor} background that fills the entire frame edge-to-edge. Simple, clean emoji-style illustration.`;
+    } else {
+      // For all other emotions, use floating head style
+      imageDescription = `${prompt}. Use a solid ${backgroundColor} background that fills the entire frame edge-to-edge.`;
+    }
+    
+    const enhancedPrompt = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${imageDescription}`;
     
     let messageContent: any;
     
