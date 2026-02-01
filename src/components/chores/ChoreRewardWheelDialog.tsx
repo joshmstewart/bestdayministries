@@ -129,8 +129,14 @@ export function ChoreRewardWheelDialog({
   }, [open, userId]);
 
   const handleSpinStart = () => {
-    // This is called when the spin animation begins
+    // Play click sound when spin starts
     playSound("button_click");
+  };
+
+  const startSpin = () => {
+    if (hasSpunToday || spinning || loading) return;
+    setSpinning(true);
+    handleSpinStart();
   };
 
   const handleSpinEnd = async (segment: WheelSegment) => {
@@ -200,10 +206,6 @@ export function ChoreRewardWheelDialog({
     }
   };
 
-  const startSpin = () => {
-    if (hasSpunToday || spinning) return;
-    setSpinning(true);
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -255,8 +257,8 @@ export function ChoreRewardWheelDialog({
                 segments={segments}
                 onSpinEnd={handleSpinEnd}
                 spinning={spinning}
-                onSpinStart={handleSpinStart}
-                disabled={hasSpunToday}
+                onSpinStart={startSpin}
+                disabled={hasSpunToday || loading}
                 size={280}
                 clickSoundUrl={wheelClickSound?.url}
                 clickSoundVolume={wheelClickSound?.volume}

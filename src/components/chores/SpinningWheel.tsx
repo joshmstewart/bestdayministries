@@ -315,6 +315,12 @@ export function SpinningWheel({
     });
   };
 
+  const handleClick = () => {
+    if (!disabled && !isAnimating && !spinning) {
+      onSpinStart();
+    }
+  };
+
   return (
     <div className="relative flex flex-col items-center gap-4">
       {/* Decorative outer glow ring */}
@@ -360,9 +366,14 @@ export function SpinningWheel({
         </svg>
       </div>
       
-      {/* Wheel container with decorative border */}
+      {/* Wheel container with decorative border - now clickable */}
       <div
-        className="relative rounded-full"
+        onClick={handleClick}
+        className={cn(
+          "relative rounded-full transition-transform",
+          !disabled && !isAnimating && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
+          disabled && "opacity-70 cursor-not-allowed"
+        )}
         style={{
           width: size + 12,
           height: size + 12,
