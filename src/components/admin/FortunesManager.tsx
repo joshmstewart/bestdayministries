@@ -183,7 +183,8 @@ export function FortunesManager() {
       const { data, error } = await supabase
         .from("daily_fortunes")
         .select("theme")
-        .eq("is_archived", false);
+        .eq("is_archived", false)
+        .eq("is_approved", true);
 
       if (error) throw error;
 
