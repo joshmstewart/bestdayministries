@@ -86,6 +86,9 @@ serve(async (req) => {
     console.log(`Avatar image URL for reference: ${avatarImageUrl}`);
 
     // Build message content - use image-to-image if avatar has an image
+    // Use explicit directive to force image generation, not text description
+    const enhancedPrompt = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${prompt}`;
+    
     let messageContent: any;
     
     if (avatarImageUrl) {
@@ -93,7 +96,7 @@ serve(async (req) => {
       messageContent = [
         {
           type: "text",
-          text: prompt,
+          text: enhancedPrompt,
         },
         {
           type: "image_url",
@@ -105,41 +108,69 @@ serve(async (req) => {
       console.log("Using image-to-image with avatar reference image");
     } else {
       // Fallback to text-only generation if no avatar image
-      messageContent = `${avatarData.character_prompt || avatarData.name}, ${prompt}`;
+      messageContent = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${avatarData.character_prompt || avatarData.name}, ${prompt}`;
       console.log("Fallback: Using text-only generation (no avatar image)");
     }
 
-    // Generate the image using Lovable AI Gateway
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          {
-            role: "user",
-            content: messageContent,
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    // Retry logic - model sometimes returns text instead of image
+    const maxGenerationAttempts = 3;
+    let imageData: string | undefined;
+    let lastError: string | null = null;
+    
+    for (let attempt = 1; attempt <= maxGenerationAttempts; attempt++) {
+      console.log(`AI generation attempt ${attempt}/${maxGenerationAttempts}`);
+      
+      // Generate the image using Lovable AI Gateway
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          messages: [
+            {
+              role: "user",
+              content: messageContent,
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", errorText);
-      throw new Error(`AI generation failed: ${aiResponse.status}`);
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error(`AI Gateway error (attempt ${attempt}):`, errorText);
+        lastError = `AI generation failed: ${aiResponse.status}`;
+        
+        if (attempt < maxGenerationAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          continue;
+        }
+        throw new Error(lastError);
+      }
+
+      const aiData = await aiResponse.json();
+      imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (imageData) {
+        console.log(`Image generated successfully on attempt ${attempt}`);
+        break;
+      }
+      
+      // Log what we got instead
+      const textContent = aiData.choices?.[0]?.message?.content;
+      console.warn(`Attempt ${attempt}: AI returned text instead of image: "${textContent?.substring(0, 100)}..."`);
+      lastError = "AI returned text instead of image";
+      
+      if (attempt < maxGenerationAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
     }
 
-    const aiData = await aiResponse.json();
-    const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
     if (!imageData) {
-      console.error("No image in AI response:", JSON.stringify(aiData));
-      throw new Error("No image returned from AI");
+      throw new Error(`No image returned after ${maxGenerationAttempts} attempts. Last error: ${lastError}`);
     }
 
     // Upload to Supabase Storage with retry logic
