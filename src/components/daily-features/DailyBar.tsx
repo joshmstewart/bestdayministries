@@ -61,9 +61,25 @@ export function DailyBar() {
   const [bonusCard, setBonusCard] = useState<any>(null);
   const [cardsLoading, setCardsLoading] = useState(false);
   
-  // Mood TTS state
-  const [moodTtsEnabled, setMoodTtsEnabled] = useState(false);
+  // Mood TTS state - persisted in localStorage
+  const [moodTtsEnabled, setMoodTtsEnabled] = useState(() => {
+    try {
+      const stored = localStorage.getItem('dailybar-mood-tts-enabled');
+      return stored === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [moodSpeaking, setMoodSpeaking] = useState(false);
+  
+  // Persist mood TTS preference to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('dailybar-mood-tts-enabled', String(moodTtsEnabled));
+    } catch (e) {
+      console.warn('Failed to persist mood TTS preference:', e);
+    }
+  }, [moodTtsEnabled]);
   
   // Combined loading state - don't render until all statuses are known
   const loading = iconsLoading || completionsLoading || scratchLoading;
