@@ -501,6 +501,9 @@ export default function EmotionJournal() {
       toast.success(`${selectedEmotion.emoji} Feeling logged!`, {
         description: 'Great job checking in with yourself!',
       });
+
+      // Scroll to top to show results
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');
