@@ -79,7 +79,7 @@ interface Fortune {
 
 // Theme definitions matching the edge function
 const THEME_OPTIONS = [
-  { value: "", label: "Any Theme (default)", icon: Sparkles, color: "text-muted-foreground" },
+  { value: "any", label: "Any Theme (default)", icon: Sparkles, color: "text-muted-foreground" },
   { value: "time_preciousness", label: "⏰ Time & Its Preciousness", icon: Clock, color: "text-orange-500" },
   { value: "simplicity_focus", label: "🎯 Simplicity & Focus", icon: Target, color: "text-blue-500" },
   { value: "action_over_thinking", label: "🚀 Action Over Thinking", icon: Zap, color: "text-yellow-500" },
@@ -114,7 +114,7 @@ export function FortunesManager() {
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
   const [generateCount, setGenerateCount] = useState(20);
   const [generateType, setGenerateType] = useState<string>("affirmation");
-  const [generateTheme, setGenerateTheme] = useState<string>("");
+  const [generateTheme, setGenerateTheme] = useState<string>("any");
   const [themeCoverage, setThemeCoverage] = useState<ThemeCoverage[]>([]);
   const [showThemeCoverage, setShowThemeCoverage] = useState(false);
   const [newFortune, setNewFortune] = useState({
@@ -217,13 +217,13 @@ export function FortunesManager() {
         body: { 
           source_type: generateType, 
           count: generateCount,
-          theme: generateTheme || null,
+          theme: generateTheme === "any" ? null : generateTheme,
         },
       });
 
       if (response.error) throw response.error;
 
-      const themeLabel = generateTheme 
+      const themeLabel = generateTheme !== "any"
         ? THEME_OPTIONS.find(t => t.value === generateTheme)?.label 
         : null;
       
