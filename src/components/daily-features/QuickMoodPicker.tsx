@@ -477,12 +477,12 @@ export function QuickMoodPicker({ onComplete }: QuickMoodPickerProps) {
               <div 
                 className={cn(
                   "w-16 h-16 rounded-full overflow-hidden transition-all",
-                  selectedMood?.label === mood.label 
-                    ? "ring-[3px] ring-offset-2 shadow-lg" 
-                    : "hover:shadow-md"
+                  selectedMood?.label === mood.label ? "shadow-lg" : "hover:shadow-md"
                 )}
                 style={{
-                  boxShadow: selectedMood?.label === mood.label ? `0 0 0 3px ${mood.color}` : undefined,
+                  boxShadow: selectedMood?.label === mood.label 
+                    ? `0 0 0 3px ${mood.color}, 0 0 0 6px white, 0 0 0 8px ${mood.color}40` 
+                    : undefined,
                 }}
               >
                 <img 
