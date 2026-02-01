@@ -713,14 +713,7 @@ export default function ChoreChart() {
                       <Gift className="h-4 w-4 mr-2" />
                       Open Your Sticker Pack{rewardCardIds.length > 1 ? 's' : ''}!
                     </Button>
-                  ) : dailyRewardClaimed ? (
-                    <Link to="/games/sticker-album">
-                      <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        View Sticker Album
-                      </Button>
-                    </Link>
-                  ) : (
+                  ) : !dailyRewardClaimed ? (
                     <Button
                       onClick={() => setShowWheelDialog(true)}
                       className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
