@@ -4,8 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Heart, MessageSquare, Share2, Loader2, Sparkles, BookOpen, Quote, Star, Lightbulb, ThumbsUp, MessageCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Heart, Loader2, Sparkles, BookOpen, Quote, Star, Lightbulb, ThumbsUp, MessageCircle } from "lucide-react";
+
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,6 @@ interface FortunePost {
 
 export function DailyFortune() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [fortunePost, setFortunePost] = useState<FortunePost | null>(null);
   const [fortune, setFortune] = useState<Fortune | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,33 +155,6 @@ export function DailyFortune() {
     }
   };
 
-  const handleComment = () => {
-    if (fortunePost?.discussion_post_id) {
-      navigate(`/discussions?postId=${fortunePost.discussion_post_id}`);
-    } else {
-      toast.info("Comments coming soon!");
-    }
-  };
-
-  const handleShare = async () => {
-    if (!fortune) return;
-    
-    const shareText = `${fortune.content}${fortune.author ? ` - ${fortune.author}` : ""}${fortune.reference ? ` (${fortune.reference})` : ""}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Daily Inspiration",
-          text: shareText,
-        });
-      } catch (error) {
-        // User cancelled or share failed
-      }
-    } else {
-      await navigator.clipboard.writeText(shareText);
-      toast.success("Copied to clipboard!");
-    }
-  };
 
   const getSourceIcon = (type: string) => {
     switch (type) {
@@ -321,47 +293,21 @@ export function DailyFortune() {
           )}
         </button>
 
-        {/* Actions */}
+        {/* Like action only - discussion is shown below on the dedicated page */}
         {revealed && (
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLike}
-                disabled={!isAuthenticated || liking}
-                className={cn(
-                  "gap-1",
-                  hasLiked && "text-red-500 hover:text-red-600"
-                )}
-              >
-                <Heart className={cn("w-4 h-4", hasLiked && "fill-current")} />
-                <span className="text-xs">{likesCount}</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleComment}
-                disabled={!isAuthenticated}
-                className="gap-1"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="text-xs">Discuss</span>
-                {commentCount > 0 && (
-                  <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">
-                    {commentCount}
-                  </span>
-                )}
-              </Button>
-            </div>
+          <div className="flex items-center pt-2 border-t">
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleShare}
-              className="gap-1"
+              onClick={handleLike}
+              disabled={!isAuthenticated || liking}
+              className={cn(
+                "gap-1",
+                hasLiked && "text-red-500 hover:text-red-600"
+              )}
             >
-              <Share2 className="w-4 h-4" />
-              <span className="text-xs">Share</span>
+              <Heart className={cn("w-4 h-4", hasLiked && "fill-current")} />
+              <span className="text-xs">{likesCount}</span>
             </Button>
           </div>
         )}
