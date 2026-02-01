@@ -137,12 +137,12 @@ serve(async (req) => {
     // Available source types for "all" mode
     const ALL_SOURCE_TYPES = ["bible_verse", "affirmation", "quote", "life_lesson", "gratitude_prompt", "discussion_starter", "proverbs"];
     
-    // If source_type is "all", randomly pick a type for this batch
-    // We'll generate the full count of a randomly selected type to maintain consistency
+    // If source_type is "all", we'll generate a true mix of types
+    const isAllTypesMode = source_type === "all";
     let actualSourceType = source_type;
-    if (source_type === "all") {
-      actualSourceType = ALL_SOURCE_TYPES[Math.floor(Math.random() * ALL_SOURCE_TYPES.length)];
-      console.log(`"All Types" mode: randomly selected "${actualSourceType}" for this batch`);
+    
+    if (isAllTypesMode) {
+      console.log(`"All Types" mode: will generate a mix across ${ALL_SOURCE_TYPES.length} types`);
     }
 
     // Get theme info if specified
@@ -507,27 +507,166 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
       console.log(`Theme: ${theme} (${themeInfo?.label})`);
     }
 
-    // Retry loop to accumulate unique fortunes
-    const collectedUniqueFortunes: any[] = [];
-    const maxAttempts = 5;
-    let attempt = 0;
+    // Helper function to generate prompt for a specific source type
+    const getPromptForType = (targetType: string, targetCount: number, dynamicExclusion: string): string => {
+      let typePrompt = "";
+      if (targetType === "bible_verse") {
+        const topicGuidance = themeInfo 
+          ? `Focus SPECIFICALLY on verses about: ${themeInfo.description}\nExample verses on this theme: ${themeInfo.examples}`
+          : "Topics: love, hope, joy, being valued, God's care, encouragement, strength, peace, friendship, wisdom, patience, gratitude.";
+        
+        typePrompt = `Generate ${targetCount} REAL, ACTUAL Bible verses from the NIV or KJV translation. These must be genuine scripture that can be verified.
 
-    while (collectedUniqueFortunes.length < count && attempt < maxAttempts) {
-      attempt++;
-      const remaining = count - collectedUniqueFortunes.length;
-      
-      // Build dynamic exclusion list that includes what we've already collected this session
-      let dynamicExclusion = exclusionList;
-      if ((actualSourceType === "bible_verse" || actualSourceType === "proverbs") && collectedUniqueFortunes.length > 0) {
-        const sessionRefs = collectedUniqueFortunes.filter(f => f.reference).map(f => f.reference);
-        dynamicExclusion += `\n\nALSO DO NOT generate these (already collected this session): ${sessionRefs.join(", ")}`;
+For each verse, provide:
+1. The EXACT verse text as it appears in the Bible (NIV or KJV)
+2. The precise Bible reference (Book Chapter:Verse format)
+
+Focus on LESSER-KNOWN but still encouraging verses. Avoid the most commonly quoted verses and dig deeper into Scripture.
+
+${topicGuidance}
+
+Books to explore: Psalms (beyond Psalm 23), Isaiah, Philippians, Colossians, Ephesians, James, 1 Peter, 1 John, Hebrews, Deuteronomy, Zephaniah, Micah, Lamentations, Song of Solomon, Ecclesiastes.${dynamicExclusion}${themePromptAddition}
+
+CRITICAL REQUIREMENTS:
+- These must be REAL Bible verses, not made-up spiritual sayings
+- Include the EXACT reference (e.g., "Isaiah 41:10", "Zephaniah 3:17", "Lamentations 3:22-23")
+- Prioritize verses that are encouraging but less commonly quoted
+${themeInfo ? `- Every verse must relate to the theme: "${themeInfo.label}"` : ""}
+
+Format as JSON array:
+[{"content": "exact verse text", "reference": "Book Chapter:Verse"}]`;
+      } else if (targetType === "affirmation") {
+        const focusGuidance = themeInfo
+          ? `Focus on affirmations about: ${themeInfo.description}`
+          : "Focused on self-worth, abilities, belonging, and positive qualities";
+        
+        typePrompt = `Generate ${targetCount} unique, positive affirmations for adults with intellectual and developmental disabilities.
+
+Make them:
+- Simple sentences (8-15 words max)
+- First-person statements ("I am...", "I can...", "I have...")
+- ${focusGuidance}
+- Easy to remember and repeat daily
+- FRESH and CREATIVE - not generic or overused${dynamicExclusion}${themePromptAddition}
+
+Format as JSON array:
+[{"content": "the affirmation text"}]`;
+      } else if (targetType === "life_lesson") {
+        const topicGuidance = themeInfo
+          ? `Focus on wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
+          : `Topics to cover:
+- Happiness and positivity
+- Self-belief and confidence
+- Kindness and friendship
+- Patience and perseverance
+- Being yourself
+- Hope and new beginnings`;
+
+        typePrompt = `Generate ${targetCount} short, wise sayings about life - like fortune cookie wisdom. These should be timeless, universal truths in simple words.
+
+Style guidelines:
+- SHORT and memorable (5-12 words ideal)
+- Universal truths that apply to everyone
+- Wise but simple - no complex vocabulary
+- Feels like advice from a wise friend
+- Can be understood by anyone
+- Be CREATIVE and ORIGINAL - avoid clichés${dynamicExclusion}${themePromptAddition}
+
+${topicGuidance}
+
+Format as JSON array:
+[{"content": "the life lesson text"}]`;
+      } else if (targetType === "gratitude_prompt") {
+        const focusGuidance = themeInfo
+          ? `Focus prompts on gratitude related to: ${themeInfo.description}`
+          : "Related to everyday experiences (friends, activities, small pleasures)";
+
+        typePrompt = `Generate ${targetCount} gratitude prompts to help adults with intellectual and developmental disabilities reflect on the good things in life.
+
+Make them:
+- Simple questions or statements that prompt reflection
+- ${focusGuidance}
+- Easy to connect to their daily life
+- VARIED and CREATIVE - explore different aspects of gratitude${dynamicExclusion}${themePromptAddition}
+
+Format as JSON array:
+[{"content": "the gratitude prompt text"}]`;
+      } else if (targetType === "discussion_starter") {
+        const topicGuidance = themeInfo
+          ? `Focus questions on: ${themeInfo.description}\nRelated topics: ${themeInfo.examples}`
+          : `Topics should encourage sharing experiences and opinions about:
+- Favorite things (food, activities, places)
+- Dreams and goals
+- Friendship and helping others
+- Handling challenges
+- What makes them happy
+- Memories and experiences
+- Creativity and imagination`;
+
+        typePrompt = `Generate ${targetCount} thought-provoking discussion questions for adults with intellectual and developmental disabilities.
+
+${topicGuidance}${dynamicExclusion}${themePromptAddition}
+
+Format as JSON array:
+[{"content": "the discussion question text"}]`;
+      } else if (targetType === "proverbs") {
+        const focusGuidance = themeInfo
+          ? `Focus on biblical wisdom about: ${themeInfo.description}\nExamples: ${themeInfo.examples}`
+          : "Focus on LESSER-KNOWN proverbs and wisdom passages.";
+
+        typePrompt = `Generate ${targetCount} REAL biblical proverbs and wisdom sayings. These should be wise, practical teachings from the Bible - especially from Proverbs, Ecclesiastes, Psalms, and Jesus' teachings.
+
+${focusGuidance} Dig deep into Proverbs chapters 10-31, Ecclesiastes, and the teachings of Jesus in the Gospels.${dynamicExclusion}${themePromptAddition}
+
+CRITICAL REQUIREMENTS:
+- These must be REAL Bible verses or accurate paraphrases of biblical wisdom
+- Include the Bible reference
+- Choose accessible, practical wisdom that applies to daily life
+- Keep language simple and understandable
+- Prioritize verses that are less commonly quoted
+${themeInfo ? `- Every proverb must relate to the theme: "${themeInfo.label}"` : ""}
+
+Format as JSON array:
+[{"content": "the proverb or wisdom text", "reference": "Book Chapter:Verse"}]`;
+      } else {
+        // Default: inspirational_quote
+        const topicGuidance = themeInfo
+          ? `Focus on quotes about: ${themeInfo.description}\nExamples for inspiration: ${themeInfo.examples}`
+          : "";
+
+        typePrompt = `Generate ${targetCount} REAL, VERIFIED inspirational quotes from famous people. These must be actual quotes that can be attributed to real historical or contemporary figures.
+
+CRITICAL: Only use quotes that are genuinely from these people, not misattributed or made-up quotes.
+
+Explore quotes from a WIDE VARIETY of people, including:
+- Authors and poets (Maya Angelou, Toni Morrison, Langston Hughes, Rumi, Khalil Gibran)
+- Leaders (Nelson Mandela, Winston Churchill, Theodore Roosevelt, Abraham Lincoln)
+- Scientists (Marie Curie, Albert Einstein, Carl Sagan, Jane Goodall)
+- Athletes (Muhammad Ali, Serena Williams, Michael Jordan, Jackie Robinson)
+- Entertainers (Dolly Parton, Jim Henson, Robin Williams, Audrey Hepburn)
+- Activists (Rosa Parks, Malala Yousafzai, Harriet Tubman, Frederick Douglass)
+- Philosophers (Marcus Aurelius, Confucius, Lao Tzu, Seneca)${dynamicExclusion}${themePromptAddition}
+
+${topicGuidance}
+
+REQUIREMENTS:
+- Every quote MUST include the author
+- Only use quotes you are confident are accurately attributed
+${themeInfo ? `- Focus on quotes about: "${themeInfo.label}" - ${themeInfo.description}` : "- Choose encouraging, uplifting quotes about courage, kindness, perseverance, and self-worth"}
+- Avoid complex or abstract quotes - keep them accessible
+- Prioritize lesser-known quotes over the most famous ones
+
+Format as JSON array:
+[{"content": "quote text", "author": "Person Name"}]`;
       }
+      return typePrompt;
+    };
+
+    // Helper to generate fortunes for a specific type
+    const generateForType = async (targetType: string, targetCount: number): Promise<any[]> => {
+      const typePrompt = getPromptForType(targetType, targetCount + 3, exclusionList); // Ask for a few extra
       
-      // Update prompt with current exclusion and remaining count
-      let currentPrompt = prompt.replace(new RegExp(`Generate ${count}`), `Generate ${remaining + 5}`); // Ask for a few extra
-      currentPrompt = currentPrompt.replace(exclusionList, dynamicExclusion);
-      
-      console.log(`Attempt ${attempt}/${maxAttempts}: Need ${remaining} more, requesting ${remaining + 5}`);
+      console.log(`Generating ${targetCount} "${targetType}" items...`);
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -540,132 +679,226 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
           messages: [
             {
               role: "system",
-              content: "You are a helpful assistant that generates uplifting content. Always respond with valid JSON arrays only, no markdown. CRITICALLY IMPORTANT: Generate UNIQUE content that is NOT on any exclusion list provided."
+              content: "You are a helpful assistant that generates uplifting content. Always respond with valid JSON arrays only, no markdown. CRITICALLY IMPORTANT: Generate UNIQUE content."
             },
-            { role: "user", content: currentPrompt }
+            { role: "user", content: typePrompt }
           ],
-          temperature: 0.9 + (attempt * 0.05), // Increase temperature on retries for variety
+          temperature: 0.9,
         }),
       });
 
       if (!aiResponse.ok) {
-        console.error(`AI request failed on attempt ${attempt}: ${aiResponse.status}`);
-        continue;
+        console.error(`AI request failed for ${targetType}: ${aiResponse.status}`);
+        return [];
       }
 
       const aiData = await aiResponse.json();
       const rawContent = aiData.choices?.[0]?.message?.content || "[]";
       
-      // Parse the JSON response
-      let fortunes: any[] = [];
       try {
         const cleanContent = rawContent.replace(/```json\n?|\n?```/g, "").trim();
-        fortunes = JSON.parse(cleanContent);
+        const fortunes = JSON.parse(cleanContent);
+        // Add the source_type to each fortune
+        return fortunes.slice(0, targetCount).map((f: any) => ({
+          ...f,
+          source_type: targetType
+        }));
       } catch (parseError) {
-        console.error(`Failed to parse AI response on attempt ${attempt}:`, rawContent);
-        continue;
+        console.error(`Failed to parse AI response for ${targetType}:`, rawContent.substring(0, 200));
+        return [];
       }
+    };
 
-      // Filter out duplicates - track consecutive rejections to detect when we're stuck
-      let consecutiveRejections = 0;
-      const maxConsecutiveRejections = 15; // If 15 items in a row are rejected, we're likely exhausted
+    // Main generation logic - differs for "all" mode vs single type
+    let allGeneratedFortunes: any[] = [];
+    
+    if (isAllTypesMode) {
+      // ALL TYPES MODE: Generate a mix across all source types
+      // Distribute count across types (roughly equal, at least 2 each)
+      const typesCount = ALL_SOURCE_TYPES.length;
+      const perType = Math.max(2, Math.floor(count / typesCount));
+      const remainder = count - (perType * typesCount);
       
-      for (const f of fortunes) {
-        if (collectedUniqueFortunes.length >= count) break;
+      console.log(`All Types mode: generating ~${perType} per type across ${typesCount} types`);
+      
+      // Shuffle types for variety in which ones get extra items
+      const shuffledTypes = [...ALL_SOURCE_TYPES].sort(() => Math.random() - 0.5);
+      
+      // Generate for each type in parallel
+      const typeGenerations = shuffledTypes.map((type, index) => {
+        const extra = index < remainder ? 1 : 0; // Distribute remainder
+        return generateForType(type, perType + extra);
+      });
+      
+      const results = await Promise.all(typeGenerations);
+      allGeneratedFortunes = results.flat();
+      
+      // Shuffle the combined results for variety
+      allGeneratedFortunes = allGeneratedFortunes.sort(() => Math.random() - 0.5);
+      
+      console.log(`All Types mode: generated ${allGeneratedFortunes.length} fortunes across types`);
+    } else {
+      // SINGLE TYPE MODE: Use the retry loop for a specific type
+      const collectedUniqueFortunes: any[] = [];
+      const maxAttempts = 5;
+      let attempt = 0;
+
+      while (collectedUniqueFortunes.length < count && attempt < maxAttempts) {
+        attempt++;
+        const remaining = count - collectedUniqueFortunes.length;
         
-        // Early exit if we're stuck in a rejection loop
-        if (consecutiveRejections >= maxConsecutiveRejections) {
-          console.log(`Breaking early: ${consecutiveRejections} consecutive rejections - topic likely saturated`);
-          break;
+        // Build dynamic exclusion list that includes what we've already collected this session
+        let dynamicExclusion = exclusionList;
+        if ((actualSourceType === "bible_verse" || actualSourceType === "proverbs") && collectedUniqueFortunes.length > 0) {
+          const sessionRefs = collectedUniqueFortunes.filter(f => f.reference).map(f => f.reference);
+          dynamicExclusion += `\n\nALSO DO NOT generate these (already collected this session): ${sessionRefs.join(", ")}`;
         }
         
-        const normalizedContent = normalizeText(f.content);
+        // Update prompt with current exclusion and remaining count
+        let currentPrompt = prompt.replace(new RegExp(`Generate ${count}`), `Generate ${remaining + 5}`); // Ask for a few extra
+        currentPrompt = currentPrompt.replace(exclusionList, dynamicExclusion);
         
-        // Check exact match (after normalization)
-        if (existingContentSet.has(normalizedContent)) {
-          console.log(`Skipping exact match: "${f.content.substring(0, 50)}..."`);
-          consecutiveRejections++;
+        console.log(`Attempt ${attempt}/${maxAttempts}: Need ${remaining} more, requesting ${remaining + 5}`);
+
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: "You are a helpful assistant that generates uplifting content. Always respond with valid JSON arrays only, no markdown. CRITICALLY IMPORTANT: Generate UNIQUE content that is NOT on any exclusion list provided."
+              },
+              { role: "user", content: currentPrompt }
+            ],
+            temperature: 0.9 + (attempt * 0.05), // Increase temperature on retries for variety
+          }),
+        });
+
+        if (!aiResponse.ok) {
+          console.error(`AI request failed on attempt ${attempt}: ${aiResponse.status}`);
           continue;
         }
+
+        const aiData = await aiResponse.json();
+        const rawContent = aiData.choices?.[0]?.message?.content || "[]";
         
-        // Check Bible reference for bible_verse AND proverbs types
-        if ((actualSourceType === "bible_verse" || actualSourceType === "proverbs") && f.reference) {
-          const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
-          if (existingExactReferences.has(normalizedRef)) {
-            console.log(`Skipping duplicate Bible reference: "${f.reference}"`);
+        // Parse the JSON response
+        let fortunes: any[] = [];
+        try {
+          const cleanContent = rawContent.replace(/```json\n?|\n?```/g, "").trim();
+          fortunes = JSON.parse(cleanContent);
+        } catch (parseError) {
+          console.error(`Failed to parse AI response on attempt ${attempt}:`, rawContent);
+          continue;
+        }
+
+        // Filter out duplicates - track consecutive rejections to detect when we're stuck
+        let consecutiveRejections = 0;
+        const maxConsecutiveRejections = 15; // If 15 items in a row are rejected, we're likely exhausted
+        
+        for (const f of fortunes) {
+          if (collectedUniqueFortunes.length >= count) break;
+          
+          // Early exit if we're stuck in a rejection loop
+          if (consecutiveRejections >= maxConsecutiveRejections) {
+            console.log(`Breaking early: ${consecutiveRejections} consecutive rejections - topic likely saturated`);
+            break;
+          }
+          
+          const normalizedContent = normalizeText(f.content);
+          
+          // Check exact match (after normalization)
+          if (existingContentSet.has(normalizedContent)) {
+            console.log(`Skipping exact match: "${f.content.substring(0, 50)}..."`);
             consecutiveRejections++;
             continue;
           }
           
-          let hasOverlap = false;
-          for (const existingRef of existingBibleReferences) {
-            if (doBibleReferencesOverlap(f.reference, existingRef)) {
-              console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with "${existingRef}"`);
-              hasOverlap = true;
+          // Check Bible reference for bible_verse AND proverbs types
+          if ((actualSourceType === "bible_verse" || actualSourceType === "proverbs") && f.reference) {
+            const normalizedRef = f.reference.toLowerCase().replace(/\s+/g, '');
+            if (existingExactReferences.has(normalizedRef)) {
+              console.log(`Skipping duplicate Bible reference: "${f.reference}"`);
+              consecutiveRejections++;
+              continue;
+            }
+            
+            let hasOverlap = false;
+            for (const existingRef of existingBibleReferences) {
+              if (doBibleReferencesOverlap(f.reference, existingRef)) {
+                console.log(`Skipping overlapping Bible reference: "${f.reference}" overlaps with "${existingRef}"`);
+                hasOverlap = true;
+                break;
+              }
+            }
+            if (hasOverlap) {
+              consecutiveRejections++;
+              continue;
+            }
+          }
+          
+          // Check soft matches against all existing
+          let isSoft = false;
+          for (const existing of allExistingForSoftMatch) {
+            if (isSoftMatch(f.content, existing.content)) {
+              console.log(`Skipping soft match: "${f.content.substring(0, 50)}..."`);
+              isSoft = true;
               break;
             }
           }
-          if (hasOverlap) {
+          if (isSoft) {
             consecutiveRejections++;
             continue;
           }
-        }
-        
-        // Check soft matches against all existing
-        let isSoft = false;
-        for (const existing of allExistingForSoftMatch) {
-          if (isSoftMatch(f.content, existing.content)) {
-            console.log(`Skipping soft match: "${f.content.substring(0, 50)}..."`);
-            isSoft = true;
-            break;
+          
+          // AI semantic check - catches questions/prompts that ask the same thing differently
+          // Apply to categories where semantic similarity matters most
+          if (["discussion_starter", "gratitude_prompt", "affirmation", "life_lesson"].includes(actualSourceType)) {
+            const existingContentForSemantic = allExistingForSoftMatch.map(e => e.content);
+            // Also pass items already collected this session to prevent same-batch duplicates
+            const sessionCollectedContent = collectedUniqueFortunes.map(u => u.content);
+            const isSemanticallyDuplicate = await checkSemanticSimilarity(f.content, existingContentForSemantic, sessionCollectedContent);
+            if (isSemanticallyDuplicate) {
+              console.log(`Skipping semantic duplicate: "${f.content.substring(0, 50)}..."`);
+              consecutiveRejections++;
+              continue;
+            }
           }
-        }
-        if (isSoft) {
-          consecutiveRejections++;
-          continue;
-        }
-        
-        // AI semantic check - catches questions/prompts that ask the same thing differently
-        // Apply to categories where semantic similarity matters most
-        if (["discussion_starter", "gratitude_prompt", "affirmation", "life_lesson"].includes(actualSourceType)) {
-          const existingContentForSemantic = allExistingForSoftMatch.map(e => e.content);
-          // Also pass items already collected this session to prevent same-batch duplicates
-          const sessionCollectedContent = collectedUniqueFortunes.map(u => u.content);
-          const isSemanticallyDuplicate = await checkSemanticSimilarity(f.content, existingContentForSemantic, sessionCollectedContent);
-          if (isSemanticallyDuplicate) {
-            console.log(`Skipping semantic duplicate: "${f.content.substring(0, 50)}..."`);
-            consecutiveRejections++;
-            continue;
+          
+          // This one is unique! Add it to our collection and tracking sets
+          consecutiveRejections = 0; // Reset counter on success
+          collectedUniqueFortunes.push({ ...f, source_type: actualSourceType });
+          existingContentSet.add(normalizedContent);
+          if (f.reference) {
+            existingBibleReferences.push(f.reference);
+            existingExactReferences.add(f.reference.toLowerCase().replace(/\s+/g, ''));
           }
+          allExistingForSoftMatch.push({ content: f.content, author: f.author || null, reference: f.reference || null, is_archived: false });
+          
+          console.log(`✓ Unique fortune collected: "${f.content.substring(0, 40)}..." (${collectedUniqueFortunes.length}/${count})`);
         }
         
-        // This one is unique! Add it to our collection and tracking sets
-        consecutiveRejections = 0; // Reset counter on success
-        collectedUniqueFortunes.push(f);
-        existingContentSet.add(normalizedContent);
-        if (f.reference) {
-          existingBibleReferences.push(f.reference);
-          existingExactReferences.add(f.reference.toLowerCase().replace(/\s+/g, ''));
+        // If this attempt yielded nothing after processing all items, we might be exhausted
+        if (consecutiveRejections >= maxConsecutiveRejections) {
+          console.log(`Topic appears saturated after attempt ${attempt}. Stopping early.`);
+          break;
         }
-        allExistingForSoftMatch.push({ content: f.content, author: f.author || null, reference: f.reference || null, is_archived: false });
-        
-        console.log(`✓ Unique fortune collected: "${f.content.substring(0, 40)}..." (${collectedUniqueFortunes.length}/${count})`);
       }
       
-      // If this attempt yielded nothing after processing all items, we might be exhausted
-      if (consecutiveRejections >= maxConsecutiveRejections) {
-        console.log(`Topic appears saturated after attempt ${attempt}. Stopping early.`);
-        break;
-      }
+      allGeneratedFortunes = collectedUniqueFortunes;
+      console.log(`Finished after ${attempt} attempts. Collected ${allGeneratedFortunes.length}/${count} unique fortunes`);
     }
 
-    console.log(`Finished after ${attempt} attempts. Collected ${collectedUniqueFortunes.length}/${count} unique fortunes`);
-
-    if (collectedUniqueFortunes.length === 0) {
+    if (allGeneratedFortunes.length === 0) {
       return new Response(JSON.stringify({
         success: true,
         count: 0,
-        message: `Could not find unique fortunes after ${maxAttempts} attempts`,
+        message: "Could not find unique fortunes after multiple attempts",
         fortunes: [],
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -673,9 +906,10 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
     }
 
     // Insert only unique fortunes into database
-    const fortunesToInsert = collectedUniqueFortunes.map((f: any) => ({
+    // For "all" mode, each fortune already has its source_type; otherwise use actualSourceType
+    const fortunesToInsert = allGeneratedFortunes.map((f: any) => ({
       content: f.content,
-      source_type: actualSourceType,
+      source_type: f.source_type || actualSourceType,
       author: f.author || null,
       reference: f.reference || null,
       theme: theme || null, // Include theme in the insert
@@ -690,11 +924,19 @@ Focus on the SPECIFIC QUESTION being asked, not the general theme.`
 
     if (insertError) throw insertError;
 
+    // Build type distribution for response
+    const typeDistribution: Record<string, number> = {};
+    allGeneratedFortunes.forEach((f: any) => {
+      const t = f.source_type || actualSourceType;
+      typeDistribution[t] = (typeDistribution[t] || 0) + 1;
+    });
+
     return new Response(JSON.stringify({
       success: true,
       count: insertedData?.length || 0,
-      source_type: actualSourceType,
-      random_selection: source_type === "all",
+      source_type: isAllTypesMode ? "all" : actualSourceType,
+      mixed_types: isAllTypesMode,
+      type_distribution: isAllTypesMode ? typeDistribution : undefined,
       theme: theme || null,
       fortunes: insertedData,
     }), {
