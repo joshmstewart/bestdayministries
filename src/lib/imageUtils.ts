@@ -61,6 +61,11 @@ export async function compressImage(
         
         ctx.drawImage(img, 0, 0, width, height);
         
+        // Determine output format - preserve PNG for transparency support
+        const isPng = file.type === 'image/png';
+        const outputType = isPng ? 'image/png' : 'image/jpeg';
+        const outputExt = isPng ? '.png' : '.jpg';
+        
         // Try different quality levels to get under max size
         const tryCompress = (quality: number) => {
           canvas.toBlob(
@@ -79,16 +84,16 @@ export async function compressImage(
               // Create new file from blob
               const compressedFile = new File(
                 [blob],
-                file.name.replace(/\.[^/.]+$/, '.jpg'), // Change extension to jpg
+                file.name.replace(/\.[^/.]+$/, outputExt),
                 {
-                  type: 'image/jpeg',
+                  type: outputType,
                   lastModified: Date.now(),
                 }
               );
               
               resolve(compressedFile);
             },
-            'image/jpeg',
+            outputType,
             quality
           );
         };
