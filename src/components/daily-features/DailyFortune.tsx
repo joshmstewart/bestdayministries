@@ -4,8 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Heart, Loader2, Sparkles, BookOpen, Quote, Star, Lightbulb, ThumbsUp, MessageCircle } from "lucide-react";
-
+import { Heart, Loader2, Sparkles, BookOpen, Quote, Star, Lightbulb, ThumbsUp, MessageCircle, Bookmark } from "lucide-react";
+import { useSavedFortunes } from "@/hooks/useSavedFortunes";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ interface FortunePost {
 
 export function DailyFortune() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { isSaved, toggleSave } = useSavedFortunes();
   const [fortunePost, setFortunePost] = useState<FortunePost | null>(null);
   const [fortune, setFortune] = useState<Fortune | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,7 @@ export function DailyFortune() {
   const [liking, setLiking] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   // Get MST date
   const getMSTDate = () => {
@@ -293,9 +295,9 @@ export function DailyFortune() {
           )}
         </button>
 
-        {/* Like action only - discussion is shown below on the dedicated page */}
+        {/* Like and Save actions */}
         {revealed && (
-          <div className="flex items-center pt-2 border-t">
+          <div className="flex items-center justify-between pt-2 border-t">
             <Button
               variant="ghost"
               size="sm"
@@ -309,6 +311,30 @@ export function DailyFortune() {
               <Heart className={cn("w-4 h-4", hasLiked && "fill-current")} />
               <span className="text-xs">{likesCount}</span>
             </Button>
+            
+            {fortunePost && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  if (!isAuthenticated) {
+                    toast.error("Please sign in to save fortunes");
+                    return;
+                  }
+                  setSaving(true);
+                  await toggleSave(fortunePost.id);
+                  setSaving(false);
+                }}
+                disabled={!isAuthenticated || saving}
+                className={cn(
+                  "gap-1",
+                  isSaved(fortunePost.id) && "text-primary"
+                )}
+              >
+                <Bookmark className={cn("w-4 h-4", isSaved(fortunePost.id) && "fill-current")} />
+                <span className="text-xs">{isSaved(fortunePost.id) ? "Saved" : "Save"}</span>
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
