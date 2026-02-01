@@ -1,78 +1,102 @@
 
-# Plan: Create System Account for Daily Inspiration Posts
+# Plan: Fix Capped Transaction Statistics
 
-## Problem Analysis
-The `generate-fortune-posts` edge function creates a discussion post for each Daily Inspiration, and assigns authorship to "the first admin/owner found in `user_roles`". There's no `ORDER BY`, so the result is non-deterministic—currently it's picking Joshie because his `user_roles` row happens to be returned first.
+## Problem
+The Admin → Transactions tab shows incorrect statistics because:
+1. The query fetches only 500 rows (`.limit(500)`)
+2. All three stats (Total Transactions, Total Earned, Total Spent) are calculated from those 500 rows
+3. The real totals are much higher but never shown
 
 ## Solution
-Create a dedicated **system account** that will author all automated content (Daily Inspiration posts, and potentially other future automated posts). This account:
-- Will have a profile with a clear "system" identity (name like "Best Day Ministries" or "Joy House")
-- Will have the `owner` role (so it has permissions to create approved posts)
-- Will NOT be used for login (no one knows the password)
-- The edge function will look for this specific account instead of "any admin"
+Use a **separate COUNT/SUM query** to get accurate totals, while keeping the limited query for the paginated table display.
 
----
+## Implementation
 
-## Implementation Steps
+### File: `src/components/admin/CoinTransactionsManager.tsx`
 
-### 1. Create the System User (Database)
-Use Supabase Auth Admin API (via edge function) to create a user with:
-- Email: `system@bestdayministries.app` (or similar non-deliverable address)
-- A random secure password (never shared)
-- Profile: `display_name = "Best Day Ministries"`, `avatar_number = null` (could use the logo instead)
+#### 1. Add a separate stats query using aggregate functions
 
-### 2. Add User Role
-Insert a row into `user_roles` with `role = 'owner'` for the system user.
-
-### 3. Add App Setting for System User ID
-Store the system user's UUID in `app_settings` under a key like `system_user_id`. This makes it easy to query and update if needed.
-
-### 4. Update Edge Function
-Modify `generate-fortune-posts/index.ts` to:
 ```typescript
-// Look for system user first
-const { data: systemUserSetting } = await adminClient
-  .from("app_settings")
-  .select("setting_value")
-  .eq("setting_key", "system_user_id")
-  .maybeSingle();
+const fetchStats = async () => {
+  // Get total count
+  const { count } = await supabase
+    .from("coin_transactions")
+    .select("*", { count: "exact", head: true });
 
-const systemUserId = systemUserSetting?.setting_value;
+  // Get sum of positive amounts (earned)
+  const { data: earnedData } = await supabase
+    .from("coin_transactions")
+    .select("amount")
+    .gt("amount", 0);
 
-// Fall back to first admin/owner if system user not configured
-const authorId = systemUserId || (await getFirstAdminUser());
+  // Get sum of negative amounts (spent)
+  const { data: spentData } = await supabase
+    .from("coin_transactions")
+    .select("amount")
+    .lt("amount", 0);
+
+  const totalEarned = (earnedData || []).reduce((sum, t) => sum + t.amount, 0);
+  const totalSpent = (spentData || []).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  setStats({
+    totalEarned,
+    totalSpent,
+    transactionCount: count || 0
+  });
+};
 ```
 
----
+**Note:** Supabase doesn't have a direct `SUM()` aggregate via the JS client, so we either:
+- Option A: Fetch all amounts (just the `amount` column, not full rows) and sum client-side
+- Option B: Create a database view or RPC function for the aggregates
 
-## Technical Details
+#### 2. Alternative: Use an RPC function (more efficient)
 
-### Database Changes
-| Table | Action |
-|-------|--------|
-| `auth.users` | New user via Admin API |
-| `profiles` | Auto-created by `handle_new_user` trigger |
-| `user_roles` | Insert `owner` role |
-| `app_settings` | Insert `system_user_id` setting |
+Create a database function:
+```sql
+CREATE OR REPLACE FUNCTION get_coin_transaction_stats()
+RETURNS TABLE (
+  total_count bigint,
+  total_earned numeric,
+  total_spent numeric
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    COUNT(*)::bigint as total_count,
+    COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) as total_earned,
+    COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) as total_spent
+  FROM coin_transactions;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
 
-### Edge Function Changes
-| File | Changes |
-|------|---------|
-| `supabase/functions/generate-fortune-posts/index.ts` | Query `system_user_id` from `app_settings`, use it as author instead of random admin |
+Then call it from the component:
+```typescript
+const { data: statsData } = await supabase.rpc("get_coin_transaction_stats");
+if (statsData && statsData[0]) {
+  setStats({
+    transactionCount: statsData[0].total_count,
+    totalEarned: statsData[0].total_earned,
+    totalSpent: statsData[0].total_spent
+  });
+}
+```
 
-### Profile Appearance
-- **Display Name**: "Best Day Ministries" (or your preference)
-- **Avatar**: Could be `null` (shows default), or we could set a custom `avatar_url` pointing to the logo
+#### 3. Keep the table query limited for performance
+The existing `.limit(500)` for the table is fine—we just need to make the stats independent.
 
----
+## Changes Summary
+
+| File | Change |
+|------|--------|
+| Database | Add `get_coin_transaction_stats()` RPC function |
+| `CoinTransactionsManager.tsx` | Call RPC for stats, keep `.limit(500)` for table |
+
+## Visual Update
+The footer text already says "(last 500)" which is correct for the table. The stats cards will now show the **true totals** across all transactions.
 
 ## Benefits
-1. **Clarity**: Users see "Best Day Ministries" posted the Daily Inspiration, not a real person
-2. **Consistency**: Always the same author, regardless of admin user order
-3. **Scalability**: Can reuse for other automated content (announcements, welcome posts, etc.)
-4. **Audit-friendly**: Easy to identify automated vs. human-authored content
-
----
-
-## Alternative Considered
-Could hardcode a specific user ID in the edge function, but that's fragile—if the user is deleted or ID changes, it breaks silently. Using `app_settings` is more robust and visible.
+- Accurate statistics regardless of transaction volume
+- Single efficient SQL query for aggregates
+- Table remains performant with pagination limit
