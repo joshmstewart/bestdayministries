@@ -455,7 +455,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
             disabled={saving}
             className={cn(
               "flex flex-col items-center transition-all duration-300",
-              "hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full",
+              "hover:scale-110 focus:outline-none focus-visible:outline-none",
               selectedMood?.label === mood.label && "scale-105"
             )}
           >
