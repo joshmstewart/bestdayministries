@@ -29,10 +29,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending order notification to vendor ${vendorId} for order ${orderId}`);
 
-    // Get vendor profile with email
+    // Get vendor profile with email and house vendor status
     const { data: vendor, error: vendorError } = await supabaseAdmin
       .from("vendors")
-      .select("user_id, business_name")
+      .select("user_id, business_name, is_house_vendor")
       .eq("id", vendorId)
       .single();
 
@@ -44,17 +44,71 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get vendor's email from profiles
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("email, display_name")
-      .eq("id", vendor.user_id)
-      .single();
+    // Determine recipient emails based on whether this is a house vendor
+    let recipientEmails: string[] = [];
+    let recipientName = vendor.business_name || "Vendor";
 
-    if (profileError || !profile?.email) {
-      console.error("Error fetching vendor profile:", profileError);
+    if (vendor.is_house_vendor) {
+      // For house vendors (Printify, Coffee, etc.), notify all admins/owners
+      console.log("House vendor detected - fetching all admin/owner emails");
+      
+      const { data: adminRoles, error: rolesError } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ["admin", "owner"]);
+
+      if (rolesError) {
+        console.error("Error fetching admin roles:", rolesError);
+      } else if (adminRoles && adminRoles.length > 0) {
+        const adminUserIds = adminRoles.map(r => r.user_id);
+        
+        const { data: adminProfiles, error: profilesError } = await supabaseAdmin
+          .from("profiles")
+          .select("email, display_name")
+          .in("id", adminUserIds)
+          .not("email", "is", null);
+
+        if (profilesError) {
+          console.error("Error fetching admin profiles:", profilesError);
+        } else if (adminProfiles) {
+          // Filter out system account and collect valid emails
+          recipientEmails = adminProfiles
+            .map(p => p.email)
+            .filter((email): email is string => 
+              email !== null && 
+              email !== undefined && 
+              !email.includes("system@")
+            );
+          
+          console.log(`Found ${recipientEmails.length} admin/owner emails for house vendor notification`);
+        }
+      }
+      
+      recipientName = "Team";
+    } else {
+      // For regular vendors, notify the vendor owner
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .select("email, display_name")
+        .eq("id", vendor.user_id)
+        .single();
+
+      if (profileError || !profile?.email) {
+        console.error("Error fetching vendor profile:", profileError);
+        return new Response(
+          JSON.stringify({ error: "Vendor email not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      recipientEmails = [profile.email];
+      recipientName = profile.display_name || vendor.business_name || "there";
+    }
+
+    if (recipientEmails.length === 0) {
+      console.error("No recipient emails found for vendor notification");
       return new Response(
-        JSON.stringify({ error: "Vendor email not found" }),
+        JSON.stringify({ error: "No recipient emails found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -195,7 +249,7 @@ const handler = async (req: Request): Promise<Response> => {
             <div class="content">
               <h1>🎉 New Order Received!</h1>
               
-              <p>Hi ${profile.display_name || vendor.business_name || 'there'}!</p>
+              <p>Hi ${recipientName}!</p>
               
               <p>Great news! You have a new order that's been paid and is ready to fulfill.</p>
               
@@ -248,32 +302,34 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email
+    // Send email to all recipients
     const emailResponse = await resend.emails.send({
       from: SENDERS.marketplace,
-      to: [profile.email],
+      to: recipientEmails,
       subject: `🛒 New Order Received - Action Required!`,
       html: html,
     });
 
     console.log("Vendor notification email sent successfully:", emailResponse);
+    console.log(`Sent to ${recipientEmails.length} recipient(s):`, recipientEmails);
 
     // Log the notification
     await supabaseAdmin
       .from("email_notifications_log")
       .insert({
         user_id: vendor.user_id,
-        recipient_email: profile.email,
-        notification_type: "vendor_new_order",
+        recipient_email: recipientEmails.join(", "),
+        notification_type: vendor.is_house_vendor ? "house_vendor_new_order" : "vendor_new_order",
         subject: "New Order Received - Action Required!",
         status: "sent",
         metadata: {
           order_id: orderId,
           vendor_id: vendorId,
-          items_count: orderItems?.length || 0
+          items_count: orderItems?.length || 0,
+          is_house_vendor: vendor.is_house_vendor,
+          recipient_count: recipientEmails.length
         }
       });
-
     return new Response(
       JSON.stringify({ success: true, emailResponse }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
