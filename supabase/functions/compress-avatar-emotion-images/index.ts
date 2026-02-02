@@ -83,13 +83,6 @@ serve(async (req) => {
 
     for (const image of images) {
       try {
-        // Skip already compressed images
-        if (image.image_url.includes("compressed-")) {
-          console.log(`Skipping already compressed image ${image.id}`);
-          skipped++;
-          continue;
-        }
-        
         console.log(`Processing image ${image.id}: ${image.image_url}`);
 
         // Fetch the original image
@@ -99,10 +92,25 @@ serve(async (req) => {
         }
 
         const originalBlob = await imageResponse.blob();
-        const originalBase64 = await blobToBase64(originalBlob);
         const originalSize = originalBlob.size;
 
         console.log(`Original image size: ${originalSize} bytes`);
+
+        // Skip if already small enough (under 100KB is likely already compressed)
+        if (originalSize < 100 * 1024) {
+          console.log(`Skipping already small image ${image.id} (${Math.round(originalSize / 1024)}KB)`);
+          skipped++;
+          continue;
+        }
+
+        // Skip if filename indicates already compressed
+        if (image.image_url.includes("compressed-")) {
+          console.log(`Skipping already compressed image ${image.id}`);
+          skipped++;
+          continue;
+        }
+
+        const originalBase64 = await blobToBase64(originalBlob);
 
         // Use AI Gateway to resize to 256x256
         const compressionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
