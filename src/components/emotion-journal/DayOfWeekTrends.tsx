@@ -19,7 +19,7 @@ const CATEGORY_SCORES: { [key: string]: number } = {
 };
 
 export function DayOfWeekTrends({ userId }: DayOfWeekTrendsProps) {
-  const [data, setData] = useState<{ day: string; score: number; count: number }[]>([]);
+  const [data, setData] = useState<{ day: string; score: number; displayValue: number; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [bestDay, setBestDay] = useState<string | null>(null);
   const [hardestDay, setHardestDay] = useState<string | null>(null);
@@ -67,13 +67,20 @@ export function DayOfWeekTrends({ userId }: DayOfWeekTrendsProps) {
       dayStats[dayOfWeek].count++;
     });
 
-    const chartData = DAY_NAMES.map((day, index) => ({
-      day,
-      score: dayStats[index].count > 0 
+    const chartData = DAY_NAMES.map((day, index) => {
+      const avgScore = dayStats[index].count > 0 
         ? dayStats[index].total / dayStats[index].count 
-        : 0,
-      count: dayStats[index].count,
-    }));
+        : 0;
+      // Transform score from [-1, 1] to [0, 1] for consistent bar heights
+      // This ensures neutral (0) shows as 0.5, positive (1) as 1, negative (-1) as 0
+      const displayValue = dayStats[index].count > 0 ? (avgScore + 1) / 2 : 0;
+      return {
+        day,
+        score: avgScore, // Keep original for color logic
+        displayValue, // Use for bar height
+        count: dayStats[index].count,
+      };
+    });
 
     // Find best and hardest days (only if they have data)
     const daysWithData = chartData.filter(d => d.count > 0);
@@ -87,10 +94,11 @@ export function DayOfWeekTrends({ userId }: DayOfWeekTrendsProps) {
     setLoading(false);
   };
 
+  // Green for positive, gray for neutral, red for negative
   const getBarColor = (score: number) => {
-    if (score > 0.3) return '#22c55e';
-    if (score < -0.3) return '#ef4444';
-    return '#eab308';
+    if (score > 0.3) return '#22c55e'; // green
+    if (score < -0.3) return '#ef4444'; // red
+    return '#9ca3af'; // gray for neutral
   };
 
   if (loading) {
@@ -126,8 +134,8 @@ export function DayOfWeekTrends({ userId }: DayOfWeekTrendsProps) {
         </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={150}>
-          <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={120}>
+          <BarChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
             <XAxis 
               dataKey="day" 
               tick={{ fontSize: 12 }} 
@@ -136,16 +144,16 @@ export function DayOfWeekTrends({ userId }: DayOfWeekTrendsProps) {
               interval={0}
             />
             <YAxis 
-              domain={[-1, 1]} 
+              domain={[0, 1]} 
               hide 
             />
             <Tooltip 
-              formatter={(value: number) => [
-                value > 0 ? 'More positive' : value < 0 ? 'More challenging' : 'Neutral',
+              formatter={(value: number, name: string, props: any) => [
+                props.payload.score > 0.3 ? 'More positive' : props.payload.score < -0.3 ? 'More challenging' : 'Neutral',
                 'Trend'
               ]}
             />
-            <Bar dataKey="score" radius={[4, 4, 0, 0]} minPointSize={2}>
+            <Bar dataKey="displayValue" radius={[4, 4, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.count > 0 ? getBarColor(entry.score) : '#e5e7eb'} />
               ))}
