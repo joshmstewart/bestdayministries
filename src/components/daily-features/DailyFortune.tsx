@@ -8,6 +8,7 @@ import { Heart, Loader2, Sparkles, BookOpen, Quote, Star, Lightbulb, ThumbsUp, M
 import { useSavedFortunes } from "@/hooks/useSavedFortunes";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 interface Fortune {
   id: string;
@@ -262,6 +263,8 @@ export function DailyFortune() {
                 console.error("Failed to record fortune view:", error);
               } else {
                 console.log("Fortune view recorded successfully for", viewDate);
+                // Award coins for viewing the daily fortune (only on first view of the day)
+                await awardCoinReward(user.id, "daily_fortune_view", "Daily Fortune revealed! ✨");
               }
             }
             setRevealed(true);
