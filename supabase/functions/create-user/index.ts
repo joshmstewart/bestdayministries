@@ -17,6 +17,7 @@ const createUserSchema = z.object({
     .regex(/[0-9]/, "Password must contain a number"),
   displayName: z.string().trim().min(1).max(100),
   role: z.enum(['admin', 'owner', 'caregiver', 'bestie', 'supporter', 'vendor']),
+  subscribeToNewsletter: z.boolean().optional().default(true),
 });
 
 Deno.serve(async (req) => {
@@ -111,9 +112,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { email, password, displayName, role } = validation.data;
+    const { email, password, displayName, role, subscribeToNewsletter } = validation.data;
 
-    console.log('Creating user:', { email, displayName, role });
+    console.log('Creating user:', { email, displayName, role, subscribeToNewsletter });
     console.log('Role is vendor:', role === 'vendor');
 
     // Create the user
@@ -155,6 +156,41 @@ Deno.serve(async (req) => {
         // Don't fail the entire operation, just log it
       } else {
         console.log('Vendor record created successfully');
+      }
+    }
+
+    // Subscribe to newsletter if requested
+    if (subscribeToNewsletter) {
+      console.log('Subscribing user to newsletter:', email);
+      const { error: newsletterError } = await supabaseAdmin
+        .from('newsletter_subscribers')
+        .upsert({
+          email,
+          user_id: newUser.user.id,
+          status: 'active',
+          source: 'admin_created',
+        }, { onConflict: 'email' });
+
+      if (newsletterError) {
+        console.error('Error subscribing to newsletter:', newsletterError);
+        // Don't fail the entire operation, just log it
+      } else {
+        console.log('Newsletter subscription created successfully');
+        
+        // Trigger welcome email
+        try {
+          await supabaseAdmin.functions.invoke('send-automated-campaign', {
+            body: { 
+              trigger_event: 'newsletter_signup', 
+              recipient_email: email,
+              trigger_data: { source: 'admin_created' }
+            }
+          });
+          console.log('Welcome email triggered successfully');
+        } catch (emailError) {
+          console.error('Error triggering welcome email:', emailError);
+          // Don't fail - newsletter subscription was successful
+        }
       }
     }
     
