@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameMonth } from 'date-fns';
@@ -96,51 +96,50 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
   const canGoNext = !isSameMonth(currentMonth, new Date());
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Mood Calendar
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={goToPrevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium min-w-[120px] text-center">
-              {format(currentMonth, 'MMMM yyyy')}
-            </span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={goToNextMonth}
-              disabled={!canGoNext}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+    <Card className="p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-medium flex items-center gap-1.5">
+          <Calendar className="h-4 w-4" />
+          Mood Calendar
         </div>
-      </CardHeader>
-      <CardContent>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={goToPrevMonth}>
+            <ChevronLeft className="h-3 w-3" />
+          </Button>
+          <span className="text-xs font-medium min-w-[80px] text-center">
+            {format(currentMonth, 'MMM yyyy')}
+          </span>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="h-6 w-6"
+            onClick={goToNextMonth}
+            disabled={!canGoNext}
+          >
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <div>
         {loading ? (
-          <div className="h-48 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+          <div className="h-32 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
           </div>
         ) : (
-          <>
+        <>
             {/* Day labels */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="grid grid-cols-7 gap-0.5 mb-1">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                <div key={i} className="text-center text-xs text-muted-foreground font-medium">
+                <div key={i} className="text-center text-[10px] text-muted-foreground font-medium">
                   {day}
                 </div>
               ))}
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5">
               {emptyDays.map((_, i) => (
-                <div key={`empty-${i}`} className="aspect-square" />
+                <div key={`empty-${i}`} className="w-6 h-6" />
               ))}
               {daysInMonth.map((day) => {
                 const dateStr = format(day, 'yyyy-MM-dd');
@@ -152,12 +151,11 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
                 return (
                   <div
                     key={dateStr}
-                    className="aspect-square flex items-center justify-center relative"
+                    className="w-6 h-6 flex items-center justify-center"
                     title={entry ? `${entry.mood_label}` : undefined}
                   >
                     {entry && avatarImage?.url ? (
-                      // Show avatar image
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
+                      <div className="w-5 h-5 rounded-full overflow-hidden bg-muted">
                         <img
                           src={avatarImage.url}
                           alt={entry.mood_label}
@@ -169,9 +167,8 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
                         />
                       </div>
                     ) : (
-                      // Show emoji or date number
                       <div className={`
-                        w-8 h-8 rounded-full flex items-center justify-center text-xs
+                        w-5 h-5 rounded-full flex items-center justify-center text-[9px]
                         ${entry ? colorClass : 'bg-muted/30'}
                         ${entry ? 'text-white font-medium' : 'text-muted-foreground'}
                       `}>
@@ -184,23 +181,23 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
             </div>
 
             {/* Legend */}
-            <div className="flex justify-center gap-4 mt-4 text-xs">
+            <div className="flex justify-center gap-3 mt-2 text-[10px]">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-green-400" />
+                <div className="w-2 h-2 rounded-full bg-green-400" />
                 <span className="text-muted-foreground">Positive</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                <div className="w-2 h-2 rounded-full bg-yellow-400" />
                 <span className="text-muted-foreground">Neutral</span>
               </div>
               <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
+                <div className="w-2 h-2 rounded-full bg-red-400" />
                 <span className="text-muted-foreground">Negative</span>
               </div>
             </div>
           </>
         )}
-      </CardContent>
+      </div>
     </Card>
   );
 }
