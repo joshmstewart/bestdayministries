@@ -78,10 +78,18 @@ serve(async (req) => {
 
     let processed = 0;
     let failed = 0;
+    let skipped = 0;
     const errors: string[] = [];
 
     for (const image of images) {
       try {
+        // Skip already compressed images
+        if (image.image_url.includes("compressed-")) {
+          console.log(`Skipping already compressed image ${image.id}`);
+          skipped++;
+          continue;
+        }
+        
         console.log(`Processing image ${image.id}: ${image.image_url}`);
 
         // Fetch the original image
@@ -194,13 +202,14 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Compression complete: ${processed} processed, ${failed} failed`);
+    console.log(`Compression complete: ${processed} processed, ${skipped} skipped (already compressed), ${failed} failed`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Compressed ${processed} images`,
+        message: `Compressed ${processed} images, skipped ${skipped} already compressed`,
         processed,
+        skipped,
         failed,
         total: images.length,
         errors: errors.length > 0 ? errors : undefined
