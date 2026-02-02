@@ -608,10 +608,15 @@ export function SpinningWheel({
       <button
         type="button"
         onClick={handleClick}
+        onTouchEnd={(e) => {
+          // Ensure touch events work on mobile - prevent default and trigger click
+          e.preventDefault();
+          handleClick();
+        }}
         disabled={isDisabled}
         aria-label="Spin the reward wheel"
         className={cn(
-          "relative rounded-full transition-transform border-none outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+          "relative rounded-full transition-transform border-none outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 touch-manipulation",
           !isDisabled && "cursor-pointer hover:scale-[1.02] active:scale-[0.98]",
           isDisabled && "opacity-80 cursor-not-allowed"
         )}
@@ -620,6 +625,7 @@ export function SpinningWheel({
           height: size + 24,
           padding: 0,
           background: "transparent",
+          WebkitTapHighlightColor: "transparent",
         }}
       >
         {/* Outer metallic rim */}
