@@ -67,16 +67,16 @@ export function DailyCompletionCelebration({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm text-center">
-        <DialogHeader className="space-y-4">
+        <DialogHeader className="space-y-4 text-center sm:text-center">
           <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 via-orange-400 to-pink-500 flex items-center justify-center animate-bounce shadow-lg">
             <PartyPopper className="w-10 h-10 text-white" />
           </div>
-          <DialogTitle className="text-2xl font-bold">
+          <DialogTitle className="text-2xl font-bold text-center">
             <span className="bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 bg-clip-text text-transparent">
               🎉 Amazing Job! 🎉
             </span>
           </DialogTitle>
-          <DialogDescription className="text-base text-foreground">
+          <DialogDescription className="text-base text-foreground text-center">
             You completed all your daily activities!
           </DialogDescription>
         </DialogHeader>
