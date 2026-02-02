@@ -150,10 +150,12 @@ export const UserManagement = () => {
         .order("accepted_at", { ascending: false });
 
       // Fetch newsletter subscriptions for all users - include email for matching
+      // Use range to get all records (default limit is 1000)
       const { data: newsletterData } = await supabase
         .from("newsletter_subscribers")
         .select("user_id, email, status")
-        .eq("status", "active");
+        .eq("status", "active")
+        .range(0, 9999);
 
       // Group terms by user_id (take most recent)
       const termsMap = new Map();
