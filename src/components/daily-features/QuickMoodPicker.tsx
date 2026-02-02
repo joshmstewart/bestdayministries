@@ -432,11 +432,17 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
           `bg-gradient-to-br ${completedTheme.bgGradient}`
         )}>
           {entryMood?.avatarImageUrl ? (
-            <img 
-              src={entryMood.avatarImageUrl} 
-              alt={entryMood.label} 
-              className="w-20 h-20 mx-auto rounded-full object-cover"
-            />
+            <div className="w-20 h-20 mx-auto rounded-full overflow-hidden">
+              <img 
+                src={entryMood.avatarImageUrl} 
+                alt={entryMood.label} 
+                className="w-full h-full object-cover"
+                style={{
+                  transform: `scale(${entryMood.avatarCropScale || 1})`,
+                  transformOrigin: 'center center',
+                }}
+              />
+            </div>
           ) : (
             <div className="text-5xl mb-2">{todaysEntry.mood_emoji}</div>
           )}

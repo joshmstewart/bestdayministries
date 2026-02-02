@@ -41,7 +41,9 @@ Keep your response:
 - Warm and supportive
 - Under 60 words total
 - Use their emoji in your response
-- Don't use complex words`;
+- Don't use complex words
+- IMPORTANT: Do NOT use first-person statements like "I am happy for you" or "I feel..." - you are an AI, not a person. Instead use observational language like "It's wonderful that..." or "That sounds..."
+- Focus on the user's experience, not your own reactions`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
