@@ -250,7 +250,7 @@ export default function EmotionJournal() {
   const currentEmotionName = todaysMoodEntry?.mood_label || selectedEmotion?.name;
   
   // Fetch avatar emotion image for the selected/today's emotion
-  const { imageUrl: avatarEmotionImageUrl, emotionEmoji } = useAvatarEmotionImage(
+  const { imageUrl: avatarEmotionImageUrl, cropScale: avatarCropScale, emotionEmoji } = useAvatarEmotionImage(
     user?.id,
     currentEmotionName
   );
@@ -626,11 +626,17 @@ export default function EmotionJournal() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3">
             {avatarEmotionImageUrl ? (
-              <img 
-                src={avatarEmotionImageUrl} 
-                alt={displayLabel || "Emotion"} 
-                className="w-14 h-14 rounded-full object-cover animate-bounce shadow-lg"
-              />
+              <div className="w-14 h-14 rounded-full overflow-hidden animate-bounce shadow-lg bg-muted">
+                <img 
+                  src={avatarEmotionImageUrl} 
+                  alt={displayLabel || "Emotion"} 
+                  className="w-full h-full object-cover"
+                  style={{
+                    transform: `scale(${avatarCropScale})`,
+                    transformOrigin: 'center',
+                  }}
+                />
+              </div>
             ) : displayEmoji ? (
               <span className="text-5xl animate-bounce">{displayEmoji}</span>
             ) : (
@@ -691,11 +697,17 @@ export default function EmotionJournal() {
                 "border"
               )}>
                 {avatarEmotionImageUrl && !isEditing ? (
-                  <img 
-                    src={avatarEmotionImageUrl} 
-                    alt={todaysMoodEntry.mood_label} 
-                    className="w-20 h-20 rounded-full object-cover mb-4 mx-auto shadow-lg"
-                  />
+                  <div className="w-20 h-20 rounded-full overflow-hidden mb-4 mx-auto shadow-lg bg-muted">
+                    <img 
+                      src={avatarEmotionImageUrl} 
+                      alt={todaysMoodEntry.mood_label} 
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `scale(${avatarCropScale})`,
+                        transformOrigin: 'center',
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="text-6xl mb-4">{isEditing ? (editingEmotion?.emoji || todaysMoodEntry.mood_emoji) : todaysMoodEntry.mood_emoji}</div>
                 )}
