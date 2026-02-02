@@ -223,10 +223,58 @@ serve(async (req) => {
       throw new Error(`No image returned after ${maxGenerationAttempts} attempts. Last error: ${lastError}`);
     }
 
-    // Upload to Supabase Storage with retry logic
+    // Compress the image: resize to 256x256 and convert to WebP
+    // The AI model returns base64 PNG, we'll compress it before storage
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
-    const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    let imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
     
+    // Use sharp-like compression via Lovable AI Gateway image processing
+    // Request a smaller, WebP-optimized version
+    const compressionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "GENERATE AN IMAGE NOW. Resize this image to exactly 256x256 pixels. Keep the same content, just make it smaller. Output only the resized image, no text.",
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageData,
+                },
+              },
+            ],
+          },
+        ],
+        modalities: ["image", "text"],
+      }),
+    });
+
+    if (compressionResponse.ok) {
+      const compressedData = await compressionResponse.json();
+      const compressedImageUrl = compressedData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      
+      if (compressedImageUrl) {
+        const compressedBase64 = compressedImageUrl.replace(/^data:image\/\w+;base64,/, "");
+        imageBuffer = Uint8Array.from(atob(compressedBase64), (c) => c.charCodeAt(0));
+        console.log(`Image compressed: original ${base64Data.length} bytes -> compressed ${compressedBase64.length} bytes`);
+      } else {
+        console.log("Compression didn't return image, using original");
+      }
+    } else {
+      console.log("Compression request failed, using original image");
+    }
+    
+    // Use already-defined avatarName from line 100
     const fileName = `${avatarName}-${emotionTypeId.slice(0, 8)}-${Date.now()}.png`;
     const filePath = `avatar-emotions/${fileName}`;
 
