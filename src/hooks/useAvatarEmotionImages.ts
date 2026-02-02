@@ -8,9 +8,44 @@ interface AvatarEmotionImageMap {
   };
 }
 
+interface CachedAvatarData {
+  avatarId: string;
+  imagesByEmotionTypeId: AvatarEmotionImageMap;
+  imagesByEmotionName: Record<string, { url: string; cropScale: number }>;
+  timestamp: number;
+}
+
+const CACHE_KEY = "avatar_emotion_images_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getFromCache(avatarId: string): CachedAvatarData | null {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const entry: CachedAvatarData = JSON.parse(cached);
+      // Check if cache is for same avatar and not expired
+      if (entry.avatarId === avatarId && Date.now() - entry.timestamp < CACHE_TTL) {
+        return entry;
+      }
+    }
+  } catch {
+    // Ignore cache errors
+  }
+  return null;
+}
+
+function setToCache(data: CachedAvatarData): void {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {
+    // Ignore cache errors
+  }
+}
+
 /**
  * Hook to load ALL approved avatar emotion images for the user's selected avatar.
  * Returns a map keyed by emotion_type_id for efficient lookup.
+ * Uses sessionStorage caching with 5-minute TTL for instant repeat loads.
  */
 export const useAvatarEmotionImages = (userId: string | undefined) => {
   const [imagesByEmotionTypeId, setImagesByEmotionTypeId] = useState<AvatarEmotionImageMap>({});
@@ -53,6 +88,15 @@ export const useAvatarEmotionImages = (userId: string | undefined) => {
         }
 
         setHasAvatar(true);
+
+        // Check cache first for instant repeat loads
+        const cached = getFromCache(userAvatar.avatar_id);
+        if (cached) {
+          setImagesByEmotionTypeId(cached.imagesByEmotionTypeId);
+          setImagesByEmotionName(cached.imagesByEmotionName);
+          setLoading(false);
+          return;
+        }
 
         // Get all approved emotion images for this avatar
         const { data: emotionImages, error: emotionImagesError } = await supabase
@@ -98,6 +142,14 @@ export const useAvatarEmotionImages = (userId: string | undefined) => {
 
         setImagesByEmotionTypeId(mapById);
         setImagesByEmotionName(mapByName);
+        
+        // Cache the results
+        setToCache({
+          avatarId: userAvatar.avatar_id,
+          imagesByEmotionTypeId: mapById,
+          imagesByEmotionName: mapByName,
+          timestamp: Date.now(),
+        });
       } catch (e) {
         console.error("Error loading avatar emotion images:", e);
         setImagesByEmotionTypeId({});
