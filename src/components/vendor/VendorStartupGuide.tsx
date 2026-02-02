@@ -238,8 +238,8 @@ export const VendorStartupGuide = ({
                 
                 return (
                   <AccordionItem key={step.id} value={step.id} className="border-b-0">
-                    <AccordionTrigger className="hover:no-underline py-2">
-                      <div className="flex items-center gap-3 flex-1">
+                    <AccordionTrigger className="hover:no-underline py-2 [&>svg]:ml-2 [&>svg]:shrink-0">
+                      <div className="flex items-center gap-3">
                         <Checkbox
                           checked={isCompleted}
                           onCheckedChange={() => toggleStep(step.id)}
@@ -278,8 +278,9 @@ export const VendorStartupGuide = ({
                               <span className="text-xs font-normal text-muted-foreground">(Optional)</span>
                             )}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
                             {step.description}
+                            <span className="text-xs text-primary/70 italic ml-1">· click for details</span>
                           </div>
                         </div>
                       </div>
