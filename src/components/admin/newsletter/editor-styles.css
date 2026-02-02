@@ -1278,13 +1278,16 @@
   z-index: 10;
 }
 
-.ProseMirror table[data-two-column] td {
-  border: 1px dashed #e8650d !important;
-  vertical-align: top !important;
+/* Two Column NodeView Styles */
+.two-column-node-view {
+  margin: 1rem 0;
 }
 
-.ProseMirror table[data-two-column] img {
-  border-radius: 8px !important;
-  max-width: 100% !important;
-  height: auto !important;
+.two-column-node-view > div {
+  position: relative;
+}
+
+/* Hide the raw table output in editor - we use NodeView instead */
+.ProseMirror table[data-two-column] {
+  display: none !important;
 }
