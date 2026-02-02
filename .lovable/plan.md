@@ -1,253 +1,80 @@
 
-# Plan: Vendor Startup Guide (Onboarding Checklist)
+# Plan: Optimize Avatar Emotion Image Loading
 
-## Overview
+## Problem
+The mood picker shows 16 avatar emotion portraits. Each time you open it, the app fetches all image URLs from the database, then your browser downloads each full-size image (likely 512×512 or larger PNG files). Since these display at only 64×64 pixels, you're downloading ~10-20x more data than needed.
 
-Create an interactive startup guide for new vendors that displays as a checklist with expandable details for each step. The guide will track completion state, allow manual check-off, and minimize once complete while remaining accessible for reference.
+## Solution Overview
+Two-part fix for significantly faster loading:
 
-## User Experience
+### Part 1: Add Client-Side Caching (Instant Repeat Loads)
+Cache the image URLs in your browser's session storage so repeat opens are instant—no database call, no waiting for image URLs.
 
-### Initial State (Incomplete)
-- Prominent card displayed at the top of the Vendor Dashboard (above stats cards)
-- Shows progress bar with completion count (e.g., "3/6 complete")
-- Lists all checklist items with expand/collapse functionality
-- Each item shows: checkbox, title, and brief description
-- Clicking an item expands to show full details and navigation links
+**Technical approach:**
+- Create a new hook `useAvatarEmotionImagesWithCache` that wraps the existing fetch logic
+- Store the image URL map in `sessionStorage` with a 5-minute TTL (matching existing patterns)
+- On first load: fetch from database, cache result
+- On subsequent loads: use cached data instantly, optionally refresh in background
 
-### Completed State
-- Card collapses to a minimal "Startup Guide Complete" badge/button
-- Can be clicked to re-expand and view all steps again
-- Green success styling indicates completion
+### Part 2: Compress Images During Generation (Smaller Downloads)
+Reduce the stored image size from ~500KB to ~50KB per image.
 
-### Persistent State
-- Completion state stored in database (`vendor_onboarding_progress` table)
-- Survives browser refresh and cross-device access
-- Each vendor has independent progress tracking
-
----
-
-## Checklist Items
-
-| Step | Title | Description | Details | Navigation |
-|------|-------|-------------|---------|------------|
-| 1 | Complete Stripe Connect | Set up payments to receive earnings | Explains Stripe Connect benefits, tax handling, payout process | → Payments tab |
-| 2 | Add Your First Product | List a product in your store | Image tips, pricing strategy, inventory basics | → Products tab + Add Product button |
-| 3 | Set Up Shipping | Configure shipping options and weights | Flat rate vs calculated, weight importance, free shipping threshold | → Shipping tab |
-| 4 | Customize Your Store | Add branding and store description | Theme colors, business description, logo | → Settings tab |
-| 5 | Link with a Bestie (Optional) | Partner with a Bestie for authentic content | How to get friend codes, benefits of linking, approval process | → Settings tab (Bestie Features) |
-| 6 | View Your Public Store | Preview what customers will see | Check everything looks good, test from customer perspective | → "View My Store" button |
+**Technical approach:**
+- Modify `generate-avatar-emotion-image` edge function to:
+  - Resize images to 256×256 pixels (plenty for circular displays up to 128px retina)
+  - Convert from PNG to WebP (same quality, ~80% smaller)
+  - Apply quality compression (0.85 quality level)
+- Use canvas-based compression similar to `src/lib/imageUtils.ts`
 
 ---
 
-## Database Schema
+## Technical Implementation Details
 
-```sql
-CREATE TABLE vendor_onboarding_progress (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
-  completed_steps TEXT[] DEFAULT '{}',
-  is_dismissed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(vendor_id)
-);
+### Files to Modify
 
--- RLS: Vendors can only manage their own progress
-ALTER TABLE vendor_onboarding_progress ENABLE ROW LEVEL SECURITY;
+| File | Change |
+|------|--------|
+| `src/hooks/useAvatarEmotionImages.ts` | Add sessionStorage caching with 5-min TTL |
+| `src/components/daily-features/QuickMoodPicker.tsx` | Use the cached hook |
+| `supabase/functions/generate-avatar-emotion-image/index.ts` | Compress images before storage |
 
-CREATE POLICY "Users can manage their vendor's onboarding progress"
-ON vendor_onboarding_progress
-FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM vendors v 
-    WHERE v.id = vendor_onboarding_progress.vendor_id 
-    AND v.user_id = auth.uid()
-  )
-)
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM vendors v 
-    WHERE v.id = vendor_onboarding_progress.vendor_id 
-    AND v.user_id = auth.uid()
-  )
-);
-```
-
----
-
-## Component Architecture
-
-### Files to Create
-
-1. **`src/components/vendor/VendorStartupGuide.tsx`**
-   - Main component with the collapsible checklist UI
-   - Uses Accordion for expandable step details
-   - Manages progress state and database sync
-
-2. **`src/hooks/useVendorOnboardingProgress.ts`**
-   - Fetches and updates progress from database
-   - Provides toggle function for marking steps complete
-   - Handles optimistic updates
-
-### Component Structure
-
-```text
-VendorStartupGuide
-├── Header (title, progress bar, badge)
-├── Accordion
-│   ├── AccordionItem (Stripe Connect)
-│   │   ├── Trigger: Checkbox + Title + Brief description
-│   │   └── Content: Full details + Action button
-│   ├── AccordionItem (First Product)
-│   │   └── ...
-│   └── ... (6 total items)
-└── Minimized State (when complete + dismissed)
-    └── Button to re-open
-```
-
----
-
-## Implementation Details
-
-### Progress Tracking Logic
-
+### New Caching Pattern
 ```typescript
-interface OnboardingStep {
-  id: string;
-  title: string;
-  description: string;
-  details: ReactNode;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-  isOptional?: boolean;
-}
+const CACHE_KEY = "avatar_emotion_images_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-const STEPS: OnboardingStep[] = [
-  {
-    id: 'stripe-connect',
-    title: 'Complete Stripe Connect',
-    description: 'Set up payments to receive earnings',
-    details: (
-      <div className="space-y-3">
-        <p>Stripe Connect allows you to receive payments directly...</p>
-        <ul className="list-disc list-inside space-y-1">
-          <li>No existing Stripe account needed</li>
-          <li>Automatic 1099-K tax reporting</li>
-          <li>Weekly payouts to your bank</li>
-        </ul>
-      </div>
-    ),
-    action: { label: 'Go to Payments', onClick: () => setActiveTab('payments') }
-  },
-  // ... other steps
-];
+// Cache structure: { [avatarId]: { images: {...}, timestamp } }
 ```
 
-### Minimized State
-
-When all non-optional steps are complete AND user dismisses the guide:
-- Store `is_dismissed: true` in database
-- Show compact badge: "✓ Startup Complete - View Guide"
-- Clicking re-opens the full checklist
-
-### Auto-Detection (Future Enhancement)
-
-Could auto-detect some completions:
-- Stripe Connect: Check `vendor.stripe_charges_enabled`
-- First Product: Check `products` count > 0
-- Store Branding: Check `vendor.description` exists
-
-For MVP, manual checkboxes only to keep scope manageable.
-
----
-
-## UI/UX Details
-
-### Visual Design
-
-- **Card styling**: Matches existing dashboard theme support
-- **Checkbox**: Custom checkbox with smooth check animation
-- **Progress bar**: Shows percentage with step count text
-- **Expand indicator**: ChevronDown that rotates on open
-- **Action buttons**: Primary buttons inside expanded content
-
-### Responsive Behavior
-
-- Mobile: Full-width, accordion still works
-- Desktop: Constrained max-width for readability
-
-### Accessibility
-
-- Keyboard navigable (accordion is already accessible)
-- ARIA labels for checkboxes
-- Focus management when expanding/collapsing
-
----
-
-## Integration with VendorDashboard
-
-### Placement
-
-```tsx
-// In VendorDashboard.tsx, after vendor selector, before stats cards
-{selectedVendor?.status === 'approved' && selectedVendorId && (
-  <div className="space-y-6 ...">
-    {/* NEW: Startup Guide */}
-    <VendorStartupGuide 
-      vendorId={selectedVendorId} 
-      theme={theme}
-      onNavigateToTab={setActiveTab}
-    />
-    
-    {/* Existing stats cards */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      ...
-    </div>
-  </div>
-)}
-```
-
-### Props
-
+### Image Compression in Edge Function
 ```typescript
-interface VendorStartupGuideProps {
-  vendorId: string;
-  theme?: VendorThemePreset;
-  onNavigateToTab: (tab: string) => void;
-}
+// Resize to 256x256 and convert to WebP
+const targetSize = 256;
+// ... canvas resize logic
+const compressedBlob = await canvas.toBlob('image/webp', 0.85);
 ```
 
 ---
 
-## Files to Modify
+## Expected Results
 
-| File | Changes |
-|------|---------|
-| `src/pages/VendorDashboard.tsx` | Import and render VendorStartupGuide component |
-| **New** `src/components/vendor/VendorStartupGuide.tsx` | Main checklist component |
-| **New** `src/hooks/useVendorOnboardingProgress.ts` | Database sync hook |
-| **New** `supabase/migrations/...` | Create vendor_onboarding_progress table |
+| Metric | Before | After |
+|--------|--------|-------|
+| Repeat load time | 1-2 seconds | Instant (~10ms) |
+| Image file size (each) | ~300-500KB | ~30-50KB |
+| Total data per open | ~5-8MB (16 images) | ~500-800KB (first load) or 0 (cached) |
+| Database calls | Every open | First open only (per 5 min) |
 
 ---
 
-## Technical Considerations
+## Backward Compatibility
+- Existing full-size images will continue to work
+- New images will be smaller; old images won't auto-update
+- Optional: Create admin button to regenerate all images with compression
 
-### Performance
-- Single query to load progress on mount
-- Optimistic UI updates when toggling checkboxes
-- No impact on dashboard loading time (async)
+---
 
-### Edge Cases
-- New vendor with no progress record → Create on first interaction
-- Multiple team members → Each sees same progress (vendor-level)
-- Vendor deleted → Progress cascade deletes
-
-### Future Enhancements (Not in MVP)
-- Auto-detect completion based on actual vendor state
-- Celebration animation when all complete
-- Time estimates for each step
-- "Need help?" links to support
-
+## Implementation Order
+1. Add caching to `useAvatarEmotionImages` (immediate improvement)
+2. Update edge function to compress new images (future improvement)
+3. Optionally: add admin tool to batch-recompress existing images
