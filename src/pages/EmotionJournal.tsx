@@ -646,9 +646,11 @@ export default function EmotionJournal() {
             />
           </div>
           <p className="text-muted-foreground mt-2 text-lg">
-            {displayLabel 
-              ? `It's okay to feel ${displayLabel.toLowerCase()}. Let's explore this feeling together.`
-              : "How are you feeling today? It's okay to feel any way!"
+            {aiResponse && displayLabel
+              ? aiResponse
+              : displayLabel 
+                ? `It's okay to feel ${displayLabel.toLowerCase()}. Let's explore this feeling together.`
+                : "How are you feeling today? It's okay to feel any way!"
             }
           </p>
         </div>
