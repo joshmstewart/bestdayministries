@@ -349,7 +349,14 @@ const Community = () => {
             onValueChange={handleTabChange}
             className="w-full"
           >
-            {/* StreakMeter + Tabs row - tabs centered, streak right-aligned */}
+            {/* StreakMeter - on its own row on mobile, inline with tabs on larger screens */}
+            {user && canSeeFeature('login_streak_button') && (
+              <div className="flex justify-end mb-2 sm:hidden">
+                <StreakMeter />
+              </div>
+            )}
+            
+            {/* Tabs row - centered, with streak inline on larger screens */}
             <div className="relative flex items-center justify-center mb-2">
               {/* Tabs - truly centered */}
               <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -378,9 +385,9 @@ const Community = () => {
                 )}
               </TabsList>
               
-              {/* StreakMeter - absolutely positioned to the right */}
+              {/* StreakMeter - absolutely positioned to the right on larger screens only */}
               {user && canSeeFeature('login_streak_button') && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden sm:block">
                   <StreakMeter />
                 </div>
               )}
