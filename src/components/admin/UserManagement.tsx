@@ -79,6 +79,7 @@ export const UserManagement = () => {
     password: "",
     displayName: "",
     role: "supporter",
+    subscribeToNewsletter: true,
   });
 
   const testAccounts = [
@@ -148,10 +149,10 @@ export const UserManagement = () => {
         .select("user_id, terms_version, privacy_version, accepted_at")
         .order("accepted_at", { ascending: false });
 
-      // Fetch newsletter subscriptions for all users
+      // Fetch newsletter subscriptions for all users - include email for matching
       const { data: newsletterData } = await supabase
         .from("newsletter_subscribers")
-        .select("user_id, status")
+        .select("user_id, email, status")
         .eq("status", "active");
 
       // Group terms by user_id (take most recent)
@@ -162,8 +163,13 @@ export const UserManagement = () => {
         }
       });
 
-      // Create a set of subscribed user IDs for quick lookup
-      const subscribedUserIds = new Set(newsletterData?.map(n => n.user_id) || []);
+      // Create sets for both user_id and email lookup
+      const subscribedUserIds = new Set(
+        newsletterData?.filter(n => n.user_id).map(n => n.user_id) || []
+      );
+      const subscribedEmails = new Set(
+        newsletterData?.map(n => n.email?.toLowerCase()).filter(Boolean) || []
+      );
 
       // Merge roles, vendor status, permissions, terms, and newsletter with profiles
       const usersWithRoles = (profiles || []).map(profile => {
@@ -177,7 +183,8 @@ export const UserManagement = () => {
           terms_version: userTerms?.terms_version || null,
           privacy_version: userTerms?.privacy_version || null,
           terms_accepted_at: userTerms?.accepted_at || null,
-          newsletter_subscribed: subscribedUserIds.has(profile.id),
+          newsletter_subscribed: subscribedUserIds.has(profile.id) || 
+                                subscribedEmails.has(profile.email?.toLowerCase()),
         };
       });
 
@@ -220,6 +227,7 @@ export const UserManagement = () => {
         password: "",
         displayName: "",
         role: "supporter",
+        subscribeToNewsletter: true,
       });
       setDialogOpen(false);
       await loadUsers();
@@ -922,6 +930,18 @@ export const UserManagement = () => {
                       As an admin, you can only create non-admin users. Contact an owner to create admin accounts.
                     </p>
                   )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="subscribeToNewsletter"
+                    checked={formData.subscribeToNewsletter}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, subscribeToNewsletter: !!checked })
+                    }
+                  />
+                  <Label htmlFor="subscribeToNewsletter" className="text-sm font-normal">
+                    Subscribe to newsletter
+                  </Label>
                 </div>
               </div>
               <DialogFooter>

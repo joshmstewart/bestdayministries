@@ -61,9 +61,13 @@ export const NewsletterSignup = ({ compact = false, redirectOnSuccess = false }:
     mutationFn: async () => {
       // Get timezone from browser
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Check for active session to link user_id
+      const { data: { session } } = await supabase.auth.getSession();
 
       const { error } = await supabase.from("newsletter_subscribers").insert({
         email,
+        user_id: session?.user?.id || null,
         location_city: city || null,
         location_state: state || null,
         location_country: country || null,
