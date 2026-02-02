@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink, Eye, EyeOff, Lightbulb, Delete, CornerDownLeft } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
+import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
+import { WordleEasyKeyboard } from "@/components/wordle/WordleEasyKeyboard";
 
 interface GuessResult {
   guess: string;
@@ -338,142 +340,11 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
   };
 
   // Easy mode keyboard (Letter Mode) - shows scrambled letters
-  const renderEasyKeyboard = () => {
-    if (!scrambledLetters) return null;
-    const status = keyboardStatus();
-    
-    return (
-      <div className="flex flex-col gap-2 items-center">
-        <div className="text-xs text-muted-foreground">
-          Arrange these letters:
-        </div>
-        
-        {/* Letter tiles */}
-        <div className="flex gap-1.5 flex-wrap justify-center">
-          {scrambledLetters.map((letter, index) => {
-            const keyStatus = status[letter];
-            const timesAvailable = scrambledLetters.slice(0, index + 1).filter(l => l === letter).length;
-            const usedCount = currentGuess.split('').filter(l => l === letter).length;
-            const isUsed = usedCount >= timesAvailable;
-            
-            return (
-              <button
-                key={`${letter}-${index}`}
-                onClick={() => !isUsed && handleKeyPress(letter)}
-                disabled={gameOver || submitting || roundEnded || isUsed}
-                className={cn(
-                  "w-10 h-10 flex items-center justify-center font-bold text-base rounded-lg transition-all",
-                  "border-2",
-                  isUsed && "opacity-30 scale-90",
-                  !isUsed && "hover:scale-105 active:scale-95",
-                  !keyStatus && "bg-muted text-foreground border-muted-foreground/30",
-                  keyStatus === "correct" && "bg-green-500 text-white border-green-600",
-                  keyStatus === "present" && "bg-yellow-500 text-white border-yellow-600",
-                  keyStatus === "absent" && "bg-zinc-700 text-zinc-400 border-zinc-600"
-                )}
-              >
-                {letter}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex gap-1.5 mt-2">
-          <button
-            onClick={() => handleKeyPress("BACKSPACE")}
-            disabled={gameOver || submitting || roundEnded || currentGuess.length === 0}
-            className={cn(
-              "flex items-center justify-center gap-1 px-3 h-8 text-xs font-semibold rounded-lg transition-all",
-              "bg-muted text-foreground hover:opacity-80 active:scale-95",
-              "disabled:opacity-50"
-            )}
-          >
-            <Delete className="h-4 w-4" />
-            <span>Delete</span>
-          </button>
-          
-          <button
-            onClick={() => handleKeyPress("ENTER")}
-            disabled={gameOver || submitting || roundEnded || currentGuess.length !== 5}
-            className={cn(
-              "flex items-center justify-center gap-1 px-4 h-8 text-xs font-semibold rounded-lg transition-all",
-              "bg-primary text-primary-foreground hover:opacity-80 active:scale-95",
-              "disabled:opacity-50"
-            )}
-          >
-            {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : (
-              <>
-                <CornerDownLeft className="h-4 w-4" />
-                <span>Enter</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Compact keyboard (standard QWERTY)
-  const renderKeyboard = () => {
-    const KEYBOARD_ROWS = [
-      ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-      ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-      ["Z", "X", "C", "V", "B", "N", "M"]
-    ];
-    const status = keyboardStatus();
-    
-    return (
-      <div className="flex flex-col gap-1 items-center">
-        {KEYBOARD_ROWS.map((row, rowIndex) => (
-          <div key={rowIndex} className="flex gap-0.5">
-            {row.map((key) => {
-              const keyStatus = status[key];
-              return (
-                <button
-                  key={key}
-                  onClick={() => handleKeyPress(key)}
-                  disabled={gameOver || submitting || roundEnded}
-                  className={cn(
-                    "w-7 h-9 flex items-center justify-center text-xs font-semibold rounded transition-all",
-                    "hover:opacity-80 active:scale-95 disabled:opacity-50",
-                    !keyStatus && "bg-muted text-foreground",
-                    keyStatus === "correct" && "bg-green-500 text-white",
-                    keyStatus === "present" && "bg-yellow-500 text-white",
-                    keyStatus === "absent" && "bg-zinc-700 text-zinc-400"
-                  )}
-                >
-                  {key}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-        <div className="flex gap-1 mt-1">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleKeyPress("BACKSPACE")}
-            disabled={gameOver || submitting || roundEnded || currentGuess.length === 0}
-            className="h-8 px-3 text-xs"
-          >
-            Delete
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => handleKeyPress("ENTER")}
-            disabled={gameOver || submitting || roundEnded || currentGuess.length !== 5}
-            className="h-8 px-4 text-xs"
-          >
-            {submitting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Enter"}
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  const inputDisabled = gameOver || submitting || roundEnded;
+  const status = keyboardStatus();
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center w-full">
       {/* Theme */}
       {theme && (
         <div className="text-center mb-3">
@@ -560,7 +431,23 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
               </Button>
             </div>
           )}
-          {easyMode && scrambledLetters ? renderEasyKeyboard() : renderKeyboard()}
+          <div className="w-full">
+            {easyMode && scrambledLetters ? (
+              <WordleEasyKeyboard
+                availableLetters={scrambledLetters}
+                currentGuess={currentGuess}
+                onKeyPress={handleKeyPress}
+                keyboardStatus={status}
+                disabled={inputDisabled}
+              />
+            ) : (
+              <WordleKeyboard
+                onKeyPress={handleKeyPress}
+                keyboardStatus={status}
+                disabled={inputDisabled}
+              />
+            )}
+          </div>
         </>
       ) : (
         <div className="flex flex-col gap-2 w-full">

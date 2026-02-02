@@ -31,8 +31,8 @@ export function WordleKeyboard({ onKeyPress, keyboardStatus, disabled }: WordleK
                   "flex items-center justify-center font-bold rounded-md transition-all touch-manipulation select-none",
                   "hover:opacity-80 active:scale-95 disabled:opacity-50",
                   isSpecial 
-                    ? "px-2 h-[52px] text-[11px] sm:text-sm min-w-[56px] sm:min-w-[65px]" 
-                    : "flex-1 h-[52px] text-lg sm:text-xl",
+                    ? "px-2 h-14 text-[11px] sm:text-sm min-w-[56px] sm:min-w-[65px]" 
+                    : "flex-1 h-14 text-lg sm:text-xl",
                   !status && "bg-muted text-foreground",
                   status === "correct" && "bg-green-500 text-white",
                   status === "present" && "bg-yellow-500 text-white",
