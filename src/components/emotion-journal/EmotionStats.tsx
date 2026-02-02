@@ -14,7 +14,9 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
       <WeeklyAISummary userId={userId} />
 
       {/* Mood Calendar */}
-      <MoodCalendar userId={userId} />
+      <div className="mx-auto md:max-w-[calc(50%-0.5rem)]">
+        <MoodCalendar userId={userId} />
+      </div>
 
       {/* Distribution and Trends side by side on larger screens */}
       <div className="grid gap-4 md:grid-cols-2">
