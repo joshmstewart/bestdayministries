@@ -81,7 +81,7 @@ export function VendorGuideCompletionCelebration({
           <div className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-green-400 via-emerald-500 to-teal-500 flex items-center justify-center animate-bounce shadow-xl">
             <PartyPopper className="w-12 h-12 text-white" />
           </div>
-          <DialogTitle className="text-3xl font-bold">
+          <DialogTitle className="text-3xl font-bold text-center">
             <span className="bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 bg-clip-text text-transparent">
               🎉 You Did It! 🎉
             </span>
