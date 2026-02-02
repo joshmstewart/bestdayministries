@@ -206,9 +206,9 @@ export function DailyBar() {
     <div className="w-full">
       {/* Daily Bar Container */}
       <div className="bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-2xl p-1.5 border border-border/50">
-        <div className="relative flex items-center justify-center">
-          {/* Label - absolutely positioned on left so it doesn't affect centering */}
-          <span className="absolute left-3 text-sm font-medium text-muted-foreground hidden sm:block">Daily:</span>
+        <div className="flex items-center justify-center">
+          {/* Label next to icons, with matching spacer on right for true icon centering */}
+          <span className="text-sm font-medium text-muted-foreground hidden sm:block mr-2 sm:mr-3">Daily:</span>
           
           {/* Icons - truly centered */}
           <div className="flex items-center gap-2 sm:gap-3">
@@ -283,6 +283,9 @@ export function DailyBar() {
               );
             })}
           </div>
+          
+          {/* Invisible spacer matching "Daily:" width for true icon centering */}
+          <span className="text-sm font-medium text-transparent hidden sm:block ml-2 sm:ml-3 select-none" aria-hidden="true">Daily:</span>
         </div>
       </div>
 
