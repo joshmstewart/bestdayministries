@@ -33,10 +33,11 @@ export function WordleKeyboard({ onKeyPress, keyboardStatus, disabled }: WordleK
                   isSpecial 
                     ? "px-2 h-14 text-[11px] sm:text-sm min-w-[56px] sm:min-w-[65px]" 
                     : "flex-1 h-14 text-lg sm:text-xl",
-                  !status && "bg-muted text-foreground",
-                  status === "correct" && "bg-green-500 text-white",
-                  status === "present" && "bg-yellow-500 text-white",
-                  status === "absent" && "bg-zinc-700 text-zinc-400"
+                  key === "ENTER" && "bg-primary text-primary-foreground",
+                  key !== "ENTER" && !status && "bg-muted text-foreground",
+                  key !== "ENTER" && status === "correct" && "bg-green-500 text-white",
+                  key !== "ENTER" && status === "present" && "bg-yellow-500 text-white",
+                  key !== "ENTER" && status === "absent" && "bg-zinc-700 text-zinc-400"
                 )}
               >
                 {key === "BACKSPACE" ? <Delete className="h-5 w-5" /> : key}
