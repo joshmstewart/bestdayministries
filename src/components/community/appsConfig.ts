@@ -119,7 +119,7 @@ export const AVAILABLE_APPS: AppConfig[] = [
   },
   {
     id: "emotion-journal",
-    name: "Emotion Journal",
+    name: "Mood Tracker",
     description: "Track your feelings",
     icon: BookOpen,
     route: "/games/emotion-journal",
