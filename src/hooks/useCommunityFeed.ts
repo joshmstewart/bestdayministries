@@ -36,7 +36,6 @@ interface UseCommunityFeedOptions {
 const feedCache = new Map<string, { items: FeedItemData[]; timestamp: number }>();
 const profileCache = new Map<string, { name: string; avatar: number | null }>();
 const FEED_CACHE_TTL = 60000; // 1 minute for feed data
-const PROFILE_CACHE_TTL = 300000; // 5 minutes for profiles
 
 export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
   const { typeFilters = [] } = options;
@@ -102,50 +101,56 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
       const authorIds = [...new Set(feedItems.map(item => item.author_id).filter(Boolean))];
       const uncachedAuthorIds = authorIds.filter(id => !profileCache.has(id));
 
-      // Only fetch profiles we don't have cached
-      if (uncachedAuthorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles_public")
-          .select("id, display_name, avatar_number")
-          .in("id", uncachedAuthorIds);
-
-        // Add to cache
-        profiles?.forEach(p => {
-          profileCache.set(p.id, { name: p.display_name, avatar: p.avatar_number });
-        });
-      }
-
-      // For beat items, fetch live plays_count from beat_pad_creations
+      // Get beat and event IDs for parallel fetches
       const beatItems = feedItems.filter(item => item.item_type === 'beat');
-      const beatPlaysMap = new Map<string, number>();
+      const beatIds = beatItems.map(item => item.id);
       
-      if (beatItems.length > 0) {
-        const beatIds = beatItems.map(item => item.id);
-        const { data: beatData } = await supabase
-          .from("beat_pad_creations")
-          .select("id, plays_count")
-          .in("id", beatIds);
-        
-        beatData?.forEach(beat => {
-          beatPlaysMap.set(beat.id, beat.plays_count || 0);
-        });
-      }
-
-      // For event items, fetch event_date and location from events table
       const eventItems = feedItems.filter(item => item.item_type === 'event');
-      const eventDetailsMap = new Map<string, { event_date: string | null; location: string | null }>();
-      
-      if (eventItems.length > 0) {
-        const eventIds = eventItems.map(item => item.id);
-        const { data: eventData } = await supabase
-          .from("events")
-          .select("id, event_date, location")
-          .in("id", eventIds);
+      const eventIds = eventItems.map(item => item.id);
+
+      // PHASE 2: Execute all secondary queries in parallel
+      const [profilesResult, beatDataResult, eventDataResult] = await Promise.all([
+        // Fetch uncached profiles
+        uncachedAuthorIds.length > 0
+          ? supabase
+              .from("profiles_public")
+              .select("id, display_name, avatar_number")
+              .in("id", uncachedAuthorIds)
+          : Promise.resolve({ data: null }),
         
-        eventData?.forEach(event => {
-          eventDetailsMap.set(event.id, { event_date: event.event_date, location: event.location });
-        });
-      }
+        // Fetch beat plays
+        beatIds.length > 0
+          ? supabase
+              .from("beat_pad_creations")
+              .select("id, plays_count")
+              .in("id", beatIds)
+          : Promise.resolve({ data: null }),
+        
+        // Fetch event details
+        eventIds.length > 0
+          ? supabase
+              .from("events")
+              .select("id, event_date, location")
+              .in("id", eventIds)
+          : Promise.resolve({ data: null })
+      ]);
+
+      // Add profiles to cache
+      profilesResult.data?.forEach(p => {
+        profileCache.set(p.id, { name: p.display_name, avatar: p.avatar_number });
+      });
+
+      // Build beat plays map
+      const beatPlaysMap = new Map<string, number>();
+      beatDataResult.data?.forEach(beat => {
+        beatPlaysMap.set(beat.id, beat.plays_count || 0);
+      });
+
+      // Build event details map
+      const eventDetailsMap = new Map<string, { event_date: string | null; location: string | null }>();
+      eventDataResult.data?.forEach(event => {
+        eventDetailsMap.set(event.id, { event_date: event.event_date, location: event.location });
+      });
 
       // Merge profile data with feed items, filtering invalid types
       const enrichedItems: FeedItemData[] = feedItems

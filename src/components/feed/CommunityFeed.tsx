@@ -1,16 +1,14 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedItem } from "./FeedItem";
+import { FeedItemSkeleton } from "./FeedItemSkeleton";
 import { FeedTypeFilter } from "./FeedTypeFilter";
 import { useCommunityFeed, ItemType } from "@/hooks/useCommunityFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import { useUnseenFeedCount } from "@/hooks/useUnseenFeedCount";
 import { useBatchLikeStatus } from "@/hooks/useBatchLikeStatus";
-
-// Estimated height for feed items (for virtual scroll optimization)
-const ESTIMATED_ITEM_HEIGHT = 400;
 
 export function CommunityFeed() {
   const [typeFilters, setTypeFilters] = useState<ItemType[]>([]);
@@ -29,10 +27,24 @@ export function CommunityFeed() {
     }
   }, [isAuthenticated, items.length, markAsSeen]);
 
+  // PHASE 5: Image preloading for above-the-fold items
+  useEffect(() => {
+    if (items.length > 0) {
+      // Preload first 4 images
+      items.slice(0, 4).forEach(item => {
+        if (item.image_url) {
+          const img = new Image();
+          img.src = item.image_url;
+        }
+      });
+    }
+  }, [items]);
+
   // Pull to refresh handler
   const handleRefresh = useCallback(async () => {
     await refresh();
   }, [refresh]);
+
   // Infinite scroll observer
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -83,6 +95,7 @@ export function CommunityFeed() {
     );
   }
 
+  // PHASE 4: Improved skeleton loading with proper card dimensions
   if (loading) {
     return (
       <div className="space-y-4">
@@ -92,25 +105,12 @@ export function CommunityFeed() {
             <div key={i} className="h-8 w-20 bg-muted rounded-md animate-pulse shrink-0" />
           ))}
         </div>
-        {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="bg-card border border-border rounded-xl overflow-hidden animate-pulse"
-          >
-            <div className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-muted" />
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-24 bg-muted rounded" />
-                <div className="h-3 w-16 bg-muted rounded" />
-              </div>
-            </div>
-            <div className="aspect-video bg-muted" />
-            <div className="p-4 space-y-2">
-              <div className="h-4 w-3/4 bg-muted rounded" />
-              <div className="h-3 w-1/2 bg-muted rounded" />
-            </div>
-          </div>
-        ))}
+        {/* Feed item skeletons in grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <FeedItemSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }
