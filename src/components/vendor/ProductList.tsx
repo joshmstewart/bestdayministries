@@ -206,6 +206,9 @@ export const ProductList = forwardRef<ProductListRef, ProductListProps>(
           
           <CardContent className="p-4">
             <h3 className="font-semibold text-lg mb-1 truncate">{product.name}</h3>
+            {product.vendor_sku && (
+              <p className="text-xs text-muted-foreground mb-1">SKU: {product.vendor_sku}</p>
+            )}
             <p className="text-muted-foreground text-sm mb-2 line-clamp-2 whitespace-pre-line">
               {product.description}
             </p>

@@ -55,6 +55,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
   const [price, setPrice] = useState(product?.price || "");
   const [inventoryCount, setInventoryCount] = useState(product?.inventory_count || 0);
   const [weightOz, setWeightOz] = useState<number | "">(product?.weight_oz ?? "");
+  const [vendorSku, setVendorSku] = useState(product?.vendor_sku || "");
   const [category, setCategory] = useState(product?.category || "");
   const [tags, setTags] = useState(product?.tags?.join(", ") || "");
   const [isActive, setIsActive] = useState(product?.is_active ?? true);
@@ -84,6 +85,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
       setPrice(product?.price || "");
       setInventoryCount(product?.inventory_count || 0);
       setWeightOz(product?.weight_oz ?? "");
+      setVendorSku(product?.vendor_sku || "");
       setCategory(product?.category || "");
       setTags(product?.tags?.join(", ") || "");
       setIsActive(product?.is_active ?? true);
@@ -318,6 +320,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
         price: parseFloat(price),
         inventory_count: inventoryCount,
         weight_oz: weightOz === "" ? null : Number(weightOz),
+        vendor_sku: vendorSku.trim() || null,
         category: category || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : null,
         images: allImages,
@@ -393,6 +396,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setPrice("");
     setInventoryCount(0);
     setWeightOz("");
+    setVendorSku("");
     setCategory("");
     setTags("");
     setIsActive(true);
@@ -564,6 +568,28 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
                 placeholder="16"
               />
             </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="vendorSku">Your Product ID / SKU</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="text-muted-foreground hover:text-foreground">
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p>Optional. Use your own product ID or SKU for internal tracking.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Input
+              id="vendorSku"
+              value={vendorSku}
+              onChange={(e) => setVendorSku(e.target.value)}
+              placeholder="e.g., MUG-001"
+            />
           </div>
 
           <div>

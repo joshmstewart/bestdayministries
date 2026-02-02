@@ -7461,6 +7461,7 @@ export type Database = {
           tags: string[] | null
           updated_at: string
           vendor_id: string | null
+          vendor_sku: string | null
           view_count: number
           weight_oz: number | null
         }
@@ -7492,6 +7493,7 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
+          vendor_sku?: string | null
           view_count?: number
           weight_oz?: number | null
         }
@@ -7523,6 +7525,7 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           vendor_id?: string | null
+          vendor_sku?: string | null
           view_count?: number
           weight_oz?: number | null
         }

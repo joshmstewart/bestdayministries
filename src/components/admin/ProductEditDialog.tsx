@@ -25,6 +25,7 @@ interface Product {
   price: number;
   is_active: boolean;
   inventory_count: number;
+  vendor_sku?: string | null;
   is_printify_product?: boolean;
   printify_variant_ids?: Record<string, number> | null;
 }
@@ -40,6 +41,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [vendorSku, setVendorSku] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -52,6 +54,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
       setName(product.name);
       setDescription(product.description || "");
       setPrice(product.price.toString());
+      setVendorSku(product.vendor_sku || "");
       setIsActive(product.is_active);
       loadProductImages(product.id);
     }
@@ -133,6 +136,7 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
           name,
           description,
           price: priceNum,
+          vendor_sku: vendorSku.trim() || null,
           is_active: isActive,
           default_image_index: defaultImageIndex,
           default_image_url: defaultImageUrl,
@@ -195,6 +199,16 @@ export const ProductEditDialog = ({ product, open, onOpenChange, onSave }: Produ
             <p className="text-xs text-muted-foreground">
               This is the final selling price including any markup.
             </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="vendor-sku">Vendor Product ID / SKU</Label>
+            <Input
+              id="vendor-sku"
+              value={vendorSku}
+              onChange={(e) => setVendorSku(e.target.value)}
+              placeholder="Optional - vendor's internal product ID"
+            />
           </div>
 
           <div className="flex items-center justify-between">
