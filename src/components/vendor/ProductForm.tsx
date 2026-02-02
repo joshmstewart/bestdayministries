@@ -882,19 +882,19 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
                   >
                     <Plus className="h-3 w-3 mr-1" /> Add another choice
                   </Button>
+                  
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={addOption}
+                    disabled={!pendingOptionHasValues}
+                    className="w-full mt-2"
+                  >
+                    Save Option
+                  </Button>
                 </div>
               )}
             </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addOption}
-              disabled={!pendingOptionHasType || !pendingOptionHasValues}
-            >
-              <Plus className="h-3 w-3 mr-1" /> Add Another Option
-            </Button>
             
             {options.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-2">
