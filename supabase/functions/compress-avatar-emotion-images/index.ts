@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,11 +15,9 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+
+    // NOTE: This function intentionally does NOT rely on Lovable AI credits.
+    // It performs deterministic image resizing and PNG encoding locally.
 
     // Get the authorization header
     const authHeader = req.headers.get("Authorization");
@@ -59,12 +58,12 @@ serve(async (req) => {
 
     // Parse request body for optional job_id (to resume) or batch_size
     let jobId: string | null = null;
-    let batchSize = 5; // Process 5 at a time for progress visibility
+    let batchSize = 3; // Smaller batches reduce edge runtime risk
     
     try {
       const body = await req.json();
       jobId = body.job_id || null;
-      batchSize = body.batch_size || 5;
+      batchSize = body.batch_size || 3;
     } catch {
       // No body or invalid JSON, use defaults
     }
@@ -188,76 +187,52 @@ serve(async (req) => {
           throw new Error(`Failed to fetch image: ${imageResponse.status}`);
         }
 
-        const originalBlob = await imageResponse.blob();
-        const originalSize = originalBlob.size;
+        const originalBytes = new Uint8Array(await imageResponse.arrayBuffer());
+        const originalSize = originalBytes.byteLength;
+        const contentType = imageResponse.headers.get("content-type") || "";
 
         console.log(`Original image size: ${originalSize} bytes`);
 
-        // Skip if already small enough (under 100KB is likely already optimized)
-        if (originalSize < 100 * 1024) {
-          console.log(`Skipping already small image ${image.id} (${Math.round(originalSize / 1024)}KB)`);
+        // Decode to check dimensions (user-requested) and to perform actual resize.
+        let decoded: Image;
+        try {
+          decoded = await Image.decode(originalBytes);
+        } catch (e) {
+          throw new Error(`Failed to decode image: ${e instanceof Error ? e.message : String(e)}`);
+        }
+
+        const TARGET = 256;
+        const SKIP_MAX_BYTES = 100 * 1024;
+        const isAlreadySmall = originalSize < SKIP_MAX_BYTES;
+        const isAlreadyTargetSize = decoded.width === TARGET && decoded.height === TARGET;
+        const isProbablyPng = contentType.includes("image/png") || image.image_url.endsWith(".png");
+
+        // Skip if it's already effectively optimized (size+dimensions).
+        // We also rely on the "compressed-" filename prefix upstream to exclude already-processed assets.
+        if (isAlreadySmall && isAlreadyTargetSize && isProbablyPng) {
+          console.log(`Skipping already optimized image ${image.id} (${decoded.width}x${decoded.height}, ${Math.round(originalSize / 1024)}KB)`);
           skipped++;
           continue;
         }
 
-        const originalBase64 = await blobToBase64(originalBlob);
+        // Resize to 256x256. These emoji images are expected to be square; if not, this will stretch.
+        // (Keeping behavior minimal + deterministic; we can add cover-crop later if needed.)
+        decoded.resize(TARGET, TARGET);
 
-        // Use AI Gateway to resize to 256x256
-        const compressionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${lovableApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: "GENERATE AN IMAGE NOW. Resize this image to exactly 256x256 pixels. Keep the same content exactly, just make it smaller. Output only the resized image, no text.",
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:${originalBlob.type};base64,${originalBase64}`,
-                    },
-                  },
-                ],
-              },
-            ],
-            modalities: ["image", "text"],
-          }),
-        });
+        // Encode PNG with compression level 3 (max). ImageScript exposes PNG via encode(level).
+        const compressedBuffer = await decoded.encode(3);
+        const compressedSize = compressedBuffer.byteLength;
 
-        if (!compressionResponse.ok) {
-          const errorText = await compressionResponse.text();
-          throw new Error(`AI Gateway error: ${compressionResponse.status} - ${errorText}`);
-        }
-
-        const compressedData = await compressionResponse.json();
-        const compressedImageUrl = compressedData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-        if (!compressedImageUrl) {
-          console.log(`AI didn't return image for ${image.id}, skipping`);
-          failed++;
-          errors.push(`${image.id}: AI returned no image`);
+        if (compressedSize >= originalSize) {
+          console.log(`Skipping compression for ${image.id} because output is not smaller (${compressedSize} >= ${originalSize})`);
+          skipped++;
           continue;
         }
 
-        // Convert compressed image to buffer
-        const compressedBase64 = compressedImageUrl.replace(/^data:image\/\w+;base64,/, "");
-        const compressedBuffer = Uint8Array.from(atob(compressedBase64), (c) => c.charCodeAt(0));
-        const compressedSize = compressedBuffer.length;
-
-        console.log(`Compressed size: ${compressedSize} bytes (${Math.round((1 - compressedSize/originalSize) * 100)}% reduction)`);
+        console.log(`Compressed size: ${compressedSize} bytes (${Math.round((1 - compressedSize / originalSize) * 100)}% reduction)`);
 
         // Extract filename from URL and create new path
-        const urlParts = image.image_url.split("/");
-        const originalFileName = urlParts[urlParts.length - 1];
-        const newFileName = `compressed-${Date.now()}-${originalFileName}`;
+        const newFileName = `compressed-${image.id}-${Date.now()}.png`;
         const filePath = `avatar-emotions/${newFileName}`;
 
         // Upload compressed image
@@ -346,14 +321,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Helper function to convert Blob to base64
-async function blobToBase64(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
