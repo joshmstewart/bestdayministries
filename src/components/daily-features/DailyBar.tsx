@@ -11,10 +11,7 @@ import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { CollectionSelectorDialog } from "@/components/CollectionSelectorDialog";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useDailyBarIcons } from "@/hooks/useDailyBarIcons";
-import { useDailyEngagementSettings } from "@/hooks/useDailyEngagementSettings";
-import { useDailyCompletions } from "@/hooks/useDailyCompletions";
-import { useDailyScratchCardStatus } from "@/hooks/useDailyScratchCardStatus";
+import { useDailyBarData } from "@/hooks/useDailyBarData";
 import { useDailyEngagementBonus } from "@/hooks/useDailyEngagementBonus";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -43,14 +40,21 @@ const GRADIENTS: Record<string, { gradient: string; bgGradient: string }> = {
 };
 
 export function DailyBar() {
-  const { user, isAuthenticated, role } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [activePopup, setActivePopup] = useState<string | null>(null);
-  const { icons, loading: iconsLoading } = useDailyBarIcons();
-  const { canSeeFeature } = useDailyEngagementSettings();
-  const { completions, loading: completionsLoading, refresh: refreshCompletions } = useDailyCompletions();
-  const { hasAvailableCard, loading: scratchLoading, previewStickerUrl } = useDailyScratchCardStatus();
+  
+  // Single combined hook replaces 4 separate hooks - runs all queries in parallel
+  const { 
+    icons, 
+    completions, 
+    hasAvailableCard, 
+    previewStickerUrl, 
+    canSeeFeature, 
+    loading, 
+    refresh: refreshCompletions 
+  } = useDailyBarData();
   
   // Sticker pack dialog states - matching DailyScratchCard logic exactly
   const [showStickerDialog, setShowStickerDialog] = useState(false);
@@ -80,9 +84,6 @@ export function DailyBar() {
       console.warn('Failed to persist mood TTS preference:', e);
     }
   }, [moodTtsEnabled]);
-  
-  // Combined loading state - don't render until all statuses are known
-  const loading = iconsLoading || completionsLoading || scratchLoading;
 
   // Calculate if all daily items are completed
   const allCompleted = useMemo(() => {
