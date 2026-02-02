@@ -127,12 +127,13 @@ export function DayOfWeekTrends({ userId }: DayOfWeekTrendsProps) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={150}>
-          <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
             <XAxis 
               dataKey="day" 
               tick={{ fontSize: 12 }} 
               axisLine={false}
               tickLine={false}
+              interval={0}
             />
             <YAxis 
               domain={[-1, 1]} 
@@ -144,9 +145,9 @@ export function DayOfWeekTrends({ userId }: DayOfWeekTrendsProps) {
                 'Trend'
               ]}
             />
-            <Bar dataKey="score" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="score" radius={[4, 4, 0, 0]} minPointSize={2}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getBarColor(entry.score)} />
+                <Cell key={`cell-${index}`} fill={entry.count > 0 ? getBarColor(entry.score) : '#e5e7eb'} />
               ))}
             </Bar>
           </BarChart>
