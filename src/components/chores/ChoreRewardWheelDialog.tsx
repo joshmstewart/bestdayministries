@@ -161,9 +161,17 @@ export function ChoreRewardWheelDialog({
             color: spinData.prize_type === "coins" ? "#FFD700" : "#9370DB",
             probability: 0,
           });
-          // Load card IDs for "Open Sticker Pack" button
+          // Load card IDs for "Open Sticker Pack" button - but only include unscratched cards
           if (spinData.card_ids && spinData.card_ids.length > 0) {
-            setWonCardIds(spinData.card_ids);
+            const { data: unscratchedCards } = await supabase
+              .from("daily_scratch_cards")
+              .select("id")
+              .in("id", spinData.card_ids)
+              .eq("is_scratched", false);
+            
+            if (unscratchedCards && unscratchedCards.length > 0) {
+              setWonCardIds(unscratchedCards.map(c => c.id));
+            }
           }
         }
       } catch (error) {
