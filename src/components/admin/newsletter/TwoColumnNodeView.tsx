@@ -6,12 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
 
+type AspectRatioKey = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3';
+
 export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
   const { layout, leftContent, rightContent, imageUrl, backgroundColor } = node.attrs;
   const [uploading, setUploading] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [aspectRatioKey, setAspectRatioKey] = useState<AspectRatioKey>('4:3');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isImageLeft = layout === 'image-left-text-right';
@@ -242,9 +245,11 @@ Add a headline and description that will appear alongside your image."
         onOpenChange={setCropDialogOpen}
         imageUrl={imageToCrop}
         onCropComplete={handleCroppedImage}
-        aspectRatio={4 / 3}
+        allowAspectRatioChange={true}
+        selectedRatioKey={aspectRatioKey}
+        onAspectRatioKeyChange={setAspectRatioKey}
         title="Crop Image"
-        description="Adjust the crop area for your newsletter image"
+        description="Select aspect ratio and adjust the crop area"
       />
     </NodeViewWrapper>
   );
