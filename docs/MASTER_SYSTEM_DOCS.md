@@ -133,6 +133,12 @@ JUST_ONCE:
   - Once completed on any day, it is treated as done forever (excluded from list + missed)
 FILES:src/pages/ChoreChart.tsx|src/components/chores/MissedChoresSection.tsx
 
+## CHORE_REWARD_WHEEL|/chore-chart
+WHEEL: `ChoreRewardWheelDialog` (prize wheel shown after all chores completed when no badge is earned).
+PACK_REDEMPTION: Always pass `onOpenStickerPack(cardId)` so previously-won sticker packs (stored as `card_ids`) can be opened via `PackOpeningDialog`.
+SOUND: Use sound event `wheel_click` for the spin gesture; win sounds can then play reliably on mobile.
+FILES:src/components/chores/ChoreRewardWheelDialog.tsx|src/components/chores/SpinningWheel.tsx|src/pages/ChoreChart.tsx
+
 ## GUARDIAN_APPROVALS|/guardian-approvals|caregiver
 TABS:posts|comments|vendors|messages→approve/reject/del
 DB:caregiver_bestie_links(require_post_approval|require_comment_approval|require_message_approval|require_vendor_asset_approval)

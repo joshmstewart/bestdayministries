@@ -111,6 +111,7 @@ export function SpinningWheel({
   const tickIntervalRef = useRef<number | null>(null);
   const audioPoolRef = useRef<HTMLAudioElement[]>([]);
   const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spinInProgressRef = useRef(false);
 
   // Fetch custom coin image and featured pack cover
   useEffect(() => {
@@ -166,6 +167,38 @@ export function SpinningWheel({
     }
     return audioContextRef.current;
   }, []);
+
+  // iOS Safari often blocks programmatic audio unless it's first "unlocked" by a user gesture.
+  // We prime both the AudioContext and HTMLAudio here so the tick + win sounds can play.
+  const unlockAudio = useCallback(() => {
+    try {
+      const audioContext = getAudioContext();
+      if (audioContext.state === "suspended") {
+        audioContext.resume().catch(() => {});
+      }
+
+      if (clickSoundUrl) {
+        const audio = getAudioFromPool();
+        if (audio) {
+          const prevVolume = audio.volume;
+          audio.currentTime = 0;
+          audio.volume = 0;
+          audio
+            .play()
+            .then(() => {
+              audio.pause();
+              audio.currentTime = 0;
+              audio.volume = prevVolume;
+            })
+            .catch(() => {
+              audio.volume = prevVolume;
+            });
+        }
+      }
+    } catch {
+      // Silent fail
+    }
+  }, [clickSoundUrl, getAudioContext, getAudioFromPool]);
 
   const playSpinSounds = useCallback(() => {
     const duration = 4000;
@@ -306,7 +339,11 @@ export function SpinningWheel({
   };
 
   const spin = () => {
-    if (isAnimating) return;
+    if (isAnimating || spinInProgressRef.current) return;
+    spinInProgressRef.current = true;
+
+    // If spin started from a user tap, this keeps audio + animation reliably enabled on mobile.
+    unlockAudio();
 
     const winningSegment = selectSegment();
     
@@ -353,12 +390,13 @@ export function SpinningWheel({
     spinTimeoutRef.current = setTimeout(() => {
       setIsAnimating(false);
       spinTimeoutRef.current = null;
+      spinInProgressRef.current = false;
       onSpinEnd(winningSegment);
     }, 4000);
   };
 
   useEffect(() => {
-    if (spinning && !isAnimating) {
+    if (spinning && !isAnimating && !spinInProgressRef.current) {
       spin();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -541,9 +579,13 @@ export function SpinningWheel({
   };
 
   const handleClick = () => {
-    if (!disabled && !isAnimating && !spinning) {
-      onSpinStart();
-    }
+    if (disabled || isAnimating || spinning || spinInProgressRef.current) return;
+
+    // Unlock audio + start the visual spin immediately from the tap gesture,
+    // while still notifying the parent so it can set external state.
+    unlockAudio();
+    onSpinStart();
+    spin();
   };
 
   const isDisabled = disabled || isAnimating || spinning;
