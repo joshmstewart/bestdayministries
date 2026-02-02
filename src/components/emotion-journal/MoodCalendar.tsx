@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, subMonths, addMonths, isSameMonth } from 'date-fns';
+import { useAvatarEmotionImages } from '@/hooks/useAvatarEmotionImages';
 
 interface MoodCalendarProps {
   userId: string;
@@ -34,6 +35,9 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
   const [entries, setEntries] = useState<Map<string, MoodEntry>>(new Map());
   const [emotionCategories, setEmotionCategories] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+
+  // Load avatar emotion images
+  const { imagesByEmotionName, hasAvatar } = useAvatarEmotionImages(userId);
 
   useEffect(() => {
     loadEmotionTypes();
@@ -143,6 +147,7 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
                 const entry = entries.get(dateStr);
                 const category = entry ? emotionCategories.get(entry.mood_label) : null;
                 const colorClass = category ? getMoodColor(category) : '';
+                const avatarImage = entry ? imagesByEmotionName[entry.mood_label] : null;
 
                 return (
                   <div
@@ -150,13 +155,29 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
                     className="aspect-square flex items-center justify-center relative"
                     title={entry ? `${entry.mood_label}` : undefined}
                   >
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center text-xs
-                      ${entry ? colorClass : 'bg-muted/30'}
-                      ${entry ? 'text-white font-medium' : 'text-muted-foreground'}
-                    `}>
-                      {entry ? entry.mood_emoji : format(day, 'd')}
-                    </div>
+                    {entry && avatarImage?.url ? (
+                      // Show avatar image
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-muted">
+                        <img
+                          src={avatarImage.url}
+                          alt={entry.mood_label}
+                          className="w-full h-full object-cover"
+                          style={{
+                            transform: `scale(${avatarImage.cropScale})`,
+                            transformOrigin: 'center',
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      // Show emoji or date number
+                      <div className={`
+                        w-8 h-8 rounded-full flex items-center justify-center text-xs
+                        ${entry ? colorClass : 'bg-muted/30'}
+                        ${entry ? 'text-white font-medium' : 'text-muted-foreground'}
+                      `}>
+                        {entry ? entry.mood_emoji : format(day, 'd')}
+                      </div>
+                    )}
                   </div>
                 );
               })}
