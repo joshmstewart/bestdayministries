@@ -47,7 +47,7 @@ export const VendorStartupGuide = ({
   onViewStore 
 }: VendorStartupGuideProps) => {
   const { completedSteps, autoDetectedSteps, isDismissed, loading, toggleStep, setDismissed } = useVendorOnboardingProgress(vendorId);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const steps: OnboardingStep[] = useMemo(() => [
     {
@@ -116,6 +116,7 @@ export const VendorStartupGuide = ({
             <li>Choose a theme color that represents your brand</li>
             <li>Write a compelling store description</li>
             <li>Upload a logo or banner image</li>
+            <li>Add images and videos to showcase your products and work</li>
             <li>Add your store's story and values</li>
           </ul>
         </div>
