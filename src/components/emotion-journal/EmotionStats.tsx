@@ -6,7 +6,7 @@ import { startOfWeek, endOfWeek, format, subDays } from 'date-fns';
 
 interface MoodStats {
   totalEntries: number;
-  mostFrequentMood: { mood: string; emoji: string; count: number } | null;
+  topMoods: { mood: string; emoji: string; count: number }[];
   weeklyBreakdown: { [key: string]: number };
   streakDays: number;
 }
@@ -41,14 +41,14 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
       if (!entries || entries.length === 0) {
         setStats({
           totalEntries: 0,
-          mostFrequentMood: null,
+          topMoods: [],
           weeklyBreakdown: {},
           streakDays: 0,
         });
         return;
       }
 
-      // Calculate most frequent mood
+      // Calculate mood counts
       const moodCounts: { [key: string]: { count: number; emoji: string } } = {};
       entries.forEach(entry => {
         if (!moodCounts[entry.mood_label]) {
@@ -60,7 +60,12 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
       const sortedMoods = Object.entries(moodCounts)
         .sort((a, b) => b[1].count - a[1].count);
       
-      const mostFrequent = sortedMoods[0];
+      // Get all moods with the highest count (up to 3)
+      const maxCount = sortedMoods[0]?.[1].count || 0;
+      const topMoods = sortedMoods
+        .filter(([, data]) => data.count === maxCount)
+        .slice(0, 3)
+        .map(([mood, data]) => ({ mood, emoji: data.emoji, count: data.count }));
 
       // Calculate weekly breakdown (this week)
       const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 });
@@ -91,9 +96,7 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
 
       setStats({
         totalEntries: entries.length,
-        mostFrequentMood: mostFrequent 
-          ? { mood: mostFrequent[0], emoji: mostFrequent[1].emoji, count: mostFrequent[1].count }
-          : null,
+        topMoods,
         weeklyBreakdown,
         streakDays: streak,
       });
@@ -149,20 +152,26 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
         </Card>
       </div>
 
-      {/* Most Frequent Mood */}
-      {stats.mostFrequentMood && (
+      {/* Most Common Feelings - shows ties */}
+      {stats.topMoods.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Award className="h-5 w-5" />
-              Most Common Feeling
+              {stats.topMoods.length === 1 ? 'Most Common Feeling' : 'Most Common Feelings'}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-center py-4">
-            <div className="text-6xl mb-3">{stats.mostFrequentMood.emoji}</div>
-            <div className="text-xl font-medium">{stats.mostFrequentMood.mood}</div>
-            <div className="text-sm text-muted-foreground">
-              Logged {stats.mostFrequentMood.count} times
+          <CardContent className="py-4">
+            <div className={`grid gap-4 ${stats.topMoods.length === 1 ? 'grid-cols-1' : stats.topMoods.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {stats.topMoods.map((mood, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-5xl mb-2">{mood.emoji}</div>
+                  <div className="text-lg font-medium">{mood.mood}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Logged {mood.count} {mood.count === 1 ? 'time' : 'times'}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -175,11 +184,17 @@ export function EmotionStats({ userId }: EmotionStatsProps) {
             <BarChart2 className="h-5 w-5" />
             This Week
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            How many times you logged your mood each day
+          </p>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-end h-32">
             {Object.entries(stats.weeklyBreakdown).map(([day, count]) => (
               <div key={day} className="flex flex-col items-center gap-2">
+                <div className="text-xs font-medium text-muted-foreground">
+                  {count > 0 ? count : ''}
+                </div>
                 <div 
                   className="w-8 rounded-t-md bg-primary transition-all"
                   style={{ 
