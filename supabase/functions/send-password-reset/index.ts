@@ -33,7 +33,7 @@ const generateSecureToken = (): string => {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface PasswordResetRequest {
@@ -178,6 +178,10 @@ const handler = async (req: Request): Promise<Response> => {
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetLink}" style="background: linear-gradient(135deg, #E07B39 0%, #D2691E 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Reset Password</a>
             </div>
+            <p style="color: #666; font-size: 12px; margin-top: 20px; word-break: break-all; text-align: center;">
+              Or copy and paste this link into your browser:<br>
+              <a href="${resetLink}" style="color: #E07B39;">${resetLink}</a>
+            </p>
             <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
             <p style="color: #666; font-size: 14px;">If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
             <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
