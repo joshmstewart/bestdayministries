@@ -5,6 +5,7 @@ import { ImageIcon, Trash2, ArrowLeftRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
+import { compressImage } from '@/lib/imageUtils';
 
 type AspectRatioKey = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3';
 
@@ -40,9 +41,15 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `newsletter-images/${fileName}`;
 
+      // Convert blob to file for compression
+      const tempFile = new File([croppedBlob], `temp.${fileExt}`, { type: croppedBlob.type });
+      
+      // Compress image: max 1MB, max 1200px (optimized for email)
+      const compressedFile = await compressImage(tempFile, 1, 1200, 1200);
+
       const { error: uploadError } = await supabase.storage
         .from('app-assets')
-        .upload(filePath, croppedBlob);
+        .upload(filePath, compressedFile);
 
       if (uploadError) throw uploadError;
 
