@@ -1,180 +1,253 @@
 
-# Plan: Optimize Community Feed Loading Performance
+# Plan: Vendor Startup Guide (Onboarding Checklist)
 
-## Problem Analysis
+## Overview
 
-After analyzing the codebase, I identified several performance bottlenecks in the community feed:
+Create an interactive startup guide for new vendors that displays as a checklist with expandable details for each step. The guide will track completion state, allow manual check-off, and minimize once complete while remaining accessible for reference.
 
-### Current Architecture
-- **Database View**: `community_feed_items` is a UNION ALL of 14+ different source tables
-- **Query Execution**: ~29ms for the view query (not bad), but the bottleneck is elsewhere
-- **Current Data**: ~145 total feed items across all sources
+## User Experience
 
-### Identified Bottlenecks
+### Initial State (Incomplete)
+- Prominent card displayed at the top of the Vendor Dashboard (above stats cards)
+- Shows progress bar with completion count (e.g., "3/6 complete")
+- Lists all checklist items with expand/collapse functionality
+- Each item shows: checkbox, title, and brief description
+- Clicking an item expands to show full details and navigation links
 
-1. **Sequential Waterfall Queries** (Primary Issue)
-   - Feed items query → wait → Profile fetch → wait → Beat plays fetch → wait → Event details fetch → wait → Like status batch (10 parallel queries)
-   - Each "wait" adds network latency
+### Completed State
+- Card collapses to a minimal "Startup Guide Complete" badge/button
+- Can be clicked to re-expand and view all steps again
+- Green success styling indicates completion
 
-2. **Subqueries in View Definition**
-   - The view uses correlated subqueries for `comments_count` on discussion_posts and albums
-   - These run for every row, even when not needed
-
-3. **No Index on `created_at`** for feed source tables
-   - Most feed tables lack `created_at DESC` indexes
-   - The view must sort all 145+ rows without index support
-
-4. **Like Status Batch**: 10 parallel queries to different tables
-   - Even though batched, this adds latency waiting for slowest query
-
-5. **Missing Image Preloading**
-   - Images load lazily after render, causing visual delays
+### Persistent State
+- Completion state stored in database (`vendor_onboarding_progress` table)
+- Survives browser refresh and cross-device access
+- Each vendor has independent progress tracking
 
 ---
 
-## Proposed Optimizations
+## Checklist Items
 
-### Phase 1: Database Indexes (Immediate Impact)
+| Step | Title | Description | Details | Navigation |
+|------|-------|-------------|---------|------------|
+| 1 | Complete Stripe Connect | Set up payments to receive earnings | Explains Stripe Connect benefits, tax handling, payout process | → Payments tab |
+| 2 | Add Your First Product | List a product in your store | Image tips, pricing strategy, inventory basics | → Products tab + Add Product button |
+| 3 | Set Up Shipping | Configure shipping options and weights | Flat rate vs calculated, weight importance, free shipping threshold | → Shipping tab |
+| 4 | Customize Your Store | Add branding and store description | Theme colors, business description, logo | → Settings tab |
+| 5 | Link with a Bestie (Optional) | Partner with a Bestie for authentic content | How to get friend codes, benefits of linking, approval process | → Settings tab (Bestie Features) |
+| 6 | View Your Public Store | Preview what customers will see | Check everything looks good, test from customer perspective | → "View My Store" button |
 
-Add `created_at DESC` indexes to main feed source tables:
+---
 
-```sql
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_beat_pad_creations_public_created 
-  ON beat_pad_creations(created_at DESC) WHERE is_public = true;
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_colorings_public_created 
-  ON user_colorings(created_at DESC) WHERE is_public = true;
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_public_created 
-  ON events(created_at DESC) WHERE is_active = true AND is_public = true;
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_prayer_requests_public_created 
-  ON prayer_requests(created_at DESC) WHERE is_public = true;
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_custom_drinks_public_created 
-  ON custom_drinks(created_at DESC) WHERE is_public = true;
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jokes_shared_created 
-  ON jokes(created_at DESC) WHERE is_shared_to_feed = true;
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_content_announcements_active_created 
-  ON content_announcements(created_at DESC) WHERE is_active = true;
-```
-
-### Phase 2: Parallel Query Execution
-
-Restructure `useCommunityFeed.ts` to run independent queries in parallel:
-
-```typescript
-// BEFORE: Sequential waterfall
-const feedItems = await fetchFeedItems();
-const profiles = await fetchProfiles(feedItems);  // waits
-const beatPlays = await fetchBeatPlays(feedItems); // waits
-const eventDetails = await fetchEventDetails(feedItems); // waits
-
-// AFTER: Parallel execution
-const feedItems = await fetchFeedItems();
-const [profiles, beatPlays, eventDetails] = await Promise.all([
-  fetchProfiles(feedItems),
-  fetchBeatPlays(feedItems),
-  fetchEventDetails(feedItems)
-]);
-```
-
-### Phase 3: Optimized View with Pre-computed Columns
-
-Create a materialized approach or modify the view to include event_date and location directly:
+## Database Schema
 
 ```sql
--- Add event_date and location to the view's events select
-SELECT events.id,
-  'event'::text AS item_type,
-  events.title,
-  events.description,
-  events.created_by AS author_id,
-  events.created_at,
-  events.image_url,
-  COALESCE(events.likes_count, 0) AS likes_count,
-  NULL::bigint AS comments_count,
-  jsonb_build_object('event_date', events.event_date, 'location', events.location) AS extra_data,
-  NULL::uuid AS repost_id
-FROM events
-WHERE events.is_active = true AND events.is_public = true
+CREATE TABLE vendor_onboarding_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  completed_steps TEXT[] DEFAULT '{}',
+  is_dismissed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(vendor_id)
+);
+
+-- RLS: Vendors can only manage their own progress
+ALTER TABLE vendor_onboarding_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their vendor's onboarding progress"
+ON vendor_onboarding_progress
+FOR ALL
+USING (
+  EXISTS (
+    SELECT 1 FROM vendors v 
+    WHERE v.id = vendor_onboarding_progress.vendor_id 
+    AND v.user_id = auth.uid()
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM vendors v 
+    WHERE v.id = vendor_onboarding_progress.vendor_id 
+    AND v.user_id = auth.uid()
+  )
+);
 ```
 
-This eliminates the separate event details query entirely.
+---
 
-### Phase 4: Skeleton Loading Improvements
+## Component Architecture
 
-Enhance the loading skeleton to show immediately with proper dimensions:
+### Files to Create
+
+1. **`src/components/vendor/VendorStartupGuide.tsx`**
+   - Main component with the collapsible checklist UI
+   - Uses Accordion for expandable step details
+   - Manages progress state and database sync
+
+2. **`src/hooks/useVendorOnboardingProgress.ts`**
+   - Fetches and updates progress from database
+   - Provides toggle function for marking steps complete
+   - Handles optimistic updates
+
+### Component Structure
+
+```text
+VendorStartupGuide
+├── Header (title, progress bar, badge)
+├── Accordion
+│   ├── AccordionItem (Stripe Connect)
+│   │   ├── Trigger: Checkbox + Title + Brief description
+│   │   └── Content: Full details + Action button
+│   ├── AccordionItem (First Product)
+│   │   └── ...
+│   └── ... (6 total items)
+└── Minimized State (when complete + dismissed)
+    └── Button to re-open
+```
+
+---
+
+## Implementation Details
+
+### Progress Tracking Logic
 
 ```typescript
-// Show skeleton that matches actual card dimensions
-if (loading) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {[...Array(6)].map((_, i) => (
-        <FeedItemSkeleton key={i} />
-      ))}
+interface OnboardingStep {
+  id: string;
+  title: string;
+  description: string;
+  details: ReactNode;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  isOptional?: boolean;
+}
+
+const STEPS: OnboardingStep[] = [
+  {
+    id: 'stripe-connect',
+    title: 'Complete Stripe Connect',
+    description: 'Set up payments to receive earnings',
+    details: (
+      <div className="space-y-3">
+        <p>Stripe Connect allows you to receive payments directly...</p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>No existing Stripe account needed</li>
+          <li>Automatic 1099-K tax reporting</li>
+          <li>Weekly payouts to your bank</li>
+        </ul>
+      </div>
+    ),
+    action: { label: 'Go to Payments', onClick: () => setActiveTab('payments') }
+  },
+  // ... other steps
+];
+```
+
+### Minimized State
+
+When all non-optional steps are complete AND user dismisses the guide:
+- Store `is_dismissed: true` in database
+- Show compact badge: "✓ Startup Complete - View Guide"
+- Clicking re-opens the full checklist
+
+### Auto-Detection (Future Enhancement)
+
+Could auto-detect some completions:
+- Stripe Connect: Check `vendor.stripe_charges_enabled`
+- First Product: Check `products` count > 0
+- Store Branding: Check `vendor.description` exists
+
+For MVP, manual checkboxes only to keep scope manageable.
+
+---
+
+## UI/UX Details
+
+### Visual Design
+
+- **Card styling**: Matches existing dashboard theme support
+- **Checkbox**: Custom checkbox with smooth check animation
+- **Progress bar**: Shows percentage with step count text
+- **Expand indicator**: ChevronDown that rotates on open
+- **Action buttons**: Primary buttons inside expanded content
+
+### Responsive Behavior
+
+- Mobile: Full-width, accordion still works
+- Desktop: Constrained max-width for readability
+
+### Accessibility
+
+- Keyboard navigable (accordion is already accessible)
+- ARIA labels for checkboxes
+- Focus management when expanding/collapsing
+
+---
+
+## Integration with VendorDashboard
+
+### Placement
+
+```tsx
+// In VendorDashboard.tsx, after vendor selector, before stats cards
+{selectedVendor?.status === 'approved' && selectedVendorId && (
+  <div className="space-y-6 ...">
+    {/* NEW: Startup Guide */}
+    <VendorStartupGuide 
+      vendorId={selectedVendorId} 
+      theme={theme}
+      onNavigateToTab={setActiveTab}
+    />
+    
+    {/* Existing stats cards */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      ...
     </div>
-  );
+  </div>
+)}
+```
+
+### Props
+
+```typescript
+interface VendorStartupGuideProps {
+  vendorId: string;
+  theme?: VendorThemePreset;
+  onNavigateToTab: (tab: string) => void;
 }
 ```
 
-### Phase 5: Image Preloading Strategy
+---
 
-Add image preloading for above-the-fold items:
+## Files to Modify
 
-```typescript
-// Preload first 4 images while processing data
-useEffect(() => {
-  items.slice(0, 4).forEach(item => {
-    if (item.image_url) {
-      const img = new Image();
-      img.src = item.image_url;
-    }
-  });
-}, [items]);
-```
+| File | Changes |
+|------|---------|
+| `src/pages/VendorDashboard.tsx` | Import and render VendorStartupGuide component |
+| **New** `src/components/vendor/VendorStartupGuide.tsx` | Main checklist component |
+| **New** `src/hooks/useVendorOnboardingProgress.ts` | Database sync hook |
+| **New** `supabase/migrations/...` | Create vendor_onboarding_progress table |
 
 ---
 
-## Implementation Priority
+## Technical Considerations
 
-| Priority | Change | Impact | Effort |
-|----------|--------|--------|--------|
-| 1 | Parallel query execution | High | Low |
-| 2 | Include event details in view | Medium | Low |
-| 3 | Database indexes | Medium | Low |
-| 4 | Image preloading | Medium | Low |
-| 5 | Skeleton loading | Low | Low |
+### Performance
+- Single query to load progress on mount
+- Optimistic UI updates when toggling checkboxes
+- No impact on dashboard loading time (async)
 
----
+### Edge Cases
+- New vendor with no progress record → Create on first interaction
+- Multiple team members → Each sees same progress (vendor-level)
+- Vendor deleted → Progress cascade deletes
 
-## Technical Details
+### Future Enhancements (Not in MVP)
+- Auto-detect completion based on actual vendor state
+- Celebration animation when all complete
+- Time estimates for each step
+- "Need help?" links to support
 
-### Files to Modify
-
-1. **`src/hooks/useCommunityFeed.ts`**
-   - Restructure to use `Promise.all` for parallel fetches
-   - Remove separate event details query (will be in view)
-
-2. **Database Migration**
-   - Add 7 new indexes on feed source tables
-   - Update `community_feed_items` view to include event details
-
-3. **`src/components/feed/CommunityFeed.tsx`**
-   - Add image preloading for visible items
-   - Enhance skeleton with proper card dimensions
-
-### Expected Performance Improvement
-
-- **Current**: ~800-1200ms total load time (sequential queries + render)
-- **After**: ~300-500ms total load time
-- **Perceived**: Near-instant with skeleton + preloaded images
-
-### Risk Assessment
-
-- **Low Risk**: All changes are additive indexes and query restructuring
-- **No Breaking Changes**: Maintains same API and data structure
-- **Rollback**: Easy - remove indexes, revert code changes
