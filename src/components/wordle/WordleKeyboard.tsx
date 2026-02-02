@@ -15,9 +15,9 @@ const KEYBOARD_ROWS = [
 
 export function WordleKeyboard({ onKeyPress, keyboardStatus, disabled }: WordleKeyboardProps) {
   return (
-    <div className="flex flex-col gap-1.5 sm:gap-1.5 items-center w-full px-1">
+    <div className="flex flex-col gap-1 items-center w-full">
       {KEYBOARD_ROWS.map((row, rowIndex) => (
-        <div key={rowIndex} className="flex gap-1 sm:gap-1 w-full justify-center">
+        <div key={rowIndex} className="flex gap-[5px] w-full justify-center px-1">
           {row.map((key) => {
             const status = keyboardStatus[key];
             const isSpecial = key === "ENTER" || key === "BACKSPACE";
@@ -28,11 +28,11 @@ export function WordleKeyboard({ onKeyPress, keyboardStatus, disabled }: WordleK
                 onClick={() => onKeyPress(key)}
                 disabled={disabled}
                 className={cn(
-                  "flex items-center justify-center font-semibold rounded-md transition-all touch-manipulation",
+                  "flex items-center justify-center font-bold rounded-md transition-all touch-manipulation select-none",
                   "hover:opacity-80 active:scale-95 disabled:opacity-50",
                   isSpecial 
-                    ? "px-3 sm:px-4 h-14 sm:h-14 text-sm sm:text-sm min-w-[52px] sm:min-w-[60px]" 
-                    : "flex-1 max-w-[36px] sm:max-w-[40px] h-14 sm:h-14 text-base sm:text-base font-bold",
+                    ? "px-2 h-[52px] text-[11px] sm:text-sm min-w-[56px] sm:min-w-[65px]" 
+                    : "flex-1 h-[52px] text-lg sm:text-xl",
                   !status && "bg-muted text-foreground",
                   status === "correct" && "bg-green-500 text-white",
                   status === "present" && "bg-yellow-500 text-white",
