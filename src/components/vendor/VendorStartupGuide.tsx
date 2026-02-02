@@ -47,7 +47,7 @@ export const VendorStartupGuide = ({
   onViewStore 
 }: VendorStartupGuideProps) => {
   const { completedSteps, autoDetectedSteps, isDismissed, loading, toggleStep, setDismissed } = useVendorOnboardingProgress(vendorId);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const steps: OnboardingStep[] = useMemo(() => [
     {
@@ -190,7 +190,7 @@ export const VendorStartupGuide = ({
 
   return (
     <Card 
-      className="border-2 mb-6"
+      className="mb-4"
       style={theme ? { 
         backgroundColor: theme.cardBg,
         borderColor: theme.cardBorder,
@@ -198,42 +198,38 @@ export const VendorStartupGuide = ({
       } : undefined}
     >
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors rounded-lg">
+            <div className="flex items-center gap-3 flex-1">
               <div 
-                className="p-2 rounded-full bg-primary/10"
+                className="p-1.5 rounded-full bg-primary/10"
                 style={theme ? { backgroundColor: `${theme.accent}20` } : undefined}
               >
                 <Sparkles 
-                  className="h-5 w-5 text-primary" 
+                  className="h-4 w-4 text-primary" 
                   style={theme ? { color: theme.accent } : undefined}
                 />
               </div>
-              <div>
-                <CardTitle className="text-lg">Vendor Startup Guide</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {completedRequiredCount} of {requiredSteps.length} steps complete
-                </p>
+              <div className="flex items-center gap-3 flex-1">
+                <span className="font-medium">Vendor Startup Guide</span>
+                <span className="text-sm text-muted-foreground">
+                  {completedRequiredCount}/{requiredSteps.length} complete
+                </span>
+                <Progress 
+                  value={progressPercent} 
+                  className="h-1.5 w-24 hidden sm:block"
+                />
               </div>
             </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <ChevronDown className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isExpanded && "rotate-180"
-                )} />
-              </Button>
-            </CollapsibleTrigger>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+              isExpanded && "rotate-180"
+            )} />
           </div>
-          <Progress 
-            value={progressPercent} 
-            className="h-2 mt-3"
-          />
-        </CardHeader>
+        </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 pb-3">
             <Accordion type="single" collapsible className="w-full">
               {steps.map((step) => {
                 const isCompleted = completedSteps.includes(step.id);
@@ -241,7 +237,7 @@ export const VendorStartupGuide = ({
                 
                 return (
                   <AccordionItem key={step.id} value={step.id} className="border-b-0">
-                    <AccordionTrigger className="hover:no-underline py-3">
+                    <AccordionTrigger className="hover:no-underline py-2">
                       <div className="flex items-center gap-3 flex-1">
                         <Checkbox
                           checked={isCompleted}
