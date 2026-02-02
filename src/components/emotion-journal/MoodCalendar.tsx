@@ -127,61 +127,59 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
           </div>
         ) : (
           <>
-            <div className="flex flex-col items-center">
-              {/* Day labels (fixed column widths to align with dates) */}
-              <div className="grid grid-cols-[repeat(7,1.5rem)] gap-0.5 mb-1">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-                  <div key={i} className="text-center text-[10px] text-muted-foreground font-medium">
-                    {day}
+            {/* Day labels */}
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                <div key={i} className="text-center text-xs text-muted-foreground font-medium">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {emptyDays.map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square" />
+              ))}
+              {daysInMonth.map((day) => {
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const entry = entries.get(dateStr);
+                const category = entry ? emotionCategories.get(entry.mood_label) : null;
+                const colorClass = category ? getMoodColor(category) : '';
+                const avatarImage = entry ? imagesByEmotionName[entry.mood_label] : null;
+
+                return (
+                  <div
+                    key={dateStr}
+                    className="aspect-square flex items-center justify-center"
+                    title={entry ? `${entry.mood_label}` : undefined}
+                  >
+                    {entry && avatarImage?.url ? (
+                      <div className="w-full h-full max-w-8 max-h-8 rounded-full overflow-hidden bg-muted">
+                        <img
+                          src={avatarImage.url}
+                          alt={entry.mood_label}
+                          className="w-full h-full object-cover"
+                          style={{
+                            transform: `scale(${avatarImage.cropScale})`,
+                            transformOrigin: 'center',
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={`
+                          w-full h-full max-w-8 max-h-8 rounded-full flex items-center justify-center text-xs
+                          ${entry ? colorClass : 'bg-muted/30'}
+                          ${entry ? 'text-white font-medium' : 'text-muted-foreground'}
+                        `}
+                      >
+                        {entry ? entry.mood_emoji : format(day, 'd')}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-
-              {/* Calendar grid (fixed column widths to match labels) */}
-              <div className="grid grid-cols-[repeat(7,1.5rem)] gap-0.5">
-                {emptyDays.map((_, i) => (
-                  <div key={`empty-${i}`} className="h-6" />
-                ))}
-                {daysInMonth.map((day) => {
-                  const dateStr = format(day, 'yyyy-MM-dd');
-                  const entry = entries.get(dateStr);
-                  const category = entry ? emotionCategories.get(entry.mood_label) : null;
-                  const colorClass = category ? getMoodColor(category) : '';
-                  const avatarImage = entry ? imagesByEmotionName[entry.mood_label] : null;
-
-                  return (
-                    <div
-                      key={dateStr}
-                      className="h-6 flex items-center justify-center"
-                      title={entry ? `${entry.mood_label}` : undefined}
-                    >
-                      {entry && avatarImage?.url ? (
-                        <div className="w-5 h-5 rounded-full overflow-hidden bg-muted">
-                          <img
-                            src={avatarImage.url}
-                            alt={entry.mood_label}
-                            className="w-full h-full object-cover"
-                            style={{
-                              transform: `scale(${avatarImage.cropScale})`,
-                              transformOrigin: 'center',
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          className={`
-                            w-5 h-5 rounded-full flex items-center justify-center text-[9px]
-                            ${entry ? colorClass : 'bg-muted/30'}
-                            ${entry ? 'text-white font-medium' : 'text-muted-foreground'}
-                          `}
-                        >
-                          {entry ? entry.mood_emoji : format(day, 'd')}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                );
+              })}
             </div>
 
             {/* Legend */}
