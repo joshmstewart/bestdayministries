@@ -643,13 +643,13 @@ export default function EmotionJournal() {
               "text-3xl font-bold bg-clip-text text-transparent",
               `bg-gradient-to-r ${currentTheme.headerGradient}`
             )}>
-              {displayLabel ? `Feeling ${displayLabel}` : 'Emotion Journal'}
+              {displayLabel ? `Feeling ${displayLabel}` : 'Mood Tracker'}
             </h1>
             <TextToSpeech 
               text={displayLabel 
                 ? `You're feeling ${displayLabel}. That's okay!` 
-                : "Emotion Journal. How are you feeling today? It's okay to feel any way!"
-              } 
+                : "Mood Tracker. How are you feeling today? It's okay to feel any way!"
+              }
               size="default" 
             />
           </div>
