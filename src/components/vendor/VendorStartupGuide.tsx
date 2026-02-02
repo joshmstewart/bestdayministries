@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -19,6 +19,7 @@ import {
 import { useVendorOnboardingProgress } from '@/hooks/useVendorOnboardingProgress';
 import { VendorThemePreset } from '@/lib/vendorThemePresets';
 import { cn } from '@/lib/utils';
+import { VendorGuideCompletionCelebration } from './VendorGuideCompletionCelebration';
 
 interface OnboardingStep {
   id: string;
@@ -48,6 +49,8 @@ export const VendorStartupGuide = ({
 }: VendorStartupGuideProps) => {
   const { completedSteps, autoDetectedSteps, isDismissed, loading, toggleStep, setDismissed } = useVendorOnboardingProgress(vendorId);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const hasTriggeredCelebration = useRef(false);
 
   const steps: OnboardingStep[] = useMemo(() => [
     {
@@ -165,6 +168,18 @@ export const VendorStartupGuide = ({
   const completedRequiredCount = requiredSteps.filter(s => completedSteps.includes(s.id)).length;
   const allRequiredComplete = completedRequiredCount === requiredSteps.length;
   const progressPercent = (completedRequiredCount / requiredSteps.length) * 100;
+
+  // Trigger celebration when all required steps are completed
+  useEffect(() => {
+    if (allRequiredComplete && !isDismissed && !hasTriggeredCelebration.current && !loading) {
+      hasTriggeredCelebration.current = true;
+      // Small delay to let the UI update first
+      const timer = setTimeout(() => {
+        setShowCelebration(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [allRequiredComplete, isDismissed, loading]);
 
   if (loading) {
     return null;
@@ -340,6 +355,12 @@ export const VendorStartupGuide = ({
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+
+      <VendorGuideCompletionCelebration
+        open={showCelebration}
+        onOpenChange={setShowCelebration}
+        onViewStore={onViewStore}
+      />
     </Card>
   );
 };
