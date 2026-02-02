@@ -128,6 +128,15 @@ export const VideoManager = () => {
         let fileToUpload = videoFile;
         const originalSize = videoFile.size;
         
+        // Check for large files that may cause memory issues
+        const LARGE_FILE_WARNING_SIZE = 150 * 1024 * 1024; // 150MB
+        if (shouldCompress(videoFile) && originalSize > LARGE_FILE_WARNING_SIZE) {
+          toast({
+            title: "Large video detected",
+            description: `Compressing ${formatBytes(originalSize)} may be slow or fail on devices with limited memory. Consider using a shorter clip or a different device.`,
+          });
+        }
+        
         // Compress if needed and supported
         if (shouldCompress(videoFile) && isCompressionSupported()) {
           try {
@@ -149,14 +158,13 @@ export const VideoManager = () => {
             toast({
               variant: "default",
               title: "Compression skipped",
-              description: "Uploading original file instead",
+              description: "Uploading original file instead. The file may take longer to upload.",
             });
           }
         } else if (shouldCompress(videoFile) && !isCompressionSupported()) {
           toast({
-            variant: "default",
-            title: "Browser limitation",
-            description: "Video compression not supported in this browser. Uploading original file.",
+            title: "Compression unavailable",
+            description: "Your browser doesn't support video compression. Try Chrome or Firefox on a desktop for smaller uploads. Uploading original file.",
           });
         }
 

@@ -146,13 +146,28 @@ BADGE:useGuardianApprovalsCount→SUM-pending→realtime×4
 RLS:is_guardian_of()→UPDATE
 
 ## VIDEO
-COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)|VideoSection(reusable-component+title+desc+video-type-selector)|VideoScreenshotCapture(auto-3-frames+manual-capture+crop+aspect-detection)
+COMPS:VideoPlayer(NO-object-fit)|YouTubeEmbed|YouTubeChannel(custom-SVG-logo)|VideoSection(reusable-component+title+desc+video-type-selector)|VideoScreenshotCapture(auto-3-frames+manual-capture+crop+aspect-detection)|VideoUploadProgress(stage-indicator+progress-bar+size-info+cancel-retry)
 DB:videos[cover_url+cover_timestamp]|about_sections.youtube_channel|homepage_sections.homepage_video[video_type+video_id|youtube_url]|support_page_sections.support_video[video_type+video_id|youtube_url]|storage:videos-bucket+covers-folder
-ADMIN:VideoManager[screenshot-capture-workflow]|YouTube-Channel-config|VideoSection-usage[Homepage+Support-page]→type-selector[uploaded-dropdown|youtube-URL-input]
+ADMIN:VideoManager[compression+progress+screenshot-capture-workflow]|YouTube-Channel-config|VideoSection-usage[Homepage+Support-page]→type-selector[uploaded-dropdown|youtube-URL-input]
 SCREENSHOT-CAPTURE:upload-video→capture-btn→auto-3-frames[25%+50%+75%]→manual-capture-optional→select→crop[aspect-detection]→save-cover
-ADMIN-PATTERN:VideoManager[upload→screenshot-btn→select-frame→crop→preview]|SectionContentDialog[video_type→conditional-inputs]|SupportPageManager[video_type→conditional-inputs]
+ADMIN-PATTERN:VideoManager[upload→compress→progress→screenshot-btn→select-frame→crop→preview]|SectionContentDialog[video_type→conditional-inputs]|SupportPageManager[video_type→conditional-inputs]
 VIDEO-ASPECT:auto-detect-dimensions→map-to-standard[1:1|16:9|9:16|4:3|3:4|3:2|2:3]→set-default-crop-ratio
 USAGE:Homepage[homepage_video-section]|Support-Page[support_video-section]→both-use-VideoSection-component
+
+VIDEO-COMPRESSION:
+  LIB:src/lib/videoCompression.ts[FFmpeg-WASM+client-side]|src/lib/videoUpload.ts[XHR-progress-tracking]
+  COMP:src/components/VideoUploadProgress.tsx[stage-progress-cancel-retry]
+  WORKFLOW:select-video→check-shouldCompress[>20MB-or-MOV/WebM]→check-isCompressionSupported[SharedArrayBuffer]→compress[FFmpeg-WASM→H.264-MP4]→upload-with-progress[XHR]→success
+  FFMPEG-SETTINGS:-c:v-libx264-preset-medium-crf-23-vf-scale-min(1920,iw):-2-c:a-aac-b:a-128k-movflags-+faststart
+  STAGES:loading[FFmpeg-WASM-31MB-first-time-cached-after]→compressing[transcode-to-MP4]→uploading[XHR-progress]→done|error
+  BROWSER-COMPAT:requires-SharedArrayBuffer[Chrome-Firefox-Edge-Safari-with-COOP/COEP-headers]→fallback-to-direct-upload-if-unavailable
+  SAFARI-NOTE:compression-requires-COOP/COEP-headers-on-hosting→if-missing-shows-fallback-warning→suggests-Chrome/Firefox-desktop
+  MEMORY-WARNING:files>150MB→toast-warning[may-be-slow-or-fail-on-limited-memory-devices]
+  FALLBACK:if-compression-fails-or-unsupported→upload-original→toast-notification
+  TIMEOUT:5-minute-upload-timeout→clear-error-message→retry-button
+  CANCEL:AbortController→cancel-upload-mid-progress
+  EXPECTED-COMPRESSION:50-80%-size-reduction-for-phone-videos[MOV→MP4]
+  FILES:src/lib/videoCompression.ts|src/lib/videoUpload.ts|src/components/VideoUploadProgress.tsx|src/components/admin/VideoManager.tsx|src/components/album/AddVideoDialog.tsx
 DOC:VIDEO_SYSTEM_COMPLETE.md
 
 ## AUDIO_RECORDING_STANDARD
