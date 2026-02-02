@@ -5,6 +5,7 @@ import { AppConfiguration } from "@/hooks/useAppConfigurations";
 import { useFeaturedSticker } from "@/hooks/useFeaturedSticker";
 import { useCustomCoinImage } from "@/hooks/useCustomCoinImage";
 import { useLatestMemoryMatchCardBack } from "@/hooks/useLatestMemoryMatchCardBack";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AppIconProps {
   app: AppConfig & { config?: AppConfiguration };
@@ -38,6 +39,7 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
     : app.id === 'memory-match' && !app.config?.icon_url
     ? memoryMatchCardBackUrl
     : app.config?.icon_url;
+
   const handleClick = () => {
     if (editMode && onToggle) {
       onToggle();
@@ -65,8 +67,8 @@ export function AppIcon({ app, editMode = false, isHidden = false, onToggle }: A
         )}
       >
         {isDynamicIconLoading ? (
-          // Show empty placeholder while dynamic icon is loading
-          <div className="w-full h-full" />
+          // Show skeleton loader while dynamic icon is loading
+          <Skeleton className="w-full h-full rounded-2xl" />
         ) : customIconUrl ? (
           <img 
             src={customIconUrl} 
