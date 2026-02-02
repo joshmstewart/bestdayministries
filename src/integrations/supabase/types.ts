@@ -5760,6 +5760,7 @@ export type Database = {
           audio_url: string | null
           coins_awarded: number | null
           created_at: string
+          encouraging_message: string | null
           entry_date: string
           id: string
           mood_emoji: string
@@ -5771,6 +5772,7 @@ export type Database = {
           audio_url?: string | null
           coins_awarded?: number | null
           created_at?: string
+          encouraging_message?: string | null
           entry_date?: string
           id?: string
           mood_emoji: string
@@ -5782,6 +5784,7 @@ export type Database = {
           audio_url?: string | null
           coins_awarded?: number | null
           created_at?: string
+          encouraging_message?: string | null
           entry_date?: string
           id?: string
           mood_emoji?: string
