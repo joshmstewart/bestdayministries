@@ -176,6 +176,11 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setNewOptionValueInputs(["", "", ""]);
   };
 
+  const pendingOptionHasType =
+    Boolean(newOptionType) && (newOptionType !== "custom" || customOptionName.trim().length > 0);
+
+  const pendingOptionHasValues = newOptionValueInputs.some((v) => v.trim().length > 0);
+
   const addOptionValueInput = () => {
     setNewOptionValueInputs(prev => [...prev, ""]);
   };
@@ -879,17 +884,17 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
                   </Button>
                 </div>
               )}
-
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={addOption}
-                disabled={!newOptionType || (newOptionType === "custom" && !customOptionName.trim())}
-              >
-                <Plus className="h-3 w-3 mr-1" /> Add Option
-              </Button>
             </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addOption}
+              disabled={!pendingOptionHasType || !pendingOptionHasValues}
+            >
+              <Plus className="h-3 w-3 mr-1" /> Add Another Option
+            </Button>
             
             {options.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-2">
