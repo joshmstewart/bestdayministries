@@ -46,7 +46,7 @@ export const VendorStartupGuide = ({
   onNavigateToTab,
   onViewStore 
 }: VendorStartupGuideProps) => {
-  const { completedSteps, isDismissed, loading, toggleStep, setDismissed } = useVendorOnboardingProgress(vendorId);
+  const { completedSteps, autoDetectedSteps, isDismissed, loading, toggleStep, setDismissed } = useVendorOnboardingProgress(vendorId);
   const [isExpanded, setIsExpanded] = useState(true);
 
   const steps: OnboardingStep[] = useMemo(() => [
@@ -237,6 +237,7 @@ export const VendorStartupGuide = ({
             <Accordion type="single" collapsible className="w-full">
               {steps.map((step) => {
                 const isCompleted = completedSteps.includes(step.id);
+                const isAutoDetected = autoDetectedSteps[step.id as keyof typeof autoDetectedSteps];
                 
                 return (
                   <AccordionItem key={step.id} value={step.id} className="border-b-0">
@@ -246,7 +247,12 @@ export const VendorStartupGuide = ({
                           checked={isCompleted}
                           onCheckedChange={() => toggleStep(step.id)}
                           onClick={(e) => e.stopPropagation()}
-                          className="data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
+                          disabled={isAutoDetected}
+                          className={cn(
+                            "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500",
+                            isAutoDetected && "cursor-not-allowed"
+                          )}
+                          title={isAutoDetected ? "Auto-detected as complete" : undefined}
                         />
                         <div 
                           className={cn(
@@ -266,6 +272,11 @@ export const VendorStartupGuide = ({
                             isCompleted && "text-muted-foreground line-through"
                           )}>
                             {step.title}
+                            {isAutoDetected && (
+                              <span className="text-xs font-normal text-green-600 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                                Auto-detected
+                              </span>
+                            )}
                             {step.isOptional && (
                               <span className="text-xs font-normal text-muted-foreground">(Optional)</span>
                             )}
