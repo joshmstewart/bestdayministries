@@ -173,10 +173,10 @@ const JoyHouseStores = () => {
                 <div className="max-w-2xl mx-auto text-center">
                   <ShoppingBag className="w-10 h-10 mx-auto mb-3 text-primary" />
                   <h2 className="text-xl md:text-2xl font-bold mb-2">
-                    {content?.online_store_title || "Shop Online Too!"}
+                    {content?.online_store_title || "Shop Online!"}
                   </h2>
                   <p className="text-muted-foreground text-sm md:text-base mb-4">
-                    {content?.online_store_description || "Can't make it to one of our physical locations? Visit our online store!"}
+                    {content?.online_store_description || "Visit our online store for the same great products, delivered right to your door."}
                   </p>
                   <Button asChild size="default" className="gap-2 bg-gradient-warm">
                     <Link to={content?.online_store_link || "/joyhousestore"}>
@@ -211,7 +211,7 @@ const JoyHouseStores = () => {
             {/* Locations Section - More compact */}
             <section className="py-6 md:py-8">
               <div className="container mx-auto px-4">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">Visit Us</h2>
+                <h2 className="text-xl md:text-2xl font-bold mb-4 text-center">Visit Our Stores</h2>
                 {locations.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     <p>Store locations coming soon!</p>
