@@ -270,6 +270,39 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setLoading(true);
 
     try {
+      // SAFETY: If the user started entering a new option but forgot to click "Add Option",
+      // either block saving (if no values) or auto-include the pending option.
+      const pendingOptionName = getOptionName();
+      const pendingHasType = Boolean(newOptionType) && (newOptionType !== "custom" || customOptionName.trim().length > 0);
+      const pendingValues = newOptionValueInputs.map((v) => v.trim()).filter(Boolean);
+
+      if (pendingHasType && pendingValues.length === 0) {
+        toast({
+          title: "Finish your option",
+          description: `Add at least one choice for ${pendingOptionName || "this option"}, or clear it before saving.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const optionsToSave: ProductOption[] | null = (() => {
+        if (!pendingHasType || pendingValues.length === 0) return options;
+
+        // Prevent duplicates (same validation as addOption)
+        if (options.some((opt) => opt.name.toLowerCase() === pendingOptionName.toLowerCase())) {
+          toast({
+            title: "Duplicate option",
+            description: `An option named "${pendingOptionName}" already exists.`,
+            variant: "destructive",
+          });
+          return null;
+        }
+
+        return [...options, { name: pendingOptionName, values: pendingValues }];
+      })();
+
+      if (!optionsToSave) return;
+
       const newImageUrls = await uploadImages();
       const allImages = [...existingImages, ...newImageUrls];
 
@@ -284,7 +317,7 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : null,
         images: allImages,
         is_active: isActive,
-        options: (options.length > 0 ? options : []) as unknown as Json,
+        options: (optionsToSave.length > 0 ? optionsToSave : []) as unknown as Json,
         image_option_mapping: (Object.keys(imageOptionMapping).length > 0 ? imageOptionMapping : {}) as unknown as Json,
       };
 

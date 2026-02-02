@@ -211,6 +211,8 @@ The marketplace page supports a simple “store temporarily down” gate for tes
 | `VendorLinkedBesties.tsx` | Manage linked besties |
 | `VendorBestieAssetManager.tsx` | Upload assets for bestie |
 
+**Product options (handmade products):** `products.options` stores option groups like `{ name: "Color", values: ["Red", "Blue"] }`. The vendor `ProductForm` will block saving if an option type is selected but no choices are entered, and will auto-include any in-progress option (type + choices) even if the user forgets to click **Add Option**.
+
 ### Store Components (`src/components/store/`)
 (Coin-based virtual store, separate from marketplace)
 
