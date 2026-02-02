@@ -565,8 +565,8 @@ export default function EmotionJournal() {
       setEditingEmotion(null);
       toast.success('Changes saved!');
       
-      // Fetch and save new AI message if emotion changed
-      if (editingEmotion) {
+      // Only fetch new AI message if emotion actually CHANGED (not just note edits)
+      if (editingEmotion && editingEmotion.name !== todaysMoodEntry.mood_label) {
         await fetchAndSaveEncouragingMessage(todaysMoodEntry.id, editingEmotion.emoji, editingEmotion.name);
       }
     } catch (error) {
