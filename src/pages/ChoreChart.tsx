@@ -949,6 +949,12 @@ export default function ChoreChart() {
           onOpenChange={setShowWheelDialog}
           userId={targetUserId || user?.id || ""}
           onPrizeWon={handlePrizeWon}
+          onOpenStickerPack={(cardId) => {
+            setRewardCardIds([cardId]);
+            setCurrentPackIndex(0);
+            setShowWheelDialog(false);
+            setShowPackDialog(true);
+          }}
         />
 
         {/* Badge Earned Celebration Dialog */}

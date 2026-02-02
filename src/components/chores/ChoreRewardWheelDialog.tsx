@@ -179,7 +179,8 @@ export function ChoreRewardWheelDialog({
 
   const handleSpinStart = () => {
     // Play click sound when spin starts
-    playSound("button_click");
+    // Use the dedicated wheel click sound (falls back to no-op if not configured)
+    playSound("wheel_click");
   };
 
   // Unified disabled state for wheel and button
