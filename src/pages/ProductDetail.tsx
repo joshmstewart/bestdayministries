@@ -25,6 +25,11 @@ interface ProductVariant {
   is_enabled: boolean;
 }
 
+interface ProductOption {
+  name: string;
+  values: string[];
+}
+
 const ProductDetail = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -36,6 +41,7 @@ const ProductDetail = () => {
   
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
   const [cartOpen, setCartOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -403,9 +409,29 @@ const ProductDetail = () => {
       return;
     }
 
-    const variantInfo = effectiveVariant 
-      ? { variant: effectiveVariant, variantId: variants.find(v => v.title === effectiveVariant)?.id } 
-      : null;
+    // For regular products with options, require all options to be selected
+    const productOptions = Array.isArray(product?.options) ? (product.options as unknown as ProductOption[]) : [];
+    if (!product?.is_printify_product && productOptions.length > 0) {
+      const missingOptions = productOptions.filter(opt => !selectedOptions[opt.name]);
+      if (missingOptions.length > 0) {
+        toast({
+          title: "Select options",
+          description: `Please select ${missingOptions.map(o => o.name.toLowerCase()).join(', ')} before adding to cart`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    // Build variant info for cart
+    let variantInfo = null;
+    if (effectiveVariant) {
+      variantInfo = { variant: effectiveVariant, variantId: variants.find(v => v.title === effectiveVariant)?.id };
+    } else if (!product?.is_printify_product && productOptions.length > 0) {
+      // For regular products, combine selected options into a variant string
+      const optionString = productOptions.map(opt => selectedOptions[opt.name]).join(' / ');
+      variantInfo = { variant: optionString, selectedOptions };
+    }
 
     const insertData = getCartInsertData(product?.id || '', quantity, variantInfo);
     if (!insertData) {
@@ -436,9 +462,10 @@ const ProductDetail = () => {
     queryClient.invalidateQueries({ queryKey: ['cart-count'] });
     queryClient.invalidateQueries({ queryKey: ['cart-items'] });
 
+    const displayVariant = effectiveVariant || (variantInfo?.variant);
     toast({
       title: "Added to cart",
-      description: `${product?.name}${effectiveVariant ? ` (${effectiveVariant})` : ''} has been added to your cart`
+      description: `${product?.name}${displayVariant ? ` (${displayVariant})` : ''} has been added to your cart`
     });
   };
 
@@ -610,6 +637,32 @@ const ProductDetail = () => {
                       </Select>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Regular Product Options (non-Printify) */}
+              {!product.is_printify_product && Array.isArray(product.options) && (product.options as unknown as ProductOption[]).length > 0 && (
+                <div className="space-y-4">
+                  {(product.options as unknown as ProductOption[]).map((option) => (
+                    <div key={option.name} className="space-y-2">
+                      <label className="text-sm font-medium">{option.name}</label>
+                      <Select 
+                        value={selectedOptions[option.name] || ""} 
+                        onValueChange={(value) => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder={`Choose ${option.name.toLowerCase()}...`} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {option.values.map((value) => (
+                            <SelectItem key={value} value={value}>
+                              {value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
                 </div>
               )}
 
