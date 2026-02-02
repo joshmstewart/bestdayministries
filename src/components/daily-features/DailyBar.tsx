@@ -365,7 +365,8 @@ export function DailyBar() {
 
       {/* Daily Five Popup */}
       <Dialog open={activePopup === "daily-five"} onOpenChange={(open) => !open && handlePopupClose("daily-five")}>
-        <DialogContent className="max-w-sm sm:max-w-md">
+        {/* On mobile, allow the dialog to be nearly full-width so the keyboard can grow */}
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:w-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
