@@ -615,6 +615,54 @@ export type Database = {
           },
         ]
       }
+      avatar_compression_jobs: {
+        Row: {
+          already_compressed: number
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          current_image_id: string | null
+          error_messages: Json | null
+          failed: number
+          id: string
+          processed: number
+          skipped: number
+          started_at: string | null
+          status: string
+          total_images: number
+        }
+        Insert: {
+          already_compressed?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_image_id?: string | null
+          error_messages?: Json | null
+          failed?: number
+          id?: string
+          processed?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          total_images?: number
+        }
+        Update: {
+          already_compressed?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_image_id?: string | null
+          error_messages?: Json | null
+          failed?: number
+          id?: string
+          processed?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          total_images?: number
+        }
+        Relationships: []
+      }
       avatar_emotion_images: {
         Row: {
           avatar_id: string
