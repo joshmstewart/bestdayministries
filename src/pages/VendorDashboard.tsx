@@ -22,6 +22,7 @@ import { VendorLinkedBesties } from "@/components/vendor/VendorLinkedBesties";
 import { VendorTeamManager } from "@/components/vendor/VendorTeamManager";
 import { CartInsights } from "@/components/vendor/CartInsights";
 import { VendorShippingSettings } from "@/components/vendor/VendorShippingSettings";
+import { VendorStartupGuide } from "@/components/vendor/VendorStartupGuide";
 import { PageLoadingState } from "@/components/common";
 import { getVendorThemeOptional } from "@/lib/vendorThemePresets";
 
@@ -569,6 +570,14 @@ const VendorDashboard = () => {
                 </div>
               </div>
             </div>
+
+            {/* Startup Guide */}
+            <VendorStartupGuide
+              vendorId={selectedVendorId}
+              theme={theme}
+              onNavigateToTab={setActiveTab}
+              onViewStore={() => navigate(`/vendors/${selectedVendorId}`)}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card 

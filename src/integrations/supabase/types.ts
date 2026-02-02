@@ -10474,6 +10474,48 @@ export type Database = {
           },
         ]
       }
+      vendor_onboarding_progress: {
+        Row: {
+          completed_steps: string[] | null
+          created_at: string | null
+          id: string
+          is_dismissed: boolean | null
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          completed_steps?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          completed_steps?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_dismissed?: boolean | null
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_onboarding_progress_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendor_earnings"
+            referencedColumns: ["vendor_id"]
+          },
+          {
+            foreignKeyName: "vendor_onboarding_progress_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_story_media: {
         Row: {
           caption: string | null
