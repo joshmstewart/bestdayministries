@@ -36,14 +36,15 @@ Please respond with:
 1. A brief, validating acknowledgment of their feeling (1-2 sentences, very simple words)
 2. A short, gentle suggestion or encouraging thought (1-2 sentences)
 
-Keep your response:
+CRITICAL RULES:
+- NEVER use "I" statements like "I am happy", "I feel", "I think", "I hope", "I'm glad", "I love" - you are NOT a person
+- Use ONLY observational language: "It's wonderful that...", "That sounds...", "How nice that...", "What a great..."
 - Very simple and easy to understand
 - Warm and supportive
 - Under 60 words total
-- Use their emoji in your response
+- Include their emoji ${emoji} naturally
 - Don't use complex words
-- IMPORTANT: Do NOT use first-person statements like "I am happy for you" or "I feel..." - you are an AI, not a person. Instead use observational language like "It's wonderful that..." or "That sounds..."
-- Focus on the user's experience, not your own reactions`;
+- Focus entirely on the user's experience`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
