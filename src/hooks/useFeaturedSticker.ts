@@ -6,11 +6,48 @@ interface FeaturedStickerData {
   collectionName: string | null;
 }
 
+const CACHE_KEY = "featured_sticker_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry {
+  data: FeaturedStickerData;
+  timestamp: number;
+}
+
+function getFromCache(): FeaturedStickerData | null {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const entry: CacheEntry = JSON.parse(cached);
+      if (Date.now() - entry.timestamp < CACHE_TTL) {
+        return entry.data;
+      }
+    }
+  } catch {
+    // Ignore cache errors
+  }
+  return null;
+}
+
+function setToCache(data: FeaturedStickerData): void {
+  try {
+    const entry: CacheEntry = { data, timestamp: Date.now() };
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+  } catch {
+    // Ignore cache errors
+  }
+}
+
 export function useFeaturedSticker() {
-  const [data, setData] = useState<FeaturedStickerData>({ imageUrl: null, collectionName: null });
-  const [loading, setLoading] = useState(true);
+  // Initialize with cached data if available
+  const cachedData = getFromCache();
+  const [data, setData] = useState<FeaturedStickerData>(
+    cachedData || { imageUrl: null, collectionName: null }
+  );
+  const [loading, setLoading] = useState(!cachedData);
 
   useEffect(() => {
+    // If we have cached data, still fetch in background to update
     const fetchFeaturedSticker = async () => {
       try {
         const { data: featuredCollection } = await supabase
@@ -26,10 +63,12 @@ export function useFeaturedSticker() {
           .single();
 
         if (featuredCollection?.preview_sticker?.image_url) {
-          setData({
+          const newData = {
             imageUrl: featuredCollection.preview_sticker.image_url,
             collectionName: featuredCollection.name
-          });
+          };
+          setData(newData);
+          setToCache(newData);
         }
       } catch (error) {
         console.error("Error fetching featured sticker:", error);

@@ -1,9 +1,43 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const CACHE_KEY = "memory_match_card_back_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CacheEntry {
+  imageUrl: string | null;
+  timestamp: number;
+}
+
+function getFromCache(): string | null {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const entry: CacheEntry = JSON.parse(cached);
+      if (Date.now() - entry.timestamp < CACHE_TTL) {
+        return entry.imageUrl;
+      }
+    }
+  } catch {
+    // Ignore cache errors
+  }
+  return null;
+}
+
+function setToCache(imageUrl: string | null): void {
+  try {
+    const entry: CacheEntry = { imageUrl, timestamp: Date.now() };
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+  } catch {
+    // Ignore cache errors
+  }
+}
+
 export function useLatestMemoryMatchCardBack() {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize with cached data if available
+  const cachedUrl = getFromCache();
+  const [imageUrl, setImageUrl] = useState<string | null>(cachedUrl);
+  const [loading, setLoading] = useState(cachedUrl === null);
 
   useEffect(() => {
     const fetchLatestCardBack = async () => {
@@ -18,6 +52,7 @@ export function useLatestMemoryMatchCardBack() {
 
         if (data?.card_back_url) {
           setImageUrl(data.card_back_url);
+          setToCache(data.card_back_url);
         }
       } catch (error) {
         console.error("Error fetching latest memory match card back:", error);
