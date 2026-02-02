@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Check, X, RefreshCw, Trash2, ZoomIn } from "lucide-react";
+import { Loader2, Sparkles, Check, X, RefreshCw, Trash2, ZoomIn, Archive } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Slider } from "@/components/ui/slider";
 
@@ -57,6 +57,7 @@ export function AvatarEmojisManager() {
   const [loading, setLoading] = useState(true);
   const [cropScale, setCropScale] = useState(1.0);
   const [savingCropScale, setSavingCropScale] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -444,6 +445,45 @@ STYLE:
     return fitnessAvatars.find(a => a.id === id);
   };
 
+  const handleCompressAllImages = async () => {
+    if (!confirm("This will compress ALL existing avatar emotion images to 256x256 pixels. This may take several minutes. Continue?")) {
+      return;
+    }
+
+    setIsCompressing(true);
+    try {
+      const response = await supabase.functions.invoke("compress-avatar-emotion-images");
+
+      if (response.error) {
+        throw new Error(response.error.message || "Compression failed");
+      }
+
+      const { processed, failed, total, errors } = response.data;
+      
+      toast({ 
+        title: "Compression complete!", 
+        description: `Compressed ${processed} of ${total} images${failed > 0 ? ` (${failed} failed)` : ''}`
+      });
+      
+      if (errors && errors.length > 0) {
+        console.error("Compression errors:", errors);
+      }
+      
+      // Clear cache and reload to show new images
+      sessionStorage.removeItem("avatar_emotion_images_cache");
+      await loadData();
+    } catch (error: any) {
+      console.error("Compression error:", error);
+      toast({ 
+        title: "Compression failed", 
+        description: error.message || "Please try again",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
   const existingImage = getExistingImage();
   const selectedEmotionDetails = getSelectedEmotionDetails();
   const selectedAvatar = getSelectedAvatar();
@@ -493,7 +533,7 @@ STYLE:
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-green-600">{approvedCount}</div>
+            <div className="text-2xl font-bold text-primary">{approvedCount}</div>
             <div className="text-sm text-muted-foreground">Approved</div>
             <div className="text-xs text-muted-foreground mt-1">
               {generatedCount > 0 ? ((approvedCount / generatedCount) * 100).toFixed(1) : 0}% of generated
@@ -501,6 +541,39 @@ STYLE:
           </CardContent>
         </Card>
       </div>
+
+      {/* Compress All Images Button */}
+      {generatedCount > 0 && (
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Compress Existing Images</h3>
+                <p className="text-sm text-muted-foreground">
+                  Resize all {generatedCount} images to 256×256 for faster loading (~80% smaller)
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleCompressAllImages}
+                disabled={isCompressing}
+              >
+                {isCompressing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Compressing...
+                  </>
+                ) : (
+                  <>
+                    <Archive className="h-4 w-4 mr-2" />
+                    Compress All Images
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Generation Controls */}
       <Card>
