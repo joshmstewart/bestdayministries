@@ -128,6 +128,12 @@ export const UserManagement = () => {
 
       if (profilesError) throw profilesError;
 
+      // Build targeted lookup arrays from profiles
+      const profileIds = (profiles || []).map(p => p.id);
+      const profileEmails = (profiles || [])
+        .map(p => (p.email || '').trim().toLowerCase())
+        .filter(Boolean);
+
       // Fetch roles for all users
       const { data: rolesData } = await supabase
         .from("user_roles")
@@ -149,13 +155,30 @@ export const UserManagement = () => {
         .select("user_id, terms_version, privacy_version, accepted_at")
         .order("accepted_at", { ascending: false });
 
-      // Fetch newsletter subscriptions for all users - include email for matching
-      // Use range to get all records (default limit is 1000)
-      const { data: newsletterData } = await supabase
-        .from("newsletter_subscribers")
-        .select("user_id, email, status")
-        .eq("status", "active")
-        .range(0, 9999);
+      // TARGETED newsletter lookup: fetch only rows matching current profiles
+      // This bypasses any global row limits (1000) by querying specific IDs/emails
+      const [newsletterByUserId, newsletterByEmail] = await Promise.all([
+        profileIds.length > 0
+          ? supabase
+              .from("newsletter_subscribers")
+              .select("user_id, email, status")
+              .eq("status", "active")
+              .in("user_id", profileIds)
+          : Promise.resolve({ data: [] }),
+        profileEmails.length > 0
+          ? supabase
+              .from("newsletter_subscribers")
+              .select("user_id, email, status")
+              .eq("status", "active")
+              .in("email", profileEmails)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      // Combine and dedupe newsletter results
+      const allNewsletterRows = [
+        ...(newsletterByUserId.data || []),
+        ...(newsletterByEmail.data || []),
+      ];
 
       // Group terms by user_id (take most recent)
       const termsMap = new Map();
@@ -165,13 +188,25 @@ export const UserManagement = () => {
         }
       });
 
-      // Create sets for both user_id and email lookup
+      // Create sets for both user_id and email lookup (deduped via Set)
       const subscribedUserIds = new Set(
-        newsletterData?.filter(n => n.user_id).map(n => n.user_id) || []
+        allNewsletterRows.filter(n => n.user_id).map(n => n.user_id)
       );
       const subscribedEmails = new Set(
-        newsletterData?.map(n => n.email?.toLowerCase()).filter(Boolean) || []
+        allNewsletterRows.map(n => n.email?.toLowerCase()).filter(Boolean)
       );
+
+      // Diagnostic logs for verification (temporary)
+      const knownEmails = ['nrhys2007@gmail.com', 'mlongobricco@gmail.com', 'gracebowen826@gmail.com', 'hmcint@gmail.com', 'ivanricmartinez@gmail.com'];
+      console.info('[UserManagement] Loaded profiles:', profileIds.length);
+      console.info('[UserManagement] Newsletter rows (by user_id):', newsletterByUserId.data?.length || 0);
+      console.info('[UserManagement] Newsletter rows (by email):', newsletterByEmail.data?.length || 0);
+      console.info('[UserManagement] Subscribed user IDs:', subscribedUserIds.size);
+      console.info('[UserManagement] Subscribed emails:', subscribedEmails.size);
+      knownEmails.forEach(email => {
+        const inSet = subscribedEmails.has(email.toLowerCase());
+        console.info(`[UserManagement] ${email} subscribed: ${inSet}`);
+      });
 
       // Merge roles, vendor status, permissions, terms, and newsletter with profiles
       const usersWithRoles = (profiles || []).map(profile => {
