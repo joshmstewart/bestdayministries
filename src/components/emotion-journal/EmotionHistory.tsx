@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Calendar, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAvatarEmotionImages } from '@/hooks/useAvatarEmotionImages';
+import { AvatarEmotionDisplay } from './AvatarEmotionDisplay';
 
 interface MoodEntry {
   id: string;
@@ -25,6 +27,9 @@ export function EmotionHistory({ userId }: EmotionHistoryProps) {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const pageSize = 10;
+
+  // Load avatar emotion images
+  const { imagesByEmotionName, loading: avatarLoading } = useAvatarEmotionImages(userId);
 
   useEffect(() => {
     loadEntries();
@@ -105,46 +110,53 @@ export function EmotionHistory({ userId }: EmotionHistoryProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {entries.map((entry) => (
-            <div
-              key={entry.id}
-              className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-            >
-              {/* Emoji */}
-              <div className="text-4xl flex-shrink-0">
-                {entry.mood_emoji}
-              </div>
+          {entries.map((entry) => {
+            const avatarImage = imagesByEmotionName[entry.mood_label];
+            
+            return (
+              <div
+                key={entry.id}
+                className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+              >
+                {/* Avatar or Emoji */}
+                <AvatarEmotionDisplay
+                  emoji={entry.mood_emoji}
+                  emotionName={entry.mood_label}
+                  avatarImage={avatarImage}
+                  size="lg"
+                />
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium">{entry.mood_label}</span>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium">{entry.mood_label}</span>
+                  </div>
+
+                  {entry.note && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {entry.note}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {format(new Date(entry.entry_date), 'MMM d, yyyy')}
+                    {' · '}
+                    {formatDistanceToNow(new Date(entry.entry_date), { addSuffix: true })}
+                  </p>
                 </div>
 
-                {entry.note && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {entry.note}
-                  </p>
-                )}
-
-                <p className="text-xs text-muted-foreground mt-2">
-                  {format(new Date(entry.entry_date), 'MMM d, yyyy')}
-                  {' · '}
-                  {formatDistanceToNow(new Date(entry.entry_date), { addSuffix: true })}
-                </p>
+                {/* Delete button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDelete(entry.id)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-
-              {/* Delete button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(entry.id)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
