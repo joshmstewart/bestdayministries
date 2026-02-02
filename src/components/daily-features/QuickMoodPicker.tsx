@@ -238,8 +238,14 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
         setTodaysEntry(data);
         const foundMood = moodOptions.find(m => m.emoji === data.mood_emoji);
         setSelectedMood(foundMood || null);
-        // Fetch encouraging message for completed entry
-        fetchEncouragingMessage(data.mood_emoji, foundMood?.label || data.mood_label || "", null);
+        
+        // Use stored encouraging message if available, otherwise fetch a new one
+        if (data.encouraging_message) {
+          setEncouragingMessage(data.encouraging_message);
+        } else {
+          // No message stored yet - fetch and save it
+          await fetchAndSaveEncouragingMessage(data.id, data.mood_emoji, foundMood?.label || data.mood_label || "", null);
+        }
       }
     } catch (error) {
       console.error("Error checking mood entry:", error);
@@ -248,38 +254,31 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
     }
   };
 
-  const fetchEncouragingMessage = async (emoji: string, label: string, journalText: string | null) => {
+  // Fetch encouraging message and save it to the mood entry for syncing across pages
+  const fetchAndSaveEncouragingMessage = async (entryId: string, emoji: string, label: string, journalText: string | null) => {
     try {
-      // If there's journal text, use AI for personalized response
-      if (journalText && journalText.trim().length > 0) {
-        setIsGeneratingResponse(true);
-        const { data, error } = await supabase.functions.invoke('emotion-journal-response', {
-          body: {
-            emotion: label,
-            emoji: emoji,
-            intensity: null,
-            journalText: journalText.trim(),
-          },
-        });
-
-        if (error) throw error;
-        setEncouragingMessage(data.response);
-        setIsGeneratingResponse(false);
-        return;
-      }
-
-      // For quick logs, use pre-generated responses from mood_responses table
+      setIsGeneratingResponse(true);
+      
       const { data, error } = await supabase.functions.invoke('emotion-journal-response', {
         body: {
           emotion: label,
           emoji: emoji,
           intensity: null,
-          journalText: null,
+          journalText: journalText?.trim() || null,
         },
       });
 
       if (error) throw error;
-      setEncouragingMessage(data.response);
+      
+      const message = data.response;
+      setEncouragingMessage(message);
+      
+      // Save the message to the mood entry so it syncs across pages
+      await supabase
+        .from("mood_entries")
+        .update({ encouraging_message: message })
+        .eq("id", entryId);
+        
     } catch (error) {
       console.error("Error fetching message:", error);
       setEncouragingMessage(`Thanks for sharing how you feel! Have a great day!`);
@@ -397,10 +396,8 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
 
       setTodaysEntry(data);
       
-      // If user wants AI response, fetch it
-      if (withAiResponse) {
-        await fetchEncouragingMessage(selectedMood.emoji, selectedMood.label, note.trim() || null);
-      }
+      // Fetch and save the encouraging message (always - so it syncs across pages)
+      await fetchAndSaveEncouragingMessage(data.id, selectedMood.emoji, selectedMood.label, withAiResponse ? note.trim() : null);
       
       toast.success("Mood logged! 🎉");
     } catch (error) {

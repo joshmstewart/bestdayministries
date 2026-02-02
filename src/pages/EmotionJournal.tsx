@@ -37,6 +37,7 @@ interface MoodEntry {
   audio_url: string | null;
   entry_date: string;
   ai_response?: string | null;
+  encouraging_message?: string | null;
 }
 
 // Theme styles based on category
@@ -349,8 +350,14 @@ export default function EmotionJournal() {
 
         if (data) {
           setTodaysMoodEntry(data);
-          // Generate an encouraging message for the existing entry
-          await fetchEncouragingMessage(data.mood_emoji, data.mood_label);
+          
+          // Use stored encouraging message if available, otherwise fetch a new one
+          if (data.encouraging_message) {
+            setAiResponse(data.encouraging_message);
+          } else {
+            // No message stored yet - fetch and save it
+            await fetchAndSaveEncouragingMessage(data.id, data.mood_emoji, data.mood_label);
+          }
         }
       } catch (error) {
         console.error("Error checking today's mood entry:", error);
@@ -364,40 +371,36 @@ export default function EmotionJournal() {
     }
   }, [user, authLoading]);
 
-  // Fetch encouraging message for existing mood entry
-  // Uses mood_responses table which matches by emotion name (label) for broader coverage
-  const fetchEncouragingMessage = async (emoji: string, label: string) => {
+  // Fetch encouraging message and save it to the mood entry for syncing across pages
+  const fetchAndSaveEncouragingMessage = async (entryId: string, emoji: string, label: string, journalText?: string | null) => {
     try {
-      // Query mood_responses by emotion name (lowercase) for better coverage across all 16 emotions
-      const { data, error } = await supabase
-        .from("mood_responses")
-        .select("response")
-        .eq("emotion", label.toLowerCase())
-        .eq("is_active", true);
+      setIsGeneratingResponse(true);
+      
+      const { data, error } = await supabase.functions.invoke('emotion-journal-response', {
+        body: {
+          emotion: label,
+          emoji: emoji,
+          intensity: null,
+          journalText: journalText?.trim() || null,
+        },
+      });
 
       if (error) throw error;
       
-      if (data && data.length > 0) {
-        const randomMessage = data[Math.floor(Math.random() * data.length)];
-        setAiResponse(randomMessage.response);
-      } else {
-        // Fallback to mood_messages table by emoji
-        const { data: msgData, error: msgError } = await supabase
-          .from("mood_messages")
-          .select("message")
-          .eq("mood_emoji", emoji)
-          .eq("is_active", true);
-
-        if (!msgError && msgData && msgData.length > 0) {
-          const randomMessage = msgData[Math.floor(Math.random() * msgData.length)];
-          setAiResponse(randomMessage.message);
-        } else {
-          setAiResponse(`Thanks for checking in! We see you're feeling ${label.toLowerCase()}. That's okay!`);
-        }
-      }
+      const message = data.response;
+      setAiResponse(message);
+      
+      // Save the message to the mood entry so it syncs across pages
+      await supabase
+        .from("mood_entries")
+        .update({ encouraging_message: message })
+        .eq("id", entryId);
+        
     } catch (error) {
       console.error("Error fetching message:", error);
-      setAiResponse(`Thanks for sharing how you feel! Have a great day!`);
+      setAiResponse(`Thanks for checking in! We see you're feeling ${label.toLowerCase()}. That's okay!`);
+    } finally {
+      setIsGeneratingResponse(false);
     }
   };
 
@@ -486,21 +489,12 @@ export default function EmotionJournal() {
         setTodaysMoodEntry(moodData);
       }
 
-      // If user wants AI response, fetch it
-      if (withAiResponse) {
+      // If user wants AI response, fetch personalized one; otherwise use pre-generated
+      if (withAiResponse && journalText.trim()) {
         setIsGeneratingResponse(true);
         try {
-          const { data, error: aiError } = await supabase.functions.invoke('emotion-journal-response', {
-            body: {
-              emotion: selectedEmotion.name,
-              emoji: selectedEmotion.emoji,
-              intensity: null,
-              journalText: journalText.trim() || null,
-            },
-          });
-
-          if (aiError) throw aiError;
-          setAiResponse(data.response);
+          // Use AI for personalized response when journal text is provided
+          await fetchAndSaveEncouragingMessage(moodData.id, selectedEmotion.emoji, selectedEmotion.name, journalText.trim());
         } catch (aiErr) {
           console.error('Error generating AI response:', aiErr);
           setAiResponse(`${selectedEmotion.emoji} Thank you for sharing that you feel ${selectedEmotion.name.toLowerCase()}. It's good to check in with your feelings!`);
@@ -508,8 +502,8 @@ export default function EmotionJournal() {
           setIsGeneratingResponse(false);
         }
       } else {
-        // Get a pre-generated message
-        await fetchEncouragingMessage(selectedEmotion.emoji, selectedEmotion.name);
+        // Get a pre-generated message and save it
+        await fetchAndSaveEncouragingMessage(moodData.id, selectedEmotion.emoji, selectedEmotion.name);
       }
 
       toast.success(`${selectedEmotion.emoji} Feeling logged!`, {
@@ -571,9 +565,9 @@ export default function EmotionJournal() {
       setEditingEmotion(null);
       toast.success('Changes saved!');
       
-      // Refresh AI message if emotion changed
+      // Fetch and save new AI message if emotion changed
       if (editingEmotion) {
-        await fetchEncouragingMessage(editingEmotion.emoji, editingEmotion.name);
+        await fetchAndSaveEncouragingMessage(todaysMoodEntry.id, editingEmotion.emoji, editingEmotion.name);
       }
     } catch (error) {
       console.error('Error saving edits:', error);
