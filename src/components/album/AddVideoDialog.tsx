@@ -21,6 +21,9 @@ import {
 import { Upload, Youtube, Link2, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { VideoUploadProgress, UploadProgress } from "@/components/VideoUploadProgress";
+import { compressVideo, isCompressionSupported, shouldCompress } from "@/lib/videoCompression";
+import { uploadWithProgress, createUploadPath } from "@/lib/videoUpload";
 
 interface Video {
   id: string;
@@ -53,7 +56,9 @@ export function AddVideoDialog({
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const resetForm = () => {
     setYoutubeUrl("");
@@ -61,11 +66,30 @@ export function AddVideoDialog({
     setCaption("");
     setUploadedFile(null);
     setActiveTab('youtube');
+    setUploadProgress(null);
   };
 
   const handleClose = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     resetForm();
     onOpenChange(false);
+  };
+
+  const handleCancelUpload = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setUploading(false);
+    setUploadProgress(null);
+  };
+
+  const handleRetryUpload = () => {
+    setUploadProgress(null);
+    // User can click submit again
   };
 
   const validateYouTubeUrl = (url: string): boolean => {
@@ -91,6 +115,7 @@ export function AddVideoDialog({
         youtubeUrl: youtubeUrl.trim(),
         caption: caption.trim() || undefined
       });
+      handleClose();
     } else if (activeTab === 'existing') {
       if (selectedVideoId === "none") {
         toast.error("Please select a video");
@@ -107,6 +132,7 @@ export function AddVideoDialog({
         url: selectedVideo.video_url,
         caption: caption.trim() || selectedVideo.title
       });
+      handleClose();
     } else if (activeTab === 'upload') {
       if (!uploadedFile) {
         toast.error("Please select a video file");
@@ -114,39 +140,101 @@ export function AddVideoDialog({
       }
       
       setUploading(true);
+      abortControllerRef.current = new AbortController();
+      
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not authenticated");
         
-        // Upload to storage
-        const sanitizedName = uploadedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const fileName = `${user.id}/${Date.now()}_${sanitizedName}`;
+        let fileToUpload = uploadedFile;
+        const originalSize = uploadedFile.size;
+
+        // Compress if needed and supported
+        if (shouldCompress(uploadedFile) && isCompressionSupported()) {
+          try {
+            fileToUpload = await compressVideo(uploadedFile, {
+              quality: 'medium',
+              maxWidth: 1920,
+              onProgress: (progress) => {
+                setUploadProgress({
+                  stage: progress.stage === 'loading' ? 'loading' : 'compressing',
+                  progress: progress.progress,
+                  message: progress.message,
+                  originalSize: progress.originalSize,
+                  compressedSize: progress.estimatedSize,
+                });
+              },
+            });
+          } catch (compressError) {
+            console.warn('Compression failed, uploading original:', compressError);
+            toast.warning("Compression skipped, uploading original file");
+          }
+        } else if (shouldCompress(uploadedFile) && !isCompressionSupported()) {
+          toast.warning("Video compression not supported in this browser");
+        }
+
+        // Upload with progress tracking
+        const fileName = createUploadPath(user.id, fileToUpload.name);
         
-        const { error: uploadError } = await supabase.storage
-          .from("videos")
-          .upload(fileName, uploadedFile);
+        setUploadProgress({
+          stage: 'uploading',
+          progress: 0,
+          message: 'Starting upload...',
+          originalSize,
+          compressedSize: fileToUpload.size,
+        });
 
-        if (uploadError) throw uploadError;
+        const publicUrl = await uploadWithProgress('videos', fileName, fileToUpload, {
+          signal: abortControllerRef.current.signal,
+          timeoutMs: 300000, // 5 minutes
+          onProgress: (event) => {
+            setUploadProgress({
+              stage: 'uploading',
+              progress: event.percentage,
+              message: `Uploading... ${Math.round(event.percentage)}%`,
+              originalSize,
+              compressedSize: fileToUpload.size,
+              uploadedBytes: event.loaded,
+              totalBytes: event.total,
+            });
+          },
+        });
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("videos")
-          .getPublicUrl(fileName);
+        setUploadProgress({
+          stage: 'done',
+          progress: 100,
+          message: 'Upload complete!',
+          originalSize,
+          compressedSize: fileToUpload.size,
+        });
 
         onVideoAdded({
           type: 'upload',
           url: publicUrl,
           caption: caption.trim() || undefined
         });
+
+        // Short delay to show completion state
+        setTimeout(() => {
+          handleClose();
+        }, 500);
+        
       } catch (error: any) {
         console.error("Error uploading video:", error);
-        toast.error(error.message || "Failed to upload video");
+        if (error.message !== 'Upload cancelled') {
+          setUploadProgress({
+            stage: 'error',
+            progress: 0,
+            message: 'Upload failed',
+            error: error.message || 'Please try again',
+          });
+          toast.error(error.message || "Failed to upload video");
+        }
+      } finally {
         setUploading(false);
-        return;
+        abortControllerRef.current = null;
       }
-      setUploading(false);
     }
-
-    handleClose();
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,12 +244,21 @@ export function AddVideoDialog({
         toast.error("Please select a video file");
         return;
       }
-      if (file.size > 100 * 1024 * 1024) { // 100MB limit
-        toast.error("Video file must be under 100MB");
+      // Allow larger files now that we have compression
+      if (file.size > 500 * 1024 * 1024) { // 500MB limit for input
+        toast.error("Video file must be under 500MB");
         return;
       }
       setUploadedFile(file);
-      toast.success("Video file selected");
+      setUploadProgress(null);
+      
+      // Show file size info
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      if (shouldCompress(file) && isCompressionSupported()) {
+        toast.success(`Video selected (${sizeMB}MB) - will be optimized before upload`);
+      } else {
+        toast.success(`Video selected (${sizeMB}MB)`);
+      }
     }
   };
 
@@ -180,15 +277,15 @@ export function AddVideoDialog({
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="youtube" className="flex items-center gap-1">
+            <TabsTrigger value="youtube" className="flex items-center gap-1" disabled={uploading}>
               <Youtube className="w-4 h-4" />
               YouTube
             </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center gap-1">
+            <TabsTrigger value="upload" className="flex items-center gap-1" disabled={uploading}>
               <Upload className="w-4 h-4" />
               Upload
             </TabsTrigger>
-            <TabsTrigger value="existing" className="flex items-center gap-1">
+            <TabsTrigger value="existing" className="flex items-center gap-1" disabled={uploading}>
               <Link2 className="w-4 h-4" />
               Library
             </TabsTrigger>
@@ -203,6 +300,7 @@ export function AddVideoDialog({
                 placeholder="https://www.youtube.com/watch?v=..."
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
+                disabled={uploading}
               />
               <p className="text-xs text-muted-foreground">
                 Paste any YouTube video or Shorts URL
@@ -219,26 +317,37 @@ export function AddVideoDialog({
                 accept="video/*"
                 onChange={handleFileSelect}
                 className="hidden"
+                disabled={uploading}
               />
               <Button
                 type="button"
                 variant="outline"
                 className="w-full"
                 onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
               >
                 <Upload className="w-4 h-4 mr-2" />
                 {uploadedFile ? uploadedFile.name : "Select Video File"}
               </Button>
               <p className="text-xs text-muted-foreground">
-                Max file size: 100MB. Supported formats: MP4, MOV, WebM
+                Large videos will be automatically optimized for web playback.
+                Supports MP4, MOV, WebM up to 500MB.
               </p>
             </div>
+
+            {uploadProgress && (
+              <VideoUploadProgress
+                progress={uploadProgress}
+                onCancel={handleCancelUpload}
+                onRetry={handleRetryUpload}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="existing" className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label>Select from Video Library</Label>
-              <Select value={selectedVideoId} onValueChange={setSelectedVideoId}>
+              <Select value={selectedVideoId} onValueChange={setSelectedVideoId} disabled={uploading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a video" />
                 </SelectTrigger>
@@ -267,15 +376,16 @@ export function AddVideoDialog({
             placeholder="Add a caption for this video..."
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
+            disabled={uploading}
           />
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={uploading && uploadProgress?.stage !== 'error'}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={uploading}>
-            {uploading ? "Uploading..." : "Add Video"}
+            {uploading && !uploadProgress ? "Processing..." : "Add Video"}
           </Button>
         </DialogFooter>
       </DialogContent>

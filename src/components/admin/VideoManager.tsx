@@ -12,6 +12,9 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 import { VideoScreenshotCapture } from "@/components/VideoScreenshotCapture";
+import { VideoUploadProgress, UploadProgress } from "@/components/VideoUploadProgress";
+import { compressVideo, isCompressionSupported, shouldCompress, formatBytes } from "@/lib/videoCompression";
+import { uploadWithProgress, createUploadPath } from "@/lib/videoUpload";
 
 interface Video {
   id: string;
@@ -50,6 +53,8 @@ export const VideoManager = () => {
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
   const [coverTimestamp, setCoverTimestamp] = useState<number | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     loadVideos();
@@ -108,6 +113,8 @@ export const VideoManager = () => {
     }
 
     setUploading(true);
+    abortControllerRef.current = new AbortController();
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -116,20 +123,77 @@ export const VideoManager = () => {
       let thumbnailUrl = null;
       let coverUrl = null;
 
-      // Handle uploaded video
+      // Handle uploaded video with compression and progress
       if (videoType === "upload" && videoFile) {
-        const videoExt = videoFile.name.split(".").pop();
-        const videoPath = `${Date.now()}-${Math.random()}.${videoExt}`;
-        const { error: videoError } = await supabase.storage
-          .from("videos")
-          .upload(videoPath, videoFile);
+        let fileToUpload = videoFile;
+        const originalSize = videoFile.size;
+        
+        // Compress if needed and supported
+        if (shouldCompress(videoFile) && isCompressionSupported()) {
+          try {
+            fileToUpload = await compressVideo(videoFile, {
+              quality: 'medium',
+              maxWidth: 1920,
+              onProgress: (progress) => {
+                setUploadProgress({
+                  stage: progress.stage === 'loading' ? 'loading' : 'compressing',
+                  progress: progress.progress,
+                  message: progress.message,
+                  originalSize: progress.originalSize,
+                  compressedSize: progress.estimatedSize,
+                });
+              },
+            });
+          } catch (compressError) {
+            console.warn('Compression failed, uploading original:', compressError);
+            toast({
+              variant: "default",
+              title: "Compression skipped",
+              description: "Uploading original file instead",
+            });
+          }
+        } else if (shouldCompress(videoFile) && !isCompressionSupported()) {
+          toast({
+            variant: "default",
+            title: "Browser limitation",
+            description: "Video compression not supported in this browser. Uploading original file.",
+          });
+        }
 
-        if (videoError) throw videoError;
+        // Upload with progress tracking
+        const videoPath = createUploadPath(user.id, fileToUpload.name);
+        
+        setUploadProgress({
+          stage: 'uploading',
+          progress: 0,
+          message: 'Starting upload...',
+          originalSize,
+          compressedSize: fileToUpload.size,
+        });
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("videos")
-          .getPublicUrl(videoPath);
-        videoUrl = publicUrl;
+        videoUrl = await uploadWithProgress('videos', videoPath, fileToUpload, {
+          signal: abortControllerRef.current.signal,
+          timeoutMs: 300000, // 5 minutes
+          onProgress: (event) => {
+            setUploadProgress({
+              stage: 'uploading',
+              progress: event.percentage,
+              message: `Uploading... ${Math.round(event.percentage)}%`,
+              originalSize,
+              compressedSize: fileToUpload.size,
+              uploadedBytes: event.loaded,
+              totalBytes: event.total,
+            });
+          },
+        });
+
+        setUploadProgress({
+          stage: 'done',
+          progress: 100,
+          message: 'Upload complete!',
+          originalSize,
+          compressedSize: fileToUpload.size,
+        });
 
         // Upload cover image from screenshot capture if available
         if (coverBlob) {
@@ -213,16 +277,26 @@ export const VideoManager = () => {
       setCoverBlob(null);
       setCoverTimestamp(null);
       setCoverPreviewUrl(null);
+      setUploadProgress(null);
       loadVideos();
     } catch (error: any) {
       console.error("Error saving video:", error);
-      toast({
-        variant: "destructive",
-        title: "Save failed",
-        description: error.message || "Please try again",
-      });
+      if (error.message !== 'Upload cancelled') {
+        setUploadProgress({
+          stage: 'error',
+          progress: 0,
+          message: 'Upload failed',
+          error: error.message || 'Please try again',
+        });
+        toast({
+          variant: "destructive",
+          title: "Save failed",
+          description: error.message || "Please try again",
+        });
+      }
     } finally {
       setUploading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -283,6 +357,21 @@ export const VideoManager = () => {
     setCoverBlob(null);
     setCoverTimestamp(null);
     setCoverPreviewUrl(null);
+    setUploadProgress(null);
+  };
+
+  const handleCancelUpload = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setUploading(false);
+    setUploadProgress(null);
+  };
+
+  const handleRetryUpload = () => {
+    setUploadProgress(null);
+    // Form will still have the file, user can click submit again
   };
 
   const handleOpenScreenshotCapture = () => {
@@ -467,12 +556,20 @@ export const VideoManager = () => {
               <Label htmlFor="active">Active</Label>
             </div>
 
+            {uploadProgress && (
+              <VideoUploadProgress
+                progress={uploadProgress}
+                onCancel={handleCancelUpload}
+                onRetry={handleRetryUpload}
+              />
+            )}
+
             <div className="flex gap-2">
               <Button type="submit" disabled={uploading}>
-                {uploading ? (
+                {uploading && !uploadProgress ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
+                    Processing...
                   </>
                 ) : (
                   <>
@@ -481,7 +578,7 @@ export const VideoManager = () => {
                   </>
                 )}
               </Button>
-              {editingId && (
+              {editingId && !uploading && (
                 <Button type="button" variant="outline" onClick={cancelEdit}>
                   <X className="mr-2 h-4 w-4" />
                   Cancel
