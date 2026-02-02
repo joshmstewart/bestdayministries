@@ -64,8 +64,9 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
   
   // Options state
   const [options, setOptions] = useState<ProductOption[]>(product?.options || []);
-  const [newOptionName, setNewOptionName] = useState("");
-  const [newOptionValues, setNewOptionValues] = useState("");
+  const [newOptionType, setNewOptionType] = useState<string>("");
+  const [customOptionName, setCustomOptionName] = useState("");
+  const [newOptionValueInputs, setNewOptionValueInputs] = useState<string[]>(["", "", ""]);
   const [addingValueToOption, setAddingValueToOption] = useState<number | null>(null);
   const [newValueForOption, setNewValueForOption] = useState("");
   
@@ -131,29 +132,61 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setImageOptionMapping(newMapping);
   };
 
+  const COMMON_OPTION_TYPES = ["Color", "Size", "Material", "Style", "Pattern", "Flavor", "Scent"];
+
+  const getOptionName = () => {
+    if (newOptionType === "custom") return customOptionName.trim();
+    return newOptionType;
+  };
+
   const addOption = () => {
-    if (!newOptionName.trim() || !newOptionValues.trim()) {
+    const optionName = getOptionName();
+    if (!optionName) {
       toast({
-        title: "Missing information",
-        description: "Please enter both option name and values",
+        title: "Missing option type",
+        description: "Please select or enter an option type",
         variant: "destructive"
       });
       return;
     }
 
-    const values = newOptionValues.split(',').map(v => v.trim()).filter(Boolean);
+    const values = newOptionValueInputs.map(v => v.trim()).filter(Boolean);
     if (values.length === 0) {
       toast({
         title: "No values",
-        description: "Please enter at least one option value",
+        description: "Please enter at least one choice",
         variant: "destructive"
       });
       return;
     }
 
-    setOptions(prev => [...prev, { name: newOptionName.trim(), values }]);
-    setNewOptionName("");
-    setNewOptionValues("");
+    // Check for duplicate option names
+    if (options.some(opt => opt.name.toLowerCase() === optionName.toLowerCase())) {
+      toast({
+        title: "Duplicate option",
+        description: `An option named "${optionName}" already exists`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setOptions(prev => [...prev, { name: optionName, values }]);
+    setNewOptionType("");
+    setCustomOptionName("");
+    setNewOptionValueInputs(["", "", ""]);
+  };
+
+  const addOptionValueInput = () => {
+    setNewOptionValueInputs(prev => [...prev, ""]);
+  };
+
+  const updateOptionValueInput = (index: number, value: string) => {
+    setNewOptionValueInputs(prev => prev.map((v, i) => i === index ? value : v));
+  };
+
+  const removeOptionValueInput = (index: number) => {
+    if (newOptionValueInputs.length <= 1) return;
+    setNewOptionValueInputs(prev => prev.filter((_, i) => i !== index));
   };
 
   const removeOption = (index: number) => {
@@ -330,8 +363,9 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
     setExistingImages([]);
     setOptions([]);
     setImageOptionMapping({});
-    setNewOptionName("");
-    setNewOptionValues("");
+    setNewOptionType("");
+    setCustomOptionName("");
+    setNewOptionValueInputs(["", "", ""]);
     setStep('edit');
     setShowCustomCategory(false);
   };
@@ -740,27 +774,86 @@ export const ProductForm = ({ vendorId, product, onSuccess }: ProductFormProps) 
             )}
 
             {/* Add New Option */}
-            <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+            <div className="border rounded-lg p-3 space-y-4 bg-muted/30">
               <Label className="text-sm font-medium">Add New Option</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Option Type</Label>
+              
+              {/* Step 1: Choose Option Type */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">1. What type of option?</Label>
+                <Select value={newOptionType} onValueChange={(value) => {
+                  setNewOptionType(value);
+                  if (value !== "custom") setCustomOptionName("");
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select option type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMMON_OPTION_TYPES.filter(type => 
+                      !options.some(opt => opt.name.toLowerCase() === type.toLowerCase())
+                    ).map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                    <SelectItem value="custom">+ Custom option...</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {newOptionType === "custom" && (
                   <Input
-                    placeholder="e.g., Color, Size"
-                    value={newOptionName}
-                    onChange={(e) => setNewOptionName(e.target.value)}
+                    placeholder="Enter custom option name..."
+                    value={customOptionName}
+                    onChange={(e) => setCustomOptionName(e.target.value)}
+                    className="mt-2"
                   />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Choices (comma separated)</Label>
-                  <Input
-                    placeholder="e.g., Red, Blue, Green"
-                    value={newOptionValues}
-                    onChange={(e) => setNewOptionValues(e.target.value)}
-                  />
-                </div>
+                )}
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={addOption}>
+
+              {/* Step 2: Add Choices (only show if option type selected) */}
+              {(newOptionType && (newOptionType !== "custom" || customOptionName.trim())) && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    2. Add choices for {newOptionType === "custom" ? customOptionName : newOptionType}
+                  </Label>
+                  <div className="space-y-2">
+                    {newOptionValueInputs.map((value, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          placeholder={`Choice ${index + 1}`}
+                          value={value}
+                          onChange={(e) => updateOptionValueInput(index, e.target.value)}
+                        />
+                        {newOptionValueInputs.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={() => removeOptionValueInput(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={addOptionValueInput}
+                    className="text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add another choice
+                  </Button>
+                </div>
+              )}
+
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                onClick={addOption}
+                disabled={!newOptionType || (newOptionType === "custom" && !customOptionName.trim())}
+              >
                 <Plus className="h-3 w-3 mr-1" /> Add Option
               </Button>
             </div>
