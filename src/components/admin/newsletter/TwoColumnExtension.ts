@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import { TwoColumnNodeView } from './TwoColumnNodeView';
 
 export type TwoColumnLayout = 'text-left-image-right' | 'image-left-text-right' | 'equal-columns';
 
@@ -19,12 +21,16 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
 
   group: 'block',
 
-  atom: true, // Atomic node - not editable inline
+  atom: true, // Atomic node - handled by NodeView
 
   addOptions() {
     return {
       HTMLAttributes: {},
     };
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(TwoColumnNodeView);
   },
 
   addAttributes() {
@@ -39,17 +45,21 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         },
       },
       leftContent: {
-        default: '<h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">Your Headline</h2><p style="margin: 0; font-size: 16px; line-height: 1.6;">Add your content here. This text will appear on the left side of the layout.</p>',
+        default: 'Your Headline\n\nAdd your content here. This text will appear on the left side of the layout.',
         parseHTML: element => {
           const leftCell = element.querySelector('td[data-column="left"]');
-          return leftCell?.innerHTML || '';
+          // Strip HTML tags and decode for editing
+          const html = leftCell?.innerHTML || '';
+          return html.replace(/<[^>]*>/g, '').trim();
         },
       },
       rightContent: {
-        default: '<h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">Your Headline</h2><p style="margin: 0; font-size: 16px; line-height: 1.6;">Add your content here. This text will appear on the right side of the layout.</p>',
+        default: 'Your Headline\n\nAdd your content here. This text will appear on the right side of the layout.',
         parseHTML: element => {
           const rightCell = element.querySelector('td[data-column="right"]');
-          return rightCell?.innerHTML || '';
+          // Strip HTML tags and decode for editing
+          const html = rightCell?.innerHTML || '';
+          return html.replace(/<[^>]*>/g, '').trim();
         },
       },
       imageUrl: {
@@ -84,35 +94,24 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     const isImageLeft = layout === 'image-left-text-right';
     const isEqual = layout === 'equal-columns';
     
-    // Build the image cell
-    const imageCell = [
-      'td',
-      {
-        'data-column': isImageLeft ? 'left' : 'right',
-        valign: 'top',
-        style: `width: 50%; padding: ${isImageLeft ? '0 16px 0 0' : '0 0 0 16px'};`,
-      },
-      [
-        'img',
-        {
-          src: imageUrl,
-          alt: 'Newsletter image',
-          style: 'width: 100%; height: auto; border-radius: 8px; display: block;',
-        },
-      ],
-    ];
-    
-    // Build the text cell
-    const textCell = [
-      'td',
-      {
-        'data-column': isImageLeft ? 'right' : 'left',
-        valign: 'top',
-        style: `width: 50%; padding: ${isImageLeft ? '0 0 0 16px' : '0 16px 0 0'};`,
-      },
-      // Use raw HTML content (will be parsed by email clients)
-      0, // Placeholder - actual content handled differently
-    ];
+    // Helper function to convert plain text to styled HTML
+    // First line becomes headline, rest becomes body
+    const textToHtml = (text: string) => {
+      const lines = text.split('\n').filter(line => line.trim() !== '');
+      if (lines.length === 0) return '';
+      
+      const headline = lines[0];
+      const body = lines.slice(1).join(' ');
+      
+      let html = `<h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${headline}</h2>`;
+      if (body) {
+        html += `<p style="margin: 0; font-size: 16px; line-height: 1.6;">${body}</p>`;
+      }
+      return html;
+    };
+
+    const leftHtml = textToHtml(leftContent);
+    const rightHtml = textToHtml(rightContent);
 
     // For equal columns, both sides are text
     if (isEqual) {
@@ -141,11 +140,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
                 width: '50%',
                 style: 'padding: 0 16px 0 0; vertical-align: top;',
               },
-              [
-                'div',
-                { style: 'font-size: 16px; line-height: 1.6;' },
-                leftContent,
-              ],
+              ['div', { style: 'font-size: 16px; line-height: 1.6;' }, leftHtml || leftContent],
             ],
             [
               'td',
@@ -155,47 +150,36 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
                 width: '50%',
                 style: 'padding: 0 0 0 16px; vertical-align: top;',
               },
-              [
-                'div',
-                { style: 'font-size: 16px; line-height: 1.6;' },
-                rightContent,
-              ],
+              ['div', { style: 'font-size: 16px; line-height: 1.6;' }, rightHtml || rightContent],
             ],
           ],
         ],
       ];
     }
 
-    // For image layouts
-    const leftCellContent = isImageLeft 
-      ? [
-          'img',
-          {
-            src: imageUrl,
-            alt: 'Newsletter image',
-            style: 'width: 100%; height: auto; border-radius: 8px; display: block;',
-          },
-        ]
-      : [
-          'div',
-          { style: 'font-size: 16px; line-height: 1.6;' },
-          leftContent,
-        ];
+    // For image layouts - determine text content based on layout
+    const textContent = isImageLeft ? rightContent : leftContent;
+    const textHtml = textToHtml(textContent);
 
-    const rightCellContent = isImageLeft
-      ? [
-          'div',
-          { style: 'font-size: 16px; line-height: 1.6;' },
-          rightContent,
-        ]
-      : [
-          'img',
-          {
-            src: imageUrl,
-            alt: 'Newsletter image',
-            style: 'width: 100%; height: auto; border-radius: 8px; display: block;',
-          },
-        ];
+    // Image element for the image side
+    const imageElement = [
+      'img',
+      {
+        src: imageUrl,
+        alt: 'Newsletter image',
+        style: 'width: 100%; height: auto; border-radius: 8px; display: block;',
+      },
+    ];
+
+    // Text element for the text side
+    const textElement = [
+      'div',
+      { style: 'font-size: 16px; line-height: 1.6;' },
+      textHtml || textContent,
+    ];
+
+    const leftCellContent = isImageLeft ? imageElement : textElement;
+    const rightCellContent = isImageLeft ? textElement : imageElement;
 
     return [
       'table',
