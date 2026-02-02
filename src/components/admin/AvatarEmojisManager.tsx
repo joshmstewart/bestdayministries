@@ -41,6 +41,31 @@ interface AvatarEmotionImage {
   created_at: string;
 }
 
+interface CompressionStats {
+  total: number;
+  alreadyCompressed: number;
+  needsCompression: number;
+  runningJob: {
+    id: string;
+    status: string;
+    processed: number;
+    failed: number;
+    skipped: number;
+    total_images: number;
+  } | null;
+}
+
+interface CompressionProgress {
+  job_id: string;
+  status: string;
+  total: number;
+  already_compressed: number;
+  processed: number;
+  skipped: number;
+  failed: number;
+  remaining: number;
+}
+
 export function AvatarEmojisManager() {
   const { toast } = useToast();
   const [fitnessAvatars, setFitnessAvatars] = useState<FitnessAvatar[]>([]);
@@ -57,11 +82,72 @@ export function AvatarEmojisManager() {
   const [loading, setLoading] = useState(true);
   const [cropScale, setCropScale] = useState(1.0);
   const [savingCropScale, setSavingCropScale] = useState(false);
+  
+  // Compression state
   const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionStats, setCompressionStats] = useState<CompressionStats | null>(null);
+  const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
     loadData();
+    loadCompressionStats();
   }, []);
+
+  // Poll for compression progress when a job is running
+  useEffect(() => {
+    if (!isCompressing && !compressionStats?.runningJob) return;
+    
+    const pollInterval = setInterval(async () => {
+      await loadCompressionStats();
+    }, 3000);
+    
+    return () => clearInterval(pollInterval);
+  }, [isCompressing, compressionStats?.runningJob]);
+
+  const loadCompressionStats = async () => {
+    try {
+      setLoadingStats(true);
+      const response = await supabase.functions.invoke("scan-avatar-compression-status");
+      
+      if (response.error) {
+        console.error("Failed to load compression stats:", response.error);
+        return;
+      }
+      
+      setCompressionStats(response.data);
+      
+      // If there's a running job, update progress state
+      if (response.data.runningJob) {
+        setCompressionProgress({
+          job_id: response.data.runningJob.id,
+          status: response.data.runningJob.status,
+          total: response.data.runningJob.total_images,
+          already_compressed: response.data.alreadyCompressed,
+          processed: response.data.runningJob.processed,
+          skipped: response.data.runningJob.skipped,
+          failed: response.data.runningJob.failed,
+          remaining: response.data.runningJob.total_images - 
+            (response.data.runningJob.processed + response.data.runningJob.failed + response.data.runningJob.skipped),
+        });
+        setIsCompressing(true);
+      } else {
+        if (compressionProgress?.status === "running") {
+          // Job just completed
+          toast({ title: "Compression complete!", description: "All images have been processed." });
+          sessionStorage.removeItem("avatar_emotion_images_cache");
+          await loadData();
+        }
+        setCompressionProgress(null);
+        setIsCompressing(false);
+      }
+    } catch (error) {
+      console.error("Error loading compression stats:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
 
   const loadData = async () => {
     setLoading(true);
@@ -446,32 +532,45 @@ STYLE:
   };
 
   const handleCompressAllImages = async () => {
-    if (!confirm("This will compress ALL existing avatar emotion images to 256x256 pixels. This may take several minutes. Continue?")) {
+    // Show confirmation with actual stats
+    const statsText = compressionStats 
+      ? `${compressionStats.alreadyCompressed} already compressed, ${compressionStats.needsCompression} need compression.`
+      : '';
+    
+    if (!confirm(`This will compress unoptimized avatar emotion images to 256x256 pixels.\n\n${statsText}\n\nContinue?`)) {
       return;
     }
 
     setIsCompressing(true);
     try {
+      // Start or resume compression - it will process in batches
       const response = await supabase.functions.invoke("compress-avatar-emotion-images");
 
       if (response.error) {
         throw new Error(response.error.message || "Compression failed");
       }
 
-      const { processed, failed, total, errors } = response.data;
+      const data = response.data;
+      setCompressionProgress(data);
       
-      toast({ 
-        title: "Compression complete!", 
-        description: `Compressed ${processed} of ${total} images${failed > 0 ? ` (${failed} failed)` : ''}`
-      });
-      
-      if (errors && errors.length > 0) {
-        console.error("Compression errors:", errors);
+      // If not complete, continue processing
+      if (data.status === "running") {
+        toast({ 
+          title: "Compression started", 
+          description: `Processing ${data.total} images. Progress will update automatically.`
+        });
+        // Continue processing batches
+        continueCompression(data.job_id);
+      } else {
+        toast({ 
+          title: "Compression complete!", 
+          description: `Compressed ${data.processed} images, skipped ${data.skipped}${data.failed > 0 ? `, ${data.failed} failed` : ''}`
+        });
+        sessionStorage.removeItem("avatar_emotion_images_cache");
+        await loadData();
+        await loadCompressionStats();
+        setIsCompressing(false);
       }
-      
-      // Clear cache and reload to show new images
-      sessionStorage.removeItem("avatar_emotion_images_cache");
-      await loadData();
     } catch (error: any) {
       console.error("Compression error:", error);
       toast({ 
@@ -479,7 +578,45 @@ STYLE:
         description: error.message || "Please try again",
         variant: "destructive" 
       });
-    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const continueCompression = async (jobId: string) => {
+    try {
+      const response = await supabase.functions.invoke("compress-avatar-emotion-images", {
+        body: { job_id: jobId }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Compression failed");
+      }
+
+      const data = response.data;
+      setCompressionProgress(data);
+
+      if (data.status === "running") {
+        // Continue with next batch after a short delay
+        setTimeout(() => continueCompression(jobId), 1000);
+      } else {
+        // Complete
+        toast({ 
+          title: "Compression complete!", 
+          description: `Compressed ${data.processed} images, skipped ${data.skipped}${data.failed > 0 ? `, ${data.failed} failed` : ''}`
+        });
+        sessionStorage.removeItem("avatar_emotion_images_cache");
+        await loadData();
+        await loadCompressionStats();
+        setIsCompressing(false);
+      }
+    } catch (error: any) {
+      console.error("Compression batch error:", error);
+      toast({ 
+        title: "Compression paused", 
+        description: "Click 'Resume' to continue where you left off.",
+        variant: "destructive" 
+      });
+      await loadCompressionStats();
       setIsCompressing(false);
     }
   };
@@ -542,35 +679,97 @@ STYLE:
         </Card>
       </div>
 
-      {/* Compress All Images Button */}
+      {/* Compress All Images Section */}
       {generatedCount > 0 && (
         <Card>
-          <CardContent className="pt-4">
+          <CardContent className="pt-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Compress Existing Images</h3>
                 <p className="text-sm text-muted-foreground">
-                  Resize all {generatedCount} images to 256×256 for faster loading (~80% smaller)
+                  Resize images to 256×256 for faster loading (~80% smaller)
                 </p>
               </div>
               <Button 
                 variant="outline" 
                 onClick={handleCompressAllImages}
-                disabled={isCompressing}
+                disabled={isCompressing || loadingStats}
               >
                 {isCompressing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Compressing...
+                    {compressionStats?.runningJob ? "Resume" : "Compressing..."}
                   </>
                 ) : (
                   <>
                     <Archive className="h-4 w-4 mr-2" />
-                    Compress All Images
+                    {compressionStats?.runningJob ? "Resume Compression" : "Compress Images"}
                   </>
                 )}
               </Button>
             </div>
+            
+            {/* Compression Stats */}
+            {compressionStats && !isCompressing && (
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-lg font-semibold text-green-600">{compressionStats.alreadyCompressed}</div>
+                  <div className="text-xs text-muted-foreground">Already Compressed</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-lg font-semibold text-amber-600">{compressionStats.needsCompression}</div>
+                  <div className="text-xs text-muted-foreground">Need Compression</div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <div className="text-lg font-semibold">{compressionStats.total}</div>
+                  <div className="text-xs text-muted-foreground">Total Images</div>
+                </div>
+              </div>
+            )}
+            
+            {/* Progress Bar */}
+            {compressionProgress && isCompressing && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Processing: {compressionProgress.processed + compressionProgress.skipped + compressionProgress.failed} / {compressionProgress.total}
+                  </span>
+                  <span className="font-medium">
+                    {compressionProgress.total > 0 
+                      ? Math.round(((compressionProgress.processed + compressionProgress.skipped + compressionProgress.failed) / compressionProgress.total) * 100)
+                      : 0}%
+                  </span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ 
+                      width: `${compressionProgress.total > 0 
+                        ? ((compressionProgress.processed + compressionProgress.skipped + compressionProgress.failed) / compressionProgress.total) * 100 
+                        : 0}%` 
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-xs text-center">
+                  <div>
+                    <span className="font-medium text-green-600">{compressionProgress.processed}</span>
+                    <span className="text-muted-foreground ml-1">Compressed</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-blue-600">{compressionProgress.skipped}</span>
+                    <span className="text-muted-foreground ml-1">Skipped</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-red-600">{compressionProgress.failed}</span>
+                    <span className="text-muted-foreground ml-1">Failed</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-amber-600">{compressionProgress.remaining}</span>
+                    <span className="text-muted-foreground ml-1">Remaining</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
