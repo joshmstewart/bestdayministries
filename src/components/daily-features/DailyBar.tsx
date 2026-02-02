@@ -206,9 +206,11 @@ export function DailyBar() {
     <div className="w-full">
       {/* Daily Bar Container */}
       <div className="bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 rounded-2xl p-1.5 border border-border/50">
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
-          <span className="text-sm font-medium text-muted-foreground hidden sm:block">Daily:</span>
+        <div className="relative flex items-center justify-center">
+          {/* Label - absolutely positioned on left so it doesn't affect centering */}
+          <span className="absolute left-3 text-sm font-medium text-muted-foreground hidden sm:block">Daily:</span>
           
+          {/* Icons - truly centered */}
           <div className="flex items-center gap-2 sm:gap-3">
             {icons.map((item) => {
               const gradientStyles = GRADIENTS[item.item_key] || GRADIENTS.mood;
