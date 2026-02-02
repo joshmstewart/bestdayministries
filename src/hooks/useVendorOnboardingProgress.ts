@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -11,8 +11,17 @@ interface OnboardingProgress {
   updated_at: string;
 }
 
+interface AutoDetectedStatus {
+  stripeConnected: boolean;
+  hasProducts: boolean;
+}
+
 export const useVendorOnboardingProgress = (vendorId: string | null) => {
   const [progress, setProgress] = useState<OnboardingProgress | null>(null);
+  const [autoDetected, setAutoDetected] = useState<AutoDetectedStatus>({
+    stripeConnected: false,
+    hasProducts: false
+  });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -23,14 +32,32 @@ export const useVendorOnboardingProgress = (vendorId: string | null) => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('vendor_onboarding_progress')
-        .select('*')
-        .eq('vendor_id', vendorId)
-        .maybeSingle();
+      // Fetch all data in parallel
+      const [progressResult, vendorResult, productsResult] = await Promise.all([
+        supabase
+          .from('vendor_onboarding_progress')
+          .select('*')
+          .eq('vendor_id', vendorId)
+          .maybeSingle(),
+        supabase
+          .from('vendors')
+          .select('stripe_charges_enabled')
+          .eq('id', vendorId)
+          .single(),
+        supabase
+          .from('products')
+          .select('id', { count: 'exact', head: true })
+          .eq('vendor_id', vendorId)
+      ]);
 
-      if (error) throw error;
-      setProgress(data);
+      if (progressResult.error) throw progressResult.error;
+      setProgress(progressResult.data);
+
+      // Set auto-detected status
+      setAutoDetected({
+        stripeConnected: vendorResult.data?.stripe_charges_enabled === true,
+        hasProducts: (productsResult.count ?? 0) > 0
+      });
     } catch (error) {
       console.error('Error fetching onboarding progress:', error);
     } finally {
@@ -42,8 +69,31 @@ export const useVendorOnboardingProgress = (vendorId: string | null) => {
     fetchProgress();
   }, [fetchProgress]);
 
+  // Merge manual completions with auto-detected completions
+  const effectiveCompletedSteps = useMemo(() => {
+    const manual = progress?.completed_steps || [];
+    const autoSteps: string[] = [];
+    
+    if (autoDetected.stripeConnected && !manual.includes('stripe-connect')) {
+      autoSteps.push('stripe-connect');
+    }
+    if (autoDetected.hasProducts && !manual.includes('first-product')) {
+      autoSteps.push('first-product');
+    }
+    
+    return [...new Set([...manual, ...autoSteps])];
+  }, [progress?.completed_steps, autoDetected]);
+
   const toggleStep = useCallback(async (stepId: string) => {
     if (!vendorId) return;
+
+    // Don't allow unchecking auto-detected steps
+    if (
+      (stepId === 'stripe-connect' && autoDetected.stripeConnected) ||
+      (stepId === 'first-product' && autoDetected.hasProducts)
+    ) {
+      return;
+    }
 
     const currentSteps = progress?.completed_steps || [];
     const isCompleted = currentSteps.includes(stepId);
@@ -100,7 +150,7 @@ export const useVendorOnboardingProgress = (vendorId: string | null) => {
         variant: "destructive"
       });
     }
-  }, [vendorId, progress, toast]);
+  }, [vendorId, progress, autoDetected, toast]);
 
   const setDismissed = useCallback(async (dismissed: boolean) => {
     if (!vendorId) return;
@@ -146,7 +196,11 @@ export const useVendorOnboardingProgress = (vendorId: string | null) => {
   }, [vendorId, progress, toast]);
 
   return {
-    completedSteps: progress?.completed_steps || [],
+    completedSteps: effectiveCompletedSteps,
+    autoDetectedSteps: {
+      'stripe-connect': autoDetected.stripeConnected,
+      'first-product': autoDetected.hasProducts
+    },
     isDismissed: progress?.is_dismissed || false,
     loading,
     toggleStep,
