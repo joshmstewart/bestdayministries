@@ -67,6 +67,9 @@ export const VendorStartupGuide = ({
             <li>Weekly payouts to your linked bank account</li>
             <li>Secure, industry-standard payment processing</li>
           </ul>
+          <p className="text-amber-600 dark:text-amber-400 font-medium mt-2">
+            ⚠️ Required: Your products won't be visible in the store until Stripe Connect is complete.
+          </p>
         </div>
       ),
       action: { label: 'Go to Payments', tab: 'payments' }
