@@ -365,21 +365,35 @@ export default function EmotionJournal() {
   }, [user, authLoading]);
 
   // Fetch encouraging message for existing mood entry
+  // Uses mood_responses table which matches by emotion name (label) for broader coverage
   const fetchEncouragingMessage = async (emoji: string, label: string) => {
     try {
+      // Query mood_responses by emotion name (lowercase) for better coverage across all 16 emotions
       const { data, error } = await supabase
-        .from("mood_messages")
-        .select("message")
-        .eq("mood_emoji", emoji)
+        .from("mood_responses")
+        .select("response")
+        .eq("emotion", label.toLowerCase())
         .eq("is_active", true);
 
       if (error) throw error;
       
       if (data && data.length > 0) {
         const randomMessage = data[Math.floor(Math.random() * data.length)];
-        setAiResponse(randomMessage.message);
+        setAiResponse(randomMessage.response);
       } else {
-        setAiResponse(`Thanks for checking in! We see you're feeling ${label.toLowerCase()}. That's okay!`);
+        // Fallback to mood_messages table by emoji
+        const { data: msgData, error: msgError } = await supabase
+          .from("mood_messages")
+          .select("message")
+          .eq("mood_emoji", emoji)
+          .eq("is_active", true);
+
+        if (!msgError && msgData && msgData.length > 0) {
+          const randomMessage = msgData[Math.floor(Math.random() * msgData.length)];
+          setAiResponse(randomMessage.message);
+        } else {
+          setAiResponse(`Thanks for checking in! We see you're feeling ${label.toLowerCase()}. That's okay!`);
+        }
       }
     } catch (error) {
       console.error("Error fetching message:", error);
