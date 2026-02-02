@@ -96,7 +96,7 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
   const canGoNext = !isSameMonth(currentMonth, new Date());
 
   return (
-    <Card className="p-3">
+    <Card className="p-3 max-w-xs mx-auto">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-medium flex items-center gap-1.5">
           <Calendar className="h-4 w-4" />
