@@ -349,17 +349,10 @@ const Community = () => {
             onValueChange={handleTabChange}
             className="w-full"
           >
-            {/* StreakMeter + Tabs row */}
-            <div className="flex flex-col gap-2 mb-2">
-              {/* StreakMeter - right aligned above tabs */}
-              {user && canSeeFeature('login_streak_button') && (
-                <div className="flex justify-end">
-                  <StreakMeter />
-                </div>
-              )}
-              
+            {/* StreakMeter + Tabs row - inline on larger screens, stacked on small mobile */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-2 mb-2">
               {/* Tabs - centered */}
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center order-2 sm:order-1">
               <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <TabsTrigger 
                   value="community" 
@@ -394,6 +387,13 @@ const Community = () => {
                 )}
               </TabsList>
               </div>
+              
+              {/* StreakMeter - right aligned on mobile, inline after tabs on larger screens */}
+              {user && canSeeFeature('login_streak_button') && (
+                <div className="flex justify-end sm:justify-start order-1 sm:order-2">
+                  <StreakMeter />
+                </div>
+              )}
             </div>
 
             {/* What's New Feed Tab - only render if user has access */}
