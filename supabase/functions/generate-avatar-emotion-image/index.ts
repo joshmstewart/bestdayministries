@@ -66,10 +66,10 @@ serve(async (req) => {
       });
     }
 
-    // Get the fitness avatar to include its name and image in the generation
+    // Get the fitness avatar to include its name, character type, and image in the generation
     const { data: avatarData, error: avatarFetchError } = await supabaseAdmin
       .from("fitness_avatars")
-      .select("name, image_url, preview_image_url, character_prompt")
+      .select("name, image_url, preview_image_url, character_prompt, character_type")
       .eq("id", avatarId)
       .single();
 
@@ -106,14 +106,32 @@ serve(async (req) => {
     console.log(`Avatar image URL for reference: ${avatarImageUrl}`);
     console.log(`Using background color: ${backgroundColor}`);
 
-    // Special handling for Grateful - show prayer hands instead of floating head
+    // Special handling for Grateful - show prayer hands/wings/appendages based on character type
     const isGrateful = emotionName.toLowerCase() === "grateful";
     
     // Build the enhanced prompt with correct background color
     let imageDescription: string;
     if (isGrateful) {
-      // For Grateful, show the avatar's hands in prayer position
-      imageDescription = `The character's hands pressed together in a prayer/namaste position, palms touching with fingers pointed upward. Show ONLY the hands and wrists, no face or body. The hands should match the character's skin tone and style. Solid ${backgroundColor} background that fills the entire frame edge-to-edge. Simple, clean emoji-style illustration.`;
+      // For Grateful, show prayer pose with appendages appropriate to the character type
+      const characterType = avatarData.character_type?.toLowerCase() || "";
+      const characterName = avatarData.name?.toLowerCase() || "";
+      
+      // Determine appropriate appendage description based on character
+      let appendageDescription: string;
+      if (characterName.includes("owl") || characterType === "animal" && characterName.includes("bird")) {
+        appendageDescription = "wings pressed together in a prayer/namaste position, feathered wing tips touching with the wings pointed upward";
+      } else if (characterType === "monster" || characterType === "blob" || characterName.includes("blob") || characterName.includes("slime") || characterName.includes("goo")) {
+        appendageDescription = "blob-like appendages shaped vaguely like hands pressed together in a prayer/namaste position, gelatinous surfaces touching with the appendages pointed upward";
+      } else if (characterType === "animal") {
+        appendageDescription = "paws or appendages pressed together in a prayer/namaste position, touching with the appendages pointed upward";
+      } else if (characterType === "robot" || characterName.includes("robot") || characterName.includes("bot")) {
+        appendageDescription = "mechanical hands pressed together in a prayer/namaste position, metal palms touching with fingers pointed upward";
+      } else {
+        // Default for humans/superheroes/other
+        appendageDescription = "hands pressed together in a prayer/namaste position, palms touching with fingers pointed upward";
+      }
+      
+      imageDescription = `The character's ${appendageDescription}. Show ONLY the hands/appendages and wrists/lower arms, no face or body. The appendages should match the character's style and coloring. Solid ${backgroundColor} background that fills the entire frame edge-to-edge. Simple, clean emoji-style illustration.`;
     } else {
       // For all other emotions, use floating head style
       imageDescription = `${prompt}. Use a solid ${backgroundColor} background that fills the entire frame edge-to-edge.`;
