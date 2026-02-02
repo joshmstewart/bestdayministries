@@ -62,9 +62,12 @@ const VendorDashboard = () => {
   // Returns undefined for 'none' theme so no inline styles are applied
   const theme = useMemo(() => getVendorThemeOptional(selectedVendor?.theme_color), [selectedVendor?.theme_color]);
 
-  const scrollToOrdersTab = () => {
-    setActiveTab("orders");
-    tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const scrollToTab = (tab: string) => {
+    setActiveTab(tab);
+    // Small delay to ensure tab content renders before scrolling
+    setTimeout(() => {
+      tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   useEffect(() => {
@@ -575,7 +578,7 @@ const VendorDashboard = () => {
             <VendorStartupGuide
               vendorId={selectedVendorId}
               theme={theme}
-              onNavigateToTab={setActiveTab}
+              onNavigateToTab={scrollToTab}
               onViewStore={() => navigate(`/vendors/${selectedVendorId}`)}
             />
 
@@ -627,10 +630,10 @@ const VendorDashboard = () => {
                   borderColor: theme.cardBorder,
                   boxShadow: theme.cardGlow
                 } : undefined}
-                onClick={scrollToOrdersTab}
+                onClick={() => scrollToTab('orders')}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') scrollToOrdersTab(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') scrollToTab('orders'); }}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className={`text-sm font-medium ${stats.pendingOrders > 0 ? 'text-white font-semibold' : ''}`}>
