@@ -349,48 +349,38 @@ const Community = () => {
             onValueChange={handleTabChange}
             className="w-full"
           >
-            {/* StreakMeter + Tabs row - inline on larger screens, stacked on small mobile */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-2 mb-2">
-              {/* Tabs - centered */}
-              <div className="flex items-center justify-center order-2 sm:order-1">
+            {/* StreakMeter + Tabs row - tabs centered, streak right-aligned */}
+            <div className="relative flex items-center justify-center mb-2">
+              {/* Tabs - truly centered */}
               <TabsList className={`grid gap-1 bg-muted/50 p-1.5 rounded-lg overflow-visible ${canAccessFeed() ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <TabsTrigger 
                   value="community" 
-                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  className="flex items-center gap-1.5 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap"
                 >
-                  <Users className="w-4 h-4" />
+                  <Sparkles className="h-4 w-4" />
                   <span>Home</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="apps" 
-                  className="gap-2 px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted"
+                  className="flex items-center gap-1.5 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap"
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <LayoutGrid className="h-4 w-4" />
                   <span>Apps</span>
                 </TabsTrigger>
                 {canAccessFeed() && (
                   <TabsTrigger 
                     value="feed" 
-                    className="gap-2 relative px-4 py-2.5 text-sm font-medium rounded-md transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md data-[state=inactive]:hover:bg-muted overflow-visible"
+                    className="flex items-center gap-1.5 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap"
                   >
-                    <Rss className="w-4 h-4" />
+                    <Rss className="h-4 w-4" />
                     <span>Feed</span>
-                    {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center p-0 text-xs rounded-full"
-                      >
-                        {unseenCount > 99 ? '99+' : unseenCount}
-                      </Badge>
-                    )}
                   </TabsTrigger>
                 )}
               </TabsList>
-              </div>
               
-              {/* StreakMeter - right aligned on mobile, inline after tabs on larger screens */}
+              {/* StreakMeter - absolutely positioned to the right */}
               {user && canSeeFeature('login_streak_button') && (
-                <div className="flex justify-end sm:justify-start order-1 sm:order-2">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2">
                   <StreakMeter />
                 </div>
               )}
