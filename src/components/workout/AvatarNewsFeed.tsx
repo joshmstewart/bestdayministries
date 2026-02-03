@@ -33,9 +33,28 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Share mutation
+  // Share mutation - limit to one share per day
   const shareMutation = useMutation({
     mutationFn: async (imageId: string) => {
+      // Check if user already has a shared image today
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+      
+      const { data: existingShares, error: checkError } = await supabase
+        .from("workout_generated_images")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("is_shared_to_community", true)
+        .gte("created_at", startOfDay)
+        .lt("created_at", endOfDay);
+      
+      if (checkError) throw checkError;
+      
+      if (existingShares && existingShares.length > 0) {
+        throw new Error("You can only share one workout image per day. Unshare your current one first!");
+      }
+      
       const { error } = await supabase
         .from("workout_generated_images")
         .update({ is_shared_to_community: true })
@@ -47,6 +66,13 @@ export const AvatarNewsFeed = ({ userId, includeTestImages = false, userName }: 
       queryClient.invalidateQueries({ queryKey: ["workout-images-feed"] });
       queryClient.invalidateQueries({ queryKey: ["workout-community-images"] });
       toast({ title: "Shared to community!" });
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Cannot share", 
+        description: error instanceof Error ? error.message : "Failed to share",
+        variant: "destructive"
+      });
     },
   });
 
