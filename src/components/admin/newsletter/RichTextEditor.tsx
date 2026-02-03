@@ -757,44 +757,49 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             Background
           </Button>
 
-          {/* Mobile stacking toggle - only show for column layouts */}
-          {isColumnLayoutSelected && (
-            <>
-              <div className="w-px h-6 bg-border mx-1" />
-              <Button
-                type="button"
-                variant={columnLayoutMobileStack ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  const { selection } = editor.state;
-                  const $from = selection.$from;
+          {/* Mobile stacking toggle - always visible for tables */}
+          <div className="w-px h-6 bg-border mx-1" />
+          <Button
+            type="button"
+            variant={columnLayoutMobileStack ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const { selection } = editor.state;
+              const $from = selection.$from;
+              
+              for (let d = $from.depth; d >= 0; d--) {
+                const node = $from.node(d);
+                if (node.type.name === 'table') {
+                  const pos = $from.before(d);
+                  const currentMobileStack = node.attrs['data-mobile-stack'] === 'true';
+                  const newMobileStack = currentMobileStack ? null : 'true';
                   
-                  for (let d = $from.depth; d >= 0; d--) {
-                    const node = $from.node(d);
-                    if (node.type.name === 'table' && node.attrs['data-columns']) {
-                      const pos = $from.before(d);
-                      const newMobileStack = node.attrs['data-mobile-stack'] === 'true' ? null : 'true';
-                      
-                      editor.commands.command(({ tr, dispatch }) => {
-                        const newAttrs = { ...node.attrs, 'data-mobile-stack': newMobileStack };
-                        tr.setNodeMarkup(pos, node.type, newAttrs, node.marks);
-                        if (dispatch) dispatch(tr);
-                        return true;
-                      });
-                      
-                      setColumnLayoutMobileStack(newMobileStack === 'true');
-                      toast.success(newMobileStack === 'true' ? "Columns will stack on mobile" : "Columns will stay side-by-side on mobile");
-                      break;
-                    }
-                  }
-                }}
-                title={columnLayoutMobileStack ? "Columns will stack on mobile - click to disable" : "Columns will stay side-by-side on mobile - click to enable stacking"}
-                className="h-7 px-3 gap-1"
-              >
-                📱 {columnLayoutMobileStack ? "Stacks on Mobile" : "Side-by-side"}
-              </Button>
-            </>
-          )}
+                  // Also ensure data-columns is set if not already (treat as 2-col layout)
+                  const dataColumns = node.attrs['data-columns'] || '2';
+                  
+                  editor.commands.command(({ tr, dispatch }) => {
+                    const newAttrs = { 
+                      ...node.attrs, 
+                      'data-mobile-stack': newMobileStack,
+                      'data-columns': dataColumns
+                    };
+                    tr.setNodeMarkup(pos, node.type, newAttrs, node.marks);
+                    if (dispatch) dispatch(tr);
+                    return true;
+                  });
+                  
+                  setColumnLayoutMobileStack(newMobileStack === 'true');
+                  setIsColumnLayoutSelected(true);
+                  toast.success(newMobileStack === 'true' ? "Columns will stack on mobile" : "Columns will stay side-by-side on mobile");
+                  break;
+                }
+              }
+            }}
+            title={columnLayoutMobileStack ? "Columns will stack on mobile - click to disable" : "Columns will stay side-by-side on mobile - click to enable stacking"}
+            className="h-7 px-3 gap-1"
+          >
+            📱 {columnLayoutMobileStack ? "Stack on Mobile" : "Side-by-side"}
+          </Button>
 
           <div className="w-px h-6 bg-border mx-1" />
 
