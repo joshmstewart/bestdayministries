@@ -501,6 +501,7 @@ TipTap-based rich text editor for email content.
 **Magazine (Two-Column) CTA Buttons:**
 - Two-column “magazine” layouts (`table[data-two-column]`) use inline `[CTA:text|url|color]` markers inside the layout’s text.
 - CTA tables *inside* a magazine layout must NOT be parsed as standalone CTA blocks (otherwise they get lifted out of the layout, often to the bottom of the document).
+- Padding note: magazine-owned CTAs (`data-owned-by-two-column="true"`) are rendered by `TwoColumnExtension` and use the tighter “fit content” padding (no font-size changes).
 
 **Styled Boxes (CRITICAL):**
 - Styled boxes are identified by `div[data-styled-box]` / `div[data-style]` emitted by the editor.
