@@ -73,6 +73,17 @@ export const CTAButton = Node.create<CTAButtonOptions>({
           return '#f97316';
         },
       },
+      width: {
+        default: 'auto',
+        parseHTML: element => {
+          const tableStyle = element.getAttribute('style') || '';
+          // Check if table has width: 100%
+          if (tableStyle.includes('width: 100%') || tableStyle.includes('width:100%')) {
+            return 'full';
+          }
+          return 'auto';
+        },
+      },
     };
   },
 
@@ -149,7 +160,8 @@ export const CTAButton = Node.create<CTAButtonOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { text, url, color } = HTMLAttributes;
+    const { text, url, color, width } = HTMLAttributes;
+    const isFullWidth = width === 'full';
     
     // Render as email-safe table structure with data attribute for identification
     return [
@@ -159,7 +171,9 @@ export const CTAButton = Node.create<CTAButtonOptions>({
         cellpadding: '0',
         cellspacing: '0',
         border: '0',
-        style: 'margin: 16px auto;',
+        style: isFullWidth 
+          ? 'margin: 16px auto; width: 100%;' 
+          : 'margin: 16px auto;',
       }),
       [
         'tbody',
@@ -178,7 +192,7 @@ export const CTAButton = Node.create<CTAButtonOptions>({
               {
                 href: url,
                 target: '_blank',
-                style: 'display: inline-block; padding: 12px 24px; color: white; text-decoration: none; font-weight: bold; font-size: 16px;',
+                style: `display: ${isFullWidth ? 'block' : 'inline-block'}; padding: 12px 24px; color: white; text-decoration: none; font-weight: bold; font-size: 16px; text-align: center;`,
               },
               text,
             ],
