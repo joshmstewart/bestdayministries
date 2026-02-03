@@ -187,6 +187,7 @@ export const NewsletterPreviewDialog = ({
               .email-preview em { font-style: italic; }
               .email-preview a { color: #0066cc; text-decoration: underline; }
               .email-preview img { max-width: 100%; width: auto; height: auto; display: block; }
+              .email-preview > div:last-child img { max-width: 150px; height: auto; margin: 0 auto; }
               .email-preview table[data-two-column] { table-layout: fixed; }
               .email-preview table[data-two-column] td { width: 50%; vertical-align: top; }
             `}</style>
