@@ -5,7 +5,7 @@ import { ImageIcon, Trash2, ArrowLeftRight, Crop, Palette, MousePointerClick, Ma
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
-import { compressImage } from '@/lib/imageUtils';
+import { compressImage, isHeicFile, convertHeicToJpeg } from '@/lib/imageUtils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -86,17 +86,33 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
     toast.success('CTA button added!');
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setImageFile(file);
+    let processedFile = file;
+
+    // Handle HEIC conversion
+    if (isHeicFile(file)) {
+      setUploading(true);
+      try {
+        processedFile = await convertHeicToJpeg(file);
+        toast.success("HEIC image converted successfully");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to convert HEIC image");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
+    setImageFile(processedFile);
     const reader = new FileReader();
     reader.onload = () => {
       setImageToCrop(reader.result as string);
       setCropDialogOpen(true);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(processedFile);
   };
 
   const handleCroppedImage = async (croppedBlob: Blob) => {
