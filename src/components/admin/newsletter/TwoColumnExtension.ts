@@ -183,14 +183,14 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       {
         src: imageUrl,
         alt: 'Newsletter image',
-        style: 'width: 100%; height: auto; border-radius: 8px; display: block;',
+        style: 'max-width: 100%; width: 100%; height: auto; border-radius: 8px; display: block;',
       },
     ];
 
-    // Text element for the text side - properly nested
+    // Text element for the text side - properly nested with padding for gap from image
     const textElement = [
       'div',
-      { style: 'font-size: 16px; line-height: 1.6;' },
+      { style: 'font-size: 16px; line-height: 1.6; padding: 0 8px;' },
       ...textElements,
     ];
 
