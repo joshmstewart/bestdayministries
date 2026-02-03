@@ -155,6 +155,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
+  const [tableBgColor, setTableBgColor] = useState("#ffffff");
   const [buttonText, setButtonText] = useState("");
   const [buttonUrl, setButtonUrl] = useState("");
   const [buttonColor, setButtonColor] = useState("#f97316");
@@ -217,7 +218,21 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       }),
       // IMPORTANT: TwoColumn MUST come before Table so parseHTML matches data-two-column first
       TwoColumn,
-      Table.configure({
+      Table.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            style: {
+              default: null,
+              parseHTML: element => element.getAttribute('style'),
+              renderHTML: attributes => {
+                if (!attributes.style) return {};
+                return { style: attributes.style };
+              },
+            },
+          };
+        },
+      }).configure({
         resizable: true,
         HTMLAttributes: {
           class: 'newsletter-table',
@@ -663,6 +678,81 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
               className="h-7 px-2"
             >
               Split
+            </Button>
+          </div>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Background color picker */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Background:</span>
+            <div className="relative">
+              <input
+                type="color"
+                className="w-8 h-7 rounded border cursor-pointer"
+                defaultValue="#ffffff"
+                onChange={(e) => {
+                  const color = e.target.value;
+                  // Find and update the table's background color
+                  const { state } = editor;
+                  const { selection } = state;
+                  const $from = selection.$from;
+                  
+                  // Find the table node
+                  for (let d = $from.depth; d >= 0; d--) {
+                    const node = $from.node(d);
+                    if (node.type.name === 'table') {
+                      const pos = $from.before(d);
+                      editor.commands.command(({ tr, dispatch }) => {
+                        const currentStyle = node.attrs.style || '';
+                        // Remove existing background-color if present
+                        const newStyle = currentStyle
+                          .replace(/background-color:\s*[^;]+;?/gi, '')
+                          .trim();
+                        const bgStyle = color === '#ffffff' ? '' : `background-color: ${color};`;
+                        const finalStyle = [newStyle, bgStyle].filter(Boolean).join(' ');
+                        tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: finalStyle || null }, node.marks);
+                        if (dispatch) dispatch(tr);
+                        return true;
+                      });
+                      break;
+                    }
+                  }
+                }}
+                title="Set table background color"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                // Clear background color
+                const { state } = editor;
+                const { selection } = state;
+                const $from = selection.$from;
+                
+                for (let d = $from.depth; d >= 0; d--) {
+                  const node = $from.node(d);
+                  if (node.type.name === 'table') {
+                    const pos = $from.before(d);
+                    editor.commands.command(({ tr, dispatch }) => {
+                      const currentStyle = (node.attrs.style || '')
+                        .replace(/background-color:\s*[^;]+;?/gi, '')
+                        .trim();
+                      tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: currentStyle || null }, node.marks);
+                      if (dispatch) dispatch(tr);
+                      return true;
+                    });
+                    toast.success("Background cleared");
+                    break;
+                  }
+                }
+              }}
+              title="Clear background color"
+              className="h-7 px-2 text-xs"
+            >
+              Clear
             </Button>
           </div>
 
