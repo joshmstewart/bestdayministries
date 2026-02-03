@@ -86,6 +86,31 @@ function styleFooterImages(html: string): string {
   );
 }
 
+/**
+ * Style empty paragraphs (spacers) as 12px height for consistent email rendering.
+ * Matches paragraphs containing only whitespace, &nbsp;, or <br> tags.
+ */
+function styleEmptyParagraphs(html: string): string {
+  return (html || "").replace(
+    /<p\b([^>]*)>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi,
+    (match, attrs) => {
+      const existingAttrs = attrs || "";
+      if (/style\s*=\s*"/i.test(existingAttrs)) {
+        const newAttrs = existingAttrs.replace(
+          /style\s*=\s*"([^"]*)"/i,
+          (_m: string, existing: string) => {
+            const trimmed = (existing || "").trim();
+            const sep = trimmed.length === 0 ? "" : trimmed.endsWith(";") ? " " : "; ";
+            return `style="${trimmed}${sep}margin:0;height:12px;line-height:12px;"`;
+          }
+        );
+        return `<p${newAttrs}></p>`;
+      }
+      return `<p${existingAttrs} style="margin:0;height:12px;line-height:12px;"></p>`;
+    }
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -318,8 +343,8 @@ serve(async (req) => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add campaign content (apply email-safe formatting to tables and styled boxes)
-    htmlContent += styleStyledBoxes(styleStandardTablesOnly(campaign.html_content));
+    // Add campaign content (apply email-safe formatting to tables, styled boxes, and empty paragraphs)
+    htmlContent += styleEmptyParagraphs(styleStyledBoxes(styleStandardTablesOnly(campaign.html_content)));
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {

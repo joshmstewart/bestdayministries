@@ -107,6 +107,30 @@ export const NewsletterPreviewDialog = ({
     };
   }, []);
 
+  // Style empty paragraphs to be 12px spacers
+  const styleEmptyParagraphs = (html: string): string => {
+    // Match <p> tags that contain only whitespace, &nbsp;, or are truly empty
+    return (html || "").replace(
+      /<p\b([^>]*)>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi,
+      (match, attrs) => {
+        // Merge inline style for 12px height
+        const existingAttrs = attrs || "";
+        if (/style\s*=\s*"/i.test(existingAttrs)) {
+          const newAttrs = existingAttrs.replace(
+            /style\s*=\s*"([^"]*)"/i,
+            (_m: string, existing: string) => {
+              const trimmed = (existing || "").trim();
+              const sep = trimmed.length === 0 ? "" : trimmed.endsWith(";") ? " " : "; ";
+              return `style="${trimmed}${sep}margin:0;height:12px;line-height:12px;"`;
+            }
+          );
+          return `<p${newAttrs}></p>`;
+        }
+        return `<p${existingAttrs} style="margin:0;height:12px;line-height:12px;"></p>`;
+      }
+    );
+  };
+
   // Replace placeholders in content
   const processedContent = useMemo(() => {
     let content = htmlContent || "";
@@ -114,6 +138,9 @@ export const NewsletterPreviewDialog = ({
     content = content.replace(/{{organization_name}}/g, orgName);
     content = content.replace(/{{month}}/g, processedVars.month);
     content = content.replace(/{{year}}/g, processedVars.year);
+    
+    // Apply empty paragraph styling
+    content = styleEmptyParagraphs(content);
 
     return content;
   }, [htmlContent, orgName, processedVars.month, processedVars.siteUrl, processedVars.year]);
@@ -181,7 +208,6 @@ export const NewsletterPreviewDialog = ({
               .email-preview h5 { font-size: 1em; font-weight: bold; margin: 1.33em 0; line-height: 1.5; }
               .email-preview h6 { font-size: 0.875em; font-weight: bold; margin: 1.67em 0; line-height: 1.5; }
               .email-preview p { margin: 0; line-height: 1.5; }
-              .email-preview p:empty, .email-preview p br:only-child { line-height: 0.8; }
               /* Styled boxes should have tight paragraphs so single-line boxes stay compact */
               .email-preview [data-styled-box] p { margin: 0; }
               /* Also remove heading margins inside styled boxes for compact single-line titles */
