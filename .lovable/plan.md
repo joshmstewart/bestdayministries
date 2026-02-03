@@ -1,146 +1,146 @@
 
 
-# Definitive Fix for Phantom CTA Button in Newsletter Editor
+## Newsletter Mobile Layout & Preview Plan
 
-## Root Cause Identified
+### Problem Analysis
 
-After extensive analysis, the "Click Here" CTA button appearing at the bottom of the editor is caused by **double-parsing of CTA tables** nested inside two-column layouts.
+Based on your screenshots and the codebase exploration, there are two issues:
 
-### The Parsing Flow:
-1. HTML is loaded: `<table data-two-column>...<table data-cta-button>...</table>...</table>`
-2. `TwoColumn.parseHTML()` matches the outer table and extracts CTA as `[CTA:text|url|color]` markers ✅
-3. `CTAButton.parseHTML()` **also** matches the inner CTA table ❌
-4. Since `twoColumn` is `atom: true`, ProseMirror can't nest the CTA inside it
-5. The CTA node gets "lifted" to the document root (appearing at the bottom)
+1. **Mobile Layout Problem**: Multi-column layouts (both `data-columns` tables and `data-two-column` magazine layouts) display side-by-side on mobile, causing content to be cramped and hard to read
+2. **Preview Gap**: No way to see how emails will render on mobile devices without actually sending a test email
 
-### Why the Existing Guard Fails:
+---
 
-The current `getAttrs` check:
-```typescript
-getAttrs: (element: HTMLElement) => {
-  if (element.closest('table[data-two-column]')) return false;
-  return {};
-},
+### Part 1: Mobile Layout Solutions
+
+#### The Challenge
+Email clients have limited CSS support - most notably, many don't support `@media` queries for responsive layouts. This means we need to be strategic about how we handle mobile responsiveness.
+
+#### Option A: CSS Media Queries (Limited Support)
+- Add `@media (max-width: 480px)` rules to stack columns vertically
+- **Pros**: Clean solution, no extra markup
+- **Cons**: Gmail web/app, some Outlook versions, and older clients ignore media queries entirely
+- **Email client support**: ~60-70% of recipients
+
+#### Option B: Hybrid Approach with Table Structure (Recommended)
+Use a technique called "spongy" or "fluid-hybrid" email design:
+- Each column becomes its own `<table>` wrapped in a container
+- Uses `display: inline-block` and `max-width` to flow naturally
+- Falls back gracefully on clients without media query support
+
+```html
+<!-- Instead of one table with multiple columns -->
+<table width="100%" style="max-width:600px;margin:0 auto;">
+  <tr>
+    <td>
+      <!-- Column 1 wrapper -->
+      <div style="display:inline-block;width:100%;max-width:200px;">
+        <table width="100%">...</table>
+      </div>
+      <!-- Column 2 wrapper -->
+      <div style="display:inline-block;width:100%;max-width:200px;">
+        <table width="100%">...</table>
+      </div>
+    </td>
+  </tr>
+</table>
 ```
 
-This should work, but appears to be failing in certain parsing contexts. Possible causes:
-- DOM fragment isolation during `setContent()` parsing
-- Extension priority ordering issues
-- Parser walking children before the parent node is fully claimed
+#### Option C: User-Controlled Mobile Behavior
+Add a toggle in the editor for each column layout:
+- **"Stack on Mobile"** checkbox/toggle
+- Adds a `data-mobile-stack` attribute to the table
+- Edge functions detect this and apply the hybrid wrapping technique only where requested
+- This preserves data tables (like schedules or pricing grids) that should NOT stack
+
+**Recommended: Combine Options B + C**
+- Default multi-column layouts to "stack on mobile"
+- Add a UI control to disable stacking for true data tables
+- Implement the hybrid approach in edge functions
 
 ---
 
-## Solution: Triple-Layer Defense
+### Part 2: Mobile Preview Feature
 
-We will implement three complementary fixes to guarantee CTAs inside two-column layouts are never parsed as standalone nodes:
+#### Implementation Approach
 
-### 1. Prevent CTAButton from Parsing During Initial Load
-
-Add a module-level flag that tells CTAButton to skip parsing when content is being bulk-loaded. This prevents any race conditions.
-
-### 2. Mark Two-Column CTA Tables with a Distinguishing Attribute
-
-When `TwoColumn.renderHTML()` generates CTA tables, add a marker attribute `data-owned-by-two-column="true"`. Then CTAButton's parseHTML explicitly rejects tables with this attribute.
-
-### 3. Fix Extension Priority to Ensure TwoColumn Processes First
-
-Lower CTAButton's priority below TwoColumn's, and add explicit high priority to TwoColumn's parseHTML rules.
-
----
-
-## Technical Changes
-
-### File 1: `src/components/admin/newsletter/TwoColumnExtension.ts`
-
-Add `data-owned-by-two-column` attribute to CTA tables generated in `renderHTML()`:
+Add a viewport toggle to the existing `NewsletterPreviewDialog`:
 
 ```text
-In the textToElements function around line 255-289, modify the CTA table generation:
-
-Before:
-  elements.push([
-    'table',
-    {
-      'data-cta-button': '',
-      ...
-    },
-
-After:
-  elements.push([
-    'table',
-    {
-      'data-cta-button': '',
-      'data-owned-by-two-column': 'true',  // NEW
-      ...
-    },
++----------------------------------+
+|  📧 Email Preview      [📱] [💻] |
++----------------------------------+
+|  Subject: ...                    |
++----------------------------------+
+|                                  |
+|   [Simulated email content]      |
+|   Width: 375px (mobile) or       |
+|   600px (desktop)                |
+|                                  |
++----------------------------------+
 ```
 
-### File 2: `src/components/admin/newsletter/CTAButtonExtension.ts`
+**Technical Details:**
+1. Add state for viewport mode: `'desktop' | 'mobile'`
+2. Add toggle buttons in the dialog header
+3. Constrain the preview container width based on mode:
+   - Desktop: 600px (standard email width)
+   - Mobile: 375px (iPhone standard)
+4. Apply mobile-specific CSS rules to the preview when in mobile mode
 
-**Change 1:** Lower the node priority from 1001 to 100 (below TwoColumn's 1000)
+#### Preview CSS for Mobile Simulation
+When mobile preview is active, inject additional styles that simulate what media queries would do:
 
-**Change 2:** Add explicit check for `data-owned-by-two-column` attribute
-
-**Change 3:** Add debugging console.log (temporarily) to verify the check runs
-
-```text
-Priority change (around line 25):
-  priority: 100,  // Changed from 1001 - must be lower than TwoColumn (1000)
-
-parseHTML changes (around lines 80-145):
-
-Rule 1 (table[data-cta-button]):
-  getAttrs: (element: HTMLElement) => {
-    // Skip CTAs owned by two-column layouts
-    if (element.hasAttribute('data-owned-by-two-column')) return false;
-    if (element.closest('table[data-two-column]')) return false;
-    return {};
-  },
-
-Rule 2 (fallback table):
-  Add same checks at the start of getAttrs
+```css
+/* Mobile simulation styles */
+.email-preview.mobile-mode table[data-columns] td,
+.email-preview.mobile-mode table[data-two-column] td {
+  display: block !important;
+  width: 100% !important;
+}
 ```
 
-### File 3: `src/components/admin/newsletter/RichTextEditor.tsx`
+---
 
-No changes needed - the extension ordering is already correct (TwoColumn before CTAButton).
+### Technical Implementation
+
+#### Files to Modify
+
+1. **`src/components/admin/newsletter/NewsletterPreviewDialog.tsx`**
+   - Add viewport toggle state and buttons
+   - Add mobile preview CSS rules
+   - Constrain preview width based on mode
+
+2. **`src/components/admin/newsletter/RichTextEditor.tsx`**
+   - Add "Stack on Mobile" toggle when inserting columns
+   - Add `data-mobile-stack="true"` attribute to column tables by default
+
+3. **Edge Functions** (all 4 newsletter send functions)
+   - Detect `data-mobile-stack` attribute
+   - Apply hybrid email technique for responsive stacking
+   - Add `<style>` block with media queries as fallback
+
+4. **Documentation Updates**
+   - `docs/NEWSLETTER_SYSTEM.md` - document mobile behavior
+   - `docs/MASTER_SYSTEM_DOCS.md` - update newsletter section
 
 ---
 
-## Database Cleanup
+### Summary
 
-The current "My Awesome Template" has correct HTML (CTAs are properly nested). No database changes needed.
+| Feature | What It Does | Complexity |
+|---------|-------------|------------|
+| Mobile Preview Toggle | See layout at 375px width in preview dialog | Low |
+| Mobile CSS Simulation | Preview applies stacking rules | Low-Medium |
+| Hybrid Email Technique | Columns stack on mobile in actual emails | Medium |
+| User Control Toggle | Choose which layouts stack on mobile | Medium |
 
-The fix ensures that on next load, the CTAs inside two-column layouts are **not** parsed as standalone nodes.
+**Recommended First Phase:**
+1. Add mobile preview toggle to dialog
+2. Add mobile simulation CSS to preview
+3. Add hybrid responsive technique to edge functions (default ON for `data-columns` tables)
 
----
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/admin/newsletter/TwoColumnExtension.ts` | Add `data-owned-by-two-column` attribute to generated CTA tables |
-| `src/components/admin/newsletter/CTAButtonExtension.ts` | Lower priority to 100, add attribute check in parseHTML |
-
----
-
-## Testing Checklist
-
-After implementation:
-1. Open "My Awesome Template" in edit mode
-2. Verify NO phantom CTA button appears at bottom
-3. Verify the CTAs inside magazine layouts still render in preview
-4. Add a new CTA to a magazine layout, save, reopen - verify it stays in place
-5. Add a standalone CTA (outside magazine), save, reopen - verify it works
-6. Delete a CTA inside magazine layout - verify it deletes correctly
-
----
-
-## Why This Will Work
-
-1. **Primary defense**: `data-owned-by-two-column` attribute is a definitive marker that the CTA belongs to a two-column layout. CTAButton.parseHTML checks this first.
-
-2. **Secondary defense**: `.closest('table[data-two-column]')` check remains as a fallback for any edge cases.
-
-3. **Priority fix**: Lowering CTAButton's priority ensures TwoColumn's parseHTML is evaluated first, giving it priority to "claim" the parent table before CTAButton tries to claim nested children.
+**Phase 2:**
+4. Add "Stack on Mobile" toggle in column insertion dialog
+5. Handle magazine layouts similarly
 
