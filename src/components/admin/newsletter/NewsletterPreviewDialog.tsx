@@ -264,12 +264,16 @@ export const NewsletterPreviewDialog = ({
       max-width: 100% !important;
       box-sizing: border-box !important;
       padding-bottom: 16px !important;
+      margin-bottom: 16px !important;
+      border-bottom: 1px solid #e5e5e5 !important;
     }
     
-    /* Remove bottom padding from last column */
+    /* Remove bottom padding/margin/border from last column */
     .email-preview table[data-mobile-stack="true"] td:last-child,
     .email-preview table[data-two-column] td:last-child {
       padding-bottom: 0 !important;
+      margin-bottom: 0 !important;
+      border-bottom: none !important;
     }
     
     /* Ensure images still fill the stacked column width */
