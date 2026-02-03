@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, X, Image as ImageIcon, Crop } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Crop, Loader2 } from "lucide-react";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
+import { isHeicFile, convertHeicToJpeg } from "@/lib/imageUtils";
+import { toast } from "sonner";
 
 type AspectRatioKey = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3';
 
@@ -33,26 +35,45 @@ export function ImageUploadWithCrop({
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [selectedRatio, setSelectedRatio] = useState<AspectRatioKey>(aspectRatio);
+  const [isConverting, setIsConverting] = useState(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    let processedFile = file;
+
+    // Handle HEIC conversion
+    if (isHeicFile(file)) {
+      setIsConverting(true);
+      try {
+        processedFile = await convertHeicToJpeg(file);
+        toast.success("HEIC image converted successfully");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to convert HEIC image");
+        setIsConverting(false);
+        return;
+      }
+      setIsConverting(false);
+    }
+
+    if (!processedFile.type.startsWith('image/')) {
+      toast.error("Please select an image file");
       return;
     }
 
-    if (file.size > maxSizeMB * 1024 * 1024) {
+    if (processedFile.size > maxSizeMB * 1024 * 1024) {
+      toast.error(`File is too large. Maximum size is ${maxSizeMB}MB`);
       return;
     }
 
-    setOriginalFile(file);
+    setOriginalFile(processedFile);
     const reader = new FileReader();
     reader.onloadend = () => {
       setImageToCrop(reader.result as string);
       setCropDialogOpen(true);
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(processedFile);
   };
 
   const handleCropComplete = (croppedBlob: Blob) => {
@@ -118,21 +139,31 @@ export function ImageUploadWithCrop({
           </CardContent>
         </Card>
       ) : (
-        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+        <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${isConverting ? 'opacity-50 pointer-events-none' : ''}`}>
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <ImageIcon className="w-8 h-8 mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Click to upload an image
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Max {maxSizeMB}MB
-            </p>
+            {isConverting ? (
+              <>
+                <Loader2 className="w-8 h-8 mb-2 text-muted-foreground animate-spin" />
+                <p className="text-sm text-muted-foreground">Converting HEIC...</p>
+              </>
+            ) : (
+              <>
+                <ImageIcon className="w-8 h-8 mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Click to upload an image
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Max {maxSizeMB}MB • HEIC supported
+                </p>
+              </>
+            )}
           </div>
           <Input
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             className="hidden"
             onChange={handleFileSelect}
+            disabled={isConverting}
           />
         </label>
       )}

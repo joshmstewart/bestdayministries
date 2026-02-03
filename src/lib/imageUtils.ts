@@ -1,3 +1,41 @@
+import heic2any from 'heic2any';
+
+/**
+ * Check if a file is HEIC/HEIF format
+ */
+export function isHeicFile(file: File): boolean {
+  const heicTypes = ['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'];
+  if (heicTypes.includes(file.type.toLowerCase())) return true;
+  // Also check extension since type might be empty
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  return ext === 'heic' || ext === 'heif';
+}
+
+/**
+ * Convert HEIC/HEIF file to JPEG
+ */
+export async function convertHeicToJpeg(file: File): Promise<File> {
+  if (!isHeicFile(file)) return file;
+  
+  try {
+    const blob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.9,
+    });
+    
+    // heic2any can return a single blob or array
+    const resultBlob = Array.isArray(blob) ? blob[0] : blob;
+    
+    // Create new file with .jpg extension
+    const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+    return new File([resultBlob], newName, { type: 'image/jpeg', lastModified: Date.now() });
+  } catch (error) {
+    console.error('HEIC conversion failed:', error);
+    throw new Error('Failed to convert HEIC image. Please convert it to JPEG or PNG first.');
+  }
+}
+
 /**
  * Compress and resize image if needed
  * @param file - Original image file
