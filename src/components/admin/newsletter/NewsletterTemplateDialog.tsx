@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { RichTextEditor } from "./RichTextEditor";
+import { RichTextEditor, type RichTextEditorRef } from "./RichTextEditor";
 
 interface NewsletterTemplateDialogProps {
   template?: any;
@@ -18,6 +18,7 @@ interface NewsletterTemplateDialogProps {
 
 export const NewsletterTemplateDialog = ({ template, open, onOpenChange }: NewsletterTemplateDialogProps) => {
   const queryClient = useQueryClient();
+  const editorRef = useRef<RichTextEditorRef>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("general");
@@ -48,13 +49,16 @@ export const NewsletterTemplateDialog = ({ template, open, onOpenChange }: Newsl
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Always save the latest editor HTML to avoid race conditions with React state updates.
+      const latestHtml = editorRef.current?.getHTML?.() ?? htmlContent;
+
       const templateData = {
         name,
         description,
         category,
         subject_template: subjectTemplate,
         preview_text_template: previewText,
-        html_content: htmlContent,
+        html_content: latestHtml,
         created_by: user.id,
       };
 
@@ -153,6 +157,7 @@ export const NewsletterTemplateDialog = ({ template, open, onOpenChange }: Newsl
           <div className="space-y-2">
             <Label>Email Content</Label>
             <RichTextEditor
+              ref={editorRef}
               content={htmlContent}
               onChange={setHtmlContent}
             />
