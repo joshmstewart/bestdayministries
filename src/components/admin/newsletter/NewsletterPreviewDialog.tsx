@@ -189,6 +189,29 @@ export const NewsletterPreviewDialog = ({
                /* IMPORTANT: don't set width here; it overrides inline/attribute widths in header/footer templates */
                .email-preview img { max-width: 100%; height: auto; display: block; }
                .email-preview [data-newsletter-footer] img { max-width: 200px; height: auto; margin: 0 auto; display: block; }
+
+               /* Improve readability for normal tables in preview (keep magazine 2-col tables untouched) */
+               .email-preview table:not([data-two-column]) {
+                 width: 100%;
+                 border-collapse: collapse;
+                 table-layout: fixed;
+               }
+               .email-preview table:not([data-two-column]) th,
+               .email-preview table:not([data-two-column]) td {
+                 padding: 10px 12px;
+                 vertical-align: top;
+               }
+               .email-preview table:not([data-two-column]) th {
+                 font-weight: 700;
+                 text-align: left;
+               }
+               .email-preview table:not([data-two-column]) td {
+                 word-break: break-word;
+                 overflow-wrap: anywhere;
+               }
+               .email-preview table:not([data-two-column]) tr + tr td {
+                 border-top: 1px solid #eee;
+               }
               .email-preview table[data-two-column] { table-layout: fixed; }
               .email-preview table[data-two-column] td { width: 50%; vertical-align: top; }
             `}</style>
