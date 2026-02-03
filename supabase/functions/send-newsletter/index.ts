@@ -137,6 +137,104 @@ function styleColumnLayoutTables(html: string): string {
 }
 
 /**
+ * Apply fluid-hybrid responsive design for magazine (two-column) layout tables.
+ * These tables stack vertically on mobile devices without dividers.
+ */
+function styleMagazineLayouts(html: string): string {
+  return (html || "").replace(
+    /<table\b([^>]*data-two-column[^>]*)>([\s\S]*?)<\/table>/gi,
+    (fullMatch, attrs, tableContent) => {
+      // Skip if already processed
+      if (fullMatch.includes('<!--[if mso]>')) return fullMatch;
+
+      // Extract table-level background from style attribute
+      const tableStyleMatch = attrs.match(/style\s*=\s*"([^"]*)"/i);
+      const tableStyle = tableStyleMatch?.[1] || '';
+      const bgMatch = tableStyle.match(/background-color:\s*([^;]+)/i);
+      const tableBg = bgMatch?.[1]?.trim() || 'transparent';
+      const paddingMatch = tableStyle.match(/padding:\s*([^;]+)/i);
+      const tablePadding = paddingMatch?.[1]?.trim() || '24px';
+      const borderRadiusMatch = tableStyle.match(/border-radius:\s*([^;]+)/i);
+      const tableBorderRadius = borderRadiusMatch?.[1]?.trim() || '8px';
+      const marginMatch = tableStyle.match(/margin:\s*([^;]+)/i);
+      const tableMargin = marginMatch?.[1]?.trim() || '16px 0';
+
+      // Extract all <td> elements with their attributes and contents
+      const tdRegex = /<td\b([^>]*)>([\s\S]*?)<\/td>/gi;
+      const cells: Array<{ attrs: string; content: string }> = [];
+      let match;
+      while ((match = tdRegex.exec(tableContent)) !== null) {
+        cells.push({ attrs: match[1], content: match[2] });
+      }
+
+      if (cells.length !== 2) return fullMatch;
+
+      // Build fluid-hybrid structure for 2 columns (284px each in 600px container minus padding)
+      const colMaxWidth = 284;
+
+      const columnDivs = cells.map((cell) => {
+        // Extract cell-level background if any
+        const cellStyleMatch = cell.attrs.match(/style\s*=\s*"([^"]*)"/i);
+        const cellStyle = cellStyleMatch?.[1] || '';
+        const cellBgMatch = cellStyle.match(/background-color:\s*([^;]+)/i);
+        const cellBg = cellBgMatch?.[1]?.trim() || 'transparent';
+        const cellPaddingMatch = cellStyle.match(/padding:\s*([^;]+)/i);
+        const cellPadding = cellPaddingMatch?.[1]?.trim() || '8px';
+        const cellBorderRadiusMatch = cellStyle.match(/border-radius:\s*([^;]+)/i);
+        const cellBorderRadius = cellBorderRadiusMatch?.[1]?.trim() || '';
+
+        // Style images inside each column
+        let styledContent = cell.content.replace(/<img\b[^>]*>/gi, (imgTag) =>
+          mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+        );
+
+        // Build cell inline style - NO bottom border/spacing for magazine layouts
+        let cellInlineStyle = `padding:${cellPadding};vertical-align:top;`;
+        if (cellBg !== 'transparent') {
+          cellInlineStyle += `background-color:${cellBg};`;
+        }
+        if (cellBorderRadius) {
+          cellInlineStyle += `border-radius:${cellBorderRadius};`;
+        }
+
+        return `<!--[if mso]><td valign="top" width="${colMaxWidth}" style="${cellInlineStyle}"><![endif]-->
+<div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td style="${cellInlineStyle}">${styledContent}</td>
+    </tr>
+  </table>
+</div>
+<!--[if mso]></td><![endif]-->`;
+      }).join("\n");
+
+      // Build table inline style
+      let wrapperStyle = `max-width:600px;margin:${tableMargin};border-collapse:collapse;`;
+      if (tableBg !== 'transparent') {
+        wrapperStyle += `background-color:${tableBg};`;
+      }
+      if (tableBorderRadius !== '0' && tableBorderRadius !== '0px') {
+        wrapperStyle += `border-radius:${tableBorderRadius};`;
+      }
+      if (tablePadding !== '0' && tablePadding !== '0px') {
+        wrapperStyle += `padding:${tablePadding};`;
+      }
+
+      // Wrap in a container table for email clients
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="${wrapperStyle}">
+  <tr>
+    <td align="center" style="font-size:0;">
+      <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->
+      ${columnDivs}
+      <!--[if mso]></tr></table><![endif]-->
+    </td>
+  </tr>
+</table>`;
+    }
+  );
+}
+
+/**
  * Inline-styles paragraphs and headings inside [data-styled-box] elements 
  * so they render compactly in email clients (no extra vertical spacing).
  */
@@ -421,8 +519,8 @@ serve(async (req) => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add campaign content (apply email-safe formatting to tables, styled boxes, and empty paragraphs)
-    htmlContent += styleEmptyParagraphs(styleStyledBoxes(styleColumnLayoutTables(styleStandardTablesOnly(campaign.html_content))));
+    // Add campaign content (apply email-safe formatting to tables, styled boxes, magazine layouts, and empty paragraphs)
+    htmlContent += styleEmptyParagraphs(styleStyledBoxes(styleMagazineLayouts(styleColumnLayoutTables(styleStandardTablesOnly(campaign.html_content)))));
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
