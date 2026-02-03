@@ -167,13 +167,13 @@ const styleColumnLayoutTables = (html: string): string => {
       const numColumns = parseInt(columnCount, 10);
       const columnWidth = numColumns > 0 ? (100 / numColumns).toFixed(2) + "%" : "auto";
       
-      // Style the table tag with fixed layout
+      // Style the table tag with fixed layout AND max-width for email clients
       let updated = tableHtml.replace(
         /<table\b[^>]*>/i,
         (tableTag) =>
           mergeInlineStyle(
             tableTag,
-            "width:100%;border-collapse:collapse;table-layout:fixed;"
+            "width:100%;max-width:600px;margin:0 auto;border-collapse:collapse;table-layout:fixed;"
           )
       );
 
