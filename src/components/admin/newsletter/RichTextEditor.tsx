@@ -773,7 +773,27 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             variant="outline"
             size="sm"
             onClick={() => {
-              editor.chain().focus().lift('styledBox').run();
+              const pos = getActiveStyledBoxPos();
+              if (pos == null) {
+                toast.error("Could not find styled box to remove");
+                return;
+              }
+              
+              const node = editor.state.doc.nodeAt(pos);
+              if (!node || node.type.name !== 'styledBox') {
+                toast.error("Could not find styled box to remove");
+                return;
+              }
+              
+              // Replace the styledBox node with its content
+              editor.commands.command(({ tr, dispatch }) => {
+                const content = node.content;
+                // Delete the styledBox and insert its children in place
+                tr.replaceWith(pos, pos + node.nodeSize, content);
+                if (dispatch) dispatch(tr);
+                return true;
+              });
+              
               toast.success("Box removed, content kept!");
             }}
             title="Remove box wrapper (keeps content)"
