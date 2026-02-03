@@ -51,18 +51,34 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         default: 'Your Headline\n\nAdd your content here. This text will appear on the left side of the layout.',
         parseHTML: element => {
           const leftCell = element.querySelector('td[data-column="left"]');
-          // Strip HTML tags and decode for editing
-          const html = leftCell?.innerHTML || '';
-          return html.replace(/<[^>]*>/g, '').trim();
+          if (!leftCell) return '';
+          // Convert block elements to newlines before stripping tags
+          let html = leftCell.innerHTML || '';
+          // Replace </h2>, </p>, <br> with newlines to preserve line breaks
+          html = html.replace(/<\/h2>/gi, '\n\n');
+          html = html.replace(/<\/p>/gi, '\n');
+          html = html.replace(/<br\s*\/?>/gi, '\n');
+          // Strip remaining HTML tags
+          html = html.replace(/<[^>]*>/g, '');
+          // Clean up excessive newlines and trim
+          return html.replace(/\n{3,}/g, '\n\n').trim();
         },
       },
       rightContent: {
         default: 'Your Headline\n\nAdd your content here. This text will appear on the right side of the layout.',
         parseHTML: element => {
           const rightCell = element.querySelector('td[data-column="right"]');
-          // Strip HTML tags and decode for editing
-          const html = rightCell?.innerHTML || '';
-          return html.replace(/<[^>]*>/g, '').trim();
+          if (!rightCell) return '';
+          // Convert block elements to newlines before stripping tags
+          let html = rightCell.innerHTML || '';
+          // Replace </h2>, </p>, <br> with newlines to preserve line breaks
+          html = html.replace(/<\/h2>/gi, '\n\n');
+          html = html.replace(/<\/p>/gi, '\n');
+          html = html.replace(/<br\s*\/?>/gi, '\n');
+          // Strip remaining HTML tags
+          html = html.replace(/<[^>]*>/g, '');
+          // Clean up excessive newlines and trim
+          return html.replace(/\n{3,}/g, '\n\n').trim();
         },
       },
       imageUrl: {
