@@ -183,6 +183,13 @@ export const NewsletterPreviewDialog = ({
               .email-preview p { margin: 0.25em 0; line-height: 1.5; }
               /* Styled boxes should have tight paragraphs so single-line boxes stay compact */
               .email-preview [data-styled-box] p { margin: 0; }
+              /* Also remove heading margins inside styled boxes for compact single-line titles */
+              .email-preview [data-styled-box] h1,
+              .email-preview [data-styled-box] h2,
+              .email-preview [data-styled-box] h3,
+              .email-preview [data-styled-box] h4,
+              .email-preview [data-styled-box] h5,
+              .email-preview [data-styled-box] h6 { margin: 0; }
               .email-preview ul, .email-preview ol { margin: 1em 0; padding-left: 2em; line-height: 1.6; }
               .email-preview li { margin: 0.5em 0; }
               .email-preview strong { font-weight: bold; }
