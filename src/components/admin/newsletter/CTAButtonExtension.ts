@@ -1,4 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import { CTAButtonNodeView } from './CTAButtonNodeView';
 
 export interface CTAButtonOptions {
   HTMLAttributes: Record<string, any>;
@@ -26,6 +28,10 @@ export const CTAButton = Node.create<CTAButtonOptions>({
     return {
       HTMLAttributes: {},
     };
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(CTAButtonNodeView);
   },
 
   addAttributes() {
