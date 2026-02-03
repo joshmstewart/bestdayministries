@@ -762,7 +762,7 @@ const VendorAuth = () => {
                     </p>
                     <p className="text-muted-foreground text-sm">
                       If you've already created an account on our site, you don't need to fill out this form. 
-                      Just sign in and you can add your vendor application from there.
+                      Just sign in below, then go to the <strong>Marketplace</strong> and click <strong>"Become a Vendor"</strong> to submit your application.
                     </p>
                   </div>
                 </div>
