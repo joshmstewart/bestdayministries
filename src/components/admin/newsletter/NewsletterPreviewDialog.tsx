@@ -180,7 +180,7 @@ export const NewsletterPreviewDialog = ({
               .email-preview h4 { font-size: 1.25em; font-weight: bold; margin: 1em 0; line-height: 1.4; }
               .email-preview h5 { font-size: 1em; font-weight: bold; margin: 1.33em 0; line-height: 1.5; }
               .email-preview h6 { font-size: 0.875em; font-weight: bold; margin: 1.67em 0; line-height: 1.5; }
-              .email-preview p { margin: 1em 0; line-height: 1.6; }
+              .email-preview p { margin: 0.25em 0; line-height: 1.5; }
               .email-preview ul, .email-preview ol { margin: 1em 0; padding-left: 2em; line-height: 1.6; }
               .email-preview li { margin: 0.5em 0; }
               .email-preview strong { font-weight: bold; }
