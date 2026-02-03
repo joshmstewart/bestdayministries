@@ -274,65 +274,63 @@ const Marketplace = () => {
       <UnifiedHeader />
       
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 py-16">
+        {/* Hero Section - Compact */}
+        <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 py-6">
           <div className="container mx-auto px-4">
-            {/* Vendor link - upper right */}
-            <div className="flex justify-end mb-4">
-              {isVendor ? (
-                <button
-                  onClick={() => navigate('/vendor-dashboard')}
-                  className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
-                >
-                  <Store className="h-4 w-4" />
-                  Vendor Dashboard
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
-                >
-                  Become a Vendor
-                </button>
-              )}
-            </div>
-            
-            <div className="max-w-4xl mx-auto text-center space-y-6">
-              <h1 className="font-heading text-4xl md:text-6xl font-bold text-foreground">
-                Joy House Store
-              </h1>
-              
-              {/* Mission callout */}
-              <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6 max-w-2xl mx-auto">
-                <h2 className="font-heading text-lg font-semibold text-primary mb-2">More Than a Shop</h2>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Joy House Store is a joyful gift shop where adults with special needs create and sell art and goods—celebrating ability, belonging, and purpose.
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              {/* Title and tagline */}
+              <div className="flex-1">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <h1 className="font-heading text-2xl md:text-3xl font-bold text-foreground">
+                    Joy House Store
+                  </h1>
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    A joyful gift shop celebrating ability, belonging, and purpose
+                  </span>
+                </div>
               </div>
               
-              <div className="flex gap-4 justify-center flex-wrap">
+              {/* Action buttons */}
+              <div className="flex items-center gap-3 flex-wrap">
                 <Button 
-                  size="lg"
                   onClick={() => setCartOpen(true)}
                   className="relative"
                 >
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  View Cart
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Cart
                   {totalCartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                    <span className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                       {totalCartCount}
                     </span>
                   )}
                 </Button>
                 
                 <Button 
-                  size="lg"
                   variant="outline"
                   onClick={() => navigate('/orders')}
                 >
-                  <Package className="mr-2 h-5 w-5" />
-                  Order History
+                  <Package className="mr-2 h-4 w-4" />
+                  Orders
                 </Button>
+                
+                {isVendor ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/vendor-dashboard')}
+                    className="text-primary"
+                  >
+                    <Store className="h-4 w-4 mr-1" />
+                    Dashboard
+                  </Button>
+                ) : (
+                  <button
+                    onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+                  >
+                    Become a Vendor
+                  </button>
+                )}
               </div>
             </div>
           </div>
