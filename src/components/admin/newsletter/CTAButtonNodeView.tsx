@@ -21,15 +21,19 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
     // Using `view.dispatch` avoids any command/plugin short-circuiting.
     if (editor && typeof getPos === 'function') {
       const pos = getPos();
-      try {
-        const tr = editor.state.tr.delete(pos, pos + node.nodeSize);
-        editor.view.dispatch(tr);
-        editor.view.focus();
-      } catch (err) {
-        // Keep a fallback below
-        console.error('CTA delete failed', err);
+      // CRITICAL: getPos() can return undefined if node is detached - must validate
+      if (typeof pos === 'number' && !isNaN(pos)) {
+        try {
+          const tr = editor.state.tr.delete(pos, pos + node.nodeSize);
+          editor.view.dispatch(tr);
+          editor.view.focus();
+          return;
+        } catch (err) {
+          console.error('CTA delete via transaction failed, trying fallback', err);
+        }
+      } else {
+        console.warn('CTA getPos() returned invalid position:', pos);
       }
-      return;
     }
 
     // Fallback: TipTap helper
