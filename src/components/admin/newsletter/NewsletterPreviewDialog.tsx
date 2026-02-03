@@ -250,8 +250,14 @@ export const NewsletterPreviewDialog = ({
                .email-preview table:not([data-two-column]) tr:nth-child(even) td {
                  background-color: rgba(255, 255, 255, 0.15);
                }
-              .email-preview table[data-two-column] { table-layout: fixed; }
+              .email-preview table[data-two-column] { table-layout: fixed; width: 100%; }
               .email-preview table[data-two-column] td { width: 50%; vertical-align: top; }
+              /* 3-column layouts */
+              .email-preview table[data-three-column] { table-layout: fixed; width: 100%; }
+              .email-preview table[data-three-column] td { width: 33.33%; vertical-align: top; }
+              /* Ensure images scale within magazine columns */
+              .email-preview table[data-two-column] td img,
+              .email-preview table[data-three-column] td img { width: 100%; height: auto; object-fit: cover; }
             `}</style>
             <div 
               className="email-preview max-w-none p-6"
