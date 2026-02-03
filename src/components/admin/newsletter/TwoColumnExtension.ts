@@ -70,11 +70,11 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         },
       },
       backgroundColor: {
-        default: '#faf5ef',
+        default: 'transparent',
         parseHTML: element => {
           const style = element.getAttribute('style') || '';
           const match = style.match(/background-color:\s*([^;]+)/);
-          return match?.[1]?.trim() || '#faf5ef';
+          return match?.[1]?.trim() || 'transparent';
         },
       },
     };
