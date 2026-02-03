@@ -52,6 +52,25 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         parseHTML: element => {
           const leftCell = element.querySelector('td[data-column="left"]');
           if (!leftCell) return '';
+          
+          // Extract CTA buttons first and convert to markers
+          const ctaMarkers: string[] = [];
+          const ctaTables = leftCell.querySelectorAll('table[data-cta-button]');
+          ctaTables.forEach(table => {
+            const link = table.querySelector('a');
+            const td = table.querySelector('td[style*="background-color"]');
+            if (link && td) {
+              const text = link.textContent || 'Click Here';
+              const url = link.getAttribute('href') || '#';
+              const style = td.getAttribute('style') || '';
+              const colorMatch = style.match(/background-color:\s*([^;]+)/);
+              const color = colorMatch?.[1]?.trim() || '#f97316';
+              ctaMarkers.push(`[CTA:${text}|${url}|${color}]`);
+            }
+            // Remove the CTA table from consideration for text extraction
+            table.remove();
+          });
+          
           // Convert block elements to newlines before stripping tags
           let html = leftCell.innerHTML || '';
           // Replace </h2>, </p>, <br> with newlines to preserve line breaks
@@ -61,7 +80,14 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           // Strip remaining HTML tags
           html = html.replace(/<[^>]*>/g, '');
           // Clean up excessive newlines and trim
-          return html.replace(/\n{3,}/g, '\n\n').trim();
+          html = html.replace(/\n{3,}/g, '\n\n').trim();
+          
+          // Append CTA markers
+          if (ctaMarkers.length > 0) {
+            html = html + '\n' + ctaMarkers.join('\n');
+          }
+          
+          return html;
         },
       },
       rightContent: {
@@ -69,6 +95,25 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         parseHTML: element => {
           const rightCell = element.querySelector('td[data-column="right"]');
           if (!rightCell) return '';
+          
+          // Extract CTA buttons first and convert to markers
+          const ctaMarkers: string[] = [];
+          const ctaTables = rightCell.querySelectorAll('table[data-cta-button]');
+          ctaTables.forEach(table => {
+            const link = table.querySelector('a');
+            const td = table.querySelector('td[style*="background-color"]');
+            if (link && td) {
+              const text = link.textContent || 'Click Here';
+              const url = link.getAttribute('href') || '#';
+              const style = td.getAttribute('style') || '';
+              const colorMatch = style.match(/background-color:\s*([^;]+)/);
+              const color = colorMatch?.[1]?.trim() || '#f97316';
+              ctaMarkers.push(`[CTA:${text}|${url}|${color}]`);
+            }
+            // Remove the CTA table from consideration for text extraction
+            table.remove();
+          });
+          
           // Convert block elements to newlines before stripping tags
           let html = rightCell.innerHTML || '';
           // Replace </h2>, </p>, <br> with newlines to preserve line breaks
@@ -78,7 +123,14 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           // Strip remaining HTML tags
           html = html.replace(/<[^>]*>/g, '');
           // Clean up excessive newlines and trim
-          return html.replace(/\n{3,}/g, '\n\n').trim();
+          html = html.replace(/\n{3,}/g, '\n\n').trim();
+          
+          // Append CTA markers
+          if (ctaMarkers.length > 0) {
+            html = html + '\n' + ctaMarkers.join('\n');
+          }
+          
+          return html;
         },
       },
       imageUrl: {
@@ -124,24 +176,80 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     const isEqual = layout === 'equal-columns';
     
     // Helper function to convert plain text to properly nested TipTap elements
-    // First line becomes headline, rest becomes body
+    // First line becomes headline, rest becomes body, [CTA:text|url|color] becomes buttons
     const textToElements = (text: string): any[] => {
       const safeText = typeof text === 'string' ? text : '';
-      const lines = safeText.split('\n').filter(line => line.trim() !== '');
-      if (lines.length === 0) return [['span', {}, '']];
       
-      const headline = lines[0];
-      const body = lines.slice(1).join(' ');
+      // Check for CTA markers and separate them
+      const ctaRegex = /\[CTA:([^|]+)\|([^|]+)\|([^\]]+)\]/g;
+      const ctas: Array<{ text: string; url: string; color: string }> = [];
+      let textWithoutCtas = safeText;
       
-      const elements: any[] = [
-        ['h2', { style: 'margin: 16px 0 16px 0; font-size: 24px; font-weight: bold;' }, headline]
-      ];
-
-      if (body) {
-        elements.push(['p', { style: 'margin: 0; font-size: 16px; line-height: 1.6;' }, body]);
+      let match;
+      while ((match = ctaRegex.exec(safeText)) !== null) {
+        ctas.push({
+          text: match[1],
+          url: match[2],
+          color: match[3],
+        });
+      }
+      textWithoutCtas = safeText.replace(ctaRegex, '').trim();
+      
+      const lines = textWithoutCtas.split('\n').filter(line => line.trim() !== '');
+      if (lines.length === 0 && ctas.length === 0) return [['span', {}, '']];
+      
+      const elements: any[] = [];
+      
+      if (lines.length > 0) {
+        const headline = lines[0];
+        const body = lines.slice(1).join(' ');
+        
+        elements.push(['h2', { style: 'margin: 16px 0 16px 0; font-size: 24px; font-weight: bold;' }, headline]);
+        
+        if (body) {
+          elements.push(['p', { style: 'margin: 0; font-size: 16px; line-height: 1.6;' }, body]);
+        }
       }
       
-      return elements;
+      // Add CTA buttons as email-safe table structures
+      for (const cta of ctas) {
+        elements.push([
+          'table',
+          {
+            'data-cta-button': '',
+            cellpadding: '0',
+            cellspacing: '0',
+            border: '0',
+            style: 'margin: 16px 0;',
+          },
+          [
+            'tbody',
+            {},
+            [
+              'tr',
+              {},
+              [
+                'td',
+                {
+                  align: 'center',
+                  style: `background-color: ${cta.color}; border-radius: 6px;`,
+                },
+                [
+                  'a',
+                  {
+                    href: cta.url,
+                    target: '_blank',
+                    style: 'display: inline-block; padding: 12px 24px; color: white; text-decoration: none; font-weight: bold; font-size: 16px;',
+                  },
+                  cta.text,
+                ],
+              ],
+            ],
+          ],
+        ]);
+      }
+      
+      return elements.length > 0 ? elements : [['span', {}, '']];
     };
 
     // For equal columns, both sides are text
