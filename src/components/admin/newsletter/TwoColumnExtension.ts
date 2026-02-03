@@ -143,9 +143,48 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       backgroundColor: {
         default: 'transparent',
         parseHTML: element => {
+          // Check if background is on table level or text cell level
           const style = element.getAttribute('style') || '';
-          const match = style.match(/background-color:\s*([^;]+)/);
-          return match?.[1]?.trim() || 'transparent';
+          const tableMatch = style.match(/background-color:\s*([^;]+)/);
+          if (tableMatch) {
+            return tableMatch[1].trim();
+          }
+          // Also check text cell for background (when scope is 'text-only')
+          const layout = element.getAttribute('data-layout') || 'text-left-image-right';
+          const isImageLeft = layout === 'image-left-text-right';
+          const textCell = element.querySelector(`td[data-column="${isImageLeft ? 'right' : 'left'}"]`);
+          if (textCell) {
+            const cellStyle = textCell.getAttribute('style') || '';
+            const cellMatch = cellStyle.match(/background-color:\s*([^;]+)/);
+            if (cellMatch) {
+              return cellMatch[1].trim();
+            }
+          }
+          return 'transparent';
+        },
+      },
+      backgroundScope: {
+        default: 'full', // 'full' = entire table, 'text-only' = just the text column
+        parseHTML: element => {
+          // Check data attribute first
+          const scope = element.getAttribute('data-bg-scope');
+          if (scope) return scope;
+          
+          // Infer from styling: if table has no background but text cell does, it's text-only
+          const tableStyle = element.getAttribute('style') || '';
+          const hasTableBg = tableStyle.includes('background-color') && !tableStyle.includes('background-color: transparent');
+          
+          const layout = element.getAttribute('data-layout') || 'text-left-image-right';
+          const isImageLeft = layout === 'image-left-text-right';
+          const textCell = element.querySelector(`td[data-column="${isImageLeft ? 'right' : 'left'}"]`);
+          const cellStyle = textCell?.getAttribute('style') || '';
+          const hasCellBg = cellStyle.includes('background-color') && !cellStyle.includes('background-color: transparent');
+          
+          if (hasCellBg && !hasTableBg) return 'text-only';
+          return 'full';
+        },
+        renderHTML: attributes => {
+          return { 'data-bg-scope': attributes.backgroundScope };
         },
       },
     };
@@ -164,12 +203,13 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     // TipTap's `HTMLAttributes` here contain *rendered HTML attrs* (e.g. `data-layout`),
     // not the raw node attrs. To avoid losing user edits (and to avoid layout flips),
     // always read from `node.attrs`.
-    const { layout, leftContent, rightContent, imageUrl, backgroundColor } = node.attrs as {
+    const { layout, leftContent, rightContent, imageUrl, backgroundColor, backgroundScope } = node.attrs as {
       layout: TwoColumnLayout;
       leftContent: string;
       rightContent: string;
       imageUrl: string;
       backgroundColor: string;
+      backgroundScope: 'full' | 'text-only';
     };
     
     const isImageLeft = layout === 'image-left-text-right';
@@ -252,7 +292,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       return elements.length > 0 ? elements : [['span', {}, '']];
     };
 
-    // For equal columns, both sides are text
+    // For equal columns, both sides are text - background always applies to full table
     if (isEqual) {
       const leftElements = textToElements(leftContent);
       const rightElements = textToElements(rightContent);
@@ -261,8 +301,8 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         'table',
         mergeAttributes(this.options.HTMLAttributes, {
           'data-two-column': '',
-          // Ensure layout is explicitly persisted for parseHTML + preview
           'data-layout': layout,
+          'data-bg-scope': backgroundScope,
           cellpadding: '0',
           cellspacing: '0',
           border: '0',
@@ -304,6 +344,11 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     const textContent = isImageLeft ? rightContent : leftContent;
     const textElements = textToElements(textContent);
 
+    // Determine if background should be on table or text cell only
+    const isTextOnly = backgroundScope === 'text-only';
+    const tableBackground = isTextOnly ? 'transparent' : backgroundColor;
+    const textCellBackground = isTextOnly ? backgroundColor : 'transparent';
+
     // Image element for the image side
     const imageElement = [
       'img',
@@ -324,17 +369,21 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     const leftCellContent = isImageLeft ? imageElement : textElement;
     const rightCellContent = isImageLeft ? textElement : imageElement;
 
+    // Determine which cell is the text cell for background application
+    const leftCellIsText = !isImageLeft;
+    const rightCellIsText = isImageLeft;
+
     return [
       'table',
       mergeAttributes(this.options.HTMLAttributes, {
         'data-two-column': '',
-        // Ensure layout is explicitly persisted for parseHTML + preview
         'data-layout': layout,
+        'data-bg-scope': backgroundScope,
         cellpadding: '0',
         cellspacing: '0',
         border: '0',
         width: '100%',
-        style: `background-color: ${backgroundColor}; border-radius: 8px; padding: 24px; margin: 16px 0;`,
+        style: `background-color: ${tableBackground}; border-radius: 8px; padding: 24px; margin: 16px 0;`,
       }),
       [
         'tbody',
@@ -348,7 +397,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
               'data-column': 'left',
               valign: 'top',
               width: '50%',
-              style: 'padding: 0 16px 0 0; vertical-align: top;',
+              style: `padding: 0 16px 0 0; vertical-align: top;${leftCellIsText && isTextOnly ? ` background-color: ${textCellBackground}; border-radius: 8px; padding: 16px;` : ''}`,
             },
             leftCellContent,
           ],
@@ -358,7 +407,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
               'data-column': 'right',
               valign: 'top',
               width: '50%',
-              style: 'padding: 0 0 0 16px; vertical-align: top;',
+              style: `padding: 0 0 0 16px; vertical-align: top;${rightCellIsText && isTextOnly ? ` background-color: ${textCellBackground}; border-radius: 8px; padding: 16px;` : ''}`,
             },
             rightCellContent,
           ],
