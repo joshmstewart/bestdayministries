@@ -65,9 +65,9 @@ declare module '@tiptap/core' {
 
 // Helper to get base style string for a given style key
 function getBaseStyleString(style: StyledBoxStyle): string {
-  // Default spacing tuned for email readability without making one-line boxes overly tall
-  // (was: padding 2rem everywhere)
-  const boxPadding = 'padding: 1.25rem 1.75rem;';
+  // Compact spacing so one-line boxes don't look overly tall
+  // Vertical: 0.75rem (~12px), Horizontal: 1.25rem (~20px)
+  const boxPadding = 'padding: 0.75rem 1.25rem;';
   const boxMargin = 'margin: 1rem 0;';
 
   switch (style) {

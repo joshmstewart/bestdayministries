@@ -176,12 +176,11 @@
 .ProseMirror div[style*="background-color:#f3f4f6"],
 .ProseMirror div[style*="background-color: #f3f4f6"] {
   background-color: #f3f4f6 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   border: 4px solid #ef4444 !important;
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="background-color:#f3f4f6"]::before,
@@ -208,13 +207,12 @@
 /* Purple Gradient Box */
 .ProseMirror div[style*="667eea"] {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #fbbf24 !important;
   box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="667eea"]::before {
@@ -246,13 +244,12 @@
 /* Warm Orange Gradient Box */
 .ProseMirror div[style*="f97316"] {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #fcd34d !important;
   box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.3) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="f97316"]::before {
@@ -280,12 +277,11 @@
 .ProseMirror div[style*="dbeafe"] {
   background-color: #dbeafe !important;
   border-left: 4px solid #3b82f6 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #1e40af !important;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#dbeafe"]::before,
@@ -320,12 +316,11 @@
 .ProseMirror div[style*="dcfce7"] {
   background-color: #dcfce7 !important;
   border-left: 4px solid #22c55e !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #166534 !important;
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#dcfce7"]::before,
@@ -360,12 +355,11 @@
 .ProseMirror div[style*="fef3c7"] {
   background-color: #fef3c7 !important;
   border-left: 4px solid #f59e0b !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #92400e !important;
   box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#fef3c7"]::before,
@@ -399,13 +393,12 @@
 .ProseMirror div[style*="#1f2937"],
 .ProseMirror div[style*="1f2937"] {
   background-color: #1f2937 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #6b7280 !important;
   box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.3) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#1f2937"]::before,
@@ -439,12 +432,11 @@
 .ProseMirror div[style*="border: 2px solid #e5e7eb"],
 .ProseMirror div[style*="border:2px solid #e5e7eb"] {
   background-color: #ffffff !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   border: 4px solid #10b981 !important;
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="border: 2px solid #e5e7eb"]::before,
@@ -473,13 +465,12 @@
 .ProseMirror div[style*="e8650d"],
 .ProseMirror div[style*="rgb(232, 101, 13)"] {
   background-color: #e8650d !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #fcd34d !important;
   box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.3) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#e8650d"]::before,
@@ -516,13 +507,12 @@
 .ProseMirror div[style*="c2410c"],
 .ProseMirror div[style*="rgb(194, 65, 12)"] {
   background-color: #c2410c !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #fbbf24 !important;
   box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#c2410c"]::before,
@@ -559,13 +549,12 @@
 .ProseMirror div[style*="eab308"],
 .ProseMirror div[style*="rgb(234, 179, 8)"] {
   background-color: #eab308 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #78350f !important;
   border: 4px solid #fef3c7 !important;
   box-shadow: 0 0 0 4px rgba(254, 243, 199, 0.4) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#eab308"]::before,
@@ -602,13 +591,12 @@
 .ProseMirror div[style*="faf5ef"],
 .ProseMirror div[style*="rgb(250, 245, 239)"] {
   background-color: #faf5ef !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #78350f !important;
   border: 4px solid #e8650d !important;
   box-shadow: 0 0 0 4px rgba(232, 101, 13, 0.2) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="#faf5ef"]::before,
@@ -647,13 +635,12 @@
               radial-gradient(ellipse at 80% 20%, hsl(40, 100%, 55%) 0%, transparent 40%),
               radial-gradient(ellipse at 40% 40%, hsl(35, 100%, 50%) 0%, transparent 35%),
               hsl(24, 95%, 53%) !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #fcd34d !important;
   box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.3) !important;
-  min-height: 6rem;
 }
 
 .ProseMirror div[style*="radial-gradient"][style*="hsl(24"]::before,
@@ -1050,13 +1037,12 @@
 .ProseMirror div[style*="rgb(102, 126, 234)"],
 .ProseMirror div[style*="rgb(118, 75, 162)"] {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #fbbf24 !important;
   box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1091,12 +1077,11 @@
 .ProseMirror div[style*="rgb(219, 234, 254)"] {
   background-color: #dbeafe !important;
   border-left: 4px solid #3b82f6 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #1e40af !important;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1129,13 +1114,12 @@
 .ProseMirror div[style*="rgb(249, 115, 22)"],
 .ProseMirror div[style*="rgb(234, 88, 12)"] {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #fcd34d !important;
   box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.3) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1170,12 +1154,11 @@
 .ProseMirror div[style*="rgb(220, 252, 231)"] {
   background-color: #dcfce7 !important;
   border-left: 4px solid #22c55e !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #166534 !important;
   box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1207,13 +1190,12 @@
 /* Dark Charcoal Box - also match RGB format */
 .ProseMirror div[style*="rgb(31, 41, 55)"] {
   background-color: #1f2937 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #6b7280 !important;
   box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.3) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1246,12 +1228,11 @@
 .ProseMirror div[style*="rgb(254, 243, 199)"] {
   background-color: #fef3c7 !important;
   border-left: 4px solid #f59e0b !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #92400e !important;
   box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1283,12 +1264,11 @@
 /* Light Gray Box - also match RGB format */
 .ProseMirror div[style*="rgb(243, 244, 246)"] {
   background-color: #f3f4f6 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   border: 4px solid #ef4444 !important;
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1367,13 +1347,12 @@
 .ProseMirror div[style*="1a1a1a"],
 .ProseMirror div[style*="rgb(26, 26, 26)"] {
   background-color: #1a1a1a !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #e8650d !important;
   box-shadow: 0 0 0 4px rgba(232, 101, 13, 0.3) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1410,13 +1389,12 @@
 .ProseMirror div[style*="f5e6d3"],
 .ProseMirror div[style*="rgb(245, 230, 211)"] {
   background-color: #f5e6d3 !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: #1a1a1a !important;
   border: 4px solid #c4a882 !important;
   box-shadow: 0 0 0 4px rgba(196, 168, 130, 0.3) !important;
-  min-height: 6rem;
   position: relative;
 }
 
@@ -1454,13 +1432,12 @@
 .ProseMirror div[style*="14532d"],
 .ProseMirror div[style*="rgb(20, 83, 45)"] {
   background-color: #14532d !important;
-  padding: 2rem !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: 0.5rem !important;
   margin: 1rem 0 !important;
   color: white !important;
   border: 4px solid #eab308 !important;
   box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.3) !important;
-  min-height: 6rem;
   position: relative;
 }
 
