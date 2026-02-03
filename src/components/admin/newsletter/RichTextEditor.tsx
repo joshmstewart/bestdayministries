@@ -12,7 +12,7 @@ import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import { DOMSerializer } from "@tiptap/pm/model";
-import { StyledBox } from "./StyledBoxExtension";
+import { StyledBox, STYLED_BOX_STYLES, StyledBoxStyle, StyledBoxWidth } from "./StyledBoxExtension";
 import { CTAButton } from "./CTAButtonExtension";
 import { StatsBlock, StatItem } from "./StatsBlockExtension";
 import { TwoColumn, TwoColumnLayout } from "./TwoColumnExtension";
@@ -116,6 +116,7 @@ import {
   RowsIcon,
   ColumnsIcon,
   Palette,
+  Maximize2,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { useEffect } from "react";
@@ -178,6 +179,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [isStyledBoxSelected, setIsStyledBoxSelected] = useState(false);
   const [editBoxStyleDialogOpen, setEditBoxStyleDialogOpen] = useState(false);
   const [activeStyledBoxPos, setActiveStyledBoxPos] = useState<number | null>(null);
+  const [addBoxSelectedStyle, setAddBoxSelectedStyle] = useState<StyledBoxStyle>('warm-cream');
+  const [addBoxSelectedWidth, setAddBoxSelectedWidth] = useState<StyledBoxWidth>('full');
   
   // Track if this is the initial content load to prevent auto-reserializing
   const isInitialLoad = useRef(true);
@@ -699,6 +702,33 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             Change Color
           </Button>
 
+          {/* Width toggle */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const pos = getActiveStyledBoxPos();
+              if (pos == null) return;
+              const node = editor.state.doc.nodeAt(pos);
+              if (!node || node.type.name !== 'styledBox') return;
+              const currentWidth = node.attrs.width || 'full';
+              const newWidth = currentWidth === 'full' ? 'fit' : 'full';
+              editor.commands.command(({ tr, dispatch }) => {
+                const newAttrs = { ...node.attrs, width: newWidth };
+                tr.setNodeMarkup(pos, node.type, newAttrs, node.marks);
+                if (dispatch) dispatch(tr);
+                return true;
+              });
+              toast.success(`Width: ${newWidth === 'full' ? 'Full' : 'Fit to content'}`);
+            }}
+            className="h-7 px-3 gap-1"
+            title="Toggle between full width and fit-to-content"
+          >
+            <Maximize2 className="h-3 w-3" />
+            Width
+          </Button>
+
           <div className="w-px h-6 bg-border mx-1" />
 
           <Button
@@ -1200,339 +1230,86 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         </DialogContent>
       </Dialog>
 
-      {/* Styled Container Dialog */}
+      {/* Styled Container Dialog - Unified with STYLED_BOX_STYLES */}
       <Dialog open={containerDialogOpen} onOpenChange={setContainerDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Insert Styled Box</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Select a box style to wrap your selected content:
+              Select a box style and width:
             </p>
-<div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
-              {/* Sunset Gradient Box - Brand Gradient */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('sunset-gradient').run();
-                    toast.success("Sunset gradient box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Sunset Gradient</div>
-                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ background: 'radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), radial-gradient(circle at 75% 20%, hsl(46, 95%, 55%, 0.2) 0%, transparent 30%), hsl(24, 85%, 56%)' }}>
-                  Brand gradient
-                </div>
-              </Button>
-
-              {/* Burnt Orange Box - Brand Primary */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('burnt-orange').run();
-                    toast.success("Burnt orange box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Burnt Orange</div>
-                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ backgroundColor: '#e8650d' }}>
-                  Brand primary
-                </div>
-              </Button>
-
-              {/* Mustard Gold Box - Brand Secondary */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('mustard-gold').run();
-                    toast.success("Mustard gold box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Mustard Gold</div>
-                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-gray-900" style={{ backgroundColor: '#eab308' }}>
-                  Brand secondary
-                </div>
-              </Button>
-
-              {/* Warm Cream Box - Brand Subtle */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('warm-cream').run();
-                    toast.success("Warm cream box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Warm Cream</div>
-                <div className="w-full h-12 rounded flex items-center justify-center text-xs" style={{ backgroundColor: '#faf5ef', border: '2px solid #e8650d', color: '#1a1a1a' }}>
-                  Soft brand accent
-                </div>
-              </Button>
-
-              {/* Warm Orange Gradient Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('warm-gradient').run();
-                    toast.success("Warm gradient box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Warm Gradient</div>
-                <div className="w-full h-12 rounded bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center text-xs text-white">
-                  Brand highlight
-                </div>
-              </Button>
-
-              {/* Light Gray Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('light-gray').run();
-                    toast.success("Light gray box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Light Gray</div>
-                <div className="w-full h-12 rounded bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-gray-600">
-                  Neutral background
-                </div>
-              </Button>
-
-              {/* White Bordered Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('white-bordered').run();
-                    toast.success("White bordered box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">White Bordered</div>
-                <div className="w-full h-12 rounded bg-white border-2 border-gray-300 flex items-center justify-center text-xs text-gray-600">
-                  Clean & simple
-                </div>
-              </Button>
-
-              {/* Dark Charcoal Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('dark-charcoal').run();
-                    toast.success("Dark charcoal box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Dark Charcoal</div>
-                <div className="w-full h-12 rounded bg-gray-800 flex items-center justify-center text-xs text-white">
-                  Bold contrast
-                </div>
-              </Button>
-
-              {/* Purple Gradient Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('purple-gradient').run();
-                    toast.success("Purple gradient box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Purple Gradient</div>
-                <div className="w-full h-12 rounded bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-xs text-white">
-                  Eye-catching CTA
-                </div>
-              </Button>
-
-              {/* Blue Info Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('blue-info').run();
-                    toast.success("Blue info box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Blue Info</div>
-                <div className="w-full h-12 rounded bg-blue-100 border-l-4 border-blue-500 flex items-center justify-center text-xs text-blue-800">
-                  Information callout
-                </div>
-              </Button>
-
-              {/* Green Success Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('green-success').run();
-                    toast.success("Green success box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Green Success</div>
-                <div className="w-full h-12 rounded bg-green-100 border-l-4 border-green-500 flex items-center justify-center text-xs text-green-800">
-                  Good news / success
-                </div>
-              </Button>
-
-              {/* Amber Highlight Box */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('amber-highlight').run();
-                    toast.success("Amber highlight box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Amber Highlight</div>
-                <div className="w-full h-12 rounded bg-amber-100 border-l-4 border-amber-500 flex items-center justify-center text-xs text-amber-800">
-                  Important notice
-                </div>
-              </Button>
-
-              {/* Brand Dark Box - NEW */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('brand-dark').run();
-                    toast.success("Brand dark box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Brand Dark</div>
-                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ backgroundColor: '#1a1a1a', borderTop: '4px solid #e8650d' }}>
-                  Magazine header
-                </div>
-              </Button>
-
-              {/* Sand Light Box - NEW */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('sand-light').run();
-                    toast.success("Sand light box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Sand Light</div>
-                <div className="w-full h-12 rounded flex items-center justify-center text-xs" style={{ backgroundColor: '#f5e6d3', color: '#1a1a1a' }}>
-                  Content section
-                </div>
-              </Button>
-
-              {/* Forest Accent Box - NEW */}
-              <Button
-                variant="outline"
-                className="h-auto p-3 flex flex-col items-start gap-2"
-                onClick={() => {
-                  if (!editor) return;
-                  try {
-                    editor.chain().focus().setStyledBox('forest-accent').run();
-                    toast.success("Forest accent box added!");
-                  } catch (error: any) {
-                    toast.error("Select content first");
-                  }
-                  setContainerDialogOpen(false);
-                }}
-              >
-                <div className="font-semibold text-sm">Forest Accent</div>
-                <div className="w-full h-12 rounded flex items-center justify-center text-xs text-white" style={{ backgroundColor: '#14532d', borderLeft: '4px solid #eab308' }}>
-                  Nature theme
-                </div>
-              </Button>
+            
+            {/* Width toggle */}
+            <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+              <span className="text-sm font-medium">Width:</span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={addBoxSelectedWidth === 'full' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAddBoxSelectedWidth('full')}
+                >
+                  Full Width
+                </Button>
+                <Button
+                  type="button"
+                  variant={addBoxSelectedWidth === 'fit' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAddBoxSelectedWidth('fit')}
+                >
+                  Fit Content
+                </Button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
+
+            {/* Style grid - same as Change Color */}
+            <div className="grid grid-cols-3 gap-3 max-h-[350px] overflow-y-auto">
+              {STYLED_BOX_STYLES.map((style) => (
+                <Button
+                  key={style.key}
+                  variant="outline"
+                  className={`h-auto p-3 flex flex-col items-center gap-2 hover:ring-2 hover:ring-primary ${addBoxSelectedStyle === style.key ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => setAddBoxSelectedStyle(style.key)}
+                >
+                  <div 
+                    className="w-full h-10 rounded flex items-center justify-center text-xs font-bold" 
+                    style={{ 
+                      backgroundColor: style.isGradient ? undefined : style.bgColor, 
+                      background: style.bgStyle || undefined,
+                      color: style.text,
+                      border: style.border || undefined,
+                    }}
+                  >
+                    {style.isGradient ? '◐' : 'Aa'}
+                  </div>
+                  <span className="text-xs font-medium">{style.label}</span>
+                </Button>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
               <strong>Tip:</strong> Select content first to wrap it, or insert an empty box to type in.
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setContainerDialogOpen(false)}>
               Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (!editor) return;
+                try {
+                  editor.chain().focus().setStyledBox(addBoxSelectedStyle, addBoxSelectedWidth).run();
+                  toast.success(`${STYLED_BOX_STYLES.find(s => s.key === addBoxSelectedStyle)?.label || 'Styled'} box added!`);
+                } catch (error: any) {
+                  toast.error("Select content first");
+                }
+                setContainerDialogOpen(false);
+              }}
+            >
+              Insert Box
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1554,25 +1331,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             <p className="text-sm text-muted-foreground">
               Select a new color for this styled box:
             </p>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { key: 'warm-cream', label: 'Warm Cream', bgColor: '#faf5ef', text: '#1a1a1a', border: '2px solid #e8650d' },
-                { key: 'sand-light', label: 'Sand', bgColor: '#f5e6d3', text: '#1a1a1a' },
-                { key: 'light-gray', label: 'Light Gray', bgColor: '#f3f4f6', text: '#374151' },
-                { key: 'white-bordered', label: 'White', bgColor: '#ffffff', text: '#374151', border: '2px solid #e5e7eb' },
-                { key: 'sunset-gradient', label: 'Sunset', bgColor: '#ea8b47', text: 'white', isGradient: true },
-                { key: 'burnt-orange', label: 'Burnt Orange', bgColor: '#e8650d', text: 'white' },
-                { key: 'deep-orange', label: 'Deep Orange', bgColor: '#c2410c', text: 'white' },
-                { key: 'mustard-gold', label: 'Mustard Gold', bgColor: '#eab308', text: '#1a1a1a' },
-                { key: 'warm-gradient', label: 'Warm Gradient', bgColor: '#f97316', text: 'white', isGradient: true },
-                { key: 'dark-charcoal', label: 'Charcoal', bgColor: '#1f2937', text: 'white' },
-                { key: 'brand-dark', label: 'Brand Dark', bgColor: '#1a1a1a', text: 'white', border: '4px solid #e8650d' },
-                { key: 'purple-gradient', label: 'Purple', bgColor: '#764ba2', text: 'white', isGradient: true },
-                { key: 'blue-info', label: 'Blue Info', bgColor: '#dbeafe', text: '#1e40af', border: '4px solid #3b82f6' },
-                { key: 'green-success', label: 'Green', bgColor: '#dcfce7', text: '#166534', border: '4px solid #22c55e' },
-                { key: 'amber-highlight', label: 'Amber', bgColor: '#fef3c7', text: '#92400e', border: '4px solid #f59e0b' },
-                { key: 'forest-accent', label: 'Forest', bgColor: '#14532d', text: 'white', border: '4px solid #eab308' },
-              ].map((style) => (
+            <div className="grid grid-cols-3 gap-3 max-h-[350px] overflow-y-auto">
+              {STYLED_BOX_STYLES.map((style) => (
                 <Button
                   key={style.key}
                   variant="outline"
@@ -1607,7 +1367,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   <div 
                     className="w-full h-10 rounded flex items-center justify-center text-xs font-bold" 
                     style={{ 
-                      backgroundColor: style.bgColor, 
+                      backgroundColor: style.isGradient ? undefined : style.bgColor, 
+                      background: style.bgStyle || undefined,
                       color: style.text,
                       border: style.border || undefined,
                     }}
