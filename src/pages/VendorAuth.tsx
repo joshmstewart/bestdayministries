@@ -34,7 +34,7 @@ const VendorAuth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [isSignUp, setIsSignUp] = useState(true);
+  
   const [isAddingNewVendor, setIsAddingNewVendor] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -374,66 +374,15 @@ const VendorAuth = () => {
       if (error.message?.includes("already registered") || error.code === "user_already_exists") {
         toast({
           title: "Account Already Exists",
-          description: "You already have an account. Please sign in below to add your vendor application.",
+          description: "You already have an account. Please sign in and apply from your vendor dashboard.",
         });
-        // Switch to sign-in mode
-        setIsSignUp(false);
+        navigate("/auth");
         return;
       }
       
       toast({
         title: "Error",
         description: error.message || "Failed to create vendor account",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVendorSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { error, data } = await supabasePersistent.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // Check if they're a vendor
-      if (data.user) {
-        const { data: vendors, error: vendorError } = await supabase
-          .from('vendors')
-          .select('*')
-          .eq('user_id', data.user.id);
-
-        if (vendorError) throw vendorError;
-
-        if (!vendors || vendors.length === 0) {
-          // They have an account but aren't a vendor - let them create one
-          setExistingUser({ id: data.user.id, email: data.user.email || '' });
-          setIsAddingNewVendor(true);
-          toast({
-            title: "No Vendor Account",
-            description: "You don't have a vendor account yet. Create one below!",
-          });
-          return;
-        }
-
-        toast({
-          title: "Welcome back!",
-          description: "Redirecting to your vendor dashboard...",
-        });
-        
-        navigate("/vendor-dashboard");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Authentication failed",
         variant: "destructive",
       });
     } finally {
@@ -741,45 +690,32 @@ const VendorAuth = () => {
               
               <div>
                 <h1 className="text-2xl font-black text-foreground mb-2">
-                  {isSignUp ? "Create Account & Apply" : "Vendor Sign In"}
+                  Create Account & Apply
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  {isSignUp 
-                    ? "Create your account and apply to become a vendor in one easy step" 
-                    : "Sign in to manage your vendor account"}
+                  Create your account and apply to become a vendor in one easy step
                 </p>
               </div>
             </div>
 
-            {/* Prominent "Already have an account?" banner for signup mode */}
-            {isSignUp && (
-              <div className="bg-secondary/20 border border-secondary/40 rounded-lg p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" />
-                  <div className="space-y-1">
-                    <p className="font-semibold text-foreground text-sm">
-                      Already have an account?
-                    </p>
-                    <p className="text-muted-foreground text-sm">
-                      If you've already created an account on our site, you don't need to fill out this form. 
-                      Just sign in below, then go to the <strong>Marketplace</strong> and click <strong>"Become a Vendor"</strong> to submit your application.
-                    </p>
-                  </div>
+            {/* Info banner for existing users */}
+            <div className="bg-secondary/20 border border-secondary/40 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-foreground text-sm">
+                    Already have an account?
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    <Link to="/auth" className="text-primary hover:underline font-semibold">Sign in here</Link>, then go to the <strong>Marketplace</strong> and click <strong>"Become a Vendor"</strong> to submit your application.
+                  </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => setIsSignUp(false)}
-                >
-                  Sign In to Existing Account
-                </Button>
               </div>
-            )}
+            </div>
 
-            <form onSubmit={isSignUp ? handleVendorSignUp : handleVendorSignIn} className="space-y-6">
-              {isSignUp ? (
-                <>
+            <form onSubmit={handleVendorSignUp} className="space-y-6">
+              <>
+                {/* SECTION 1: Account Information */}
                   {/* SECTION 1: Account Information */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 pb-2 border-b border-border">
@@ -1092,66 +1028,22 @@ const VendorAuth = () => {
                       </div>
                     </div>
                   </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="vendor@business.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                </>
-              )}
+              </>
 
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-warm border-0 shadow-warm hover:shadow-glow transition-all hover:scale-105"
-                disabled={loading || (isSignUp && (!agreedToVendorTerms || !acceptedUserTerms))}
+                disabled={loading || !agreedToVendorTerms || !acceptedUserTerms}
               >
-                {loading ? "Please wait..." : isSignUp ? "Submit Application" : "Sign In"}
+                {loading ? "Please wait..." : "Submit Application"}
               </Button>
             </form>
 
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary hover:underline font-semibold"
-            >
-              {isSignUp 
-                ? "Already a vendor? Sign in" 
-                : "Need to apply? Sign up"}
-            </button>
-          </div>
-
-          <div className="pt-4 border-t border-border">
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => navigate("/auth")}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Regular User Login
-            </Button>
+          <div className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link to="/auth" className="text-primary hover:underline font-semibold">
+              Sign in here
+            </Link>
           </div>
         </CardContent>
       </Card>
