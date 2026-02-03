@@ -79,6 +79,12 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           html = html.replace(/<br\s*\/?>/gi, '\n');
           // Strip remaining HTML tags
           html = html.replace(/<[^>]*>/g, '');
+          // Decode HTML entities to prevent double-encoding (e.g., &nbsp; → space)
+          html = html.replace(/&nbsp;/gi, ' ');
+          html = html.replace(/&amp;/gi, '&');
+          html = html.replace(/&lt;/gi, '<');
+          html = html.replace(/&gt;/gi, '>');
+          html = html.replace(/&quot;/gi, '"');
           // Clean up excessive newlines and trim
           html = html.replace(/\n{3,}/g, '\n\n').trim();
           
@@ -122,6 +128,12 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           html = html.replace(/<br\s*\/?>/gi, '\n');
           // Strip remaining HTML tags
           html = html.replace(/<[^>]*>/g, '');
+          // Decode HTML entities to prevent double-encoding (e.g., &nbsp; → space)
+          html = html.replace(/&nbsp;/gi, ' ');
+          html = html.replace(/&amp;/gi, '&');
+          html = html.replace(/&lt;/gi, '<');
+          html = html.replace(/&gt;/gi, '>');
+          html = html.replace(/&quot;/gi, '"');
           // Clean up excessive newlines and trim
           html = html.replace(/\n{3,}/g, '\n\n').trim();
           
