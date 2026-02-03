@@ -176,4 +176,39 @@ export const CTAButton = Node.create<CTAButtonOptions>({
         },
     };
   },
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: () => {
+        const { selection } = this.editor.state;
+        const node = selection.$anchor.parent;
+        // If we're at the start of a node right after a CTA, or if a CTA is selected
+        if (selection.empty) {
+          const pos = selection.$anchor.pos;
+          const nodeBefore = this.editor.state.doc.resolve(pos).nodeBefore;
+          if (nodeBefore?.type.name === this.name) {
+            return this.editor.commands.deleteRange({
+              from: pos - nodeBefore.nodeSize,
+              to: pos,
+            });
+          }
+        }
+        return false;
+      },
+      Delete: () => {
+        const { selection } = this.editor.state;
+        if (selection.empty) {
+          const pos = selection.$anchor.pos;
+          const nodeAfter = this.editor.state.doc.resolve(pos).nodeAfter;
+          if (nodeAfter?.type.name === this.name) {
+            return this.editor.commands.deleteRange({
+              from: pos,
+              to: pos + nodeAfter.nodeSize,
+            });
+          }
+        }
+        return false;
+      },
+    };
+  },
 });
