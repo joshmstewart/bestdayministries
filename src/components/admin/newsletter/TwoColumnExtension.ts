@@ -375,7 +375,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
 
     // For "full" layout, use larger padding so background encompasses both image and text
     // For "text-only", keep minimal table padding since the cell has its own background
-    const tablePadding = isTextOnly ? '16px' : '24px';
+    const tablePadding = isTextOnly ? '16px' : '32px';
     
     // Cell padding adjusts based on background scope
     // Full layout: cells get internal padding within the colored container
