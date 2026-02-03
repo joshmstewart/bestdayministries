@@ -498,6 +498,10 @@ TipTap-based rich text editor for email content.
 - Insert via the editor’s “Button/CTA” dialog (creates an email-safe `table[data-cta-button]`).
 - Remove by hovering the CTA button block in the editor and clicking the small **X** in the top-right corner.
 
+**Magazine (Two-Column) CTA Buttons:**
+- Two-column “magazine” layouts (`table[data-two-column]`) use inline `[CTA:text|url|color]` markers inside the layout’s text.
+- CTA tables *inside* a magazine layout must NOT be parsed as standalone CTA blocks (otherwise they get lifted out of the layout, often to the bottom of the document).
+
 **Styled Boxes (CRITICAL):**
 - Styled boxes are identified by `div[data-styled-box]` / `div[data-style]` emitted by the editor.
 - We intentionally **do not** auto-detect styled boxes from arbitrary `background-color` values, because that can silently convert normal layout elements (headers, pill badges) into styled-box blocks and rewrite/break a template.
