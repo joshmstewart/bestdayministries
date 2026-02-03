@@ -494,6 +494,10 @@ Configure global newsletter settings.
 ### `RichTextEditor`
 TipTap-based rich text editor for email content.
 
+**CTA Buttons:**
+- Insert via the editor’s “Button/CTA” dialog (creates an email-safe `table[data-cta-button]`).
+- Remove by hovering the CTA button block in the editor and clicking the small **X** in the top-right corner.
+
 **Styled Boxes (CRITICAL):**
 - Styled boxes are identified by `div[data-styled-box]` / `div[data-style]` emitted by the editor.
 - We intentionally **do not** auto-detect styled boxes from arbitrary `background-color` values, because that can silently convert normal layout elements (headers, pill badges) into styled-box blocks and rewrite/break a template.
