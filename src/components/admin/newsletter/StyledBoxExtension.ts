@@ -191,10 +191,24 @@ export const StyledBox = Node.create<StyledBoxOptions>({
     
     let styleAttr = getBaseStyleString(style);
     
-    // Add width-specific styles
+    // For fit width, we need a wrapper to center it
     if (width === 'fit') {
-      // Inline-block to shrink-wrap content
-      styleAttr = styleAttr.replace('margin: 1rem 0;', 'margin: 1rem auto; display: inline-block;');
+      // Inline-block to shrink-wrap content, centered via wrapper's text-align
+      styleAttr = styleAttr.replace('margin: 1rem 0;', 'margin: 0; display: inline-block;');
+      
+      // Return a wrapper div with text-align center, containing the styled box
+      return [
+        'div',
+        { style: 'text-align: center; margin: 1rem 0;', 'data-styled-box-wrapper': '' },
+        [
+          'div',
+          mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+            'data-styled-box': '',
+            style: styleAttr,
+          }),
+          0,
+        ],
+      ];
     }
 
     return [
