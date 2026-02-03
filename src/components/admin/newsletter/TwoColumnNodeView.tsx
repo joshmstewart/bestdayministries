@@ -1,7 +1,7 @@
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ImageIcon, Trash2, ArrowLeftRight, Crop, Palette, MousePointerClick, Maximize2, Columns } from 'lucide-react';
+import { ImageIcon, Trash2, ArrowLeftRight, Crop, Palette, MousePointerClick, Maximize2, Columns, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
@@ -36,7 +36,7 @@ const BACKGROUND_OPTIONS = [
 
 const CTA_COLOR_PRESETS = ['#f97316', '#3b82f6', '#22c55e', '#8b5cf6', '#ef4444', '#1f2937'];
 
-export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
+export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode, editor, getPos }: NodeViewProps) => {
   const { layout, leftContent, rightContent, imageUrl, backgroundColor, backgroundScope } = node.attrs;
   const [uploading, setUploading] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -84,6 +84,18 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
     
     setCtaDialogOpen(false);
     toast.success('CTA button added!');
+  };
+
+  // Insert a paragraph after this node so user can add space between magazine boxes
+  const insertSpaceAfter = () => {
+    const pos = getPos();
+    if (typeof pos === 'number' && !isNaN(pos) && editor) {
+      const endPos = pos + node.nodeSize;
+      const tr = editor.state.tr.insert(endPos, editor.state.schema.nodes.paragraph.create());
+      editor.view.dispatch(tr);
+      // Focus the new paragraph
+      editor.commands.focus(endPos + 1);
+    }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -412,6 +424,16 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
               title="Swap image position"
             >
               <ArrowLeftRight className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={insertSpaceAfter}
+              className="h-7 px-2 bg-white/80 hover:bg-accent"
+              title="Add space below"
+            >
+              <Plus className="h-4 w-4" />
             </Button>
             <Button
               type="button"
