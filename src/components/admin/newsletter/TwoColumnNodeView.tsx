@@ -1,13 +1,14 @@
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ImageIcon, Trash2, ArrowLeftRight, Crop, Palette, MousePointerClick } from 'lucide-react';
+import { ImageIcon, Trash2, ArrowLeftRight, Crop, Palette, MousePointerClick, Maximize2, Columns } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
 import { compressImage } from '@/lib/imageUtils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Popover,
   PopoverContent,
@@ -36,7 +37,7 @@ const BACKGROUND_OPTIONS = [
 const CTA_COLOR_PRESETS = ['#f97316', '#3b82f6', '#22c55e', '#8b5cf6', '#ef4444', '#1f2937'];
 
 export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
-  const { layout, leftContent, rightContent, imageUrl, backgroundColor } = node.attrs;
+  const { layout, leftContent, rightContent, imageUrl, backgroundColor, backgroundScope } = node.attrs;
   const [uploading, setUploading] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState('');
@@ -54,6 +55,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
 
   const isImageLeft = layout === 'image-left-text-right';
   const isEqual = layout === 'equal-columns';
+  const isTextOnlyBg = backgroundScope === 'text-only';
   
   // Open CTA dialog for a specific column
   const openCtaDialog = (column: 'left' | 'right') => {
@@ -305,11 +307,15 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
     handleTextChange(isImageLeft ? 'right' : 'left', value);
   };
 
+  // Compute background styles based on scope
+  const containerBgColor = isTextOnlyBg ? 'transparent' : backgroundColor;
+  const textCellBgColor = isTextOnlyBg ? backgroundColor : 'transparent';
+  
   return (
     <NodeViewWrapper className="two-column-node-view">
       <div 
         className="relative rounded-lg p-6 my-4"
-        style={{ backgroundColor }}
+        style={{ backgroundColor: containerBgColor }}
       >
         {/* Header badge */}
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-md whitespace-nowrap z-10">
@@ -329,24 +335,55 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
                   <Palette className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2" align="end">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Background Color</p>
-                  {BACKGROUND_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => updateAttributes({ backgroundColor: option.value })}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors ${
-                        backgroundColor === option.value ? 'bg-accent' : ''
-                      }`}
-                    >
-                      <div 
-                        className="w-4 h-4 rounded border border-border" 
-                        style={{ backgroundColor: option.value === 'transparent' ? '#fff' : option.value }}
-                      />
-                      {option.label}
-                    </button>
-                  ))}
+              <PopoverContent className="w-56 p-2" align="end">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Background Color</p>
+                    <div className="space-y-1">
+                      {BACKGROUND_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => updateAttributes({ backgroundColor: option.value })}
+                          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors ${
+                            backgroundColor === option.value ? 'bg-accent' : ''
+                          }`}
+                        >
+                          <div 
+                            className="w-4 h-4 rounded border border-border" 
+                            style={{ backgroundColor: option.value === 'transparent' ? '#fff' : option.value }}
+                          />
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Background scope toggle - only show for image layouts */}
+                  {backgroundColor !== 'transparent' && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Background Covers</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateAttributes({ backgroundScope: 'full' })}
+                          className={`flex-1 flex flex-col items-center gap-1 p-2 rounded border text-xs transition-colors ${
+                            !isTextOnlyBg ? 'bg-primary/10 border-primary text-primary' : 'hover:bg-accent border-border'
+                          }`}
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                          Full Layout
+                        </button>
+                        <button
+                          onClick={() => updateAttributes({ backgroundScope: 'text-only' })}
+                          className={`flex-1 flex flex-col items-center gap-1 p-2 rounded border text-xs transition-colors ${
+                            isTextOnlyBg ? 'bg-primary/10 border-primary text-primary' : 'hover:bg-accent border-border'
+                          }`}
+                        >
+                          <Columns className="h-4 w-4" />
+                          Text Only
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
@@ -440,7 +477,10 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
           </div>
 
           {/* Text side */}
-          <div className={`${isImageLeft ? 'order-2' : 'order-1'} space-y-2`}>
+          <div 
+            className={`${isImageLeft ? 'order-2' : 'order-1'} space-y-2 rounded-lg ${isTextOnlyBg && textCellBgColor !== 'transparent' ? 'p-4' : ''}`}
+            style={{ backgroundColor: textCellBgColor }}
+          >
             <label className="text-xs font-medium text-muted-foreground">Text Content</label>
             <textarea
               className="w-full min-h-[180px] p-3 rounded-md border border-input bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
