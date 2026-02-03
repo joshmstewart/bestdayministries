@@ -275,7 +275,7 @@ const Marketplace = () => {
       
       <main className="flex-1">
         {/* Hero Section - Compact */}
-        <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 py-6">
+        <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 pt-24 pb-4">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               {/* Title and tagline */}
