@@ -151,14 +151,36 @@ serve(async (req) => {
             )
           );
 
-          return updated;
-        }
-      );
-    };
+      return updated;
+    }
+  );
+};
 
-    const styleFooterImages = (html: string): string => {
-      return (html || "").replace(/<img\b[^>]*>/gi, (imgTag) =>
-        mergeInlineStyle(imgTag, "max-width:200px;height:auto;margin:0 auto;display:block;")
+/**
+ * Inline-styles paragraphs and headings inside [data-styled-box] elements 
+ * so they render compactly in email clients (no extra vertical spacing).
+ */
+const styleStyledBoxes = (html: string): string => {
+  // Process each styled-box element
+  return (html || "").replace(
+    /<([a-z0-9]+)\b[^>]*data-styled-box[^>]*>[\s\S]*?<\/\1>/gi,
+    (boxHtml) => {
+      // Remove margin from paragraphs inside styled boxes
+      let updated = boxHtml.replace(/<p\b[^>]*>/gi, (pTag) =>
+        mergeInlineStyle(pTag, "margin:0;")
+      );
+      // Remove margin from headings inside styled boxes
+      updated = updated.replace(/<h[1-6]\b[^>]*>/gi, (hTag) =>
+        mergeInlineStyle(hTag, "margin:0;")
+      );
+      return updated;
+    }
+  );
+};
+
+const styleFooterImages = (html: string): string => {
+  return (html || "").replace(/<img\b[^>]*>/gi, (imgTag) =>
+    mergeInlineStyle(imgTag, "max-width:200px;height:auto;margin:0 auto;display:block;")
       );
     };
 
@@ -179,8 +201,8 @@ serve(async (req) => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add campaign content (apply email-safe formatting to standard tables)
-    htmlContent += styleStandardTablesOnly(content);
+    // Add campaign content (apply email-safe formatting to tables and styled boxes)
+    htmlContent += styleStyledBoxes(styleStandardTablesOnly(content));
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
