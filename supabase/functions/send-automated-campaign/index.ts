@@ -157,40 +157,58 @@ serve(async (req) => {
 };
 
 /**
- * Style column layout tables (data-columns="2" or data-columns="3") with fixed layout
- * and equal column widths for consistent email rendering.
+ * Apply fluid-hybrid responsive design for column layout tables.
+ * This technique wraps each column in an inline-block container that flows naturally
+ * on mobile devices, stacking vertically without requiring CSS media queries.
  */
 const styleColumnLayoutTables = (html: string): string => {
   return (html || "").replace(
-    /<table\b[^>]*data-columns\s*=\s*["'](\d+)["'][^>]*>[\s\S]*?<\/table>/gi,
-    (tableHtml, columnCount) => {
+    /<table\b[^>]*data-columns\s*=\s*["'](\d+)["'][^>]*>([\s\S]*?)<\/table>/gi,
+    (fullMatch, columnCount, tableContent) => {
       const numColumns = parseInt(columnCount, 10);
-      const columnWidth = numColumns > 0 ? (100 / numColumns).toFixed(2) + "%" : "auto";
-      
-      // Style the table tag with fixed layout AND max-width for email clients
-      let updated = tableHtml.replace(
-        /<table\b[^>]*>/i,
-        (tableTag) =>
-          mergeInlineStyle(
-            tableTag,
-            "width:100%;max-width:600px;margin:0 auto;border-collapse:collapse;table-layout:fixed;"
-          )
-      );
+      if (numColumns <= 0) return fullMatch;
 
-      // Style each td with equal width
-      updated = updated.replace(/<td\b[^>]*>/gi, (tdTag) =>
-        mergeInlineStyle(
-          tdTag,
-          `width:${columnWidth};vertical-align:top;`
-        )
-      );
+      // Calculate column width for desktop (e.g., 2 cols = 300px each in 600px container)
+      const colMaxWidth = Math.floor(600 / numColumns);
 
-      // Style images inside columns to scale properly
-      updated = updated.replace(/<img\b[^>]*>/gi, (imgTag) =>
-        mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
-      );
+      // Extract all <td> contents
+      const tdContents: string[] = [];
+      const tdRegex = /<td\b[^>]*>([\s\S]*?)<\/td>/gi;
+      let match;
+      while ((match = tdRegex.exec(tableContent)) !== null) {
+        tdContents.push(match[1]);
+      }
 
-      return updated;
+      if (tdContents.length === 0) return fullMatch;
+
+      // Build fluid-hybrid structure: each column is an inline-block div
+      const columnDivs = tdContents.map((content) => {
+        // Style images inside each column
+        const styledContent = content.replace(/<img\b[^>]*>/gi, (imgTag) =>
+          mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+        );
+
+        return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]-->
+<div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td style="padding:0 8px 16px 8px;vertical-align:top;">${styledContent}</td>
+    </tr>
+  </table>
+</div>
+<!--[if mso]></td><![endif]-->`;
+      }).join("\n");
+
+      // Wrap in a container table for email clients
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;border-collapse:collapse;">
+  <tr>
+    <td align="center" style="font-size:0;">
+      <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->
+      ${columnDivs}
+      <!--[if mso]></tr></table><![endif]-->
+    </td>
+  </tr>
+</table>`;
     }
   );
 };
