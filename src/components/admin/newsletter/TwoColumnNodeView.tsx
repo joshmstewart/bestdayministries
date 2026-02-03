@@ -18,9 +18,10 @@ const BACKGROUND_OPTIONS = [
   { label: 'None', value: 'transparent' },
   { label: 'White', value: '#ffffff' },
   { label: 'Cream', value: '#faf5ef' },
-  { label: 'Light Gray', value: '#f5f5f5' },
-  { label: 'Brand Orange', value: '#fff7ed' },
-  { label: 'Sage', value: '#f0fdf4' },
+  { label: 'Warm Sand', value: '#f5f0e8' },
+  { label: 'Soft Peach', value: '#fff4ed' },
+  { label: 'Natural Sage', value: '#f5f3ed' },
+  { label: 'Wheat', value: '#f8f4e9' },
 ];
 
 export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
