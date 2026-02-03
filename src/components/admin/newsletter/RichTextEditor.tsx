@@ -177,6 +177,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [isTableSelected, setIsTableSelected] = useState(false);
   const [isStyledBoxSelected, setIsStyledBoxSelected] = useState(false);
   const [editBoxStyleDialogOpen, setEditBoxStyleDialogOpen] = useState(false);
+  const [activeStyledBoxPos, setActiveStyledBoxPos] = useState<number | null>(null);
   
   // Track if this is the initial content load to prevent auto-reserializing
   const isInitialLoad = useRef(true);
@@ -250,6 +251,20 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       setIsStyledBoxSelected(editor.isActive('styledBox'));
     },
   });
+
+  const getActiveStyledBoxPos = (): number | null => {
+    if (!editor) return null;
+    const { selection } = editor.state;
+    const $from = selection.$from;
+
+    for (let d = $from.depth; d >= 0; d--) {
+      const node = $from.node(d);
+      if (node.type.name === 'styledBox') {
+        return $from.before(d);
+      }
+    }
+    return null;
+  };
 
   // Update editor content when content prop changes (template reopen)
   useEffect(() => {
@@ -671,7 +686,13 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setEditBoxStyleDialogOpen(true)}
+            onClick={() => {
+              // Capture the exact styledBox position BEFORE opening the dialog.
+              // When the dialog opens, focus/selection can move, making style updates
+              // target the wrong box or do nothing.
+              setActiveStyledBoxPos(getActiveStyledBoxPos());
+              setEditBoxStyleDialogOpen(true);
+            }}
             className="h-7 px-3 gap-1"
           >
             <Palette className="h-3 w-3" />
@@ -1518,7 +1539,13 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       </Dialog>
 
       {/* Edit Box Style Dialog */}
-      <Dialog open={editBoxStyleDialogOpen} onOpenChange={setEditBoxStyleDialogOpen}>
+      <Dialog
+        open={editBoxStyleDialogOpen}
+        onOpenChange={(open) => {
+          setEditBoxStyleDialogOpen(open);
+          if (!open) setActiveStyledBoxPos(null);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Change Box Color</DialogTitle>
@@ -1551,10 +1578,29 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   variant="outline"
                   className="h-auto p-3 flex flex-col items-center gap-2 hover:ring-2 hover:ring-primary"
                   onClick={() => {
-                    if (editor) {
-                      editor.chain().focus().updateStyledBoxStyle(style.key as any).run();
+                    if (!editor) return;
+                    editor.commands.focus();
+
+                    // Prefer the captured node position (most reliable). Fallback to current selection.
+                    const targetPos = activeStyledBoxPos ?? getActiveStyledBoxPos();
+
+                    const ok = editor.commands.command(({ tr, state, dispatch }) => {
+                      if (targetPos == null) return false;
+                      const node = state.doc.nodeAt(targetPos);
+                      if (!node || node.type.name !== 'styledBox') return false;
+
+                      // CRITICAL: Pass node.type explicitly to preserve content structure
+                      const newAttrs = { ...node.attrs, style: style.key };
+                      tr.setNodeMarkup(targetPos, node.type, newAttrs, node.marks);
+                      if (dispatch) dispatch(tr);
+                      return true;
+                    });
+
+                    if (ok) {
                       toast.success(`Changed to ${style.label}!`);
                       setEditBoxStyleDialogOpen(false);
+                    } else {
+                      toast.error("Couldn't change that box — click inside the box you want to recolor, then try again.");
                     }
                   }}
                 >
