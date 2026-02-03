@@ -252,8 +252,8 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         // Each subsequent line becomes its own paragraph; empty lines become spacer paragraphs
         for (const line of bodyLines) {
           if (line.trim() === '') {
-            // Empty line = extra vertical spacing (blank paragraph with margin)
-            elements.push(['p', { style: 'margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;' }, '\u00A0']);
+            // Empty line = single-row height spacing (same as text line)
+            elements.push(['p', { style: 'margin: 0 0 8px 0; font-size: 16px; line-height: 1.6;' }, '\u00A0']);
           } else {
             elements.push(['p', { style: 'margin: 0 0 8px 0; font-size: 16px; line-height: 1.6;' }, line]);
           }
