@@ -1650,7 +1650,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 className="h-auto p-4 flex flex-col gap-2"
                 onClick={() => {
                   if (editor) {
-                    const html = `<table style="width: 100%; border-collapse: collapse; border: none;"><tr><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td></tr></table>`;
+                    const html = `<table data-columns="2" style="width: 100%; table-layout: fixed; border-collapse: collapse; border: none;"><tr><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td></tr></table>`;
                     editor.chain().focus().insertContent(html).run();
                     setColumnsDialogOpen(false);
                     toast.success("2-column layout inserted!");
@@ -1668,7 +1668,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 className="h-auto p-4 flex flex-col gap-2"
                 onClick={() => {
                   if (editor) {
-                    const html = `<table style="width: 100%; border-collapse: collapse; border: none;"><tr><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 3</td></tr></table>`;
+                    const html = `<table data-columns="3" style="width: 100%; table-layout: fixed; border-collapse: collapse; border: none;"><tr><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 3</td></tr></table>`;
                     editor.chain().focus().insertContent(html).run();
                     setColumnsDialogOpen(false);
                     toast.success("3-column layout inserted!");
