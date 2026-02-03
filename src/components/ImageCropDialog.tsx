@@ -174,9 +174,9 @@ export function ImageCropDialog({
             <Slider
               value={[zoom]}
               onValueChange={(values) => setZoom(values[0])}
-              min={1}
+              min={0.5}
               max={3}
-              step={0.1}
+              step={0.05}
               className="flex-1"
             />
             <ZoomIn className="w-4 h-4 text-muted-foreground" />
