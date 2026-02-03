@@ -94,27 +94,31 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     const isImageLeft = layout === 'image-left-text-right';
     const isEqual = layout === 'equal-columns';
     
-    // Helper function to convert plain text to styled HTML
+    // Helper function to convert plain text to properly nested TipTap elements
     // First line becomes headline, rest becomes body
-    const textToHtml = (text: string) => {
+    const textToElements = (text: string): any[] => {
       const lines = text.split('\n').filter(line => line.trim() !== '');
-      if (lines.length === 0) return '';
+      if (lines.length === 0) return [['span', {}, '']];
       
       const headline = lines[0];
       const body = lines.slice(1).join(' ');
       
-      let html = `<h2 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold;">${headline}</h2>`;
+      const elements: any[] = [
+        ['h2', { style: 'margin: 0 0 16px 0; font-size: 24px; font-weight: bold;' }, headline]
+      ];
+      
       if (body) {
-        html += `<p style="margin: 0; font-size: 16px; line-height: 1.6;">${body}</p>`;
+        elements.push(['p', { style: 'margin: 0; font-size: 16px; line-height: 1.6;' }, body]);
       }
-      return html;
+      
+      return elements;
     };
-
-    const leftHtml = textToHtml(leftContent);
-    const rightHtml = textToHtml(rightContent);
 
     // For equal columns, both sides are text
     if (isEqual) {
+      const leftElements = textToElements(leftContent);
+      const rightElements = textToElements(rightContent);
+      
       return [
         'table',
         mergeAttributes(this.options.HTMLAttributes, {
@@ -140,7 +144,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
                 width: '50%',
                 style: 'padding: 0 16px 0 0; vertical-align: top;',
               },
-              ['div', { style: 'font-size: 16px; line-height: 1.6;' }, leftHtml || leftContent],
+              ['div', { style: 'font-size: 16px; line-height: 1.6;' }, ...leftElements],
             ],
             [
               'td',
@@ -150,7 +154,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
                 width: '50%',
                 style: 'padding: 0 0 0 16px; vertical-align: top;',
               },
-              ['div', { style: 'font-size: 16px; line-height: 1.6;' }, rightHtml || rightContent],
+              ['div', { style: 'font-size: 16px; line-height: 1.6;' }, ...rightElements],
             ],
           ],
         ],
@@ -159,7 +163,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
 
     // For image layouts - determine text content based on layout
     const textContent = isImageLeft ? rightContent : leftContent;
-    const textHtml = textToHtml(textContent);
+    const textElements = textToElements(textContent);
 
     // Image element for the image side
     const imageElement = [
@@ -171,11 +175,11 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       },
     ];
 
-    // Text element for the text side
+    // Text element for the text side - properly nested
     const textElement = [
       'div',
       { style: 'font-size: 16px; line-height: 1.6;' },
-      textHtml || textContent,
+      ...textElements,
     ];
 
     const leftCellContent = isImageLeft ? imageElement : textElement;
