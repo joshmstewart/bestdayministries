@@ -88,8 +88,18 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    const { layout, leftContent, rightContent, imageUrl, backgroundColor } = HTMLAttributes;
+  renderHTML({ node, HTMLAttributes }) {
+    // IMPORTANT:
+    // TipTap's `HTMLAttributes` here contain *rendered HTML attrs* (e.g. `data-layout`),
+    // not the raw node attrs. To avoid losing user edits (and to avoid layout flips),
+    // always read from `node.attrs`.
+    const { layout, leftContent, rightContent, imageUrl, backgroundColor } = node.attrs as {
+      layout: TwoColumnLayout;
+      leftContent: string;
+      rightContent: string;
+      imageUrl: string;
+      backgroundColor: string;
+    };
     
     const isImageLeft = layout === 'image-left-text-right';
     const isEqual = layout === 'equal-columns';
@@ -97,7 +107,8 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     // Helper function to convert plain text to properly nested TipTap elements
     // First line becomes headline, rest becomes body
     const textToElements = (text: string): any[] => {
-      const lines = text.split('\n').filter(line => line.trim() !== '');
+      const safeText = typeof text === 'string' ? text : '';
+      const lines = safeText.split('\n').filter(line => line.trim() !== '');
       if (lines.length === 0) return [['span', {}, '']];
       
       const headline = lines[0];
@@ -123,6 +134,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         'table',
         mergeAttributes(this.options.HTMLAttributes, {
           'data-two-column': '',
+          // Ensure layout is explicitly persisted for parseHTML + preview
           'data-layout': layout,
           cellpadding: '0',
           cellspacing: '0',
@@ -189,6 +201,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       'table',
       mergeAttributes(this.options.HTMLAttributes, {
         'data-two-column': '',
+        // Ensure layout is explicitly persisted for parseHTML + preview
         'data-layout': layout,
         cellpadding: '0',
         cellspacing: '0',
