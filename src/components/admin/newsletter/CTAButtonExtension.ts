@@ -23,8 +23,9 @@ export const CTAButton = Node.create<CTAButtonOptions>({
 
   selectable: true, // Allow clicking to select the node for keyboard deletion
 
-  // CRITICAL: Higher priority than Table extension so CTA buttons are parsed first
-  priority: 1001,
+  // Lower priority than TwoColumn (1000) so nested CTAs inside magazine layouts
+  // are NOT parsed as standalone blocks (they get extracted as [CTA:...] markers instead)
+  priority: 100,
 
   addOptions() {
     return {
@@ -84,6 +85,9 @@ export const CTAButton = Node.create<CTAButtonOptions>({
         // TwoColumn extension (they're generated from [CTA:...] markers). If we parse
         // them here, ProseMirror will try to lift them out (often to the bottom).
         getAttrs: (element: HTMLElement) => {
+          // PRIMARY defense: explicit marker from TwoColumn.renderHTML()
+          if (element.hasAttribute('data-owned-by-two-column')) return false;
+          // SECONDARY defense: ancestry check (fallback for edge cases)
           if (element.closest('table[data-two-column]')) return false;
           return {};
         },
@@ -95,10 +99,10 @@ export const CTAButton = Node.create<CTAButtonOptions>({
         tag: 'table',
         priority: 99,
         getAttrs: (element: HTMLElement) => {
-          // Never treat nested tables inside magazine layouts as standalone CTA blocks
-          if (element.closest('table[data-two-column]')) {
-            return false;
-          }
+          // PRIMARY defense: explicit marker from TwoColumn.renderHTML()
+          if (element.hasAttribute('data-owned-by-two-column')) return false;
+          // SECONDARY defense: ancestry check
+          if (element.closest('table[data-two-column]')) return false;
 
           const cellpadding = element.getAttribute('cellpadding');
           const cellspacing = element.getAttribute('cellspacing');
