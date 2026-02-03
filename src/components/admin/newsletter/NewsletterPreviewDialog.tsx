@@ -247,10 +247,21 @@ export const NewsletterPreviewDialog = ({
     ${desktopStyles}
     
     /* Mobile simulation: stack columns vertically ONLY for tables with data-mobile-stack="true" */
+    .email-preview table[data-mobile-stack="true"],
+    .email-preview table[data-two-column] {
+      table-layout: auto !important;
+    }
+    
+    .email-preview table[data-mobile-stack="true"] tr,
+    .email-preview table[data-two-column] tr {
+      display: block !important;
+    }
+    
     .email-preview table[data-mobile-stack="true"] td,
     .email-preview table[data-two-column] td {
       display: block !important;
       width: 100% !important;
+      max-width: 100% !important;
       box-sizing: border-box !important;
       padding-bottom: 16px !important;
     }
@@ -269,6 +280,12 @@ export const NewsletterPreviewDialog = ({
     }
     
     /* Tables WITHOUT mobile-stack keep their side-by-side layout */
+    .email-preview table[data-columns]:not([data-mobile-stack="true"]) {
+      table-layout: fixed !important;
+    }
+    .email-preview table[data-columns]:not([data-mobile-stack="true"]) tr {
+      display: table-row !important;
+    }
     .email-preview table[data-columns]:not([data-mobile-stack="true"]) td {
       display: table-cell !important;
     }
