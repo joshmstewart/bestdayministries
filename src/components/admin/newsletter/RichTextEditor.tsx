@@ -138,6 +138,7 @@ interface RichTextEditorProps {
 
 export interface RichTextEditorRef {
   insertImage: (url: string, width?: string) => void;
+  getHTML: () => string;
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(({ content, onChange }, ref) => {
@@ -292,6 +293,12 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         const imgHtml = `<img src="${url}" alt="Logo" style="width: ${width}; height: auto; display: block; margin-left: auto; margin-right: auto;" />`;
         editor.chain().focus().insertContent(imgHtml).run();
       }
+    },
+    // IMPORTANT: Used by parent dialogs to save the *latest* content synchronously.
+    // This avoids race conditions where the user clicks Save immediately after a change
+    // (e.g., toggling styled-box width) before React state updates.
+    getHTML: () => {
+      return editor?.getHTML() ?? content ?? "";
     },
   }));
 
