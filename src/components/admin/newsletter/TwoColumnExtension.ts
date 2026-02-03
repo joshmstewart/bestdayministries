@@ -235,22 +235,28 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       }
       textWithoutCtas = safeText.replace(ctaRegex, '').trim();
       
-      // Split by newlines but preserve empty lines as paragraph breaks
+      // Split by newlines - PRESERVE empty lines for user-intended spacing
       const lines = textWithoutCtas.split('\n');
-      const nonEmptyLines = lines.filter(line => line.trim() !== '');
-      if (nonEmptyLines.length === 0 && ctas.length === 0) return [['span', {}, '']];
+      // Find first non-empty line for headline
+      const firstNonEmptyIdx = lines.findIndex(line => line.trim() !== '');
+      if (firstNonEmptyIdx === -1 && ctas.length === 0) return [['span', {}, '']];
       
       const elements: any[] = [];
       
-      if (nonEmptyLines.length > 0) {
-        const headline = nonEmptyLines[0];
-        const bodyLines = nonEmptyLines.slice(1);
+      if (firstNonEmptyIdx !== -1) {
+        const headline = lines[firstNonEmptyIdx];
+        const bodyLines = lines.slice(firstNonEmptyIdx + 1);
         
         elements.push(['h2', { style: 'margin: 16px 0 16px 0; font-size: 24px; font-weight: bold;' }, headline]);
         
-        // Each subsequent line becomes its own paragraph to preserve user line breaks
+        // Each subsequent line becomes its own paragraph; empty lines become spacer paragraphs
         for (const line of bodyLines) {
-          elements.push(['p', { style: 'margin: 0 0 8px 0; font-size: 16px; line-height: 1.6;' }, line]);
+          if (line.trim() === '') {
+            // Empty line = extra vertical spacing (blank paragraph with margin)
+            elements.push(['p', { style: 'margin: 0 0 16px 0; font-size: 16px; line-height: 1.6;' }, '\u00A0']);
+          } else {
+            elements.push(['p', { style: 'margin: 0 0 8px 0; font-size: 16px; line-height: 1.6;' }, line]);
+          }
         }
       }
       
