@@ -1,4 +1,4 @@
-VENDOR AUTHENTICATION SYSTEM
+# VENDOR AUTHENTICATION SYSTEM
 
 ## Overview
 Vendor application system where ANY authenticated user can apply to become a vendor, creating a record in the `vendors` table.
@@ -7,17 +7,18 @@ Vendor application system where ANY authenticated user can apply to become a ven
 
 **Route:** `/vendor-auth`
 
-### For New Users (Sign Up)
+### For New Users (Sign Up Only)
 1. Enter: Display Name, Business Name, Email, Password
 2. System creates auth account with 'supporter' role
 3. Inserts `vendors` record with 'pending' status
 4. Redirects to `/vendor-dashboard` (shows pending message)
 
-### For Existing Users (Sign In)
-1. Enter: Email, Password
-2. System verifies vendor record exists
-3. If no vendor record → suggests applying as vendor
-4. Redirects to `/vendor-dashboard`
+### For Existing Users
+Existing users should use the regular `/auth` login, then:
+- Navigate to Marketplace → "Become a Vendor" button
+- Or go directly to `/vendor-dashboard` → "Apply to Become a Vendor"
+
+**Note:** The `/vendor-auth` page is signup-only. There is no sign-in form on this page - existing users are directed to the standard auth flow.
 
 ## Alternative Entry Point
 **Marketplace "Become a Vendor" button** → Can redirect to:
