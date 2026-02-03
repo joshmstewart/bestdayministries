@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { emailDelay, logRateLimitInfo, RESEND_RATE_LIMIT_MS } from "../_shared/emailRateLimiter.ts";
+import { applyEmailStyles, styleFooterImages } from "../_shared/emailStyles.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -263,11 +264,7 @@ function styleStyledBoxes(html: string): string {
   );
 }
 
-function styleFooterImages(html: string): string {
-  return (html || "").replace(/<img\b[^>]*>/gi, (imgTag) =>
-    mergeInlineStyle(imgTag, "max-width:200px;height:auto;margin:0 auto;display:block;")
-  );
-}
+// styleFooterImages is now imported from _shared/emailStyles.ts
 
 /**
  * Style empty paragraphs (spacers) as 12px height for consistent email rendering.
@@ -526,8 +523,8 @@ serve(async (req) => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add campaign content (apply email-safe formatting to tables, styled boxes, magazine layouts, and empty paragraphs)
-    htmlContent += styleEmptyParagraphs(styleStyledBoxes(styleMagazineLayouts(styleColumnLayoutTables(styleStandardTablesOnly(campaign.html_content)))));
+    // Add campaign content (apply email-safe formatting for Gmail: typography, buttons, layouts)
+    htmlContent += applyEmailStyles(campaign.html_content);
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {

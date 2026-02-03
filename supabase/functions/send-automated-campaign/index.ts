@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { applyEmailStyles, styleFooterImages } from "../_shared/emailStyles.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -409,8 +410,8 @@ const styleEmptyParagraphs = (html: string): string => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add campaign content (apply email-safe formatting to tables, styled boxes, magazine layouts, and empty paragraphs)
-    htmlContent += styleEmptyParagraphs(styleStyledBoxes(styleMagazineLayouts(styleColumnLayoutTables(styleStandardTablesOnly(content)))));
+    // Add campaign content (apply email-safe formatting for Gmail: typography, buttons, layouts)
+    htmlContent += applyEmailStyles(content);
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {

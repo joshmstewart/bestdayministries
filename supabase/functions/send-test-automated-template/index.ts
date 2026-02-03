@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { applyEmailStyles, styleFooterImages } from "../_shared/emailStyles.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -239,11 +240,7 @@ function styleMagazineLayouts(html: string): string {
   );
 }
 
-function styleFooterImages(html: string): string {
-  return (html || "").replace(/<img\b[^>]*>/gi, (imgTag) =>
-    mergeInlineStyle(imgTag, "max-width:200px;height:auto;margin:0 auto;display:block;")
-  );
-}
+// styleFooterImages is now imported from _shared/emailStyles.ts
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -374,8 +371,8 @@ serve(async (req) => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add processed template content (apply email-safe formatting to column layouts, magazine layouts, and standard tables)
-    htmlContent += styleMagazineLayouts(styleColumnLayoutTables(styleStandardTablesOnly(processedContent)));
+    // Add processed template content (apply email-safe formatting for Gmail: typography, buttons, layouts)
+    htmlContent += applyEmailStyles(processedContent);
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
