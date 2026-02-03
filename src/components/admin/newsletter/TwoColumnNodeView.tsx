@@ -20,7 +20,7 @@ const BACKGROUND_OPTIONS = [
   { label: 'Cream', value: '#faf5ef' },
   { label: 'Warm Sand', value: '#f5f0e8' },
   { label: 'Soft Peach', value: '#fff4ed' },
-  { label: 'Natural Sage', value: '#f5f3ed' },
+  { label: 'Natural Sage', value: '#eef3ea' },
   { label: 'Wheat', value: '#f8f4e9' },
 ];
 
