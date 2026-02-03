@@ -958,7 +958,7 @@ EMAIL-LOG-UI:search-by-email|filter-by-status[sent|failed|bounced]|view-details-
 RICH-EDITOR:tiptap[formatting|images|links|alignment]|image-crop-dialog[aspect-ratio-selection]
 HEADER-FOOTER:reusable-header-footer→enabled-toggle→inject-into-emails
 TRACKING:link-tracking[short-codes]|open-tracking[pixel]|click-analytics|resend-webhook-skips-non-campaign-emails
-EMAIL-FORMATTING:outgoing-emails-inline-style-standard-tables[width+padding+word-break]→skip-magazine-layout[data-two-column]
+EMAIL-FORMATTING:outgoing-emails-inline-style-standard-tables[width+padding+word-break]→EXCLUDE-CTA[data-cta-button]|magazine-layout[data-two-column]→MSO-safe-wrapper[2–3-cols,no-nested-td-mutation]
 CTA-PADDING:standalone-CTA[fit:8px×16px|full:12px×24px]|magazine-CTA[data-owned-by-two-column=true→fit:8px×16px]
 RLS:admins-only-campaigns-templates|anyone-subscribe|admins-view-logs
 MOBILE:tab-bar-wraps[inline-flex+flex-wrap+whitespace-nowrap]
