@@ -498,6 +498,7 @@ TipTap-based rich text editor for email content.
 - Styled boxes are identified by `div[data-styled-box]` / `div[data-style]` emitted by the editor.
 - We intentionally **do not** auto-detect styled boxes from arbitrary `background-color` values, because that can silently convert normal layout elements (headers, pill badges) into styled-box blocks and rewrite/break a template.
 - When saving templates, we read the *latest* HTML directly from the editor ref to avoid race conditions (e.g., width toggles not persisting if the user clicks Save immediately).
+- Default box spacing is controlled in `StyledBoxExtension` (inline email-safe styles). If boxes look too tall for short phrases, adjust the base padding/margins there.
 
 **Features:**
 - Bold, italic, underline, strikethrough

@@ -65,40 +65,45 @@ declare module '@tiptap/core' {
 
 // Helper to get base style string for a given style key
 function getBaseStyleString(style: StyledBoxStyle): string {
+  // Default spacing tuned for email readability without making one-line boxes overly tall
+  // (was: padding 2rem everywhere)
+  const boxPadding = 'padding: 1.25rem 1.75rem;';
+  const boxMargin = 'margin: 1rem 0;';
+
   switch (style) {
     case 'purple-gradient':
-      return 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'warm-gradient':
-      return 'background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'blue-info':
-      return 'background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1e40af;';
+      return `background-color: #dbeafe; border-left: 4px solid #3b82f6; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #1e40af;`;
     case 'green-success':
-      return 'background-color: #dcfce7; border-left: 4px solid #22c55e; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #166534;';
+      return `background-color: #dcfce7; border-left: 4px solid #22c55e; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #166534;`;
     case 'amber-highlight':
-      return 'background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #92400e;';
+      return `background-color: #fef3c7; border-left: 4px solid #f59e0b; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #92400e;`;
     case 'dark-charcoal':
-      return 'background-color: #1f2937; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background-color: #1f2937; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'white-bordered':
-      return 'background: white; border: 2px solid #e5e7eb; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;';
+      return `background: white; border: 2px solid #e5e7eb; ${boxPadding} border-radius: 0.5rem; ${boxMargin}`;
     case 'burnt-orange':
-      return 'background-color: #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background-color: #e8650d; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'deep-orange':
-      return 'background-color: #c2410c; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background-color: #c2410c; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'mustard-gold':
-      return 'background-color: #eab308; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
+      return `background-color: #eab308; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #1a1a1a;`;
     case 'warm-cream':
-      return 'background-color: #faf5ef; border: 2px solid #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
+      return `background-color: #faf5ef; border: 2px solid #e8650d; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #1a1a1a;`;
     case 'sunset-gradient':
-      return 'background: radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), radial-gradient(circle at 75% 20%, hsl(46, 95%, 55%, 0.2) 0%, transparent 30%), radial-gradient(circle at 85% 70%, hsl(46, 95%, 55%, 0.28) 0%, transparent 25%), radial-gradient(circle at 40% 80%, hsl(46, 95%, 55%, 0.18) 0%, transparent 35%), radial-gradient(circle at 15% 85%, hsl(46, 95%, 55%, 0.15) 0%, transparent 28%), hsl(24, 85%, 56%); padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background: radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), radial-gradient(circle at 75% 20%, hsl(46, 95%, 55%, 0.2) 0%, transparent 30%), radial-gradient(circle at 85% 70%, hsl(46, 95%, 55%, 0.28) 0%, transparent 25%), radial-gradient(circle at 40% 80%, hsl(46, 95%, 55%, 0.18) 0%, transparent 35%), radial-gradient(circle at 15% 85%, hsl(46, 95%, 55%, 0.15) 0%, transparent 28%), hsl(24, 85%, 56%); ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'brand-dark':
-      return 'background-color: #1a1a1a; border-top: 4px solid #e8650d; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background-color: #1a1a1a; border-top: 4px solid #e8650d; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'sand-light':
-      return 'background-color: #f5e6d3; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: #1a1a1a;';
+      return `background-color: #f5e6d3; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #1a1a1a;`;
     case 'forest-accent':
-      return 'background-color: #14532d; border-left: 4px solid #eab308; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0; color: white;';
+      return `background-color: #14532d; border-left: 4px solid #eab308; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     case 'light-gray':
     default:
-      return 'background-color: #f3f4f6; padding: 2rem; border-radius: 0.5rem; margin: 1rem 0;';
+      return `background-color: #f3f4f6; ${boxPadding} border-radius: 0.5rem; ${boxMargin}`;
   }
 }
 
