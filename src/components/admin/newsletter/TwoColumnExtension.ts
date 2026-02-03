@@ -74,7 +74,9 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           // Convert block elements to newlines before stripping tags
           let html = leftCell.innerHTML || '';
           // Replace </h2>, </p>, <br> with newlines to preserve line breaks
-          html = html.replace(/<\/h2>/gi, '\n\n');
+          // IMPORTANT: Use a single newline for </h2>. Spacer paragraphs already add their
+          // own newline; using \n\n here causes blank lines to multiply on every reload.
+          html = html.replace(/<\/h2>/gi, '\n');
           html = html.replace(/<\/p>/gi, '\n');
           html = html.replace(/<br\s*\/?>/gi, '\n');
           // Strip remaining HTML tags
@@ -85,8 +87,12 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           html = html.replace(/&lt;/gi, '<');
           html = html.replace(/&gt;/gi, '>');
           html = html.replace(/&quot;/gi, '"');
-          // Clean up excessive newlines and trim
-          html = html.replace(/\n{3,}/g, '\n\n').trim();
+
+          // Normalize whitespace-only lines created by spacer paragraphs (" \n")
+          // into a true empty line ("\n\n"), then cap excessive blank runs.
+          html = html.replace(/\n[\t ]+\n/g, '\n\n');
+          html = html.replace(/^[\t ]+$/gm, '');
+          html = html.replace(/\n{3,}/g, '\n\n');
           
           // Append CTA markers
           if (ctaMarkers.length > 0) {
@@ -123,7 +129,9 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           // Convert block elements to newlines before stripping tags
           let html = rightCell.innerHTML || '';
           // Replace </h2>, </p>, <br> with newlines to preserve line breaks
-          html = html.replace(/<\/h2>/gi, '\n\n');
+          // IMPORTANT: Use a single newline for </h2>. Spacer paragraphs already add their
+          // own newline; using \n\n here causes blank lines to multiply on every reload.
+          html = html.replace(/<\/h2>/gi, '\n');
           html = html.replace(/<\/p>/gi, '\n');
           html = html.replace(/<br\s*\/?>/gi, '\n');
           // Strip remaining HTML tags
@@ -134,8 +142,12 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           html = html.replace(/&lt;/gi, '<');
           html = html.replace(/&gt;/gi, '>');
           html = html.replace(/&quot;/gi, '"');
-          // Clean up excessive newlines and trim
-          html = html.replace(/\n{3,}/g, '\n\n').trim();
+
+          // Normalize whitespace-only lines created by spacer paragraphs (" \n")
+          // into a true empty line ("\n\n"), then cap excessive blank runs.
+          html = html.replace(/\n[\t ]+\n/g, '\n\n');
+          html = html.replace(/^[\t ]+$/gm, '');
+          html = html.replace(/\n{3,}/g, '\n\n');
           
           // Append CTA markers
           if (ctaMarkers.length > 0) {

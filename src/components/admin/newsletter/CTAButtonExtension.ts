@@ -78,6 +78,13 @@ export const CTAButton = Node.create<CTAButtonOptions>({
       {
         // Match our CTA button table structure with data attribute
         tag: 'table[data-cta-button]',
+        // IMPORTANT: CTA tables inside magazine/two-column layouts are owned by the
+        // TwoColumn extension (they're generated from [CTA:...] markers). If we parse
+        // them here, ProseMirror will try to lift them out (often to the bottom).
+        getAttrs: (element: HTMLElement) => {
+          if (element.closest('table[data-two-column]')) return false;
+          return {};
+        },
         priority: 100,
       },
       {
@@ -86,6 +93,11 @@ export const CTAButton = Node.create<CTAButtonOptions>({
         tag: 'table',
         priority: 99,
         getAttrs: (element: HTMLElement) => {
+          // Never treat nested tables inside magazine layouts as standalone CTA blocks
+          if (element.closest('table[data-two-column]')) {
+            return false;
+          }
+
           const cellpadding = element.getAttribute('cellpadding');
           const cellspacing = element.getAttribute('cellspacing');
           const border = element.getAttribute('border');
