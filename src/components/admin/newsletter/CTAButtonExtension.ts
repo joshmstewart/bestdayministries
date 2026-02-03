@@ -19,6 +19,9 @@ export const CTAButton = Node.create<CTAButtonOptions>({
 
   atom: true, // This node is a leaf node, not editable inline
 
+  // CRITICAL: Higher priority than Table extension so CTA buttons are parsed first
+  priority: 1001,
+
   addOptions() {
     return {
       HTMLAttributes: {},
@@ -44,10 +47,21 @@ export const CTAButton = Node.create<CTAButtonOptions>({
       color: {
         default: '#f97316',
         parseHTML: element => {
-          const td = element.querySelector('td[style*="background-color"]');
-          const style = td?.getAttribute('style') || '';
-          const match = style.match(/background-color:\s*([^;]+)/);
-          return match?.[1]?.trim() || '#f97316';
+          // Try td with background-color first
+          let td = element.querySelector('td[style*="background-color"]');
+          if (td) {
+            const style = td.getAttribute('style') || '';
+            const match = style.match(/background-color:\s*([^;]+)/);
+            if (match) return match[1].trim();
+          }
+          // Also check for background (shorthand) in any td
+          td = element.querySelector('td[style*="background:"]');
+          if (td) {
+            const style = td.getAttribute('style') || '';
+            const match = style.match(/background:\s*([^;]+)/);
+            if (match) return match[1].trim();
+          }
+          return '#f97316';
         },
       },
     };
@@ -56,14 +70,16 @@ export const CTAButton = Node.create<CTAButtonOptions>({
   parseHTML() {
     return [
       {
-        // Match our CTA button table structure
+        // Match our CTA button table structure with data attribute
         tag: 'table[data-cta-button]',
+        priority: 100,
       },
       {
-        // Fallback: match email-safe button tables
+        // Fallback: match email-safe button tables without data attribute
+        // (e.g., after edge function processing strips data attributes)
         tag: 'table',
+        priority: 99,
         getAttrs: (element: HTMLElement) => {
-          // Check if this is a CTA button table (centered, with background-color td)
           const cellpadding = element.getAttribute('cellpadding');
           const cellspacing = element.getAttribute('cellspacing');
           const border = element.getAttribute('border');
@@ -79,13 +95,28 @@ export const CTAButton = Node.create<CTAButtonOptions>({
             return false;
           }
           
-          // Must have a td with background-color and an anchor
-          const td = element.querySelector('td[style*="background-color"]');
+          // Must have a td with background styling and an anchor
+          const tds = element.querySelectorAll('td');
+          let hasBackgroundTd = false;
+          for (const td of tds) {
+            const tdStyle = td.getAttribute('style') || '';
+            if (tdStyle.includes('background-color') || tdStyle.includes('background:')) {
+              hasBackgroundTd = true;
+              break;
+            }
+          }
+          
           const link = element.querySelector('a');
           
-          if (!td || !link) {
+          if (!hasBackgroundTd || !link) {
             return false;
           }
+          
+          // Final check: must be a simple single-cell CTA structure (1 row, 1 cell)
+          const rows = element.querySelectorAll('tr');
+          if (rows.length !== 1) return false;
+          const cells = rows[0].querySelectorAll('td, th');
+          if (cells.length !== 1) return false;
           
           return {};
         },
