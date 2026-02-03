@@ -1527,17 +1527,17 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             <p className="text-sm text-muted-foreground">
               Select a new color for this styled box:
             </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-3">
               {[
+                { key: 'warm-cream', label: 'Warm Cream', bgColor: '#faf5ef', text: '#1a1a1a', border: '2px solid #e8650d' },
+                { key: 'sand-light', label: 'Sand', bgColor: '#f5e6d3', text: '#1a1a1a' },
+                { key: 'light-gray', label: 'Light Gray', bgColor: '#f3f4f6', text: '#374151' },
+                { key: 'white-bordered', label: 'White', bgColor: '#ffffff', text: '#374151', border: '2px solid #e5e7eb' },
                 { key: 'sunset-gradient', label: 'Sunset', bgColor: '#ea8b47', text: 'white', isGradient: true },
                 { key: 'burnt-orange', label: 'Burnt Orange', bgColor: '#e8650d', text: 'white' },
                 { key: 'deep-orange', label: 'Deep Orange', bgColor: '#c2410c', text: 'white' },
-                { key: 'mustard-gold', label: 'Mustard', bgColor: '#eab308', text: '#1a1a1a' },
-                { key: 'warm-cream', label: 'Cream', bgColor: '#faf5ef', text: '#1a1a1a', border: '2px solid #e8650d' },
-                { key: 'sand-light', label: 'Sand', bgColor: '#f5e6d3', text: '#1a1a1a' },
-                { key: 'warm-gradient', label: 'Warm Grad', bgColor: '#f97316', text: 'white', isGradient: true },
-                { key: 'light-gray', label: 'Light Gray', bgColor: '#f3f4f6', text: '#374151' },
-                { key: 'white-bordered', label: 'White', bgColor: '#ffffff', text: '#374151', border: '2px solid #e5e7eb' },
+                { key: 'mustard-gold', label: 'Mustard Gold', bgColor: '#eab308', text: '#1a1a1a' },
+                { key: 'warm-gradient', label: 'Warm Gradient', bgColor: '#f97316', text: 'white', isGradient: true },
                 { key: 'dark-charcoal', label: 'Charcoal', bgColor: '#1f2937', text: 'white' },
                 { key: 'brand-dark', label: 'Brand Dark', bgColor: '#1a1a1a', text: 'white', border: '4px solid #e8650d' },
                 { key: 'purple-gradient', label: 'Purple', bgColor: '#764ba2', text: 'white', isGradient: true },
@@ -1549,7 +1549,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 <Button
                   key={style.key}
                   variant="outline"
-                  className="h-auto p-2 flex flex-col items-center gap-1"
+                  className="h-auto p-3 flex flex-col items-center gap-2 hover:ring-2 hover:ring-primary"
                   onClick={() => {
                     if (editor) {
                       editor.chain().focus().updateStyledBoxStyle(style.key as any).run();
@@ -1559,17 +1559,16 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   }}
                 >
                   <div 
-                    className="w-full h-8 rounded flex items-center justify-center text-[10px] font-bold" 
+                    className="w-full h-10 rounded flex items-center justify-center text-xs font-bold" 
                     style={{ 
                       backgroundColor: style.bgColor, 
                       color: style.text,
-                      borderLeft: style.border?.includes('solid') && !style.border?.includes('#e5e7eb') ? style.border : undefined,
-                      border: style.border?.includes('#e5e7eb') || style.border?.includes('#e8650d') ? style.border : undefined,
+                      border: style.border || undefined,
                     }}
                   >
-                    {style.isGradient ? '◐' : '✓'}
+                    {style.isGradient ? '◐' : 'Aa'}
                   </div>
-                  <span className="text-[10px]">{style.label}</span>
+                  <span className="text-xs font-medium">{style.label}</span>
                 </Button>
               ))}
             </div>
