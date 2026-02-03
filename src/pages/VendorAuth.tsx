@@ -751,6 +751,32 @@ const VendorAuth = () => {
               </div>
             </div>
 
+            {/* Prominent "Already have an account?" banner for signup mode */}
+            {isSignUp && (
+              <div className="bg-secondary/20 border border-secondary/40 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-secondary mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground text-sm">
+                      Already have an account?
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      If you've already created an account on our site, you don't need to fill out this form. 
+                      Just sign in and you can add your vendor application from there.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => setIsSignUp(false)}
+                >
+                  Sign In to Existing Account
+                </Button>
+              </div>
+            )}
+
             <form onSubmit={isSignUp ? handleVendorSignUp : handleVendorSignIn} className="space-y-6">
               {isSignUp ? (
                 <>
