@@ -127,10 +127,10 @@ serve(async (req) => {
 
     const styleStandardTablesOnly = (html: string): string => {
       return (html || "").replace(
-        /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)[\s\S]*?<\/table>/gi,
+        /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)(?![^>]*data-cta-button)[\s\S]*?<\/table>/gi,
         (tableHtml) => {
           let updated = tableHtml.replace(
-            /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)[^>]*>/i,
+            /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)(?![^>]*data-cta-button)[^>]*>/i,
             (tableTag) =>
               mergeInlineStyle(
                 tableTag,
@@ -246,51 +246,95 @@ const styleMagazineLayouts = (html: string): string => {
       // Skip if already processed
       if (fullMatch.includes('<!--[if mso]>')) return fullMatch;
 
-      // Extract table-level styles from attributes
-      const tableStyleMatch = attrs.match(/style\s*=\s*"([^"]*)"/i);
-      const tableStyle = tableStyleMatch?.[1] || '';
-      
-      // Count the actual number of columns by finding td elements in the first row
-      const rowMatch = tableContent.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i);
-      let columnCount = 2; // Default fallback
-      if (rowMatch) {
-        const tdMatches = rowMatch[1].match(/<td\b[^>]*>/gi);
-        if (tdMatches) {
-          columnCount = tdMatches.length;
-        }
-      }
-      
-      // Calculate the percentage width for each column
-      const columnWidth = Math.floor(100 / columnCount);
-      
-      // Style images inside the table
-      let styledContent = tableContent.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
-        mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
-      );
+        const extractTopLevelTdHtml = (rowInnerHtml: string): string[] => {
+          const tokens = /<\/?td\b[^>]*>/gi;
+          const segments: string[] = [];
+          let depth = 0;
+          let start = -1;
+          let m: RegExpExecArray | null;
 
-      // Ensure td elements have proper styling with dynamic width
-      styledContent = styledContent.replace(/<td\b([^>]*)>/gi, (tdTag: string, tdAttrs: string) => {
-        return mergeInlineStyle(tdTag, `width:${columnWidth}%;vertical-align:top;`);
-      });
+          while ((m = tokens.exec(rowInnerHtml)) !== null) {
+            const tag = m[0].toLowerCase();
+            const isOpen = tag.startsWith('<td');
+            const isClose = tag.startsWith('</td');
+            if (isOpen) {
+              if (depth === 0) start = m.index;
+              depth++;
+            } else if (isClose) {
+              depth = Math.max(0, depth - 1);
+              if (depth === 0 && start >= 0) {
+                segments.push(rowInnerHtml.slice(start, tokens.lastIndex));
+                start = -1;
+              }
+            }
+          }
 
-      // Build the styled table with fixed layout
-      let wrapperStyle = 'max-width:600px;margin:16px auto;border-collapse:collapse;table-layout:fixed;width:100%;';
-      
-      // Preserve existing background, padding, border-radius from the original table
-      const bgMatch = tableStyle.match(/background-color:\s*([^;]+)/i);
-      if (bgMatch) {
-        wrapperStyle += `background-color:${bgMatch[1].trim()};`;
-      }
-      const paddingMatch = tableStyle.match(/padding:\s*([^;]+)/i);
-      if (paddingMatch) {
-        wrapperStyle += `padding:${paddingMatch[1].trim()};`;
-      }
-      const borderRadiusMatch = tableStyle.match(/border-radius:\s*([^;]+)/i);
-      if (borderRadiusMatch) {
-        wrapperStyle += `border-radius:${borderRadiusMatch[1].trim()};`;
-      }
+          return segments;
+        };
 
-      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="${wrapperStyle}">${styledContent}</table>`;
+        const getTdInnerHtml = (tdHtml: string) =>
+          tdHtml
+            .replace(/^<td\b[^>]*>/i, "")
+            .replace(/<\/td>\s*$/i, "");
+
+        // Extract table-level styles from attributes
+        const tableStyleMatch = attrs.match(/style\s*=\s*"([^"]*)"/i);
+        const tableStyle = tableStyleMatch?.[1] || '';
+
+        const bgMatch = tableStyle.match(/background(?:-color)?:\s*([^;]+)/i);
+        const paddingMatch = tableStyle.match(/padding:\s*([^;]+)/i);
+        const borderRadiusMatch = tableStyle.match(/border-radius:\s*([^;]+)/i);
+
+        const wrapperTdStyle = [
+          bgMatch ? `background:${bgMatch[1].trim()};` : "",
+          paddingMatch ? `padding:${paddingMatch[1].trim()};` : "padding:0;",
+          borderRadiusMatch ? `border-radius:${borderRadiusMatch[1].trim()};` : "",
+        ].filter(Boolean).join("");
+
+        // Extract first row cells (top-level) so nested CTA tables don't get broken.
+        const rowMatch = tableContent.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i);
+        if (!rowMatch) return fullMatch;
+
+        const tdSegments = extractTopLevelTdHtml(rowMatch[1]);
+        if (tdSegments.length === 0) return fullMatch;
+
+        const numColumns = tdSegments.length;
+        const colMaxWidth = Math.floor(600 / numColumns);
+
+        const columnDivs = tdSegments
+          .map((tdHtml) => {
+            const rawContent = getTdInnerHtml(tdHtml);
+            const styledContent = rawContent.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
+              mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+            );
+
+            return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]-->
+<div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+    <tr>
+      <td style="padding:0 8px;vertical-align:top;">${styledContent}</td>
+    </tr>
+  </table>
+</div>
+<!--[if mso]></td><![endif]-->`;
+          })
+          .join("\n");
+
+        return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:16px auto;border-collapse:collapse;">
+  <tr>
+    <td style="${wrapperTdStyle}">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+        <tr>
+          <td align="center" style="font-size:0;">
+            <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->
+            ${columnDivs}
+            <!--[if mso]></tr></table><![endif]-->
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
     }
   );
 };
@@ -372,6 +416,9 @@ const styleEmptyParagraphs = (html: string): string => {
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
       htmlContent += styleFooterImages(footerData.setting_value.html);
     }
+
+    // Normalize base typography so delivered emails match preview sizing more closely.
+    htmlContent = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;line-height:1.5;">${htmlContent}</div>`;
 
     // Get organization info
     const orgInfo = orgData?.setting_value as any;
