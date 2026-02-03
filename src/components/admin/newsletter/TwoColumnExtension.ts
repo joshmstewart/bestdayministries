@@ -1,6 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { TwoColumnNodeView } from './TwoColumnNodeView';
+import { getCTASizing } from './ctaButtonStyles';
 
 // IMPORTANT:
 // Do NOT mutate the source DOM in parseHTML.
@@ -253,6 +254,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       
       // Add CTA buttons as email-safe table structures
       for (const cta of ctas) {
+        const { padding, fontSize } = getCTASizing('auto');
         elements.push([
           'table',
           {
@@ -281,8 +283,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
                      href: cta.url,
                      target: '_blank',
                      // Fit-content CTA buttons inside magazine layouts should be tighter around text.
-                     style:
-                       'display: inline-block; padding: 8px 16px; color: white; text-decoration: none; font-weight: bold; font-size: 16px;',
+                     style: `display: inline-block; padding: ${padding}; color: white; text-decoration: none; font-weight: bold; font-size: ${fontSize};`,
                    },
                    cta.text,
                  ],

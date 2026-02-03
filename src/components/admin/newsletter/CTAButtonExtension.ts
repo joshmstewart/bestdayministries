@@ -1,6 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { CTAButtonNodeView } from './CTAButtonNodeView';
+import { getCTASizing } from './ctaButtonStyles';
 
 export interface CTAButtonOptions {
   HTMLAttributes: Record<string, any>;
@@ -162,9 +163,8 @@ export const CTAButton = Node.create<CTAButtonOptions>({
   renderHTML({ HTMLAttributes }) {
     const { text, url, color, width } = HTMLAttributes;
     const isFullWidth = width === 'full';
-    
-    // Different padding for fit content vs full width
-    const padding = isFullWidth ? '12px 24px' : '8px 16px';
+
+    const { padding, fontSize } = getCTASizing(isFullWidth ? 'full' : 'auto');
     
     // Render as email-safe table structure with data attribute for identification
     return [
@@ -195,7 +195,7 @@ export const CTAButton = Node.create<CTAButtonOptions>({
               {
                 href: url,
                 target: '_blank',
-                style: `display: ${isFullWidth ? 'block' : 'inline-block'}; padding: ${padding}; color: white; text-decoration: none; font-weight: bold; font-size: 16px; text-align: center;`,
+                style: `display: ${isFullWidth ? 'block' : 'inline-block'}; padding: ${padding}; color: white; text-decoration: none; font-weight: bold; font-size: ${fontSize}; text-align: center;`,
               },
               text,
             ],

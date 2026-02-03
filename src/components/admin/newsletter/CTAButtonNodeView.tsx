@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getCTASizing } from './ctaButtonStyles';
 
 export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
   const { node, selected, deleteNode, editor, getPos, updateAttributes } = props;
@@ -130,6 +131,7 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
 
   const buttonWidth = node.attrs.width || 'auto';
   const isFullWidth = buttonWidth === 'full';
+  const { padding, fontSize } = getCTASizing(isFullWidth ? 'full' : 'auto');
 
   return (
     <NodeViewWrapper
@@ -182,11 +184,11 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
             contentEditable={false}
             style={{
               display: 'inline-block',
-              padding: isFullWidth ? '12px 24px' : '8px 16px',
+              padding,
               color: 'hsl(0 0% 100%)',
               textDecoration: 'none',
               fontWeight: 'bold',
-              fontSize: '16px',
+              fontSize,
             }}
             onMouseDown={(e) => {
               e.preventDefault();
