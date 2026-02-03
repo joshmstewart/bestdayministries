@@ -242,12 +242,12 @@ export const NewsletterPreviewDialog = ({
     .email-preview table[data-two-column] td img { width: 100%; height: auto; object-fit: cover; }
   `;
 
-  // Mobile styles - simulate column stacking behavior
+  // Mobile styles - simulate column stacking behavior only for tables with data-mobile-stack
   const mobileStyles = `
     ${desktopStyles}
     
-    /* Mobile simulation: stack columns vertically */
-    .email-preview table[data-columns] td,
+    /* Mobile simulation: stack columns vertically ONLY for tables with data-mobile-stack="true" */
+    .email-preview table[data-mobile-stack="true"] td,
     .email-preview table[data-two-column] td {
       display: block !important;
       width: 100% !important;
@@ -256,16 +256,21 @@ export const NewsletterPreviewDialog = ({
     }
     
     /* Remove bottom padding from last column */
-    .email-preview table[data-columns] td:last-child,
+    .email-preview table[data-mobile-stack="true"] td:last-child,
     .email-preview table[data-two-column] td:last-child {
       padding-bottom: 0 !important;
     }
     
     /* Ensure images still fill the stacked column width */
-    .email-preview table[data-columns] td img,
+    .email-preview table[data-mobile-stack="true"] td img,
     .email-preview table[data-two-column] td img {
       width: 100% !important;
       height: auto !important;
+    }
+    
+    /* Tables WITHOUT mobile-stack keep their side-by-side layout */
+    .email-preview table[data-columns]:not([data-mobile-stack="true"]) td {
+      display: table-cell !important;
     }
   `;
 
