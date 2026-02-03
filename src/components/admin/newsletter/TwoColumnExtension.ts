@@ -275,15 +275,17 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
                   align: 'center',
                   style: `background-color: ${cta.color}; border-radius: 6px;`,
                 },
-                [
-                  'a',
-                  {
-                    href: cta.url,
-                    target: '_blank',
-                    style: 'display: inline-block; padding: 12px 24px; color: white; text-decoration: none; font-weight: bold; font-size: 16px;',
-                  },
-                  cta.text,
-                ],
+                 [
+                   'a',
+                   {
+                     href: cta.url,
+                     target: '_blank',
+                     // Fit-content CTA buttons inside magazine layouts should be tighter around text.
+                     style:
+                       'display: inline-block; padding: 8px 16px; color: white; text-decoration: none; font-weight: bold; font-size: 16px;',
+                   },
+                   cta.text,
+                 ],
               ],
             ],
           ],
