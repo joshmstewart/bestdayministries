@@ -741,11 +741,11 @@ const VendorAuth = () => {
               
               <div>
                 <h1 className="text-2xl font-black text-foreground mb-2">
-                  {isSignUp ? "Become a Vendor" : "Vendor Sign In"}
+                  {isSignUp ? "Create Account & Apply" : "Vendor Sign In"}
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   {isSignUp 
-                    ? "Apply to become a vendor and sell your products" 
+                    ? "Create your account and apply to become a vendor in one easy step" 
                     : "Sign in to manage your vendor account"}
                 </p>
               </div>
