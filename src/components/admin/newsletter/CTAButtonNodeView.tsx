@@ -129,6 +129,7 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
   ];
 
   const buttonWidth = node.attrs.width || 'auto';
+  const isFullWidth = buttonWidth === 'full';
 
   return (
     <NodeViewWrapper
@@ -136,8 +137,12 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
       data-selected={selected}
       contentEditable={false}
       onClick={handleWrapperClick}
+      style={{
+        display: isFullWidth ? 'block' : 'flex',
+        justifyContent: 'center',
+      }}
     >
-      <div className="relative group" style={{ margin: '16px auto', width: buttonWidth === 'full' ? '100%' : 'fit-content' }}>
+      <div className="relative group" style={{ margin: '16px 0', width: isFullWidth ? '100%' : 'auto', display: isFullWidth ? 'block' : 'inline-block' }}>
         {/* Action buttons - visible on hover */}
         <div className="absolute -top-2 -right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
