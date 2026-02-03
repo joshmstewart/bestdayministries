@@ -246,7 +246,7 @@ export const NewsletterPreviewDialog = ({
   const mobileStyles = `
     ${desktopStyles}
     
-    /* Mobile simulation: stack columns vertically ONLY for tables with data-mobile-stack="true" */
+    /* Mobile simulation: stack columns vertically for tables with data-mobile-stack="true" */
     .email-preview table[data-mobile-stack="true"],
     .email-preview table[data-two-column] {
       table-layout: auto !important;
@@ -257,8 +257,8 @@ export const NewsletterPreviewDialog = ({
       display: block !important;
     }
     
-    .email-preview table[data-mobile-stack="true"] td,
-    .email-preview table[data-two-column] td {
+    /* Regular column tables: stack with dividers */
+    .email-preview table[data-mobile-stack="true"] td {
       display: block !important;
       width: 100% !important;
       max-width: 100% !important;
@@ -268,9 +268,19 @@ export const NewsletterPreviewDialog = ({
       border-bottom: 1px solid #e5e5e5 !important;
     }
     
-    /* Remove bottom padding/margin/border from last column */
-    .email-preview table[data-mobile-stack="true"] td:last-child,
-    .email-preview table[data-two-column] td:last-child {
+    /* Magazine layouts: stack WITHOUT dividers */
+    .email-preview table[data-two-column] td {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      padding-bottom: 16px !important;
+      margin-bottom: 0 !important;
+      border-bottom: none !important;
+    }
+    
+    /* Remove bottom padding/margin/border from last column of regular tables */
+    .email-preview table[data-mobile-stack="true"] td:last-child {
       padding-bottom: 0 !important;
       margin-bottom: 0 !important;
       border-bottom: none !important;
