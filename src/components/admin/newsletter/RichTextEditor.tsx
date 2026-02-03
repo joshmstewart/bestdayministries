@@ -683,34 +683,75 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
 
           <div className="w-px h-6 bg-border mx-1" />
 
-          {/* Background color picker */}
+          {/* Background color picker with presets */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Background:</span>
+            {/* Preset color swatches */}
+            <div className="flex gap-1">
+              {[
+                { color: 'transparent', label: 'None', display: 'bg-[repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb_2px,transparent_2px,transparent_6px)]' },
+                { color: '#ffffff', label: 'White' },
+                { color: '#f3f4f6', label: 'Light Gray' },
+                { color: '#1f2937', label: 'Dark' },
+                { color: '#faf5ef', label: 'Cream' },
+                { color: '#e8650d', label: 'Orange' },
+                { color: '#22c55e', label: 'Green' },
+                { color: '#3b82f6', label: 'Blue' },
+              ].map(({ color, label, display }) => (
+                <button
+                  key={color}
+                  type="button"
+                  className={`w-6 h-6 rounded border-2 ${display || ''}`}
+                  style={!display ? { backgroundColor: color, borderColor: '#e5e7eb' } : { borderColor: '#e5e7eb' }}
+                  onClick={() => {
+                    const { state } = editor;
+                    const { selection } = state;
+                    const $from = selection.$from;
+                    
+                    for (let d = $from.depth; d >= 0; d--) {
+                      const node = $from.node(d);
+                      if (node.type.name === 'table') {
+                        const pos = $from.before(d);
+                        editor.commands.command(({ tr, dispatch }) => {
+                          const currentStyle = (node.attrs.style || '')
+                            .replace(/background-color:\s*[^;]+;?/gi, '')
+                            .trim();
+                          const bgStyle = color === 'transparent' || color === '#ffffff' ? '' : `background-color: ${color};`;
+                          const finalStyle = [currentStyle, bgStyle].filter(Boolean).join(' ');
+                          tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: finalStyle || null }, node.marks);
+                          if (dispatch) dispatch(tr);
+                          return true;
+                        });
+                        break;
+                      }
+                    }
+                  }}
+                  title={label}
+                />
+              ))}
+            </div>
+            {/* Custom color picker */}
             <div className="relative">
               <input
                 type="color"
-                className="w-8 h-7 rounded border cursor-pointer"
+                className="w-6 h-6 rounded border cursor-pointer"
                 defaultValue="#ffffff"
                 onChange={(e) => {
                   const color = e.target.value;
-                  // Find and update the table's background color
                   const { state } = editor;
                   const { selection } = state;
                   const $from = selection.$from;
                   
-                  // Find the table node
                   for (let d = $from.depth; d >= 0; d--) {
                     const node = $from.node(d);
                     if (node.type.name === 'table') {
                       const pos = $from.before(d);
                       editor.commands.command(({ tr, dispatch }) => {
-                        const currentStyle = node.attrs.style || '';
-                        // Remove existing background-color if present
-                        const newStyle = currentStyle
+                        const currentStyle = (node.attrs.style || '')
                           .replace(/background-color:\s*[^;]+;?/gi, '')
                           .trim();
-                        const bgStyle = color === '#ffffff' ? '' : `background-color: ${color};`;
-                        const finalStyle = [newStyle, bgStyle].filter(Boolean).join(' ');
+                        const bgStyle = `background-color: ${color};`;
+                        const finalStyle = [currentStyle, bgStyle].filter(Boolean).join(' ');
                         tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: finalStyle || null }, node.marks);
                         if (dispatch) dispatch(tr);
                         return true;
@@ -719,41 +760,9 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                     }
                   }
                 }}
-                title="Set table background color"
+                title="Custom color"
               />
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // Clear background color
-                const { state } = editor;
-                const { selection } = state;
-                const $from = selection.$from;
-                
-                for (let d = $from.depth; d >= 0; d--) {
-                  const node = $from.node(d);
-                  if (node.type.name === 'table') {
-                    const pos = $from.before(d);
-                    editor.commands.command(({ tr, dispatch }) => {
-                      const currentStyle = (node.attrs.style || '')
-                        .replace(/background-color:\s*[^;]+;?/gi, '')
-                        .trim();
-                      tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: currentStyle || null }, node.marks);
-                      if (dispatch) dispatch(tr);
-                      return true;
-                    });
-                    toast.success("Background cleared");
-                    break;
-                  }
-                }
-              }}
-              title="Clear background color"
-              className="h-7 px-2 text-xs"
-            >
-              Clear
-            </Button>
           </div>
 
           <div className="w-px h-6 bg-border mx-1" />
