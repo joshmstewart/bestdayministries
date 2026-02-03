@@ -373,6 +373,25 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     const leftCellIsText = !isImageLeft;
     const rightCellIsText = isImageLeft;
 
+    // For "full" layout, use larger padding so background encompasses both image and text
+    // For "text-only", keep minimal table padding since the cell has its own background
+    const tablePadding = isTextOnly ? '16px' : '24px';
+    
+    // Cell padding adjusts based on background scope
+    // Full layout: cells get internal padding within the colored container
+    // Text-only: image cell gets no extra padding, text cell gets its own background
+    const leftCellStyle = isTextOnly
+      ? (leftCellIsText 
+          ? `background-color: ${textCellBackground}; border-radius: 8px; padding: 16px; vertical-align: top;` 
+          : 'padding: 0 16px 0 0; vertical-align: top;')
+      : 'padding: 8px; vertical-align: top;';
+    
+    const rightCellStyle = isTextOnly
+      ? (rightCellIsText 
+          ? `background-color: ${textCellBackground}; border-radius: 8px; padding: 16px; vertical-align: top;` 
+          : 'padding: 0 0 0 16px; vertical-align: top;')
+      : 'padding: 8px; vertical-align: top;';
+
     return [
       'table',
       mergeAttributes(this.options.HTMLAttributes, {
@@ -383,7 +402,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         cellspacing: '0',
         border: '0',
         width: '100%',
-        style: `background-color: ${tableBackground}; border-radius: 8px; padding: 24px; margin: 16px 0;`,
+        style: `background-color: ${tableBackground}; border-radius: 8px; padding: ${tablePadding}; margin: 16px 0;`,
       }),
       [
         'tbody',
@@ -397,7 +416,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
               'data-column': 'left',
               valign: 'top',
               width: '50%',
-              style: `padding: 0 16px 0 0; vertical-align: top;${leftCellIsText && isTextOnly ? ` background-color: ${textCellBackground}; border-radius: 8px; padding: 16px;` : ''}`,
+              style: leftCellStyle,
             },
             leftCellContent,
           ],
@@ -407,7 +426,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
               'data-column': 'right',
               valign: 'top',
               width: '50%',
-              style: `padding: 0 0 0 16px; vertical-align: top;${rightCellIsText && isTextOnly ? ` background-color: ${textCellBackground}; border-radius: 8px; padding: 16px;` : ''}`,
+              style: rightCellStyle,
             },
             rightCellContent,
           ],
