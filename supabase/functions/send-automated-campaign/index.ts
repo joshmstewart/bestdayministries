@@ -235,8 +235,9 @@ const styleColumnLayoutTables = (html: string): string => {
 };
 
 /**
- * Style magazine (two-column) layout tables for email rendering.
- * These tables keep fixed 2-column layout (no stacking) to preserve the design.
+ * Style magazine (multi-column) layout tables for email rendering.
+ * These tables keep fixed column layout (no stacking) to preserve the design.
+ * Dynamically calculates column widths based on actual number of columns.
  */
 const styleMagazineLayouts = (html: string): string => {
   return (html || "").replace(
@@ -249,15 +250,27 @@ const styleMagazineLayouts = (html: string): string => {
       const tableStyleMatch = attrs.match(/style\s*=\s*"([^"]*)"/i);
       const tableStyle = tableStyleMatch?.[1] || '';
       
+      // Count the actual number of columns by finding td elements in the first row
+      const rowMatch = tableContent.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i);
+      let columnCount = 2; // Default fallback
+      if (rowMatch) {
+        const tdMatches = rowMatch[1].match(/<td\b[^>]*>/gi);
+        if (tdMatches) {
+          columnCount = tdMatches.length;
+        }
+      }
+      
+      // Calculate the percentage width for each column
+      const columnWidth = Math.floor(100 / columnCount);
+      
       // Style images inside the table
       let styledContent = tableContent.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
         mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
       );
 
-      // Ensure td elements have proper styling for 2-column layout
+      // Ensure td elements have proper styling with dynamic width
       styledContent = styledContent.replace(/<td\b([^>]*)>/gi, (tdTag: string, tdAttrs: string) => {
-        // Add width:50% and vertical-align:top to each td
-        return mergeInlineStyle(tdTag, "width:50%;vertical-align:top;");
+        return mergeInlineStyle(tdTag, `width:${columnWidth}%;vertical-align:top;`);
       });
 
       // Build the styled table with fixed layout
