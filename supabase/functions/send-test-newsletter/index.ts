@@ -12,6 +12,56 @@ interface SendTestRequest {
   testEmail: string;
 }
 
+function mergeInlineStyle(tag: string, styleToAdd: string): string {
+  if (/style\s*=\s*"/i.test(tag)) {
+    return tag.replace(/style\s*=\s*"([^"]*)"/i, (_m, existing) => {
+      const trimmed = String(existing ?? "").trim();
+      const needsSemicolon = trimmed.length > 0 && !trimmed.endsWith(";");
+      const sep = trimmed.length === 0 ? "" : needsSemicolon ? "; " : " ";
+      return `style="${trimmed}${sep}${styleToAdd}"`;
+    });
+  }
+
+  return tag.replace(/\/?>(?=\s*$)/, (end) => ` style="${styleToAdd}"${end}`);
+}
+
+function styleStandardTablesOnly(html: string): string {
+  return (html || "").replace(
+    /<table\b(?![^>]*data-two-column)[\s\S]*?<\/table>/gi,
+    (tableHtml) => {
+      let updated = tableHtml.replace(
+        /<table\b(?![^>]*data-two-column)[^>]*>/i,
+        (tableTag) =>
+          mergeInlineStyle(
+            tableTag,
+            "width:100%;border-collapse:collapse;table-layout:auto;"
+          )
+      );
+
+      updated = updated.replace(/<th\b[^>]*>/gi, (thTag) =>
+        mergeInlineStyle(
+          thTag,
+          "padding:10px 12px;vertical-align:top;text-align:left;font-weight:700;"
+        )
+      );
+      updated = updated.replace(/<td\b[^>]*>/gi, (tdTag) =>
+        mergeInlineStyle(
+          tdTag,
+          "padding:10px 12px;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;"
+        )
+      );
+
+      return updated;
+    }
+  );
+}
+
+function styleFooterImages(html: string): string {
+  return (html || "").replace(/<img\b[^>]*>/gi, (imgTag) =>
+    mergeInlineStyle(imgTag, "max-width:200px;height:auto;margin:0 auto;display:block;")
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -94,12 +144,12 @@ serve(async (req) => {
       htmlContent += headerData.setting_value.html;
     }
     
-    // Add campaign content
-    htmlContent += campaign.html_content;
+    // Add campaign content (apply email-safe formatting to standard tables)
+    htmlContent += styleStandardTablesOnly(campaign.html_content);
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
-      htmlContent += footerData.setting_value.html;
+      htmlContent += styleFooterImages(footerData.setting_value.html);
     }
 
     // Get organization info

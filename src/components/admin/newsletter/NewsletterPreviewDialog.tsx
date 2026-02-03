@@ -194,7 +194,7 @@ export const NewsletterPreviewDialog = ({
                .email-preview table:not([data-two-column]) {
                  width: 100%;
                  border-collapse: collapse;
-                 table-layout: fixed;
+                 table-layout: auto;
                }
                .email-preview table:not([data-two-column]) th,
                .email-preview table:not([data-two-column]) td {
