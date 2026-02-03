@@ -87,6 +87,7 @@
     "dompurify": "^3.3.1",
     "embla-carousel-react": "^8.6.0",
     "fabric": "^6.9.1",
+    "heic2any": "^0.0.4",
     "input-otp": "^1.4.2",
     "jsdom": "^27.0.0",
     "lucide-react": "^0.462.0",
