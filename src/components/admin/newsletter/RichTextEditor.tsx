@@ -932,7 +932,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         <div className="w-px h-6 bg-border mx-1" />
         {/* Font Size Selector */}
         <Select
-          value=""
+          value={editor.getAttributes('textStyle').fontSize || ''}
           onValueChange={(value) => {
             if (value) {
               editor.chain().focus().setMark('textStyle', { fontSize: value }).run();
