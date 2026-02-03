@@ -130,6 +130,13 @@
   outline-offset: 2px;
 }
 
+/* CTA Button selection indicator */
+.ProseMirror .cta-button-wrapper[data-selected="true"] > div,
+.ProseMirror table[data-cta-button].ProseMirror-selectednode {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
 .ProseMirror iframe {
   max-width: 100%;
   border-radius: 0.375rem;
