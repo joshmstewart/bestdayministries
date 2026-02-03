@@ -193,6 +193,10 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
+        // Avoid duplicate extension names (StarterKit already includes Link + Underline)
+        // We register our own configured versions below.
+        link: false,
+        underline: false,
         paragraph: {
           HTMLAttributes: {
             class: 'min-h-[1.5em]',
@@ -207,7 +211,6 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           class: 'text-primary underline',
         },
       }),
-      TextStyle,
       FontSize,
       FontFamily,
       Color,

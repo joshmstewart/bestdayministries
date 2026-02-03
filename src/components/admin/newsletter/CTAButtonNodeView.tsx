@@ -17,14 +17,18 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (e.nativeEvent as any)?.stopImmediatePropagation?.();
 
-    // Most reliable: delete via a direct transaction at the node position.
+    // Most reliable: delete via a direct ProseMirror transaction at the node position.
+    // Using `view.dispatch` avoids any command/plugin short-circuiting.
     if (editor && typeof getPos === 'function') {
       const pos = getPos();
-      editor.commands.command(({ tr, dispatch }) => {
-        tr.delete(pos, pos + node.nodeSize);
-        dispatch?.(tr);
-        return true;
-      });
+      try {
+        const tr = editor.state.tr.delete(pos, pos + node.nodeSize);
+        editor.view.dispatch(tr);
+        editor.view.focus();
+      } catch (err) {
+        // Keep a fallback below
+        console.error('CTA delete failed', err);
+      }
       return;
     }
 
