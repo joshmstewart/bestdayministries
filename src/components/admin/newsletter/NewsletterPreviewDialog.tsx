@@ -131,7 +131,7 @@ export const NewsletterPreviewDialog = ({
     () => `
       ${headerEnabled ? headerHtml : ""}
       ${processedContent || '<p class="text-muted-foreground text-center py-8">No content to preview</p>'}
-      ${footerEnabled ? footerHtml : ""}
+      ${footerEnabled ? `<div data-newsletter-footer>${footerHtml}</div>` : ""}
       <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 12px;">
         <p>You're receiving this because you subscribed to our newsletter.</p>
         <p><a href="#" style="color: #666;">Unsubscribe</a></p>
@@ -186,8 +186,9 @@ export const NewsletterPreviewDialog = ({
               .email-preview strong { font-weight: bold; }
               .email-preview em { font-style: italic; }
               .email-preview a { color: #0066cc; text-decoration: underline; }
-              .email-preview img { max-width: 100%; width: auto; height: auto; display: block; }
-              .email-preview > div:last-child img { max-width: 150px; height: auto; margin: 0 auto; }
+               /* IMPORTANT: don't set width here; it overrides inline/attribute widths in header/footer templates */
+               .email-preview img { max-width: 100%; height: auto; display: block; }
+               .email-preview [data-newsletter-footer] img { max-width: 200px; height: auto; margin: 0 auto; display: block; }
               .email-preview table[data-two-column] { table-layout: fixed; }
               .email-preview table[data-two-column] td { width: 50%; vertical-align: top; }
             `}</style>
