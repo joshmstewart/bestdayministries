@@ -257,6 +257,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
           'table',
           {
             'data-cta-button': '',
+            'data-owned-by-two-column': 'true',
             cellpadding: '0',
             cellspacing: '0',
             border: '0',
