@@ -181,6 +181,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [uploading, setUploading] = useState(false);
   const [isImageSelected, setIsImageSelected] = useState(false);
   const [isTableSelected, setIsTableSelected] = useState(false);
+  const [isColumnLayoutSelected, setIsColumnLayoutSelected] = useState(false);
+  const [columnLayoutMobileStack, setColumnLayoutMobileStack] = useState(false);
   const [isStyledBoxSelected, setIsStyledBoxSelected] = useState(false);
   const [editBoxStyleDialogOpen, setEditBoxStyleDialogOpen] = useState(false);
   const [activeStyledBoxPos, setActiveStyledBoxPos] = useState<number | null>(null);
@@ -237,6 +239,22 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 return { style: attributes.style };
               },
             },
+            'data-columns': {
+              default: null,
+              parseHTML: element => element.getAttribute('data-columns'),
+              renderHTML: attributes => {
+                if (!attributes['data-columns']) return {};
+                return { 'data-columns': attributes['data-columns'] };
+              },
+            },
+            'data-mobile-stack': {
+              default: null,
+              parseHTML: element => element.getAttribute('data-mobile-stack'),
+              renderHTML: attributes => {
+                if (!attributes['data-mobile-stack']) return {};
+                return { 'data-mobile-stack': attributes['data-mobile-stack'] };
+              },
+            },
           };
         },
       }).configure({
@@ -275,6 +293,27 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       setIsImageSelected(editor.isActive('image'));
       setIsTableSelected(editor.isActive('table'));
       setIsStyledBoxSelected(editor.isActive('styledBox'));
+      
+      // Check if the selected table is a column layout
+      const { selection } = editor.state;
+      const $from = selection.$from;
+      let foundColumnLayout = false;
+      let mobileStackValue = false;
+      
+      for (let d = $from.depth; d >= 0; d--) {
+        const node = $from.node(d);
+        if (node.type.name === 'table') {
+          const dataColumns = node.attrs['data-columns'];
+          if (dataColumns) {
+            foundColumnLayout = true;
+            mobileStackValue = node.attrs['data-mobile-stack'] === 'true';
+          }
+          break;
+        }
+      }
+      
+      setIsColumnLayoutSelected(foundColumnLayout);
+      setColumnLayoutMobileStack(mobileStackValue);
     },
   });
 
@@ -717,6 +756,45 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
             <Palette className="h-3 w-3" />
             Background
           </Button>
+
+          {/* Mobile stacking toggle - only show for column layouts */}
+          {isColumnLayoutSelected && (
+            <>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Button
+                type="button"
+                variant={columnLayoutMobileStack ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const { selection } = editor.state;
+                  const $from = selection.$from;
+                  
+                  for (let d = $from.depth; d >= 0; d--) {
+                    const node = $from.node(d);
+                    if (node.type.name === 'table' && node.attrs['data-columns']) {
+                      const pos = $from.before(d);
+                      const newMobileStack = node.attrs['data-mobile-stack'] === 'true' ? null : 'true';
+                      
+                      editor.commands.command(({ tr, dispatch }) => {
+                        const newAttrs = { ...node.attrs, 'data-mobile-stack': newMobileStack };
+                        tr.setNodeMarkup(pos, node.type, newAttrs, node.marks);
+                        if (dispatch) dispatch(tr);
+                        return true;
+                      });
+                      
+                      setColumnLayoutMobileStack(newMobileStack === 'true');
+                      toast.success(newMobileStack === 'true' ? "Columns will stack on mobile" : "Columns will stay side-by-side on mobile");
+                      break;
+                    }
+                  }
+                }}
+                title={columnLayoutMobileStack ? "Columns will stack on mobile - click to disable" : "Columns will stay side-by-side on mobile - click to enable stacking"}
+                className="h-7 px-3 gap-1"
+              >
+                📱 {columnLayoutMobileStack ? "Stacks on Mobile" : "Side-by-side"}
+              </Button>
+            </>
+          )}
 
           <div className="w-px h-6 bg-border mx-1" />
 
