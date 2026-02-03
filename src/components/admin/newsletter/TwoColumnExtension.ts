@@ -23,6 +23,9 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
 
   atom: true, // Atomic node - handled by NodeView
 
+  // HIGH PRIORITY: Ensure this matches <table data-two-column> BEFORE the generic Table extension
+  priority: 1000,
+
   addOptions() {
     return {
       HTMLAttributes: {},

@@ -210,6 +210,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
+      // IMPORTANT: TwoColumn MUST come before Table so parseHTML matches data-two-column first
+      TwoColumn,
       Table.configure({
         resizable: true,
         HTMLAttributes: {
@@ -225,7 +227,6 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
       StyledBox,
       CTAButton,
       StatsBlock,
-      TwoColumn,
     ],
     content,
     editable: true,
@@ -250,9 +251,11 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     },
   });
 
-  // Update editor content when content prop changes
+  // Update editor content when content prop changes (template reopen)
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
+      // Reset isInitialLoad to prevent immediate re-serialization after setContent
+      isInitialLoad.current = true;
       editor.commands.setContent(content);
     }
   }, [editor, content]);
