@@ -115,9 +115,9 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       const body = lines.slice(1).join(' ');
       
       const elements: any[] = [
-        ['h2', { style: 'margin: 0 0 16px 0; font-size: 24px; font-weight: bold;' }, headline]
+        ['h2', { style: 'margin: 16px 0 16px 0; font-size: 24px; font-weight: bold;' }, headline]
       ];
-      
+
       if (body) {
         elements.push(['p', { style: 'margin: 0; font-size: 16px; line-height: 1.6;' }, body]);
       }
