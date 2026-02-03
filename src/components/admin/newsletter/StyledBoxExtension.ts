@@ -156,11 +156,20 @@ export const StyledBox = Node.create<StyledBoxOptions>({
       width: {
         default: 'full',
         parseHTML: element => {
+          // Check data-width attribute first
           const dataWidth = element.getAttribute('data-width');
           if (dataWidth === 'fit') return 'fit';
+          
+          // Check if parent is the centering wrapper (indicates fit width)
+          const parent = element.parentElement;
+          if (parent?.hasAttribute('data-styled-box-wrapper')) {
+            return 'fit';
+          }
+          
           // Also check inline style for inline-block
           const inlineStyle = element.getAttribute('style') || '';
           if (inlineStyle.includes('inline-block')) return 'fit';
+          
           return 'full';
         },
         renderHTML: attributes => {
