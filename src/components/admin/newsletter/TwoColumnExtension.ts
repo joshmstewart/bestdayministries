@@ -216,7 +216,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
     const isEqual = layout === 'equal-columns';
     
     // Helper function to convert plain text to properly nested TipTap elements
-    // First line becomes headline, rest becomes body, [CTA:text|url|color] becomes buttons
+    // First line becomes headline, rest becomes body paragraphs (preserving line breaks), [CTA:text|url|color] becomes buttons
     const textToElements = (text: string): any[] => {
       const safeText = typeof text === 'string' ? text : '';
       
@@ -235,19 +235,22 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
       }
       textWithoutCtas = safeText.replace(ctaRegex, '').trim();
       
-      const lines = textWithoutCtas.split('\n').filter(line => line.trim() !== '');
-      if (lines.length === 0 && ctas.length === 0) return [['span', {}, '']];
+      // Split by newlines but preserve empty lines as paragraph breaks
+      const lines = textWithoutCtas.split('\n');
+      const nonEmptyLines = lines.filter(line => line.trim() !== '');
+      if (nonEmptyLines.length === 0 && ctas.length === 0) return [['span', {}, '']];
       
       const elements: any[] = [];
       
-      if (lines.length > 0) {
-        const headline = lines[0];
-        const body = lines.slice(1).join(' ');
+      if (nonEmptyLines.length > 0) {
+        const headline = nonEmptyLines[0];
+        const bodyLines = nonEmptyLines.slice(1);
         
         elements.push(['h2', { style: 'margin: 16px 0 16px 0; font-size: 24px; font-weight: bold;' }, headline]);
         
-        if (body) {
-          elements.push(['p', { style: 'margin: 0; font-size: 16px; line-height: 1.6;' }, body]);
+        // Each subsequent line becomes its own paragraph to preserve user line breaks
+        for (const line of bodyLines) {
+          elements.push(['p', { style: 'margin: 0 0 8px 0; font-size: 16px; line-height: 1.6;' }, line]);
         }
       }
       
