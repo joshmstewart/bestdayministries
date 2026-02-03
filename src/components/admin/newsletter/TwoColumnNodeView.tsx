@@ -1,13 +1,27 @@
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ImageIcon, Trash2, ArrowLeftRight } from 'lucide-react';
+import { ImageIcon, Trash2, ArrowLeftRight, Crop, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ImageCropDialog } from '@/components/ImageCropDialog';
 import { compressImage } from '@/lib/imageUtils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 type AspectRatioKey = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3';
+
+const BACKGROUND_OPTIONS = [
+  { label: 'None', value: 'transparent' },
+  { label: 'White', value: '#ffffff' },
+  { label: 'Cream', value: '#faf5ef' },
+  { label: 'Light Gray', value: '#f5f5f5' },
+  { label: 'Brand Orange', value: '#fff7ed' },
+  { label: 'Sage', value: '#f0fdf4' },
+];
 
 export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeViewProps) => {
   const { layout, leftContent, rightContent, imageUrl, backgroundColor } = node.attrs;
@@ -16,6 +30,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
   const [imageToCrop, setImageToCrop] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [aspectRatioKey, setAspectRatioKey] = useState<AspectRatioKey>('4:3');
+  const [isEditingExistingImage, setIsEditingExistingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isImageLeft = layout === 'image-left-text-right';
@@ -35,6 +50,40 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
   };
 
   const handleCroppedImage = async (croppedBlob: Blob) => {
+    // If editing an existing image (not uploading new), just update the URL
+    if (isEditingExistingImage) {
+      setUploading(true);
+      try {
+        const fileName = `${Math.random()}.jpg`;
+        const filePath = `newsletter-images/${fileName}`;
+
+        // Compress the cropped image
+        const tempFile = new File([croppedBlob], 'cropped.jpg', { type: 'image/jpeg' });
+        const compressedFile = await compressImage(tempFile, 1, 1200, 1200);
+
+        const { error: uploadError } = await supabase.storage
+          .from('app-assets')
+          .upload(filePath, compressedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('app-assets')
+          .getPublicUrl(filePath);
+
+        updateAttributes({ imageUrl: publicUrl });
+        setCropDialogOpen(false);
+        setIsEditingExistingImage(false);
+        toast.success('Image updated successfully');
+      } catch (error: any) {
+        toast.error('Failed to update image: ' + error.message);
+      } finally {
+        setUploading(false);
+      }
+      return;
+    }
+
+    // Original flow for new image upload
     setUploading(true);
     try {
       const fileExt = imageFile?.name.split('.').pop() || 'jpg';
@@ -69,6 +118,14 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
     }
   };
 
+  const handleEditExistingImage = () => {
+    if (imageUrl && !imageUrl.includes('placehold')) {
+      setImageToCrop(imageUrl);
+      setIsEditingExistingImage(true);
+      setCropDialogOpen(true);
+    }
+  };
+
   const handleTextChange = (side: 'left' | 'right', value: string) => {
     if (side === 'left') {
       updateAttributes({ leftContent: value });
@@ -100,6 +157,39 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
 
           {/* Action buttons */}
           <div className="absolute top-2 right-2 flex gap-1 z-10">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 bg-white/80 hover:bg-accent"
+                  title="Change background color"
+                >
+                  <Palette className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="end">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Background Color</p>
+                  {BACKGROUND_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => updateAttributes({ backgroundColor: option.value })}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors ${
+                        backgroundColor === option.value ? 'bg-accent' : ''
+                      }`}
+                    >
+                      <div 
+                        className="w-4 h-4 rounded border border-border" 
+                        style={{ backgroundColor: option.value === 'transparent' ? '#fff' : option.value }}
+                      />
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
               type="button"
               variant="ghost"
@@ -155,29 +245,61 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
           📰 MAGAZINE LAYOUT
         </div>
 
-        {/* Action buttons */}
-        <div className="absolute top-2 right-2 flex gap-1 z-10">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={toggleLayout}
-            className="h-7 px-2 bg-white/80 hover:bg-accent"
-            title="Swap image position"
-          >
-            <ArrowLeftRight className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={deleteNode}
-            className="h-7 px-2 bg-white/80 hover:bg-destructive hover:text-destructive-foreground"
-            title="Remove layout"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+          <div className="absolute top-2 right-2 flex gap-1 z-10">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 bg-white/80 hover:bg-accent"
+                  title="Change background color"
+                >
+                  <Palette className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="end">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Background Color</p>
+                  {BACKGROUND_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => updateAttributes({ backgroundColor: option.value })}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors ${
+                        backgroundColor === option.value ? 'bg-accent' : ''
+                      }`}
+                    >
+                      <div 
+                        className="w-4 h-4 rounded border border-border" 
+                        style={{ backgroundColor: option.value === 'transparent' ? '#fff' : option.value }}
+                      />
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={toggleLayout}
+              className="h-7 px-2 bg-white/80 hover:bg-accent"
+              title="Swap image position"
+            >
+              <ArrowLeftRight className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={deleteNode}
+              className="h-7 px-2 bg-white/80 hover:bg-destructive hover:text-destructive-foreground"
+              title="Remove layout"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
 
         {/* Two column grid */}
         <div className={`grid grid-cols-2 gap-6 mt-4 ${isImageLeft ? '' : 'direction-ltr'}`}>
@@ -215,16 +337,34 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
               className="hidden"
             />
             {imageUrl && !imageUrl.includes('placehold') && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2 w-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <ImageIcon className="h-4 w-4 mr-2" />
-                Change Image
-              </Button>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditExistingImage();
+                  }}
+                >
+                  <Crop className="h-4 w-4 mr-2" />
+                  Crop
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  Replace
+                </Button>
+              </div>
             )}
           </div>
 
