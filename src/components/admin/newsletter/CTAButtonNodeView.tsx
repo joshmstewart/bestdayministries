@@ -15,6 +15,7 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
   const [editText, setEditText] = useState(text);
   const [editUrl, setEditUrl] = useState(url);
   const [editColor, setEditColor] = useState(color);
+  const [editWidth, setEditWidth] = useState(node.attrs.width || 'auto');
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,6 +70,7 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
     setEditText(text);
     setEditUrl(url);
     setEditColor(color);
+    setEditWidth(node.attrs.width || 'auto');
     setIsEditOpen(true);
   };
 
@@ -77,6 +79,7 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
       text: editText,
       url: editUrl,
       color: editColor,
+      width: editWidth,
     });
     setIsEditOpen(false);
   };
@@ -104,15 +107,28 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
   };
 
   const colorOptions = [
-    { value: '#f97316', label: 'Orange' },
-    { value: '#3b82f6', label: 'Blue' },
-    { value: '#22c55e', label: 'Green' },
-    { value: '#ef4444', label: 'Red' },
-    { value: '#8b5cf6', label: 'Purple' },
-    { value: '#f59e0b', label: 'Amber' },
-    { value: '#06b6d4', label: 'Cyan' },
-    { value: '#ec4899', label: 'Pink' },
+    // Brand family - warm oranges and browns
+    { value: '#f97316', label: 'Bright Orange' },
+    { value: '#ea580c', label: 'Deep Orange' },
+    { value: '#fb923c', label: 'Soft Orange' },
+    { value: '#fdba74', label: 'Peach' },
+    { value: '#c2410c', label: 'Burnt Orange' },
+    { value: '#92400e', label: 'Warm Brown' },
+    { value: '#78350f', label: 'Deep Brown' },
+    { value: '#a16207', label: 'Golden Brown' },
+    // Complementary softer tones
+    { value: '#d97706', label: 'Amber' },
+    { value: '#b45309', label: 'Copper' },
+    { value: '#854d0e', label: 'Ochre' },
+    { value: '#713f12', label: 'Chocolate' },
+    // Accent colors
+    { value: '#0d9488', label: 'Teal' },
+    { value: '#0891b2', label: 'Cyan' },
+    { value: '#4f46e5', label: 'Indigo' },
+    { value: '#7c3aed', label: 'Purple' },
   ];
+
+  const buttonWidth = node.attrs.width || 'auto';
 
   return (
     <NodeViewWrapper
@@ -121,7 +137,7 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
       contentEditable={false}
       onClick={handleWrapperClick}
     >
-      <div className="relative group" style={{ margin: '16px auto', width: 'fit-content' }}>
+      <div className="relative group" style={{ margin: '16px auto', width: buttonWidth === 'full' ? '100%' : 'fit-content' }}>
         {/* Action buttons - visible on hover */}
         <div className="absolute -top-2 -right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
@@ -150,7 +166,8 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
           style={{
             backgroundColor: color,
             borderRadius: '6px',
-            display: 'inline-block',
+            display: buttonWidth === 'full' ? 'block' : 'inline-block',
+            width: buttonWidth === 'full' ? '100%' : 'auto',
           }}
         >
           <a
@@ -228,6 +245,33 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
                   className="w-12 h-8 p-0 border-0"
                 />
                 <span className="text-sm text-muted-foreground">{editColor}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Button Width</Label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditWidth('auto')}
+                  className={`flex-1 px-3 py-2 rounded-md border text-sm transition-all ${
+                    editWidth === 'auto' 
+                      ? 'border-primary bg-primary/10 text-primary' 
+                      : 'border-input hover:bg-accent'
+                  }`}
+                >
+                  Fit Content
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditWidth('full')}
+                  className={`flex-1 px-3 py-2 rounded-md border text-sm transition-all ${
+                    editWidth === 'full' 
+                      ? 'border-primary bg-primary/10 text-primary' 
+                      : 'border-input hover:bg-accent'
+                  }`}
+                >
+                  Full Width
+                </button>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
