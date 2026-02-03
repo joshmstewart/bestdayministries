@@ -63,7 +63,7 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         },
       },
       imageUrl: {
-        default: 'https://placehold.co/400x300/e8650d/white?text=Your+Image',
+        default: '',
         parseHTML: element => {
           const img = element.querySelector('img');
           return img?.getAttribute('src') || '';

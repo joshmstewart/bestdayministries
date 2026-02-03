@@ -118,8 +118,11 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
     }
   };
 
+  // Check if we have a real uploaded image (not placeholder or empty)
+  const hasRealImage = imageUrl && imageUrl.length > 0 && !imageUrl.includes('placehold.co');
+
   const handleEditExistingImage = () => {
-    if (imageUrl && !imageUrl.includes('placehold')) {
+    if (hasRealImage) {
       setImageToCrop(imageUrl);
       setIsEditingExistingImage(true);
       setCropDialogOpen(true);
@@ -310,7 +313,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
               className="relative aspect-[4/3] rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30 bg-muted/50 cursor-pointer hover:border-primary/50 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
-              {imageUrl && !imageUrl.includes('placehold') ? (
+              {hasRealImage ? (
                 <img 
                   src={imageUrl} 
                   alt="Layout image" 
@@ -336,7 +339,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode }: NodeVi
               onChange={handleFileSelect}
               className="hidden"
             />
-            {imageUrl && !imageUrl.includes('placehold') && (
+            {hasRealImage && (
               <div className="mt-2 flex gap-2">
                 <Button
                   type="button"
