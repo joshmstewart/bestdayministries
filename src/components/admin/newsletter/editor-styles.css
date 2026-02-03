@@ -694,9 +694,251 @@
 .ProseMirror th,
 .ProseMirror td {
   border: 1px solid hsl(var(--border));
-  padding: 0.75rem;
+  padding: 0.35rem 0.5rem;
   text-align: left;
   vertical-align: top;
+}
+
+/* Table Background Styles - Match inline styles applied via toolbar */
+/* Purple Gradient */
+.ProseMirror table[style*="667eea"],
+.ProseMirror table[style*="764ba2"],
+.ProseMirror table[style*="rgb(102, 126, 234)"],
+.ProseMirror table[style*="rgb(118, 75, 162)"] {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.ProseMirror table[style*="667eea"] th,
+.ProseMirror table[style*="667eea"] td,
+.ProseMirror table[style*="764ba2"] th,
+.ProseMirror table[style*="764ba2"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.3);
+  background: transparent !important;
+}
+
+/* Warm/Orange Gradient */
+.ProseMirror table[style*="f97316"],
+.ProseMirror table[style*="ea580c"],
+.ProseMirror table[style*="rgb(249, 115, 22)"],
+.ProseMirror table[style*="rgb(234, 88, 12)"] {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+}
+
+.ProseMirror table[style*="f97316"] th,
+.ProseMirror table[style*="f97316"] td,
+.ProseMirror table[style*="ea580c"] th,
+.ProseMirror table[style*="ea580c"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.3);
+  background: transparent !important;
+}
+
+/* Sunset Gradient */
+.ProseMirror table[style*="radial-gradient"][style*="hsl(24"],
+.ProseMirror table[style*="hsl(24, 85%, 56%)"] {
+  background: radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), radial-gradient(circle at 75% 20%, hsl(46, 95%, 55%, 0.2) 0%, transparent 30%), hsl(24, 85%, 56%) !important;
+}
+
+.ProseMirror table[style*="radial-gradient"][style*="hsl(24"] th,
+.ProseMirror table[style*="radial-gradient"][style*="hsl(24"] td,
+.ProseMirror table[style*="hsl(24, 85%, 56%)"] th,
+.ProseMirror table[style*="hsl(24, 85%, 56%)"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.3);
+  background: transparent !important;
+}
+
+/* Burnt Orange */
+.ProseMirror table[style*="#e8650d"],
+.ProseMirror table[style*="e8650d"],
+.ProseMirror table[style*="rgb(232, 101, 13)"] {
+  background-color: #e8650d !important;
+}
+
+.ProseMirror table[style*="#e8650d"] th,
+.ProseMirror table[style*="#e8650d"] td,
+.ProseMirror table[style*="e8650d"] th,
+.ProseMirror table[style*="e8650d"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.3);
+  background: transparent !important;
+}
+
+/* Deep Orange */
+.ProseMirror table[style*="#c2410c"],
+.ProseMirror table[style*="c2410c"],
+.ProseMirror table[style*="rgb(194, 65, 12)"] {
+  background-color: #c2410c !important;
+}
+
+.ProseMirror table[style*="#c2410c"] th,
+.ProseMirror table[style*="#c2410c"] td,
+.ProseMirror table[style*="c2410c"] th,
+.ProseMirror table[style*="c2410c"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.3);
+  background: transparent !important;
+}
+
+/* Mustard Gold */
+.ProseMirror table[style*="#eab308"],
+.ProseMirror table[style*="eab308"],
+.ProseMirror table[style*="rgb(234, 179, 8)"] {
+  background-color: #eab308 !important;
+}
+
+.ProseMirror table[style*="#eab308"] th,
+.ProseMirror table[style*="#eab308"] td,
+.ProseMirror table[style*="eab308"] th,
+.ProseMirror table[style*="eab308"] td {
+  color: #78350f;
+  border-color: rgba(0,0,0,0.15);
+  background: transparent !important;
+}
+
+/* Warm Cream */
+.ProseMirror table[style*="#faf5ef"],
+.ProseMirror table[style*="faf5ef"],
+.ProseMirror table[style*="rgb(250, 245, 239)"] {
+  background-color: #faf5ef !important;
+}
+
+.ProseMirror table[style*="#faf5ef"] th,
+.ProseMirror table[style*="#faf5ef"] td,
+.ProseMirror table[style*="faf5ef"] th,
+.ProseMirror table[style*="faf5ef"] td {
+  color: #78350f;
+  border-color: rgba(0,0,0,0.1);
+  background: transparent !important;
+}
+
+/* Sand Light */
+.ProseMirror table[style*="#f5e6d3"],
+.ProseMirror table[style*="f5e6d3"],
+.ProseMirror table[style*="rgb(245, 230, 211)"] {
+  background-color: #f5e6d3 !important;
+}
+
+.ProseMirror table[style*="#f5e6d3"] th,
+.ProseMirror table[style*="#f5e6d3"] td,
+.ProseMirror table[style*="f5e6d3"] th,
+.ProseMirror table[style*="f5e6d3"] td {
+  color: #1a1a1a;
+  border-color: rgba(0,0,0,0.1);
+  background: transparent !important;
+}
+
+/* Light Gray */
+.ProseMirror table[style*="#f3f4f6"],
+.ProseMirror table[style*="f3f4f6"],
+.ProseMirror table[style*="rgb(243, 244, 246)"] {
+  background-color: #f3f4f6 !important;
+}
+
+.ProseMirror table[style*="#f3f4f6"] th,
+.ProseMirror table[style*="#f3f4f6"] td,
+.ProseMirror table[style*="f3f4f6"] th,
+.ProseMirror table[style*="f3f4f6"] td {
+  color: #374151;
+  border-color: rgba(0,0,0,0.1);
+  background: transparent !important;
+}
+
+/* Dark Charcoal */
+.ProseMirror table[style*="#1f2937"],
+.ProseMirror table[style*="1f2937"],
+.ProseMirror table[style*="rgb(31, 41, 55)"] {
+  background-color: #1f2937 !important;
+}
+
+.ProseMirror table[style*="#1f2937"] th,
+.ProseMirror table[style*="#1f2937"] td,
+.ProseMirror table[style*="1f2937"] th,
+.ProseMirror table[style*="1f2937"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.2);
+  background: transparent !important;
+}
+
+/* Brand Dark */
+.ProseMirror table[style*="#1a1a1a"],
+.ProseMirror table[style*="1a1a1a"],
+.ProseMirror table[style*="rgb(26, 26, 26)"] {
+  background-color: #1a1a1a !important;
+}
+
+.ProseMirror table[style*="#1a1a1a"] th,
+.ProseMirror table[style*="#1a1a1a"] td,
+.ProseMirror table[style*="1a1a1a"] th,
+.ProseMirror table[style*="1a1a1a"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.2);
+  background: transparent !important;
+}
+
+/* Blue Info */
+.ProseMirror table[style*="#dbeafe"],
+.ProseMirror table[style*="dbeafe"],
+.ProseMirror table[style*="rgb(219, 234, 254)"] {
+  background-color: #dbeafe !important;
+}
+
+.ProseMirror table[style*="#dbeafe"] th,
+.ProseMirror table[style*="#dbeafe"] td,
+.ProseMirror table[style*="dbeafe"] th,
+.ProseMirror table[style*="dbeafe"] td {
+  color: #1e40af;
+  border-color: rgba(59, 130, 246, 0.3);
+  background: transparent !important;
+}
+
+/* Green Success */
+.ProseMirror table[style*="#dcfce7"],
+.ProseMirror table[style*="dcfce7"],
+.ProseMirror table[style*="rgb(220, 252, 231)"] {
+  background-color: #dcfce7 !important;
+}
+
+.ProseMirror table[style*="#dcfce7"] th,
+.ProseMirror table[style*="#dcfce7"] td,
+.ProseMirror table[style*="dcfce7"] th,
+.ProseMirror table[style*="dcfce7"] td {
+  color: #166534;
+  border-color: rgba(34, 197, 94, 0.3);
+  background: transparent !important;
+}
+
+/* Amber Highlight */
+.ProseMirror table[style*="#fef3c7"],
+.ProseMirror table[style*="fef3c7"],
+.ProseMirror table[style*="rgb(254, 243, 199)"] {
+  background-color: #fef3c7 !important;
+}
+
+.ProseMirror table[style*="#fef3c7"] th,
+.ProseMirror table[style*="#fef3c7"] td,
+.ProseMirror table[style*="fef3c7"] th,
+.ProseMirror table[style*="fef3c7"] td {
+  color: #92400e;
+  border-color: rgba(245, 158, 11, 0.3);
+  background: transparent !important;
+}
+
+/* Forest Accent */
+.ProseMirror table[style*="#14532d"],
+.ProseMirror table[style*="14532d"],
+.ProseMirror table[style*="rgb(20, 83, 45)"] {
+  background-color: #14532d !important;
+}
+
+.ProseMirror table[style*="#14532d"] th,
+.ProseMirror table[style*="#14532d"] td,
+.ProseMirror table[style*="14532d"] th,
+.ProseMirror table[style*="14532d"] td {
+  color: white;
+  border-color: rgba(255,255,255,0.2);
+  background: transparent !important;
 }
 
 .ProseMirror th {
