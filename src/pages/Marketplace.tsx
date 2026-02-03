@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Package, Store, Lock, ArrowUpDown, Filter, Search, X } from "lucide-react";
+import { ShoppingCart, Package, Store, Lock, ArrowUpDown, Filter, Search, X, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -274,65 +274,77 @@ const Marketplace = () => {
       <UnifiedHeader />
       
       <main className="flex-1">
-        {/* Hero Section - Compact */}
-        <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 pt-24 pb-4">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 pt-24 pb-8">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              {/* Title and tagline */}
-              <div className="flex-1">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <h1 className="font-heading text-2xl md:text-3xl font-bold text-foreground">
-                    Joy House Store
-                  </h1>
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    A joyful gift shop celebrating ability, belonging, and purpose
-                  </span>
-                </div>
-              </div>
-              
-              {/* Action buttons */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button 
-                  onClick={() => setCartOpen(true)}
-                  className="relative"
-                >
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  Cart
-                  {totalCartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                      {totalCartCount}
-                    </span>
-                  )}
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => navigate('/orders')}
-                >
-                  <Package className="mr-2 h-4 w-4" />
-                  Orders
-                </Button>
-                
-                {isVendor ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/vendor-dashboard')}
-                    className="text-primary"
-                  >
-                    <Store className="h-4 w-4 mr-1" />
-                    Dashboard
-                  </Button>
-                ) : (
-                  <button
-                    onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
-                    className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
-                  >
-                    Become a Vendor
-                  </button>
-                )}
-              </div>
+            <div className="text-center mb-6">
+              <h1 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-2">
+                Joy House Store
+              </h1>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                A joyful gift shop celebrating ability, belonging, and purpose. Every purchase supports adults with special needs in building independence.
+              </p>
             </div>
+            
+            {/* Action buttons */}
+            <div className="flex justify-center items-center gap-4 flex-wrap mb-6">
+              <Button 
+                onClick={() => setCartOpen(true)}
+                className="relative"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Cart
+                {totalCartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-accent text-accent-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                    {totalCartCount}
+                  </span>
+                )}
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/orders')}
+              >
+                <Package className="mr-2 h-4 w-4" />
+                Orders
+              </Button>
+              
+              {isVendor ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/vendor-dashboard')}
+                  className="text-primary"
+                >
+                  <Store className="h-4 w-4 mr-1" />
+                  Dashboard
+                </Button>
+              ) : (
+                <button
+                  onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+                >
+                  Become a Vendor
+                </button>
+              )}
+            </div>
+
+            {/* Impact Card */}
+            <Card className="max-w-2xl mx-auto bg-card/80 backdrop-blur-sm border-primary/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center flex-shrink-0">
+                    <Heart className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-base">More Than a Shop</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Your purchases directly fund programs that empower our community members
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
 
