@@ -207,28 +207,28 @@ export const NewsletterPreviewDialog = ({
     .email-preview img { max-width: 100%; height: auto; display: block; }
     .email-preview [data-newsletter-footer] img { max-width: 200px; height: auto; margin: 0 auto; display: block; }
 
-    /* Improve readability for normal tables in preview (keep magazine 2-col tables untouched) */
-    .email-preview table:not([data-two-column]):not([data-columns]) {
+    /* Improve readability for normal tables in preview (keep magazine 2-col tables and CTA button tables untouched) */
+    .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) {
       width: 100%;
       border-collapse: collapse;
       table-layout: auto;
     }
-    .email-preview table:not([data-two-column]):not([data-columns]) th,
-    .email-preview table:not([data-two-column]):not([data-columns]) td {
+    .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) th,
+    .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) td {
       padding: 6px 10px;
       vertical-align: top;
     }
-    .email-preview table:not([data-two-column]):not([data-columns]) th {
+    .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) th {
       font-weight: 700;
       text-align: left;
     }
-    .email-preview table:not([data-two-column]):not([data-columns]) td {
+    .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) td {
       word-break: break-word;
       overflow-wrap: anywhere;
     }
     /* Alternating row shading for better legibility */
-    .email-preview table:not([data-two-column]):not([data-columns]) tbody tr:nth-child(even) td,
-    .email-preview table:not([data-two-column]):not([data-columns]) tr:nth-child(even) td {
+    .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) tbody tr:nth-child(even) td,
+    .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) tr:nth-child(even) td {
       background-color: rgba(255, 255, 255, 0.15);
     }
     .email-preview table[data-two-column] { table-layout: fixed; width: 100%; }
