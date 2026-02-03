@@ -78,6 +78,7 @@ import {
 import "./editor-styles.css";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Bold,
   Italic,
@@ -151,6 +152,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [containerDialogOpen, setContainerDialogOpen] = useState(false);
   const [tableDialogOpen, setTableDialogOpen] = useState(false);
   const [columnsDialogOpen, setColumnsDialogOpen] = useState(false);
+  const [columnsStackOnMobile, setColumnsStackOnMobile] = useState(true);
   const [twoColumnDialogOpen, setTwoColumnDialogOpen] = useState(false);
   const [buttonDialogOpen, setButtonDialogOpen] = useState(false);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
@@ -1650,7 +1652,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 className="h-auto p-4 flex flex-col gap-2"
                 onClick={() => {
                   if (editor) {
-                    const html = `<table data-columns="2" style="width: 100%; table-layout: fixed; border-collapse: collapse; border: none;"><tr><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td></tr></table>`;
+                    const mobileAttr = columnsStackOnMobile ? ' data-mobile-stack="true"' : '';
+                    const html = `<table data-columns="2"${mobileAttr} style="width: 100%; table-layout: fixed; border-collapse: collapse; border: none;"><tr><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 50%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td></tr></table>`;
                     editor.chain().focus().insertContent(html).run();
                     setColumnsDialogOpen(false);
                     toast.success("2-column layout inserted!");
@@ -1668,7 +1671,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 className="h-auto p-4 flex flex-col gap-2"
                 onClick={() => {
                   if (editor) {
-                    const html = `<table data-columns="3" style="width: 100%; table-layout: fixed; border-collapse: collapse; border: none;"><tr><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 3</td></tr></table>`;
+                    const mobileAttr = columnsStackOnMobile ? ' data-mobile-stack="true"' : '';
+                    const html = `<table data-columns="3"${mobileAttr} style="width: 100%; table-layout: fixed; border-collapse: collapse; border: none;"><tr><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 1</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 2</td><td style="width: 33.33%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Column 3</td></tr></table>`;
                     editor.chain().focus().insertContent(html).run();
                     setColumnsDialogOpen(false);
                     toast.success("3-column layout inserted!");
@@ -1687,7 +1691,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 className="h-auto p-4 flex flex-col gap-2"
                 onClick={() => {
                   if (editor) {
-                    const html = `<table style="width: 100%; border-collapse: collapse; border: none;"><tr><td style="width: 30%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Sidebar</td><td style="width: 70%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Main Content</td></tr></table>`;
+                    const mobileAttr = columnsStackOnMobile ? ' data-mobile-stack="true"' : '';
+                    const html = `<table${mobileAttr} style="width: 100%; border-collapse: collapse; border: none;"><tr><td style="width: 30%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Sidebar</td><td style="width: 70%; padding: 10px; vertical-align: top; border: 1px dashed #e5e7eb;">Main Content</td></tr></table>`;
                     editor.chain().focus().insertContent(html).run();
                     setColumnsDialogOpen(false);
                     toast.success("Sidebar layout inserted!");
@@ -1701,6 +1706,21 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                 <span className="text-xs">Sidebar</span>
               </Button>
             </div>
+            
+            {/* Stack on Mobile Toggle */}
+            <div className="flex items-center space-x-2 pt-2 border-t">
+              <Checkbox 
+                id="stack-on-mobile" 
+                checked={columnsStackOnMobile}
+                onCheckedChange={(checked) => setColumnsStackOnMobile(checked === true)}
+              />
+              <Label htmlFor="stack-on-mobile" className="text-sm cursor-pointer">
+                Stack columns on mobile
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              When enabled, columns will display vertically on mobile devices. Disable for data tables that should stay side-by-side.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setColumnsDialogOpen(false)}>

@@ -57,14 +57,17 @@ function styleStandardTablesOnly(html: string): string {
 }
 
 /**
- * Apply fluid-hybrid responsive design for column layout tables.
+ * Apply fluid-hybrid responsive design for column layout tables that have data-mobile-stack="true".
  * This technique wraps each column in an inline-block container that flows naturally
  * on mobile devices, stacking vertically without requiring CSS media queries.
+ * Tables without data-mobile-stack will remain as fixed-width side-by-side columns.
  */
 function styleColumnLayoutTables(html: string): string {
-  return (html || "").replace(
-    /<table\b[^>]*data-columns\s*=\s*["'](\d+)["'][^>]*>([\s\S]*?)<\/table>/gi,
-    (fullMatch, columnCount, tableContent) => {
+  // First, handle tables with data-mobile-stack="true" - apply fluid-hybrid layout
+  let result = (html || "").replace(
+    /<table\b([^>]*data-mobile-stack\s*=\s*["']true["'][^>]*data-columns\s*=\s*["'](\d+)["'][^>]*|[^>]*data-columns\s*=\s*["'](\d+)["'][^>]*data-mobile-stack\s*=\s*["']true["'][^>]*)>([\s\S]*?)<\/table>/gi,
+    (fullMatch, attrs, colCount1, colCount2, tableContent) => {
+      const columnCount = colCount1 || colCount2;
       const numColumns = parseInt(columnCount, 10);
       if (numColumns <= 0) return fullMatch;
 
@@ -111,6 +114,24 @@ function styleColumnLayoutTables(html: string): string {
 </table>`;
     }
   );
+
+  // Then, handle remaining data-columns tables (without mobile-stack) - apply fixed layout styling only
+  result = result.replace(
+    /<table\b([^>]*data-columns\s*=\s*["'](\d+)["'][^>]*)>([\s\S]*?)<\/table>/gi,
+    (fullMatch, attrs, columnCount, tableContent) => {
+      // Skip if already processed (contains mso comments)
+      if (fullMatch.includes('<!--[if mso]>')) return fullMatch;
+      
+      // Apply standard table styling without fluid-hybrid transformation
+      const styledContent = tableContent.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
+        mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+      );
+      
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:collapse;">${styledContent}</table>`;
+    }
+  );
+
+  return result;
 }
 
 function styleFooterImages(html: string): string {
