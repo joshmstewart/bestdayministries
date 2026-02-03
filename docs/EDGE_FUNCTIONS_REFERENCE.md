@@ -43,9 +43,9 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`send-contact-reply`** - [Auth Required] Sends admin replies to contact form submissions
 - **`notify-admin-new-contact`** - [Internal] Notifies admins of new contact form submissions
 - **`process-inbound-email`** - [Webhook] Processes CloudFlare email routing, auto-threads replies, filters system emails
-- **`send-newsletter`** - [Admin Only] Sends newsletter campaigns to subscribers, logs all emails
-- **`send-test-newsletter`** - [Admin Only] Sends test newsletter to logged-in admin
-- **`send-test-automated-template`** - [Admin Only] Sends test automated template to logged-in admin
+- **`send-newsletter`** - [Admin Only] Sends newsletter campaigns to subscribers (email-safe inline table formatting), logs all emails
+- **`send-test-newsletter`** - [Admin Only] Sends test newsletter to logged-in admin (same formatting as production send)
+- **`send-test-automated-template`** - [Admin Only] Sends test automated template to logged-in admin (same formatting as production send)
 - **`send-automated-campaign`** - [Admin Only] Sends automated marketing campaigns via Resend
 
 ### Content Moderation

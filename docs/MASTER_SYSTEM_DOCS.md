@@ -958,6 +958,7 @@ EMAIL-LOG-UI:search-by-email|filter-by-status[sent|failed|bounced]|view-details-
 RICH-EDITOR:tiptap[formatting|images|links|alignment]|image-crop-dialog[aspect-ratio-selection]
 HEADER-FOOTER:reusable-header-footer→enabled-toggle→inject-into-emails
 TRACKING:link-tracking[short-codes]|open-tracking[pixel]|click-analytics|resend-webhook-skips-non-campaign-emails
+EMAIL-FORMATTING:outgoing-emails-inline-style-standard-tables[width+padding+word-break]→skip-magazine-layout[data-two-column]
 RLS:admins-only-campaigns-templates|anyone-subscribe|admins-view-logs
 MOBILE:tab-bar-wraps[inline-flex+flex-wrap+whitespace-nowrap]
 SIGNUP-FLOW:header-btn→/newsletter-page→form→success-toast→auto-redirect-home-1.5s

@@ -173,6 +173,7 @@ Drip campaign sequence steps:
 3. **All send functions MUST use organization settings** for from name/email
 4. **Test functions MUST prefix subject** with [TEST]
 5. **All functions MUST handle errors gracefully** and log failures
+6. **Email formatting MUST be email-client-safe**: standard tables in campaign/template bodies get inline styling (width/padding/word-break). Magazine two-column tables are preserved via `data-two-column`.
 
 ### `send-newsletter`
 Sends campaign to all active subscribers.
