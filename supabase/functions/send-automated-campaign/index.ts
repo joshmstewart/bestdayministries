@@ -127,10 +127,10 @@ serve(async (req) => {
 
     const styleStandardTablesOnly = (html: string): string => {
       return (html || "").replace(
-        /<table\b(?![^>]*data-two-column)[\s\S]*?<\/table>/gi,
+        /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)[\s\S]*?<\/table>/gi,
         (tableHtml) => {
           let updated = tableHtml.replace(
-            /<table\b(?![^>]*data-two-column)[^>]*>/i,
+            /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)[^>]*>/i,
             (tableTag) =>
               mergeInlineStyle(
                 tableTag,
@@ -150,6 +150,45 @@ serve(async (req) => {
               "padding:6px 10px;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;"
             )
           );
+
+      return updated;
+    }
+  );
+};
+
+/**
+ * Style column layout tables (data-columns="2" or data-columns="3") with fixed layout
+ * and equal column widths for consistent email rendering.
+ */
+const styleColumnLayoutTables = (html: string): string => {
+  return (html || "").replace(
+    /<table\b[^>]*data-columns\s*=\s*["'](\d+)["'][^>]*>[\s\S]*?<\/table>/gi,
+    (tableHtml, columnCount) => {
+      const numColumns = parseInt(columnCount, 10);
+      const columnWidth = numColumns > 0 ? (100 / numColumns).toFixed(2) + "%" : "auto";
+      
+      // Style the table tag with fixed layout
+      let updated = tableHtml.replace(
+        /<table\b[^>]*>/i,
+        (tableTag) =>
+          mergeInlineStyle(
+            tableTag,
+            "width:100%;border-collapse:collapse;table-layout:fixed;"
+          )
+      );
+
+      // Style each td with equal width
+      updated = updated.replace(/<td\b[^>]*>/gi, (tdTag) =>
+        mergeInlineStyle(
+          tdTag,
+          `width:${columnWidth};vertical-align:top;`
+        )
+      );
+
+      // Style images inside columns to scale properly
+      updated = updated.replace(/<img\b[^>]*>/gi, (imgTag) =>
+        mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+      );
 
       return updated;
     }
@@ -227,7 +266,7 @@ const styleEmptyParagraphs = (html: string): string => {
     }
     
     // Add campaign content (apply email-safe formatting to tables, styled boxes, and empty paragraphs)
-    htmlContent += styleEmptyParagraphs(styleStyledBoxes(styleStandardTablesOnly(content)));
+    htmlContent += styleEmptyParagraphs(styleStyledBoxes(styleColumnLayoutTables(styleStandardTablesOnly(content))));
     
     // Add footer if enabled
     if (footerData?.setting_value?.enabled && footerData?.setting_value?.html) {
