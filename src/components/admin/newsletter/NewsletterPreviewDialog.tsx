@@ -209,8 +209,10 @@ export const NewsletterPreviewDialog = ({
                  word-break: break-word;
                  overflow-wrap: anywhere;
                }
-               .email-preview table:not([data-two-column]) tr + tr td {
-                 border-top: 1px solid #eee;
+               /* Alternating row shading for better legibility */
+               .email-preview table:not([data-two-column]) tbody tr:nth-child(even) td,
+               .email-preview table:not([data-two-column]) tr:nth-child(even) td {
+                 background-color: rgba(255, 255, 255, 0.15);
                }
               .email-preview table[data-two-column] { table-layout: fixed; }
               .email-preview table[data-two-column] td { width: 50%; vertical-align: top; }
