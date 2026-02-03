@@ -2,6 +2,65 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { TwoColumnNodeView } from './TwoColumnNodeView';
 
+// IMPORTANT:
+// Do NOT mutate the source DOM in parseHTML.
+// ProseMirror's parser walks the same DOM tree; removing nested CTA tables while parsing
+// can detach them from the two-column table and cause them to be parsed as standalone CTA
+// blocks at the document root (often appearing “stuck” at the bottom on every open).
+const extractCellTextWithCTAMarkers = (cell: HTMLElement): string => {
+  // Work on a cloned DOM so nested CTA tables remain in the original DOM tree.
+  const clone = cell.cloneNode(true) as HTMLElement;
+
+  // Extract CTA buttons first and convert to markers
+  const ctaMarkers: string[] = [];
+  const ctaTables = clone.querySelectorAll('table[data-cta-button]');
+  ctaTables.forEach((table) => {
+    const link = table.querySelector('a');
+    const td = table.querySelector('td[style*="background-color"]');
+    if (link && td) {
+      const text = (link.textContent || '').trim() || 'Click Here';
+      const url = link.getAttribute('href') || '#';
+      const style = td.getAttribute('style') || '';
+      const colorMatch = style.match(/background-color:\s*([^;]+)/);
+      const color = (colorMatch?.[1] || '').trim() || '#f97316';
+      ctaMarkers.push(`[CTA:${text}|${url}|${color}]`);
+    }
+
+    // Remove from the CLONE only (safe)
+    table.remove();
+  });
+
+  // Convert block elements to newlines before stripping tags
+  let html = clone.innerHTML || '';
+  // Replace </h2>, </p>, <br> with newlines to preserve line breaks
+  // IMPORTANT: Use a single newline for </h2>. Spacer paragraphs already add their
+  // own newline; using \n\n here causes blank lines to multiply on every reload.
+  html = html.replace(/<\/h2>/gi, '\n');
+  html = html.replace(/<\/p>/gi, '\n');
+  html = html.replace(/<br\s*\/?>/gi, '\n');
+  // Strip remaining HTML tags
+  html = html.replace(/<[^>]*>/g, '');
+  // Decode HTML entities to prevent double-encoding (e.g., &nbsp; → space)
+  html = html.replace(/&nbsp;/gi, ' ');
+  html = html.replace(/&amp;/gi, '&');
+  html = html.replace(/&lt;/gi, '<');
+  html = html.replace(/&gt;/gi, '>');
+  html = html.replace(/&quot;/gi, '"');
+
+  // Normalize whitespace-only lines created by spacer paragraphs (" \n")
+  // into a true empty line ("\n\n"), then cap excessive blank runs.
+  html = html.replace(/\n[\t ]+\n/g, '\n\n');
+  html = html.replace(/^[\t ]+$/gm, '');
+  html = html.replace(/\n{3,}/g, '\n\n');
+
+  // Append CTA markers
+  if (ctaMarkers.length > 0) {
+    html = html + '\n' + ctaMarkers.join('\n');
+  }
+
+  return html;
+};
+
 export type TwoColumnLayout = 'text-left-image-right' | 'image-left-text-right' | 'equal-columns';
 
 export interface TwoColumnOptions {
@@ -52,54 +111,8 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         parseHTML: element => {
           const leftCell = element.querySelector('td[data-column="left"]');
           if (!leftCell) return '';
-          
-          // Extract CTA buttons first and convert to markers
-          const ctaMarkers: string[] = [];
-          const ctaTables = leftCell.querySelectorAll('table[data-cta-button]');
-          ctaTables.forEach(table => {
-            const link = table.querySelector('a');
-            const td = table.querySelector('td[style*="background-color"]');
-            if (link && td) {
-              const text = link.textContent || 'Click Here';
-              const url = link.getAttribute('href') || '#';
-              const style = td.getAttribute('style') || '';
-              const colorMatch = style.match(/background-color:\s*([^;]+)/);
-              const color = colorMatch?.[1]?.trim() || '#f97316';
-              ctaMarkers.push(`[CTA:${text}|${url}|${color}]`);
-            }
-            // Remove the CTA table from consideration for text extraction
-            table.remove();
-          });
-          
-          // Convert block elements to newlines before stripping tags
-          let html = leftCell.innerHTML || '';
-          // Replace </h2>, </p>, <br> with newlines to preserve line breaks
-          // IMPORTANT: Use a single newline for </h2>. Spacer paragraphs already add their
-          // own newline; using \n\n here causes blank lines to multiply on every reload.
-          html = html.replace(/<\/h2>/gi, '\n');
-          html = html.replace(/<\/p>/gi, '\n');
-          html = html.replace(/<br\s*\/?>/gi, '\n');
-          // Strip remaining HTML tags
-          html = html.replace(/<[^>]*>/g, '');
-          // Decode HTML entities to prevent double-encoding (e.g., &nbsp; → space)
-          html = html.replace(/&nbsp;/gi, ' ');
-          html = html.replace(/&amp;/gi, '&');
-          html = html.replace(/&lt;/gi, '<');
-          html = html.replace(/&gt;/gi, '>');
-          html = html.replace(/&quot;/gi, '"');
 
-          // Normalize whitespace-only lines created by spacer paragraphs (" \n")
-          // into a true empty line ("\n\n"), then cap excessive blank runs.
-          html = html.replace(/\n[\t ]+\n/g, '\n\n');
-          html = html.replace(/^[\t ]+$/gm, '');
-          html = html.replace(/\n{3,}/g, '\n\n');
-          
-          // Append CTA markers
-          if (ctaMarkers.length > 0) {
-            html = html + '\n' + ctaMarkers.join('\n');
-          }
-          
-          return html;
+          return extractCellTextWithCTAMarkers(leftCell as HTMLElement);
         },
       },
       rightContent: {
@@ -107,54 +120,8 @@ export const TwoColumn = Node.create<TwoColumnOptions>({
         parseHTML: element => {
           const rightCell = element.querySelector('td[data-column="right"]');
           if (!rightCell) return '';
-          
-          // Extract CTA buttons first and convert to markers
-          const ctaMarkers: string[] = [];
-          const ctaTables = rightCell.querySelectorAll('table[data-cta-button]');
-          ctaTables.forEach(table => {
-            const link = table.querySelector('a');
-            const td = table.querySelector('td[style*="background-color"]');
-            if (link && td) {
-              const text = link.textContent || 'Click Here';
-              const url = link.getAttribute('href') || '#';
-              const style = td.getAttribute('style') || '';
-              const colorMatch = style.match(/background-color:\s*([^;]+)/);
-              const color = colorMatch?.[1]?.trim() || '#f97316';
-              ctaMarkers.push(`[CTA:${text}|${url}|${color}]`);
-            }
-            // Remove the CTA table from consideration for text extraction
-            table.remove();
-          });
-          
-          // Convert block elements to newlines before stripping tags
-          let html = rightCell.innerHTML || '';
-          // Replace </h2>, </p>, <br> with newlines to preserve line breaks
-          // IMPORTANT: Use a single newline for </h2>. Spacer paragraphs already add their
-          // own newline; using \n\n here causes blank lines to multiply on every reload.
-          html = html.replace(/<\/h2>/gi, '\n');
-          html = html.replace(/<\/p>/gi, '\n');
-          html = html.replace(/<br\s*\/?>/gi, '\n');
-          // Strip remaining HTML tags
-          html = html.replace(/<[^>]*>/g, '');
-          // Decode HTML entities to prevent double-encoding (e.g., &nbsp; → space)
-          html = html.replace(/&nbsp;/gi, ' ');
-          html = html.replace(/&amp;/gi, '&');
-          html = html.replace(/&lt;/gi, '<');
-          html = html.replace(/&gt;/gi, '>');
-          html = html.replace(/&quot;/gi, '"');
 
-          // Normalize whitespace-only lines created by spacer paragraphs (" \n")
-          // into a true empty line ("\n\n"), then cap excessive blank runs.
-          html = html.replace(/\n[\t ]+\n/g, '\n\n');
-          html = html.replace(/^[\t ]+$/gm, '');
-          html = html.replace(/\n{3,}/g, '\n\n');
-          
-          // Append CTA markers
-          if (ctaMarkers.length > 0) {
-            html = html + '\n' + ctaMarkers.join('\n');
-          }
-          
-          return html;
+          return extractCellTextWithCTAMarkers(rightCell as HTMLElement);
         },
       },
       imageUrl: {
