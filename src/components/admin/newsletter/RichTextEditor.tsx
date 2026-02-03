@@ -183,6 +183,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
   const [activeStyledBoxPos, setActiveStyledBoxPos] = useState<number | null>(null);
   const [addBoxSelectedStyle, setAddBoxSelectedStyle] = useState<StyledBoxStyle>('warm-cream');
   const [addBoxSelectedWidth, setAddBoxSelectedWidth] = useState<StyledBoxWidth>('full');
+  const [tableStyleDialogOpen, setTableStyleDialogOpen] = useState(false);
   
   // Track if this is the initial content load to prevent auto-reserializing
   const isInitialLoad = useRef(true);
@@ -683,87 +684,17 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
 
           <div className="w-px h-6 bg-border mx-1" />
 
-          {/* Background color picker with presets */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Background:</span>
-            {/* Preset color swatches */}
-            <div className="flex gap-1">
-              {[
-                { color: 'transparent', label: 'None', display: 'bg-[repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb_2px,transparent_2px,transparent_6px)]' },
-                { color: '#ffffff', label: 'White' },
-                { color: '#f3f4f6', label: 'Light Gray' },
-                { color: '#1f2937', label: 'Dark' },
-                { color: '#faf5ef', label: 'Cream' },
-                { color: '#e8650d', label: 'Orange' },
-                { color: '#22c55e', label: 'Green' },
-                { color: '#3b82f6', label: 'Blue' },
-              ].map(({ color, label, display }) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`w-6 h-6 rounded border-2 ${display || ''}`}
-                  style={!display ? { backgroundColor: color, borderColor: '#e5e7eb' } : { borderColor: '#e5e7eb' }}
-                  onClick={() => {
-                    const { state } = editor;
-                    const { selection } = state;
-                    const $from = selection.$from;
-                    
-                    for (let d = $from.depth; d >= 0; d--) {
-                      const node = $from.node(d);
-                      if (node.type.name === 'table') {
-                        const pos = $from.before(d);
-                        editor.commands.command(({ tr, dispatch }) => {
-                          const currentStyle = (node.attrs.style || '')
-                            .replace(/background-color:\s*[^;]+;?/gi, '')
-                            .trim();
-                          const bgStyle = color === 'transparent' || color === '#ffffff' ? '' : `background-color: ${color};`;
-                          const finalStyle = [currentStyle, bgStyle].filter(Boolean).join(' ');
-                          tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: finalStyle || null }, node.marks);
-                          if (dispatch) dispatch(tr);
-                          return true;
-                        });
-                        break;
-                      }
-                    }
-                  }}
-                  title={label}
-                />
-              ))}
-            </div>
-            {/* Custom color picker */}
-            <div className="relative">
-              <input
-                type="color"
-                className="w-6 h-6 rounded border cursor-pointer"
-                defaultValue="#ffffff"
-                onChange={(e) => {
-                  const color = e.target.value;
-                  const { state } = editor;
-                  const { selection } = state;
-                  const $from = selection.$from;
-                  
-                  for (let d = $from.depth; d >= 0; d--) {
-                    const node = $from.node(d);
-                    if (node.type.name === 'table') {
-                      const pos = $from.before(d);
-                      editor.commands.command(({ tr, dispatch }) => {
-                        const currentStyle = (node.attrs.style || '')
-                          .replace(/background-color:\s*[^;]+;?/gi, '')
-                          .trim();
-                        const bgStyle = `background-color: ${color};`;
-                        const finalStyle = [currentStyle, bgStyle].filter(Boolean).join(' ');
-                        tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: finalStyle || null }, node.marks);
-                        if (dispatch) dispatch(tr);
-                        return true;
-                      });
-                      break;
-                    }
-                  }
-                }}
-                title="Custom color"
-              />
-            </div>
-          </div>
+          {/* Background color - open dialog */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setTableStyleDialogOpen(true)}
+            className="h-7 px-3 gap-1"
+          >
+            <Palette className="h-3 w-3" />
+            Background
+          </Button>
 
           <div className="w-px h-6 bg-border mx-1" />
 
@@ -1488,6 +1419,123 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditBoxStyleDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Table Background Style Dialog */}
+      <Dialog open={tableStyleDialogOpen} onOpenChange={setTableStyleDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Table Background</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Select a background style for the table:
+            </p>
+            <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
+              {/* None/transparent option */}
+              <Button
+                variant="outline"
+                className="h-auto p-3 flex flex-col items-center gap-2 hover:ring-2 hover:ring-primary"
+                onClick={() => {
+                  if (!editor) return;
+                  const { state } = editor;
+                  const { selection } = state;
+                  const $from = selection.$from;
+                  
+                  for (let d = $from.depth; d >= 0; d--) {
+                    const node = $from.node(d);
+                    if (node.type.name === 'table') {
+                      const pos = $from.before(d);
+                      editor.commands.command(({ tr, dispatch }) => {
+                        const currentStyle = (node.attrs.style || '')
+                          .replace(/background-color:\s*[^;]+;?/gi, '')
+                          .replace(/background:\s*[^;]+;?/gi, '')
+                          .trim();
+                        tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: currentStyle || null }, node.marks);
+                        if (dispatch) dispatch(tr);
+                        return true;
+                      });
+                      break;
+                    }
+                  }
+                  toast.success("Background removed!");
+                  setTableStyleDialogOpen(false);
+                }}
+              >
+                <div 
+                  className="w-full h-10 rounded flex items-center justify-center text-xs font-bold border-2 border-dashed border-border"
+                  style={{ 
+                    background: 'repeating-linear-gradient(45deg, #e5e7eb, #e5e7eb 2px, transparent 2px, transparent 6px)',
+                    color: '#374151',
+                  }}
+                >
+                  ∅
+                </div>
+                <span className="text-xs font-medium">None</span>
+              </Button>
+              
+              {/* All styled box styles */}
+              {STYLED_BOX_STYLES.map((style) => (
+                <Button
+                  key={style.key}
+                  variant="outline"
+                  className="h-auto p-3 flex flex-col items-center gap-2 hover:ring-2 hover:ring-primary"
+                  onClick={() => {
+                    if (!editor) return;
+                    const { state } = editor;
+                    const { selection } = state;
+                    const $from = selection.$from;
+                    
+                    for (let d = $from.depth; d >= 0; d--) {
+                      const node = $from.node(d);
+                      if (node.type.name === 'table') {
+                        const pos = $from.before(d);
+                        editor.commands.command(({ tr, dispatch }) => {
+                          // Remove old background styles
+                          const currentStyle = (node.attrs.style || '')
+                            .replace(/background-color:\s*[^;]+;?/gi, '')
+                            .replace(/background:\s*[^;]+;?/gi, '')
+                            .trim();
+                          
+                          // Apply new background
+                          const bgStyle = style.isGradient 
+                            ? `background: ${style.bgStyle};`
+                            : `background-color: ${style.bgColor};`;
+                          const finalStyle = [currentStyle, bgStyle].filter(Boolean).join(' ');
+                          
+                          tr.setNodeMarkup(pos, node.type, { ...node.attrs, style: finalStyle }, node.marks);
+                          if (dispatch) dispatch(tr);
+                          return true;
+                        });
+                        break;
+                      }
+                    }
+                    toast.success(`Applied ${style.label} background!`);
+                    setTableStyleDialogOpen(false);
+                  }}
+                >
+                  <div 
+                    className="w-full h-10 rounded flex items-center justify-center text-xs font-bold" 
+                    style={{ 
+                      backgroundColor: style.isGradient ? undefined : style.bgColor, 
+                      background: style.bgStyle || undefined,
+                      color: style.text,
+                      border: style.border || undefined,
+                    }}
+                  >
+                    {style.isGradient ? '◐' : 'Aa'}
+                  </div>
+                  <span className="text-xs font-medium">{style.label}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTableStyleDialogOpen(false)}>
               Cancel
             </Button>
           </DialogFooter>
