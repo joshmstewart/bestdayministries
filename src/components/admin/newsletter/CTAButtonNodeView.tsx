@@ -12,16 +12,25 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Preferred: TipTap provided helper
-    if (typeof deleteNode === 'function') {
-      deleteNode();
+    // Ensure we run before ProseMirror handlers when possible.
+    // (React capture handler also set on the button, but keep this for safety.)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (e.nativeEvent as any)?.stopImmediatePropagation?.();
+
+    // Most reliable: delete via a direct transaction at the node position.
+    if (editor && typeof getPos === 'function') {
+      const pos = getPos();
+      editor.commands.command(({ tr, dispatch }) => {
+        tr.delete(pos, pos + node.nodeSize);
+        dispatch?.(tr);
+        return true;
+      });
       return;
     }
 
-    // Fallback: delete the node range manually
-    if (editor && typeof getPos === 'function') {
-      const pos = getPos();
-      editor.commands.deleteRange({ from: pos, to: pos + node.nodeSize });
+    // Fallback: TipTap helper
+    if (typeof deleteNode === 'function') {
+      deleteNode();
     }
   };
 
@@ -37,7 +46,9 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
         <button
           type="button"
           contentEditable={false}
-          onMouseDown={handleDelete}
+          // Use capture so ProseMirror can't swallow the event before React sees it.
+          onMouseDownCapture={handleDelete}
+          onPointerDownCapture={(e) => handleDelete(e as unknown as React.MouseEvent)}
           className="absolute -top-2 -right-2 z-10 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-destructive/90"
           title="Remove CTA Button"
         >
