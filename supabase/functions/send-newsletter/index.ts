@@ -43,13 +43,13 @@ function styleStandardTablesOnly(html: string): string {
       updated = updated.replace(/<th\b[^>]*>/gi, (thTag) =>
         mergeInlineStyle(
           thTag,
-          "padding:10px 12px;vertical-align:top;text-align:left;font-weight:700;"
+          "padding:6px 10px;vertical-align:top;text-align:left;font-weight:700;"
         )
       );
       updated = updated.replace(/<td\b[^>]*>/gi, (tdTag) =>
         mergeInlineStyle(
           tdTag,
-          "padding:10px 12px;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;"
+          "padding:6px 10px;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;"
         )
       );
 

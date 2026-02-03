@@ -198,7 +198,7 @@ export const NewsletterPreviewDialog = ({
                }
                .email-preview table:not([data-two-column]) th,
                .email-preview table:not([data-two-column]) td {
-                 padding: 10px 12px;
+                 padding: 6px 10px;
                  vertical-align: top;
                }
                .email-preview table:not([data-two-column]) th {
