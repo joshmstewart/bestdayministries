@@ -21,6 +21,8 @@ export const CTAButton = Node.create<CTAButtonOptions>({
 
   atom: true, // This node is a leaf node, not editable inline
 
+  selectable: true, // Allow clicking to select the node for keyboard deletion
+
   // CRITICAL: Higher priority than Table extension so CTA buttons are parsed first
   priority: 1001,
 
@@ -199,8 +201,14 @@ export const CTAButton = Node.create<CTAButtonOptions>({
     return {
       Backspace: () => {
         const { selection } = this.editor.state;
-        const node = selection.$anchor.parent;
-        // If we're at the start of a node right after a CTA, or if a CTA is selected
+        
+        // Check if a CTA node is selected via NodeSelection (has .node property)
+        const nodeSelection = selection as { node?: { type: { name: string } } };
+        if (nodeSelection.node?.type.name === this.name) {
+          return this.editor.commands.deleteSelection();
+        }
+        
+        // Fallback: If cursor is right after a CTA, delete it
         if (selection.empty) {
           const pos = selection.$anchor.pos;
           const nodeBefore = this.editor.state.doc.resolve(pos).nodeBefore;
@@ -215,6 +223,14 @@ export const CTAButton = Node.create<CTAButtonOptions>({
       },
       Delete: () => {
         const { selection } = this.editor.state;
+        
+        // Check if a CTA node is selected via NodeSelection
+        const nodeSelection = selection as { node?: { type: { name: string } } };
+        if (nodeSelection.node?.type.name === this.name) {
+          return this.editor.commands.deleteSelection();
+        }
+        
+        // Fallback: If cursor is right before a CTA, delete it
         if (selection.empty) {
           const pos = selection.$anchor.pos;
           const nodeAfter = this.editor.state.doc.resolve(pos).nodeAfter;
