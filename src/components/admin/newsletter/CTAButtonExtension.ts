@@ -195,7 +195,7 @@ export const CTAButton = Node.create<CTAButtonOptions>({
               {
                 href: url,
                 target: '_blank',
-                style: `display: ${isFullWidth ? 'block' : 'inline-block'}; padding: ${padding}; color: white; text-decoration: none; font-weight: bold; font-size: ${fontSize}; text-align: center;`,
+                style: `display: ${isFullWidth ? 'block' : 'inline-block'}; padding: ${padding}; color: white; text-decoration: none; font-weight: bold; font-size: ${fontSize};${isFullWidth ? ' text-align: center;' : ''}`,
               },
               text,
             ],
