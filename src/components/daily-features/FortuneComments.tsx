@@ -12,7 +12,7 @@ import { AvatarDisplay } from "@/components/AvatarDisplay";
 
 interface Comment {
   id: string;
-  user_id: string;
+  author_id: string;
   content: string;
   created_at: string;
   profile?: {
@@ -45,33 +45,44 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
         .eq("id", fortunePostId)
         .single();
       
-      if (fortunePost?.discussion_post_id) {
-        setDiscussionPostId(fortunePost.discussion_post_id);
+      const linkedDiscussionId = fortunePost?.discussion_post_id;
+      if (linkedDiscussionId) {
+        setDiscussionPostId(linkedDiscussionId);
       }
 
-      const { data, error } = await supabase
-        .from("daily_fortune_comments")
-        .select("id, user_id, content, created_at")
-        .eq("fortune_post_id", fortunePostId)
-        .order("created_at", { ascending: true });
+      // If there's a linked discussion post, fetch comments from discussion_comments
+      if (linkedDiscussionId) {
+        const { data, error } = await supabase
+          .from("discussion_comments")
+          .select("id, author_id, content, created_at, approval_status")
+          .eq("post_id", linkedDiscussionId)
+          .eq("approval_status", "approved")
+          .order("created_at", { ascending: true });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Fetch profiles for all commenters
-      if (data && data.length > 0) {
-        const userIds = [...new Set(data.map((c) => c.user_id))];
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, display_name, avatar_number, avatar_url")
-          .in("id", userIds);
+        // Fetch profiles for all commenters
+        if (data && data.length > 0) {
+          const userIds = [...new Set(data.map((c) => c.author_id))];
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, display_name, avatar_number, avatar_url")
+            .in("id", userIds);
 
-        const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
-        const commentsWithProfiles = data.map((comment) => ({
-          ...comment,
-          profile: profileMap.get(comment.user_id),
-        }));
-        setComments(commentsWithProfiles);
+          const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+          const commentsWithProfiles = data.map((comment) => ({
+            id: comment.id,
+            author_id: comment.author_id,
+            content: comment.content,
+            created_at: comment.created_at,
+            profile: profileMap.get(comment.author_id),
+          }));
+          setComments(commentsWithProfiles);
+        } else {
+          setComments([]);
+        }
       } else {
+        // No linked discussion yet, no comments to show
         setComments([]);
       }
     } catch (error) {
@@ -84,18 +95,38 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
   useEffect(() => {
     loadComments();
 
-    // Subscribe to realtime updates
+    // Subscribe to realtime updates on discussion_comments
+    // We need to subscribe even before we know the discussion_post_id
+    // because it might be created during the session
     const channel = supabase
-      .channel(`fortune-comments-${fortunePostId}`)
+      .channel(`fortune-discussion-comments-${fortunePostId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "daily_fortune_comments",
-          filter: `fortune_post_id=eq.${fortunePostId}`,
+          table: "discussion_comments",
+        },
+        (payload) => {
+          // Reload if this comment belongs to our discussion post
+          if (discussionPostId && payload.new && (payload.new as any).post_id === discussionPostId) {
+            loadComments();
+          } else if (!discussionPostId) {
+            // If we don't have a discussion post yet, reload to check
+            loadComments();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "daily_fortune_posts",
+          filter: `id=eq.${fortunePostId}`,
         },
         () => {
+          // Discussion post might have been created
           loadComments();
         }
       )
@@ -104,33 +135,45 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fortunePostId, loadComments]);
+  }, [fortunePostId, loadComments, discussionPostId]);
 
   const handleSubmit = async () => {
     if (!user || !newComment.trim() || submitting) return;
 
     setSubmitting(true);
     try {
+      let currentDiscussionId = discussionPostId;
+
       // Check if discussion post exists, if not, create one via edge function
-      // This ensures the first commenter triggers the post creation with system user as author
-      if (!discussionPostId) {
+      if (!currentDiscussionId) {
         const { data: createResult, error: createError } = await supabase.functions.invoke('create-fortune-discussion-post', {
           body: { fortunePostId }
         });
         
         if (createError) {
           console.error("Error creating discussion post:", createError);
-          // Don't block commenting, just log the error
-        } else if (createResult?.discussionPostId) {
-          setDiscussionPostId(createResult.discussionPostId);
-          onDiscussionCreated?.(createResult.discussionPostId);
+          toast.error("Failed to create discussion post");
+          setSubmitting(false);
+          return;
+        }
+        
+        if (createResult?.discussionPostId) {
+          currentDiscussionId = createResult.discussionPostId;
+          setDiscussionPostId(currentDiscussionId);
+          onDiscussionCreated?.(currentDiscussionId);
+        } else {
+          toast.error("Failed to create discussion post");
+          setSubmitting(false);
+          return;
         }
       }
 
-      const { error } = await supabase.from("daily_fortune_comments").insert({
-        fortune_post_id: fortunePostId,
-        user_id: user.id,
+      // Insert comment into discussion_comments (not daily_fortune_comments)
+      const { error } = await supabase.from("discussion_comments").insert({
+        post_id: currentDiscussionId,
+        author_id: user.id,
         content: newComment.trim(),
+        approval_status: "approved", // Fortune comments are auto-approved
       });
 
       if (error) throw error;
@@ -149,7 +192,7 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
   const handleDelete = async (commentId: string) => {
     try {
       const { error } = await supabase
-        .from("daily_fortune_comments")
+        .from("discussion_comments")
         .delete()
         .eq("id", commentId);
 
@@ -274,7 +317,7 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
                         addSuffix: true,
                       })}
                     </span>
-                    {user?.id === comment.user_id && (
+                    {user?.id === comment.author_id && (
                       <Button
                         variant="ghost"
                         size="icon"
