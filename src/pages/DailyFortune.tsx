@@ -3,7 +3,8 @@ import Footer from "@/components/Footer";
 import { DailyFortune as DailyFortuneComponent } from "@/components/daily-features/DailyFortune";
 import { FortuneComments } from "@/components/daily-features/FortuneComments";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookMarked } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, BookMarked, ChevronDown, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function DailyFortunePage() {
   const navigate = useNavigate();
   const [fortunePostId, setFortunePostId] = useState<string | null>(null);
+  const [commentsExpanded, setCommentsExpanded] = useState(false);
 
   // Get MST date
   const getMSTDate = () => {
@@ -41,6 +43,10 @@ export default function DailyFortunePage() {
     };
     loadFortunePost();
   }, []);
+
+  const handleFortuneReveal = () => {
+    setCommentsExpanded(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -70,13 +76,29 @@ export default function DailyFortunePage() {
         </h1>
 
         <div className="space-y-6">
-          <DailyFortuneComponent />
+          <DailyFortuneComponent onReveal={handleFortuneReveal} />
           
           {fortunePostId && (
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Discussion</h2>
-              <FortuneComments fortunePostId={fortunePostId} />
-            </div>
+            <Collapsible open={commentsExpanded} onOpenChange={setCommentsExpanded}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between gap-2 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">Discussion</span>
+                    <span className="text-xs text-muted-foreground">
+                      — share your thoughts!
+                    </span>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${commentsExpanded ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-4">
+                <FortuneComments fortunePostId={fortunePostId} />
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </div>
       </main>
