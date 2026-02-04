@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { parseUserAgent } from "../_shared/userAgentParser.ts";
 
 serve(async (req) => {
   try {
@@ -32,7 +33,10 @@ serve(async (req) => {
     const ipAddress = req.headers.get("X-Forwarded-For")?.split(",")[0] || 
                       req.headers.get("X-Real-IP") || "";
 
-    // Log click event
+    // Parse user agent for email client info
+    const parsedUA = parseUserAgent(userAgent);
+
+    // Log click event with email client info
     await supabaseClient.from("newsletter_analytics").insert({
       campaign_id: link.campaign_id,
       subscriber_id: null, // Can't identify subscriber from click
@@ -42,6 +46,11 @@ serve(async (req) => {
       user_agent: userAgent,
       ip_address: ipAddress,
       timezone: timezone,
+      // Email client tracking
+      email_client: parsedUA.emailClient,
+      email_client_version: parsedUA.emailClientVersion,
+      device_type: parsedUA.deviceType,
+      os_name: parsedUA.osName,
     });
 
     // Increment click count

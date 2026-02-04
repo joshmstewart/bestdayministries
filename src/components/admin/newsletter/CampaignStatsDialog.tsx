@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Monitor, Smartphone, Tablet, ExternalLink } from "lucide-react";
 
 interface CampaignStatsDialogProps {
   campaignId: string;
@@ -49,10 +51,31 @@ export const CampaignStatsDialog = ({ campaignId, campaignTitle, open, onOpenCha
       const clicksByUrl: Record<string, number> = {};
       data
         .filter((a) => a.event_type === "clicked" && a.clicked_url)
-        .forEach((a) => {
+        .forEach((a: any) => {
           const url = a.clicked_url!;
           clicksByUrl[url] = (clicksByUrl[url] || 0) + 1;
         });
+
+      // Group by email client
+      const byEmailClient: Record<string, { opens: number; clicks: number }> = {};
+      data.forEach((a: any) => {
+        const client = a.email_client || "Unknown";
+        if (!byEmailClient[client]) {
+          byEmailClient[client] = { opens: 0, clicks: 0 };
+        }
+        if (a.event_type === "opened") byEmailClient[client].opens++;
+        if (a.event_type === "clicked") byEmailClient[client].clicks++;
+      });
+
+      // Group by device type
+      const byDeviceType: Record<string, number> = {};
+      data.forEach((a: any) => {
+        const device = a.device_type || "unknown";
+        byDeviceType[device] = (byDeviceType[device] || 0) + 1;
+      });
+
+      // Count layout fallbacks
+      const fallbackCount = data.filter((a: any) => a.layout_fallback_used).length;
 
       return {
         sent,
@@ -68,6 +91,15 @@ export const CampaignStatsDialog = ({ campaignId, campaignTitle, open, onOpenCha
           .map(([url, count]) => ({ url, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 10),
+        byEmailClient: Object.entries(byEmailClient)
+          .map(([client, data]) => ({ client, ...data }))
+          .sort((a, b) => (b.opens + b.clicks) - (a.opens + a.clicks))
+          .slice(0, 8),
+        byDeviceType: Object.entries(byDeviceType)
+          .map(([type, count]) => ({ type, count }))
+          .sort((a, b) => b.count - a.count),
+        fallbackCount,
+        fallbackRate: data.length > 0 ? ((fallbackCount / data.length) * 100).toFixed(1) : "0",
       };
     },
     enabled: open,

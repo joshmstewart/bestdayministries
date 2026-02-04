@@ -5987,11 +5987,17 @@ export type Database = {
           campaign_id: string
           clicked_url: string | null
           created_at: string
+          device_type: string | null
           email: string
+          email_client: string | null
+          email_client_version: string | null
           event_type: Database["public"]["Enums"]["newsletter_event_type"]
           id: string
           ip_address: string | null
+          layout_fallback_reason: string | null
+          layout_fallback_used: boolean | null
           metadata: Json | null
+          os_name: string | null
           resend_event_id: string | null
           subscriber_id: string | null
           timezone: string | null
@@ -6001,11 +6007,17 @@ export type Database = {
           campaign_id: string
           clicked_url?: string | null
           created_at?: string
+          device_type?: string | null
           email: string
+          email_client?: string | null
+          email_client_version?: string | null
           event_type: Database["public"]["Enums"]["newsletter_event_type"]
           id?: string
           ip_address?: string | null
+          layout_fallback_reason?: string | null
+          layout_fallback_used?: boolean | null
           metadata?: Json | null
+          os_name?: string | null
           resend_event_id?: string | null
           subscriber_id?: string | null
           timezone?: string | null
@@ -6015,11 +6027,17 @@ export type Database = {
           campaign_id?: string
           clicked_url?: string | null
           created_at?: string
+          device_type?: string | null
           email?: string
+          email_client?: string | null
+          email_client_version?: string | null
           event_type?: Database["public"]["Enums"]["newsletter_event_type"]
           id?: string
           ip_address?: string | null
+          layout_fallback_reason?: string | null
+          layout_fallback_used?: boolean | null
           metadata?: Json | null
+          os_name?: string | null
           resend_event_id?: string | null
           subscriber_id?: string | null
           timezone?: string | null
@@ -6032,6 +6050,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "newsletter_campaigns"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_analytics_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_subscriber_engagement"
+            referencedColumns: ["subscriber_id"]
           },
           {
             foreignKeyName: "newsletter_analytics_subscriber_id_fkey"
@@ -11737,6 +11762,61 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      newsletter_email_client_stats: {
+        Row: {
+          campaign_id: string | null
+          campaign_title: string | null
+          clicks: number | null
+          device_type: string | null
+          email_client: string | null
+          event_count: number | null
+          fallback_used_count: number | null
+          opens: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_subscriber_engagement: {
+        Row: {
+          campaigns_received: number | null
+          click_rate: number | null
+          email: string | null
+          last_clicked_at: string | null
+          last_opened_at: string | null
+          open_rate: number | null
+          subscriber_id: string | null
+          subscriber_identifier: string | null
+          subscriber_name: string | null
+          total_bounced: number | null
+          total_clicks: number | null
+          total_delivered: number | null
+          total_opens: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_subscribers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_subscribers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orphaned_receipts_analysis: {
         Row: {
