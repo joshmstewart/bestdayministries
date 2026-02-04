@@ -764,10 +764,30 @@ TipTap-based rich text editor for email content.
 - SMS integration
 - Webhook triggers for external events
 
+## Critical Implementation Notes
+
+### Nested Table Parsing (CRITICAL)
+Newsletter tables often contain nested CTA button tables. Standard regex patterns like `/<table>[\s\S]*?<\/table>/` will terminate at the first nested `</table>` (the CTA), not the outer layout table.
+
+**NEVER use regex to extract table/row blocks. Always use depth-based parsing:**
+- `findTablesWithAttribute()` - Finds complete `<table>...</table>` blocks using depth tracking
+- `extractFirstTopLevelTr()` - Extracts the first `<tr>` at depth 0, ignoring rows inside nested tables
+- `extractTopLevelTdHtml()` - Extracts `<td>` segments at depth 0, ignoring cells inside nested tables
+
+This is implemented in `supabase/functions/_shared/emailStyles.ts` and must be preserved for any future email transformations.
+
+### Image Width Override (CRITICAL)
+Column images from the editor often have `width="600px"` attributes. Gmail prioritizes HTML width attributes over CSS, causing columns to overlap.
+
+**Always use `normalizeColumnImages()` to:**
+1. Remove existing width attributes
+2. Set width attribute to actual column pixel width (e.g., 200px for 3 columns)
+3. Add `max-width` CSS to constrain images
+
 ## Documentation Status
-**Last Updated:** 2025-10-20
-**Status:** Complete - All newsletter functionality documented including new email logging system
-**Coverage:** Database schema, edge functions, components, workflows, testing, admin tools
+**Last Updated:** 2026-02-04
+**Status:** Complete - All newsletter functionality documented including depth-based parsing for nested tables
+**Coverage:** Database schema, edge functions, components, workflows, testing, admin tools, nested table handling
 
 ## Related Documentation
 - `MASTER_SYSTEM_DOCS.md` - High-level newsletter system overview
