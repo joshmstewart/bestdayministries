@@ -460,12 +460,90 @@ export function normalizeTypography(html: string): string {
   return result;
 }
 
+/**
+ * Constrain TipTap-generated tables (`class="newsletter-table"`) to the 600px
+ * desktop email standard and prevent oversized images (e.g. width="600px") from
+ * forcing column overflow.
+ *
+ * IMPORTANT:
+ * - This runs BEFORE `styleStandardTablesOnly()` and we exclude newsletter-table
+ *   from that regex-based styler to avoid it appending `table-layout:auto` and
+ *   breaking fixed-layout column tables.
+ * - This targets ONLY campaign/template body HTML (header/footer is injected
+ *   outside `applyEmailStyles()`), so it's safe to normalize aggressively here.
+ */
+export function styleNewsletterTables(html: string): string {
+  let result = html;
+
+  const newsletterTables = findTablesWithAttribute(result, /\bnewsletter-table\b/i)
+    .filter((t) => !/data-two-column/i.test(t.openingTag))
+    .filter((t) => !/data-columns/i.test(t.openingTag))
+    .filter((t) => !/data-cta-button/i.test(t.openingTag))
+    .filter((t) => !t.fullMatch.includes("<!--[if mso]>")); // don't double-process
+
+  const addOrReplaceWidthAttr = (tableOpenTag: string, width: string) => {
+    const withoutWidth = tableOpenTag.replace(/\s+width\s*=\s*["'][^"']*["']/i, "");
+    return withoutWidth.replace(/^<table\b/i, `<table width="${width}"`);
+  };
+
+  const normalizeImageForCell = (imgTag: string) => {
+    // Remove hard width/height attributes (Gmail can prioritize them over CSS)
+    let normalized = imgTag
+      .replace(/\s+width\s*=\s*["'][^"']*["']/gi, "")
+      .replace(/\s+height\s*=\s*["'][^"']*["']/gi, "");
+
+    // Force responsive scaling within whatever cell width exists
+    normalized = mergeInlineStyle(
+      normalized,
+      "width:100%;max-width:100%;height:auto;display:block;"
+    );
+    return normalized;
+  };
+
+  // Process in reverse order to preserve indices
+  for (let i = newsletterTables.length - 1; i >= 0; i--) {
+    const table = newsletterTables[i];
+
+    const hasFixedLayout =
+      /table-layout\s*:\s*fixed/i.test(table.openingTag) ||
+      /table-layout\s*:\s*fixed/i.test(table.innerContent);
+
+    // Update opening tag: enforce the 600px container width
+    let newOpeningTag = addOrReplaceWidthAttr(table.openingTag, "600");
+    newOpeningTag = mergeInlineStyle(
+      newOpeningTag,
+      `width:600px;max-width:600px;margin:0 auto;border-collapse:collapse;${hasFixedLayout ? "table-layout:fixed;" : ""}`
+    );
+
+    // Update inner content: ensure cells are readable and images can't overflow
+    let newInner = table.innerContent;
+    newInner = newInner.replace(/<th\b[^>]*>/gi, (thTag) =>
+      mergeInlineStyle(
+        thTag,
+        "padding:6px 10px;vertical-align:top;text-align:left;font-weight:700;"
+      )
+    );
+    newInner = newInner.replace(/<td\b[^>]*>/gi, (tdTag) =>
+      mergeInlineStyle(
+        tdTag,
+        "padding:6px 10px;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;"
+      )
+    );
+    newInner = newInner.replace(/<img\b[^>]*>/gi, normalizeImageForCell);
+
+    const replacement = `${newOpeningTag}${newInner}</table>`;
+    result = result.slice(0, table.start) + replacement + result.slice(table.end);
+  }
+
+  return result;
+}
+
 export function styleStandardTablesOnly(html: string): string {
   return (html || "").replace(
-    /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)(?![^>]*data-cta-button)[\s\S]*?<\/table>/gi,
+    /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)(?![^>]*data-cta-button)(?![^>]*\bnewsletter-table\b)[\s\S]*?<\/table>/gi,
     (tableHtml) => {
       let updated = tableHtml.replace(
-        /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)(?![^>]*data-cta-button)[^>]*>/i,
+        /<table\b(?![^>]*data-two-column)(?![^>]*data-columns)(?![^>]*data-cta-button)(?![^>]*\bnewsletter-table\b)[^>]*>/i,
         (tableTag) =>
           mergeInlineStyle(
             tableTag,
@@ -645,6 +723,9 @@ export function styleFooterImages(html: string): string {
  */
 export function applyEmailStyles(html: string): string {
   let result = html;
+
+  // 0. Constrain TipTap tables to the 600px email standard
+  result = styleNewsletterTables(result);
   
   // 1. Standard tables first (avoid touching special layout tables)
   result = styleStandardTablesOnly(result);
