@@ -206,6 +206,8 @@ export const NewsletterPreviewDialog = ({
     /* IMPORTANT: don't set width here; it overrides inline/attribute widths in header/footer templates */
     .email-preview img { max-width: 100%; height: auto; display: block; }
     .email-preview [data-newsletter-footer] img { max-width: 200px; height: auto; margin: 0 auto; display: block; }
+    /* TipTap images often carry width="600px"; ensure they can't overflow table cells in preview */
+    .email-preview table.newsletter-table td img { width: 100% !important; max-width: 100% !important; height: auto !important; display: block !important; }
 
     /* Improve readability for normal tables in preview (keep magazine 2-col tables and CTA button tables untouched) */
     .email-preview table:not([data-two-column]):not([data-columns]):not([data-cta-button]) {
