@@ -180,10 +180,21 @@ export function CoffeeProductsManager() {
     try {
       console.log(`Toggling all coffee products visibility to ${makeVisible}`);
       
+      // Get all product IDs first to use in the update
+      const productIds = products.map(p => p.id).filter(id => id);
+      
+      if (productIds.length === 0) {
+        toast({
+          title: "No products to update",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { data, error } = await supabase
         .from("coffee_products")
         .update({ is_active: makeVisible })
-        .neq("id", "")
+        .in("id", productIds)
         .select();
 
       if (error) {
