@@ -338,85 +338,123 @@ serve(async (req) => {
       .update({ status: "sending" })
       .eq("id", campaignId);
 
-    // Fetch subscribers based on target audience
-    const targetAudience = campaign.target_audience || { type: 'all' };
-    let subscribers = [];
-
-    if (targetAudience.type === 'all') {
-      // Get all active subscribers
-      let query = supabaseClient
-        .from('newsletter_subscribers')
-        .select('email, id, user_id')
-        .eq('status', 'active');
-
-      // In test mode, only send to test email addresses
-      if (testMode) {
-        query = query.or('email.like.emailtest-%,email.like.sub1-%,email.like.sub2-%,email.like.active-%,email.like.unsub-%,email.like.newsletter-test-%');
-      }
-
-      const { data, error: subscribersError } = await query;
-
-      if (subscribersError) {
-        console.error('Error fetching subscribers:', subscribersError);
-        throw subscribersError;
-      }
-      subscribers = data || [];
-    } else if (targetAudience.type === 'all_site_members') {
-      // Get all site members from profiles
-      let query = supabaseClient
-        .from('profiles')
-        .select('email, id');
-
-      // In test mode, only send to test email addresses
-      if (testMode) {
-        query = query.or('email.like.emailtest-%,email.like.test@%,email.like.guardian@%,email.like.bestie@%,email.like.sponsor@%,email.like.vendor@%');
-      }
-
-      const { data, error: profilesError } = await query;
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
+    // Helper function to fetch all rows with pagination (bypasses 1000 row limit)
+    async function fetchAllPaginated<T>(
+      tableName: string,
+      selectColumns: string,
+      filters: { column: string; operator: string; value: any }[],
+      orFilter?: string
+    ): Promise<T[]> {
+      const pageSize = 1000;
+      let allData: T[] = [];
+      let page = 0;
+      
+      while (true) {
+        let query = supabaseClient
+          .from(tableName)
+          .select(selectColumns)
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        // Apply filters
+        for (const filter of filters) {
+          if (filter.operator === 'eq') {
+            query = query.eq(filter.column, filter.value);
+          } else if (filter.operator === 'not.is') {
+            query = query.not(filter.column, 'is', filter.value);
+          }
+        }
+        
+        // Apply OR filter for test mode
+        if (orFilter) {
+          query = query.or(orFilter);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (!data || data.length === 0) {
+          break;
+        }
+        
+        allData = [...allData, ...data as T[]];
+        
+        if (data.length < pageSize) {
+          break;
+        }
+        
+        page++;
       }
       
+      return allData;
+    }
+
+    // Fetch subscribers based on target audience
+    const targetAudience = campaign.target_audience || { type: 'all' };
+    let subscribers: { email: string; id: string | null; user_id: string | null }[] = [];
+
+    if (targetAudience.type === 'all') {
+      // Get all active subscribers with pagination
+      const orFilter = testMode 
+        ? 'email.like.emailtest-%,email.like.sub1-%,email.like.sub2-%,email.like.active-%,email.like.unsub-%,email.like.newsletter-test-%'
+        : undefined;
+
+      const data = await fetchAllPaginated<{ email: string; id: string; user_id: string | null }>(
+        'newsletter_subscribers',
+        'email, id, user_id',
+        [{ column: 'status', operator: 'eq', value: 'active' }],
+        orFilter
+      );
+      
+      subscribers = data;
+      console.log(`Fetched ${subscribers.length} active subscribers`);
+    } else if (targetAudience.type === 'all_site_members') {
+      // Get all site members from profiles with pagination
+      const orFilter = testMode 
+        ? 'email.like.emailtest-%,email.like.test@%,email.like.guardian@%,email.like.bestie@%,email.like.sponsor@%,email.like.vendor@%'
+        : undefined;
+
+      const data = await fetchAllPaginated<{ email: string; id: string }>(
+        'profiles',
+        'email, id',
+        [],
+        orFilter
+      );
+      
       // Transform to match subscriber format
-      subscribers = (data || []).map(profile => ({
+      subscribers = data.map(profile => ({
         email: profile.email,
         id: null,
         user_id: profile.id
       }));
+      console.log(`Fetched ${subscribers.length} site members`);
     } else if (targetAudience.type === 'non_subscribers') {
       // Get all site members who are NOT active newsletter subscribers
-      const { data: allProfiles, error: profilesError } = await supabaseClient
-        .from('profiles')
-        .select('email, id');
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
-      }
+      const allProfiles = await fetchAllPaginated<{ email: string; id: string }>(
+        'profiles',
+        'email, id',
+        []
+      );
 
       // Get active newsletter subscribers
-      const { data: activeSubscribers, error: subsError } = await supabaseClient
-        .from('newsletter_subscribers')
-        .select('user_id, email')
-        .eq('status', 'active');
-
-      if (subsError) {
-        console.error('Error fetching subscribers:', subsError);
-        throw subsError;
-      }
+      const activeSubscribers = await fetchAllPaginated<{ user_id: string | null; email: string }>(
+        'newsletter_subscribers',
+        'user_id, email',
+        [{ column: 'status', operator: 'eq', value: 'active' }]
+      );
 
       // Create a Set of subscribed user IDs and emails for fast lookup
       const subscribedUserIds = new Set(
-        (activeSubscribers || []).map(s => s.user_id).filter(Boolean)
+        activeSubscribers.map(s => s.user_id).filter(Boolean)
       );
       const subscribedEmails = new Set(
-        (activeSubscribers || []).map(s => s.email).filter(Boolean)
+        activeSubscribers.map(s => s.email).filter(Boolean)
       );
 
       // Filter out anyone who is subscribed
-      let nonSubscribers = (allProfiles || []).filter(profile => 
+      let nonSubscribers = allProfiles.filter(profile => 
         !subscribedUserIds.has(profile.id) && !subscribedEmails.has(profile.email)
       );
 
@@ -438,43 +476,58 @@ serve(async (req) => {
         id: null,
         user_id: profile.id
       }));
+      console.log(`Fetched ${subscribers.length} non-subscribers`);
     } else if (targetAudience.type === 'roles' && targetAudience.roles?.length > 0) {
-      // Get subscribers with specific roles
-      let query = supabaseClient
-        .from('newsletter_subscribers')
-        .select('email, id, user_id')
-        .eq('status', 'active')
-        .not('user_id', 'is', null);
+      // Get subscribers with specific roles - with pagination
+      const orFilter = testMode 
+        ? 'email.like.emailtest-%,email.like.sub1-%,email.like.sub2-%,email.like.active-%,email.like.unsub-%,email.like.newsletter-test-%'
+        : undefined;
 
-      // In test mode, only send to test email addresses
-      if (testMode) {
-        query = query.or('email.like.emailtest-%,email.like.sub1-%,email.like.sub2-%,email.like.active-%,email.like.unsub-%,email.like.newsletter-test-%');
-      }
-
-      const { data, error: subscribersError } = await query;
-
-      if (subscribersError) {
-        console.error('Error fetching subscribers:', subscribersError);
-        throw subscribersError;
-      }
-
-      // Filter by roles - fetch user roles for each subscriber
-      const subscribersWithRoles = await Promise.all(
-        (data || []).map(async (sub: any) => {
-          const { data: userRoles } = await supabaseClient
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', sub.user_id);
-          
-          const hasMatchingRole = userRoles?.some((ur: any) => 
-            targetAudience.roles.includes(ur.role)
-          );
-          
-          return hasMatchingRole ? sub : null;
-        })
+      const data = await fetchAllPaginated<{ email: string; id: string; user_id: string | null }>(
+        'newsletter_subscribers',
+        'email, id, user_id',
+        [
+          { column: 'status', operator: 'eq', value: 'active' },
+          { column: 'user_id', operator: 'not.is', value: null }
+        ],
+        orFilter
       );
 
-      subscribers = subscribersWithRoles.filter(Boolean);
+      // Filter by roles - fetch user roles in batches to avoid query limits
+      const batchSize = 500;
+      const subscribersWithRoles: { email: string; id: string; user_id: string | null }[] = [];
+      
+      for (let i = 0; i < data.length; i += batchSize) {
+        const batch = data.slice(i, i + batchSize);
+        const userIds = batch.map(s => s.user_id).filter(Boolean) as string[];
+        
+        if (userIds.length === 0) continue;
+        
+        const { data: roles } = await supabaseClient
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds);
+        
+        // Create a map of user_id to roles
+        const userRolesMap: Record<string, string[]> = {};
+        (roles || []).forEach((r: { user_id: string; role: string }) => {
+          if (!userRolesMap[r.user_id]) userRolesMap[r.user_id] = [];
+          userRolesMap[r.user_id].push(r.role);
+        });
+        
+        // Filter batch by matching roles
+        for (const sub of batch) {
+          if (sub.user_id) {
+            const userRoles = userRolesMap[sub.user_id] || [];
+            if (targetAudience.roles.some((role: string) => userRoles.includes(role))) {
+              subscribersWithRoles.push(sub);
+            }
+          }
+        }
+      }
+
+      subscribers = subscribersWithRoles;
+      console.log(`Fetched ${subscribers.length} subscribers with matching roles`);
     } else if (targetAudience.type === 'specific_emails' && targetAudience.emails?.length > 0) {
       // Send to specific email addresses (useful for testing)
       console.log('Sending to specific emails:', targetAudience.emails);
