@@ -673,6 +673,32 @@ export function styleColumnLayoutTables(html: string): string {
 }
 
 /**
+ * Parse CSS padding shorthand into individual values.
+ * Supports: "24px", "24px 16px", "24px 16px 12px", "24px 16px 12px 8px"
+ * Returns { top, right, bottom, left } in pixels. Non-px values default to 0.
+ */
+function parsePaddingShorthand(paddingValue: string): { top: number; right: number; bottom: number; left: number } {
+  const parts = (paddingValue || "0").trim().split(/\s+/).map(p => {
+    const match = p.match(/^(\d+(?:\.\d+)?)\s*px$/i);
+    return match ? parseFloat(match[1]) : 0;
+  });
+  
+  if (parts.length === 1) {
+    // "24px" -> all sides
+    return { top: parts[0], right: parts[0], bottom: parts[0], left: parts[0] };
+  } else if (parts.length === 2) {
+    // "24px 16px" -> vertical, horizontal
+    return { top: parts[0], right: parts[1], bottom: parts[0], left: parts[1] };
+  } else if (parts.length === 3) {
+    // "24px 16px 12px" -> top, horizontal, bottom
+    return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[1] };
+  } else {
+    // "24px 16px 12px 8px" -> top, right, bottom, left
+    return { top: parts[0] || 0, right: parts[1] || 0, bottom: parts[2] || 0, left: parts[3] || 0 };
+  }
+}
+
+/**
  * Style magazine (multi-column) layout tables for email rendering.
  * Uses depth-based parsing to correctly handle nested CTA button tables.
  * 
@@ -680,12 +706,19 @@ export function styleColumnLayoutTables(html: string): string {
  * stack on mobile (narrow viewports). This uses inline-block divs that naturally
  * wrap when the viewport is narrower than the combined column widths.
  * 
+ * PADDING AWARENESS: The editor adds padding to magazine tables (e.g., padding:24px).
+ * Column widths must be calculated from (600 - horizontal padding), not raw 600px,
+ * otherwise columns overflow and wrap on desktop.
+ * 
  * This function uses findTablesWithAttribute() and extractFirstTopLevelTr()
  * instead of regex to ensure nested </table> and </tr> tags (from CTA buttons)
  * don't terminate the match prematurely.
  */
 export function styleMagazineLayouts(html: string): string {
   let result = html;
+  
+  const containerWidth = 600;
+  const columnInternalPadding = 8; // Each column has 8px left + 8px right padding
   
   const magazineTables = findTablesWithAttribute(result, /data-two-column/i)
     .filter(t => !t.fullMatch.includes('<!--[if mso]>')); // Skip already processed
@@ -703,8 +736,13 @@ export function styleMagazineLayouts(html: string): string {
     const borderRadiusMatch = tableStyle.match(/border-radius:\s*([^;]+)/i);
     
     const wrapperBgStyle = bgMatch ? `background:${bgMatch[1].trim()};` : "";
-    const wrapperPadding = paddingMatch ? paddingMatch[1].trim() : "0";
+    const wrapperPaddingValue = paddingMatch ? paddingMatch[1].trim() : "0";
     const wrapperBorderRadius = borderRadiusMatch ? `border-radius:${borderRadiusMatch[1].trim()};` : "";
+    
+    // Parse padding to compute effective inner width
+    const parsedPadding = parsePaddingShorthand(wrapperPaddingValue);
+    const horizontalPadding = parsedPadding.left + parsedPadding.right;
+    const innerWidth = Math.max(100, containerWidth - horizontalPadding); // Safety minimum
     
     // Extract first top-level row (ignoring rows inside nested CTA tables)
     const trData = extractFirstTopLevelTr(table.innerContent);
@@ -715,30 +753,37 @@ export function styleMagazineLayouts(html: string): string {
     if (tdSegments.length === 0) continue;
     
     const numColumns = tdSegments.length;
-    const colMaxWidth = Math.floor(600 / numColumns);
+    
+    // Calculate column widths based on INNER width (after padding)
+    const colOuterWidth = Math.floor(innerWidth / numColumns);
+    // Content width accounts for the internal padding on each column div/cell (8px left + 8px right)
+    const colContentWidth = Math.max(1, colOuterWidth - (columnInternalPadding * 2));
     
     // Build HYBRID layout:
     // - MSO (Outlook): Use table-layout:fixed with explicit cell widths
     // - Gmail/Others: Use inline-block divs that wrap naturally on mobile
     
-    // For MSO/Outlook: fixed table cells
+    // For MSO/Outlook: fixed table cells using colOuterWidth
     const msoTableCells = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
-      const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
-      return `<td width="${colMaxWidth}" valign="top" style="width:${colMaxWidth}px;padding:0 8px;vertical-align:top;font-size:16px;">${styledContent}</td>`;
+      const styledContent = normalizeColumnImages(rawContent, colContentWidth);
+      return `<td width="${colOuterWidth}" valign="top" style="width:${colOuterWidth}px;padding:0 ${columnInternalPadding}px;vertical-align:top;font-size:16px;">${styledContent}</td>`;
     }).join("");
     
     // For Gmail/Modern clients: inline-block divs that stack on mobile
     // Key: min-width forces side-by-side on wide screens, max-width:100% allows stacking on narrow
+    // Use colOuterWidth for the div width so total doesn't exceed innerWidth
     const divColumns = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
-      const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
-      // Use min-width to prevent early wrapping on desktop, max-width:100% for mobile stacking
-      return `<div style="display:inline-block;min-width:${colMaxWidth - 20}px;width:${colMaxWidth}px;max-width:100%;vertical-align:top;font-size:16px;box-sizing:border-box;padding:0 8px;">${styledContent}</div>`;
+      const styledContent = normalizeColumnImages(rawContent, colContentWidth);
+      // min-width slightly less than colOuterWidth to prevent off-by-one wrapping
+      const minWidth = Math.max(1, colOuterWidth - 10);
+      return `<div style="display:inline-block;min-width:${minWidth}px;width:${colOuterWidth}px;max-width:100%;vertical-align:top;font-size:16px;box-sizing:border-box;padding:0 ${columnInternalPadding}px;">${styledContent}</div>`;
     }).join("");
     
     // Hybrid structure: MSO conditional for Outlook, inline-block divs for everyone else
-    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:100%;margin:16px auto;border-collapse:collapse;${wrapperBgStyle}${wrapperBorderRadius}"><tr><td style="padding:${wrapperPadding};text-align:center;font-size:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;table-layout:fixed;"><tr>${msoTableCells}</tr></table><![endif]--><!--[if !mso]><!-->${divColumns}<!--<![endif]--></td></tr></table>`;
+    // The outer table uses full containerWidth (600), padding is applied to the inner TD
+    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="${containerWidth}" style="width:${containerWidth}px;max-width:100%;margin:16px auto;border-collapse:collapse;${wrapperBgStyle}${wrapperBorderRadius}"><tr><td style="padding:${wrapperPaddingValue};text-align:center;font-size:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" width="${innerWidth}" style="border-collapse:collapse;table-layout:fixed;"><tr>${msoTableCells}</tr></table><![endif]--><!--[if !mso]><!-->${divColumns}<!--<![endif]--></td></tr></table>`;
     
     result = result.slice(0, table.start) + replacement + result.slice(table.end);
   }
