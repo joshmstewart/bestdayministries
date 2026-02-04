@@ -92,6 +92,9 @@ function getBaseStyleString(style: StyledBoxStyle): string {
   // Vertical: 0.75rem (~12px), Horizontal: 1.25rem (~20px)
   const boxPadding = 'padding: 0.75rem 1.25rem;';
   const boxMargin = 'margin: 1rem 0;';
+  // Safety: ensure any previously-saved inline borders/shadows don't linger
+  // when users switch to a borderless style.
+  const noOutline = 'border: 0; outline: 0; box-shadow: none;';
 
   switch (style) {
     case 'purple-gradient':
@@ -126,25 +129,25 @@ function getBaseStyleString(style: StyledBoxStyle): string {
       return `background-color: #14532d; border-left: 4px solid #eab308; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
     // Soft pastel colors (no borders, just fill)
     case 'soft-pink':
-      return `background-color: #fce7f3; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9d174d;`;
+      return `background-color: #fce7f3; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9d174d;`;
     case 'soft-purple':
-      return `background-color: #f3e8ff; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #6b21a8;`;
+      return `background-color: #f3e8ff; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #6b21a8;`;
     case 'soft-teal':
-      return `background-color: #ccfbf1; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #115e59;`;
+      return `background-color: #ccfbf1; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #115e59;`;
     case 'soft-coral':
-      return `background-color: #ffedd5; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9a3412;`;
+      return `background-color: #ffedd5; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9a3412;`;
     case 'soft-indigo':
-      return `background-color: #e0e7ff; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #3730a3;`;
+      return `background-color: #e0e7ff; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #3730a3;`;
     case 'soft-rose':
-      return `background-color: #ffe4e6; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9f1239;`;
+      return `background-color: #ffe4e6; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9f1239;`;
     case 'soft-sky':
-      return `background-color: #e0f2fe; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #075985;`;
+      return `background-color: #e0f2fe; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #075985;`;
     case 'soft-mint':
-      return `background-color: #d1fae5; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #065f46;`;
+      return `background-color: #d1fae5; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #065f46;`;
     case 'soft-peach':
-      return `background-color: #fed7aa; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #7c2d12;`;
+      return `background-color: #fed7aa; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #7c2d12;`;
     case 'soft-lavender':
-      return `background-color: #ede9fe; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #5b21b6;`;
+      return `background-color: #ede9fe; ${noOutline} ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #5b21b6;`;
     case 'light-gray':
     default:
       return `background-color: #f3f4f6; ${boxPadding} border-radius: 0.5rem; ${boxMargin}`;
