@@ -718,6 +718,102 @@ export function styleFooterImages(html: string): string {
 }
 
 /**
+ * Constrain styled boxes (divs with background/gradient styles) to 600px.
+ * These are typically created by TipTap's styled-box extension.
+ */
+export function styleStyledBoxes(html: string): string {
+  let result = html;
+  
+  // Match divs with background styling (styled boxes, gradient boxes, etc.)
+  // These include "This Month at a Glance" style gradient boxes
+  result = result.replace(
+    /<div\b([^>]*(?:background|linear-gradient)[^>]*)>/gi,
+    (divTag, attrs) => {
+      // Wrap in 600px constraint if not already
+      if (/max-width\s*:\s*600px/i.test(divTag)) {
+        return divTag;
+      }
+      return mergeInlineStyle(divTag, "max-width:600px;margin-left:auto;margin-right:auto;");
+    }
+  );
+  
+  return result;
+}
+
+/**
+ * Constrain standalone content blocks (paragraphs, headings, lists, blockquotes)
+ * to 600px width for email consistency.
+ * Only applies to top-level elements that aren't already inside constrained containers.
+ */
+export function constrainContentBlocks(html: string): string {
+  let result = html;
+  
+  // Wrap unordered lists in 600px container
+  result = result.replace(
+    /<ul\b([^>]*)>/gi,
+    (ulTag, attrs) => {
+      if (/max-width\s*:\s*600px/i.test(ulTag)) {
+        return ulTag;
+      }
+      return mergeInlineStyle(ulTag, "max-width:600px;margin-left:auto;margin-right:auto;");
+    }
+  );
+  
+  // Wrap ordered lists in 600px container
+  result = result.replace(
+    /<ol\b([^>]*)>/gi,
+    (olTag, attrs) => {
+      if (/max-width\s*:\s*600px/i.test(olTag)) {
+        return olTag;
+      }
+      return mergeInlineStyle(olTag, "max-width:600px;margin-left:auto;margin-right:auto;");
+    }
+  );
+  
+  // Wrap blockquotes in 600px container
+  result = result.replace(
+    /<blockquote\b([^>]*)>/gi,
+    (bqTag, attrs) => {
+      if (/max-width\s*:\s*600px/i.test(bqTag)) {
+        return bqTag;
+      }
+      return mergeInlineStyle(bqTag, "max-width:600px;margin-left:auto;margin-right:auto;");
+    }
+  );
+  
+  // Wrap horizontal rules (dividers) in 600px
+  result = result.replace(
+    /<hr\b([^>]*)>/gi,
+    (hrTag, attrs) => {
+      if (/max-width\s*:\s*600px/i.test(hrTag)) {
+        return hrTag;
+      }
+      return mergeInlineStyle(hrTag, "max-width:600px;margin-left:auto;margin-right:auto;");
+    }
+  );
+  
+  // Constrain standalone images not already in tables
+  result = result.replace(
+    /(<p\b[^>]*>)\s*(<img\b[^>]*>)\s*(<\/p>)/gi,
+    (match, pOpen, imgTag, pClose) => {
+      // Add max-width to the paragraph containing the image
+      let constrainedP = pOpen;
+      if (!/max-width\s*:\s*600px/i.test(pOpen)) {
+        constrainedP = mergeInlineStyle(pOpen, "max-width:600px;margin-left:auto;margin-right:auto;");
+      }
+      // Also ensure image is responsive
+      let constrainedImg = imgTag;
+      if (!/max-width\s*:/i.test(imgTag)) {
+        constrainedImg = mergeInlineStyle(imgTag, "max-width:100%;height:auto;");
+      }
+      return `${constrainedP}${constrainedImg}${pClose}`;
+    }
+  );
+  
+  return result;
+}
+
+/**
  * Apply all email styling transformations in the correct order.
  * This is the main function to call for processing newsletter HTML.
  */
@@ -736,10 +832,16 @@ export function applyEmailStyles(html: string): string {
   // 3. Magazine layouts (data-two-column)
   result = styleMagazineLayouts(result);
   
-  // 4. CTA buttons (ensure explicit styles for Gmail)
+  // 4. Styled boxes (gradient backgrounds, etc.)
+  result = styleStyledBoxes(result);
+  
+  // 5. Constrain content blocks (lists, blockquotes, dividers, images)
+  result = constrainContentBlocks(result);
+  
+  // 6. CTA buttons (ensure explicit styles for Gmail)
   result = styleCTAButtons(result);
   
-  // 5. Typography normalization (explicit font sizes for Gmail)
+  // 7. Typography normalization (explicit font sizes for Gmail)
   result = normalizeTypography(result);
   
   return result;
