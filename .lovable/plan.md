@@ -1,168 +1,156 @@
 
-# Plan: Safari Self-Healing After Updates
 
-## Problem Summary
-After app updates, Safari on Mac gets stuck requiring manual "Clear site data" to work. Users who don't know this workaround are stuck with a broken app.
+# Replace Newsletter Webhooks with Direct API Polling
 
-## Solution: Multi-Layer Self-Healing System
+## The Approach You Want
+Just like the Stripe reconciliation system, we'll poll the Resend API directly:
+- **On-demand button**: "Refresh Stats" in the campaign stats dialog
+- **Automatic cron job**: Hourly sync for recent campaigns
+- **Visual indicator**: "Last synced: 5 minutes ago"
 
-### Layer 1: Proactive Version Detection & Cache Clearing
-- Track a build version that changes with each deployment
-- On app load, compare cached version vs current version
-- When mismatch detected: clear all caches proactively BEFORE errors occur
+---
 
-### Layer 2: Enhanced Chunk Load Recovery
-- Improve the existing chunk load error detection
-- When chunk errors occur: clear browser caches, IndexedDB auth, and localStorage
-- Force a cache-busting reload with `?v=timestamp`
+## How It Will Work
 
-### Layer 3: Browser Cache API Clearing
-- Use the Cache API (`caches.keys()` + `caches.delete()`) to clear cached resources
-- This addresses Safari's aggressive caching of old JS chunks
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    Admin Opens Campaign Stats                     │
+└─────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  UI shows cached stats + "Last synced: 3 min ago" + [Refresh]   │
+└─────────────────────────────────────────────────────────────────┘
+                                   │
+                      (user clicks Refresh OR cron runs)
+                                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               sync-newsletter-analytics Edge Function            │
+│                                                                   │
+│  1. Get emails from newsletter_emails_log (has resend_email_id)  │
+│  2. Batch call Resend API: GET /emails/{id}                      │
+│  3. Get last_event (delivered, opened, bounced, etc)             │
+│  4. Update newsletter_emails_log.status                          │
+│  5. Insert/update newsletter_analytics for aggregation           │
+│  6. Update campaign.analytics_synced_at timestamp                │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### Layer 4: User-Visible Recovery UI
-- If automatic recovery fails after 2 attempts, show a friendly banner
-- Provide a "Fix Now" button that performs comprehensive cache clearing
-- Include instructions for manual recovery as last resort
+---
+
+## What We Already Have (No Changes Needed)
+
+- `newsletter_emails_log.resend_email_id` stores the Resend email ID for every sent email
+- `newsletter_campaigns` table can store a `analytics_synced_at` timestamp
+- Existing analytics UI in `CampaignStatsDialog` already reads from the data
 
 ---
 
 ## Technical Implementation
 
-### Step 1: Create Build Version System
-Create a new file `src/lib/buildVersion.ts` that:
-- Exports a `BUILD_VERSION` constant (timestamp or hash)
-- Gets injected during build time via Vite's `define` config
+### 1. Database Changes
 
-### Step 2: Enhance Startup Recovery
-Update `src/lib/appStartupRecovery.ts` to:
-- Check build version on startup
-- Clear browser Cache API on version mismatch
-- Clear IndexedDB auth storage on version mismatch
-- Reset the dual Supabase client state
+Add tracking field to know when we last synced:
 
-### Step 3: Add Comprehensive Cache Clearing
-Create a new function that clears:
-1. Browser Cache API (`caches.delete()`)
-2. IndexedDB databases (`indexedDB.deleteDatabase()`)
-3. localStorage (targeted keys)
-4. sessionStorage
+```sql
+ALTER TABLE newsletter_campaigns 
+ADD COLUMN analytics_synced_at TIMESTAMP WITH TIME ZONE;
+```
 
-### Step 4: Add Recovery UI Component
-Create `src/components/AppRecoveryBanner.tsx`:
-- Detects when app is in a broken state
-- Shows user-friendly message
-- Provides "Fix Now" button
-- Falls back to manual instructions
+### 2. New Edge Function: `sync-newsletter-analytics`
 
-### Step 5: Update Vite Config
-Modify `vite.config.ts` to:
-- Inject build timestamp as environment variable
-- Ensure chunk hashes change with content
+```typescript
+// Input: { campaignId: string }
+// Process:
+// 1. Fetch all newsletter_emails_log records with resend_email_id
+// 2. For each email (batched, with 600ms delay to respect rate limit):
+//    - Call Resend API: GET /emails/{resend_email_id}
+//    - Extract last_event from response
+//    - Update newsletter_emails_log.status
+//    - Insert into newsletter_analytics if event changed
+// 3. Update newsletter_campaigns.analytics_synced_at
+```
+
+**Rate Limiting**: Resend allows ~2 requests/second, so we'll use 600ms delay between calls (same pattern as sending).
+
+**For 1,400 emails**: ~14 minutes to sync all stats (acceptable for a manual refresh; cron can do this incrementally).
+
+### 3. Optimization: Sync Only Changed Emails
+
+To speed up syncing, we can:
+- Track `last_known_event` in `newsletter_emails_log`
+- Skip emails already at terminal state (`delivered`, `bounced`, `complained`)
+- Only poll emails with status `sent` or `pending`
+
+For the campaign you just sent:
+- 1,405 emails at status `sent`
+- All need to be checked (will take ~14 min for full sync)
+- Subsequent syncs will be much faster (only pending ones)
+
+### 4. UI Changes (CampaignStatsDialog)
+
+Add to dialog header:
+
+```tsx
+<div className="flex items-center gap-2 text-sm text-muted-foreground">
+  <span>Last synced: {formatDistanceToNow(analytics_synced_at)} ago</span>
+  <Button size="sm" variant="outline" onClick={handleRefresh}>
+    <RefreshCw className="h-4 w-4 mr-1" />
+    Refresh Stats
+  </Button>
+</div>
+```
+
+Progress indicator while syncing:
+- "Syncing... 142/1405 emails checked"
+- Toast when complete
+
+### 5. Cron Job
+
+Hourly job to sync recent campaigns (last 7 days):
+
+```sql
+SELECT cron.schedule(
+  'sync-newsletter-analytics-hourly',
+  '0 * * * *', -- Every hour
+  $$
+  SELECT net.http_post(
+    url:='https://nbvijawmjkycyweioglk.supabase.co/functions/v1/sync-newsletter-analytics',
+    headers:='{"Authorization": "Bearer YOUR_ANON_KEY", "Content-Type": "application/json"}'::jsonb,
+    body:='{"mode": "recent"}'::jsonb
+  ) as request_id;
+  $$
+);
+```
+
+---
+
+## What Happens to Webhooks?
+
+Keep them as **optional backup** (same philosophy as Stripe):
+- They can still update data if they fire
+- But we don't rely on them
+- Polling is the source of truth
+
+The webhook code stays but the header parsing bug becomes irrelevant because we're not depending on it.
 
 ---
 
 ## Files to Create/Modify
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/lib/buildVersion.ts` | Create | Build version tracking |
-| `src/lib/appStartupRecovery.ts` | Modify | Enhanced recovery logic |
-| `src/lib/cacheManager.ts` | Create | Comprehensive cache clearing |
-| `src/components/AppRecoveryBanner.tsx` | Create | User-facing recovery UI |
-| `src/App.tsx` | Modify | Add recovery banner |
-| `vite.config.ts` | Modify | Inject build version |
+| File | Change |
+|------|--------|
+| `supabase/functions/sync-newsletter-analytics/index.ts` | **NEW** - Edge function to poll Resend API |
+| `src/components/admin/newsletter/CampaignStatsDialog.tsx` | Add refresh button + last synced indicator |
+| Migration | Add `analytics_synced_at` column to `newsletter_campaigns` |
+| Database | Create cron job for hourly sync |
 
 ---
 
-## Recovery Flow
+## Expected Outcome
 
-```text
-App Loads
-    │
-    ├─► Check BUILD_VERSION vs localStorage
-    │       │
-    │       └─► Mismatch? ───────────────┐
-    │                                    │
-    │                              Clear all caches
-    │                              Reload with ?v=timestamp
-    │                                    │
-    └─► Normal startup                   │
-            │                            │
-            ├─► Chunk load error? ───────┤
-            │                            │
-            │                      Increment retry counter
-            │                      Clear caches
-            │                      Reload
-            │                            │
-            ├─► Retry count > 2? ────────┤
-            │                            │
-            │                      Show recovery banner
-            │                      "Something went wrong"
-            │                      [Fix Now] button
-            │                            │
-            └─► App works normally       │
-                                         │
-                                   Manual recovery
-                                   instructions shown
-```
+- **Campaign Stats Dialog**: Shows "Last synced: X ago" with Refresh button
+- **Manual Refresh**: Click button → starts sync → shows progress → updates stats
+- **Automatic Sync**: Cron job runs hourly for recent campaigns
+- **Reliability**: No more missed webhooks, direct API polling as source of truth
 
----
-
-## Key Code Additions
-
-### Cache Clearing Function
-```typescript
-// Clear all browser caches
-async function clearAllCaches() {
-  // Clear Cache API
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => caches.delete(k)));
-  }
-  
-  // Clear IndexedDB auth
-  try {
-    indexedDB.deleteDatabase('supabase-auth-storage');
-  } catch {}
-  
-  // Clear risky localStorage keys
-  const riskyKeys = ['shopify-cart', 'admin_session_backup'];
-  riskyKeys.forEach(k => localStorage.removeItem(k));
-  
-  // Clear Supabase auth tokens
-  const authKey = `sb-${PROJECT_ID}-auth-token`;
-  localStorage.removeItem(authKey);
-}
-```
-
-### Version Check on Startup
-```typescript
-const CURRENT_BUILD = import.meta.env.VITE_BUILD_VERSION;
-const STORED_BUILD = localStorage.getItem('app_build_version');
-
-if (STORED_BUILD && STORED_BUILD !== CURRENT_BUILD) {
-  console.log('[Recovery] New build detected, clearing caches');
-  await clearAllCaches();
-  localStorage.setItem('app_build_version', CURRENT_BUILD);
-  window.location.replace(`${location.pathname}?v=${Date.now()}`);
-}
-```
-
----
-
-## Expected Outcomes
-
-1. **Automatic Recovery**: 95%+ of Safari cache issues will self-heal without user action
-2. **Visible Fallback**: Users see a helpful recovery banner instead of blank/broken page
-3. **No Data Loss**: User auth is re-established after recovery (they may need to log in again)
-4. **Logging**: All recovery attempts logged for debugging
-
----
-
-## Testing Checklist
-- [ ] Deploy update → Safari auto-recovers without manual cache clear
-- [ ] Simulate chunk load error → App recovers automatically
-- [ ] Force 3+ failed recoveries → Banner appears with Fix Now button
-- [ ] Fix Now button → Successfully clears caches and reloads
-- [ ] Verify auth state → User can log in after recovery
