@@ -41,6 +41,17 @@ const earnHierarchy: ParentCategory[] = [
         ],
       },
       {
+        name: "Login Streaks",
+        items: [
+          { name: "3-Day Streak", description: "3 consecutive days", coins: "50 + 1 pack" },
+          { name: "Week Warrior", description: "7 consecutive days", coins: "100 + 1 pack" },
+          { name: "Two Week Champion", description: "14 consecutive days", coins: "200 + 2 packs" },
+          { name: "Monthly Master", description: "30 consecutive days", coins: "500 + 3 packs" },
+          { name: "Two Month Legend", description: "60 consecutive days", coins: "1000 + 5 packs" },
+          { name: "Quarterly Superstar", description: "90 consecutive days", coins: "2000 + 10 packs" },
+        ],
+      },
+      {
         name: "Wordle",
         items: [
           { name: "Win Game", description: "Win the daily word game", coins: "5-100" },
