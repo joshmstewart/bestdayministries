@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import Cropper from "react-easy-crop";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { ZoomIn, ZoomOut, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ASPECT_RATIOS = {
@@ -54,6 +54,26 @@ export function ImageCropDialog({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  // Reset loading state when imageUrl changes or dialog opens
+  useEffect(() => {
+    if (open && imageUrl) {
+      setImageLoading(true);
+      setImageError(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+
+      // Set a timeout fallback in case onMediaLoaded never fires
+      const timeoutId = setTimeout(() => {
+        setImageLoading(false);
+      }, 5000); // 5 second fallback
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [open, imageUrl]);
 
   const handleAspectRatioChange = (ratioKey: AspectRatioKey) => {
     if (onAspectRatioKeyChange) {
@@ -137,6 +157,25 @@ export function ImageCropDialog({
         </DialogHeader>
 
         <div className="flex-1 relative min-h-[400px] max-h-[450px] bg-black rounded-lg overflow-hidden">
+          {imageLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+              <div className="flex flex-col items-center gap-2 text-white">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="text-sm">Loading image...</span>
+              </div>
+            </div>
+          )}
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+              <div className="flex flex-col items-center gap-2 text-center p-4">
+                <span className="text-destructive">Failed to load image</span>
+                <span className="text-sm text-muted-foreground">{imageError}</span>
+                <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
           <Cropper
             image={imageUrl}
             crop={crop}
@@ -145,6 +184,7 @@ export function ImageCropDialog({
             onCropChange={onCropChange}
             onZoomChange={onZoomChange}
             onCropComplete={onCropCompleteInternal}
+            onMediaLoaded={() => setImageLoading(false)}
           />
         </div>
 
