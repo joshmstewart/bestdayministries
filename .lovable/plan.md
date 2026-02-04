@@ -1,57 +1,58 @@
 
-# Fix Magazine CTA Centering on Mobile
+Goal
+- Make the Daily Five popup (opened from the Daily Bar on /community) actually use the available width so the Wordle keyboard keys aren’t “thin/squished,” and so changing ENTER/BACKSPACE sizing has a visible effect.
 
-## Problem
-CTA buttons inside magazine (two-column) layouts appear left-aligned when columns stack on mobile. The issue is that:
-- CTA tables have `margin: 16px 0;` (no horizontal auto margins)
-- Adding `text-align: center` to the parent div doesn't center table elements
-- Tables require explicit `margin: auto` to center horizontally
+What’s actually limiting it (root cause)
+- The Daily Five popup is rendered inside `DialogContent` (shadcn/radix) which defaults to `w-full max-w-lg`.
+- In `src/components/daily-features/DailyBar.tsx`, the Daily Five popup currently passes:
+  - `w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:w-auto sm:max-w-lg`
+- The `sm:w-auto` is the problem on desktop/tablet widths:
+  - `w-auto` makes the dialog shrink-to-content.
+  - The keyboard rows contain many flex items; when the container shrink-wraps, the row’s “natural/min-content” width becomes small, so every key becomes skinny.
+  - That’s why it “looks exactly the same” and “unnecessarily thin” even after adjusting min-width on ENTER/BACKSPACE.
 
-## Solution
-Update the email transformation in `styleMagazineLayouts()` to:
-1. **Revert** the `text-align: center` on column divs (this was breaking text alignment)
-2. **Add** a post-processing step to center CTA tables specifically within magazine columns by applying `margin-left: auto; margin-right: auto;` to any `table[data-cta-button]` found inside the column content
+Repo evidence (files)
+- `src/components/daily-features/DailyBar.tsx` (Daily Five DialogContent className)
+- `src/components/ui/dialog.tsx` (DialogContent base classes include `w-full max-w-lg ...`)
+- `src/components/daily-features/DailyFivePopup.tsx` (keyboard wrapped in `<div className="w-full">` so it will expand correctly once the dialog width is real)
+- `src/components/wordle/WordleKeyboard.tsx` (special key sizing already adjusted, but currently masked by the dialog shrink-wrap)
 
-This approach:
-- Keeps paragraph text left-aligned for readability on both desktop and mobile
-- Centers only CTA buttons when columns stack on mobile
-- Works correctly in Gmail (Safari/Mac) which is the primary target client
+Implementation approach (minimal + targeted)
+1) Fix the dialog width behavior for Daily Five (primary fix)
+   - Update the Daily Five `<DialogContent>` in `src/components/daily-features/DailyBar.tsx`:
+     - Remove the `sm:w-auto` shrink-wrap behavior.
+     - Override the default `max-w-lg` to allow a wider dialog on larger screens.
+     - Use a single “responsive clamp” width so it’s:
+       - nearly full width on mobile
+       - a comfortable fixed-ish width on desktop (so keys have room)
+   - Example direction (not exact final string yet, but the intended behavior):
+     - `w-[min(640px,calc(100vw-1rem))] max-w-none`
+     - (optional) reduce padding for more usable keyboard space: override `p-6` → `p-4` for this dialog only.
 
-## Technical Changes
+2) (Optional) Small spacing improvements if needed after widening
+   - If it still feels narrow due to internal spacing:
+     - Override dialog padding (`p-6` is chunky for this use case).
+     - Ensure the keyboard wrapper remains `w-full` (it already is).
+     - If we see extra shrink, add `min-w-0` to relevant wrappers, but I expect step (1) resolves it.
 
-**File: `supabase/functions/_shared/emailStyles.ts`**
+3) Verify the ENTER/BACKSPACE sizing actually applies after width is fixed
+   - Once the dialog isn’t shrink-wrapped, your earlier request (smaller ENTER/BACKSPACE) will become visually obvious.
+   - If you still want them even smaller after the widening, we can do a second pass to tweak special key min-width/padding.
 
-In `styleMagazineLayouts()`:
-1. Remove `text-align:center;` from the inline-block div styles (line ~782)
-2. Add a helper function to center CTA tables within column content:
-   ```typescript
-   const centerCTATablesInColumn = (html: string): string => {
-     return html.replace(
-       /<table\b([^>]*data-cta-button[^>]*)style="([^"]*)"/gi,
-       (match, beforeStyle, existingStyle) => {
-         // Add margin auto if not already present
-         if (/margin[^:]*:\s*[^;]*auto/i.test(existingStyle)) {
-           return match;
-         }
-         return `<table${beforeStyle}style="${existingStyle};margin-left:auto;margin-right:auto;"`;
-       }
-     );
-   };
-   ```
-3. Apply this helper to the `styledContent` in both MSO and non-MSO column rendering paths
+Testing checklist (what I’ll do / what you can verify visually)
+- On /community:
+  - Open Daily Five from the Daily Bar and confirm the dialog is visibly wider.
+  - Confirm the top keyboard row (Q–P) keys are no longer skinny.
+  - Confirm ENTER/BACKSPACE no longer force the letter keys to compress.
+- Toggle Lovable preview sizes (phone/tablet/desktop icon above preview) and verify:
+  - Mobile: dialog is near full width without overflowing the screen.
+  - Tablet/Desktop: dialog uses the wider clamp width (not shrink-to-content).
+- Quick interaction smoke test:
+  - Tap several letters quickly; confirm hit targets feel improved.
+  - Use BACKSPACE and ENTER; confirm they are clickable and not visually dominant.
 
-## Expected Outcome
-- **Desktop**: Columns remain side-by-side, text left-aligned, CTAs left-aligned (consistent with current desktop behavior)
-- **Mobile**: Columns stack vertically, text left-aligned for readability, CTAs centered within their column
+Files that will change (once you approve)
+- `src/components/daily-features/DailyBar.tsx` (Daily Five dialog sizing classes)
 
-## Deployment
-After code changes, redeploy the newsletter edge functions:
-- `send-newsletter`
-- `send-test-newsletter`
-- `send-automated-campaign`
-- `send-test-automated-template`
-
-## Verification
-Send a test email with a magazine layout containing a CTA button. Check:
-1. Desktop Gmail: columns side-by-side, CTA positioned normally
-2. Mobile Gmail: columns stacked, CTA centered within column width
+Notes / guardrails
+- I will not change the global `DialogContent` defaults in `src/components/ui/dialog.tsx` because that would affect every dialog in the app. This fix will be scoped to the Daily Five popup only.
