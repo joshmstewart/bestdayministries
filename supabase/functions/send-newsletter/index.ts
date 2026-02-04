@@ -649,7 +649,33 @@ serve(async (req) => {
       })
       .eq("id", campaignId);
 
-    // Estimate completion time (80 emails/minute via cron)
+    // Immediately trigger the queue processor (don't wait for cron job)
+    // This eliminates the ~60 second wait time between queuing and first send
+    console.log(`[send-newsletter] Triggering immediate queue processing...`);
+    try {
+      const processorResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-newsletter-queue`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      
+      if (processorResponse.ok) {
+        const processorResult = await processorResponse.json();
+        console.log(`[send-newsletter] Immediate processing complete:`, processorResult);
+      } else {
+        console.log(`[send-newsletter] Immediate processing returned ${processorResponse.status}, cron will pick up remaining`);
+      }
+    } catch (invokeError) {
+      console.log(`[send-newsletter] Could not invoke processor immediately, cron will handle:`, invokeError);
+    }
+
+    // Estimate completion time (80 emails/minute via cron for remaining)
     const estimatedMinutes = Math.ceil(queuedCount / 80);
     const estimatedCompletion = new Date(Date.now() + estimatedMinutes * 60 * 1000);
 
@@ -661,7 +687,7 @@ serve(async (req) => {
         totalSubscribers: subscribers.length,
         estimatedMinutes,
         estimatedCompletion: estimatedCompletion.toISOString(),
-        message: `${queuedCount} emails queued. Processing will complete in approximately ${estimatedMinutes} minute(s).`
+        message: `${queuedCount} emails queued and processing started immediately.`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
