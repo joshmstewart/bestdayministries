@@ -909,37 +909,72 @@ export function constrainContentBlocks(html: string): string {
 }
 
 /**
+ * Style empty paragraphs (spacers) as visible spacing for consistent email rendering.
+ * Matches paragraphs that are:
+ * - Completely empty: <p></p> or <p class="..."></p>
+ * - Contain only whitespace, &nbsp;, or <br> tags
+ * 
+ * TipTap creates blank lines as <p class="min-h-[1.5em]"></p> which this function catches.
+ */
+export function styleEmptyParagraphs(html: string): string {
+  return (html || "").replace(
+    /<p\b([^>]*)>((\s|&nbsp;|<br\s*\/?>)*)<\/p>/gi,
+    (match, attrs, innerContent) => {
+      const existingAttrs = attrs || "";
+      // Add &nbsp; to ensure the paragraph takes up space in email clients
+      const spacerContent = "&nbsp;";
+      
+      if (/style\s*=\s*"/i.test(existingAttrs)) {
+        const newAttrs = existingAttrs.replace(
+          /style\s*=\s*"([^"]*)"/i,
+          (_m: string, existing: string) => {
+            const trimmed = (existing || "").trim();
+            const sep = trimmed.length === 0 ? "" : trimmed.endsWith(";") ? " " : "; ";
+            return `style="${trimmed}${sep}margin:0;min-height:1.5em;line-height:1.5;"`;
+          }
+        );
+        return `<p${newAttrs}>${spacerContent}</p>`;
+      }
+      return `<p${existingAttrs} style="margin:0;min-height:1.5em;line-height:1.5;">${spacerContent}</p>`;
+    }
+  );
+}
+
+/**
  * Apply all email styling transformations in the correct order.
  * This is the main function to call for processing newsletter HTML.
  */
 export function applyEmailStyles(html: string): string {
   let result = html;
 
-  // 0. Constrain TipTap tables to the 600px email standard
+  // 0. Style empty paragraphs (spacers) first so they render as spacing
+  result = styleEmptyParagraphs(result);
+
+  // 1. Constrain TipTap tables to the 600px email standard
   result = styleNewsletterTables(result);
   
-  // 1. Standard tables first (avoid touching special layout tables)
+  // 2. Standard tables first (avoid touching special layout tables)
   result = styleStandardTablesOnly(result);
   
-  // 2. Column layouts (data-columns)
+  // 3. Column layouts (data-columns)
   result = styleColumnLayoutTables(result);
   
-  // 3. Magazine layouts (data-two-column)
+  // 4. Magazine layouts (data-two-column)
   result = styleMagazineLayouts(result);
   
-  // 4. Styled boxes (gradient backgrounds, etc.)
+  // 5. Styled boxes (gradient backgrounds, etc.)
   result = styleStyledBoxes(result);
   
-  // 5. Constrain content blocks (lists, blockquotes, dividers, images)
+  // 6. Constrain content blocks (lists, blockquotes, dividers, images)
   result = constrainContentBlocks(result);
   
-  // 6. CTA buttons (ensure explicit styles for Gmail)
+  // 7. CTA buttons (ensure explicit styles for Gmail)
   result = styleCTAButtons(result);
   
-  // 7. Typography normalization (explicit font sizes for Gmail)
+  // 8. Typography normalization (explicit font sizes for Gmail)
   result = normalizeTypography(result);
 
-  // 8. Final: Wrap everything in a centered 600px container so non-table content
+  // 9. Final: Wrap everything in a centered 600px container so non-table content
   // (headings, paragraphs, styled boxes) never renders full-width.
   result = wrapInCentered600Container(result);
   

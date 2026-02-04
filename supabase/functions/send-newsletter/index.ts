@@ -266,32 +266,8 @@ function styleStyledBoxes(html: string): string {
   );
 }
 
-// styleFooterImages is now imported from _shared/emailStyles.ts
+// styleFooterImages and styleEmptyParagraphs are now handled by applyEmailStyles from _shared/emailStyles.ts
 
-/**
- * Style empty paragraphs (spacers) as 12px height for consistent email rendering.
- * Matches paragraphs containing only whitespace, &nbsp;, or <br> tags.
- */
-function styleEmptyParagraphs(html: string): string {
-  return (html || "").replace(
-    /<p\b([^>]*)>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi,
-    (match, attrs) => {
-      const existingAttrs = attrs || "";
-      if (/style\s*=\s*"/i.test(existingAttrs)) {
-        const newAttrs = existingAttrs.replace(
-          /style\s*=\s*"([^"]*)"/i,
-          (_m: string, existing: string) => {
-            const trimmed = (existing || "").trim();
-            const sep = trimmed.length === 0 ? "" : trimmed.endsWith(";") ? " " : "; ";
-            return `style="${trimmed}${sep}margin:0;height:12px;line-height:12px;"`;
-          }
-        );
-        return `<p${newAttrs}></p>`;
-      }
-      return `<p${existingAttrs} style="margin:0;height:12px;line-height:12px;"></p>`;
-    }
-  );
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
