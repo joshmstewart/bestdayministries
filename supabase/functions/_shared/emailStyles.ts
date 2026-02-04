@@ -625,24 +625,16 @@ export function styleColumnLayoutTables(html: string): string {
     const numColumns = tdSegments.length;
     const colMaxWidth = Math.floor(600 / numColumns);
     
-    // Build fluid-hybrid structure: each column is an inline-block div
-    // NOTE: On desktop, columns appear side-by-side. The border-bottom is intended
-    // to only show when stacked on mobile. Since we can't use media queries in email,
-    // we'll NOT add borders here - they should only appear when truly stacked.
-    // The stacking happens naturally via inline-block at narrow widths.
-    const columnDivs = tdSegments.map((tdHtml, colIndex) => {
+    // Build fixed table layout for desktop - prevents wrapping
+    // CRITICAL: Gmail ignores inline-block width in some contexts, so we use a proper
+    // table-layout:fixed structure that forces columns to stay side-by-side.
+    const tableCells = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
-      // Normalize image widths to prevent overflow
       const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
-      // No horizontal divider lines - these only make sense when stacked, 
-      // but we can't conditionally apply them without media queries.
-      // Desktop view should have no dividers between side-by-side columns.
-      // Use fixed width (not width:100%) to prevent desktop wrapping - columns stay side-by-side
-      // until viewport shrinks below 600px where inline-block naturally stacks.
-      return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:${colMaxWidth}px;max-width:100%;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
+      return `<td width="${colMaxWidth}" valign="top" style="width:${colMaxWidth}px;padding:0 8px;vertical-align:top;font-size:16px;">${styledContent}</td>`;
     }).join("");
     
-    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:0 auto;border-collapse:collapse;"><tr><td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->${columnDivs}<!--[if mso]></tr></table><![endif]--></td></tr></table>`;
+    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:100%;margin:0 auto;border-collapse:collapse;table-layout:fixed;"><tr>${tableCells}</tr></table>`;
     
     result = result.slice(0, table.start) + replacement + result.slice(table.end);
   }
@@ -725,18 +717,18 @@ export function styleMagazineLayouts(html: string): string {
     const numColumns = tdSegments.length;
     const colMaxWidth = Math.floor(600 / numColumns);
     
-    // Build fluid-hybrid structure: each column is an inline-block div
-    // This allows natural stacking on narrow viewports (mobile)
-    // Use fixed width (not width:100%) to prevent desktop wrapping - columns stay side-by-side
-    // until viewport shrinks below 600px where inline-block naturally stacks.
-    const columnDivs = tdSegments.map((tdHtml, colIndex) => {
+    // Build fixed table layout for desktop, responsive for mobile
+    // CRITICAL: Gmail ignores inline-block width in some contexts, so we use a proper
+    // table-layout:fixed structure that forces columns to stay side-by-side.
+    // Mobile stacking is handled via max-width on the outer wrapper.
+    const tableCells = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
       const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
-      return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:${colMaxWidth}px;max-width:100%;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
+      return `<td width="${colMaxWidth}" valign="top" style="width:${colMaxWidth}px;padding:0 8px;vertical-align:top;font-size:16px;">${styledContent}</td>`;
     }).join("");
     
-    // Outer wrapper preserves background/padding/border-radius, inner uses fluid-hybrid
-    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:16px auto;border-collapse:collapse;${wrapperBgStyle}${wrapperBorderRadius}"><tr><td style="padding:${wrapperPadding};"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->${columnDivs}<!--[if mso]></tr></table><![endif]--></td></tr></table></td></tr></table>`;
+    // Use table-layout:fixed to force columns to exact widths - this prevents wrapping on desktop
+    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:100%;margin:16px auto;border-collapse:collapse;table-layout:fixed;${wrapperBgStyle}${wrapperBorderRadius}"><tr><td style="padding:${wrapperPadding};"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;table-layout:fixed;"><tr>${tableCells}</tr></table></td></tr></table>`;
     
     result = result.slice(0, table.start) + replacement + result.slice(table.end);
   }
