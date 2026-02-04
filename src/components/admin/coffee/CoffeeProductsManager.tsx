@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { Plus, Edit, Trash2, Loader2, Coffee, Eye, EyeOff } from "lucide-react";
 import { CoffeeProductForm } from "./CoffeeProductForm";
 import ImageLightbox from "@/components/ImageLightbox";
@@ -146,49 +147,62 @@ export function CoffeeProductsManager() {
 
   const toggleVisibility = async (product: CoffeeProduct) => {
     try {
-      const { error } = await supabase
+      const newStatus = !product.is_active;
+      console.log(`Toggling coffee product ${product.id} visibility to ${newStatus}`);
+      
+      const { data, error } = await supabase
         .from("coffee_products")
-        .update({ is_active: !product.is_active })
-        .eq("id", product.id);
+        .update({ is_active: newStatus })
+        .eq("id", product.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("RLS or DB error:", error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        throw new Error("No rows updated - check RLS policies. You may not have admin permissions.");
+      }
       
       toast({
-        title: product.is_active ? "Product hidden" : "Product visible",
-        description: `${product.name} is now ${product.is_active ? "hidden from" : "visible in"} the store.`,
+        title: newStatus ? "Product visible" : "Product hidden",
+        description: `${product.name} is now ${newStatus ? "visible in" : "hidden from"} the store.`,
       });
       fetchProducts();
     } catch (error: any) {
       console.error("Error toggling visibility:", error);
-      toast({
-        title: "Error updating product",
-        description: error.message,
-        variant: "destructive",
-      });
+      showErrorToastWithCopy("Toggle coffee visibility", error);
     }
   };
 
   const toggleAllVisibility = async (makeVisible: boolean) => {
     try {
-      const { error } = await supabase
+      console.log(`Toggling all coffee products visibility to ${makeVisible}`);
+      
+      const { data, error } = await supabase
         .from("coffee_products")
         .update({ is_active: makeVisible })
-        .neq("id", ""); // Update all
+        .neq("id", "")
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("RLS or DB error:", error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        throw new Error("No rows updated - check RLS policies. You may not have admin permissions.");
+      }
       
       toast({
         title: makeVisible ? "All products visible" : "All products hidden",
-        description: `${products.length} products are now ${makeVisible ? "visible in" : "hidden from"} the store.`,
+        description: `${data.length} products are now ${makeVisible ? "visible in" : "hidden from"} the store.`,
       });
       fetchProducts();
     } catch (error: any) {
       console.error("Error toggling all visibility:", error);
-      toast({
-        title: "Error updating products",
-        description: error.message,
-        variant: "destructive",
-      });
+      showErrorToastWithCopy("Toggle all coffee visibility", error);
     }
   };
 
