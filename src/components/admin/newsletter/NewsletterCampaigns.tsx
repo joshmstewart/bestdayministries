@@ -5,16 +5,35 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy, Loader2 } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
 import { CampaignStatsDialog } from "./CampaignStatsDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 import { SaveAsTemplateDialog } from "./SaveAsTemplateDialog";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SectionLoadingState } from "@/components/common";
+
+// Helper to detect if a campaign appears stuck (no progress for 3+ minutes)
+const getStuckInfo = (campaign: any) => {
+  if (campaign.status !== 'sending') return null;
+  
+  const lastProgress = campaign.last_progress_at 
+    ? new Date(campaign.last_progress_at) 
+    : new Date(campaign.updated_at || campaign.created_at);
+  
+  const minutesSinceProgress = (Date.now() - lastProgress.getTime()) / (1000 * 60);
+  
+  if (minutesSinceProgress >= 3) {
+    return {
+      minutes: Math.floor(minutesSinceProgress),
+      lastProgress
+    };
+  }
+  return null;
+};
 
 export const NewsletterCampaigns = () => {
   const queryClient = useQueryClient();
@@ -198,26 +217,43 @@ export const NewsletterCampaigns = () => {
                   </div>
                   
                   {/* Queue progress bar for sending campaigns */}
-                  {campaign.status === 'sending' && campaign.queued_count > 0 && (
-                    <div className="mt-3 space-y-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        <span className="text-muted-foreground">
-                          Sending: {(campaign.processed_count || 0) + (campaign.failed_count || 0)} / {campaign.queued_count}
-                          {campaign.failed_count > 0 && (
-                            <span className="text-destructive ml-1">({campaign.failed_count} failed)</span>
+                  {campaign.status === 'sending' && campaign.queued_count > 0 && (() => {
+                    const stuckInfo = getStuckInfo(campaign);
+                    return (
+                      <div className="mt-3 space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          {stuckInfo ? (
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                          ) : (
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
                           )}
-                        </span>
+                          <span className="text-muted-foreground">
+                            Sending: {(campaign.processed_count || 0) + (campaign.failed_count || 0)} / {campaign.queued_count}
+                            {campaign.failed_count > 0 && (
+                              <span className="text-destructive ml-1">({campaign.failed_count} failed)</span>
+                            )}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={((campaign.processed_count || 0) + (campaign.failed_count || 0)) / campaign.queued_count * 100} 
+                          className="h-2"
+                        />
+                        {stuckInfo ? (
+                          <p className="text-xs text-warning flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            No progress for {stuckInfo.minutes} min — try "Resume Sending" below
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            ~{Math.ceil((campaign.queued_count - (campaign.processed_count || 0) - (campaign.failed_count || 0)) / 80)} min remaining
+                            {campaign.last_progress_at && (
+                              <span className="ml-2">• Last progress {formatDistanceToNow(new Date(campaign.last_progress_at), { addSuffix: true })}</span>
+                            )}
+                          </p>
+                        )}
                       </div>
-                      <Progress 
-                        value={((campaign.processed_count || 0) + (campaign.failed_count || 0)) / campaign.queued_count * 100} 
-                        className="h-2"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        ~{Math.ceil((campaign.queued_count - (campaign.processed_count || 0) - (campaign.failed_count || 0)) / 80)} min remaining
-                      </p>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
                 <div className={isMobile ? "flex gap-2 flex-wrap" : "flex gap-2 flex-shrink-0"}>
                   <Button

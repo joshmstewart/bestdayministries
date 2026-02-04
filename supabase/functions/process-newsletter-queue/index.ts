@@ -248,6 +248,7 @@ serve(async (req) => {
             failed_count: newFailedCount,
             sent_to_count: newProcessedCount,
             status: isComplete ? "sent" : "sending",
+            last_progress_at: new Date().toISOString(),
             ...(isComplete ? { sent_at: new Date().toISOString() } : {}),
           })
           .eq("id", campaignId);

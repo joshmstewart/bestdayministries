@@ -6240,6 +6240,7 @@ export type Database = {
           failed_count: number | null
           html_content: string
           id: string
+          last_progress_at: string | null
           preview_text: string | null
           processed_count: number | null
           queued_count: number | null
@@ -6259,6 +6260,7 @@ export type Database = {
           failed_count?: number | null
           html_content: string
           id?: string
+          last_progress_at?: string | null
           preview_text?: string | null
           processed_count?: number | null
           queued_count?: number | null
@@ -6278,6 +6280,7 @@ export type Database = {
           failed_count?: number | null
           html_content?: string
           id?: string
+          last_progress_at?: string | null
           preview_text?: string | null
           processed_count?: number | null
           queued_count?: number | null
