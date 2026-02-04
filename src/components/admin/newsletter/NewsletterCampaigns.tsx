@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy, Loader2, AlertTriangle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
@@ -15,6 +15,7 @@ import { SaveAsTemplateDialog } from "./SaveAsTemplateDialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SectionLoadingState } from "@/components/common";
+import { useBatchNewsletterRecipientCounts } from "@/hooks/useNewsletterRecipientCount";
 
 // Helper to detect if a campaign appears stuck (no progress for 3+ minutes)
 const getStuckInfo = (campaign: any) => {
@@ -65,6 +66,14 @@ export const NewsletterCampaigns = () => {
       return hasSending ? 10000 : false;
     },
   });
+
+  // Get draft/scheduled campaigns for recipient count lookup
+  const draftCampaigns = useMemo(() => 
+    campaigns?.filter(c => c.status === 'draft' || c.status === 'scheduled') || [],
+    [campaigns]
+  );
+
+  const { data: recipientCounts } = useBatchNewsletterRecipientCounts(draftCampaigns);
 
   // Realtime subscription for queue progress
   useEffect(() => {
@@ -213,6 +222,13 @@ export const NewsletterCampaigns = () => {
                     )}
                     {campaign.sent_to_count > 0 && (
                       <span>{campaign.sent_to_count} recipients</span>
+                    )}
+                    {/* Show planned recipient count for drafts and scheduled campaigns */}
+                    {(campaign.status === 'draft' || campaign.status === 'scheduled') && recipientCounts && recipientCounts[campaign.id] !== undefined && (
+                      <span className="flex items-center gap-1 text-primary">
+                        <Users className="h-3 w-3" />
+                        {recipientCounts[campaign.id].toLocaleString()} planned recipients
+                      </span>
                     )}
                   </div>
                   
