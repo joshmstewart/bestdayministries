@@ -27,7 +27,11 @@ interface FortunePost {
   fortune?: Fortune;
 }
 
-export function DailyFortune() {
+interface DailyFortuneProps {
+  onReveal?: () => void;
+}
+
+export function DailyFortune({ onReveal }: DailyFortuneProps = {}) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { isSaved, toggleSave } = useSavedFortunes();
   const [fortunePost, setFortunePost] = useState<FortunePost | null>(null);
@@ -268,6 +272,7 @@ export function DailyFortune() {
               }
             }
             setRevealed(true);
+            onReveal?.();
           }}
           className={cn(
             "w-full text-left transition-all duration-500 p-4 rounded-xl",
