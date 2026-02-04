@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { SubscriberEngagement } from "./SubscriberEngagement";
+import { EmailClientStats } from "./EmailClientStats";
 
 export const NewsletterAnalytics = () => {
   const { data: campaignStats } = useQuery({
@@ -83,7 +86,15 @@ export const NewsletterAnalytics = () => {
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D", "#FFC658", "#FF6B9D"];
 
   return (
-    <div className="space-y-6">
+    <Tabs defaultValue="overview" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="subscribers">Subscriber Engagement</TabsTrigger>
+        <TabsTrigger value="clients">Email Clients</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="overview">
+        <div className="space-y-6">
       <div>
         <h3 className="text-xl font-semibold mb-4">Campaign Performance</h3>
         <Card className="p-6">
@@ -190,6 +201,16 @@ export const NewsletterAnalytics = () => {
           </Card>
         </div>
       )}
-    </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="subscribers">
+        <SubscriberEngagement />
+      </TabsContent>
+
+      <TabsContent value="clients">
+        <EmailClientStats />
+      </TabsContent>
+    </Tabs>
   );
 };

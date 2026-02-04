@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { parseUserAgent } from "../_shared/userAgentParser.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,7 +104,10 @@ serve(async (req) => {
 
     // Newsletter-specific analytics processing
 
-    // Prepare analytics data
+    // Parse user agent to extract email client info
+    const parsedUA = parseUserAgent(data.user_agent);
+
+    // Prepare analytics data with email client parsing
     const analyticsData: any = {
       campaign_id: campaignId,
       subscriber_id: finalSubscriberId,
@@ -113,6 +117,11 @@ serve(async (req) => {
       user_agent: data.user_agent,
       ip_address: data.ip_address,
       metadata: data,
+      // New email client tracking fields
+      email_client: parsedUA.emailClient,
+      email_client_version: parsedUA.emailClientVersion,
+      device_type: parsedUA.deviceType,
+      os_name: parsedUA.osName,
     };
 
     // For click events, extract URL
