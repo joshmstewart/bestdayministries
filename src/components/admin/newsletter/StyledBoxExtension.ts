@@ -49,17 +49,17 @@ export const STYLED_BOX_STYLES: Array<{
   { key: 'sand-light', label: 'Sand', bgColor: '#f5e6d3', text: '#1a1a1a' },
   { key: 'light-gray', label: 'Light Gray', bgColor: '#f3f4f6', text: '#374151' },
   { key: 'white-bordered', label: 'White', bgColor: '#ffffff', text: '#374151', border: '2px solid #e5e7eb' },
-  // Soft pastel colors - inspired by vendor theme palette
-  { key: 'soft-pink', label: 'Soft Pink', bgColor: '#fce7f3', text: '#9d174d', border: '2px solid #ec4899' },
-  { key: 'soft-purple', label: 'Soft Purple', bgColor: '#f3e8ff', text: '#6b21a8', border: '2px solid #a855f7' },
-  { key: 'soft-teal', label: 'Soft Teal', bgColor: '#ccfbf1', text: '#115e59', border: '2px solid #14b8a6' },
-  { key: 'soft-coral', label: 'Soft Coral', bgColor: '#ffedd5', text: '#9a3412', border: '2px solid #f97316' },
-  { key: 'soft-indigo', label: 'Soft Indigo', bgColor: '#e0e7ff', text: '#3730a3', border: '2px solid #6366f1' },
-  { key: 'soft-rose', label: 'Soft Rose', bgColor: '#ffe4e6', text: '#9f1239', border: '2px solid #f43f5e' },
-  { key: 'soft-sky', label: 'Soft Sky', bgColor: '#e0f2fe', text: '#075985', border: '2px solid #0ea5e9' },
-  { key: 'soft-mint', label: 'Soft Mint', bgColor: '#d1fae5', text: '#065f46', border: '2px solid #10b981' },
-  { key: 'soft-peach', label: 'Soft Peach', bgColor: '#fed7aa', text: '#7c2d12', border: '2px solid #ea580c' },
-  { key: 'soft-lavender', label: 'Soft Lavender', bgColor: '#ede9fe', text: '#5b21b6', border: '2px solid #8b5cf6' },
+  // Soft pastel colors - inspired by vendor theme palette (no borders, just fill)
+  { key: 'soft-pink', label: 'Soft Pink', bgColor: '#fce7f3', text: '#9d174d' },
+  { key: 'soft-purple', label: 'Soft Purple', bgColor: '#f3e8ff', text: '#6b21a8' },
+  { key: 'soft-teal', label: 'Soft Teal', bgColor: '#ccfbf1', text: '#115e59' },
+  { key: 'soft-coral', label: 'Soft Coral', bgColor: '#ffedd5', text: '#9a3412' },
+  { key: 'soft-indigo', label: 'Soft Indigo', bgColor: '#e0e7ff', text: '#3730a3' },
+  { key: 'soft-rose', label: 'Soft Rose', bgColor: '#ffe4e6', text: '#9f1239' },
+  { key: 'soft-sky', label: 'Soft Sky', bgColor: '#e0f2fe', text: '#075985' },
+  { key: 'soft-mint', label: 'Soft Mint', bgColor: '#d1fae5', text: '#065f46' },
+  { key: 'soft-peach', label: 'Soft Peach', bgColor: '#fed7aa', text: '#7c2d12' },
+  { key: 'soft-lavender', label: 'Soft Lavender', bgColor: '#ede9fe', text: '#5b21b6' },
   // Existing styles
   { key: 'sunset-gradient', label: 'Sunset', bgColor: '#ea8b47', text: 'white', isGradient: true, bgStyle: 'radial-gradient(circle at 20% 30%, hsl(46, 95%, 55%, 0.25) 0%, transparent 25%), radial-gradient(circle at 75% 20%, hsl(46, 95%, 55%, 0.2) 0%, transparent 30%), hsl(24, 85%, 56%)' },
   { key: 'burnt-orange', label: 'Burnt Orange', bgColor: '#e8650d', text: 'white' },
@@ -124,27 +124,27 @@ function getBaseStyleString(style: StyledBoxStyle): string {
       return `background-color: #f5e6d3; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #1a1a1a;`;
     case 'forest-accent':
       return `background-color: #14532d; border-left: 4px solid #eab308; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: white;`;
-    // Soft pastel colors
+    // Soft pastel colors (no borders, just fill)
     case 'soft-pink':
-      return `background-color: #fce7f3; border: 2px solid #ec4899; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9d174d;`;
+      return `background-color: #fce7f3; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9d174d;`;
     case 'soft-purple':
-      return `background-color: #f3e8ff; border: 2px solid #a855f7; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #6b21a8;`;
+      return `background-color: #f3e8ff; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #6b21a8;`;
     case 'soft-teal':
-      return `background-color: #ccfbf1; border: 2px solid #14b8a6; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #115e59;`;
+      return `background-color: #ccfbf1; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #115e59;`;
     case 'soft-coral':
-      return `background-color: #ffedd5; border: 2px solid #f97316; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9a3412;`;
+      return `background-color: #ffedd5; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9a3412;`;
     case 'soft-indigo':
-      return `background-color: #e0e7ff; border: 2px solid #6366f1; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #3730a3;`;
+      return `background-color: #e0e7ff; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #3730a3;`;
     case 'soft-rose':
-      return `background-color: #ffe4e6; border: 2px solid #f43f5e; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9f1239;`;
+      return `background-color: #ffe4e6; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #9f1239;`;
     case 'soft-sky':
-      return `background-color: #e0f2fe; border: 2px solid #0ea5e9; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #075985;`;
+      return `background-color: #e0f2fe; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #075985;`;
     case 'soft-mint':
-      return `background-color: #d1fae5; border: 2px solid #10b981; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #065f46;`;
+      return `background-color: #d1fae5; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #065f46;`;
     case 'soft-peach':
-      return `background-color: #fed7aa; border: 2px solid #ea580c; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #7c2d12;`;
+      return `background-color: #fed7aa; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #7c2d12;`;
     case 'soft-lavender':
-      return `background-color: #ede9fe; border: 2px solid #8b5cf6; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #5b21b6;`;
+      return `background-color: #ede9fe; ${boxPadding} border-radius: 0.5rem; ${boxMargin} color: #5b21b6;`;
     case 'light-gray':
     default:
       return `background-color: #f3f4f6; ${boxPadding} border-radius: 0.5rem; ${boxMargin}`;
