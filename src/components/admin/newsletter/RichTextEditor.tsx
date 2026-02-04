@@ -1441,8 +1441,12 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   <div 
                     className="w-full h-10 rounded flex items-center justify-center text-xs font-bold" 
                     style={{ 
-                      backgroundColor: style.isGradient ? undefined : style.bgColor, 
-                      background: style.bgStyle || undefined,
+                      // Use 'background' for gradients (bgStyle), otherwise use backgroundColor
+                      // Don't set both to avoid 'background' shorthand overriding backgroundColor
+                      ...(style.bgStyle 
+                        ? { background: style.bgStyle } 
+                        : { backgroundColor: style.bgColor }
+                      ),
                       color: style.text,
                       border: style.border || undefined,
                     }}
@@ -1532,8 +1536,10 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   <div 
                     className="w-full h-10 rounded flex items-center justify-center text-xs font-bold" 
                     style={{ 
-                      backgroundColor: style.isGradient ? undefined : style.bgColor, 
-                      background: style.bgStyle || undefined,
+                      ...(style.bgStyle 
+                        ? { background: style.bgStyle } 
+                        : { backgroundColor: style.bgColor }
+                      ),
                       color: style.text,
                       border: style.border || undefined,
                     }}
@@ -1649,8 +1655,10 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
                   <div 
                     className="w-full h-10 rounded flex items-center justify-center text-xs font-bold" 
                     style={{ 
-                      backgroundColor: style.isGradient ? undefined : style.bgColor, 
-                      background: style.bgStyle || undefined,
+                      ...(style.bgStyle 
+                        ? { background: style.bgStyle } 
+                        : { backgroundColor: style.bgColor }
+                      ),
                       color: style.text,
                       border: style.border || undefined,
                     }}
