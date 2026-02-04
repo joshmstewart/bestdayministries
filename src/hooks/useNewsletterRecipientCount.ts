@@ -102,39 +102,89 @@ export const useBatchNewsletterRecipientCounts = (campaigns: any[]) => {
     queryFn: async () => {
       if (!campaigns?.length) return {};
 
-      // Pre-fetch common data once
-      const [subscribersResult, profilesResult] = await Promise.all([
-        supabase.from("newsletter_subscribers").select("id, user_id, email").eq("status", "active"),
-        supabase.from("profiles").select("id, email")
+      // Use count queries to avoid hitting the 1000-row default limit
+      const [subscribersCountResult, profilesCountResult] = await Promise.all([
+        supabase.from("newsletter_subscribers").select("*", { count: "exact", head: true }).eq("status", "active"),
+        supabase.from("profiles").select("*", { count: "exact", head: true })
       ]);
 
-      if (subscribersResult.error) throw subscribersResult.error;
-      if (profilesResult.error) throw profilesResult.error;
+      if (subscribersCountResult.error) throw subscribersCountResult.error;
+      if (profilesCountResult.error) throw profilesCountResult.error;
 
-      const activeSubscribers = subscribersResult.data || [];
-      const allProfiles = profilesResult.data || [];
-      const activeSubscriberCount = activeSubscribers.length;
-      const allProfilesCount = allProfiles.length;
+      const activeSubscriberCount = subscribersCountResult.count || 0;
+      const allProfilesCount = profilesCountResult.count || 0;
 
-      // Pre-compute non-subscribers
-      const subscribedUserIds = new Set(activeSubscribers.map(s => s.user_id).filter(Boolean));
-      const subscribedEmails = new Set(activeSubscribers.map(s => s.email).filter(Boolean));
+      // For non_subscribers and roles calculations, we need actual data
+      // Fetch with pagination to get all records
+      let allSubscribers: { id: string; user_id: string | null; email: string }[] = [];
+      let allProfiles: { id: string; email: string }[] = [];
+      
+      // Check if any campaign needs detailed data (non_subscribers or roles)
+      const needsDetailedData = campaigns.some(c => {
+        const ta = c.target_audience || { type: "all" };
+        return ta.type === "non_subscribers" || ta.type === "roles";
+      });
+
+      if (needsDetailedData) {
+        // Fetch all subscribers with pagination
+        let subscriberPage = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from("newsletter_subscribers")
+            .select("id, user_id, email")
+            .eq("status", "active")
+            .range(subscriberPage * pageSize, (subscriberPage + 1) * pageSize - 1);
+          
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allSubscribers = [...allSubscribers, ...data];
+          if (data.length < pageSize) break;
+          subscriberPage++;
+        }
+
+        // Fetch all profiles with pagination
+        let profilePage = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("id, email")
+            .range(profilePage * pageSize, (profilePage + 1) * pageSize - 1);
+          
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allProfiles = [...allProfiles, ...data];
+          if (data.length < pageSize) break;
+          profilePage++;
+        }
+      }
+
+      // Pre-compute non-subscribers count
+      const subscribedUserIds = new Set(allSubscribers.map(s => s.user_id).filter(Boolean));
+      const subscribedEmails = new Set(allSubscribers.map(s => s.email).filter(Boolean));
       const nonSubscribersCount = allProfiles.filter(
         p => !subscribedUserIds.has(p.id) && !subscribedEmails.has(p.email)
       ).length;
 
       // Get all subscriber user_ids for role queries
-      const subscriberUserIds = activeSubscribers.map(s => s.user_id).filter(Boolean);
+      const subscriberUserIds = allSubscribers.map(s => s.user_id).filter(Boolean) as string[];
 
-      // Fetch roles for all subscribers at once
+      // Fetch roles for all subscribers at once (with pagination if needed)
       let userRolesMap: Record<string, string[]> = {};
       if (subscriberUserIds.length > 0) {
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("user_id", subscriberUserIds);
+        let allRoles: { user_id: string; role: string }[] = [];
+        // Supabase IN clause can handle many IDs, but we'll batch if needed
+        const batchSize = 500;
+        for (let i = 0; i < subscriberUserIds.length; i += batchSize) {
+          const batch = subscriberUserIds.slice(i, i + batchSize);
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("user_id, role")
+            .in("user_id", batch);
+          if (roles) allRoles = [...allRoles, ...roles];
+        }
 
-        (roles || []).forEach(r => {
+        allRoles.forEach(r => {
           if (!userRolesMap[r.user_id]) userRolesMap[r.user_id] = [];
           userRolesMap[r.user_id].push(r.role);
         });
