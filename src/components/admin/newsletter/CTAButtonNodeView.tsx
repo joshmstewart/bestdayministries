@@ -183,12 +183,13 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
             rel="noopener noreferrer"
             contentEditable={false}
             style={{
-              display: 'inline-block',
+              display: isFullWidth ? 'block' : 'inline-block',
               padding,
               color: 'hsl(0 0% 100%)',
               textDecoration: 'none',
               fontWeight: 'bold',
               fontSize,
+              textAlign: isFullWidth ? 'center' : undefined,
             }}
             onMouseDown={(e) => {
               e.preventDefault();
