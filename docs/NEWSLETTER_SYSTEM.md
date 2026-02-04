@@ -784,6 +784,12 @@ Column images from the editor often have `width="600px"` attributes. Gmail prior
 2. Set width attribute to actual column pixel width (e.g., 200px for 3 columns)
 3. Add `max-width` CSS to constrain images
 
+### Inline Style Merging (CRITICAL)
+Some TipTap nodes include attributes like `data-style="..."` in addition to a real `style="..."`.
+
+**When merging inline styles, ensure you only modify the real `style=""` attribute (not `data-style`).**
+Otherwise constraints like `max-width:600px` will be written into `data-style` (ignored by email clients), making layouts appear unchanged.
+
 ## Documentation Status
 **Last Updated:** 2026-02-04
 **Status:** Complete - All newsletter functionality documented including depth-based parsing for nested tables

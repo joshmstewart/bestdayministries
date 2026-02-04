@@ -10,16 +10,42 @@
  */
 
 export function mergeInlineStyle(tag: string, styleToAdd: string): string {
-  if (/style\s*=\s*"/i.test(tag)) {
-    return tag.replace(/style\s*=\s*"([^"]*)"/i, (_m, existing) => {
+  // IMPORTANT: Many TipTap nodes include attributes like `data-style="..."`.
+  // We must only target the real `style="..."` attribute, not `data-style`.
+  // Using `(^|\s)style=` avoids matching the `style=` portion of `data-style=`.
+  const styleAttrRegex = /(^|\s)style\s*=\s*"([^"]*)"/i;
+  if (styleAttrRegex.test(tag)) {
+    return tag.replace(styleAttrRegex, (_m, prefix, existing) => {
       const trimmed = String(existing ?? "").trim();
       const needsSemicolon = trimmed.length > 0 && !trimmed.endsWith(";");
       const sep = trimmed.length === 0 ? "" : needsSemicolon ? "; " : " ";
-      return `style="${trimmed}${sep}${styleToAdd}"`;
+      return `${prefix}style="${trimmed}${sep}${styleToAdd}"`;
     });
   }
 
   return tag.replace(/\/?>(?=\s*$)/, (end) => ` style="${styleToAdd}"${end}`);
+}
+
+function wrapInCentered600Container(innerHtml: string): string {
+  const trimmed = (innerHtml || "").trim();
+  if (!trimmed) return innerHtml;
+  // Avoid double-wrapping
+  if (/data-email-container/i.test(trimmed.slice(0, 400))) return innerHtml;
+
+  // Table-based centering is the most reliable across Gmail clients.
+  return (
+    `<table role="presentation" data-email-container cellpadding="0" cellspacing="0" width="100%" style="width:100%;border-collapse:collapse;">` +
+    `<tr>` +
+    `<td align="center" style="padding:0;">` +
+    `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;border-collapse:collapse;margin:0 auto;">` +
+    `<tr>` +
+    `<td style="padding:0;vertical-align:top;">${innerHtml}</td>` +
+    `</tr>` +
+    `</table>` +
+    `</td>` +
+    `</tr>` +
+    `</table>`
+  );
 }
 
 // ============================================================================
@@ -843,6 +869,10 @@ export function applyEmailStyles(html: string): string {
   
   // 7. Typography normalization (explicit font sizes for Gmail)
   result = normalizeTypography(result);
+
+  // 8. Final: Wrap everything in a centered 600px container so non-table content
+  // (headings, paragraphs, styled boxes) never renders full-width.
+  result = wrapInCentered600Container(result);
   
   return result;
 }
