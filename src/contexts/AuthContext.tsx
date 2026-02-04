@@ -4,11 +4,18 @@ import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { idbAuthStorage } from "@/lib/idbAuthStorage";
 import { User, Session } from "@supabase/supabase-js";
 import { setUserId } from "@/lib/analytics";
+import {
+  PERSISTENT_AUTH_STORAGE_KEY,
+  STANDARD_AUTH_STORAGE_KEY,
+} from "@/lib/authStorageKeys";
+import {
+  clearAllCaches,
+  forceCacheBustingReload,
+  hasExceededRecoveryAttempts,
+  incrementRecoveryAttempts,
+} from "@/lib/cacheManager";
 
 type UserRole = "supporter" | "bestie" | "caregiver" | "moderator" | "admin" | "owner";
-
-// Storage key used by Supabase clients
-const AUTH_STORAGE_KEY = `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`;
 
 interface Profile {
   id: string;
@@ -42,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncInProgressRef = useRef(false);
   const mirroringInProgressRef = useRef(false);
   const lastProcessedSessionIdRef = useRef<string | null>(null);
+  const initCompletedRef = useRef(false);
 
   /**
    * Validates a session by calling getUser() on the server.
@@ -70,13 +78,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Clears invalid auth tokens from storage without calling signOut endpoints.
    * This prevents the "fresh session invalidated" bug while still cleaning up stale tokens.
    */
-  const clearInvalidStorageEntry = async (storage: "localStorage" | "indexedDB") => {
+  const clearInvalidStorageEntry = async (
+    storage: "localStorage" | "indexedDB",
+    storageKey: string
+  ) => {
     console.log(`[AuthContext] Clearing invalid session from ${storage}`);
     try {
       if (storage === "localStorage") {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(storageKey);
       } else {
-        await idbAuthStorage.removeItem(AUTH_STORAGE_KEY);
+        await idbAuthStorage.removeItem(storageKey);
       }
     } catch (e) {
       console.warn(`[AuthContext] Failed to clear ${storage}:`, e);
@@ -110,10 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Clear invalid sessions from storage
       if (standardSession && !validStandard) {
-        await clearInvalidStorageEntry("localStorage");
+        await clearInvalidStorageEntry("localStorage", STANDARD_AUTH_STORAGE_KEY);
       }
       if (persistentSession && !validPersistent) {
-        await clearInvalidStorageEntry("indexedDB");
+        await clearInvalidStorageEntry("indexedDB", PERSISTENT_AUTH_STORAGE_KEY);
       }
 
       // Pick the winner among valid sessions (prefer persistent as source of truth)
@@ -200,7 +211,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initAuth = async () => {
       try {
+        initCompletedRef.current = false;
+
+        // Watchdog: if auth init hangs (Safari IndexedDB corruption), trigger self-heal.
+        const watchdog = window.setTimeout(async () => {
+          if (!mounted) return;
+          if (initCompletedRef.current) return;
+          if (hasExceededRecoveryAttempts()) return;
+
+          const attempt = incrementRecoveryAttempts();
+          console.warn(`[AuthContext] Auth init watchdog triggered (attempt ${attempt})`);
+          try {
+            await clearAllCaches();
+          } catch {
+            // ignore
+          }
+          forceCacheBustingReload("auth_init_timeout");
+        }, 7000);
+
         const resolvedSession = await reconcileAuthSessions();
+
+        window.clearTimeout(watchdog);
         
         if (!mounted) return;
 
@@ -214,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Error initializing auth:", error);
       } finally {
         if (mounted) {
+          initCompletedRef.current = true;
           setLoading(false);
         }
       }
