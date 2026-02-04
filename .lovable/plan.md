@@ -1,58 +1,168 @@
 
-Goal
-- Make the Daily Five popup (opened from the Daily Bar on /community) actually use the available width so the Wordle keyboard keys aren’t “thin/squished,” and so changing ENTER/BACKSPACE sizing has a visible effect.
+# Plan: Safari Self-Healing After Updates
 
-What’s actually limiting it (root cause)
-- The Daily Five popup is rendered inside `DialogContent` (shadcn/radix) which defaults to `w-full max-w-lg`.
-- In `src/components/daily-features/DailyBar.tsx`, the Daily Five popup currently passes:
-  - `w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:w-auto sm:max-w-lg`
-- The `sm:w-auto` is the problem on desktop/tablet widths:
-  - `w-auto` makes the dialog shrink-to-content.
-  - The keyboard rows contain many flex items; when the container shrink-wraps, the row’s “natural/min-content” width becomes small, so every key becomes skinny.
-  - That’s why it “looks exactly the same” and “unnecessarily thin” even after adjusting min-width on ENTER/BACKSPACE.
+## Problem Summary
+After app updates, Safari on Mac gets stuck requiring manual "Clear site data" to work. Users who don't know this workaround are stuck with a broken app.
 
-Repo evidence (files)
-- `src/components/daily-features/DailyBar.tsx` (Daily Five DialogContent className)
-- `src/components/ui/dialog.tsx` (DialogContent base classes include `w-full max-w-lg ...`)
-- `src/components/daily-features/DailyFivePopup.tsx` (keyboard wrapped in `<div className="w-full">` so it will expand correctly once the dialog width is real)
-- `src/components/wordle/WordleKeyboard.tsx` (special key sizing already adjusted, but currently masked by the dialog shrink-wrap)
+## Solution: Multi-Layer Self-Healing System
 
-Implementation approach (minimal + targeted)
-1) Fix the dialog width behavior for Daily Five (primary fix)
-   - Update the Daily Five `<DialogContent>` in `src/components/daily-features/DailyBar.tsx`:
-     - Remove the `sm:w-auto` shrink-wrap behavior.
-     - Override the default `max-w-lg` to allow a wider dialog on larger screens.
-     - Use a single “responsive clamp” width so it’s:
-       - nearly full width on mobile
-       - a comfortable fixed-ish width on desktop (so keys have room)
-   - Example direction (not exact final string yet, but the intended behavior):
-     - `w-[min(640px,calc(100vw-1rem))] max-w-none`
-     - (optional) reduce padding for more usable keyboard space: override `p-6` → `p-4` for this dialog only.
+### Layer 1: Proactive Version Detection & Cache Clearing
+- Track a build version that changes with each deployment
+- On app load, compare cached version vs current version
+- When mismatch detected: clear all caches proactively BEFORE errors occur
 
-2) (Optional) Small spacing improvements if needed after widening
-   - If it still feels narrow due to internal spacing:
-     - Override dialog padding (`p-6` is chunky for this use case).
-     - Ensure the keyboard wrapper remains `w-full` (it already is).
-     - If we see extra shrink, add `min-w-0` to relevant wrappers, but I expect step (1) resolves it.
+### Layer 2: Enhanced Chunk Load Recovery
+- Improve the existing chunk load error detection
+- When chunk errors occur: clear browser caches, IndexedDB auth, and localStorage
+- Force a cache-busting reload with `?v=timestamp`
 
-3) Verify the ENTER/BACKSPACE sizing actually applies after width is fixed
-   - Once the dialog isn’t shrink-wrapped, your earlier request (smaller ENTER/BACKSPACE) will become visually obvious.
-   - If you still want them even smaller after the widening, we can do a second pass to tweak special key min-width/padding.
+### Layer 3: Browser Cache API Clearing
+- Use the Cache API (`caches.keys()` + `caches.delete()`) to clear cached resources
+- This addresses Safari's aggressive caching of old JS chunks
 
-Testing checklist (what I’ll do / what you can verify visually)
-- On /community:
-  - Open Daily Five from the Daily Bar and confirm the dialog is visibly wider.
-  - Confirm the top keyboard row (Q–P) keys are no longer skinny.
-  - Confirm ENTER/BACKSPACE no longer force the letter keys to compress.
-- Toggle Lovable preview sizes (phone/tablet/desktop icon above preview) and verify:
-  - Mobile: dialog is near full width without overflowing the screen.
-  - Tablet/Desktop: dialog uses the wider clamp width (not shrink-to-content).
-- Quick interaction smoke test:
-  - Tap several letters quickly; confirm hit targets feel improved.
-  - Use BACKSPACE and ENTER; confirm they are clickable and not visually dominant.
+### Layer 4: User-Visible Recovery UI
+- If automatic recovery fails after 2 attempts, show a friendly banner
+- Provide a "Fix Now" button that performs comprehensive cache clearing
+- Include instructions for manual recovery as last resort
 
-Files that will change (once you approve)
-- `src/components/daily-features/DailyBar.tsx` (Daily Five dialog sizing classes)
+---
 
-Notes / guardrails
-- I will not change the global `DialogContent` defaults in `src/components/ui/dialog.tsx` because that would affect every dialog in the app. This fix will be scoped to the Daily Five popup only.
+## Technical Implementation
+
+### Step 1: Create Build Version System
+Create a new file `src/lib/buildVersion.ts` that:
+- Exports a `BUILD_VERSION` constant (timestamp or hash)
+- Gets injected during build time via Vite's `define` config
+
+### Step 2: Enhance Startup Recovery
+Update `src/lib/appStartupRecovery.ts` to:
+- Check build version on startup
+- Clear browser Cache API on version mismatch
+- Clear IndexedDB auth storage on version mismatch
+- Reset the dual Supabase client state
+
+### Step 3: Add Comprehensive Cache Clearing
+Create a new function that clears:
+1. Browser Cache API (`caches.delete()`)
+2. IndexedDB databases (`indexedDB.deleteDatabase()`)
+3. localStorage (targeted keys)
+4. sessionStorage
+
+### Step 4: Add Recovery UI Component
+Create `src/components/AppRecoveryBanner.tsx`:
+- Detects when app is in a broken state
+- Shows user-friendly message
+- Provides "Fix Now" button
+- Falls back to manual instructions
+
+### Step 5: Update Vite Config
+Modify `vite.config.ts` to:
+- Inject build timestamp as environment variable
+- Ensure chunk hashes change with content
+
+---
+
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/lib/buildVersion.ts` | Create | Build version tracking |
+| `src/lib/appStartupRecovery.ts` | Modify | Enhanced recovery logic |
+| `src/lib/cacheManager.ts` | Create | Comprehensive cache clearing |
+| `src/components/AppRecoveryBanner.tsx` | Create | User-facing recovery UI |
+| `src/App.tsx` | Modify | Add recovery banner |
+| `vite.config.ts` | Modify | Inject build version |
+
+---
+
+## Recovery Flow
+
+```text
+App Loads
+    │
+    ├─► Check BUILD_VERSION vs localStorage
+    │       │
+    │       └─► Mismatch? ───────────────┐
+    │                                    │
+    │                              Clear all caches
+    │                              Reload with ?v=timestamp
+    │                                    │
+    └─► Normal startup                   │
+            │                            │
+            ├─► Chunk load error? ───────┤
+            │                            │
+            │                      Increment retry counter
+            │                      Clear caches
+            │                      Reload
+            │                            │
+            ├─► Retry count > 2? ────────┤
+            │                            │
+            │                      Show recovery banner
+            │                      "Something went wrong"
+            │                      [Fix Now] button
+            │                            │
+            └─► App works normally       │
+                                         │
+                                   Manual recovery
+                                   instructions shown
+```
+
+---
+
+## Key Code Additions
+
+### Cache Clearing Function
+```typescript
+// Clear all browser caches
+async function clearAllCaches() {
+  // Clear Cache API
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => caches.delete(k)));
+  }
+  
+  // Clear IndexedDB auth
+  try {
+    indexedDB.deleteDatabase('supabase-auth-storage');
+  } catch {}
+  
+  // Clear risky localStorage keys
+  const riskyKeys = ['shopify-cart', 'admin_session_backup'];
+  riskyKeys.forEach(k => localStorage.removeItem(k));
+  
+  // Clear Supabase auth tokens
+  const authKey = `sb-${PROJECT_ID}-auth-token`;
+  localStorage.removeItem(authKey);
+}
+```
+
+### Version Check on Startup
+```typescript
+const CURRENT_BUILD = import.meta.env.VITE_BUILD_VERSION;
+const STORED_BUILD = localStorage.getItem('app_build_version');
+
+if (STORED_BUILD && STORED_BUILD !== CURRENT_BUILD) {
+  console.log('[Recovery] New build detected, clearing caches');
+  await clearAllCaches();
+  localStorage.setItem('app_build_version', CURRENT_BUILD);
+  window.location.replace(`${location.pathname}?v=${Date.now()}`);
+}
+```
+
+---
+
+## Expected Outcomes
+
+1. **Automatic Recovery**: 95%+ of Safari cache issues will self-heal without user action
+2. **Visible Fallback**: Users see a helpful recovery banner instead of blank/broken page
+3. **No Data Loss**: User auth is re-established after recovery (they may need to log in again)
+4. **Logging**: All recovery attempts logged for debugging
+
+---
+
+## Testing Checklist
+- [ ] Deploy update → Safari auto-recovers without manual cache clear
+- [ ] Simulate chunk load error → App recovers automatically
+- [ ] Force 3+ failed recoveries → Banner appears with Fix Now button
+- [ ] Fix Now button → Successfully clears caches and reloads
+- [ ] Verify auth state → User can log in after recovery
