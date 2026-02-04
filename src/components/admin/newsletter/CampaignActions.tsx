@@ -51,10 +51,18 @@ export const CampaignActions = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Newsletter sent!",
-        description: `Successfully sent to ${data.sentCount} subscribers`,
-      });
+      // Handle queue-based response
+      if (data.queued) {
+        toast({
+          title: "Newsletter queued for sending",
+          description: `${data.queuedCount} emails queued. Estimated completion: ~${data.estimatedMinutes} minute(s).`,
+        });
+      } else {
+        toast({
+          title: "Newsletter sent!",
+          description: `Successfully sent to ${data.sentCount} subscribers`,
+        });
+      }
       
       onSendComplete?.();
     } catch (error: any) {

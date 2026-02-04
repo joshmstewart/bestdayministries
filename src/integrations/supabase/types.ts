@@ -6237,9 +6237,12 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          failed_count: number | null
           html_content: string
           id: string
           preview_text: string | null
+          processed_count: number | null
+          queued_count: number | null
           scheduled_for: string | null
           segment_filter: Json | null
           sent_at: string | null
@@ -6253,9 +6256,12 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          failed_count?: number | null
           html_content: string
           id?: string
           preview_text?: string | null
+          processed_count?: number | null
+          queued_count?: number | null
           scheduled_for?: string | null
           segment_filter?: Json | null
           sent_at?: string | null
@@ -6269,9 +6275,12 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          failed_count?: number | null
           html_content?: string
           id?: string
           preview_text?: string | null
+          processed_count?: number | null
+          queued_count?: number | null
           scheduled_for?: string | null
           segment_filter?: Json | null
           sent_at?: string | null
@@ -6385,6 +6394,68 @@ export type Database = {
             columns: ["sequence_id"]
             isOneToOne: false
             referencedRelation: "newsletter_drip_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletter_email_queue: {
+        Row: {
+          attempts: number
+          campaign_id: string
+          created_at: string
+          error_message: string | null
+          from_email: string
+          from_name: string
+          id: string
+          personalized_html: string
+          processed_at: string | null
+          recipient_email: string
+          recipient_user_id: string | null
+          resend_email_id: string | null
+          status: string
+          subject: string
+          subscriber_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          campaign_id: string
+          created_at?: string
+          error_message?: string | null
+          from_email: string
+          from_name: string
+          id?: string
+          personalized_html: string
+          processed_at?: string | null
+          recipient_email: string
+          recipient_user_id?: string | null
+          resend_email_id?: string | null
+          status?: string
+          subject: string
+          subscriber_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          campaign_id?: string
+          created_at?: string
+          error_message?: string | null
+          from_email?: string
+          from_name?: string
+          id?: string
+          personalized_html?: string
+          processed_at?: string | null
+          recipient_email?: string
+          recipient_user_id?: string | null
+          resend_email_id?: string | null
+          status?: string
+          subject?: string
+          subscriber_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_email_queue_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "newsletter_campaigns"
             referencedColumns: ["id"]
           },
         ]
