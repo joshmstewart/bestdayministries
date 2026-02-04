@@ -682,7 +682,11 @@ export function styleColumnLayoutTables(html: string): string {
  * Style magazine (multi-column) layout tables for email rendering.
  * Uses depth-based parsing to correctly handle nested CTA button tables.
  * 
- * CRITICAL: This function uses findTablesWithAttribute() and extractFirstTopLevelTr()
+ * CRITICAL: Magazine layouts ALWAYS use fluid-hybrid responsive design so they
+ * stack on mobile (narrow viewports). This uses inline-block divs that naturally
+ * wrap when the viewport is narrower than the combined column widths.
+ * 
+ * This function uses findTablesWithAttribute() and extractFirstTopLevelTr()
  * instead of regex to ensure nested </table> and </tr> tags (from CTA buttons)
  * don't terminate the match prematurely.
  */
@@ -704,11 +708,9 @@ export function styleMagazineLayouts(html: string): string {
     const paddingMatch = tableStyle.match(/padding:\s*([^;]+)/i);
     const borderRadiusMatch = tableStyle.match(/border-radius:\s*([^;]+)/i);
     
-    const wrapperTdStyle = [
-      bgMatch ? `background:${bgMatch[1].trim()};` : "",
-      paddingMatch ? `padding:${paddingMatch[1].trim()};` : "padding:0;",
-      borderRadiusMatch ? `border-radius:${borderRadiusMatch[1].trim()};` : "",
-    ].filter(Boolean).join("");
+    const wrapperBgStyle = bgMatch ? `background:${bgMatch[1].trim()};` : "";
+    const wrapperPadding = paddingMatch ? paddingMatch[1].trim() : "0";
+    const wrapperBorderRadius = borderRadiusMatch ? `border-radius:${borderRadiusMatch[1].trim()};` : "";
     
     // Extract first top-level row (ignoring rows inside nested CTA tables)
     const trData = extractFirstTopLevelTr(table.innerContent);
@@ -719,17 +721,18 @@ export function styleMagazineLayouts(html: string): string {
     if (tdSegments.length === 0) continue;
     
     const numColumns = tdSegments.length;
-    const colWidthPercent = (100 / numColumns).toFixed(2);
-    const colPixelWidth = Math.floor(600 / numColumns);
+    const colMaxWidth = Math.floor(600 / numColumns);
     
-    // Build table cells with explicit widths for Gmail
-    const tableCells = tdSegments.map((tdHtml) => {
+    // Build fluid-hybrid structure: each column is an inline-block div
+    // This allows natural stacking on narrow viewports (mobile)
+    const columnDivs = tdSegments.map((tdHtml, colIndex) => {
       const rawContent = getTdInnerHtml(tdHtml);
-      const styledContent = normalizeColumnImages(rawContent, colPixelWidth);
-      return `<td width="${colPixelWidth}" style="width:${colWidthPercent}%;max-width:${colPixelWidth}px;padding:0 8px;vertical-align:top;">${styledContent}</td>`;
+      const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
+      return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
     }).join("");
     
-    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:16px auto;table-layout:fixed;border-collapse:collapse;"><tr><td style="${wrapperTdStyle}"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="table-layout:fixed;border-collapse:collapse;"><tr>${tableCells}</tr></table></td></tr></table>`;
+    // Outer wrapper preserves background/padding/border-radius, inner uses fluid-hybrid
+    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:16px auto;border-collapse:collapse;${wrapperBgStyle}${wrapperBorderRadius}"><tr><td style="padding:${wrapperPadding};"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->${columnDivs}<!--[if mso]></tr></table><![endif]--></td></tr></table></td></tr></table>`;
     
     result = result.slice(0, table.start) + replacement + result.slice(table.end);
   }
