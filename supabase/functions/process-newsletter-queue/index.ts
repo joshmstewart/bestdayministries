@@ -65,6 +65,38 @@ serve(async (req) => {
       }
 
       const queueItem = pendingEmails[i];
+      const maxAttempts = queueItem.max_attempts || 3;
+      
+      // Skip if max retries exceeded
+      if (queueItem.attempts >= maxAttempts) {
+        console.log(`[process-newsletter-queue] Max attempts (${maxAttempts}) exceeded for ${queueItem.recipient_email}`);
+        await supabaseClient
+          .from("newsletter_email_queue")
+          .update({
+            status: "permanently_failed",
+            error_message: `Max retry attempts (${maxAttempts}) exceeded`,
+            processed_at: new Date().toISOString(),
+          })
+          .eq("id", queueItem.id);
+
+        // Log to newsletter_emails_log
+        await supabaseClient.from("newsletter_emails_log").insert({
+          campaign_id: queueItem.campaign_id,
+          recipient_email: queueItem.recipient_email,
+          recipient_user_id: queueItem.recipient_user_id,
+          subject: queueItem.subject,
+          html_content: queueItem.personalized_html,
+          status: "permanently_failed",
+          error_message: `Max retry attempts (${maxAttempts}) exceeded`,
+          metadata: { subscriber_id: queueItem.subscriber_id, queue_id: queueItem.id },
+        });
+
+        failedCount++;
+        const stats = campaignUpdates.get(queueItem.campaign_id) || { sent: 0, failed: 0 };
+        stats.failed++;
+        campaignUpdates.set(queueItem.campaign_id, stats);
+        continue;
+      }
       
       // Mark as processing
       await supabaseClient

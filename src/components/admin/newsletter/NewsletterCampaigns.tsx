@@ -263,11 +263,14 @@ export const NewsletterCampaigns = () => {
                       <CampaignActions
                         campaignId={campaign.id}
                         campaignStatus={campaign.status}
+                        failedCount={campaign.failed_count || 0}
+                        queuedCount={campaign.queued_count || 0}
+                        processedCount={campaign.processed_count || 0}
                         onSendComplete={() => queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] })}
                       />
                     </>
                   )}
-                  {campaign.status === "sent" && (
+                  {(campaign.status === "sent" || campaign.status === "sending") && (
                     <>
                       <Button
                         variant="outline"
@@ -297,6 +300,15 @@ export const NewsletterCampaigns = () => {
                       >
                         <FileText className="h-4 w-4" />
                       </Button>
+                      {/* Show Retry/Resume buttons for sending or sent campaigns with failures */}
+                      <CampaignActions
+                        campaignId={campaign.id}
+                        campaignStatus={campaign.status}
+                        failedCount={campaign.failed_count || 0}
+                        queuedCount={campaign.queued_count || 0}
+                        processedCount={campaign.processed_count || 0}
+                        onSendComplete={() => queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] })}
+                      />
                     </>
                   )}
                   {(campaign.status === "draft" || campaign.status === "scheduled") && (

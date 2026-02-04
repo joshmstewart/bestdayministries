@@ -6407,6 +6407,7 @@ export type Database = {
           from_email: string
           from_name: string
           id: string
+          max_attempts: number | null
           personalized_html: string
           processed_at: string | null
           recipient_email: string
@@ -6424,6 +6425,7 @@ export type Database = {
           from_email: string
           from_name: string
           id?: string
+          max_attempts?: number | null
           personalized_html: string
           processed_at?: string | null
           recipient_email: string
@@ -6441,6 +6443,7 @@ export type Database = {
           from_email?: string
           from_name?: string
           id?: string
+          max_attempts?: number | null
           personalized_html?: string
           processed_at?: string | null
           recipient_email?: string
