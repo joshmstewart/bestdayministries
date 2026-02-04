@@ -57,6 +57,11 @@ export const PicturePasswordLogin = () => {
           refresh_token: data.session.refresh_token,
         });
 
+        // Small delay to ensure IndexedDB write completes on Safari
+        // Safari's async IndexedDB operations can be slower, causing navigation
+        // to happen before the session is fully persisted
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         toast({
           title: "Welcome back!",
           description: "You've been signed in successfully.",
@@ -79,7 +84,7 @@ export const PicturePasswordLogin = () => {
           redirectPath: redirectPath || undefined,
           bestieId: bestieId || undefined,
         });
-        navigate(destination);
+        navigate(destination, { replace: true });
       } else {
         // Failed attempt
         const newAttempts = attempts + 1;
