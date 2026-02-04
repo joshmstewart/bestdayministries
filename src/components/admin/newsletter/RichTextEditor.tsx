@@ -1254,8 +1254,11 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
         </Button>
       </div>
 
-      <div className="bg-background overflow-y-auto max-h-[60vh]">
-        <EditorContent editor={editor} />
+      {/* Editor content area - constrained to 600px to match email client rendering */}
+      <div className="bg-muted/30 overflow-y-auto max-h-[60vh] flex justify-center">
+        <div className="w-[600px] max-w-[600px] bg-background">
+          <EditorContent editor={editor} />
+        </div>
       </div>
 
       {/* Image Upload Dialog */}
