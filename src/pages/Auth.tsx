@@ -341,13 +341,22 @@ const Auth = () => {
           setUserId(data.user.id);
         }
 
-        // Vendor status check will be handled by auth state listener
-        // which will redirect appropriately
-
         toast({
           title: "Welcome back!",
           description: "Successfully logged in.",
         });
+
+        // Explicit navigation after login (Safari's async IndexedDB can cause race conditions
+        // that prevent the onAuthStateChange listener from triggering redirects reliably)
+        if (data.user?.id) {
+          const redirectPath = searchParams.get("redirect");
+          const bestieId = searchParams.get("bestieId");
+          const destination = await getPostLoginRedirect(data.user.id, {
+            redirectPath: redirectPath || undefined,
+            bestieId: bestieId || undefined,
+          });
+          navigate(destination, { replace: true });
+        }
       }
     } catch (error: any) {
       toast({
