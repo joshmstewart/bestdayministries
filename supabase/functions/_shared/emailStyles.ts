@@ -637,7 +637,9 @@ export function styleColumnLayoutTables(html: string): string {
       // No horizontal divider lines - these only make sense when stacked, 
       // but we can't conditionally apply them without media queries.
       // Desktop view should have no dividers between side-by-side columns.
-      return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
+      // Use fixed width (not width:100%) to prevent desktop wrapping - columns stay side-by-side
+      // until viewport shrinks below 600px where inline-block naturally stacks.
+      return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:${colMaxWidth}px;max-width:100%;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
     }).join("");
     
     const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:0 auto;border-collapse:collapse;"><tr><td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->${columnDivs}<!--[if mso]></tr></table><![endif]--></td></tr></table>`;
@@ -725,10 +727,12 @@ export function styleMagazineLayouts(html: string): string {
     
     // Build fluid-hybrid structure: each column is an inline-block div
     // This allows natural stacking on narrow viewports (mobile)
+    // Use fixed width (not width:100%) to prevent desktop wrapping - columns stay side-by-side
+    // until viewport shrinks below 600px where inline-block naturally stacks.
     const columnDivs = tdSegments.map((tdHtml, colIndex) => {
       const rawContent = getTdInnerHtml(tdHtml);
       const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
-      return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
+      return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:${colMaxWidth}px;max-width:100%;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
     }).join("");
     
     // Outer wrapper preserves background/padding/border-radius, inner uses fluid-hybrid
