@@ -763,23 +763,37 @@ export function styleMagazineLayouts(html: string): string {
     // - MSO (Outlook): Use table-layout:fixed with explicit cell widths
     // - Gmail/Others: Use inline-block divs that wrap naturally on mobile
     
+    // Helper to center CTA tables within column content (for mobile stacking)
+    const centerCTATablesInColumn = (html: string): string => {
+      return html.replace(
+        /<table\b([^>]*data-cta-button[^>]*)style="([^"]*)"/gi,
+        (match, beforeStyle, existingStyle) => {
+          // Add margin auto if not already present
+          if (/margin[^:]*:\s*[^;]*auto/i.test(existingStyle)) {
+            return match;
+          }
+          return `<table${beforeStyle}style="${existingStyle};margin-left:auto;margin-right:auto;"`;
+        }
+      );
+    };
+    
     // For MSO/Outlook: fixed table cells using colOuterWidth
     const msoTableCells = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
-      const styledContent = normalizeColumnImages(rawContent, colContentWidth);
+      const styledContent = centerCTATablesInColumn(normalizeColumnImages(rawContent, colContentWidth));
       return `<td width="${colOuterWidth}" valign="top" style="width:${colOuterWidth}px;padding:0 ${columnInternalPadding}px;vertical-align:top;font-size:16px;">${styledContent}</td>`;
     }).join("");
     
     // For Gmail/Modern clients: inline-block divs that stack on mobile
     // Key: min-width forces side-by-side on wide screens, max-width:100% allows stacking on narrow
     // Use colOuterWidth for the div width so total doesn't exceed innerWidth
-    // text-align:center ensures CTAs center when columns stack on mobile
+    // CTA centering is handled by margin:auto on the CTA tables themselves
     const divColumns = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
-      const styledContent = normalizeColumnImages(rawContent, colContentWidth);
+      const styledContent = centerCTATablesInColumn(normalizeColumnImages(rawContent, colContentWidth));
       // min-width slightly less than colOuterWidth to prevent off-by-one wrapping
       const minWidth = Math.max(1, colOuterWidth - 10);
-      return `<div style="display:inline-block;min-width:${minWidth}px;width:${colOuterWidth}px;max-width:100%;vertical-align:top;font-size:16px;box-sizing:border-box;padding:0 ${columnInternalPadding}px;text-align:center;">${styledContent}</div>`;
+      return `<div style="display:inline-block;min-width:${minWidth}px;width:${colOuterWidth}px;max-width:100%;vertical-align:top;font-size:16px;box-sizing:border-box;padding:0 ${columnInternalPadding}px;">${styledContent}</div>`;
     }).join("");
     
     // Hybrid structure: MSO conditional for Outlook, inline-block divs for everyone else
