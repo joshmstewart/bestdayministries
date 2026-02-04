@@ -717,18 +717,28 @@ export function styleMagazineLayouts(html: string): string {
     const numColumns = tdSegments.length;
     const colMaxWidth = Math.floor(600 / numColumns);
     
-    // Build fixed table layout for desktop, responsive for mobile
-    // CRITICAL: Gmail ignores inline-block width in some contexts, so we use a proper
-    // table-layout:fixed structure that forces columns to stay side-by-side.
-    // Mobile stacking is handled via max-width on the outer wrapper.
-    const tableCells = tdSegments.map((tdHtml) => {
+    // Build HYBRID layout:
+    // - MSO (Outlook): Use table-layout:fixed with explicit cell widths
+    // - Gmail/Others: Use inline-block divs that wrap naturally on mobile
+    
+    // For MSO/Outlook: fixed table cells
+    const msoTableCells = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
       const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
       return `<td width="${colMaxWidth}" valign="top" style="width:${colMaxWidth}px;padding:0 8px;vertical-align:top;font-size:16px;">${styledContent}</td>`;
     }).join("");
     
-    // Use table-layout:fixed to force columns to exact widths - this prevents wrapping on desktop
-    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:100%;margin:16px auto;border-collapse:collapse;table-layout:fixed;${wrapperBgStyle}${wrapperBorderRadius}"><tr><td style="padding:${wrapperPadding};"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;table-layout:fixed;"><tr>${tableCells}</tr></table></td></tr></table>`;
+    // For Gmail/Modern clients: inline-block divs that stack on mobile
+    // Key: min-width forces side-by-side on wide screens, max-width:100% allows stacking on narrow
+    const divColumns = tdSegments.map((tdHtml) => {
+      const rawContent = getTdInnerHtml(tdHtml);
+      const styledContent = normalizeColumnImages(rawContent, colMaxWidth);
+      // Use min-width to prevent early wrapping on desktop, max-width:100% for mobile stacking
+      return `<div style="display:inline-block;min-width:${colMaxWidth - 20}px;width:${colMaxWidth}px;max-width:100%;vertical-align:top;font-size:16px;box-sizing:border-box;padding:0 8px;">${styledContent}</div>`;
+    }).join("");
+    
+    // Hybrid structure: MSO conditional for Outlook, inline-block divs for everyone else
+    const replacement = `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:100%;margin:16px auto;border-collapse:collapse;${wrapperBgStyle}${wrapperBorderRadius}"><tr><td style="padding:${wrapperPadding};text-align:center;font-size:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;table-layout:fixed;"><tr>${msoTableCells}</tr></table><![endif]--><!--[if !mso]><!-->${divColumns}<!--<![endif]--></td></tr></table>`;
     
     result = result.slice(0, table.start) + replacement + result.slice(table.end);
   }
