@@ -3,8 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { awardCoinReward } from "@/utils/awardCoinReward";
 
-const DAILY_ENGAGEMENT_COINS = 50;
-
 // Get MST date string (YYYY-MM-DD format)
 const getMSTDate = () => {
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -33,7 +31,29 @@ export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusPr
   const [bonusClaimed, setBonusClaimed] = useState(false);
   const [checking, setChecking] = useState(true);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [coinsAmount, setCoinsAmount] = useState(50); // Default fallback
   const claimingRef = useRef(false);
+
+  // Fetch actual reward amount from settings
+  useEffect(() => {
+    const fetchRewardAmount = async () => {
+      try {
+        const { data } = await supabase
+          .from("coin_rewards_settings")
+          .select("coins_amount")
+          .eq("reward_key", "daily_engagement_complete")
+          .eq("is_active", true)
+          .maybeSingle();
+        
+        if (data?.coins_amount) {
+          setCoinsAmount(data.coins_amount);
+        }
+      } catch (error) {
+        console.error("Error fetching reward amount:", error);
+      }
+    };
+    fetchRewardAmount();
+  }, []);
 
   // Check if bonus was already claimed today
   const checkBonusClaimed = useCallback(async () => {
@@ -73,7 +93,7 @@ export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusPr
         .insert({
           user_id: user.id,
           completion_date: today,
-          coins_awarded: DAILY_ENGAGEMENT_COINS,
+          coins_awarded: coinsAmount,
         });
 
       if (insertError) {
@@ -96,7 +116,7 @@ export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusPr
     } finally {
       claimingRef.current = false;
     }
-  }, [user, bonusClaimed]);
+  }, [user, bonusClaimed, coinsAmount]);
 
   // Check on mount
   useEffect(() => {
@@ -115,6 +135,6 @@ export function useDailyEngagementBonus({ allCompleted }: DailyEngagementBonusPr
     checking, 
     showCelebration, 
     setShowCelebration,
-    coinsAwarded: DAILY_ENGAGEMENT_COINS,
+    coinsAwarded: coinsAmount,
   };
 }
