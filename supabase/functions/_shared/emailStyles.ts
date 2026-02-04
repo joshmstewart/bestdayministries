@@ -17,6 +17,66 @@ export function mergeInlineStyle(tag: string, styleToAdd: string): string {
 }
 
 /**
+ * Extract top-level <td>...</td> segments from row inner HTML.
+ * Uses depth-tracking to safely handle nested tables (like CTA buttons).
+ * This prevents the regex from "closing" at nested </td> tags.
+ */
+function extractTopLevelTdHtml(rowInnerHtml: string): string[] {
+  const segments: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let i = 0;
+  const len = rowInnerHtml.length;
+
+  while (i < len) {
+    // Look for tag start
+    if (rowInnerHtml[i] === '<') {
+      // Check if it's a <td or </td tag
+      const remaining = rowInnerHtml.slice(i);
+      const openMatch = remaining.match(/^<td\b[^>]*>/i);
+      const closeMatch = remaining.match(/^<\/td\s*>/i);
+
+      if (openMatch) {
+        if (depth === 0) {
+          start = i;
+        }
+        depth++;
+        i += openMatch[0].length;
+        continue;
+      } else if (closeMatch) {
+        depth = Math.max(0, depth - 1);
+        if (depth === 0 && start >= 0) {
+          segments.push(rowInnerHtml.slice(start, i + closeMatch[0].length));
+          start = -1;
+        }
+        i += closeMatch[0].length;
+        continue;
+      }
+    }
+    i++;
+  }
+
+  return segments;
+}
+
+/**
+ * Extract the inner HTML content from a <td>...</td> segment.
+ */
+function getTdInnerHtml(tdHtml: string): string {
+  return tdHtml
+    .replace(/^<td\b[^>]*>/i, "")
+    .replace(/<\/td>\s*$/i, "");
+}
+
+/**
+ * Extract the opening <td ...> tag and its attributes from a <td>...</td> segment.
+ */
+function getTdOpeningTag(tdHtml: string): string {
+  const match = tdHtml.match(/^<td\b[^>]*>/i);
+  return match ? match[0] : "<td>";
+}
+
+/**
  * Ensure CTA button tables have explicit inline styles for Gmail.
  * Gmail strips inherited styles, so buttons need explicit font-size, padding, colors.
  */
@@ -145,10 +205,8 @@ export function styleStandardTablesOnly(html: string): string {
  * on mobile devices, stacking vertically without requiring CSS media queries.
  * Tables without data-mobile-stack will remain as fixed-width side-by-side columns.
  * 
- * Gmail-specific fixes:
- * - Use explicit width attributes (not just max-width)
- * - Avoid font-size:0 trick (Gmail strips it) - use letter-spacing:0 instead
- * - Use table cells for columns in non-stacking mode
+ * CRITICAL: Uses depth-based TD extraction to handle nested tables (CTA buttons)
+ * without breaking the outer column structure.
  */
 export function styleColumnLayoutTables(html: string): string {
   // First, handle tables with data-mobile-stack="true" - apply fluid-hybrid layout
@@ -159,47 +217,31 @@ export function styleColumnLayoutTables(html: string): string {
       const numColumns = parseInt(columnCount, 10);
       if (numColumns <= 0) return fullMatch;
 
-      // Calculate column width for desktop (e.g., 2 cols = 300px each in 600px container)
+      // Calculate column width using precise percentage
+      const colWidthPercent = (100 / numColumns).toFixed(2);
       const colMaxWidth = Math.floor(600 / numColumns);
 
-      // Extract all <td> contents
-      const tdContents: string[] = [];
-      const tdRegex = /<td\b[^>]*>([\s\S]*?)<\/td>/gi;
-      let match;
-      while ((match = tdRegex.exec(tableContent)) !== null) {
-        tdContents.push(match[1]);
-      }
+      // Extract first row using depth-based TD extraction (handles nested CTA tables safely)
+      const rowMatch = tableContent.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i);
+      if (!rowMatch) return fullMatch;
 
-      if (tdContents.length === 0) return fullMatch;
+      const tdSegments = extractTopLevelTdHtml(rowMatch[1]);
+      if (tdSegments.length === 0) return fullMatch;
 
       // Build fluid-hybrid structure: each column is an inline-block div
-      const columnDivs = tdContents.map((content) => {
+      // No whitespace between elements to prevent Gmail wrapping
+      const columnDivs = tdSegments.map((tdHtml) => {
+        const rawContent = getTdInnerHtml(tdHtml);
         // Style images inside each column
-        const styledContent = content.replace(/<img\b[^>]*>/gi, (imgTag) =>
+        const styledContent = rawContent.replace(/<img\b[^>]*>/gi, (imgTag) =>
           mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
         );
 
-        return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]-->
-<div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;">
-  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
-    <tr>
-      <td style="padding:0 8px 16px 8px;vertical-align:top;">${styledContent}</td>
-    </tr>
-  </table>
-</div>
-<!--[if mso]></td><![endif]-->`;
-      }).join("\n");
+        return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px 16px 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
+      }).join(""); // No newlines to prevent whitespace issues in Gmail
 
       // Wrap in a container table for email clients
-      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;border-collapse:collapse;">
-  <tr>
-    <td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;">
-      <!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->
-      ${columnDivs}
-      <!--[if mso]></tr></table><![endif]-->
-    </td>
-  </tr>
-</table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;border-collapse:collapse;"><tr><td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->${columnDivs}<!--[if mso]></tr></table><![endif]--></td></tr></table>`;
     }
   );
 
@@ -213,30 +255,27 @@ export function styleColumnLayoutTables(html: string): string {
       const numColumns = parseInt(columnCount, 10);
       if (numColumns <= 0) return fullMatch;
       
-      // Calculate column width percentage
-      const colWidthPercent = Math.floor(100 / numColumns);
+      // Calculate column width with precise percentage (33.33% not 33%)
+      const colWidthPercent = (100 / numColumns).toFixed(2);
       
-      // Extract all <td> contents
-      const tdContents: string[] = [];
-      const tdRegex = /<td\b[^>]*>([\s\S]*?)<\/td>/gi;
-      let match;
-      while ((match = tdRegex.exec(tableContent)) !== null) {
-        tdContents.push(match[1]);
-      }
-      
-      if (tdContents.length === 0) return fullMatch;
+      // Extract first row using depth-based TD extraction (handles nested CTA tables safely)
+      const rowMatch = tableContent.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i);
+      if (!rowMatch) return fullMatch;
+
+      const tdSegments = extractTopLevelTdHtml(rowMatch[1]);
+      if (tdSegments.length === 0) return fullMatch;
       
       // Build table cells with explicit widths for Gmail
-      const tableCells = tdContents.map((content) => {
-        const styledContent = content.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
+      // Preserve original TD content intact (including nested CTA tables)
+      const tableCells = tdSegments.map((tdHtml) => {
+        const rawContent = getTdInnerHtml(tdHtml);
+        const styledContent = rawContent.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
           mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
         );
         return `<td style="width:${colWidthPercent}%;padding:0 8px;vertical-align:top;">${styledContent}</td>`;
       }).join("");
       
-      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:collapse;">
-  <tr>${tableCells}</tr>
-</table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:collapse;"><tr>${tableCells}</tr></table>`;
     }
   );
 
@@ -247,6 +286,9 @@ export function styleColumnLayoutTables(html: string): string {
  * Style magazine (multi-column) layout tables for email rendering.
  * Uses fixed table-cell layout for Gmail compatibility (not inline-block).
  * Dynamically calculates column widths based on actual number of columns.
+ * 
+ * CRITICAL: Uses depth-based TD extraction to handle nested tables (CTA buttons)
+ * without breaking the outer column structure.
  */
 export function styleMagazineLayouts(html: string): string {
   return (html || "").replace(
@@ -254,37 +296,6 @@ export function styleMagazineLayouts(html: string): string {
     (fullMatch, attrs, tableContent) => {
       // Skip if already processed
       if (fullMatch.includes('<!--[if mso]>')) return fullMatch;
-
-      const extractTopLevelTdHtml = (rowInnerHtml: string): string[] => {
-        const tokens = /<\/?td\b[^>]*>/gi;
-        const segments: string[] = [];
-        let depth = 0;
-        let start = -1;
-        let m: RegExpExecArray | null;
-
-        while ((m = tokens.exec(rowInnerHtml)) !== null) {
-          const tag = m[0].toLowerCase();
-          const isOpen = tag.startsWith('<td');
-          const isClose = tag.startsWith('</td');
-          if (isOpen) {
-            if (depth === 0) start = m.index;
-            depth++;
-          } else if (isClose) {
-            depth = Math.max(0, depth - 1);
-            if (depth === 0 && start >= 0) {
-              segments.push(rowInnerHtml.slice(start, tokens.lastIndex));
-              start = -1;
-            }
-          }
-        }
-
-        return segments;
-      };
-
-      const getTdInnerHtml = (tdHtml: string) =>
-        tdHtml
-          .replace(/^<td\b[^>]*>/i, "")
-          .replace(/<\/td>\s*$/i, "");
 
       // Extract table-level styles from attributes
       const tableStyleMatch = attrs.match(/style\s*=\s*"([^"]*)"/i);
@@ -308,7 +319,8 @@ export function styleMagazineLayouts(html: string): string {
       if (tdSegments.length === 0) return fullMatch;
 
       const numColumns = tdSegments.length;
-      const colWidthPercent = Math.floor(100 / numColumns);
+      // Use precise percentage (33.33% not 33%)
+      const colWidthPercent = (100 / numColumns).toFixed(2);
 
       // Build table cells with explicit widths for Gmail (not inline-block)
       const tableCells = tdSegments
@@ -322,15 +334,7 @@ export function styleMagazineLayouts(html: string): string {
         })
         .join("");
 
-      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:16px auto;table-layout:fixed;border-collapse:collapse;">
-  <tr>
-    <td style="${wrapperTdStyle}">
-      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="table-layout:fixed;border-collapse:collapse;">
-        <tr>${tableCells}</tr>
-      </table>
-    </td>
-  </tr>
-</table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:16px auto;table-layout:fixed;border-collapse:collapse;"><tr><td style="${wrapperTdStyle}"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="table-layout:fixed;border-collapse:collapse;"><tr>${tableCells}</tr></table></td></tr></table>`;
     }
   );
 }
