@@ -773,12 +773,13 @@ export function styleMagazineLayouts(html: string): string {
     // For Gmail/Modern clients: inline-block divs that stack on mobile
     // Key: min-width forces side-by-side on wide screens, max-width:100% allows stacking on narrow
     // Use colOuterWidth for the div width so total doesn't exceed innerWidth
+    // text-align:center ensures CTAs center when columns stack on mobile
     const divColumns = tdSegments.map((tdHtml) => {
       const rawContent = getTdInnerHtml(tdHtml);
       const styledContent = normalizeColumnImages(rawContent, colContentWidth);
       // min-width slightly less than colOuterWidth to prevent off-by-one wrapping
       const minWidth = Math.max(1, colOuterWidth - 10);
-      return `<div style="display:inline-block;min-width:${minWidth}px;width:${colOuterWidth}px;max-width:100%;vertical-align:top;font-size:16px;box-sizing:border-box;padding:0 ${columnInternalPadding}px;">${styledContent}</div>`;
+      return `<div style="display:inline-block;min-width:${minWidth}px;width:${colOuterWidth}px;max-width:100%;vertical-align:top;font-size:16px;box-sizing:border-box;padding:0 ${columnInternalPadding}px;text-align:center;">${styledContent}</div>`;
     }).join("");
     
     // Hybrid structure: MSO conditional for Outlook, inline-block divs for everyone else
