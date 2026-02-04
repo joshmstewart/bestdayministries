@@ -5,6 +5,17 @@
 // 1) Never crash during startup due to corrupted localStorage JSON.
 // 2) Auto-recover from common stale-cache chunk/module load failures by forcing a
 //    one-time cache-busting reload.
+// 3) Proactively clear caches when a new build version is detected.
+// 4) Show recovery UI if automatic recovery fails after multiple attempts.
+
+import {
+  checkBuildVersionMismatch,
+  performProactiveRecovery,
+  clearAllCaches,
+  incrementRecoveryAttempts,
+  hasExceededRecoveryAttempts,
+  forceCacheBustingReload,
+} from './cacheManager';
 
 const STORAGE_VERSION_KEY = "app_storage_version";
 
@@ -143,29 +154,55 @@ function shouldForceRefreshFromError(message: string): boolean {
     m.includes("chunkloaderror") ||
     m.includes("loading chunk") ||
     m.includes("importing a module script failed") ||
-    m.includes("failed to fetch dynamically imported module")
+    m.includes("failed to fetch dynamically imported module") ||
+    m.includes("unexpected token") ||
+    m.includes("syntax error")
   );
 }
 
-function forceCacheBustingReloadOnce(reason: string) {
-  try {
-    // Avoid infinite loops.
-    const flagKey = "__app_forced_refresh__";
-    const already = window.sessionStorage.getItem(flagKey);
-    if (already === "1") return;
-    window.sessionStorage.setItem(flagKey, "1");
+async function handleChunkLoadError(reason: string) {
+  console.log('[Recovery] Chunk load error detected:', reason);
+  
+  // Check if we've already exceeded max attempts
+  if (hasExceededRecoveryAttempts()) {
+    console.log('[Recovery] Max attempts exceeded, showing recovery banner');
+    // Don't reload - let the banner show
+    return;
+  }
+  
+  // Increment attempt counter
+  const attempts = incrementRecoveryAttempts();
+  console.log(`[Recovery] Attempt ${attempts} - clearing caches`);
+  
+  // Clear all caches
+  await clearAllCaches();
+  
+  // Force reload
+  forceCacheBustingReload(reason);
+}
 
-    const url = new URL(window.location.href);
-    url.searchParams.set("__refresh", String(Date.now()));
-    url.searchParams.set("__reason", reason);
-    window.location.replace(url.toString());
-  } catch {
-    // last resort
-    try {
-      window.location.reload();
-    } catch {
-      // ignore
+/**
+ * Check for build version mismatch and perform proactive recovery
+ * This runs early in the startup process
+ */
+export async function checkAndRecoverFromBuildMismatch(): Promise<void> {
+  if (typeof window === "undefined") return;
+  
+  try {
+    // Check if we've exceeded recovery attempts - don't loop
+    if (hasExceededRecoveryAttempts()) {
+      console.log('[Recovery] Recovery attempts exceeded, waiting for user action');
+      return;
     }
+    
+    // Check for build version mismatch
+    if (checkBuildVersionMismatch()) {
+      await performProactiveRecovery();
+      // This function will trigger a reload, so we won't reach here
+    }
+  } catch (e) {
+    console.warn('[Recovery] Error during build version check:', e);
+    // Don't block startup
   }
 }
 
@@ -177,7 +214,7 @@ export function installStartupRecoveryListeners() {
     (e) => {
       const msg = (e as ErrorEvent)?.message || "";
       if (msg && shouldForceRefreshFromError(msg)) {
-        forceCacheBustingReloadOnce("script_error");
+        handleChunkLoadError("script_error");
       }
     },
     true
@@ -191,7 +228,7 @@ export function installStartupRecoveryListeners() {
         : (reason && typeof reason.message === "string" ? reason.message : "");
 
     if (msg && shouldForceRefreshFromError(msg)) {
-      forceCacheBustingReloadOnce("unhandled_rejection");
+      handleChunkLoadError("unhandled_rejection");
     }
   });
 }

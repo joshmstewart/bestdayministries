@@ -3,8 +3,15 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
+// Generate build version at build time
+const BUILD_VERSION = Date.now().toString();
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Inject build version as environment variable
+  define: {
+    'import.meta.env.VITE_BUILD_VERSION': JSON.stringify(BUILD_VERSION),
+  },
   server: {
     host: "::",
     port: 8080,

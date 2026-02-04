@@ -17,6 +17,7 @@ import { PicturePasswordNotificationManager } from "@/components/auth/PicturePas
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DailyLoginRewardManager } from "@/components/DailyLoginRewardManager";
 import { SkipLink } from "@/components/accessibility";
+import { AppRecoveryBanner } from "@/components/AppRecoveryBanner";
 import { useState, useEffect, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
@@ -239,6 +240,8 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
+          {/* Recovery banner shown when auto-recovery fails */}
+          <AppRecoveryBanner />
           <Toaster />
           <Sonner />
           <BrowserRouter>
