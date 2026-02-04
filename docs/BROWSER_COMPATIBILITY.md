@@ -294,7 +294,7 @@ Before deploying changes involving transforms, animations, or positioning:
 - **Affected:** macOS Safari (reported on Safari 18)
 - **Symptoms:** App shell appears blank or partially rendered until user clears site data
 - **Root Cause (likely):** Stale cached HTML/JS OR corrupted localStorage JSON
-- **Solution:** Startup recovery: validate & clear corrupted storage + one-time cache-busting reload on module/chunk load failures
+- **Solution:** Startup recovery: validate & clear corrupted storage + one-time cache-busting reload on module/chunk load failures + IndexedDB auth storage timeouts (fallback instead of infinite hang)
 - **Files:** `src/lib/appStartupRecovery.ts`, `src/main.tsx`, `index.html`
 - **Discovered:** 2026-01-09
 - **Fixed:** 2026-01-09

@@ -11,6 +11,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
 import { idbAuthStorage } from './idbAuthStorage';
+import { PERSISTENT_AUTH_STORAGE_KEY } from '@/lib/authStorageKeys';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -27,7 +28,8 @@ export const supabasePersistent = createClient<Database>(
       storage: idbAuthStorage,
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: `sb-${import.meta.env.VITE_SUPABASE_PROJECT_ID}-auth-token`,
+      // Use a distinct key from the standard client to avoid multi-client collisions.
+      storageKey: PERSISTENT_AUTH_STORAGE_KEY,
     },
   }
 );

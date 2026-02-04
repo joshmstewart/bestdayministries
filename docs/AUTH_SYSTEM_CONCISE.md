@@ -8,6 +8,8 @@ The app uses **two Supabase clients** for auth:
 1. **Standard client** (`supabase`) - localStorage-backed, used for general data queries
 2. **Persistent client** (`supabasePersistent`) - IndexedDB-backed, for iOS PWA session persistence
 
+**Storage key isolation (IMPORTANT):** The two clients must use **different** `storageKey` values. This avoids multiple GoTrue clients fighting over the same localStorage key (which can lead to undefined behavior in Safari).
+
 **Source of truth:** The persistent client is authoritative for login operations.
 
 **Reconciliation:** `AuthContext.tsx` validates and syncs sessions between both clients:
@@ -84,6 +86,8 @@ Uses the same persistent client and redirect logic as email/password login:
 4. Does NOT call signOut endpoints (which would revoke valid sessions)
 5. Picks winner among valid sessions (prefers persistent)
 6. Mirrors winner to both clients
+
+**Safari hardening:** `idbAuthStorage` uses timeouts for IndexedDB open/transaction operations. If IndexedDB is stuck/corrupted (common after updates), it falls back to localStorage instead of hanging the app in a permanent loading state.
 
 **SIGNED_IN Event Handling:**
 - When `onAuthStateChange` fires with `SIGNED_IN`, the event's session is treated as authoritative
