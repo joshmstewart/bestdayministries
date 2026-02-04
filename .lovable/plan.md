@@ -1,146 +1,97 @@
 
+Goal
+- Fix the delivered-email HTML transform so 3-column “Insert Columns” layouts render as 3 columns on one desktop row in Gmail (Safari/Mac), and stop breaking nested CTA button tables and typography.
 
-## Newsletter Mobile Layout & Preview Plan
+What’s actually broken (verified)
+- The backend email transformer currently parses `table[data-columns]` using a naive regex:
+  - `/<td\b[^>]*>([\s\S]*?)<\/td>/gi`
+- This fails as soon as a column contains a nested table (CTA buttons are tables with their own `<td>`). The regex “closes” at the nested `</td>` and slices the outer cell incorrectly.
+- Evidence from the most recent email log snippet (newsletter_emails_log) shows corrupted output where the rebuilt first column `<td style="width:33%...">` contains stray `</td><td colspan="1" ...>` from the original markup, which is exactly how you get:
+  - first column on its own line (Gmail interprets broken table structure)
+  - next two columns side-by-side on the next row and huge
 
-### Problem Analysis
+Scope of fix
+- Backend email HTML processing only (Lovable Cloud backend functions)
+- Primary change: rewrite `styleColumnLayoutTables()` in `supabase/functions/_shared/emailStyles.ts` so it never regex-extracts `<td>...</td>` blindly.
+- Secondary change: adjust percentage math to use precise widths (33.33%) instead of `Math.floor(100/3)=33%`.
 
-Based on your screenshots and the codebase exploration, there are two issues:
+Pre-change checklist (MANDATORY before edits in implementation mode)
+- PRE-CHANGE CHECKLIST:
+  □ Searched docs for: newsletter, data-columns, Stack on Mobile, CTA button, emailStyles
+  □ Read files: supabase/functions/_shared/emailStyles.ts, src/components/admin/newsletter/RichTextEditor.tsx, src/components/admin/newsletter/NewsletterPreviewDialog.tsx, src/components/admin/newsletter/CTAButtonExtension.ts, src/components/admin/newsletter/ctaButtonStyles.ts
+  □ Searched code for: data-columns, data-mobile-stack, styleColumnLayoutTables, data-cta-button
+  □ Found patterns: yes — preview uses fixed table layout for data-columns and 33.33% for 3 columns; columns inserted as <table data-columns="3" ...><tr><td ...>...</td>...</tr></table>
+  □ Ready: yes
 
-1. **Mobile Layout Problem**: Multi-column layouts (both `data-columns` tables and `data-two-column` magazine layouts) display side-by-side on mobile, causing content to be cramped and hard to read
-2. **Preview Gap**: No way to see how emails will render on mobile devices without actually sending a test email
+Implementation design (what I will change)
+1) Add a safe “top-level TD extractor” utility (depth-based, not regex)
+- Create a helper inside `emailStyles.ts` that can extract only the top-level `<td>...</td>` segments for a given row’s inner HTML, similar to the approach already used for magazine layouts.
+- Key property: nested CTA `<td>` tags increment depth and do not terminate the outer cell early.
 
----
+2) Fix `styleColumnLayoutTables()` for BOTH modes
+A) Non-stacking tables (no `data-mobile-stack="true"`)
+- Current behavior rebuilds the whole table using broken `tdRegex`.
+- New behavior:
+  - Read `data-columns` to determine intended column count.
+  - Find the first `<tr>...</tr>` (column layouts created by the editor are single-row).
+  - Extract top-level `<td>` segments from that row safely.
+  - Rebuild a clean wrapper table (max-width 600, centered, table-layout:fixed).
+  - For each column cell:
+    - Preserve the original cell’s inline styles (padding/border/background) as authored in the editor.
+    - Only add/override:
+      - `width: 33.33%` (or computed `toFixed(2)` for 2/3 columns)
+      - `vertical-align: top`
+    - Normalize images inside the cell to `width:100%; height:auto; display:block;` (already done).
 
-### Part 1: Mobile Layout Solutions
+B) “Stack on Mobile” tables (`data-mobile-stack="true"`)
+- Current behavior also uses the same broken `tdRegex` extraction and is therefore just as vulnerable.
+- New behavior:
+  - Use the same safe top-level `<td>` extraction.
+  - Build a “fluid-hybrid” structure WITHOUT relying on parsing that can be broken by nested tables.
+  - Additionally, I’ll remove newline/whitespace between inline-block elements in the generated HTML (join without `\n`) and keep the container `font-size:0;letter-spacing:0;word-spacing:0;` to prevent accidental wrapping from whitespace.
+  - If needed for Gmail reliability, switch the outer wrapper from `<div style="display:inline-block...">` to an inline-block `<table ... style="display:inline-block...">` (tables tend to be more consistently handled by Gmail than inline-block divs inside table cells).
 
-#### The Challenge
-Email clients have limited CSS support - most notably, many don't support `@media` queries for responsive layouts. This means we need to be strategic about how we handle mobile responsiveness.
+3) Fix column width rounding everywhere it matters
+- Replace `Math.floor(100 / numColumns)` with:
+  - `const colWidth = (100 / numColumns).toFixed(2);`
+- Apply to:
+  - `styleColumnLayoutTables()` fixed-table mode
+  - (Optional but recommended) `styleMagazineLayouts()` currently uses `Math.floor` too; I’ll update it for consistency, even though your current break is clearly in `data-columns`.
 
-#### Option A: CSS Media Queries (Limited Support)
-- Add `@media (max-width: 480px)` rules to stack columns vertically
-- **Pros**: Clean solution, no extra markup
-- **Cons**: Gmail web/app, some Outlook versions, and older clients ignore media queries entirely
-- **Email client support**: ~60-70% of recipients
+4) Keep CTA buttons consistent
+- CTA button HTML already contains correct padding + `font-size:14px` from `CTAButtonExtension.ts` and the shared sizing constants.
+- The main reason buttons “don’t look the same” in your current emails is the column transformer is breaking CTA tables by mis-parsing `<td>`.
+- After the column parsing fix, CTA tables should remain intact and render the same as preview.
+- I will keep `styleStandardTablesOnly()` excluding `table[data-cta-button]` (this is correct and matches the preview rules).
 
-#### Option B: Hybrid Approach with Table Structure (Recommended)
-Use a technique called "spongy" or "fluid-hybrid" email design:
-- Each column becomes its own `<table>` wrapped in a container
-- Uses `display: inline-block` and `max-width` to flow naturally
-- Falls back gracefully on clients without media query support
+Verification plan (how we’ll prove it’s fixed)
+1) Backend verification (no guessing)
+- Send a test email again.
+- In the backend logs table (`newsletter_emails_log`), inspect the processed HTML around the 3-column section and confirm:
+  - The transformed output contains exactly 3 sibling column `<td>`s in the same `<tr>`
+  - Each has `width:33.33%` (or 33.34/33.33 split depending on rounding strategy, but we’ll use consistent 2-decimal)
+  - There are no stray `</td><td colspan=...` fragments inside a column cell
 
-```html
-<!-- Instead of one table with multiple columns -->
-<table width="100%" style="max-width:600px;margin:0 auto;">
-  <tr>
-    <td>
-      <!-- Column 1 wrapper -->
-      <div style="display:inline-block;width:100%;max-width:200px;">
-        <table width="100%">...</table>
-      </div>
-      <!-- Column 2 wrapper -->
-      <div style="display:inline-block;width:100%;max-width:200px;">
-        <table width="100%">...</table>
-      </div>
-    </td>
-  </tr>
-</table>
-```
+2) Real client verification (your environment)
+- Open the test email in Gmail on Safari/Mac and confirm:
+  - 3 columns appear on one row on desktop
+  - columns are not enormous
+  - buttons inside the columns match preview sizing and shape
 
-#### Option C: User-Controlled Mobile Behavior
-Add a toggle in the editor for each column layout:
-- **"Stack on Mobile"** checkbox/toggle
-- Adds a `data-mobile-stack` attribute to the table
-- Edge functions detect this and apply the hybrid wrapping technique only where requested
-- This preserves data tables (like schedules or pricing grids) that should NOT stack
+3) Regression checks
+- 2-column layout still works
+- “Stack on Mobile” still stacks on narrow screens (mobile preview and an actual mobile Gmail if available)
 
-**Recommended: Combine Options B + C**
-- Default multi-column layouts to "stack on mobile"
-- Add a UI control to disable stacking for true data tables
-- Implement the hybrid approach in edge functions
+Files that will be modified (implementation mode)
+- Primary:
+  - `supabase/functions/_shared/emailStyles.ts` (rewrite `styleColumnLayoutTables`; adjust rounding; possibly refactor shared TD-extraction helper)
+- Optional consistency:
+  - `docs/NEWSLETTER_SYSTEM.md` (document the new “top-level TD safe parsing” rule for `data-columns` tables so we don’t regress)
 
----
+Rollout / risk
+- Low risk to other systems: changes are isolated to newsletter email HTML processing.
+- High confidence: we have direct proof in the stored email HTML that the current parsing is corrupting the table; the depth-based extraction addresses the exact failure mode (nested `<td>` inside CTA tables).
 
-### Part 2: Mobile Preview Feature
-
-#### Implementation Approach
-
-Add a viewport toggle to the existing `NewsletterPreviewDialog`:
-
-```text
-+----------------------------------+
-|  📧 Email Preview      [📱] [💻] |
-+----------------------------------+
-|  Subject: ...                    |
-+----------------------------------+
-|                                  |
-|   [Simulated email content]      |
-|   Width: 375px (mobile) or       |
-|   600px (desktop)                |
-|                                  |
-+----------------------------------+
-```
-
-**Technical Details:**
-1. Add state for viewport mode: `'desktop' | 'mobile'`
-2. Add toggle buttons in the dialog header
-3. Constrain the preview container width based on mode:
-   - Desktop: 600px (standard email width)
-   - Mobile: 375px (iPhone standard)
-4. Apply mobile-specific CSS rules to the preview when in mobile mode
-
-#### Preview CSS for Mobile Simulation
-When mobile preview is active, inject additional styles that simulate what media queries would do:
-
-```css
-/* Mobile simulation styles */
-.email-preview.mobile-mode table[data-columns] td,
-.email-preview.mobile-mode table[data-two-column] td {
-  display: block !important;
-  width: 100% !important;
-}
-```
-
----
-
-### Technical Implementation
-
-#### Files to Modify
-
-1. **`src/components/admin/newsletter/NewsletterPreviewDialog.tsx`**
-   - Add viewport toggle state and buttons
-   - Add mobile preview CSS rules
-   - Constrain preview width based on mode
-
-2. **`src/components/admin/newsletter/RichTextEditor.tsx`**
-   - Add "Stack on Mobile" toggle when inserting columns
-   - Add `data-mobile-stack="true"` attribute to column tables by default
-
-3. **Edge Functions** (all 4 newsletter send functions)
-   - Detect `data-mobile-stack` attribute
-   - Apply hybrid email technique for responsive stacking
-   - Add `<style>` block with media queries as fallback
-
-4. **Documentation Updates**
-   - `docs/NEWSLETTER_SYSTEM.md` - document mobile behavior
-   - `docs/MASTER_SYSTEM_DOCS.md` - update newsletter section
-
----
-
-### Summary
-
-| Feature | What It Does | Complexity |
-|---------|-------------|------------|
-| Mobile Preview Toggle | See layout at 375px width in preview dialog | Low |
-| Mobile CSS Simulation | Preview applies stacking rules | Low-Medium |
-| Hybrid Email Technique | Columns stack on mobile in actual emails | Medium |
-| User Control Toggle | Choose which layouts stack on mobile | Medium |
-
-**Recommended First Phase:**
-1. Add mobile preview toggle to dialog
-2. Add mobile simulation CSS to preview
-3. Add hybrid responsive technique to edge functions (default ON for `data-columns` tables)
-
-**Phase 2:**
-4. Add "Stack on Mobile" toggle in column insertion dialog
-5. Handle magazine layouts similarly
-
+One quick clarification (not blocking, but helpful)
+- In your 3-column block, is “Stack on Mobile” enabled (the 📱 toggle on that table), and do any of the columns contain CTA buttons?
+  - This helps validate we hit both code paths (stacking + non-stacking), but the fix will cover both regardless.
