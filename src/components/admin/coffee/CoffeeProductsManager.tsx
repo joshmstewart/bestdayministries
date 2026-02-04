@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Loader2, Coffee } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Coffee, Eye, EyeOff } from "lucide-react";
 import { CoffeeProductForm } from "./CoffeeProductForm";
 import ImageLightbox from "@/components/ImageLightbox";
 import { CoffeeTiersDialog } from "./CoffeeTiersDialog";
@@ -19,6 +19,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PricingTier {
   id: string;
@@ -138,6 +144,54 @@ export function CoffeeProductsManager() {
     }
   };
 
+  const toggleVisibility = async (product: CoffeeProduct) => {
+    try {
+      const { error } = await supabase
+        .from("coffee_products")
+        .update({ is_active: !product.is_active })
+        .eq("id", product.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: product.is_active ? "Product hidden" : "Product visible",
+        description: `${product.name} is now ${product.is_active ? "hidden from" : "visible in"} the store.`,
+      });
+      fetchProducts();
+    } catch (error: any) {
+      console.error("Error toggling visibility:", error);
+      toast({
+        title: "Error updating product",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleAllVisibility = async (makeVisible: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("coffee_products")
+        .update({ is_active: makeVisible })
+        .neq("id", ""); // Update all
+
+      if (error) throw error;
+      
+      toast({
+        title: makeVisible ? "All products visible" : "All products hidden",
+        description: `${products.length} products are now ${makeVisible ? "visible in" : "hidden from"} the store.`,
+      });
+      fetchProducts();
+    } catch (error: any) {
+      console.error("Error toggling all visibility:", error);
+      toast({
+        title: "Error updating products",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingProduct(null);
@@ -166,10 +220,32 @@ export function CoffeeProductsManager() {
           <Coffee className="h-5 w-5" />
           Coffee Products
         </CardTitle>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Product
-        </Button>
+        <div className="flex gap-2">
+          {products.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Visibility
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => toggleAllVisibility(true)}>
+                  <Eye className="h-4 w-4 mr-2 text-green-600" />
+                  Show All Products
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toggleAllVisibility(false)}>
+                  <EyeOff className="h-4 w-4 mr-2 text-red-600" />
+                  Hide All Products
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -247,9 +323,22 @@ export function CoffeeProductsManager() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={product.is_active ? "default" : "secondary"}>
-                        {product.is_active ? "Active" : "Inactive"}
-                      </Badge>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => toggleVisibility(product)}
+                        title={product.is_active ? "Hide from store" : "Show in store"}
+                        className={product.is_active 
+                          ? "bg-green-100 hover:bg-green-200 border-green-300" 
+                          : "bg-red-100 hover:bg-red-200 border-red-300"
+                        }
+                      >
+                        {product.is_active ? (
+                          <Eye className="h-4 w-4 text-green-700" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-red-700" />
+                        )}
+                      </Button>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
