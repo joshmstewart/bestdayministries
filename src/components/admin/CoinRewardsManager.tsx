@@ -32,7 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus, Check, Trash2, Upload, Image } from "lucide-react";
+import { Loader2, Edit, Coins, Gamepad2, Calendar, Heart, Plus, Check, Trash2, Upload, Image, Flame } from "lucide-react";
+import { StreakMilestonesManager } from "./StreakMilestonesManager";
 import { invalidateCoinCache } from "@/components/CoinIcon";
 import defaultCoinImage from "@/assets/joycoin.png";
 
@@ -434,6 +435,9 @@ export const CoinRewardsManager = () => {
 
   return (
     <div className="space-y-6">
+      {/* Streak Milestones Section */}
+      <StreakMilestonesManager />
+
       {/* Custom Coin Image Section */}
       <Card>
         <CardHeader>
