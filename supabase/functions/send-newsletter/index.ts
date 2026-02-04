@@ -596,118 +596,70 @@ serve(async (req) => {
     // Normalize base typography so delivered emails match preview sizing more closely.
     htmlContent = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;line-height:1.5;">${htmlContent}</div>`;
 
-    // Send via Resend with rate limiting (Resend allows 2 req/sec)
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    let sentCount = 0;
-    let failedCount = 0;
-
-    // Log estimated time for transparency
-    logRateLimitInfo('send-newsletter', subscribers.length);
-
-    // Process emails sequentially with rate limiting to respect Resend's 2 req/sec limit
-    for (let i = 0; i < subscribers.length; i++) {
-      const subscriber = subscribers[i] as { email: string; id: string | null; user_id: string | null };
+    // QUEUE-BASED SENDING: For reliable delivery to large lists (2000+)
+    // Instead of sending directly (which times out), we queue all emails
+    // and a cron job processes them at a safe rate.
+    
+    const queueItems = subscribers.map((subscriber: { email: string; id: string | null; user_id: string | null }) => {
       const subscriberId = subscriber.id || 'unknown';
       const personalizedHtml = htmlContent.replace(/{{subscriber_id}}/g, subscriberId);
       
-      try {
-        // Rate limiting: wait between sends
-        if (i > 0) {
-          await emailDelay(RESEND_RATE_LIMIT_MS);
-        }
+      return {
+        campaign_id: campaignId,
+        recipient_email: subscriber.email,
+        recipient_user_id: subscriber.user_id,
+        subscriber_id: subscriber.id,
+        personalized_html: personalizedHtml,
+        subject: finalSubject,
+        from_email: fromEmail,
+        from_name: fromName,
+        status: 'pending',
+      };
+    });
 
-        const { data: emailData, error } = await resend.emails.send({
-          from: `${fromName} <${fromEmail}>`,
-          to: subscriber.email,
-          subject: finalSubject,
-          html: personalizedHtml,
-          headers: {
-            "X-Campaign-ID": campaignId,
-            "X-Subscriber-ID": subscriberId,
-          },
-        });
-
-        if (error) {
-          console.error(`Failed to send to ${subscriber.email}:`, error);
-          
-          // Log failed send
-          await supabaseClient.from("newsletter_emails_log").insert({
-            campaign_id: campaignId,
-            recipient_email: subscriber.email,
-            recipient_user_id: subscriber.user_id,
-            subject: finalSubject,
-            html_content: personalizedHtml,
-            status: "failed",
-            error_message: error.message || String(error),
-            metadata: { subscriber_id: subscriber.id },
-          });
-          
-          failedCount++;
-          continue;
-        }
-
-        // Log successful send
-        await supabaseClient.from("newsletter_emails_log").insert({
-          campaign_id: campaignId,
-          recipient_email: subscriber.email,
-          recipient_user_id: subscriber.user_id,
-          subject: finalSubject,
-          html_content: personalizedHtml,
-          status: "sent",
-          resend_email_id: emailData?.id,
-          metadata: { subscriber_id: subscriber.id },
-        });
-
-        // Log send event for analytics
-        await supabaseClient.from("newsletter_analytics").insert({
-          campaign_id: campaignId,
-          subscriber_id: subscriber.id,
-          email: subscriber.email,
-          event_type: "sent",
-        });
-
-        sentCount++;
-        
-        // Log progress every 50 emails
-        if ((i + 1) % 50 === 0) {
-          console.log(`[send-newsletter] Progress: ${i + 1}/${subscribers.length} emails processed`);
-        }
-      } catch (error: any) {
-        console.error(`Error sending to ${subscriber.email}:`, error);
-        
-        // Log failed send
-        await supabaseClient.from("newsletter_emails_log").insert({
-          campaign_id: campaignId,
-          recipient_email: subscriber.email,
-          recipient_user_id: subscriber.user_id,
-          subject: finalSubject,
-          html_content: personalizedHtml,
-          status: "failed",
-          error_message: error.message || String(error),
-          metadata: { subscriber_id: subscriber.id },
-        });
-        
-        failedCount++;
+    // Insert all emails into queue (batch insert)
+    const BATCH_SIZE = 500;
+    let queuedCount = 0;
+    
+    for (let i = 0; i < queueItems.length; i += BATCH_SIZE) {
+      const batch = queueItems.slice(i, i + BATCH_SIZE);
+      const { error: insertError } = await supabaseClient
+        .from("newsletter_email_queue")
+        .insert(batch);
+      
+      if (insertError) {
+        console.error(`[send-newsletter] Error queuing batch ${i / BATCH_SIZE + 1}:`, insertError);
+        // Continue with other batches
+      } else {
+        queuedCount += batch.length;
       }
     }
 
-    console.log(`[send-newsletter] Complete: ${sentCount} sent, ${failedCount} failed`);
+    console.log(`[send-newsletter] Queued ${queuedCount}/${subscribers.length} emails for campaign ${campaignId}`);
 
-    // Update campaign status
+    // Update campaign with queue count (status remains "sending" until queue is processed)
     await supabaseClient
       .from("newsletter_campaigns")
       .update({
-        status: "sent",
-        sent_at: new Date().toISOString(),
-        sent_to_count: sentCount,
+        queued_count: queuedCount,
+        processed_count: 0,
+        failed_count: 0,
       })
       .eq("id", campaignId);
+
+    // Estimate completion time (80 emails/minute via cron)
+    const estimatedMinutes = Math.ceil(queuedCount / 80);
+    const estimatedCompletion = new Date(Date.now() + estimatedMinutes * 60 * 1000);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        sentCount,
-        totalSubscribers: subscribers.length 
+        queued: true,
+        queuedCount,
+        totalSubscribers: subscribers.length,
+        estimatedMinutes,
+        estimatedCompletion: estimatedCompletion.toISOString(),
+        message: `${queuedCount} emails queued. Processing will complete in approximately ${estimatedMinutes} minute(s).`
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

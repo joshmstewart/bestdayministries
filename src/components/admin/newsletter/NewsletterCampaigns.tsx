@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
@@ -38,7 +39,35 @@ export const NewsletterCampaigns = () => {
       if (error) throw error;
       return data;
     },
+    // Refetch every 10 seconds when a campaign is sending
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      const hasSending = data?.some((c: any) => c.status === 'sending');
+      return hasSending ? 10000 : false;
+    },
   });
+
+  // Realtime subscription for queue progress
+  useEffect(() => {
+    const channel = supabase
+      .channel('newsletter-queue-progress')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'newsletter_campaigns',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
 
   const deleteCampaignMutation = useMutation({
@@ -167,6 +196,28 @@ export const NewsletterCampaigns = () => {
                       <span>{campaign.sent_to_count} recipients</span>
                     )}
                   </div>
+                  
+                  {/* Queue progress bar for sending campaigns */}
+                  {campaign.status === 'sending' && campaign.queued_count > 0 && (
+                    <div className="mt-3 space-y-1">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <span className="text-muted-foreground">
+                          Sending: {(campaign.processed_count || 0) + (campaign.failed_count || 0)} / {campaign.queued_count}
+                          {campaign.failed_count > 0 && (
+                            <span className="text-destructive ml-1">({campaign.failed_count} failed)</span>
+                          )}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={((campaign.processed_count || 0) + (campaign.failed_count || 0)) / campaign.queued_count * 100} 
+                        className="h-2"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        ~{Math.ceil((campaign.queued_count - (campaign.processed_count || 0) - (campaign.failed_count || 0)) / 80)} min remaining
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className={isMobile ? "flex gap-2 flex-wrap" : "flex gap-2 flex-shrink-0"}>
                   <Button

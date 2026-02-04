@@ -105,7 +105,8 @@ All these functions now implement proper rate limiting:
 | `process-sponsorship-email-queue` | Queue | ✅ 600ms |
 | `process-badge-earned-email-queue` | Queue | ✅ 600ms |
 | `process-content-like-email-queue` | Queue | ✅ 600ms |
-| `send-newsletter` | Bulk | ✅ 600ms |
+| `process-newsletter-queue` | Queue (cron) | ✅ 600ms (80/min) |
+| `send-newsletter` | Queue Insert | ✅ N/A (queues, doesn't send) |
 | `send-digest-email` | Bulk | ✅ 600ms |
 | `send-batch-year-end-summaries` | Bulk | ✅ 600ms |
 | `broadcast-product-update` | Bulk | ✅ 600ms |
