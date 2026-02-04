@@ -27,12 +27,12 @@ export function WordleKeyboard({ onKeyPress, keyboardStatus, disabled }: WordleK
                 key={key}
                 onClick={() => onKeyPress(key)}
                 disabled={disabled}
-                className={cn(
-                  "flex items-center justify-center font-bold rounded-md transition-all touch-manipulation select-none",
-                  "hover:opacity-80 active:scale-95 disabled:opacity-50",
-                  isSpecial 
-                    ? "px-2 h-14 text-[11px] sm:text-sm min-w-[56px] sm:min-w-[65px]" 
-                    : "flex-1 h-14 text-lg sm:text-xl",
+              className={cn(
+                "flex items-center justify-center font-bold rounded-md transition-all touch-manipulation select-none",
+                "hover:opacity-80 active:scale-95 disabled:opacity-50",
+                isSpecial 
+                  ? "px-1.5 h-14 text-[10px] sm:text-xs min-w-[44px] sm:min-w-[52px]" 
+                  : "flex-1 h-14 text-lg sm:text-xl",
                   key === "ENTER" && "bg-primary text-primary-foreground",
                   key !== "ENTER" && !status && "bg-muted text-foreground",
                   key !== "ENTER" && status === "correct" && "bg-green-500 text-white",
