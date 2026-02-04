@@ -21,7 +21,8 @@ import {
   Loader2,
   Eye,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Truck
 } from "lucide-react";
 import {
   Dialog,
@@ -62,6 +63,7 @@ import { useNavigate } from "react-router-dom";
 import { PrintifyProductImporter } from "./PrintifyProductImporter";
 import { ProductEditDialog } from "./ProductEditDialog";
 import { HouseVendorSettings } from "./HouseVendorSettings";
+import { ShippingCalculationLog } from "./ShippingCalculationLog";
 
 // Component to check Printify order status
 const CheckPrintifyStatusButton = ({ onStatusChecked }: { onStatusChecked: () => void }) => {
@@ -722,6 +724,10 @@ export const VendorManagement = () => {
                 <Store className="w-3 h-3" />
                 Official Store
               </TabsTrigger>
+              <TabsTrigger value="shipping-log" className="gap-1">
+                <Truck className="w-3 h-3" />
+                Shipping Log
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="vendors" className="space-y-4">
@@ -1078,6 +1084,10 @@ export const VendorManagement = () => {
 
             <TabsContent value="official-store" className="space-y-4">
               <HouseVendorSettings />
+            </TabsContent>
+
+            <TabsContent value="shipping-log" className="space-y-4">
+              <ShippingCalculationLog />
             </TabsContent>
           </Tabs>
         </CardContent>

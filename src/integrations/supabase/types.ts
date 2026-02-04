@@ -8434,6 +8434,81 @@ export type Database = {
         }
         Relationships: []
       }
+      shipping_calculation_log: {
+        Row: {
+          api_error: string | null
+          api_request: Json | null
+          api_response: Json | null
+          box_dimensions: Json | null
+          calculation_source: string
+          calculation_time_ms: number | null
+          carrier: string | null
+          created_at: string
+          decision_reason: string | null
+          destination_zip: string | null
+          estimated_days: number | null
+          fallback_reason: string | null
+          fallback_used: boolean | null
+          id: string
+          items: Json
+          order_id: string | null
+          origin_zip: string | null
+          rate_cents: number | null
+          service_name: string | null
+          session_id: string | null
+          total_weight_oz: number | null
+          user_id: string | null
+        }
+        Insert: {
+          api_error?: string | null
+          api_request?: Json | null
+          api_response?: Json | null
+          box_dimensions?: Json | null
+          calculation_source: string
+          calculation_time_ms?: number | null
+          carrier?: string | null
+          created_at?: string
+          decision_reason?: string | null
+          destination_zip?: string | null
+          estimated_days?: number | null
+          fallback_reason?: string | null
+          fallback_used?: boolean | null
+          id?: string
+          items: Json
+          order_id?: string | null
+          origin_zip?: string | null
+          rate_cents?: number | null
+          service_name?: string | null
+          session_id?: string | null
+          total_weight_oz?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          api_error?: string | null
+          api_request?: Json | null
+          api_response?: Json | null
+          box_dimensions?: Json | null
+          calculation_source?: string
+          calculation_time_ms?: number | null
+          carrier?: string | null
+          created_at?: string
+          decision_reason?: string | null
+          destination_zip?: string | null
+          estimated_days?: number | null
+          fallback_reason?: string | null
+          fallback_used?: boolean | null
+          id?: string
+          items?: Json
+          order_id?: string | null
+          origin_zip?: string | null
+          rate_cents?: number | null
+          service_name?: string | null
+          session_id?: string | null
+          total_weight_oz?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       shipping_rate_cache: {
         Row: {
           cache_key: string
