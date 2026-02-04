@@ -212,15 +212,7 @@ export function styleColumnLayoutTables(html: string): string {
   // First, handle tables with data-mobile-stack="true" - apply fluid-hybrid layout
   let result = (html || "").replace(
     /<table\b([^>]*data-mobile-stack\s*=\s*["']true["'][^>]*data-columns\s*=\s*["'](\d+)["'][^>]*|[^>]*data-columns\s*=\s*["'](\d+)["'][^>]*data-mobile-stack\s*=\s*["']true["'][^>]*)>([\s\S]*?)<\/table>/gi,
-    (fullMatch, _attrs, colCount1, colCount2, tableContent) => {
-      const columnCount = colCount1 || colCount2;
-      const numColumns = parseInt(columnCount, 10);
-      if (numColumns <= 0) return fullMatch;
-
-      // Calculate column width using precise percentage
-      const colWidthPercent = (100 / numColumns).toFixed(2);
-      const colMaxWidth = Math.floor(600 / numColumns);
-
+    (fullMatch, _attrs, _colCount1, _colCount2, tableContent) => {
       // Extract first row using depth-based TD extraction (handles nested CTA tables safely)
       const rowMatch = tableContent.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i);
       if (!rowMatch) return fullMatch;
@@ -228,20 +220,27 @@ export function styleColumnLayoutTables(html: string): string {
       const tdSegments = extractTopLevelTdHtml(rowMatch[1]);
       if (tdSegments.length === 0) return fullMatch;
 
+      // Use actual number of TD segments found (more reliable than data-columns attribute)
+      const numColumns = tdSegments.length;
+      if (numColumns <= 0) return fullMatch;
+
+      // Calculate column width using precise percentage
+      const colMaxWidth = Math.floor(600 / numColumns);
+
       // Build fluid-hybrid structure: each column is an inline-block div
       // No whitespace between elements to prevent Gmail wrapping
       const columnDivs = tdSegments.map((tdHtml) => {
         const rawContent = getTdInnerHtml(tdHtml);
         // Style images inside each column
         const styledContent = rawContent.replace(/<img\b[^>]*>/gi, (imgTag) =>
-          mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+          mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;max-width:100%;")
         );
 
         return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]--><div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;font-size:16px;"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;"><tr><td style="padding:0 8px 16px 8px;vertical-align:top;">${styledContent}</td></tr></table></div><!--[if mso]></td><![endif]-->`;
       }).join(""); // No newlines to prevent whitespace issues in Gmail
 
-      // Wrap in a container table for email clients
-      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;border-collapse:collapse;"><tr><td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->${columnDivs}<!--[if mso]></tr></table><![endif]--></td></tr></table>`;
+      // Wrap in a container table for email clients with explicit 600px width
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:0 auto;border-collapse:collapse;"><tr><td align="center" style="font-size:0;letter-spacing:0;word-spacing:0;"><!--[if mso]><table role="presentation" cellpadding="0" cellspacing="0"><tr><![endif]-->${columnDivs}<!--[if mso]></tr></table><![endif]--></td></tr></table>`;
     }
   );
 
@@ -252,12 +251,6 @@ export function styleColumnLayoutTables(html: string): string {
       // Skip if already processed (contains mso comments)
       if (fullMatch.includes('<!--[if mso]>')) return fullMatch;
       
-      const numColumns = parseInt(columnCount, 10);
-      if (numColumns <= 0) return fullMatch;
-      
-      // Calculate column width with precise percentage (33.33% not 33%)
-      const colWidthPercent = (100 / numColumns).toFixed(2);
-      
       // Extract first row using depth-based TD extraction (handles nested CTA tables safely)
       const rowMatch = tableContent.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i);
       if (!rowMatch) return fullMatch;
@@ -265,17 +258,27 @@ export function styleColumnLayoutTables(html: string): string {
       const tdSegments = extractTopLevelTdHtml(rowMatch[1]);
       if (tdSegments.length === 0) return fullMatch;
       
+      // Use actual number of TD segments found, not the data-columns attribute
+      // (data-columns can be wrong if user edited the table)
+      const numColumns = tdSegments.length;
+      if (numColumns <= 0) return fullMatch;
+      
+      // Calculate column width with precise percentage (33.33% not 33%)
+      const colWidthPercent = (100 / numColumns).toFixed(2);
+      const colPixelWidth = Math.floor(600 / numColumns);
+      
       // Build table cells with explicit widths for Gmail
+      // CRITICAL: Include both CSS width AND HTML width attribute for Gmail
       // Preserve original TD content intact (including nested CTA tables)
       const tableCells = tdSegments.map((tdHtml) => {
         const rawContent = getTdInnerHtml(tdHtml);
         const styledContent = rawContent.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
-          mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+          mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;max-width:100%;")
         );
-        return `<td style="width:${colWidthPercent}%;padding:0 8px;vertical-align:top;">${styledContent}</td>`;
+        return `<td width="${colPixelWidth}" style="width:${colWidthPercent}%;max-width:${colPixelWidth}px;padding:0 8px;vertical-align:top;">${styledContent}</td>`;
       }).join("");
       
-      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:collapse;"><tr>${tableCells}</tr></table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:0 auto;table-layout:fixed;border-collapse:collapse;"><tr>${tableCells}</tr></table>`;
     }
   );
 
@@ -321,20 +324,23 @@ export function styleMagazineLayouts(html: string): string {
       const numColumns = tdSegments.length;
       // Use precise percentage (33.33% not 33%)
       const colWidthPercent = (100 / numColumns).toFixed(2);
+      const colPixelWidth = Math.floor(600 / numColumns);
 
       // Build table cells with explicit widths for Gmail (not inline-block)
+      // CRITICAL: Include both CSS width AND HTML width attribute for Gmail
       const tableCells = tdSegments
         .map((tdHtml) => {
+          // Preserve the full TD content including any nested elements (divs, CTAs, text)
           const rawContent = getTdInnerHtml(tdHtml);
           const styledContent = rawContent.replace(/<img\b[^>]*>/gi, (imgTag: string) =>
-            mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;")
+            mergeInlineStyle(imgTag, "width:100%;height:auto;display:block;max-width:100%;")
           );
 
-          return `<td style="width:${colWidthPercent}%;padding:0 8px;vertical-align:top;">${styledContent}</td>`;
+          return `<td width="${colPixelWidth}" style="width:${colWidthPercent}%;max-width:${colPixelWidth}px;padding:0 8px;vertical-align:top;">${styledContent}</td>`;
         })
         .join("");
 
-      return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:16px auto;table-layout:fixed;border-collapse:collapse;"><tr><td style="${wrapperTdStyle}"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="table-layout:fixed;border-collapse:collapse;"><tr>${tableCells}</tr></table></td></tr></table>`;
+      return `<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;margin:16px auto;table-layout:fixed;border-collapse:collapse;"><tr><td style="${wrapperTdStyle}"><table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="table-layout:fixed;border-collapse:collapse;"><tr>${tableCells}</tr></table></td></tr></table>`;
     }
   );
 }
