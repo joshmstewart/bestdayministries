@@ -44,6 +44,63 @@ function getCoffeeBoxConfig(bagCount: number) {
   return COFFEE_BOX_CONFIG.xlarge;
 }
 
+// Audit log entry interface
+interface ShippingLogEntry {
+  user_id?: string;
+  session_id?: string;
+  order_id?: string;
+  destination_zip?: string;
+  origin_zip?: string;
+  items: unknown;
+  total_weight_oz?: number;
+  box_dimensions?: unknown;
+  calculation_source: string;
+  carrier?: string;
+  service_name?: string;
+  decision_reason?: string;
+  fallback_used?: boolean;
+  fallback_reason?: string;
+  rate_cents?: number;
+  estimated_days?: number;
+  api_request?: unknown;
+  api_response?: unknown;
+  api_error?: string;
+  calculation_time_ms?: number;
+}
+
+// Log a shipping calculation to the database
+async function logShippingCalculation(
+  supabaseClient: any,
+  entry: ShippingLogEntry
+) {
+  try {
+    const { error } = await supabaseClient
+      .from("shipping_calculation_log")
+      .insert(entry as any);
+    
+    if (error) {
+      logStep("Failed to log shipping calculation", { error: error.message });
+    }
+  } catch (e) {
+    logStep("Exception logging shipping calculation", { error: String(e) });
+  }
+}
+
+interface ShipStationSuccess {
+  success: true;
+  rateCents: number;
+  serviceName: string;
+  estimatedDays?: number;
+  apiRequest: unknown;
+  apiResponse: unknown;
+}
+
+interface ShipStationError {
+  success: false;
+  error: string;
+  apiRequest: unknown;
+}
+
 // Call ShipStation API to get shipping rates
 async function getShipStationRate(
   fromZip: string,
@@ -53,8 +110,27 @@ async function getShipStationRate(
   carrier: "usps" | "ups",
   apiKey: string,
   apiSecret: string
-): Promise<{ rateCents: number; serviceName: string; estimatedDays?: number } | null> {
+): Promise<ShipStationSuccess | ShipStationError> {
   const authHeader = "Basic " + btoa(`${apiKey}:${apiSecret}`);
+  
+  const requestBody = {
+    carrierCode: carrier,
+    fromPostalCode: fromZip,
+    toPostalCode: toZip,
+    toCountry: "US",
+    weight: {
+      value: weightOz,
+      units: "ounces",
+    },
+    dimensions: {
+      length: dimensions.length,
+      width: dimensions.width,
+      height: dimensions.height,
+      units: "inches",
+    },
+    confirmation: "none",
+    residential: true,
+  };
   
   try {
     const response = await fetch("https://ssapi.shipstation.com/shipments/getrates", {
@@ -63,37 +139,20 @@ async function getShipStationRate(
         "Content-Type": "application/json",
         Authorization: authHeader,
       },
-      body: JSON.stringify({
-        carrierCode: carrier,
-        fromPostalCode: fromZip,
-        toPostalCode: toZip,
-        toCountry: "US",
-        weight: {
-          value: weightOz,
-          units: "ounces",
-        },
-        dimensions: {
-          length: dimensions.length,
-          width: dimensions.width,
-          height: dimensions.height,
-          units: "inches",
-        },
-        confirmation: "none",
-        residential: true,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       logStep("ShipStation API error", { status: response.status, error: errorText });
-      return null;
+      return { success: false, error: `HTTP ${response.status}: ${errorText}`, apiRequest: requestBody };
     }
 
     const rates = await response.json();
     
     if (!rates || rates.length === 0) {
       logStep("No ShipStation rates returned", { carrier });
-      return null;
+      return { success: false, error: "No rates returned", apiRequest: requestBody };
     }
 
     // Sort by price and get cheapest
@@ -101,13 +160,16 @@ async function getShipStationRate(
     const cheapest = rates[0];
     
     return {
+      success: true,
       rateCents: Math.round(cheapest.shipmentCost * 100),
       serviceName: cheapest.serviceName || `${carrier.toUpperCase()} Shipping`,
       estimatedDays: cheapest.deliveryDays || undefined,
+      apiRequest: requestBody,
+      apiResponse: rates,
     };
   } catch (error) {
     logStep("ShipStation rate fetch failed", { error: String(error) });
-    return null;
+    return { success: false, error: String(error), apiRequest: requestBody };
   }
 }
 
@@ -514,6 +576,7 @@ serve(async (req) => {
         } else if (coffeeShippingSettings.shipping_mode === 'calculated' && hasShipStationCredentials) {
           // Calculate shipping via ShipStation
           const fromZip = coffeeShippingSettings.ship_from_zip || COFFEE_ORIGIN_ZIP;
+          const calcStartTime = Date.now();
           
           logStep("Coffee: Calculating ShipStation rate", {
             fromZip,
@@ -533,11 +596,37 @@ serve(async (req) => {
             shipStationApiSecret!
           );
 
-          if (rateResult) {
+          if (rateResult.success) {
             logStep("Coffee: ShipStation rate found", {
               service: rateResult.serviceName,
               rateCents: rateResult.rateCents,
               estimatedDays: rateResult.estimatedDays
+            });
+
+            // Log successful calculation
+            await logShippingCalculation(supabaseClient, {
+              user_id: user?.id,
+              session_id: session_id,
+              destination_zip: shipping_address.zip,
+              origin_zip: fromZip,
+              items: coffeeCartItems.map(item => ({
+                id: item.id,
+                coffee_product_id: item.coffee_product_id,
+                quantity: item.quantity,
+                is_coffee: true,
+              })),
+              total_weight_oz: totalWeightOz,
+              box_dimensions: boxConfig.dimensions,
+              calculation_source: 'shipstation',
+              carrier: carrier,
+              service_name: rateResult.serviceName,
+              decision_reason: `Coffee order: ${totalBagCount} bag(s), carrier=${carrier} (USPS for 1 bag, UPS for 2+)`,
+              fallback_used: false,
+              rate_cents: rateResult.rateCents,
+              estimated_days: rateResult.estimatedDays,
+              api_request: rateResult.apiRequest,
+              api_response: rateResult.apiResponse,
+              calculation_time_ms: Date.now() - calcStartTime,
             });
 
             vendorResults.push({
@@ -552,11 +641,35 @@ serve(async (req) => {
             });
           } else {
             // Fallback to flat rate if ShipStation fails
-            logStep("Coffee: ShipStation failed, using flat rate fallback");
+            logStep("Coffee: ShipStation failed, using flat rate fallback", { error: rateResult.error });
             const flatRateCents = coffeeShippingSettings.flat_rate_amount != null
               ? Math.round(coffeeShippingSettings.flat_rate_amount * 100)
               : FLAT_SHIPPING_RATE_CENTS;
             
+            // Log fallback calculation
+            await logShippingCalculation(supabaseClient, {
+              user_id: user?.id,
+              session_id: session_id,
+              destination_zip: shipping_address.zip,
+              origin_zip: fromZip,
+              items: coffeeCartItems.map(item => ({
+                id: item.id,
+                coffee_product_id: item.coffee_product_id,
+                quantity: item.quantity,
+                is_coffee: true,
+              })),
+              total_weight_oz: totalWeightOz,
+              box_dimensions: boxConfig.dimensions,
+              calculation_source: 'flat_rate',
+              decision_reason: `Coffee flat rate fallback: ${totalBagCount} bag(s)`,
+              fallback_used: true,
+              fallback_reason: rateResult.error,
+              rate_cents: flatRateCents,
+              api_request: rateResult.apiRequest,
+              api_error: rateResult.error,
+              calculation_time_ms: Date.now() - calcStartTime,
+            });
+
             vendorResults.push({
               vendor_id: COFFEE_VENDOR_ID,
               vendor_name: "Best Day Ever Coffee",
