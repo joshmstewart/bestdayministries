@@ -86,6 +86,8 @@ function styleColumnLayoutTables(html: string): string {
       if (tdContents.length === 0) return fullMatch;
 
       // Build fluid-hybrid structure: each column is an inline-block div
+      // Use fixed width (not width:100%) to prevent desktop wrapping - columns stay side-by-side
+      // until viewport shrinks below 600px where inline-block naturally stacks.
       const columnDivs = tdContents.map((content) => {
         // Style images inside each column
         const styledContent = content.replace(/<img\b[^>]*>/gi, (imgTag) =>
@@ -93,7 +95,7 @@ function styleColumnLayoutTables(html: string): string {
         );
 
         return `<!--[if mso]><td valign="top" width="${colMaxWidth}"><![endif]-->
-<div style="display:inline-block;width:100%;max-width:${colMaxWidth}px;vertical-align:top;">
+<div style="display:inline-block;width:${colMaxWidth}px;max-width:100%;vertical-align:top;">
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
     <tr>
       <td style="padding:0 8px 16px 8px;vertical-align:top;">${styledContent}</td>
