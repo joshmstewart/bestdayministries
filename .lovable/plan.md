@@ -1,97 +1,93 @@
 
-Goal
-- Fix the delivered-email HTML transform so 3-column “Insert Columns” layouts render as 3 columns on one desktop row in Gmail (Safari/Mac), and stop breaking nested CTA button tables and typography.
+Context / what we now know (from the actual logged email HTML)
+- The newest entry in `newsletter_emails_log` still contains the raw editor tables:
+  - `table.newsletter-table[data-columns][data-mobile-stack]` is still present (and even has `data-columns="2"` while containing 3 `<td>`s).
+  - The “Walk With Us” `data-columns="3"` table is also still present.
+- Those tables include nested CTA tables (`<table data-cta-button>…</table>`) and nested `<tr>`/`<td>` inside them.
+- The column-table transformer in `supabase/functions/_shared/emailStyles.ts` currently uses regex patterns that assume:
+  1) it can match an entire `<table …>…</table>` with `([\s\S]*?)</table>` and
+  2) it can find the “first row” with `/<tr …>([\s\S]*?)<\/tr>/`
+- Both assumptions are false when nested CTA tables exist:
+  - The table-level regex stops at the first nested `</table>` (the CTA), so the “tableContent” passed into the callback is incomplete.
+  - The row-level regex stops at the first nested `</tr>` (also inside the CTA table), so the “row” passed to TD extraction is incomplete.
+  - With an incomplete row, the depth-based `<td>` extractor often returns 0 segments (because it never sees the matching outer `</td>`), and the function returns `fullMatch` (no transformation), leaving the original `data-columns` table untouched.
+- Separate but important: some column cells contain images with `width="600px"` attributes. Even if columns were transformed, Gmail can prioritize the width attribute, causing overflow/overlap. We need to override/remove width attributes inside multi-column cells.
 
-What’s actually broken (verified)
-- The backend email transformer currently parses `table[data-columns]` using a naive regex:
-  - `/<td\b[^>]*>([\s\S]*?)<\/td>/gi`
-- This fails as soon as a column contains a nested table (CTA buttons are tables with their own `<td>`). The regex “closes” at the nested `</td>` and slices the outer cell incorrectly.
-- Evidence from the most recent email log snippet (newsletter_emails_log) shows corrupted output where the rebuilt first column `<td style="width:33%...">` contains stray `</td><td colspan="1" ...>` from the original markup, which is exactly how you get:
-  - first column on its own line (Gmail interprets broken table structure)
-  - next two columns side-by-side on the next row and huge
+Root cause (why the issues still look exactly the same)
+- We fixed “nested <td> parsing” but the transformer is still failing earlier at “nested <table>/<tr> parsing.”
+- Because the transformation bails out (no reliable top-level row extracted), the raw `data-columns` tables remain, which is why:
+  - 3-column blocks can overlap (images inside cells still declare 600px width)
+  - at least one magazine block can lose content (same nested-table matching problem exists in `styleMagazineLayouts()`)
 
-Scope of fix
-- Backend email HTML processing only (Lovable Cloud backend functions)
-- Primary change: rewrite `styleColumnLayoutTables()` in `supabase/functions/_shared/emailStyles.ts` so it never regex-extracts `<td>...</td>` blindly.
-- Secondary change: adjust percentage math to use precise widths (33.33%) instead of `Math.floor(100/3)=33%`.
+What I will change (implementation approach)
+A) Replace regex-based “whole table” and “first row” extraction with depth-based, nested-safe scanning
+1) Add small, dependency-free parsing helpers inside `supabase/functions/_shared/emailStyles.ts`:
+   - find the end of an opening tag (`>`) while respecting quoted attributes
+   - find a matching closing tag for `<table>` using a depth counter for nested `<table>`/`</table>`
+   - extract the first top-level `<tr>…</tr>` within a table while ignoring `<tr>` tags inside nested tables (tracked via table-depth)
+   - keep the existing `extractTopLevelTdHtml()` for `<td>` segments (it’s the right idea), but feed it a correct “outer row” string
 
-Pre-change checklist (MANDATORY before edits in implementation mode)
-- PRE-CHANGE CHECKLIST:
-  □ Searched docs for: newsletter, data-columns, Stack on Mobile, CTA button, emailStyles
-  □ Read files: supabase/functions/_shared/emailStyles.ts, src/components/admin/newsletter/RichTextEditor.tsx, src/components/admin/newsletter/NewsletterPreviewDialog.tsx, src/components/admin/newsletter/CTAButtonExtension.ts, src/components/admin/newsletter/ctaButtonStyles.ts
-  □ Searched code for: data-columns, data-mobile-stack, styleColumnLayoutTables, data-cta-button
-  □ Found patterns: yes — preview uses fixed table layout for data-columns and 33.33% for 3 columns; columns inserted as <table data-columns="3" ...><tr><td ...>...</td>...</tr></table>
-  □ Ready: yes
+2) Rewrite `styleColumnLayoutTables()` to:
+   - Iterate through the HTML and locate *complete* `table[data-columns]` blocks using the nested-safe `<table>` depth parser (not regex).
+   - For each found table:
+     - Determine if it has `data-mobile-stack="true"`
+     - Extract the first top-level row safely (not regex)
+     - Extract top-level TD segments from that row
+     - Use the *actual* TD count (since your “data-columns=2 but has 3 cells” case is real)
+     - Rebuild either:
+       - Fixed desktop table layout (non-stacking) using `<table width="600" style="max-width:600px;table-layout:fixed">` and `<td width="200">`
+       - Fluid-hybrid (stacking) layout using a nested-safe wrapper, but ensuring the outer wrapper is responsive (`width="100%"` + `max-width:600px`) while each column gets a pixel max width
+   - Normalize images inside each cell more aggressively:
+     - Remove or override `width="600px"` attributes in column images
+     - Set `width` attribute to the column pixel width when possible (e.g., 200)
+     - Add inline style: `width:100%;height:auto;display:block;max-width:100%;`
+     - This is specifically to stop Gmail from letting a 600px image force overflow and cause “overlapping columns.”
 
-Implementation design (what I will change)
-1) Add a safe “top-level TD extractor” utility (depth-based, not regex)
-- Create a helper inside `emailStyles.ts` that can extract only the top-level `<td>...</td>` segments for a given row’s inner HTML, similar to the approach already used for magazine layouts.
-- Key property: nested CTA `<td>` tags increment depth and do not terminate the outer cell early.
+B) Fix `styleMagazineLayouts()` with the same nested-safe table + row extraction
+- `styleMagazineLayouts()` currently uses regex for both full table and first row, which is vulnerable to nested CTA tables as well.
+- I’ll refactor it to:
+  - Find complete `table[data-two-column]` segments via the same nested-safe table parser
+  - Extract the correct first top-level `<tr>` (ignoring nested CTA `<tr>`)
+  - Extract top-level `<td>` segments from that row and rebuild the wrapper
+  - Preserve the table’s background/padding/border-radius from the original `style=""` on the source table (current behavior), but without losing any nested CTA/table content
+  - Apply the same “image width attribute override” inside each magazine column
 
-2) Fix `styleColumnLayoutTables()` for BOTH modes
-A) Non-stacking tables (no `data-mobile-stack="true"`)
-- Current behavior rebuilds the whole table using broken `tdRegex`.
-- New behavior:
-  - Read `data-columns` to determine intended column count.
-  - Find the first `<tr>...</tr>` (column layouts created by the editor are single-row).
-  - Extract top-level `<td>` segments from that row safely.
-  - Rebuild a clean wrapper table (max-width 600, centered, table-layout:fixed).
-  - For each column cell:
-    - Preserve the original cell’s inline styles (padding/border/background) as authored in the editor.
-    - Only add/override:
-      - `width: 33.33%` (or computed `toFixed(2)` for 2/3 columns)
-      - `vertical-align: top`
-    - Normalize images inside the cell to `width:100%; height:auto; display:block;` (already done).
+C) Keep existing safety rules
+- Keep skipping `table[data-cta-button]` in `styleStandardTablesOnly()` (so CTA button padding stays consistent).
+- Keep overall processing order in `applyEmailStyles()`:
+  1) standard tables
+  2) column layouts
+  3) magazine layouts
+  4) CTA touch-ups (font-family)
+  5) typography normalization
 
-B) “Stack on Mobile” tables (`data-mobile-stack="true"`)
-- Current behavior also uses the same broken `tdRegex` extraction and is therefore just as vulnerable.
-- New behavior:
-  - Use the same safe top-level `<td>` extraction.
-  - Build a “fluid-hybrid” structure WITHOUT relying on parsing that can be broken by nested tables.
-  - Additionally, I’ll remove newline/whitespace between inline-block elements in the generated HTML (join without `\n`) and keep the container `font-size:0;letter-spacing:0;word-spacing:0;` to prevent accidental wrapping from whitespace.
-  - If needed for Gmail reliability, switch the outer wrapper from `<div style="display:inline-block...">` to an inline-block `<table ... style="display:inline-block...">` (tables tend to be more consistently handled by Gmail than inline-block divs inside table cells).
+Files that will change
+- `supabase/functions/_shared/emailStyles.ts`
+- Documentation update (to prevent regressions):
+  - `docs/NEWSLETTER_SYSTEM.md` (add “Never regex-match table blocks; use depth-based parsing because nested CTA tables exist”)
+  - (Optional) `docs/MASTER_SYSTEM_DOCS.md` (same note in the newsletter section)
 
-3) Fix column width rounding everywhere it matters
-- Replace `Math.floor(100 / numColumns)` with:
-  - `const colWidth = (100 / numColumns).toFixed(2);`
-- Apply to:
-  - `styleColumnLayoutTables()` fixed-table mode
-  - (Optional but recommended) `styleMagazineLayouts()` currently uses `Math.floor` too; I’ll update it for consistency, even though your current break is clearly in `data-columns`.
+How we will verify (objective checks, not “looks better”)
+1) Database proof (before even opening Gmail)
+- Send a new test email.
+- Open the newest `newsletter_emails_log.html_content` and confirm:
+  - The raw `table.newsletter-table[data-columns]` blocks are gone (or at least no longer contain `data-columns=` / `newsletter-table`).
+  - The transformed output contains:
+    - wrapper `<table role="presentation" … max-width:600px …>`
+    - a single `<tr>` containing N sibling `<td width="…">` cells
+  - Images inside multi-column cells do NOT have `width="600px"` anymore.
 
-4) Keep CTA buttons consistent
-- CTA button HTML already contains correct padding + `font-size:14px` from `CTAButtonExtension.ts` and the shared sizing constants.
-- The main reason buttons “don’t look the same” in your current emails is the column transformer is breaking CTA tables by mis-parsing `<td>`.
-- After the column parsing fix, CTA tables should remain intact and render the same as preview.
-- I will keep `styleStandardTablesOnly()` excluding `table[data-cta-button]` (this is correct and matches the preview rules).
-
-Verification plan (how we’ll prove it’s fixed)
-1) Backend verification (no guessing)
-- Send a test email again.
-- In the backend logs table (`newsletter_emails_log`), inspect the processed HTML around the 3-column section and confirm:
-  - The transformed output contains exactly 3 sibling column `<td>`s in the same `<tr>`
-  - Each has `width:33.33%` (or 33.34/33.33 split depending on rounding strategy, but we’ll use consistent 2-decimal)
-  - There are no stray `</td><td colspan=...` fragments inside a column cell
-
-2) Real client verification (your environment)
-- Open the test email in Gmail on Safari/Mac and confirm:
-  - 3 columns appear on one row on desktop
-  - columns are not enormous
-  - buttons inside the columns match preview sizing and shape
+2) Real client proof (your target)
+- Gmail on Safari/Mac:
+  - The “What’s Growing” multi-column section (the one that currently overlaps) should show clean columns with no overlap.
+  - The “Walk With Us” 3-CTA section should show 3 evenly spaced columns.
+  - The magazine block that was missing text/CTA should show both text and CTA in the correct column.
 
 3) Regression checks
-- 2-column layout still works
-- “Stack on Mobile” still stacks on narrow screens (mobile preview and an actual mobile Gmail if available)
+- 2-column and 3-column blocks render correctly
+- “Stack on Mobile” still stacks on narrow screens (and doesn’t break desktop)
 
-Files that will be modified (implementation mode)
-- Primary:
-  - `supabase/functions/_shared/emailStyles.ts` (rewrite `styleColumnLayoutTables`; adjust rounding; possibly refactor shared TD-extraction helper)
-- Optional consistency:
-  - `docs/NEWSLETTER_SYSTEM.md` (document the new “top-level TD safe parsing” rule for `data-columns` tables so we don’t regress)
-
-Rollout / risk
-- Low risk to other systems: changes are isolated to newsletter email HTML processing.
-- High confidence: we have direct proof in the stored email HTML that the current parsing is corrupting the table; the depth-based extraction addresses the exact failure mode (nested `<td>` inside CTA tables).
-
-One quick clarification (not blocking, but helpful)
-- In your 3-column block, is “Stack on Mobile” enabled (the 📱 toggle on that table), and do any of the columns contain CTA buttons?
-  - This helps validate we hit both code paths (stacking + non-stacking), but the fix will cover both regardless.
+Why this is the “new” fix compared to before
+- Previously we only made `<td>` extraction nested-safe.
+- The real blocker is upstream: extracting the correct *full table* and correct *top-level row* when nested CTA tables exist.
+- This plan fixes table-level and row-level nesting so the transformer actually runs, and then additionally fixes the image width attribute issue that can cause overlap even when the table structure is correct.
