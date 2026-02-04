@@ -2,7 +2,7 @@
 
 ## Overview
 
-ShipStation integration for order fulfillment and shipping management. This integration uses **API polling** rather than webhooks to update order statuses.
+ShipStation integration for order fulfillment and shipping management. This integration uses **API polling** for status updates and **real-time rate calculation** for coffee shipping estimates.
 
 ## Architecture
 
@@ -22,31 +22,46 @@ ShipStation integration for order fulfillment and shipping management. This inte
 │  Update order_items tracking info                              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│               Coffee Shipping Rate Calculation                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Cart: Customer enters ZIP                                      │
+│       ↓                                                         │
+│  calculate-shipping-rates (edge function)                       │
+│       ↓                                                         │
+│  ShipStation getrates API                                       │
+│       ↓                                                         │
+│  Return rate (USPS for 1 bag, UPS for 2+)                       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
+## Coffee Shipping Logic
+
+### Carrier Selection
+- **1 bag**: USPS (single 12oz bag - small, light package)
+- **2+ bags**: UPS (better rates for heavier packages)
+
+### Box Configurations
+
+| Bags | Box Size (LxWxH) | Box Weight | Use Case |
+|------|------------------|------------|----------|
+| 1-3  | 6x6x7"          | 3.5 oz     | Small orders |
+| 4-6  | 10x8x6"         | 7.0 oz     | Medium orders |
+| 7-9  | 12x10x6"        | 10.0 oz    | Large orders |
+| 10+  | 16x12x10"       | 14.0 oz    | Bulk orders |
+
+### Weight Calculation
+- Each 12oz coffee bag: 12 oz
+- Total weight = (bag count × 12 oz) + box weight
+
+### Origin
+- Ships from ZIP: 28036 (Davidson, NC)
+- Processing: Same day or next business day
+
 ## Database Schema
-
-### order_items Columns (ShipStation-specific)
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| `shipstation_order_id` | integer | ShipStation's internal order ID |
-| `shipstation_order_key` | text | Unique key for ShipStation order |
-| `shipstation_shipment_id` | integer | ShipStation's shipment ID once shipped |
-| `shipstation_synced_at` | timestamptz | When order was pushed to ShipStation |
-| `shipstation_last_checked_at` | timestamptz | Last poll time for status updates |
-
-### Indexes
-
-- `idx_order_items_shipstation_order_id` - For order lookups
-- `idx_order_items_shipstation_order_key` - For key-based lookups
-- `idx_order_items_shipstation_shipment_id` - For shipment queries
-
-## Edge Functions
-
-### sync-order-to-shipstation
-
-**Purpose:** Push order items to ShipStation for fulfillment
 
 **Endpoint:** `POST /functions/v1/sync-order-to-shipstation`
 
@@ -123,41 +138,31 @@ ShipStation integration for order fulfillment and shipping management. This inte
 
 If `orderId` is omitted, polls ALL unshipped items synced to ShipStation.
 
-**Flow:**
-1. Query order_items that:
-   - Have `shipstation_order_id` set
-   - Have `fulfillment_status` = 'pending' or 'shipped' (not delivered)
-2. For each item, query ShipStation shipments:
-   - GET `/shipments?orderNumber={orderNumber}`
-3. If shipment found:
-   - Update `tracking_number`, `carrier`, `tracking_url`
-   - Update `shipstation_shipment_id`
-   - Set `fulfillment_status` to 'shipped' or 'delivered' based on status
-4. Update `shipstation_last_checked_at` for all checked items
+### calculate-shipping-rates (Coffee)
 
-**Scheduling Options:**
-- Manual: Admin triggers from dashboard
-- Scheduled: Add to `supabase/config.toml`:
-  ```toml
-  [functions.poll-shipstation-status]
-  verify_jwt = false
-  schedule = "*/30 * * * *"  # Every 30 minutes
-  ```
+**Purpose:** Get real-time shipping rates for coffee orders using ShipStation's rate calculator
 
-**Response:**
+**Endpoint:** `POST /functions/v1/calculate-shipping-rates`
+
+**Coffee-Specific Logic:**
+1. Count total bags in cart
+2. Determine box size based on quantity
+3. Calculate total weight (bags × 12oz + box weight)
+4. Select carrier: USPS (1 bag) or UPS (2+ bags)
+5. Call ShipStation `/shipments/getrates` API
+6. Return cheapest rate
+
+**Example Response (coffee portion):**
 ```json
 {
-  "success": true,
-  "checked": 5,
-  "updated": 2,
-  "results": [
-    {
-      "orderItemId": "uuid",
-      "trackingNumber": "1Z999AA10123456784",
-      "carrier": "ups",
-      "status": "shipped"
-    }
-  ]
+  "vendor_id": "f8c7d9e6-5a4b-3c2d-1e0f-9a8b7c6d5e4f",
+  "vendor_name": "Best Day Ever Coffee",
+  "subtotal_cents": 3900,
+  "shipping_cents": 899,
+  "shipping_method": "calculated",
+  "service_name": "UPS Ground",
+  "carrier": "UPS",
+  "estimated_days": 3
 }
 ```
 

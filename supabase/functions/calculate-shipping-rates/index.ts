@@ -9,6 +9,17 @@ const corsHeaders = {
 const FLAT_SHIPPING_RATE_CENTS = 699; // $6.99 fallback
 const DEFAULT_FREE_SHIPPING_THRESHOLD_CENTS = 3500;
 const COFFEE_VENDOR_ID = "f8c7d9e6-5a4b-3c2d-1e0f-9a8b7c6d5e4f"; // Best Day Ever Coffee house vendor
+const COFFEE_ORIGIN_ZIP = "28036"; // Davidson, NC
+
+// Coffee box configurations based on quantity
+// Each 12oz bag weighs ~12oz, box weights are estimated
+const COFFEE_BOX_CONFIG = {
+  small: { maxBags: 3, dimensions: { length: 6, width: 6, height: 7 }, boxWeightOz: 3.5 },
+  medium: { maxBags: 6, dimensions: { length: 10, width: 8, height: 6 }, boxWeightOz: 7.0 },
+  large: { maxBags: 9, dimensions: { length: 12, width: 10, height: 6 }, boxWeightOz: 10.0 },
+  xlarge: { maxBags: Infinity, dimensions: { length: 16, width: 12, height: 10 }, boxWeightOz: 14.0 },
+};
+const COFFEE_BAG_WEIGHT_OZ = 12; // Each 12oz bag
 
 interface CoffeeShippingSettings {
   shipping_mode: 'flat' | 'calculated' | null;
@@ -24,6 +35,81 @@ const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CALCULATE-SHIPPING] ${step}${detailsStr}`);
 };
+
+// Determine box configuration based on total bag count
+function getCoffeeBoxConfig(bagCount: number) {
+  if (bagCount <= COFFEE_BOX_CONFIG.small.maxBags) return COFFEE_BOX_CONFIG.small;
+  if (bagCount <= COFFEE_BOX_CONFIG.medium.maxBags) return COFFEE_BOX_CONFIG.medium;
+  if (bagCount <= COFFEE_BOX_CONFIG.large.maxBags) return COFFEE_BOX_CONFIG.large;
+  return COFFEE_BOX_CONFIG.xlarge;
+}
+
+// Call ShipStation API to get shipping rates
+async function getShipStationRate(
+  fromZip: string,
+  toZip: string,
+  weightOz: number,
+  dimensions: { length: number; width: number; height: number },
+  carrier: "usps" | "ups",
+  apiKey: string,
+  apiSecret: string
+): Promise<{ rateCents: number; serviceName: string; estimatedDays?: number } | null> {
+  const authHeader = "Basic " + btoa(`${apiKey}:${apiSecret}`);
+  
+  try {
+    const response = await fetch("https://ssapi.shipstation.com/shipments/getrates", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+      body: JSON.stringify({
+        carrierCode: carrier,
+        fromPostalCode: fromZip,
+        toPostalCode: toZip,
+        toCountry: "US",
+        weight: {
+          value: weightOz,
+          units: "ounces",
+        },
+        dimensions: {
+          length: dimensions.length,
+          width: dimensions.width,
+          height: dimensions.height,
+          units: "inches",
+        },
+        confirmation: "none",
+        residential: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logStep("ShipStation API error", { status: response.status, error: errorText });
+      return null;
+    }
+
+    const rates = await response.json();
+    
+    if (!rates || rates.length === 0) {
+      logStep("No ShipStation rates returned", { carrier });
+      return null;
+    }
+
+    // Sort by price and get cheapest
+    rates.sort((a: any, b: any) => a.shipmentCost - b.shipmentCost);
+    const cheapest = rates[0];
+    
+    return {
+      rateCents: Math.round(cheapest.shipmentCost * 100),
+      serviceName: cheapest.serviceName || `${carrier.toUpperCase()} Shipping`,
+      estimatedDays: cheapest.deliveryDays || undefined,
+    };
+  } catch (error) {
+    logStep("ShipStation rate fetch failed", { error: String(error) });
+    return null;
+  }
+}
 
 interface ShippingAddress {
   zip: string;
@@ -376,19 +462,37 @@ serve(async (req) => {
       });
     }
 
-    // ============ COFFEE SHIPPING CALCULATION ============
+    // ============ COFFEE SHIPPING CALCULATION (via ShipStation) ============
     if (coffeeCartItems.length > 0) {
-      // Calculate coffee subtotal
+      // Get ShipStation credentials
+      const shipStationApiKey = Deno.env.get("SHIPSTATION_API_KEY");
+      const shipStationApiSecret = Deno.env.get("SHIPSTATION_API_SECRET");
+      const hasShipStationCredentials = !!shipStationApiKey && !!shipStationApiSecret;
+      
+      // Calculate coffee totals - count total bags (quantity represents bag count)
       let coffeeSubtotalCents = 0;
-      let coffeeTotalWeightOz = 0;
+      let totalBagCount = 0;
       
       for (const item of coffeeCartItems) {
         const pricePerUnit = (item.variant_info as any)?.price_per_unit ?? item.coffee_product?.selling_price ?? 0;
         coffeeSubtotalCents += Math.round(pricePerUnit * 100) * item.quantity;
-        coffeeTotalWeightOz += 16 * item.quantity; // Default 1 lb per coffee item
+        totalBagCount += item.quantity;
       }
       
-      logStep("Coffee items calculated", { coffeeSubtotalCents, coffeeTotalWeightOz, itemCount: coffeeCartItems.length });
+      // Determine box size and calculate total weight
+      const boxConfig = getCoffeeBoxConfig(totalBagCount);
+      const totalWeightOz = (totalBagCount * COFFEE_BAG_WEIGHT_OZ) + boxConfig.boxWeightOz;
+      
+      // Determine carrier: USPS for single bag, UPS for 2+
+      const carrier: "usps" | "ups" = totalBagCount === 1 ? "usps" : "ups";
+      
+      logStep("Coffee items calculated", { 
+        coffeeSubtotalCents, 
+        totalBagCount, 
+        totalWeightOz,
+        boxDimensions: boxConfig.dimensions,
+        carrier 
+      });
 
       // Check if coffee shipping settings exist
       if (coffeeShippingSettings && coffeeShippingSettings.shipping_mode) {
@@ -407,85 +511,48 @@ serve(async (req) => {
             shipping_method: 'free',
             service_name: 'Free Shipping',
           });
-        } else if (coffeeShippingSettings.shipping_mode === 'calculated' && coffeeShippingSettings.ship_from_zip && easyPostKey) {
-          // Calculate shipping via EasyPost
-          try {
-            logStep("Coffee: Calculating EasyPost rate", {
-              fromZip: coffeeShippingSettings.ship_from_zip,
-              toZip: shipping_address.zip,
-              weightOz: coffeeTotalWeightOz
+        } else if (coffeeShippingSettings.shipping_mode === 'calculated' && hasShipStationCredentials) {
+          // Calculate shipping via ShipStation
+          const fromZip = coffeeShippingSettings.ship_from_zip || COFFEE_ORIGIN_ZIP;
+          
+          logStep("Coffee: Calculating ShipStation rate", {
+            fromZip,
+            toZip: shipping_address.zip,
+            totalWeightOz,
+            carrier,
+            dimensions: boxConfig.dimensions
+          });
+
+          const rateResult = await getShipStationRate(
+            fromZip,
+            shipping_address.zip,
+            totalWeightOz,
+            boxConfig.dimensions,
+            carrier,
+            shipStationApiKey!,
+            shipStationApiSecret!
+          );
+
+          if (rateResult) {
+            logStep("Coffee: ShipStation rate found", {
+              service: rateResult.serviceName,
+              rateCents: rateResult.rateCents,
+              estimatedDays: rateResult.estimatedDays
             });
 
-            const easyPostResponse = await fetch("https://api.easypost.com/v2/shipments", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${easyPostKey}`,
-              },
-              body: JSON.stringify({
-                shipment: {
-                  from_address: {
-                    zip: coffeeShippingSettings.ship_from_zip,
-                    city: coffeeShippingSettings.ship_from_city || undefined,
-                    state: coffeeShippingSettings.ship_from_state || undefined,
-                    country: "US",
-                  },
-                  to_address: {
-                    zip: shipping_address.zip,
-                    city: shipping_address.city || undefined,
-                    state: shipping_address.state || undefined,
-                    country: shipping_address.country || "US",
-                  },
-                  parcel: {
-                    weight: coffeeTotalWeightOz,
-                    length: 10,
-                    width: 8,
-                    height: 6,
-                  },
-                  carrier_accounts: [],
-                  carriers: ["USPS"],
-                },
-              }),
+            vendorResults.push({
+              vendor_id: COFFEE_VENDOR_ID,
+              vendor_name: "Best Day Ever Coffee",
+              subtotal_cents: coffeeSubtotalCents,
+              shipping_cents: rateResult.rateCents,
+              shipping_method: 'calculated',
+              service_name: rateResult.serviceName,
+              carrier: carrier.toUpperCase(),
+              estimated_days: rateResult.estimatedDays,
             });
-
-            if (!easyPostResponse.ok) {
-              const errorText = await easyPostResponse.text();
-              throw new Error(`EasyPost API error: ${errorText}`);
-            }
-
-            const shipmentData = await easyPostResponse.json();
-            const rates = shipmentData.rates || [];
-            const uspsRates = rates.filter((r: any) => r.carrier === "USPS");
-
-            if (uspsRates.length > 0) {
-              uspsRates.sort((a: any, b: any) => parseFloat(a.rate) - parseFloat(b.rate));
-              const cheapestRate = uspsRates[0];
-              const rateCents = Math.round(parseFloat(cheapestRate.rate) * 100);
-
-              logStep("Coffee: EasyPost rate found", {
-                service: cheapestRate.service,
-                rateCents,
-                deliveryDays: cheapestRate.delivery_days
-              });
-
-              vendorResults.push({
-                vendor_id: COFFEE_VENDOR_ID,
-                vendor_name: "Best Day Ever Coffee",
-                subtotal_cents: coffeeSubtotalCents,
-                shipping_cents: rateCents,
-                shipping_method: 'calculated',
-                service_name: cheapestRate.service,
-                carrier: cheapestRate.carrier,
-                estimated_days: cheapestRate.delivery_days,
-              });
-            } else {
-              throw new Error("No USPS rates available for coffee");
-            }
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            logStep("Coffee: EasyPost failed, using flat rate fallback", { error: errorMessage });
-            
-            // Fallback to flat rate
+          } else {
+            // Fallback to flat rate if ShipStation fails
+            logStep("Coffee: ShipStation failed, using flat rate fallback");
             const flatRateCents = coffeeShippingSettings.flat_rate_amount != null
               ? Math.round(coffeeShippingSettings.flat_rate_amount * 100)
               : FLAT_SHIPPING_RATE_CENTS;
@@ -497,11 +564,11 @@ serve(async (req) => {
               shipping_cents: flatRateCents,
               shipping_method: 'flat',
               service_name: 'Standard Shipping',
-              error: `Calculated rate unavailable: ${errorMessage}`,
+              error: 'ShipStation rate unavailable, using flat rate',
             });
           }
         } else {
-          // Flat rate shipping for coffee
+          // Flat rate shipping for coffee (or calculated mode but no credentials)
           const flatRateCents = coffeeShippingSettings.flat_rate_amount != null
             ? Math.round(coffeeShippingSettings.flat_rate_amount * 100)
             : FLAT_SHIPPING_RATE_CENTS;
