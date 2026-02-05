@@ -348,6 +348,34 @@ export const MemoryMatchPackManager = () => {
       setErrors((prev) => prev.filter((e) => e.imageName !== image.name));
       toast.success(`Regenerated icon for ${image.name}`);
     } else {
+      // Check if it's a network/timeout error - the icon might have actually been generated
+      const isNetworkError = result.errorMessage?.includes("Failed to fetch") || 
+                             result.errorMessage?.includes("Failed to send a request");
+      
+      if (isNetworkError) {
+        // Reload from DB to check if icon was actually saved
+        const { data: updatedImage } = await supabase
+          .from("memory_match_images")
+          .select("*")
+          .eq("id", image.id)
+          .single();
+        
+        if (updatedImage?.image_url && updatedImage.image_url !== image.image_url) {
+          // Icon was actually generated successfully
+          const cacheBustedUrl = `${updatedImage.image_url}?t=${Date.now()}`;
+          setPackImages((prev) => ({
+            ...prev,
+            [image.pack_id]: (prev[image.pack_id] || []).map((img) =>
+              img.id === image.id ? { ...img, image_url: cacheBustedUrl } : img
+            ),
+          }));
+          setErrors((prev) => prev.filter((e) => e.imageName !== image.name));
+          toast.success(`Regenerated icon for ${image.name} (recovered after timeout)`);
+          setRegeneratingId(null);
+          return;
+        }
+      }
+      
       setErrors((prev) => {
         const filtered = prev.filter((e) => e.imageName !== image.name);
         return [...filtered, { imageName: image.name, error: result.errorMessage || "Unknown error" }];
