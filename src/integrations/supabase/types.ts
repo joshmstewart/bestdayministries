@@ -12180,6 +12180,7 @@ export type Database = {
         | "sending"
         | "sent"
         | "failed"
+        | "archived"
       newsletter_event_type:
         | "sent"
         | "delivered"
@@ -12365,6 +12366,7 @@ export const Constants = {
         "sending",
         "sent",
         "failed",
+        "archived",
       ],
       newsletter_event_type: [
         "sent",
