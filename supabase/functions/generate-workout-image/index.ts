@@ -354,50 +354,69 @@ serve(async (req) => {
       console.log("Fallback: Using text-only generation (no avatar image)");
     }
 
-    // Call Lovable AI to generate/edit the image
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        // Nano Banana image model
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: messageContent,
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    // Call Lovable AI to generate/edit the image with retry logic
+    const MAX_RETRIES = 3;
+    let imageData: string | null = null;
+    let lastError: string | null = null;
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`Image generation attempt ${attempt}/${MAX_RETRIES}`);
+      
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // Nano Banana image model
+          model: "google/gemini-2.5-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: messageContent,
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please try again later." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const errorText = await response.text();
+        console.error(`AI API error (attempt ${attempt}):`, response.status, errorText);
+        lastError = "Failed to generate image";
+        continue; // Retry on server errors
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please try again later." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+
+      const aiResponse = await response.json();
+      imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (imageData) {
+        console.log(`Image generated successfully on attempt ${attempt}`);
+        break; // Success! Exit retry loop
       }
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      throw new Error("Failed to generate image");
+      
+      // Model returned text but no image - log and retry
+      const textResponse = aiResponse.choices?.[0]?.message?.content;
+      console.warn(`Attempt ${attempt}: Model returned text but no image. Text: "${textResponse?.substring(0, 100)}..."`);
+      lastError = "AI model did not generate an image. This sometimes happens - retrying...";
     }
 
-    const aiResponse = await response.json();
-    const imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
     if (!imageData) {
-      console.error("No image in AI response:", JSON.stringify(aiResponse));
-      throw new Error("No image generated");
+      console.error(`Failed to generate image after ${MAX_RETRIES} attempts`);
+      throw new Error(lastError || "No image generated after multiple attempts");
     }
 
     // Extract base64 data
