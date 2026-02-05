@@ -621,8 +621,9 @@ serve(async (req) => {
     const links: { original: string; shortCode: string }[] = [];
     let match;
 
-    const originalHtml = htmlContent;
-    while ((match = linkRegex.exec(originalHtml)) !== null) {
+    // First pass: collect all links and create short codes
+    const tempHtml = htmlContent;
+    while ((match = linkRegex.exec(tempHtml)) !== null) {
       const originalUrl = match[1];
       const shortCode = crypto.randomUUID().split("-")[0];
       
@@ -634,11 +635,14 @@ serve(async (req) => {
       });
 
       links.push({ original: originalUrl, shortCode });
-      
-      // Replace in HTML
-      const trackingUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/track-newsletter-click?code=${shortCode}`;
-      htmlContent = htmlContent.replace(
-        `href="${originalUrl}"`,
+    }
+    
+    // Second pass: replace links with tracking URLs (subscriber_id placeholder will be replaced per-subscriber)
+    for (const link of links) {
+      // Use {{subscriber_id}} placeholder - will be personalized per subscriber later
+      const trackingUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/track-newsletter-click?code=${link.shortCode}&sid={{subscriber_id}}`;
+      htmlContent = htmlContent.replaceAll(
+        `href="${link.original}"`,
         `href="${trackingUrl}"`
       );
     }

@@ -6,6 +6,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const shortCode = url.searchParams.get("code");
+    const subscriberId = url.searchParams.get("sid");
 
     if (!shortCode) {
       return new Response("Missing code parameter", { status: 400 });
@@ -27,6 +28,23 @@ serve(async (req) => {
       return new Response("Link not found", { status: 404 });
     }
 
+    // Look up subscriber email if we have subscriber_id
+    let subscriberEmail = "unknown";
+    let validSubscriberId: string | null = null;
+    
+    if (subscriberId && subscriberId !== "unknown" && subscriberId !== "{{subscriber_id}}") {
+      const { data: subscriber } = await supabaseClient
+        .from("newsletter_subscribers")
+        .select("id, email")
+        .eq("id", subscriberId)
+        .single();
+      
+      if (subscriber) {
+        subscriberEmail = subscriber.email;
+        validSubscriberId = subscriber.id;
+      }
+    }
+
     // Capture timezone from request (would need to be sent from client)
     const timezone = req.headers.get("X-Timezone") || "Unknown";
     const userAgent = req.headers.get("User-Agent") || "";
@@ -36,11 +54,11 @@ serve(async (req) => {
     // Parse user agent for email client info
     const parsedUA = parseUserAgent(userAgent);
 
-    // Log click event with email client info
+    // Log click event with subscriber info and email client info
     await supabaseClient.from("newsletter_analytics").insert({
       campaign_id: link.campaign_id,
-      subscriber_id: null, // Can't identify subscriber from click
-      email: "unknown", // Would need to be in URL params if we want to track
+      subscriber_id: validSubscriberId,
+      email: subscriberEmail,
       event_type: "clicked",
       clicked_url: link.original_url,
       user_agent: userAgent,
