@@ -233,6 +233,35 @@ export type Database = {
           },
         ]
       }
+      album_likes: {
+        Row: {
+          album_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          album_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          album_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_likes_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       albums: {
         Row: {
           allow_admin_edit: boolean
@@ -247,6 +276,7 @@ export type Database = {
           is_active: boolean
           is_post: boolean
           is_public: boolean
+          likes_count: number
           title: string
           updated_at: string
           visible_to_roles: Database["public"]["Enums"]["user_role"][] | null
@@ -264,6 +294,7 @@ export type Database = {
           is_active?: boolean
           is_post?: boolean
           is_public?: boolean
+          likes_count?: number
           title: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null
@@ -281,6 +312,7 @@ export type Database = {
           is_active?: boolean
           is_post?: boolean
           is_public?: boolean
+          likes_count?: number
           title?: string
           updated_at?: string
           visible_to_roles?: Database["public"]["Enums"]["user_role"][] | null

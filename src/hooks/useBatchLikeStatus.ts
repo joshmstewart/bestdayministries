@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout' | 'recipe' | 'prayer' | 'event' | 'announcement';
+type ItemType = 'beat' | 'card' | 'coloring' | 'drink' | 'joke' | 'workout' | 'recipe' | 'prayer' | 'event' | 'announcement' | 'album';
 
 interface LikeStatusMap {
   [key: string]: boolean; // key format: "itemType:itemId"
@@ -42,6 +42,7 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       const prayerIds: string[] = [];
       const eventIds: string[] = [];
       const announcementIds: string[] = [];
+      const albumIds: string[] = [];
 
       items.forEach(item => {
         switch (item.item_type) {
@@ -55,6 +56,7 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           case 'prayer': prayerIds.push(item.id); break;
           case 'event': eventIds.push(item.id); break;
           case 'announcement': announcementIds.push(item.id); break;
+          case 'album': albumIds.push(item.id); break;
         }
       });
 
@@ -89,6 +91,9 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
           : Promise.resolve({ data: [] }),
         announcementIds.length > 0
           ? supabase.from('content_announcement_likes').select('announcement_id').eq('user_id', user.id).in('announcement_id', announcementIds)
+          : Promise.resolve({ data: [] }),
+        albumIds.length > 0
+          ? supabase.from('album_likes').select('album_id').eq('user_id', user.id).in('album_id', albumIds)
           : Promise.resolve({ data: [] }),
       ]);
 
@@ -142,6 +147,11 @@ export function useBatchLikeStatus(items: Array<{ id: string; item_type: string 
       // Process announcement likes
       results[9].data?.forEach((like: any) => {
         newStatusMap[`announcement:${like.announcement_id}`] = true;
+      });
+
+      // Process album likes
+      results[10].data?.forEach((like: any) => {
+        newStatusMap[`album:${like.album_id}`] = true;
       });
 
       setLikeStatusMap(newStatusMap);
