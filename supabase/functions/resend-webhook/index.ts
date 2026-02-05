@@ -7,6 +7,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, svix-id, svix-timestamp, svix-signature",
 };
 
+// Helper to extract header value from either array or object format
+function extractHeader(headers: any, headerName: string): string | undefined {
+  if (!headers) return undefined;
+  
+  // Array format: [{ name: "X-Campaign-ID", value: "..." }, ...]
+  if (Array.isArray(headers)) {
+    const found = headers.find(
+      (h: any) => h?.name?.toLowerCase() === headerName.toLowerCase()
+    );
+    return found?.value;
+  }
+  
+  // Object format: { "X-Campaign-ID": "..." }
+  if (typeof headers === "object") {
+    // Try exact match first
+    if (headers[headerName]) return headers[headerName];
+    // Try case-insensitive match
+    const key = Object.keys(headers).find(
+      (k) => k.toLowerCase() === headerName.toLowerCase()
+    );
+    return key ? headers[key] : undefined;
+  }
+  
+  return undefined;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,13 +49,43 @@ serve(async (req) => {
 
     const { type, data } = payload;
 
-    // Extract campaign and subscriber info from headers
-    const campaignId = data.headers?.["X-Campaign-ID"];
-    const subscriberId = data.headers?.["X-Subscriber-ID"];
+    // Extract campaign and subscriber info from headers (supports array or object format)
+    let campaignId = extractHeader(data.headers, "X-Campaign-ID");
+    let subscriberId = extractHeader(data.headers, "X-Subscriber-ID");
+    
+    const headerSource = campaignId 
+      ? (Array.isArray(data.headers) ? "header-array" : "header-object")
+      : null;
+    
     const email = data.to?.[0] || data.email;
 
     if (!email) {
       throw new Error("No email in webhook payload");
+    }
+
+    // Fallback: if no campaignId from headers, try to look it up via newsletter_emails_log
+    if (!campaignId && data.email_id) {
+      console.log("No campaign ID in headers, attempting lookup via email_id:", data.email_id);
+      const { data: emailLog, error: lookupError } = await supabaseClient
+        .from("newsletter_emails_log")
+        .select("campaign_id, metadata")
+        .eq("resend_email_id", data.email_id)
+        .maybeSingle();
+      
+      if (lookupError) {
+        console.error("Error looking up newsletter_emails_log:", lookupError);
+      } else if (emailLog) {
+        campaignId = emailLog.campaign_id;
+        // Also try to get subscriber_id from metadata if not already set
+        if (!subscriberId && emailLog.metadata?.subscriber_id) {
+          subscriberId = emailLog.metadata.subscriber_id;
+        }
+        console.log("Found campaign from email log lookup:", { 
+          campaignId, 
+          subscriberId,
+          source: "email-log-lookup" 
+        });
+      }
     }
 
     // Map Resend event types to our status values
@@ -83,12 +139,19 @@ serve(async (req) => {
 
     // Skip newsletter analytics for non-newsletter emails
     if (!campaignId) {
-      console.log("Email audit log updated, skipping newsletter analytics");
+      console.log("Email audit log updated, skipping newsletter analytics (no campaign ID found via headers or email log lookup)");
       return new Response(
         JSON.stringify({ received: true, audit_updated: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log("Processing newsletter analytics:", {
+      campaignId,
+      eventType,
+      source: headerSource || "email-log-lookup",
+      email_id: data.email_id
+    });
 
     // Find subscriber by email if not in headers
     let finalSubscriberId = subscriberId;
