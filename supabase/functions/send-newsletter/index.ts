@@ -531,11 +531,45 @@ serve(async (req) => {
     } else if (targetAudience.type === 'specific_emails' && targetAudience.emails?.length > 0) {
       // Send to specific email addresses (useful for testing)
       console.log('Sending to specific emails:', targetAudience.emails);
-      subscribers = targetAudience.emails.map((email: string) => ({
-        email: email.trim(),
-        id: null,
-        user_id: null
-      }));
+      
+      // Look up subscriber IDs and user IDs for these specific emails
+      const specificEmails = targetAudience.emails.map((e: string) => e.trim().toLowerCase());
+      
+      // First, try to find matching newsletter subscribers
+      const { data: matchedSubscribers } = await supabaseClient
+        .from('newsletter_subscribers')
+        .select('email, id, user_id')
+        .in('email', specificEmails);
+      
+      // Create a map for quick lookup
+      const subscriberMap = new Map<string, { id: string; user_id: string | null }>();
+      (matchedSubscribers || []).forEach(sub => {
+        subscriberMap.set(sub.email.toLowerCase(), { id: sub.id, user_id: sub.user_id });
+      });
+      
+      // For emails not in subscriber list, try to find matching profiles
+      const unmatchedEmails = specificEmails.filter((e: string) => !subscriberMap.has(e));
+      if (unmatchedEmails.length > 0) {
+        const { data: matchedProfiles } = await supabaseClient
+          .from('profiles')
+          .select('email, id')
+          .in('email', unmatchedEmails);
+        
+        (matchedProfiles || []).forEach(profile => {
+          subscriberMap.set(profile.email.toLowerCase(), { id: profile.id, user_id: profile.id });
+        });
+      }
+      
+      subscribers = specificEmails.map((email: string) => {
+        const match = subscriberMap.get(email);
+        return {
+          email,
+          id: match?.id || null,
+          user_id: match?.user_id || null
+        };
+      });
+      
+      console.log(`Matched ${subscriberMap.size}/${specificEmails.length} emails to subscriber/profile IDs`);
     }
 
     if (!subscribers || subscribers.length === 0) {
