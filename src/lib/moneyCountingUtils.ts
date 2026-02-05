@@ -36,10 +36,14 @@ export function generateOrder(level: number, menuItems?: MenuItem[]): OrderItem[
   const usedIndices = new Set<number>();
 
   for (let i = 0; i < itemCount; i++) {
+    // Stop if we've used all available menu items
+    if (usedIndices.size >= menu.length) break;
+    
     let idx: number;
+    // Keep trying until we find an unused item
     do {
       idx = Math.floor(Math.random() * menu.length);
-    } while (usedIndices.has(idx) && usedIndices.size < menu.length);
+    } while (usedIndices.has(idx));
     
     usedIndices.add(idx);
     const menuItem = menu[idx];
