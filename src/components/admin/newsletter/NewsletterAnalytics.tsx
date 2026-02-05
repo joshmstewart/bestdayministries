@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { format } from "date-fns";
 import { SubscriberEngagement } from "./SubscriberEngagement";
 import { EmailClientStats } from "./EmailClientStats";
 
@@ -26,7 +27,9 @@ export const NewsletterAnalytics = () => {
         const clicked = analytics.filter((a: any) => a.event_type === "clicked").length;
 
         return {
-          name: campaign.title.substring(0, 20) + "...",
+          name: campaign.title,
+          shortName: campaign.title.length > 25 ? campaign.title.substring(0, 22) + "..." : campaign.title,
+          sentAt: campaign.sent_at ? format(new Date(campaign.sent_at), "MMM d, yyyy") : "-",
           delivered: delivered || campaign.sent_to_count,
           opens: opened,
           clicks: clicked,
@@ -100,11 +103,25 @@ export const NewsletterAnalytics = () => {
         <Card className="p-6">
           {campaignStats && campaignStats.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={campaignStats}>
+              <BarChart data={campaignStats} margin={{ bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis 
+                  dataKey="shortName" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={80}
+                  interval={0}
+                  tick={{ fontSize: 12 }}
+                />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  labelFormatter={(value, payload) => {
+                    if (payload && payload[0]) {
+                      return payload[0].payload.name;
+                    }
+                    return value;
+                  }}
+                />
                 <Bar dataKey="delivered" fill="hsl(var(--primary))" name="Delivered" />
                 <Bar dataKey="opens" fill="hsl(var(--secondary))" name="Opens" />
                 <Bar dataKey="clicks" fill="hsl(var(--accent))" name="Clicks" />
@@ -181,6 +198,7 @@ export const NewsletterAnalytics = () => {
                 <thead className="border-b bg-muted/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-medium">Campaign</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium">Sent At</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">Delivered</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">Open Rate</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">Click Rate</th>
@@ -189,7 +207,12 @@ export const NewsletterAnalytics = () => {
                 <tbody className="divide-y">
                   {campaignStats.map((campaign, index) => (
                     <tr key={index} className="hover:bg-muted/50">
-                      <td className="px-4 py-3 text-sm">{campaign.name}</td>
+                      <td className="px-4 py-3 text-sm font-medium" title={campaign.name}>
+                        {campaign.name}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {(campaign as any).sentAt || "-"}
+                      </td>
                       <td className="px-4 py-3 text-sm">{campaign.delivered}</td>
                       <td className="px-4 py-3 text-sm">{campaign.openRate}%</td>
                       <td className="px-4 py-3 text-sm">{campaign.clickRate}%</td>
