@@ -1955,7 +1955,7 @@ Respond with ONLY a JSON array of objects with "name" and "description" fields. 
 
       {/* Pack Ideas Dialog */}
       <Dialog open={packIdeasDialogOpen} onOpenChange={setPackIdeasDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-2xl h-[85vh] min-h-0 !flex !flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lightbulb className="w-5 h-5 text-primary" />
@@ -1987,7 +1987,7 @@ Respond with ONLY a JSON array of objects with "name" and "description" fields. 
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 min-h-0 -mx-6 px-6" style={{ maxHeight: 'calc(85vh - 180px)' }}>
+          <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
             {loadingIdeas ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
