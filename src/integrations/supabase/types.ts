@@ -6260,6 +6260,7 @@ export type Database = {
       }
       newsletter_campaigns: {
         Row: {
+          analytics_synced_at: string | null
           created_at: string
           created_by: string
           failed_count: number | null
@@ -6280,6 +6281,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          analytics_synced_at?: string | null
           created_at?: string
           created_by: string
           failed_count?: number | null
@@ -6300,6 +6302,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          analytics_synced_at?: string | null
           created_at?: string
           created_by?: string
           failed_count?: number | null
