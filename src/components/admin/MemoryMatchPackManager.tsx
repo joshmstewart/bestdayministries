@@ -1987,7 +1987,7 @@ Respond with ONLY a JSON array of objects with "name" and "description" fields. 
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <ScrollArea className="flex-1 min-h-0 -mx-6 px-6" style={{ maxHeight: 'calc(85vh - 180px)' }}>
             {loadingIdeas ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
