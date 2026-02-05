@@ -349,35 +349,52 @@ export const MemoryMatchPackManager = () => {
       toast.success(`Regenerated icon for ${image.name}`);
     } else {
       // Check if it's a network/timeout error - the icon might still be generating
-      const isNetworkError = result.errorMessage?.includes("Failed to fetch") || 
-                             result.errorMessage?.includes("Failed to send a request");
+      // ONLY real network errors should trigger recovery, not API errors
+      const isNetworkError = (
+        result.errorMessage?.includes("Failed to fetch") || 
+        result.errorMessage?.includes("Failed to send a request") ||
+        result.errorMessage?.includes("network") ||
+        result.errorMessage?.includes("timeout")
+      ) && !result.errorMessage?.includes("AI") && !result.errorMessage?.includes("API");
       
       if (isNetworkError) {
         // The edge function might still be running - poll with delays to check if it completes
         toast.info(`Request timed out for ${image.name}. Checking if generation completed...`);
         
-        // Record when we started - we'll compare storage file timestamps
+        // Record when we clicked regenerate (before the API call started)
+        // Use a timestamp from ~2 seconds BEFORE now to account for when we initiated
         const requestStartTime = Date.now();
+        
+        // First, get the CURRENT file's last-modified time so we know what to compare against
+        let originalFileTime = 0;
+        const storageBaseUrl = `https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/game-assets/memory-match/${image.id}.png`;
+        try {
+          const initialHead = await fetch(`${storageBaseUrl}?t=${Date.now()}`, { method: 'HEAD' });
+          const initialLastModified = initialHead.headers.get('last-modified');
+          if (initialLastModified) {
+            originalFileTime = new Date(initialLastModified).getTime();
+          }
+        } catch {
+          // File might not exist yet, that's fine
+        }
         
         // Poll a few times with delays to give the backend time to finish
         for (let attempt = 1; attempt <= 3; attempt++) {
           // Wait progressively longer: 5s, 10s, 15s
           await new Promise(r => setTimeout(r, attempt * 5000));
           
-          // Check if the storage file was updated by fetching with cache-bust
-          // The storage URL includes the imageId, so we can check if it exists/changed
-          const storageUrl = `https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/game-assets/memory-match/${image.id}.png?t=${Date.now()}`;
-          
           try {
-            const headResponse = await fetch(storageUrl, { method: 'HEAD' });
+            const headResponse = await fetch(`${storageBaseUrl}?t=${Date.now()}`, { method: 'HEAD' });
             const lastModified = headResponse.headers.get('last-modified');
             
             if (lastModified) {
               const fileTime = new Date(lastModified).getTime();
-              // If file was modified after we started the request, it was regenerated
-              if (fileTime > requestStartTime - 5000) { // 5s buffer for clock skew
+              // File must be NEWER than both our request start AND the original file time
+              const isNewlyModified = fileTime > requestStartTime && fileTime > originalFileTime + 1000;
+              
+              if (isNewlyModified) {
                 // Update state with the new image
-                const cacheBustedUrl = `${storageUrl.split('?')[0]}?t=${Date.now()}`;
+                const cacheBustedUrl = `${storageBaseUrl}?t=${Date.now()}`;
                 setPackImages((prev) => ({
                   ...prev,
                   [image.pack_id]: (prev[image.pack_id] || []).map((img) =>
