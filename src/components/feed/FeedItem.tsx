@@ -985,7 +985,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
       {/* Fortune Dialog - opens DailyFortunePopup directly */}
       {item.item_type === 'fortune' && (
         <Dialog open={fortuneDialogOpen} onOpenChange={setFortuneDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-indigo-500" />
@@ -995,7 +995,9 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 Open your fortune and share your thoughts with the community
               </DialogDescription>
             </DialogHeader>
-            <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} />
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} />
+            </div>
           </DialogContent>
         </Dialog>
       )}
