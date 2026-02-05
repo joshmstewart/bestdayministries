@@ -170,10 +170,13 @@ serve(async (req) => {
     // Parse user agent to extract email client info
     const parsedUA = parseUserAgent(data.user_agent);
 
+    // Handle "unknown" subscriber ID - convert to null for proper UUID handling
+    const validSubscriberId = finalSubscriberId && finalSubscriberId !== "unknown" ? finalSubscriberId : null;
+
     // Prepare analytics data with email client parsing
     const analyticsData: any = {
       campaign_id: campaignId,
-      subscriber_id: finalSubscriberId,
+      subscriber_id: validSubscriberId,
       email: email,
       event_type: eventType,
       resend_event_id: data.email_id || crypto.randomUUID(),
