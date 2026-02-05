@@ -348,38 +348,56 @@ export const MemoryMatchPackManager = () => {
       setErrors((prev) => prev.filter((e) => e.imageName !== image.name));
       toast.success(`Regenerated icon for ${image.name}`);
     } else {
-      // Check if it's a network/timeout error - the icon might have actually been generated
+      // Check if it's a network/timeout error - the icon might still be generating
       const isNetworkError = result.errorMessage?.includes("Failed to fetch") || 
                              result.errorMessage?.includes("Failed to send a request");
       
       if (isNetworkError) {
-        // Store the original URL (without cache-bust params) for comparison
-        const originalBaseUrl = image.image_url?.split("?")[0] || "";
+        // The edge function might still be running - poll with delays to check if it completes
+        toast.info(`Request timed out for ${image.name}. Checking if generation completed...`);
         
-        // Reload from DB to check if icon was actually saved
-        const { data: updatedImage } = await supabase
-          .from("memory_match_images")
-          .select("*")
-          .eq("id", image.id)
-          .single();
+        // Record when we started - we'll compare storage file timestamps
+        const requestStartTime = Date.now();
         
-        const newBaseUrl = updatedImage?.image_url?.split("?")[0] || "";
-        
-        // Compare base URLs (without cache-bust params) to detect actual changes
-        if (updatedImage?.image_url && newBaseUrl !== originalBaseUrl) {
-          // Icon was actually generated successfully with a NEW URL
-          const cacheBustedUrl = `${updatedImage.image_url}?t=${Date.now()}`;
-          setPackImages((prev) => ({
-            ...prev,
-            [image.pack_id]: (prev[image.pack_id] || []).map((img) =>
-              img.id === image.id ? { ...img, image_url: cacheBustedUrl } : img
-            ),
-          }));
-          setErrors((prev) => prev.filter((e) => e.imageName !== image.name));
-          toast.success(`Regenerated icon for ${image.name} (recovered after timeout)`);
-          setRegeneratingId(null);
-          return;
+        // Poll a few times with delays to give the backend time to finish
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          // Wait progressively longer: 5s, 10s, 15s
+          await new Promise(r => setTimeout(r, attempt * 5000));
+          
+          // Check if the storage file was updated by fetching with cache-bust
+          // The storage URL includes the imageId, so we can check if it exists/changed
+          const storageUrl = `https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/game-assets/memory-match/${image.id}.png?t=${Date.now()}`;
+          
+          try {
+            const headResponse = await fetch(storageUrl, { method: 'HEAD' });
+            const lastModified = headResponse.headers.get('last-modified');
+            
+            if (lastModified) {
+              const fileTime = new Date(lastModified).getTime();
+              // If file was modified after we started the request, it was regenerated
+              if (fileTime > requestStartTime - 5000) { // 5s buffer for clock skew
+                // Update state with the new image
+                const cacheBustedUrl = `${storageUrl.split('?')[0]}?t=${Date.now()}`;
+                setPackImages((prev) => ({
+                  ...prev,
+                  [image.pack_id]: (prev[image.pack_id] || []).map((img) =>
+                    img.id === image.id ? { ...img, image_url: cacheBustedUrl } : img
+                  ),
+                }));
+                setErrors((prev) => prev.filter((e) => e.imageName !== image.name));
+                toast.success(`Regenerated icon for ${image.name} (recovered after timeout)`);
+                setRegeneratingId(null);
+                return;
+              }
+            }
+          } catch (fetchError) {
+            // Ignore fetch errors during polling
+            console.log(`Poll attempt ${attempt} failed:`, fetchError);
+          }
         }
+        
+        // After all polling attempts, give up
+        toast.warning(`Generation may still be in progress for ${image.name}. Try refreshing the page in a moment.`);
       }
       
       setErrors((prev) => {
