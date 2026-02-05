@@ -25,6 +25,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Loader2, Wand2, RefreshCw, Check, ImageOff, AlertTriangle, X, Copy, Plus, Trash2, Package, Eye, EyeOff, Edit, Star, Play } from "lucide-react";
+import { Lightbulb } from "lucide-react";
 import { MemoryMatchPreview } from "./MemoryMatchPreview";
 import {
   Dialog,
@@ -36,6 +37,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 interface ImagePack {
@@ -66,6 +68,13 @@ interface PackImage {
 interface GenerationError {
   imageName: string;
   error: string;
+}
+
+interface PackIdea {
+  id: string;
+  name: string;
+  description: string | null;
+  is_used: boolean;
 }
 
 export const MemoryMatchPackManager = () => {
@@ -115,6 +124,12 @@ export const MemoryMatchPackManager = () => {
 
   // Game preview state
   const [gamePreviewPack, setGamePreviewPack] = useState<{ name: string; images: { name: string; image_url: string | null }[]; cardBackUrl: string | null; backgroundColor: string | null; moduleColor: string | null } | null>(null);
+
+  // Pack ideas state
+  const [packIdeasDialogOpen, setPackIdeasDialogOpen] = useState(false);
+  const [packIdeas, setPackIdeas] = useState<PackIdea[]>([]);
+  const [loadingIdeas, setLoadingIdeas] = useState(false);
+  const [generatingMoreIdeas, setGeneratingMoreIdeas] = useState(false);
 
   useEffect(() => {
     loadPacks();
@@ -917,6 +932,125 @@ export const MemoryMatchPackManager = () => {
     }
   };
 
+  // Load pack ideas from database
+  const loadPackIdeas = async () => {
+    setLoadingIdeas(true);
+    const { data, error } = await supabase
+      .from("memory_match_pack_ideas")
+      .select("*")
+      .order("is_used", { ascending: true })
+      .order("name");
+    
+    if (error) {
+      console.error("Failed to load pack ideas:", error);
+      showErrorToast("Failed to load pack ideas");
+    } else {
+      setPackIdeas(data || []);
+    }
+    setLoadingIdeas(false);
+  };
+
+  // Generate more pack ideas using AI
+  const handleGenerateMoreIdeas = async () => {
+    setGeneratingMoreIdeas(true);
+    try {
+      const existingNames = packIdeas.map(idea => idea.name);
+      const usedNames = packs.map(pack => pack.name);
+      const allExisting = [...existingNames, ...usedNames];
+
+      const { data, error } = await supabase.functions.invoke("lovable-ai", {
+        body: {
+          messages: [
+            {
+              role: "system",
+              content: "You are a creative theme generator for a Memory Match card game designed for ADULTS with special needs. Generate fun, engaging pack themes that would make great matching games. Focus on concrete, drawable objects - NOT movies, books, or abstract concepts."
+            },
+            {
+              role: "user",
+              content: `Generate 10 new unique pack theme ideas for a Memory Match game. Each should be a category with 15-20 distinct, drawable items.
+
+AVOID these existing themes: ${allExisting.join(", ")}
+
+Respond with ONLY a JSON array of objects with "name" and "description" fields. Example:
+[{"name": "Theme Name", "description": "Brief description of what items would be in this pack"}]`
+            }
+          ]
+        }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const content = data?.content || "";
+      // Extract JSON from response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("Invalid response format");
+      
+      const newIdeas = JSON.parse(jsonMatch[0]) as { name: string; description: string }[];
+      
+      // Insert new ideas into database
+      const { error: insertError } = await supabase
+        .from("memory_match_pack_ideas")
+        .insert(newIdeas.map(idea => ({
+          name: idea.name,
+          description: idea.description,
+          is_used: false
+        })));
+
+      if (insertError) {
+        // Some may already exist, that's ok
+        console.log("Some ideas may already exist:", insertError);
+      }
+
+      await loadPackIdeas();
+      toast.success(`Generated ${newIdeas.length} new pack ideas!`);
+    } catch (error) {
+      console.error("Failed to generate ideas:", error);
+      showErrorToast("Failed to generate new ideas");
+    } finally {
+      setGeneratingMoreIdeas(false);
+    }
+  };
+
+  // Use a pack idea - opens the pack dialog with the idea's name
+  const handleUsePackIdea = async (idea: PackIdea) => {
+    // Mark as used
+    await supabase
+      .from("memory_match_pack_ideas")
+      .update({ is_used: true })
+      .eq("id", idea.id);
+
+    // Close ideas dialog
+    setPackIdeasDialogOpen(false);
+
+    // Open pack dialog with the idea's name pre-filled
+    const defaultStyle = "Clean modern illustration, elegant and sophisticated, warm earthy tones, simple shapes, white background, approachable but adult aesthetic, no cartoon faces or childish elements";
+    setEditingPack(null);
+    setPackFormData({
+      name: idea.name,
+      description: idea.description || "",
+      is_purchasable: false,
+      price_coins: 0,
+      is_active: true,
+      design_style: defaultStyle,
+      background_color: "#F97316",
+      module_color: "#FFFFFF",
+      card_text_color: "black",
+    });
+    setPackDialogOpen(true);
+    
+    // Auto-generate content for this pack
+    setTimeout(() => {
+      handleGenerateAll();
+    }, 100);
+  };
+
+  // Open ideas dialog
+  const openPackIdeasDialog = () => {
+    setPackIdeasDialogOpen(true);
+    loadPackIdeas();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -935,10 +1069,16 @@ export const MemoryMatchPackManager = () => {
             Manage image packs for the Memory Match game
           </p>
         </div>
-        <Button onClick={() => openPackDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Pack
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={openPackIdeasDialog}>
+            <Lightbulb className="w-4 h-4 mr-2" />
+            Browse Ideas
+          </Button>
+          <Button onClick={() => openPackDialog()}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Pack
+          </Button>
+        </div>
       </div>
 
       {/* Persistent Error Display */}
@@ -1812,6 +1952,95 @@ export const MemoryMatchPackManager = () => {
         backgroundColor={gamePreviewPack?.backgroundColor}
         moduleColor={gamePreviewPack?.moduleColor}
       />
+
+      {/* Pack Ideas Dialog */}
+      <Dialog open={packIdeasDialogOpen} onOpenChange={setPackIdeasDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-primary" />
+              Pack Ideas
+            </DialogTitle>
+            <DialogDescription>
+              Browse pre-generated pack ideas or generate more. Click "Use" to create a pack from an idea.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateMoreIdeas}
+              disabled={generatingMoreIdeas || loadingIdeas}
+            >
+              {generatingMoreIdeas ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Generate More Ideas
+                </>
+              )}
+            </Button>
+          </div>
+
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            {loadingIdeas ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : packIdeas.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Lightbulb className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No pack ideas yet. Click "Generate More Ideas" to get started!</p>
+              </div>
+            ) : (
+              <div className="space-y-2 pb-4">
+                {packIdeas.map((idea) => {
+                  const isAlreadyCreated = packs.some(p => p.name.toLowerCase() === idea.name.toLowerCase());
+                  return (
+                    <div
+                      key={idea.id}
+                      className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                        idea.is_used || isAlreadyCreated
+                          ? "bg-muted/50 opacity-60"
+                          : "bg-card hover:bg-accent/50"
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{idea.name}</h4>
+                          {(idea.is_used || isAlreadyCreated) && (
+                            <Badge variant="secondary" className="text-xs">
+                              {isAlreadyCreated ? "Created" : "Used"}
+                            </Badge>
+                          )}
+                        </div>
+                        {idea.description && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {idea.description}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleUsePackIdea(idea)}
+                        disabled={isAlreadyCreated}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Use
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

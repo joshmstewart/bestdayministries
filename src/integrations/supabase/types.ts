@@ -5710,6 +5710,30 @@ export type Database = {
           },
         ]
       }
+      memory_match_pack_ideas: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_used: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_used?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_used?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       memory_match_packs: {
         Row: {
           background_color: string | null
