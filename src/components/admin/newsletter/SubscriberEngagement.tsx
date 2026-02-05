@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { useState } from "react";
-import { Search, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Search, TrendingUp, TrendingDown, Minus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface SubscriberEngagementData {
   subscriber_identifier: string;
@@ -22,27 +23,112 @@ interface SubscriberEngagementData {
   click_rate: number | null;
 }
 
+type SortField = 'email' | 'total_delivered' | 'total_opens' | 'total_clicks' | 'open_rate' | 'click_rate' | 'last_activity';
+type SortDirection = 'asc' | 'desc';
+
 export const SubscriberEngagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<SortField>('total_clicks');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const { data: subscribers, isLoading } = useQuery({
     queryKey: ["subscriber-engagement"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("newsletter_subscriber_engagement")
-        .select("*")
-        .order("total_opens", { ascending: false })
-        .limit(100);
+        .select("*");
 
       if (error) throw error;
       return data as SubscriberEngagementData[];
     },
   });
 
-  const filteredSubscribers = subscribers?.filter(sub => 
-    sub.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (sub.subscriber_name?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const sortedAndFilteredSubscribers = useMemo(() => {
+    if (!subscribers) return [];
+    
+    // Filter first
+    let filtered = subscribers.filter(sub => 
+      sub.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (sub.subscriber_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+    
+    // Then sort
+    return filtered.sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+      
+      switch (sortField) {
+        case 'email':
+          aVal = a.email.toLowerCase();
+          bVal = b.email.toLowerCase();
+          break;
+        case 'total_delivered':
+          aVal = a.total_delivered ?? 0;
+          bVal = b.total_delivered ?? 0;
+          break;
+        case 'total_opens':
+          aVal = a.total_opens ?? 0;
+          bVal = b.total_opens ?? 0;
+          break;
+        case 'total_clicks':
+          aVal = a.total_clicks ?? 0;
+          bVal = b.total_clicks ?? 0;
+          break;
+        case 'open_rate':
+          aVal = a.open_rate ?? -1;
+          bVal = b.open_rate ?? -1;
+          break;
+        case 'click_rate':
+          aVal = a.click_rate ?? -1;
+          bVal = b.click_rate ?? -1;
+          break;
+        case 'last_activity':
+          aVal = a.last_clicked_at || a.last_opened_at || '';
+          bVal = b.last_clicked_at || b.last_opened_at || '';
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [subscribers, searchQuery, sortField, sortDirection]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortableHeader = ({ field, children, className }: { field: SortField; children: React.ReactNode; className?: string }) => {
+    const isActive = sortField === field;
+    return (
+      <th className={`px-4 py-3 text-sm font-medium ${className || ''}`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto p-0 hover:bg-transparent font-medium"
+          onClick={() => handleSort(field)}
+        >
+          {children}
+          {isActive ? (
+            sortDirection === 'desc' ? (
+              <ArrowDown className="ml-1 h-3 w-3" />
+            ) : (
+              <ArrowUp className="ml-1 h-3 w-3" />
+            )
+          ) : (
+            <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />
+          )}
+        </Button>
+      </th>
+    );
+  };
 
   const getEngagementLevel = (openRate: number | null, clickRate: number | null) => {
     if (openRate === null) return { label: "New", color: "secondary" };
@@ -69,7 +155,7 @@ export const SubscriberEngagement = () => {
           />
         </div>
         <span className="text-sm text-muted-foreground">
-          {filteredSubscribers?.length || 0} subscribers
+          {sortedAndFilteredSubscribers.length} subscribers
         </span>
       </div>
 
@@ -78,18 +164,18 @@ export const SubscriberEngagement = () => {
           <table className="w-full">
             <thead className="border-b bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium">Subscriber</th>
+                <SortableHeader field="email" className="text-left">Subscriber</SortableHeader>
                 <th className="px-4 py-3 text-left text-sm font-medium">Engagement</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Delivered</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Opens</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Clicks</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Open Rate</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Click Rate</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Last Activity</th>
+                <SortableHeader field="total_delivered" className="text-center">Delivered</SortableHeader>
+                <SortableHeader field="total_opens" className="text-center">Opens</SortableHeader>
+                <SortableHeader field="total_clicks" className="text-center">Clicks</SortableHeader>
+                <SortableHeader field="open_rate" className="text-center">Open Rate</SortableHeader>
+                <SortableHeader field="click_rate" className="text-center">Click Rate</SortableHeader>
+                <SortableHeader field="last_activity" className="text-left">Last Activity</SortableHeader>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filteredSubscribers?.map((sub) => {
+              {sortedAndFilteredSubscribers.map((sub) => {
                 const engagement = getEngagementLevel(sub.open_rate, sub.click_rate);
                 const EngagementIcon = engagement.icon;
                 const lastActivity = sub.last_clicked_at || sub.last_opened_at;
@@ -123,7 +209,7 @@ export const SubscriberEngagement = () => {
                   </tr>
                 );
               })}
-              {(!filteredSubscribers || filteredSubscribers.length === 0) && (
+              {sortedAndFilteredSubscribers.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     No subscriber engagement data yet
