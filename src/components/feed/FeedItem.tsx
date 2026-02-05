@@ -996,7 +996,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto min-h-0">
-              <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} />
+              <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} defaultCommentsExpanded />
             </div>
           </DialogContent>
         </Dialog>

@@ -29,9 +29,10 @@ interface FortunePost {
 
 interface DailyFortunePopupProps {
   onClose?: () => void;
+  defaultCommentsExpanded?: boolean;
 }
 
-export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
+export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false }: DailyFortunePopupProps) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [fortunePost, setFortunePost] = useState<FortunePost | null>(null);
@@ -42,7 +43,7 @@ export function DailyFortunePopup({ onClose }: DailyFortunePopupProps) {
   const [liking, setLiking] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [viewRecorded, setViewRecorded] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(defaultCommentsExpanded);
   const [commentCount, setCommentCount] = useState(0);
   const { isSaved, toggleSave } = useSavedFortunes();
 
