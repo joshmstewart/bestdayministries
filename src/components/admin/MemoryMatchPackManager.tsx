@@ -563,9 +563,15 @@ export const MemoryMatchPackManager = () => {
 
     setGeneratingItems(true);
     try {
+      // Collect existing items to exclude (from packImages + suggestedItems)
+      const existingFromPack = editingPack 
+        ? (packImages[editingPack.id] || []).map(img => img.name)
+        : [];
+      const existingItems = [...new Set([...existingFromPack, ...suggestedItems])];
+      
       const { data, error } = await supabase.functions.invoke(
         "generate-memory-match-description",
-        { body: { packName: packFormData.name.trim(), generateOnly: "items" } }
+        { body: { packName: packFormData.name.trim(), generateOnly: "items", existingItems } }
       );
 
       if (error) throw error;
