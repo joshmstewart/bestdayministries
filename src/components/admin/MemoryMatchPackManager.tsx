@@ -353,6 +353,9 @@ export const MemoryMatchPackManager = () => {
                              result.errorMessage?.includes("Failed to send a request");
       
       if (isNetworkError) {
+        // Store the original URL (without cache-bust params) for comparison
+        const originalBaseUrl = image.image_url?.split("?")[0] || "";
+        
         // Reload from DB to check if icon was actually saved
         const { data: updatedImage } = await supabase
           .from("memory_match_images")
@@ -360,8 +363,11 @@ export const MemoryMatchPackManager = () => {
           .eq("id", image.id)
           .single();
         
-        if (updatedImage?.image_url && updatedImage.image_url !== image.image_url) {
-          // Icon was actually generated successfully
+        const newBaseUrl = updatedImage?.image_url?.split("?")[0] || "";
+        
+        // Compare base URLs (without cache-bust params) to detect actual changes
+        if (updatedImage?.image_url && newBaseUrl !== originalBaseUrl) {
+          // Icon was actually generated successfully with a NEW URL
           const cacheBustedUrl = `${updatedImage.image_url}?t=${Date.now()}`;
           setPackImages((prev) => ({
             ...prev,
