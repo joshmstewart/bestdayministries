@@ -852,7 +852,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   )}
                 </div>
               )}
-              {item.description && item.item_type !== 'prayer' && item.item_type !== 'beat' && item.item_type !== 'workout' && item.item_type !== 'event' && (
+              {item.description && item.item_type !== 'prayer' && item.item_type !== 'beat' && item.item_type !== 'workout' && item.item_type !== 'event' && item.item_type !== 'fortune' && (
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {item.description}
                 </p>
