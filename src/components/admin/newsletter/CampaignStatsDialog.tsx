@@ -1,11 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { format, formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Monitor, Smartphone, Tablet, ExternalLink } from "lucide-react";
+import { Monitor, Smartphone, Tablet, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface CampaignStatsDialogProps {
   campaignId: string;
@@ -15,12 +20,15 @@ interface CampaignStatsDialogProps {
 }
 
 export const CampaignStatsDialog = ({ campaignId, campaignTitle, open, onOpenChange }: CampaignStatsDialogProps) => {
+  const queryClient = useQueryClient();
+  const [syncProgress, setSyncProgress] = useState<{ synced: number; total: number } | null>(null);
+
   const { data: campaign } = useQuery({
     queryKey: ["campaign-detail", campaignId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("newsletter_campaigns")
-        .select("*")
+        .select("*, analytics_synced_at")
         .eq("id", campaignId)
         .single();
 
@@ -28,6 +36,45 @@ export const CampaignStatsDialog = ({ campaignId, campaignTitle, open, onOpenCha
       return data;
     },
     enabled: open,
+  });
+
+  // Get total email count for progress
+  const { data: emailCount } = useQuery({
+    queryKey: ["campaign-email-count", campaignId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("newsletter_emails_log")
+        .select("*", { count: "exact", head: true })
+        .eq("campaign_id", campaignId)
+        .not("resend_email_id", "is", null);
+
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: open,
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      setSyncProgress({ synced: 0, total: emailCount || 0 });
+      
+      const { data, error } = await supabase.functions.invoke("sync-newsletter-analytics", {
+        body: { campaignId },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setSyncProgress(null);
+      toast.success(`Analytics synced: ${data.totalUpdated} updates found`);
+      queryClient.invalidateQueries({ queryKey: ["campaign-detail", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-analytics", campaignId] });
+    },
+    onError: (error) => {
+      setSyncProgress(null);
+      toast.error(`Sync failed: ${error.message}`);
+    },
   });
 
   const { data: analytics } = useQuery({
@@ -118,7 +165,42 @@ export const CampaignStatsDialog = ({ campaignId, campaignTitle, open, onOpenCha
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Campaign Statistics: {campaignTitle}</DialogTitle>
+          <div className="flex flex-col gap-2">
+            <DialogTitle>Campaign Statistics: {campaignTitle}</DialogTitle>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              {campaign?.analytics_synced_at ? (
+                <span>Last synced: {formatDistanceToNow(new Date(campaign.analytics_synced_at))} ago</span>
+              ) : (
+                <span>Never synced</span>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+              >
+                {syncMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Refresh Stats
+                  </>
+                )}
+              </Button>
+            </div>
+            {syncMutation.isPending && syncProgress && (
+              <div className="space-y-1">
+                <Progress value={syncProgress.total > 0 ? (syncProgress.synced / syncProgress.total) * 100 : 0} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  Syncing... This may take several minutes for large campaigns.
+                </p>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         {campaign && analytics && (
