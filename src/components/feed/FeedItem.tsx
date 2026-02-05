@@ -234,6 +234,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             data = result.data;
             break;
           }
+          case 'album': {
+            const result = await supabase
+              .from('album_likes')
+              .select('id')
+              .eq('album_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            data = result.data;
+            break;
+          }
           default:
             return;
         }
@@ -454,6 +464,24 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             const { error } = await supabase
               .from('content_announcement_likes')
               .insert({ announcement_id: item.id, user_id: user.id });
+            if (error) throw error;
+            // likes_count is updated by database trigger
+          }
+          break;
+        }
+        case 'album': {
+          if (isLiked) {
+            const { error } = await supabase
+              .from('album_likes')
+              .delete()
+              .eq('album_id', item.id)
+              .eq('user_id', user.id);
+            if (error) throw error;
+            // likes_count is updated by database trigger
+          } else {
+            const { error } = await supabase
+              .from('album_likes')
+              .insert({ album_id: item.id, user_id: user.id });
             if (error) throw error;
             // likes_count is updated by database trigger
           }
