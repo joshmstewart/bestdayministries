@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy, Loader2, AlertTriangle, Users } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Zap, GitBranch, FileText, Copy, Loader2, AlertTriangle, Users, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
 import { NewsletterCampaignDialog } from "./NewsletterCampaignDialog";
 import { CampaignActions } from "./CampaignActions";
 import { CampaignStatsDialog } from "./CampaignStatsDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 import { SaveAsTemplateDialog } from "./SaveAsTemplateDialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { format, formatDistanceToNow } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SectionLoadingState } from "@/components/common";
@@ -47,6 +49,7 @@ export const NewsletterCampaigns = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
   const [templateCampaign, setTemplateCampaign] = useState<any>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["newsletter-campaigns"],
@@ -148,6 +151,48 @@ export const NewsletterCampaigns = () => {
     },
   });
 
+  const archiveCampaignMutation = useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { error } = await supabase
+        .from("newsletter_campaigns")
+        .update({ status: "archived" as any })
+        .eq("id", campaignId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Campaign archived");
+      queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
+    },
+  });
+
+  const unarchiveCampaignMutation = useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { error } = await supabase
+        .from("newsletter_campaigns")
+        .update({ status: "sent" as any })
+        .eq("id", campaignId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Campaign restored");
+      queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
+    },
+  });
+
+  // Filter campaigns based on showArchived toggle
+  const filteredCampaigns = useMemo(() => {
+    if (!campaigns) return [];
+    if (showArchived) {
+      return campaigns; // Show all campaigns including archived
+    }
+    return campaigns.filter(c => c.status !== 'archived');
+  }, [campaigns, showArchived]);
+
+  const archivedCount = useMemo(() => 
+    campaigns?.filter(c => c.status === 'archived').length || 0,
+    [campaigns]
+  );
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "draft":
@@ -160,6 +205,8 @@ export const NewsletterCampaigns = () => {
         return "default";
       case "failed":
         return "destructive";
+      case "archived":
+        return "secondary";
       default:
         return "secondary";
     }
@@ -169,25 +216,41 @@ export const NewsletterCampaigns = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold">Email Campaigns</h3>
-        <Button onClick={() => { setSelectedCampaign(null); setIsDialogOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Campaign
-        </Button>
+        <div className="flex items-center gap-4">
+          {archivedCount > 0 && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-archived"
+                checked={showArchived}
+                onCheckedChange={setShowArchived}
+              />
+              <Label htmlFor="show-archived" className="text-sm text-muted-foreground cursor-pointer">
+                Show Archived ({archivedCount})
+              </Label>
+            </div>
+          )}
+          <Button onClick={() => { setSelectedCampaign(null); setIsDialogOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Campaign
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
         <SectionLoadingState message="Loading campaigns..." />
-      ) : campaigns?.length === 0 ? (
+      ) : filteredCampaigns?.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-muted-foreground mb-4">No campaigns yet</p>
+          <p className="text-muted-foreground mb-4">
+            {showArchived ? "No campaigns yet" : campaigns?.length ? "No active campaigns" : "No campaigns yet"}
+          </p>
           <Button onClick={() => { setSelectedCampaign(null); setIsDialogOpen(true); }}>
             Create Your First Campaign
           </Button>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {campaigns?.map((campaign) => (
-            <Card key={campaign.id} className="p-6">
+          {filteredCampaigns?.map((campaign) => (
+            <Card key={campaign.id} className={`p-6 ${campaign.status === 'archived' ? 'opacity-60' : ''}`}>
               <div className={isMobile ? "space-y-4" : "flex items-start justify-between"}>
                 <div className="space-y-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -195,6 +258,9 @@ export const NewsletterCampaigns = () => {
                     <Badge variant={getStatusColor(campaign.status)}>
                       {campaign.status}
                     </Badge>
+                    {campaign.status === 'archived' && (
+                      <Archive className="h-4 w-4 text-muted-foreground" />
+                    )}
                     {/* TODO: Show these badges if campaign has automation or sequence */}
                     {false && (
                       <>
@@ -362,6 +428,46 @@ export const NewsletterCampaigns = () => {
                         onSendComplete={() => queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] })}
                       />
                     </>
+                  )}
+                  {campaign.status === "archived" && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setStatsCampaign(campaign);
+                          setStatsDialogOpen(true);
+                        }}
+                      >
+                        View Stats
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => cloneCampaignMutation.mutate(campaign.id)}
+                        title="Clone Campaign"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => unarchiveCampaignMutation.mutate(campaign.id)}
+                        title="Restore Campaign"
+                      >
+                        <ArchiveRestore className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                  {(campaign.status === "sent" || campaign.status === "failed") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => archiveCampaignMutation.mutate(campaign.id)}
+                      title="Archive Campaign"
+                    >
+                      <Archive className="h-4 w-4" />
+                    </Button>
                   )}
                   {(campaign.status === "draft" || campaign.status === "scheduled") && (
                     <Button
