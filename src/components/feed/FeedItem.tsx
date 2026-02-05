@@ -25,6 +25,7 @@ import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 import { CoinIcon } from "@/components/CoinIcon";
 import { DailyFortunePopup } from "@/components/daily-features/DailyFortunePopup";
+import ImageLightbox from "@/components/ImageLightbox";
 
 export interface FeedItemData {
   id: string;
@@ -109,6 +110,11 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const [showAnswer, setShowAnswer] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
   const { repostToFeed, removeRepost, isReposting } = useFeedRepost();
+
+  // Album lightbox state
+  const [albumImages, setAlbumImages] = useState<{ image_url: string; caption?: string | null }[]>([]);
+  const [albumLightboxOpen, setAlbumLightboxOpen] = useState(false);
+  const [albumLightboxIndex, setAlbumLightboxIndex] = useState(0);
 
   const isOwner = user?.id === item.author_id;
   const isRepost = item.extra_data?.is_repost === true;
@@ -627,6 +633,34 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             onClick={() => {
               if (item.item_type === 'fortune') {
                 setFortuneDialogOpen(true);
+              } else if (item.item_type === 'album') {
+                // Fetch album images and open lightbox
+                (async () => {
+                  try {
+                    const { data: images, error } = await supabase
+                      .from('album_images')
+                      .select('id, image_url, caption, display_order')
+                      .eq('album_id', item.id)
+                      .order('display_order', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    if (images && images.length > 0) {
+                      setAlbumImages(images.filter(img => img.image_url).map(img => ({
+                        image_url: img.image_url!,
+                        caption: img.caption
+                      })));
+                      setAlbumLightboxIndex(0);
+                      setAlbumLightboxOpen(true);
+                    } else {
+                      // No images, open regular dialog
+                      setDialogOpen(true);
+                    }
+                  } catch (error) {
+                    console.error('Error fetching album images:', error);
+                    setDialogOpen(true);
+                  }
+                })();
               } else {
                 setDialogOpen(true);
               }
@@ -964,6 +998,22 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} />
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Album Lightbox */}
+      {item.item_type === 'album' && (
+        <ImageLightbox
+          images={albumImages}
+          currentIndex={albumLightboxIndex}
+          isOpen={albumLightboxOpen}
+          onClose={() => setAlbumLightboxOpen(false)}
+          onPrevious={() => setAlbumLightboxIndex((prev) => 
+            prev === 0 ? albumImages.length - 1 : prev - 1
+          )}
+          onNext={() => setAlbumLightboxIndex((prev) => 
+            prev === albumImages.length - 1 ? 0 : prev + 1
+          )}
+        />
       )}
     </>
   );
