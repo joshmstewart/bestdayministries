@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { packName, generateOnly } = await req.json();
+    const { packName, generateOnly, existingItems } = await req.json();
     
     if (!packName) {
       throw new Error("Pack name is required");
@@ -19,6 +19,9 @@ serve(async (req) => {
 
     // generateOnly can be: "all" (default), "description", "style", or "items"
     const mode = generateOnly || "all";
+    
+    // existingItems is an optional array of item names to exclude from suggestions
+    const itemsToExclude: string[] = existingItems || [];
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -88,6 +91,11 @@ The module_color should always be very light (near white) for good card visibili
       };
       requiredFields = ["background_glow", "module_color"];
     } else if (mode === "items") {
+      // Build exclusion instructions if there are existing items
+      const exclusionNote = itemsToExclude.length > 0
+        ? `\n\nEXCLUDE THESE ITEMS - they already exist in the pack: ${itemsToExclude.join(", ")}\nGenerate DIFFERENT items that are NOT on this list.`
+        : "";
+      
       userPrompt = `Generate 15-20 suggested items for a memory match card pack called "${packName}".
 
 CRITICAL REQUIREMENTS:
@@ -97,6 +105,7 @@ CRITICAL REQUIREMENTS:
 - Mix obvious/simple items with a few more interesting ones
 - Keep names SHORT (1-3 words max)
 - Generate at least 15 items so the game has variety each play
+${exclusionNote}
 
 GOOD examples for a "Space" pack: Rocket, Astronaut, Moon, Saturn, Alien, UFO, Comet, Space Helmet, Telescope, Mars Rover, Space Station, Meteor, Nebula, Black Hole, Satellite
 BAD examples: "Interstellar", "2001: A Space Odyssey", "The Martian" (these are movies, not drawable objects!)
@@ -104,7 +113,7 @@ BAD examples: "Interstellar", "2001: A Space Odyssey", "The Martian" (these are 
 GOOD examples for an "Ocean" pack: Whale, Octopus, Anchor, Submarine, Coral, Seahorse, Treasure Chest, Starfish, Jellyfish, Shark, Dolphin, Crab, Lobster, Pearl, Seashell
 BAD examples: "Finding Nemo", "The Little Mermaid", "Ocean's Eleven" (movies/media, not objects!)`;
       toolParams = {
-        suggested_items: { type: "array", items: { type: "string" }, description: "15-20 SHORT names of concrete, drawable objects - NOT movies, books, or abstract concepts" }
+        suggested_items: { type: "array", items: { type: "string" }, description: "15-20 SHORT names of concrete, drawable objects - NOT movies, books, or abstract concepts. Do not include any items from the exclusion list." }
       };
       requiredFields = ["suggested_items"];
     } else {
