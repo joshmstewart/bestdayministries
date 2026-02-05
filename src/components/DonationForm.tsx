@@ -302,21 +302,20 @@ export const DonationForm = () => {
           </div>
         </div>
 
-        {/* Newsletter Signup */}
-        <div className="flex items-start space-x-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
-          <Checkbox
-            id="newsletter"
+        {/* Newsletter Checkbox */}
+        <div className="flex items-start space-x-2 py-2">
+          <Checkbox 
+            id="newsletter" 
             checked={subscribeNewsletter}
             onCheckedChange={(checked) => setSubscribeNewsletter(checked as boolean)}
+            className="mt-1"
           />
-          <div className="flex-1">
-            <Label htmlFor="newsletter" className="font-semibold cursor-pointer">
-              Subscribe to our newsletter
-            </Label>
-            <p className="text-xs text-muted-foreground mt-1">
-              Get monthly updates, inspiring stories, and event invitations
-            </p>
-          </div>
+          <label
+            htmlFor="newsletter"
+            className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+          >
+            Send me monthly updates and inspiring stories
+          </label>
         </div>
 
         {/* Terms Acceptance */}
