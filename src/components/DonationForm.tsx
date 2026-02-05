@@ -28,6 +28,7 @@ export const DonationForm = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [coverStripeFee, setCoverStripeFee] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(true);
 
   useEffect(() => {
     checkAuthAndLoadEmail();
@@ -96,6 +97,7 @@ export const DonationForm = () => {
           frequency,
           email: email.trim(),
           coverStripeFee,
+          subscribeNewsletter,
         },
       });
 
@@ -296,6 +298,23 @@ export const DonationForm = () => {
             </Label>
             <p className="text-xs text-muted-foreground mt-1">
               Help us keep 100% of your donation by covering the ${stripeFee.toFixed(2)} Stripe processing fee
+            </p>
+          </div>
+        </div>
+
+        {/* Newsletter Signup */}
+        <div className="flex items-start space-x-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+          <Checkbox
+            id="newsletter"
+            checked={subscribeNewsletter}
+            onCheckedChange={(checked) => setSubscribeNewsletter(checked as boolean)}
+          />
+          <div className="flex-1">
+            <Label htmlFor="newsletter" className="font-semibold cursor-pointer">
+              Subscribe to our newsletter
+            </Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Get monthly updates, inspiring stories, and event invitations
             </p>
           </div>
         </div>

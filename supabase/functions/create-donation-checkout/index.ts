@@ -23,6 +23,7 @@ const donationSchema = z.object({
     .toLowerCase()
     .trim(),
   coverStripeFee: z.boolean().optional().default(false),
+  subscribeNewsletter: z.boolean().optional().default(false),
   force_test_mode: z.boolean().optional().default(false)
 });
 
@@ -75,7 +76,7 @@ serve(async (req) => {
       apiVersion: '2024-11-20.acacia',
     });
 
-    const { amount, frequency, email, coverStripeFee } = validationResult.data;
+    const { amount, frequency, email, coverStripeFee, subscribeNewsletter } = validationResult.data;
 
     // Calculate final amount including Stripe fee if user chose to cover it
     let finalAmount = amount;
@@ -240,6 +241,72 @@ serve(async (req) => {
       }
       
       throw new Error(`Failed to create donation record: ${insertError.message}`);
+    }
+
+    // Subscribe to newsletter if opted in
+    if (subscribeNewsletter) {
+      try {
+        // Check if already subscribed
+        const { data: existingSubscriber } = await supabaseAdmin
+          .from('newsletter_subscribers')
+          .select('id, status')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (existingSubscriber) {
+          // Reactivate if unsubscribed
+          if (existingSubscriber.status !== 'active') {
+            await supabaseAdmin
+              .from('newsletter_subscribers')
+              .update({ 
+                status: 'active', 
+                unsubscribed_at: null,
+                user_id: profile?.id || null
+              })
+              .eq('id', existingSubscriber.id);
+            console.log('Newsletter subscription reactivated for:', sanitizedEmail);
+          }
+        } else {
+          // Create new subscription
+          const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          await supabaseAdmin
+            .from('newsletter_subscribers')
+            .insert({
+              email: email,
+              user_id: profile?.id || null,
+              status: 'active',
+              timezone: timezone,
+              source: 'donation_form',
+            });
+          console.log('Newsletter subscription created for:', sanitizedEmail);
+
+          // Trigger welcome email
+          try {
+            const functionsUrl = Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.functions.supabase.co');
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-automated-campaign`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                trigger_event: 'newsletter_signup',
+                recipient_email: email,
+                recipient_user_id: profile?.id || null,
+                trigger_data: {
+                  source: 'donation_form',
+                },
+              }),
+            });
+          } catch (emailError) {
+            console.error('Failed to send welcome email:', emailError);
+            // Don't fail the donation for email errors
+          }
+        }
+      } catch (newsletterError) {
+        console.error('Newsletter subscription error:', newsletterError);
+        // Don't fail the donation for newsletter errors
+      }
     }
 
     return new Response(
