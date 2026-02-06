@@ -25,6 +25,9 @@ export const AvatarDisplay = ({
   const avatarData = useProfileAvatarData(profileAvatarId);
 
   if (avatarData) {
+    const scale = avatarData.cropScale ?? 1;
+    const offsetX = ((avatarData.cropX ?? 50) - 50) * (scale - 1) * 0.5;
+    const offsetY = ((avatarData.cropY ?? 50) - 50) * (scale - 1) * 0.5;
     return (
       <div
         className={cn(
@@ -39,7 +42,7 @@ export const AvatarDisplay = ({
           alt={displayName}
           className="w-full h-full object-cover"
           style={{
-            transform: `scale(${avatarData.cropScale ?? 1})`,
+            transform: `scale(${scale}) translate(${-offsetX}%, ${-offsetY}%)`,
             transformOrigin: "center center",
           }}
         />
