@@ -1186,7 +1186,6 @@ export default function GuardianLinks() {
                           <div className="flex items-center gap-4">
                             <AvatarDisplay
                               profileAvatarId={link.bestie.profile_avatar_id}
-                              avatarNumber={link.bestie.avatar_number}
                               displayName={link.bestie.display_name}
                               size="lg"
                             />
@@ -1519,7 +1518,6 @@ export default function GuardianLinks() {
                          <div className="flex items-center gap-4 flex-1">
                            <AvatarDisplay
                              profileAvatarId={sponsorship.bestie.profile_avatar_id}
-                             avatarNumber={sponsorship.bestie.avatar_number}
                              displayName={sponsorship.bestie.display_name}
                              size="lg"
                            />
@@ -1712,7 +1710,6 @@ export default function GuardianLinks() {
                       <div className="flex items-center gap-4 flex-1">
                         <AvatarDisplay
                           profileAvatarId={sponsorship.bestie.profile_avatar_id}
-                          avatarNumber={sponsorship.bestie.avatar_number}
                           displayName={sponsorship.bestie.display_name}
                           size="lg"
                         />
@@ -1932,7 +1929,6 @@ export default function GuardianLinks() {
                   >
                     <AvatarDisplay
                       profileAvatarId={bestie.profile_avatar_id}
-                      avatarNumber={bestie.avatar_number}
                       displayName={bestie.display_name}
                       size="sm"
                     />

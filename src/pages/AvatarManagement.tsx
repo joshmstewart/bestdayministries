@@ -149,7 +149,6 @@ export default function AvatarManagement() {
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4 mb-4">
                         <AvatarDisplay
-                          avatarNumber={avatar.avatar_number}
                           displayName={`Avatar ${avatar.avatar_number}`}
                           size="lg"
                         />

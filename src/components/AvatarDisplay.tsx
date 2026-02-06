@@ -3,10 +3,8 @@ import { cn } from "@/lib/utils";
 import { useProfileAvatarUrl } from "@/hooks/useProfileAvatarUrl";
 
 interface AvatarDisplayProps {
-  /** New primary prop — fitness avatar UUID from profiles.profile_avatar_id */
+  /** Fitness avatar UUID from profiles.profile_avatar_id */
   profileAvatarId?: string | null;
-  /** @deprecated Legacy prop — kept for backward compat during migration */
-  avatarNumber?: number | null;
   displayName: string;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -20,14 +18,12 @@ const sizeClasses = {
 
 export const AvatarDisplay = ({
   profileAvatarId,
-  avatarNumber,
   displayName,
   size = "md",
   className,
 }: AvatarDisplayProps) => {
   const avatarUrl = useProfileAvatarUrl(profileAvatarId);
 
-  // If we have a fitness avatar URL, show it as a circular image
   if (avatarUrl) {
     return (
       <div

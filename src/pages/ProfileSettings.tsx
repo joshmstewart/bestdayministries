@@ -643,7 +643,6 @@ const ProfileSettings = () => {
               <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
                 <AvatarDisplay 
                   profileAvatarId={selectedProfileAvatarId}
-                  avatarNumber={selectedAvatar} 
                   displayName={displayName}
                   size="lg"
                 />

@@ -67,7 +67,7 @@ export function BestieLinksCard({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <AvatarDisplay avatarNumber={link.bestie.avatar_number} displayName={link.bestie.display_name} size="md" />
+            <AvatarDisplay displayName={link.bestie.display_name} size="md" />
             <div>
               <CardTitle className="text-lg">{link.bestie.display_name}</CardTitle>
               <CardDescription className="capitalize">{link.relationship}</CardDescription>

@@ -207,7 +207,6 @@ export const DiscussionDetailDialog = ({
                     <div className="flex items-center gap-3">
                       <AvatarDisplay 
                         profileAvatarId={post.author?.profile_avatar_id}
-                        avatarNumber={post.author?.avatar_number || null}
                         displayName={post.author?.display_name || "Unknown"}
                         size="sm"
                       />
@@ -368,7 +367,6 @@ export const DiscussionDetailDialog = ({
                       <div key={comment.id} className="flex gap-3 p-4 rounded-lg bg-muted/50">
                         <AvatarDisplay 
                           profileAvatarId={comment.author?.profile_avatar_id}
-                          avatarNumber={comment.author?.avatar_number || null}
                           displayName={comment.author?.display_name || "Unknown"}
                           size="sm"
                         />

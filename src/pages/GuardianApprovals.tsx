@@ -434,7 +434,6 @@ export default function GuardianApprovals() {
                         <div className="flex items-center gap-3">
                           <AvatarDisplay
                             profileAvatarId={post.author.profile_avatar_id}
-                            avatarNumber={post.author.avatar_number}
                             displayName={post.author.display_name}
                             size="md"
                           />
@@ -534,7 +533,6 @@ export default function GuardianApprovals() {
                         <div className="flex items-center gap-3">
                           <AvatarDisplay
                             profileAvatarId={comment.author.profile_avatar_id}
-                            avatarNumber={comment.author.avatar_number}
                             displayName={comment.author.display_name}
                             size="md"
                           />
