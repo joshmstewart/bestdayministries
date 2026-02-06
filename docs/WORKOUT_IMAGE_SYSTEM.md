@@ -25,7 +25,7 @@ Storage:
 **Critical rule:** If a celebration image is generated *after* an activity image, the UI must still prefer the **latest activity** image so the user sees the workout they just logged.
 
 Implementation:
-- Query today’s images ordered by `created_at desc`
+- Query today's images ordered by `created_at desc`
 - Prefer the first row where `image_type === 'activity'`
 - Fall back to the most recent image if no activity image exists
 
@@ -70,7 +70,7 @@ Key implementation details:
 
 2. **Avatar consistency issues**
    - If `image_url` is null and the function falls back to text-only prompts, the character may drift.
-   - Always use the avatar’s preview image for image-to-image when available.
+   - Always use the avatar's preview image for image-to-image when available.
 
 ## Avatar Catalog Image Generation (Admin)
 
@@ -80,10 +80,32 @@ Function:
 - `supabase/functions/generate-avatar-image`
 
 Key requirement (type persistence):
-- The admin UI needs a persisted character type (`human | animal | superhero | monster`) so list-view “Regenerate” can apply the right prompt rules.
+- The admin UI needs a persisted character type (`human | animal | superhero | monster`) so list-view "Regenerate" can apply the right prompt rules.
 - If the `fitness_avatars` table does **not** currently store this type, the list view will default to `human` and monsters can be regenerated as humans.
 - Fix: add a `character_type` column (or equivalent) to the backend schema and store it on create/update.
 
 Safety behavior:
 - The image model may sometimes return **no image** with an `IMAGE_SAFETY` reason.
   - In that case, the function returns a non-200 response and the UI should show an error toast (not crash).
+
+## Iconic Characters Category
+
+A special category called **"icons"** (displayed as "Iconic Characters ⭐") exists for beloved copyrighted characters.
+
+### How it works:
+1. Admins create an avatar with a recognizable name (e.g., "Spider-Man", "Pikachu", "Elsa")
+2. Set the category to **"Iconic Characters"**
+3. The `generate-avatar-image` function uses `translateCharacterName()` to convert the copyrighted name into a generic visual description
+4. This bypasses `IMAGE_PROHIBITED_CONTENT` blocks while preserving the character's visual identity
+
+### Supported Characters:
+The translation system (`character-name-translator.ts`) supports 80+ characters from:
+- **Marvel**: Spider-Man, Iron Man, Captain America, Hulk, Thor, Black Panther, Deadpool, etc.
+- **DC**: Batman, Superman, Wonder Woman, Flash, Aquaman, Harley Quinn, etc.
+- **Disney/Pixar**: Elsa, Moana, Buzz Lightyear, Stitch, Nemo, Simba, Mickey, etc.
+- **Nintendo**: Mario, Luigi, Link, Zelda, Pikachu, Kirby, etc.
+- **Anime**: Goku, Naruto, Sailor Moon
+- **Other**: Harry Potter, Sonic, Shrek, Minions, Power Rangers, etc.
+
+### Masked Character Handling:
+Characters known for full-face masks (Spider-Man, Iron Man, Deadpool, Black Panther, Flash, Samus, Power Rangers) have explicit prompts ensuring **no visible skin or hair** for accurate generation.

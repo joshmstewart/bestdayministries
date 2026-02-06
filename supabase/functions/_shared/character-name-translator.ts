@@ -514,6 +514,40 @@ export function isLikelyCopyrightedCharacter(name: string): boolean {
 }
 
 /**
+ * Gets the suggested category for an avatar based on name.
+ * Returns "icons" for known copyrighted characters, otherwise undefined.
+ */
+export function getSuggestedCategory(name: string): 'icons' | undefined {
+  if (isLikelyCopyrightedCharacter(name)) {
+    return 'icons';
+  }
+  return undefined;
+}
+
+/**
+ * Gets the translation info for a known character.
+ */
+export function getCharacterInfo(name: string): { 
+  visualDescription: string; 
+  characterType?: string;
+} | undefined {
+  const lowerName = name.toLowerCase();
+  
+  for (const translation of CHARACTER_TRANSLATIONS) {
+    for (const pattern of translation.patterns) {
+      if (pattern.test(lowerName)) {
+        return {
+          visualDescription: translation.visualDescription,
+          characterType: translation.characterType
+        };
+      }
+    }
+  }
+  
+  return undefined;
+}
+
+/**
  * Gets the list of all supported character translations for documentation/UI purposes.
  */
 export function getSupportedCharacters(): string[] {

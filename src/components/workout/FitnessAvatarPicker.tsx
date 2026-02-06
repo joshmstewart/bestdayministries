@@ -46,10 +46,11 @@ const KNOWN_CATEGORY_META: Record<
   { label: string; emoji: string; defaultOpen: boolean; sortOrder: number }
 > = {
   free: { label: "Free Tier", emoji: "🆓", defaultOpen: true, sortOrder: 0 },
-  animals: { label: "Animals", emoji: "🐾", defaultOpen: true, sortOrder: 1 },
-  superheroes: { label: "Superheroes", emoji: "🦸", defaultOpen: true, sortOrder: 2 },
-  monsters: { label: "Monsters", emoji: "👾", defaultOpen: true, sortOrder: 3 },
-  humans: { label: "Humans", emoji: "👤", defaultOpen: false, sortOrder: 4 },
+  icons: { label: "Iconic Characters", emoji: "⭐", defaultOpen: true, sortOrder: 1 },
+  animals: { label: "Animals", emoji: "🐾", defaultOpen: true, sortOrder: 2 },
+  superheroes: { label: "Superheroes", emoji: "🦸", defaultOpen: true, sortOrder: 3 },
+  monsters: { label: "Monsters", emoji: "👾", defaultOpen: true, sortOrder: 4 },
+  humans: { label: "Humans", emoji: "👤", defaultOpen: false, sortOrder: 5 },
 };
 
 const toTitleCase = (value: string) =>
