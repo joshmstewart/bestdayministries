@@ -315,6 +315,25 @@ serve(async (req) => {
 
     const publicUrl = urlData.publicUrl;
 
+    // Compute average crop_scale from existing edited images for this avatar
+    let avgCropScale = 1.0;
+    try {
+      const { data: existingCrops } = await supabaseAdmin
+        .from("avatar_emotion_images")
+        .select("crop_scale")
+        .eq("avatar_id", avatarId)
+        .neq("emotion_type_id", emotionTypeId)
+        .not("crop_scale", "eq", 1); // Only images that have been edited (not default 1.0)
+      
+      if (existingCrops && existingCrops.length > 0) {
+        const sum = existingCrops.reduce((acc: number, row: any) => acc + (row.crop_scale || 1), 0);
+        avgCropScale = Math.round((sum / existingCrops.length) * 100) / 100;
+        console.log(`Average crop_scale from ${existingCrops.length} edited images: ${avgCropScale}`);
+      }
+    } catch (e) {
+      console.error("Failed to compute average crop_scale, defaulting to 1.0:", e);
+    }
+
     // Upsert to database
     const { error: dbError } = await supabaseAdmin
       .from("avatar_emotion_images")
@@ -325,6 +344,7 @@ serve(async (req) => {
         prompt_used: prompt,
         generation_notes: notes || null,
         is_approved: false,
+        crop_scale: avgCropScale,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: "avatar_id,emotion_type_id",
