@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 interface AvatarEmotionDisplayProps {
   emoji: string;
   emotionName: string;
-  avatarImage?: { url: string; cropScale: number } | null;
+  avatarImage?: { url: string; cropScale: number; cropX?: number; cropY?: number } | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -42,7 +42,7 @@ export function AvatarEmotionDisplay({
           alt={emotionName}
           className="w-full h-full object-cover"
           style={{
-            transform: `scale(${avatarImage.cropScale})`,
+            transform: `scale(${avatarImage.cropScale}) translate(${avatarImage.cropX || 0}%, ${avatarImage.cropY || 0}%)`,
             transformOrigin: 'center',
           }}
         />

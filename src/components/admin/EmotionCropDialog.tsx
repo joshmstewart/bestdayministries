@@ -13,6 +13,8 @@ interface EmotionImage {
   image_url: string | null;
   is_approved: boolean;
   crop_scale: number;
+  crop_x: number;
+  crop_y: number;
 }
 
 interface EmotionType {
@@ -60,8 +62,8 @@ export function EmotionCropDialog({
   useEffect(() => {
     if (open && current) {
       setCropScale(current.crop_scale || 1);
-      setPanX(0);
-      setPanY(0);
+      setPanX(current.crop_x || 0);
+      setPanY(current.crop_y || 0);
       setDirty(false);
     }
   }, [currentIndex, open, current?.id]);
@@ -77,11 +79,13 @@ export function EmotionCropDialog({
     try {
       const { error } = await supabase
         .from("avatar_emotion_images")
-        .update({ crop_scale: cropScale })
+        .update({ crop_scale: cropScale, crop_x: panX, crop_y: panY })
         .eq("id", current.id);
       if (error) throw error;
       toast.success(`Saved ${emotion?.name || "emotion"} crop`);
       current.crop_scale = cropScale;
+      current.crop_x = panX;
+      current.crop_y = panY;
       setDirty(false);
       onSaved();
     } catch {

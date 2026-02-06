@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+interface AvatarEmotionImageData {
+  url: string;
+  cropScale: number;
+  cropX: number;
+  cropY: number;
+}
+
 interface AvatarEmotionImageMap {
-  [emotionTypeId: string]: {
-    url: string;
-    cropScale: number;
-  };
+  [emotionTypeId: string]: AvatarEmotionImageData;
 }
 
 interface CachedAvatarData {
   avatarId: string;
   imagesByEmotionTypeId: AvatarEmotionImageMap;
-  imagesByEmotionName: Record<string, { url: string; cropScale: number }>;
+  imagesByEmotionName: Record<string, AvatarEmotionImageData>;
   timestamp: number;
 }
 
@@ -49,7 +53,7 @@ function setToCache(data: CachedAvatarData): void {
  */
 export const useAvatarEmotionImages = (userId: string | undefined) => {
   const [imagesByEmotionTypeId, setImagesByEmotionTypeId] = useState<AvatarEmotionImageMap>({});
-  const [imagesByEmotionName, setImagesByEmotionName] = useState<Record<string, { url: string; cropScale: number }>>({});
+  const [imagesByEmotionName, setImagesByEmotionName] = useState<Record<string, AvatarEmotionImageData>>({});
   const [loading, setLoading] = useState(false);
   const [hasAvatar, setHasAvatar] = useState(false);
 
@@ -101,7 +105,7 @@ export const useAvatarEmotionImages = (userId: string | undefined) => {
         // Get all approved emotion images for this avatar
         const { data: emotionImages, error: emotionImagesError } = await supabase
           .from("avatar_emotion_images")
-          .select("emotion_type_id, image_url, crop_scale")
+          .select("emotion_type_id, image_url, crop_scale, crop_x, crop_y")
           .eq("avatar_id", userAvatar.avatar_id)
           .eq("is_approved", true);
 
@@ -123,13 +127,15 @@ export const useAvatarEmotionImages = (userId: string | undefined) => {
         });
 
         const mapById: AvatarEmotionImageMap = {};
-        const mapByName: Record<string, { url: string; cropScale: number }> = {};
+        const mapByName: Record<string, AvatarEmotionImageData> = {};
 
         (emotionImages || []).forEach((img) => {
           if (!img.image_url) return;
-          const imageData = {
+          const imageData: AvatarEmotionImageData = {
             url: img.image_url,
             cropScale: (img.crop_scale as number) || 1.0,
+            cropX: (img.crop_x as number) || 0,
+            cropY: (img.crop_y as number) || 0,
           };
           mapById[img.emotion_type_id] = imageData;
           

@@ -8,6 +8,8 @@ interface AvatarEmotionImage {
   image_url: string | null;
   is_approved: boolean | null;
   crop_scale: number | null;
+  crop_x: number | null;
+  crop_y: number | null;
 }
 
 /**
@@ -60,7 +62,7 @@ export const useAvatarEmotionImage = (userId: string | undefined, emotionName: s
     queryFn: async () => {
       const { data, error } = await supabase
         .from("avatar_emotion_images")
-        .select("id, avatar_id, emotion_type_id, image_url, is_approved, crop_scale")
+        .select("id, avatar_id, emotion_type_id, image_url, is_approved, crop_scale, crop_x, crop_y")
         .eq("avatar_id", selectedAvatar!.avatar_id)
         .eq("emotion_type_id", emotionType!.id)
         .eq("is_approved", true)
@@ -78,6 +80,8 @@ export const useAvatarEmotionImage = (userId: string | undefined, emotionName: s
   return {
     imageUrl: avatarEmotionImage?.image_url || null,
     cropScale: (avatarEmotionImage?.crop_scale as number) || 1.0,
+    cropX: (avatarEmotionImage?.crop_x as number) || 0,
+    cropY: (avatarEmotionImage?.crop_y as number) || 0,
     hasAvatar: !!selectedAvatar?.avatar_id,
     avatarName: (selectedAvatar?.fitness_avatars as any)?.name || null,
     isLoading,

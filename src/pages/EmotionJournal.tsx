@@ -250,14 +250,14 @@ export default function EmotionJournal() {
   const currentEmotionName = todaysMoodEntry?.mood_label || selectedEmotion?.name;
   
   // Fetch avatar emotion image for the selected/today's emotion
-  const { imageUrl: avatarEmotionImageUrl, cropScale: avatarCropScale, emotionEmoji } = useAvatarEmotionImage(
+  const { imageUrl: avatarEmotionImageUrl, cropScale: avatarCropScale, cropX: avatarCropX, cropY: avatarCropY, emotionEmoji } = useAvatarEmotionImage(
     user?.id,
     currentEmotionName
   );
 
   // Load ALL approved avatar emotion images for the user's selected avatar
   const [avatarEmotionImagesByEmotionTypeId, setAvatarEmotionImagesByEmotionTypeId] = useState<
-    Record<string, { url: string; cropScale: number }>
+    Record<string, { url: string; cropScale: number; cropX: number; cropY: number }>
   >({});
   const [avatarEmotionImagesLoading, setAvatarEmotionImagesLoading] = useState(false);
 
@@ -290,7 +290,7 @@ export default function EmotionJournal() {
 
         const { data: emotionImages, error: emotionImagesError } = await supabase
           .from("avatar_emotion_images")
-          .select("emotion_type_id, image_url, crop_scale")
+          .select("emotion_type_id, image_url, crop_scale, crop_x, crop_y")
           .eq("avatar_id", userAvatar.avatar_id)
           .eq("is_approved", true);
 
@@ -300,12 +300,14 @@ export default function EmotionJournal() {
           return;
         }
 
-        const map: Record<string, { url: string; cropScale: number }> = {};
+        const map: Record<string, { url: string; cropScale: number; cropX: number; cropY: number }> = {};
         (emotionImages || []).forEach((img) => {
           if (!img.image_url) return;
           map[img.emotion_type_id] = {
             url: img.image_url,
             cropScale: (img.crop_scale as number) || 1.0,
+            cropX: (img.crop_x as number) || 0,
+            cropY: (img.crop_y as number) || 0,
           };
         });
         setAvatarEmotionImagesByEmotionTypeId(map);
@@ -632,7 +634,7 @@ export default function EmotionJournal() {
                   alt={displayLabel || "Emotion"} 
                   className="w-full h-full object-cover"
                   style={{
-                    transform: `scale(${avatarCropScale})`,
+                    transform: `scale(${avatarCropScale}) translate(${avatarCropX}%, ${avatarCropY}%)`,
                     transformOrigin: 'center',
                   }}
                 />
@@ -703,7 +705,7 @@ export default function EmotionJournal() {
                       alt={todaysMoodEntry.mood_label} 
                       className="w-full h-full object-cover"
                       style={{
-                        transform: `scale(${avatarCropScale})`,
+                        transform: `scale(${avatarCropScale}) translate(${avatarCropX}%, ${avatarCropY}%)`,
                         transformOrigin: 'center',
                       }}
                     />
