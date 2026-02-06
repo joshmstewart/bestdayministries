@@ -361,6 +361,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         imageUrl: publicUrl,
+        cropScale: avgCropScale,
         message: "Image generated successfully" 
       }),
       {
