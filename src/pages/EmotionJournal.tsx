@@ -795,7 +795,7 @@ export default function EmotionJournal() {
                                       alt={emotion.name}
                                       className="w-full h-full object-cover"
                                       style={{
-                                        transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
+                                        transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1}) translate(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropX || 0}%, ${avatarEmotionImagesByEmotionTypeId[emotion.id].cropY || 0}%)`,
                                         transformOrigin: "center",
                                       }}
                                     />
@@ -964,7 +964,7 @@ export default function EmotionJournal() {
                                 alt={emotion.name}
                                 className="w-full h-full object-cover"
                                 style={{
-                                  transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1})`,
+                                  transform: `scale(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropScale || 1}) translate(${avatarEmotionImagesByEmotionTypeId[emotion.id].cropX || 0}%, ${avatarEmotionImagesByEmotionTypeId[emotion.id].cropY || 0}%)`,
                                   transformOrigin: "center",
                                 }}
                               />
