@@ -62,6 +62,7 @@ export const ContentAnnouncementsManager = () => {
   const { user } = useAuth();
   const [announcements, setAnnouncements] = useState<ContentAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [systemUserId, setSystemUserId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewAnnouncement, setPreviewAnnouncement] = useState<ContentAnnouncement | null>(null);
@@ -92,6 +93,18 @@ export const ContentAnnouncementsManager = () => {
 
   useEffect(() => {
     loadAnnouncements();
+    // Fetch system user ID (Best Day Ministries account) for authoring announcements
+    supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "system_user_id")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.setting_value) {
+          const val = data.setting_value;
+          setSystemUserId(typeof val === 'string' ? val : (val as any).id || null);
+        }
+      });
   }, []);
 
   // Load items when app changes
@@ -491,7 +504,7 @@ export const ContentAnnouncementsManager = () => {
         link_url: formData.link_url.trim() || null,
         link_label: formData.link_label.trim() || null,
         image_url: imageUrl,
-        created_by: user?.id,
+        created_by: systemUserId || user?.id,
         price_coins: formData.price_coins,
         is_free: formData.is_free,
       };
