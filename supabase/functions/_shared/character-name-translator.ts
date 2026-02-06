@@ -23,7 +23,7 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
   },
   {
     patterns: [/iron[-\s]?man/i, /ironman/i, /tony stark/i],
-    visualDescription: "a superhero in a sleek red and gold high-tech armored suit with a glowing blue chest reactor, helmet with glowing eyes",
+    visualDescription: "a superhero in a sleek red and gold high-tech armored suit with a glowing blue arc reactor on the chest, wearing a fully enclosed metal helmet with glowing white eye slits that completely covers the head and face with no visible skin or hair",
     characterType: 'superhero'
   },
   {
@@ -43,7 +43,7 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
   },
   {
     patterns: [/black panther/i, /t'?challa/i],
-    visualDescription: "an African warrior king superhero in a sleek black vibranium suit with purple energy accents, panther-ear mask, and clawed gloves",
+    visualDescription: "an African warrior king superhero in a sleek black vibranium suit with purple energy accents covering the entire body including a full-face panther mask with pointed ears that completely covers the head and face with no visible skin or hair, silver clawed gloves, and glowing purple kinetic energy patterns",
     characterType: 'superhero'
   },
   {
@@ -58,7 +58,7 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
   },
   {
     patterns: [/deadpool/i, /wade wilson/i],
-    visualDescription: "a wisecracking mercenary hero in a red and black full-body suit with large white eye patches on the mask, dual swords on the back",
+    visualDescription: "a wisecracking mercenary hero in a red and black full-body suit covering the entire body including a full-face mask that completely covers the head and face with large expressive white eye patches, no visible skin or hair, dual katana swords crossed on the back, and multiple weapon pouches on the belt",
     characterType: 'superhero'
   },
   {
@@ -105,7 +105,7 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
   },
   {
     patterns: [/the?\s*flash/i, /barry allen/i, /wally west/i],
-    visualDescription: "a super-speed hero in a red suit with yellow lightning bolt emblem, yellow boots, and a winged helmet, surrounded by lightning effects",
+    visualDescription: "a super-speed hero in a red suit covering the entire body including a full-head cowl that covers the head and face with only the chin and mouth visible, small golden lightning bolt wing accents on the sides of the head, white eye lenses, yellow lightning bolt emblem on chest, yellow boots, surrounded by crackling yellow lightning speed effects",
     characterType: 'superhero'
   },
   {
@@ -274,7 +274,7 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
   },
   {
     patterns: [/samus/i, /metroid hero/i],
-    visualDescription: "a futuristic armored bounty hunter in an orange and red power suit with a large arm cannon, sleek visor helmet, athletic build",
+    visualDescription: "a futuristic armored bounty hunter in an orange and red power suit covering the entire body including a fully enclosed helmet with a green visor that completely covers the head and face with no visible skin or hair, large spherical shoulder pads, a powerful arm cannon on the right arm, athletic feminine build",
     characterType: 'superhero'
   },
   
@@ -385,7 +385,7 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
   // Power Rangers / Super Sentai
   {
     patterns: [/power ranger/i, /red ranger/i],
-    visualDescription: "a heroic warrior in a colorful full-body armored suit with a helmet featuring a visor, dynamic action pose, team emblem on chest",
+    visualDescription: "a heroic warrior in a colorful full-body armored spandex suit covering the entire body including a fully enclosed helmet with a dark visor that completely covers the head and face with no visible skin or hair, the helmet has a distinctive animal or dinosaur motif on top, white diamond patterns, team emblem on chest belt, dynamic action pose",
     characterType: 'superhero'
   },
   
