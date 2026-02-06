@@ -4950,6 +4950,9 @@ export type Database = {
           name: string
           preview_image_url: string | null
           price_coins: number
+          profile_crop_scale: number
+          profile_crop_x: number
+          profile_crop_y: number
           sex: string | null
           updated_at: string
         }
@@ -4967,6 +4970,9 @@ export type Database = {
           name: string
           preview_image_url?: string | null
           price_coins?: number
+          profile_crop_scale?: number
+          profile_crop_x?: number
+          profile_crop_y?: number
           sex?: string | null
           updated_at?: string
         }
@@ -4984,6 +4990,9 @@ export type Database = {
           name?: string
           preview_image_url?: string | null
           price_coins?: number
+          profile_crop_scale?: number
+          profile_crop_x?: number
+          profile_crop_y?: number
           sex?: string | null
           updated_at?: string
         }
