@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Store, ArrowLeft, Info, ChevronDown, Package, CreditCard, Truck, HelpCircle, Heart, Users, Sparkles, ShoppingBag, Home } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
-import { AvatarPicker } from "@/components/AvatarPicker";
+import { ProfileAvatarPicker } from "@/components/ProfileAvatarPicker";
 
 const PRODUCT_CATEGORIES = [
   "Handmade Crafts",
@@ -50,7 +50,7 @@ const VendorAuth = () => {
   const [loading, setLoading] = useState(false);
   const [existingUser, setExistingUser] = useState<{ id: string; email: string } | null>(null);
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
-  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
 
   // Fetch the logo from database
   const { data: logoData } = useQuery({
@@ -265,7 +265,7 @@ const VendorAuth = () => {
           data: {
             display_name: displayName,
             role: role,
-            avatar_url: selectedAvatar ? `avatar-${selectedAvatar}` : null,
+            profile_avatar_id: selectedAvatarId || null,
           },
           emailRedirectTo: `${window.location.origin}/vendor-dashboard`,
         },
@@ -788,9 +788,10 @@ const VendorAuth = () => {
                       </Select>
                     </div>
 
-                    <AvatarPicker 
-                      selectedAvatar={selectedAvatar} 
-                      onSelectAvatar={setSelectedAvatar}
+                    <ProfileAvatarPicker 
+                      selectedAvatarId={selectedAvatarId}
+                      onSelectAvatar={setSelectedAvatarId}
+                      freeOnly
                     />
 
                     <div className="flex items-start space-x-2">
