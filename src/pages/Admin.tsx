@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone } from "lucide-react";
+import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone, Activity } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
@@ -111,6 +111,7 @@ import JoyHouseStoresManager from "@/components/admin/JoyHouseStoresManager";
 import { AiUsageManager } from "@/components/admin/AiUsageManager";
 import { CoffeeVendorManager } from "@/components/admin/CoffeeVendorManager";
 import { AvatarEmojisManager } from "@/components/admin/AvatarEmojisManager";
+import { SystemHealthManager } from "@/components/admin/SystemHealthManager";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -340,6 +341,10 @@ const Admin = () => {
               Help
             </TabsTrigger>
             <TabsTrigger value="issues" className="text-sm px-2.5 py-1.5">Issues</TabsTrigger>
+            <TabsTrigger value="system-health" className="gap-1.5 text-sm px-2.5 py-1.5">
+              <Activity className="w-3 h-3" />
+              Health
+            </TabsTrigger>
             <TabsTrigger value="settings" className="text-sm px-2.5 py-1.5">Settings</TabsTrigger>
           </TabsList>
 
@@ -556,7 +561,6 @@ const Admin = () => {
                   <TabsContent value="transactions">
                     <CoinTransactionsManager />
                   </TabsContent>
-                  
 
                   <TabsContent value="beat-pad">
                     <BeatPadSoundsManager />
@@ -1014,6 +1018,10 @@ const Admin = () => {
                 </Tabs>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="system-health">
+            <SystemHealthManager />
           </TabsContent>
 
           <TabsContent value="settings">
