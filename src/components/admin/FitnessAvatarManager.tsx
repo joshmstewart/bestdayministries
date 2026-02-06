@@ -343,6 +343,7 @@ const writeRecentTemplates = (names: string[]) => {
 
 const AVATAR_CATEGORIES = [
   { value: "free", label: "Free Tier", emoji: "🆓" },
+  { value: "icons", label: "Iconic Characters", emoji: "⭐" },
   { value: "animals", label: "Animals", emoji: "🐾" },
   { value: "superheroes", label: "Superheroes", emoji: "🦸" },
   { value: "humans", label: "Humans", emoji: "👤" },
