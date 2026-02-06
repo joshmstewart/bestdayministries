@@ -7846,6 +7846,7 @@ export type Database = {
           friend_code: string | null
           id: string
           last_daily_login_reward_at: string | null
+          profile_avatar_id: string | null
           show_feed_badge: boolean | null
           tts_enabled: boolean
           tts_voice: string | null
@@ -7870,6 +7871,7 @@ export type Database = {
           friend_code?: string | null
           id: string
           last_daily_login_reward_at?: string | null
+          profile_avatar_id?: string | null
           show_feed_badge?: boolean | null
           tts_enabled?: boolean
           tts_voice?: string | null
@@ -7894,6 +7896,7 @@ export type Database = {
           friend_code?: string | null
           id?: string
           last_daily_login_reward_at?: string | null
+          profile_avatar_id?: string | null
           show_feed_badge?: boolean | null
           tts_enabled?: boolean
           tts_voice?: string | null
@@ -7907,6 +7910,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "avatars"
             referencedColumns: ["avatar_number"]
+          },
+          {
+            foreignKeyName: "profiles_profile_avatar_id_fkey"
+            columns: ["profile_avatar_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11976,10 +11986,13 @@ export type Database = {
           avatar_number: number | null
           avatar_url: string | null
           bio: string | null
+          custom_avatar_type: string | null
+          custom_avatar_url: string | null
           display_name: string | null
           email: string | null
           friend_code: string | null
           id: string | null
+          profile_avatar_id: string | null
           role: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: [
@@ -11989,6 +12002,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "avatars"
             referencedColumns: ["avatar_number"]
+          },
+          {
+            foreignKeyName: "profiles_profile_avatar_id_fkey"
+            columns: ["profile_avatar_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_avatars"
+            referencedColumns: ["id"]
           },
         ]
       }
