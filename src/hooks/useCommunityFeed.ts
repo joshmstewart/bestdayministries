@@ -34,7 +34,7 @@ interface UseCommunityFeedOptions {
 
 // Simple LRU-style cache for feed data and profiles
 const feedCache = new Map<string, { items: FeedItemData[]; timestamp: number }>();
-const profileCache = new Map<string, { name: string; avatar: number | null }>();
+const profileCache = new Map<string, { name: string; avatar: number | null; profileAvatarId: string | null }>();
 const FEED_CACHE_TTL = 60000; // 1 minute for feed data
 
 export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
@@ -114,7 +114,7 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
         uncachedAuthorIds.length > 0
           ? supabase
               .from("profiles_public")
-              .select("id, display_name, avatar_number")
+              .select("id, display_name, avatar_number, profile_avatar_id")
               .in("id", uncachedAuthorIds)
           : Promise.resolve({ data: null }),
         
@@ -137,7 +137,7 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
 
       // Add profiles to cache
       profilesResult.data?.forEach(p => {
-        profileCache.set(p.id, { name: p.display_name, avatar: p.avatar_number });
+        profileCache.set(p.id, { name: p.display_name, avatar: p.avatar_number, profileAvatarId: p.profile_avatar_id });
       });
 
       // Build beat plays map
@@ -189,6 +189,7 @@ export function useCommunityFeed(options: UseCommunityFeedOptions = {}) {
             comments_count: item.comments_count,
             author_name: profile?.name || undefined,
             author_avatar: profile?.avatar || undefined,
+            author_profile_avatar_id: profile?.profileAvatarId || undefined,
             extra_data: extraData,
             repost_id: (item as any).repost_id || null,
           };

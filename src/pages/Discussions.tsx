@@ -223,7 +223,7 @@ const Discussions = () => {
       .from("discussion_posts")
       .select(`
         *,
-        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, avatar_number),
+        author:profiles_public!discussion_posts_author_id_fkey(id, display_name, avatar_number, profile_avatar_id),
         album:albums(id, title, cover_image_url, is_active),
         video:videos(id, title, video_url, youtube_url, video_type),
         event:events(id, title, event_date, location)
@@ -253,7 +253,7 @@ const Discussions = () => {
           .from("discussion_comments")
           .select(`
             *,
-            author:profiles_public!discussion_comments_author_id_fkey(id, display_name, avatar_number)
+            author:profiles_public!discussion_comments_author_id_fkey(id, display_name, avatar_number, profile_avatar_id)
           `)
           .eq("post_id", post.id)
           .eq("is_moderated", true)

@@ -25,6 +25,7 @@ interface PendingPost {
   author: {
     display_name: string;
     avatar_number: number;
+    profile_avatar_id?: string;
   };
 }
 
@@ -38,6 +39,7 @@ interface PendingComment {
   author: {
     display_name: string;
     avatar_number: number;
+    profile_avatar_id?: string;
   };
   post: {
     title: string;
@@ -146,7 +148,8 @@ export default function GuardianApprovals() {
           image_url,
           author:profiles!discussion_posts_author_id_fkey(
             display_name,
-            avatar_number
+            avatar_number,
+            profile_avatar_id
           )
         `)
         .eq("approval_status", "pending_approval")
@@ -167,7 +170,8 @@ export default function GuardianApprovals() {
           post_id,
           author:profiles!discussion_comments_author_id_fkey(
             display_name,
-            avatar_number
+            avatar_number,
+            profile_avatar_id
           ),
           post:discussion_posts!discussion_comments_post_id_fkey(
             title
@@ -429,6 +433,7 @@ export default function GuardianApprovals() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <AvatarDisplay
+                            profileAvatarId={post.author.profile_avatar_id}
                             avatarNumber={post.author.avatar_number}
                             displayName={post.author.display_name}
                             size="md"
@@ -528,6 +533,7 @@ export default function GuardianApprovals() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <AvatarDisplay
+                            profileAvatarId={comment.author.profile_avatar_id}
                             avatarNumber={comment.author.avatar_number}
                             displayName={comment.author.display_name}
                             size="md"

@@ -48,6 +48,7 @@ interface BestieLink {
   bestie: {
     display_name: string;
     avatar_number: number;
+    profile_avatar_id?: string | null;
   };
 }
 
@@ -55,6 +56,7 @@ interface LinkedBestie {
   id: string;
   display_name: string;
   avatar_number: number;
+  profile_avatar_id?: string | null;
 }
 
 interface VendorLink {
@@ -90,6 +92,7 @@ interface Sponsorship {
   bestie: {
     display_name: string;
     avatar_number: number;
+    profile_avatar_id?: string | null;
   };
   featured_bestie?: {
     id: string;
@@ -208,9 +211,10 @@ export default function GuardianLinks() {
           show_vendor_link_on_guardian,
           allow_sponsor_messages,
           require_message_approval,
-          bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
+           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             display_name,
-            avatar_number
+            avatar_number,
+            profile_avatar_id
           )
         `)
         .eq("caregiver_id", userId)
@@ -255,7 +259,8 @@ export default function GuardianLinks() {
           bestie:profiles!caregiver_bestie_links_bestie_id_fkey(
             id,
             display_name,
-            avatar_number
+            avatar_number,
+            profile_avatar_id
           )
         `)
         .eq("caregiver_id", userId);
@@ -393,7 +398,7 @@ export default function GuardianLinks() {
       if (bestieIds.length > 0) {
         const { data, error: profilesError } = await supabase
           .from("profiles")
-          .select("id, display_name, avatar_number")
+          .select("id, display_name, avatar_number, profile_avatar_id")
           .in("id", bestieIds);
 
         if (profilesError) throw profilesError;
@@ -481,7 +486,8 @@ export default function GuardianLinks() {
               // Create a bestie-like object from sponsor_bestie
               bestie = {
                 display_name: sponsorBestie.bestie_name,
-                avatar_number: 1 // Default avatar for sponsor besties without profile
+                avatar_number: 1,
+                profile_avatar_id: null,
               };
 
               // Use sponsor bestie's own image/voice if available
@@ -567,7 +573,8 @@ export default function GuardianLinks() {
             ...sponsorship,
             bestie: {
               display_name: bestie.display_name,
-              avatar_number: bestie.avatar_number
+              avatar_number: bestie.avatar_number,
+              profile_avatar_id: bestie.profile_avatar_id,
             },
             featured_bestie: featuredBestie
           };
@@ -642,7 +649,7 @@ export default function GuardianLinks() {
       // Search for profile by friend code
       const { data: profile, error: profileError } = await supabase
         .from("profiles_public")
-        .select("id, display_name, avatar_number, friend_code, bio")
+        .select("id, display_name, avatar_number, profile_avatar_id, friend_code, bio")
         .eq("friend_code", friendCode)
         .maybeSingle();
 
@@ -1178,6 +1185,7 @@ export default function GuardianLinks() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             <AvatarDisplay
+                              profileAvatarId={link.bestie.profile_avatar_id}
                               avatarNumber={link.bestie.avatar_number}
                               displayName={link.bestie.display_name}
                               size="lg"
@@ -1510,6 +1518,7 @@ export default function GuardianLinks() {
                        <div className="flex items-center justify-between">
                          <div className="flex items-center gap-4 flex-1">
                            <AvatarDisplay
+                             profileAvatarId={sponsorship.bestie.profile_avatar_id}
                              avatarNumber={sponsorship.bestie.avatar_number}
                              displayName={sponsorship.bestie.display_name}
                              size="lg"
@@ -1702,6 +1711,7 @@ export default function GuardianLinks() {
                     <CardHeader>
                       <div className="flex items-center gap-4 flex-1">
                         <AvatarDisplay
+                          profileAvatarId={sponsorship.bestie.profile_avatar_id}
                           avatarNumber={sponsorship.bestie.avatar_number}
                           displayName={sponsorship.bestie.display_name}
                           size="lg"
@@ -1921,6 +1931,7 @@ export default function GuardianLinks() {
                     className="flex items-center gap-3 cursor-pointer flex-1"
                   >
                     <AvatarDisplay
+                      profileAvatarId={bestie.profile_avatar_id}
                       avatarNumber={bestie.avatar_number}
                       displayName={bestie.display_name}
                       size="sm"

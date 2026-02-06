@@ -39,6 +39,7 @@ export interface FeedItemData {
   comments_count: number | null;
   author_name?: string;
   author_avatar?: number;
+  author_profile_avatar_id?: string;
   extra_data?: any;
   repost_id?: string | null;
 }
@@ -590,6 +591,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
           <div className="flex items-center justify-between p-3 pb-2">
             <div className="flex items-center gap-3">
               <AvatarDisplay 
+                profileAvatarId={item.author_profile_avatar_id}
                 avatarNumber={item.author_avatar || null} 
                 displayName={item.author_name || "User"}
                 size="sm"

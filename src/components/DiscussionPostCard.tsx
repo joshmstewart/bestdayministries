@@ -11,6 +11,7 @@ interface Author {
   display_name: string;
   role?: string;
   avatar_number?: number;
+  profile_avatar_id?: string;
 }
 
 interface Event {
@@ -111,6 +112,7 @@ export const DiscussionPostCard = ({ post, onClick }: DiscussionPostCardProps) =
             {/* Header */}
             <div className="flex items-start gap-3 mb-4">
               <AvatarDisplay 
+                profileAvatarId={post.author?.profile_avatar_id}
                 avatarNumber={post.author?.avatar_number || null}
                 displayName={post.author?.display_name || "Unknown"}
                 size="sm"
