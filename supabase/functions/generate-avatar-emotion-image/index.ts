@@ -59,8 +59,8 @@ serve(async (req) => {
 
     const { avatarId, emotionTypeId, prompt, notes } = await req.json();
 
-    if (!avatarId || !emotionTypeId || !prompt) {
-      return new Response(JSON.stringify({ error: "Missing required fields: avatarId, emotionTypeId, prompt" }), {
+    if (!avatarId || !emotionTypeId) {
+      return new Response(JSON.stringify({ error: "Missing required fields: avatarId, emotionTypeId" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -134,7 +134,9 @@ serve(async (req) => {
       imageDescription = `The character's ${appendageDescription}. Show ONLY the hands/appendages and wrists/lower arms, no face or body. The appendages should match the character's style and coloring. Solid ${backgroundColor} background that fills the entire frame edge-to-edge. Simple, clean emoji-style illustration.`;
     } else {
       // For all other emotions, use floating head style
-      imageDescription = `${prompt}. Use a solid ${backgroundColor} background that fills the entire frame edge-to-edge.`;
+      // Build default prompt if none provided
+      const effectivePrompt = prompt || `A floating head portrait of ${avatarData.name} showing a ${emotionName} expression. Close-up of just the face/head, centered in frame. ${avatarData.character_prompt || ''}. Clean, crisp emoji aesthetic. High contrast, bold features`;
+      imageDescription = `${effectivePrompt}. Use a solid ${backgroundColor} background that fills the entire frame edge-to-edge.`;
     }
     
     const enhancedPrompt = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${imageDescription}`;
@@ -158,7 +160,7 @@ serve(async (req) => {
       console.log("Using image-to-image with avatar reference image");
     } else {
       // Fallback to text-only generation if no avatar image
-      messageContent = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${avatarData.character_prompt || avatarData.name}, ${prompt}`;
+      messageContent = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${avatarData.character_prompt || avatarData.name}, ${prompt || `showing a ${emotionName} expression`}`;
       console.log("Fallback: Using text-only generation (no avatar image)");
     }
 
