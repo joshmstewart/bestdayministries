@@ -231,11 +231,29 @@ export function EmotionCropDialog({
         <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
           <Move className="h-3 w-3" />
           <span>Drag to pan</span>
-          {current.is_approved && (
-            <span className="ml-2 text-green-600 flex items-center gap-1">
-              <Check className="h-3 w-3" /> Approved
-            </span>
-          )}
+          <Button
+            variant={current.is_approved ? "default" : "outline"}
+            size="sm"
+            className="ml-2 h-6 text-xs px-2"
+            disabled={saving || regenerating}
+            onClick={async () => {
+              const newVal = !current.is_approved;
+              const { error } = await supabase
+                .from("avatar_emotion_images")
+                .update({ is_approved: newVal })
+                .eq("id", current.id);
+              if (error) {
+                toast.error("Failed to update approval");
+                return;
+              }
+              current.is_approved = newVal;
+              toast.success(newVal ? "Approved" : "Unapproved");
+              onSaved();
+            }}
+          >
+            <Check className="h-3 w-3 mr-1" />
+            {current.is_approved ? "Approved" : "Approve"}
+          </Button>
         </div>
 
         {/* Zoom slider */}
