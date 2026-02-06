@@ -976,7 +976,7 @@ STYLE:
                           alt="Circle preview"
                           className="w-full h-full object-cover"
                           style={{
-                            transform: `scale(${cropScale})`,
+                            transform: `scale(${cropScale}) translate(${existingImage?.crop_x || 0}%, ${existingImage?.crop_y || 0}%)`,
                             transformOrigin: 'center center',
                           }}
                         />
