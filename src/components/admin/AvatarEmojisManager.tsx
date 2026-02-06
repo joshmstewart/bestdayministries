@@ -1154,26 +1154,28 @@ STYLE:
                               }}
                               className="flex flex-col items-center gap-1"
                             >
-                              <div
-                                className={`relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all hover:scale-110 ${
-                                  selectedAvatarId === img.avatar_id && selectedEmotion === img.emotion_type_id
-                                    ? "border-primary ring-2 ring-primary ring-offset-2"
-                                    : img.is_approved 
-                                      ? "border-green-500/50" 
-                                      : "border-border"
-                                }`}
-                              >
-                                <img 
-                                  src={img.image_url || ""} 
-                                  alt={`${avatar.name} - ${emotion?.name}`}
-                                  className="w-full h-full object-cover"
-                                  style={scale > 1 ? {
-                                    transform: `scale(${scale})`,
-                                    transformOrigin: 'center center',
-                                  } : undefined}
-                                />
+                              <div className="relative">
+                                <div
+                                  className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all hover:scale-110 ${
+                                    selectedAvatarId === img.avatar_id && selectedEmotion === img.emotion_type_id
+                                      ? "border-primary ring-2 ring-primary ring-offset-2"
+                                      : img.is_approved 
+                                        ? "border-green-500/50" 
+                                        : "border-border"
+                                  }`}
+                                >
+                                  <img 
+                                    src={img.image_url || ""} 
+                                    alt={`${avatar.name} - ${emotion?.name}`}
+                                    className="w-full h-full object-cover"
+                                    style={scale > 1 ? {
+                                      transform: `scale(${scale})`,
+                                      transformOrigin: 'center center',
+                                    } : undefined}
+                                  />
+                                </div>
                                 {img.is_approved && (
-                                  <div className="absolute top-0 right-0 bg-green-500 rounded-full p-0.5">
+                                  <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5 z-10 shadow-sm">
                                     <Check className="h-2.5 w-2.5 text-white" />
                                   </div>
                                 )}
