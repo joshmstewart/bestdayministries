@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -6,6 +6,7 @@ export const usePendingVendorsCount = () => {
   const { isAdmin, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   const fetchPendingVendorsCount = useCallback(async () => {
     if (!isAdmin) {
@@ -41,7 +42,7 @@ export const usePendingVendorsCount = () => {
     fetchPendingVendorsCount();
 
     const channel = supabase
-      .channel("vendors-changes")
+      .channel(`vendors-changes-${instanceId.current}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "vendors" },

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -6,6 +6,7 @@ export const useMessageModerationCount = () => {
   const { isAdmin, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   const fetchCount = useCallback(async () => {
     if (!isAdmin) {
@@ -41,7 +42,7 @@ export const useMessageModerationCount = () => {
     fetchCount();
 
     const channel = supabase
-      .channel("message-moderation-count")
+      .channel(`message-moderation-count-${instanceId.current}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sponsor_messages" },
