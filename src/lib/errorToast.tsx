@@ -65,11 +65,7 @@ export function showErrorToastWithCopy(context: string, error: unknown) {
         </pre>
         <button
           type="button"
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          onClick={handleCopy}
+          onPointerDown={handleCopy}
           className="text-xs underline hover:no-underline text-foreground/80 hover:text-foreground cursor-pointer select-none"
         >
           Copy error details
@@ -130,11 +126,7 @@ export function showErrorToast(message: string) {
         </pre>
         <button
           type="button"
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          onClick={handleCopy}
+          onPointerDown={handleCopy}
           className="text-xs underline hover:no-underline text-foreground/80 hover:text-foreground cursor-pointer select-none"
         >
           Copy error details
