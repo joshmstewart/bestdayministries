@@ -25,7 +25,6 @@ export const AvatarDisplay = ({
   const avatarData = useProfileAvatarData(profileAvatarId);
 
   if (avatarData) {
-    const scale = avatarData.cropScale ?? 1;
     return (
       <div
         className={cn(
@@ -33,13 +32,18 @@ export const AvatarDisplay = ({
           "rounded-full overflow-hidden border-2 border-border bg-muted shrink-0",
           className
         )}
-        style={{
-          backgroundImage: `url(${avatarData.url})`,
-          backgroundSize: `${scale * 100}%`,
-          backgroundPosition: `${avatarData.cropX}% ${avatarData.cropY}%`,
-        }}
         title={displayName}
-      />
+      >
+        <img
+          src={avatarData.url}
+          alt={displayName}
+          className="w-full h-full object-cover"
+          style={{
+            transform: `scale(${avatarData.cropScale ?? 1})`,
+            transformOrigin: "center center",
+          }}
+        />
+      </div>
     );
   }
 

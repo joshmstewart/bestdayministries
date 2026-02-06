@@ -3,9 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface AvatarCropSettings {
   url: string;
-  cropX: number;   // 0-100 percentage
-  cropY: number;   // 0-100 percentage
-  cropScale: number; // 1-3 zoom
+  cropScale: number; // 1-2 zoom (matches emotion image pattern)
 }
 
 // Module-level cache so all components share fetched avatar data
@@ -25,7 +23,7 @@ async function fetchAvatarData(avatarId: string): Promise<AvatarCropSettings | n
     try {
       const { data } = await supabase
         .from("fitness_avatars")
-        .select("preview_image_url, profile_crop_x, profile_crop_y, profile_crop_scale")
+        .select("preview_image_url, profile_crop_scale")
         .eq("id", avatarId)
         .maybeSingle();
       if (!data?.preview_image_url) {
@@ -34,8 +32,6 @@ async function fetchAvatarData(avatarId: string): Promise<AvatarCropSettings | n
       }
       const settings: AvatarCropSettings = {
         url: data.preview_image_url,
-        cropX: data.profile_crop_x ?? 50,
-        cropY: data.profile_crop_y ?? 50,
         cropScale: data.profile_crop_scale ?? 1,
       };
       avatarCache.set(avatarId, settings);
@@ -94,8 +90,6 @@ export function primeAvatarUrlCache(entries: Array<{ id: string; preview_image_u
     if (entry.preview_image_url) {
       avatarCache.set(entry.id, {
         url: entry.preview_image_url,
-        cropX: 50,
-        cropY: 50,
         cropScale: 1,
       });
     }

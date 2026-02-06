@@ -6,23 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, RotateCcw, Save } from "lucide-react";
+import { Loader2, ZoomIn } from "lucide-react";
 import { invalidateAvatarCache } from "@/hooks/useProfileAvatarUrl";
 
 interface AvatarCropSettings {
   id: string;
   name: string;
   preview_image_url: string | null;
-  profile_crop_x: number;
-  profile_crop_y: number;
   profile_crop_scale: number;
 }
 
 export const AvatarCropManager = () => {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [cropX, setCropX] = useState(50);
-  const [cropY, setCropY] = useState(50);
   const [cropScale, setCropScale] = useState(1);
 
   const { data: avatars, isLoading } = useQuery({
@@ -30,7 +26,7 @@ export const AvatarCropManager = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fitness_avatars")
-        .select("id, name, preview_image_url, profile_crop_x, profile_crop_y, profile_crop_scale")
+        .select("id, name, preview_image_url, profile_crop_scale")
         .eq("is_active", true)
         .order("display_order");
       if (error) throw error;
@@ -43,11 +39,7 @@ export const AvatarCropManager = () => {
       if (!selectedId) return;
       const { error } = await supabase
         .from("fitness_avatars")
-        .update({
-          profile_crop_x: cropX,
-          profile_crop_y: cropY,
-          profile_crop_scale: cropScale,
-        })
+        .update({ profile_crop_scale: cropScale })
         .eq("id", selectedId);
       if (error) throw error;
     },
@@ -61,15 +53,7 @@ export const AvatarCropManager = () => {
 
   const selectAvatar = (avatar: AvatarCropSettings) => {
     setSelectedId(avatar.id);
-    setCropX(avatar.profile_crop_x);
-    setCropY(avatar.profile_crop_y);
     setCropScale(avatar.profile_crop_scale);
-  };
-
-  const handleReset = () => {
-    setCropX(50);
-    setCropY(50);
-    setCropScale(1);
   };
 
   const selected = avatars?.find((a) => a.id === selectedId);
@@ -119,91 +103,83 @@ export const AvatarCropManager = () => {
         ))}
       </div>
 
-      {/* Crop editor */}
+      {/* Crop editor — matches emotion image crop pattern */}
       {selected && selected.preview_image_url && (
         <Card>
-          <CardContent className="pt-6 space-y-6">
+          <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-8 items-start">
-              {/* Live preview */}
-              <div className="flex flex-col items-center gap-3">
+              <div className="space-y-4">
                 <p className="text-sm font-medium">{selected.name}</p>
-                {/* Large circle preview */}
-                <div
-                  className="w-32 h-32 rounded-full overflow-hidden border-4 border-border bg-muted"
-                  style={{
-                    backgroundImage: `url(${selected.preview_image_url})`,
-                    backgroundSize: `${cropScale * 100}%`,
-                    backgroundPosition: `${cropX}% ${cropY}%`,
-                  }}
-                />
-                {/* Small circle preview */}
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full overflow-hidden border-2 border-border bg-muted"
-                    style={{
-                      backgroundImage: `url(${selected.preview_image_url})`,
-                      backgroundSize: `${cropScale * 100}%`,
-                      backgroundPosition: `${cropX}% ${cropY}%`,
-                    }}
-                  />
-                  <div
-                    className="w-16 h-16 rounded-full overflow-hidden border-2 border-border bg-muted"
-                    style={{
-                      backgroundImage: `url(${selected.preview_image_url})`,
-                      backgroundSize: `${cropScale * 100}%`,
-                      backgroundPosition: `${cropX}% ${cropY}%`,
-                    }}
-                  />
+
+                {/* Circle preview */}
+                <div className="flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary/50 shadow-md">
+                    <img
+                      src={selected.preview_image_url}
+                      alt="Circle preview"
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `scale(${cropScale})`,
+                        transformOrigin: "center center",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Actual size previews */}
+                <div className="flex items-center gap-3 justify-center">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border">
+                    <img
+                      src={selected.preview_image_url}
+                      alt="Small preview"
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `scale(${cropScale})`,
+                        transformOrigin: "center center",
+                      }}
+                    />
+                  </div>
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border">
+                    <img
+                      src={selected.preview_image_url}
+                      alt="Medium preview"
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `scale(${cropScale})`,
+                        transformOrigin: "center center",
+                      }}
+                    />
+                  </div>
                   <span className="text-xs text-muted-foreground">Actual sizes</span>
                 </div>
               </div>
 
-              {/* Sliders */}
-              <div className="flex-1 space-y-5 w-full">
-                <div className="space-y-2">
-                  <Label>Horizontal Position: {cropX}%</Label>
-                  <Slider
-                    value={[cropX]}
-                    onValueChange={([v]) => setCropX(v)}
-                    min={0}
-                    max={100}
-                    step={1}
-                  />
+              {/* Zoom slider */}
+              <div className="flex-1 space-y-3 w-full">
+                <div className="flex items-center gap-2">
+                  <ZoomIn className="h-4 w-4 text-muted-foreground" />
+                  <Label>Zoom: {cropScale.toFixed(1)}x</Label>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Vertical Position: {cropY}%</Label>
-                  <Slider
-                    value={[cropY]}
-                    onValueChange={([v]) => setCropY(v)}
-                    min={0}
-                    max={100}
-                    step={1}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Zoom: {cropScale.toFixed(1)}×</Label>
-                  <Slider
-                    value={[cropScale]}
-                    onValueChange={([v]) => setCropScale(v)}
-                    min={1}
-                    max={3}
-                    step={0.1}
-                  />
+                <Slider
+                  value={[cropScale]}
+                  onValueChange={([v]) => setCropScale(v)}
+                  min={1}
+                  max={2}
+                  step={0.05}
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>1x (full)</span>
+                  <span>2x (zoomed)</span>
                 </div>
 
                 <div className="flex gap-2 pt-2">
                   <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
                     {saveMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4 mr-2" />
-                    )}
-                    Save
+                    ) : null}
+                    Save Zoom
                   </Button>
-                  <Button variant="outline" onClick={handleReset}>
-                    <RotateCcw className="h-4 w-4 mr-2" />
+                  <Button variant="outline" onClick={() => setCropScale(1)}>
                     Reset
                   </Button>
                 </div>
