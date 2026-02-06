@@ -49,6 +49,7 @@ export function EmotionCropDialog({
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const hasChanges = useRef(false);
 
   // Drag state
   const isDragging = useRef(false);
@@ -70,8 +71,18 @@ export function EmotionCropDialog({
 
   // Reset index when dialog opens
   useEffect(() => {
-    if (open) setCurrentIndex(initialIndex);
+    if (open) {
+      setCurrentIndex(initialIndex);
+      hasChanges.current = false;
+    }
   }, [open, initialIndex]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && hasChanges.current) {
+      onSaved();
+    }
+    onOpenChange(newOpen);
+  };
 
   const handleSave = async () => {
     if (!current) return;
@@ -87,7 +98,7 @@ export function EmotionCropDialog({
       current.crop_x = panX;
       current.crop_y = panY;
       setDirty(false);
-      onSaved();
+      hasChanges.current = true;
     } catch {
       toast.error("Failed to save");
     } finally {
@@ -116,7 +127,7 @@ export function EmotionCropDialog({
         setCropScale(avgScale);
         setDirty(false);
         toast.success(`Regenerated ${emotion?.name || "emotion"} (zoom: ${avgScale}x)`);
-        onSaved();
+        hasChanges.current = true;
       } else {
         throw new Error("No image URL returned");
       }
@@ -180,7 +191,7 @@ export function EmotionCropDialog({
   if (!current) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md !flex !flex-col gap-4">
         <DialogTitle className="text-center">
           {avatarName} — {emotion?.emoji} {emotion?.name}
@@ -252,7 +263,7 @@ export function EmotionCropDialog({
               }
               current.is_approved = newVal;
               toast.success(newVal ? "Approved" : "Unapproved");
-              onSaved();
+              hasChanges.current = true;
             }}
           >
             <Check className="h-3 w-3 mr-1" />
