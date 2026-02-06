@@ -335,3 +335,7 @@ verify_jwt = true
 
 [functions.health-check]
 verify_jwt = false
+
+[functions.run-health-check]
+verify_jwt = false
+schedule = "0 */4 * * *"

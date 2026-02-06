@@ -112,6 +112,7 @@ import { AiUsageManager } from "@/components/admin/AiUsageManager";
 import { CoffeeVendorManager } from "@/components/admin/CoffeeVendorManager";
 import { AvatarEmojisManager } from "@/components/admin/AvatarEmojisManager";
 import { SystemHealthManager } from "@/components/admin/SystemHealthManager";
+import { useHealthAlertBadge } from "@/hooks/useHealthAlertBadge";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -130,6 +131,7 @@ const Admin = () => {
   const { count: messageModerationCount } = useMessageModerationCount();
   const { count: messagesCount } = useMessagesCount();
   const { count: unmatchedItemsCount } = useUnmatchedItemsCount();
+  const { deadCount: healthDeadCount } = useHealthAlertBadge();
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
@@ -341,9 +343,14 @@ const Admin = () => {
               Help
             </TabsTrigger>
             <TabsTrigger value="issues" className="text-sm px-2.5 py-1.5">Issues</TabsTrigger>
-            <TabsTrigger value="system-health" className="gap-1.5 text-sm px-2.5 py-1.5">
+            <TabsTrigger value="system-health" className="gap-1.5 text-sm px-2.5 py-1.5 relative">
               <Activity className="w-3 h-3" />
               Health
+              {healthDeadCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 min-w-5 px-1 text-xs">
+                  {healthDeadCount}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="settings" className="text-sm px-2.5 py-1.5">Settings</TabsTrigger>
           </TabsList>
