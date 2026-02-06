@@ -195,7 +195,6 @@ export const PrayerApprovals = ({ currentUserId, onUpdate }: PrayerApprovalsProp
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <AvatarDisplay
-                  avatarNumber={prayer.author?.avatar_number || 1}
                   displayName={prayer.author?.display_name || "User"}
                   size="md"
                 />

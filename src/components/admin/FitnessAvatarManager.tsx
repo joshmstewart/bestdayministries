@@ -960,8 +960,8 @@ export function FitnessAvatarManager() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Fitness Avatars</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Mix of animal, human, and superhero characters for workouts</p>
+            <CardTitle>Profile Avatars</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Mix of animal, human, and superhero characters for profiles &amp; workouts</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>

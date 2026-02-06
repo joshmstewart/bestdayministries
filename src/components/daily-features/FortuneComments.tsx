@@ -301,7 +301,6 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
               className="flex gap-2 p-2 rounded-lg bg-muted/50"
             >
               <AvatarDisplay
-                avatarNumber={comment.profile?.avatar_number}
                 displayName={comment.profile?.display_name || "User"}
                 size="sm"
               />

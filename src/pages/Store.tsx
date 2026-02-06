@@ -325,8 +325,8 @@ const Store = () => {
       // Convert fitness avatars to store item format
       const fitnessAvatarItems: StoreItem[] = (fitnessAvatarsResult.data || []).map((avatar, index) => ({
         id: `fitness_avatar_${avatar.id}`,
-        name: `Workout Avatar: ${avatar.name}`,
-        description: avatar.description || `Unlock the ${avatar.name} avatar for your workout journey`,
+        name: `Profile Avatar: ${avatar.name}`,
+        description: avatar.description || `Unlock the ${avatar.name} avatar for your profile`,
         price: avatar.price_coins,
         category: "fitness",
         image_url: avatar.preview_image_url,
@@ -490,7 +490,7 @@ const Store = () => {
                   <span className="text-2xl">🛒</span> Spend Coins
                 </h3>
                 <p className="text-muted-foreground text-sm">
-                  Unlock game themes, coloring books, bonus sticker packs, workout avatars, and more!
+                  Unlock game themes, coloring books, bonus sticker packs, profile avatars, and more!
                 </p>
               </div>
             </div>

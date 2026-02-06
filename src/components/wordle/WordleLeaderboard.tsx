@@ -102,7 +102,6 @@ export function WordleLeaderboard() {
         {getRankIcon(index + 1)}
       </div>
       <AvatarDisplay
-        avatarNumber={entry.avatar_number}
         displayName={entry.display_name}
         size="sm"
       />

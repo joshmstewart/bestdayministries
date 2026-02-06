@@ -91,7 +91,7 @@ export function SponsorshipCard({
                 className="w-16 h-16 rounded-full object-cover"
               />
             ) : (
-              <AvatarDisplay avatarNumber={sponsorship.bestie.avatar_number} displayName={sponsorship.bestie.display_name} size="lg" />
+              <AvatarDisplay displayName={sponsorship.bestie.display_name} size="lg" />
             )}
             <div>
               <div className="flex items-center gap-2">

@@ -516,8 +516,8 @@ export const UnifiedHeader = () => {
                       className="gap-2 hover:bg-muted"
                     >
                       <AvatarDisplay 
-                        avatarNumber={profile?.avatar_number} 
-                        displayName={profile?.display_name}
+                        profileAvatarId={profile?.profile_avatar_id}
+                        displayName={profile?.display_name || ""}
                         size="md"
                       />
                       <span className="hidden sm:inline font-semibold">{profile?.display_name || 'Profile'}</span>
