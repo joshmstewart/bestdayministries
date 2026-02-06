@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, Lock, Coins, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, Check, Lock, Sparkles, ChevronDown, ChevronRight } from "lucide-react";
+import { CoinIcon } from "@/components/CoinIcon";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCoins } from "@/hooks/useCoins";
@@ -377,7 +378,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
 
                         {!isOwned && (
                           <Badge className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5 shadow-md bg-foreground text-background border-foreground">
-                            <Coins className="h-3 w-3" />
+                            <CoinIcon size={12} />
                             {avatar.price_coins}
                           </Badge>
                         )}
@@ -410,7 +411,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
               <div className="space-y-3">
                 <p>{purchaseAvatar?.description}</p>
                 <div className="flex items-center justify-center gap-2 py-2">
-                  <Coins className="h-5 w-5 text-yellow-500" />
+                  <CoinIcon size={20} />
                   <span className="font-bold text-lg">{purchaseAvatar?.price_coins} coins</span>
                 </div>
                 <p className="text-sm">
@@ -431,7 +432,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
               {purchaseMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <Coins className="h-4 w-4 mr-2" />
+                <CoinIcon size={16} className="mr-2" />
               )}
               Unlock
             </AlertDialogAction>
