@@ -18,7 +18,7 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
   // Marvel Characters
   {
     patterns: [/spider[-\s]?man/i, /spiderman/i, /peter parker/i],
-    visualDescription: "a superhero in a red and blue full-body suit with black web patterns, white eye lenses on the mask, and a small spider emblem on the chest",
+    visualDescription: "a superhero in a red and blue full-body suit with black web patterns covering the entire body including a full-face mask that completely covers the head and face with large white angular eye lenses, no visible hair or skin, and a small black spider emblem on the chest",
     characterType: 'superhero'
   },
   {
