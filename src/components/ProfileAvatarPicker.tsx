@@ -350,46 +350,49 @@ function AvatarButton({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "relative aspect-square rounded-lg transition-all border-2 overflow-hidden flex items-center justify-center",
-        isSelected
-          ? "border-primary scale-105 shadow-lg ring-2 ring-primary ring-offset-2"
-          : isAvailable
-          ? "border-border hover:scale-105 hover:border-primary/50"
-          : "border-dashed border-muted-foreground/30 hover:border-primary/50 opacity-70",
-        avatar.preview_image_url ? "bg-white" : "bg-muted"
-      )}
-      title={isAvailable ? avatar.name : `${avatar.name} — ${avatar.price_coins} coins`}
-    >
-      {avatar.preview_image_url ? (
-        <img
-          src={avatar.preview_image_url}
-          alt={avatar.name}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <Sparkles className="h-5 w-5 text-muted-foreground" />
-      )}
-      {isSelected && (
-        <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg">
-          ✓
-        </div>
-      )}
-      {/* Lock + price badge for unowned paid avatars */}
-      {showOwnership && !isAvailable && (
-        <>
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onSelect}
+        className={cn(
+          "relative aspect-square w-full rounded-lg transition-all border-2 overflow-hidden flex items-center justify-center",
+          isSelected
+            ? "border-primary scale-105 shadow-lg ring-2 ring-primary ring-offset-2"
+            : isAvailable
+            ? "border-border hover:scale-105 hover:border-primary/50"
+            : "border-dashed border-muted-foreground/30 hover:border-primary/50 opacity-70",
+          avatar.preview_image_url ? "bg-white" : "bg-muted"
+        )}
+        title={isAvailable ? avatar.name : `${avatar.name} — ${avatar.price_coins} coins`}
+      >
+        {avatar.preview_image_url ? (
+          <img
+            src={avatar.preview_image_url}
+            alt={avatar.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Sparkles className="h-5 w-5 text-muted-foreground" />
+        )}
+        {isSelected && (
+          <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-lg">
+            ✓
+          </div>
+        )}
+        {/* Lock overlay for unowned paid avatars */}
+        {showOwnership && !isAvailable && (
           <div className="absolute inset-0 bg-background/30 flex items-center justify-center">
             <Lock className="h-4 w-4 text-muted-foreground" />
           </div>
-          <Badge variant="secondary" className="absolute -top-1.5 -right-1.5 px-1 py-0 text-[9px] gap-0.5 leading-tight">
-            <Coins className="h-2.5 w-2.5" />
-            {avatar.price_coins}
-          </Badge>
-        </>
+        )}
+      </button>
+      {/* Price badge outside the overflow-hidden button */}
+      {showOwnership && !isAvailable && (
+        <Badge variant="secondary" className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5 z-10 shadow-sm">
+          <Coins className="h-3 w-3 text-yellow-500" />
+          {avatar.price_coins}
+        </Badge>
       )}
-    </button>
+    </div>
   );
 }
