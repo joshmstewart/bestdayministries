@@ -79,27 +79,33 @@ export function SystemHealthManager() {
 
   return (
     <div className="space-y-4">
-      {/* Warning banner for dead critical functions */}
-      {deadCriticalCount > 0 && (
-        <Card className="border-red-400 bg-red-50 dark:bg-red-950/30">
-          <CardContent className="flex items-center gap-3 py-4">
-            <AlertTriangle className="h-6 w-6 text-red-500 shrink-0" />
-            <div className="flex-1">
-              <p className="font-semibold text-red-700 dark:text-red-400">
-                {deadCriticalCount} critical function{deadCriticalCount > 1 ? 's are' : ' is'} DOWN
-              </p>
-              <p className="text-sm text-red-600 dark:text-red-300">
-                {criticalResults.filter(r => r.status === 'dead').map(r => r.name).join(', ')}
+      {/* Warning banner for dead functions */}
+      {deadCount > 0 && (
+        <Card className={`${deadCriticalCount > 0 ? 'border-red-400 bg-red-50 dark:bg-red-950/30' : 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30'}`}>
+          <CardContent className="py-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className={`h-6 w-6 shrink-0 ${deadCriticalCount > 0 ? 'text-red-500' : 'text-yellow-500'}`} />
+              <div className="flex-1">
+                <p className={`font-semibold ${deadCriticalCount > 0 ? 'text-red-700 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                  {deadCount} function{deadCount > 1 ? 's are' : ' is'} DOWN
+                  {deadCriticalCount > 0 && ` (${deadCriticalCount} critical)`}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {report?.results.filter(r => r.status === 'dead').map(r => r.name).join(', ')}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-md bg-card border p-3 text-sm space-y-1.5">
+              <p className="font-medium">🔧 How to fix:</p>
+              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                <li>Copy the dead function name(s) above</li>
+                <li>Ask Lovable to <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">"redeploy [function-name]"</span></li>
+                <li>Re-run the health check to verify</li>
+              </ol>
+              <p className="text-xs text-muted-foreground mt-2">
+                Dead functions usually mean a deployment failed silently. Redeploying fixes it.
               </p>
             </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => runCheck('all')}
-              disabled={loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Run Full Check'}
-            </Button>
           </CardContent>
         </Card>
       )}
