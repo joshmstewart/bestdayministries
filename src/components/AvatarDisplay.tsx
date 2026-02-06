@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useProfileAvatarUrl } from "@/hooks/useProfileAvatarUrl";
+import { useProfileAvatarData } from "@/hooks/useProfileAvatarUrl";
 
 interface AvatarDisplayProps {
   /** Fitness avatar UUID from profiles.profile_avatar_id */
@@ -22,9 +22,10 @@ export const AvatarDisplay = ({
   size = "md",
   className,
 }: AvatarDisplayProps) => {
-  const avatarUrl = useProfileAvatarUrl(profileAvatarId);
+  const avatarData = useProfileAvatarData(profileAvatarId);
 
-  if (avatarUrl) {
+  if (avatarData) {
+    const scale = avatarData.cropScale ?? 1;
     return (
       <div
         className={cn(
@@ -33,9 +34,9 @@ export const AvatarDisplay = ({
           className
         )}
         style={{
-          backgroundImage: `url(${avatarUrl})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundImage: `url(${avatarData.url})`,
+          backgroundSize: `${scale * 100}%`,
+          backgroundPosition: `${avatarData.cropX}% ${avatarData.cropY}%`,
         }}
         title={displayName}
       />
