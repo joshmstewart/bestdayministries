@@ -377,10 +377,15 @@ const Community = () => {
                 {canAccessFeed() && (
                   <TabsTrigger 
                     value="feed" 
-                    className="flex items-center gap-1.5 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap"
+                    className="relative flex items-center gap-1.5 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap overflow-visible"
                   >
                     <Rss className="h-4 w-4" />
                     <span>Feed</span>
+                    {showBadge && unseenCount > 0 && activeTab !== 'feed' && (
+                      <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 min-w-5 flex items-center justify-center p-0 text-[10px]">
+                        {unseenCount > 9 ? '9+' : unseenCount}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 )}
               </TabsList>
