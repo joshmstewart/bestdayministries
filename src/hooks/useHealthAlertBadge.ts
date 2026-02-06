@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -10,6 +10,7 @@ export function useHealthAlertBadge() {
   const { isAdmin, loading: authLoading } = useAuth();
   const [deadCount, setDeadCount] = useState(0);
   const [criticalCount, setCriticalCount] = useState(0);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   const fetchLatest = useCallback(async () => {
     if (!isAdmin) {
@@ -35,7 +36,7 @@ export function useHealthAlertBadge() {
     fetchLatest();
 
     const channel = supabase
-      .channel('health-check-badge')
+      .channel(`health-check-badge-${instanceId.current}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'health_check_results' },
