@@ -658,6 +658,7 @@ const ProfileSettings = () => {
               <ProfileAvatarPicker 
                 selectedAvatarId={selectedProfileAvatarId}
                 onSelectAvatar={setSelectedProfileAvatarId}
+                userId={user?.id}
               />
 
               {/* Email (Read-only) */}
