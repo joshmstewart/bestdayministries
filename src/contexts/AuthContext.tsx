@@ -21,6 +21,7 @@ interface Profile {
   id: string;
   display_name: string | null;
   avatar_number: number | null;
+  profile_avatar_id: string | null;
   coins: number;
   role?: UserRole;
 }
@@ -177,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle(),
         supabasePersistent
           .from("profiles")
-          .select("id, display_name, avatar_number, coins")
+          .select("id, display_name, avatar_number, profile_avatar_id, coins")
           .eq("id", currentUser.id)
           .maybeSingle()
       ]);
@@ -192,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: profileData.id,
           display_name: profileData.display_name,
           avatar_number: profileData.avatar_number,
+          profile_avatar_id: profileData.profile_avatar_id,
           coins: profileData.coins,
           role: roleResult.data?.role as UserRole
         });
