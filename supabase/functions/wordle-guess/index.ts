@@ -191,6 +191,25 @@ serve(async (req) => {
       );
     }
 
+    // Validate that the guess is a real English word using a dictionary API
+    // Skip validation if the guess matches the answer (always valid)
+    if (normalizedGuess !== dailyWord.word) {
+      try {
+        const dictResponse = await fetch(
+          `https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedGuess.toLowerCase()}`
+        );
+        if (!dictResponse.ok) {
+          return new Response(
+            JSON.stringify({ error: "Not a valid word. Try again!" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      } catch (dictError) {
+        // If the dictionary API is unavailable, allow the guess to proceed
+        console.warn("Dictionary API check failed, allowing guess:", dictError);
+      }
+    }
+
     // Calculate max guesses based on extra rounds used
     // Base: 6 guesses, +5 per extra round (max 2 extra rounds = 16 total)
     const extraRoundsUsed = attempt.extra_rounds_used || 0;
