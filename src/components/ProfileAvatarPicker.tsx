@@ -388,8 +388,8 @@ function AvatarButton({
       </button>
       {/* Price badge outside the overflow-hidden button */}
       {showOwnership && !isAvailable && (
-        <Badge variant="secondary" className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5 z-10 shadow-sm">
-          <Coins className="h-3 w-3 text-yellow-500" />
+        <Badge className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5 z-10 shadow-md bg-foreground text-background border-foreground">
+          <Coins className="h-3 w-3" />
           {avatar.price_coins}
         </Badge>
       )}

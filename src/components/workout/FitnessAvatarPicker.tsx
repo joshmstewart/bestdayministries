@@ -376,7 +376,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
                         )}
 
                         {!isOwned && (
-                          <Badge variant="secondary" className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5">
+                          <Badge className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5 shadow-md bg-foreground text-background border-foreground">
                             <Coins className="h-3 w-3" />
                             {avatar.price_coins}
                           </Badge>
