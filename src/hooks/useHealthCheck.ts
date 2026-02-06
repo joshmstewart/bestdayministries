@@ -57,17 +57,21 @@ export function useHealthCheck() {
 
       // Persist to DB so badge/alerts update via realtime
       const deadCritical = enriched.filter(r => r.tier === 'critical' && r.status === 'dead').length;
-      const deadNames = enriched.filter(r => r.status === 'dead').map(r => r.name);
-      await supabase.from('health_check_results').insert({
+      const deadFunctions = enriched.filter(r => r.status === 'dead').map(r => ({
+        name: r.name, error: r.error, httpStatus: r.httpStatus
+      }));
+      const { error: insertErr } = await supabase.from('health_check_results').insert({
         scope,
         total_checked: enriched.length,
         alive_count: data.summary.alive,
         dead_count: data.summary.dead,
         slow_count: data.summary.slow,
         dead_critical_count: deadCritical,
-        dead_function_names: deadNames,
+        dead_functions: deadFunctions as unknown as Record<string, unknown>[],
+        all_results: enriched as unknown as Record<string, unknown>[],
         alert_sent: false,
-      });
+      } as any);
+      if (insertErr) console.error('Failed to persist health check:', insertErr);
 
       return newReport;
     } catch (err) {
