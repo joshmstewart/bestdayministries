@@ -66,11 +66,11 @@ export function SystemHealthManager() {
   const { report, loading, error, runCheck, deadCriticalCount, deadCount } = useHealthCheck();
   const [autoChecked, setAutoChecked] = useState(false);
 
-  // Auto-check critical functions on mount
+  // Auto-check all functions on mount
   useEffect(() => {
     if (!autoChecked) {
       setAutoChecked(true);
-      runCheck('critical');
+      runCheck('all');
     }
   }, [autoChecked, runCheck]);
 
