@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, ZoomIn, Move, Loader2, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, Move, Loader2, Check, X, RefreshCw } from "lucide-react";
 
 interface EmotionImage {
   id: string;
@@ -44,6 +44,7 @@ export function EmotionCropDialog({
   const [cropScale, setCropScale] = useState(1);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   // Drag state
   const isDragging = useRef(false);
@@ -76,13 +77,46 @@ export function EmotionCropDialog({
         .eq("id", current.id);
       if (error) throw error;
       toast.success(`Saved ${emotion?.name || "emotion"} crop`);
-      current.crop_scale = cropScale; // update local ref
+      current.crop_scale = cropScale;
       setDirty(false);
       onSaved();
     } catch {
       toast.error("Failed to save");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!current) return;
+    setRegenerating(true);
+    try {
+      const response = await supabase.functions.invoke("generate-avatar-emotion-image", {
+        body: {
+          avatarId: current.avatar_id,
+          emotionTypeId: current.emotion_type_id,
+        }
+      });
+
+      if (response.error) throw new Error(response.error.message || "Generation failed");
+
+      if (response.data?.imageUrl) {
+        // The edge function already applies average zoom - refresh local data
+        const avgScale = response.data.cropScale || cropScale;
+        current.image_url = response.data.imageUrl;
+        current.crop_scale = avgScale;
+        setCropScale(avgScale);
+        setDirty(false);
+        toast.success(`Regenerated ${emotion?.name || "emotion"} (zoom: ${avgScale}x)`);
+        onSaved();
+      } else {
+        throw new Error("No image URL returned");
+      }
+    } catch (error: any) {
+      console.error("Regeneration error:", error);
+      toast.error(error.message || "Regeneration failed");
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -110,7 +144,7 @@ export function EmotionCropDialog({
     return () => window.removeEventListener("keydown", handler);
   }, [open, currentIndex, dirty, cropScale]);
 
-  // Drag to adjust scale (simplified: horizontal drag = zoom)
+  // Drag to adjust scale
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY, startScale: cropScale };
@@ -120,7 +154,6 @@ export function EmotionCropDialog({
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current || !previewRef.current) return;
     const rect = previewRef.current.getBoundingClientRect();
-    // Vertical drag adjusts zoom
     const dy = dragStart.current.y - e.clientY;
     const sensitivity = 2 / rect.height;
     const newScale = Math.max(1, Math.min(2, dragStart.current.startScale + dy * sensitivity));
@@ -151,7 +184,7 @@ export function EmotionCropDialog({
             variant="outline"
             size="icon"
             onClick={() => saveAndNavigate(-1)}
-            disabled={currentIndex === 0 || saving}
+            disabled={currentIndex === 0 || saving || regenerating}
             className="shrink-0"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -159,10 +192,10 @@ export function EmotionCropDialog({
 
           <div
             ref={previewRef}
-            className="w-48 h-48 rounded-full overflow-hidden border-4 border-primary/30 shadow-lg cursor-grab active:cursor-grabbing select-none touch-none"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
+            className={`w-48 h-48 rounded-full overflow-hidden border-4 border-primary/30 shadow-lg select-none touch-none ${regenerating ? 'opacity-50 animate-pulse' : 'cursor-grab active:cursor-grabbing'}`}
+            onPointerDown={regenerating ? undefined : handlePointerDown}
+            onPointerMove={regenerating ? undefined : handlePointerMove}
+            onPointerUp={regenerating ? undefined : handlePointerUp}
           >
             <img
               src={current.image_url || ""}
@@ -180,7 +213,7 @@ export function EmotionCropDialog({
             variant="outline"
             size="icon"
             onClick={() => saveAndNavigate(1)}
-            disabled={currentIndex === images.length - 1 || saving}
+            disabled={currentIndex === images.length - 1 || saving || regenerating}
             className="shrink-0"
           >
             <ChevronRight className="h-5 w-5" />
@@ -242,7 +275,7 @@ export function EmotionCropDialog({
         <div className="flex justify-center gap-2">
           <Button
             onClick={handleSave}
-            disabled={saving || !dirty}
+            disabled={saving || !dirty || regenerating}
             size="sm"
           >
             {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
@@ -252,8 +285,18 @@ export function EmotionCropDialog({
             variant="outline"
             size="sm"
             onClick={() => { setCropScale(1); setDirty(true); }}
+            disabled={regenerating}
           >
             Reset to 1x
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRegenerate}
+            disabled={regenerating || saving}
+          >
+            {regenerating ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+            Regenerate
           </Button>
         </div>
       </DialogContent>
