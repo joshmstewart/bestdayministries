@@ -9,21 +9,24 @@ import { useAuth } from '@/contexts/AuthContext';
 export function useHealthAlertBadge() {
   const { isAdmin, loading: authLoading } = useAuth();
   const [deadCount, setDeadCount] = useState(0);
+  const [criticalCount, setCriticalCount] = useState(0);
 
   const fetchLatest = useCallback(async () => {
     if (!isAdmin) {
       setDeadCount(0);
+      setCriticalCount(0);
       return;
     }
 
     const { data } = await supabase
       .from('health_check_results')
-      .select('dead_critical_count')
+      .select('dead_count, dead_critical_count')
       .order('checked_at', { ascending: false })
       .limit(1)
       .single();
 
-    setDeadCount(data?.dead_critical_count ?? 0);
+    setDeadCount(data?.dead_count ?? 0);
+    setCriticalCount(data?.dead_critical_count ?? 0);
   }, [isAdmin]);
 
   useEffect(() => {
@@ -45,5 +48,5 @@ export function useHealthAlertBadge() {
     };
   }, [authLoading, isAdmin, fetchLatest]);
 
-  return { deadCount };
+  return { deadCount, criticalCount };
 }
