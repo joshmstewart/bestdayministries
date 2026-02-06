@@ -382,7 +382,7 @@ export function FitnessAvatarManager() {
   const [recentTemplates, setRecentTemplates] = useState<string[]>(() => readRecentTemplates());
   const [previousTemplateName, setPreviousTemplateName] = useState<string | null>(null);
   const [rejectedDialogOpen, setRejectedDialogOpen] = useState(false);
-  const [randomizeCategoryFilter, setRandomizeCategoryFilter] = useState<'all' | 'animal' | 'human' | 'superhero' | 'monster' | 'icon'>('all');
+  const [randomizeCategoryFilter, setRandomizeCategoryFilter] = useState<'all' | 'animal' | 'human' | 'superhero' | 'monster' | 'icons'>('all');
 
   const handleImageClick = (imageUrl: string) => {
     setLightboxImage(imageUrl);
@@ -896,14 +896,14 @@ export function FitnessAvatarManager() {
               <div className="flex gap-2 items-center">
                 <Select
                   value={randomizeCategoryFilter}
-                  onValueChange={(val) => setRandomizeCategoryFilter(val as 'all' | 'animal' | 'human' | 'superhero' | 'monster' | 'icon')}
+                  onValueChange={(val) => setRandomizeCategoryFilter(val as 'all' | 'animal' | 'human' | 'superhero' | 'monster' | 'icons')}
                 >
                   <SelectTrigger className="w-[140px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">🎲 All Types</SelectItem>
-                    <SelectItem value="icon">⭐ Iconic Characters</SelectItem>
+                    <SelectItem value="icons">⭐ Iconic Characters</SelectItem>
                     <SelectItem value="animal">🐾 Animals</SelectItem>
                     <SelectItem value="human">👤 Humans</SelectItem>
                     <SelectItem value="superhero">🦸 Superheroes</SelectItem>
