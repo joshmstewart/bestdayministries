@@ -700,6 +700,8 @@ export type Database = {
           avatar_id: string
           created_at: string
           crop_scale: number | null
+          crop_x: number | null
+          crop_y: number | null
           emotion_type_id: string
           generation_notes: string | null
           id: string
@@ -712,6 +714,8 @@ export type Database = {
           avatar_id: string
           created_at?: string
           crop_scale?: number | null
+          crop_x?: number | null
+          crop_y?: number | null
           emotion_type_id: string
           generation_notes?: string | null
           id?: string
@@ -724,6 +728,8 @@ export type Database = {
           avatar_id?: string
           created_at?: string
           crop_scale?: number | null
+          crop_x?: number | null
+          crop_y?: number | null
           emotion_type_id?: string
           generation_notes?: string | null
           id?: string

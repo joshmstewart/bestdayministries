@@ -20,6 +20,8 @@ interface MoodOption {
   emotionTypeId?: string;
   avatarImageUrl?: string | null;
   avatarCropScale?: number;
+  avatarCropX?: number;
+  avatarCropY?: number;
 }
 
 // Theme styles based on category
@@ -137,7 +139,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
         if (emotionError) throw emotionError;
 
         // If user is logged in, fetch their selected avatar's emotion images
-        let avatarEmotionImages: Record<string, { url: string; cropScale: number }> = {};
+        let avatarEmotionImages: Record<string, { url: string; cropScale: number; cropX: number; cropY: number }> = {};
         
         if (user && isAuthenticated) {
           // Get user's selected fitness avatar
@@ -154,7 +156,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
             // Fetch all approved emotion images for this avatar
             const { data: emotionImages, error: emotionImagesError } = await supabase
               .from("avatar_emotion_images")
-              .select("emotion_type_id, image_url, crop_scale")
+              .select("emotion_type_id, image_url, crop_scale, crop_x, crop_y")
               .eq("avatar_id", userAvatar.avatar_id)
               .eq("is_approved", true);
 
@@ -170,7 +172,9 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
                 if (img.image_url) {
                   avatarEmotionImages[img.emotion_type_id] = {
                     url: img.image_url,
-                    cropScale: (img.crop_scale as number) || 1.0
+                    cropScale: (img.crop_scale as number) || 1.0,
+                    cropX: (img.crop_x as number) || 0,
+                    cropY: (img.crop_y as number) || 0,
                   };
                 }
               });
@@ -199,6 +203,8 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
               emotionTypeId: e.id,
               avatarImageUrl: avatarData?.url || null,
               avatarCropScale: avatarData?.cropScale || 1.0,
+              avatarCropX: avatarData?.cropX || 0,
+              avatarCropY: avatarData?.cropY || 0,
             };
           });
           setMoodOptions(options);
@@ -438,7 +444,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
                 alt={entryMood.label} 
                 className="w-full h-full object-cover"
                 style={{
-                  transform: `scale(${entryMood.avatarCropScale || 1})`,
+                  transform: `scale(${entryMood.avatarCropScale || 1}) translate(${entryMood.avatarCropX || 0}%, ${entryMood.avatarCropY || 0}%)`,
                   transformOrigin: 'center center',
                 }}
               />
@@ -504,7 +510,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
                   alt={mood.label} 
                   className="w-full h-full object-cover"
                   style={{
-                    transform: `scale(${mood.avatarCropScale || 1})`,
+                    transform: `scale(${mood.avatarCropScale || 1}) translate(${mood.avatarCropX || 0}%, ${mood.avatarCropY || 0}%)`,
                     transformOrigin: 'center center',
                   }}
                 />

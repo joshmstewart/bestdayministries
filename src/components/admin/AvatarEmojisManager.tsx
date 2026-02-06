@@ -39,6 +39,8 @@ interface AvatarEmotionImage {
   generation_notes: string | null;
   is_approved: boolean;
   crop_scale: number;
+  crop_x: number;
+  crop_y: number;
   created_at: string;
 }
 

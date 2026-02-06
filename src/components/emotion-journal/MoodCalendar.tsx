@@ -161,7 +161,7 @@ export function MoodCalendar({ userId }: MoodCalendarProps) {
                           alt={entry.mood_label}
                           className="w-full h-full object-cover"
                           style={{
-                            transform: `scale(${avatarImage.cropScale})`,
+                            transform: `scale(${avatarImage.cropScale}) translate(${avatarImage.cropX || 0}%, ${avatarImage.cropY || 0}%)`,
                             transformOrigin: 'center',
                           }}
                         />
