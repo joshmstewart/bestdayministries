@@ -1131,9 +1131,10 @@ STYLE:
                         </div>
                       </div>
                       {/* Avatar's Emotion Images */}
-                      <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                      <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-8 lg:grid-cols-10 gap-3">
                         {avatarImages.map((img) => {
                           const emotion = emotions.find(e => e.id === img.emotion_type_id);
+                          const scale = img.crop_scale || 1;
                           return (
                             <button
                               key={img.id}
@@ -1142,30 +1143,35 @@ STYLE:
                                 setSelectedEmotion(img.emotion_type_id);
                                 setGeneratedImageUrl(img.image_url);
                               }}
-                              className={`relative rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
-                                selectedAvatarId === img.avatar_id && selectedEmotion === img.emotion_type_id
-                                  ? "border-primary ring-2 ring-primary/20"
-                                  : img.is_approved 
-                                    ? "border-green-500/50" 
-                                    : "border-transparent"
-                              }`}
+                              className="flex flex-col items-center gap-1"
                             >
-                              <AspectRatio ratio={1}>
+                              <div
+                                className={`relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all hover:scale-110 ${
+                                  selectedAvatarId === img.avatar_id && selectedEmotion === img.emotion_type_id
+                                    ? "border-primary ring-2 ring-primary ring-offset-2"
+                                    : img.is_approved 
+                                      ? "border-green-500/50" 
+                                      : "border-border"
+                                }`}
+                              >
                                 <img 
                                   src={img.image_url || ""} 
                                   alt={`${avatar.name} - ${emotion?.name}`}
                                   className="w-full h-full object-cover"
+                                  style={scale > 1 ? {
+                                    transform: `scale(${scale})`,
+                                    transformOrigin: 'center center',
+                                  } : undefined}
                                 />
-                              </AspectRatio>
-                              {img.is_approved && (
-                                <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
-                                  <Check className="h-3 w-3 text-white" />
-                                </div>
-                              )}
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1 flex items-center justify-center gap-1">
-                                <span>{emotion?.emoji}</span>
-                                <span className="truncate">{emotion?.name || 'Unknown'}</span>
+                                {img.is_approved && (
+                                  <div className="absolute top-0 right-0 bg-green-500 rounded-full p-0.5">
+                                    <Check className="h-2.5 w-2.5 text-white" />
+                                  </div>
+                                )}
                               </div>
+                              <span className="text-[10px] text-muted-foreground leading-tight text-center">
+                                {emotion?.emoji} {emotion?.name || '?'}
+                              </span>
                             </button>
                           );
                         })}
