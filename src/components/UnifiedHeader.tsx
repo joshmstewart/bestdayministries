@@ -23,6 +23,7 @@ import { useMessageModerationCount } from "@/hooks/useMessageModerationCount";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useMessagesCount } from "@/hooks/useMessagesCount";
 import { useUnmatchedItemsCount } from "@/hooks/useUnmatchedItemsCount";
+import { useHealthAlertBadge } from "@/hooks/useHealthAlertBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -65,6 +66,7 @@ export const UnifiedHeader = () => {
   const { count: messageModerationCount } = useMessageModerationCount();
   const { count: messagesCount } = useMessagesCount();
   const { count: unmatchedItemsCount } = useUnmatchedItemsCount();
+  const { deadCount: healthDeadCount } = useHealthAlertBadge();
   const { getEffectiveRole, isImpersonating } = useRoleImpersonation();
   const { canModerate } = useUserPermissions();
   const [hasStoreAccess, setHasStoreAccess] = useState(false);
@@ -498,9 +500,9 @@ export const UnifiedHeader = () => {
                   >
                     <Shield className="w-4 h-4" />
                     <span className="hidden sm:inline font-semibold">Admin</span>
-                    {(moderationCount > 0 || pendingVendorsCount > 0 || messageModerationCount > 0 || messagesCount > 0 || unmatchedItemsCount > 0) && (
+                    {(moderationCount > 0 || pendingVendorsCount > 0 || messageModerationCount > 0 || messagesCount > 0 || unmatchedItemsCount > 0 || healthDeadCount > 0) && (
                       <span className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-xs bg-destructive text-destructive-foreground">
-                        {moderationCount + pendingVendorsCount + messageModerationCount + messagesCount + unmatchedItemsCount}
+                        {moderationCount + pendingVendorsCount + messageModerationCount + messagesCount + unmatchedItemsCount + healthDeadCount}
                       </span>
                     )}
                   </Button>
