@@ -13,7 +13,7 @@ import { Save, Volume2, Copy, RefreshCw, Bell, Mail, Lock, Send, Loader2, Downlo
 import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
-import { AvatarPicker } from "@/components/AvatarPicker";
+import { ProfileAvatarPicker } from "@/components/ProfileAvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { CustomAvatarPicker } from "@/components/profile/CustomAvatarPicker";
 import { NewsletterPreferences } from "@/components/profile/NewsletterPreferences";
@@ -53,6 +53,7 @@ const ProfileSettings = () => {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [selectedProfileAvatarId, setSelectedProfileAvatarId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string>("Aria");
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [generatingCode, setGeneratingCode] = useState(false);
@@ -235,11 +236,15 @@ const ProfileSettings = () => {
     setTtsEnabled(profile.tts_enabled ?? true);
     setShowFeedBadge(profileData.show_feed_badge ?? true);
     
-    // Set avatar number directly from the database
+    // Set profile avatar ID from the database
+    if (profileData.profile_avatar_id) {
+      setSelectedProfileAvatarId(profileData.profile_avatar_id);
+    }
+    
+    // Legacy avatar number fallback
     if (profile.avatar_number) {
       setSelectedAvatar(profile.avatar_number);
     } else if (profile.avatar_url) {
-      // Fallback for old avatar_url format
       const avatarNum = parseInt(profile.avatar_url.replace("avatar-", ""));
       if (!isNaN(avatarNum)) {
         setSelectedAvatar(avatarNum);
@@ -304,10 +309,28 @@ const ProfileSettings = () => {
           display_name: validation.data!.displayName.trim(),
           bio: validation.data!.bio?.trim() || null,
           avatar_number: selectedAvatar,
+          profile_avatar_id: selectedProfileAvatarId,
           tts_voice: selectedVoice,
           tts_enabled: ttsEnabled,
         })
         .eq("id", user.id);
+
+      // Also update user_fitness_avatars to keep is_selected in sync
+      if (selectedProfileAvatarId) {
+        await supabase
+          .from("user_fitness_avatars")
+          .update({ is_selected: false })
+          .eq("user_id", user.id);
+        
+        // Upsert the selected one
+        await supabase
+          .from("user_fitness_avatars")
+          .upsert({
+            user_id: user.id,
+            avatar_id: selectedProfileAvatarId,
+            is_selected: true,
+          }, { onConflict: "user_id,avatar_id" });
+      }
 
       if (error) throw error;
 
@@ -619,6 +642,7 @@ const ProfileSettings = () => {
               {/* Current Avatar Preview */}
               <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
                 <AvatarDisplay 
+                  profileAvatarId={selectedProfileAvatarId}
                   avatarNumber={selectedAvatar} 
                   displayName={displayName}
                   size="lg"
@@ -632,9 +656,9 @@ const ProfileSettings = () => {
               </div>
 
               {/* Avatar Picker */}
-              <AvatarPicker 
-                selectedAvatar={selectedAvatar}
-                onSelectAvatar={setSelectedAvatar}
+              <ProfileAvatarPicker 
+                selectedAvatarId={selectedProfileAvatarId}
+                onSelectAvatar={setSelectedProfileAvatarId}
               />
 
               {/* Email (Read-only) */}

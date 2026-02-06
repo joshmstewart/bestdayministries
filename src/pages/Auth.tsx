@@ -25,7 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AvatarPicker } from "@/components/AvatarPicker";
+import { ProfileAvatarPicker } from "@/components/ProfileAvatarPicker";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
@@ -46,7 +46,7 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
-  const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -245,7 +245,7 @@ const Auth = () => {
             data: {
               display_name: displayName,
               role: role,
-              avatar_url: selectedAvatar ? `avatar-${selectedAvatar}` : null,
+              profile_avatar_id: selectedAvatarId || null,
             },
             emailRedirectTo: `${window.location.origin}/community`,
           },
@@ -686,9 +686,10 @@ const Auth = () => {
                   />
                 </div>
 
-                <AvatarPicker 
-                  selectedAvatar={selectedAvatar}
-                  onSelectAvatar={setSelectedAvatar}
+                <ProfileAvatarPicker 
+                  selectedAvatarId={selectedAvatarId}
+                  onSelectAvatar={setSelectedAvatarId}
+                  freeOnly
                 />
 
                 <div className="space-y-2">
