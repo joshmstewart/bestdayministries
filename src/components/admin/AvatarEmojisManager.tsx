@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Check, X, RefreshCw, Trash2, ZoomIn, Archive } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Slider } from "@/components/ui/slider";
+import { EmotionCropDialog } from "./EmotionCropDialog";
 
 interface FitnessAvatar {
   id: string;
@@ -83,6 +84,11 @@ export function AvatarEmojisManager() {
   const [cropScale, setCropScale] = useState(1.0);
   const [savingCropScale, setSavingCropScale] = useState(false);
   
+  // Crop dialog state
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [cropDialogAvatarId, setCropDialogAvatarId] = useState<string | null>(null);
+  const [cropDialogInitialIndex, setCropDialogInitialIndex] = useState(0);
+
   // Compression state
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionStats, setCompressionStats] = useState<CompressionStats | null>(null);
@@ -1139,9 +1145,10 @@ STYLE:
                             <button
                               key={img.id}
                               onClick={() => {
-                                setSelectedAvatarId(img.avatar_id);
-                                setSelectedEmotion(img.emotion_type_id);
-                                setGeneratedImageUrl(img.image_url);
+                                const idx = avatarImages.indexOf(img);
+                                setCropDialogAvatarId(avatar.id);
+                                setCropDialogInitialIndex(idx);
+                                setCropDialogOpen(true);
                               }}
                               className="flex flex-col items-center gap-1"
                             >
@@ -1183,6 +1190,19 @@ STYLE:
           )}
         </CardContent>
       </Card>
+
+      {/* Crop editing dialog */}
+      {cropDialogAvatarId && (
+        <EmotionCropDialog
+          open={cropDialogOpen}
+          onOpenChange={setCropDialogOpen}
+          images={existingImages.filter(img => img.avatar_id === cropDialogAvatarId)}
+          emotions={emotions}
+          avatarName={fitnessAvatars.find(a => a.id === cropDialogAvatarId)?.name || ""}
+          initialIndex={cropDialogInitialIndex}
+          onSaved={() => loadData()}
+        />
+      )}
     </div>
   );
 }
