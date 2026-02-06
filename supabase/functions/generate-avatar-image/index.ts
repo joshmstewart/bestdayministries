@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { translateCharacterName } from "../_shared/character-name-translator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +22,16 @@ serve(async (req) => {
       );
     }
 
-    const isNonHumanCharacter = characterType === 'animal' || characterType === 'monster';
+    // Translate copyrighted character names to visual descriptions
+    const translation = translateCharacterName(name || '', characterPrompt);
+    const effectivePrompt = translation.translatedPrompt;
+    const effectiveCharacterType = translation.suggestedCharacterType || characterType;
+    
+    if (translation.wasTranslated) {
+      console.log(`Character name translated: "${name}" -> visual description (type: ${effectiveCharacterType})`);
+    }
+
+    const isNonHumanCharacter = effectiveCharacterType === 'animal' || effectiveCharacterType === 'monster';
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -74,7 +84,7 @@ serve(async (req) => {
     // --- Diversity enforcement ---
     // The model tends to default to a narrow demographic when not explicitly guided.
     // We inject diversity ONLY when the user hasn't specified demographics.
-    const lowerPrompt = String(characterPrompt || "").toLowerCase();
+    const lowerPrompt = String(effectivePrompt || "").toLowerCase();
     
     // Expanded detection patterns to respect user-specified demographics
     const hasExplicitGender = /\b(woman|female|girl|man|male|boy|non[-\s]?binary|enby|androgynous|feminine|masculine)\b/i.test(lowerPrompt);
@@ -146,7 +156,7 @@ serve(async (req) => {
     // For non-human characters (animals, monsters), demographicConstraint stays empty
 
     // CRITICAL: For monsters, add explicit anti-human constraint
-    if (characterType === 'monster') {
+    if (effectiveCharacterType === 'monster') {
       demographicConstraint = `\nMONSTER-SPECIFIC ENFORCEMENT:
 - This character MUST NOT have any human features whatsoever
 - NO human skin tones (fair, tan, brown, etc.) - use fantasy colors only (purple, green, blue, orange, etc.)
@@ -160,7 +170,7 @@ serve(async (req) => {
     // Character type instructions - only ONE section applies based on type
     let characterTypeInstructions = "";
     
-    if (characterType === 'monster') {
+    if (effectiveCharacterType === 'monster') {
       // Randomly select a monster archetype for variety
       const monsterArchetypes = [
         {
@@ -250,7 +260,7 @@ STYLE NOTES:
 - They should be standing UPRIGHT in a humanoid pose ready for fitness activities
 - Make them CUTE and APPROACHABLE while being obviously NON-HUMAN monsters
 `;
-    } else if (characterType === 'animal') {
+    } else if (effectiveCharacterType === 'animal') {
       characterTypeInstructions = `
 CRITICAL ANIMAL CHARACTER REQUIREMENT:
 - This is an ANIMAL character - they MUST be anthropomorphic
@@ -284,7 +294,7 @@ CRITICAL CHARACTER-SPECIFIC REQUIREMENT:
 
     const imagePrompt = `GENERATE AN IMAGE NOW. Do not describe the image - actually create and return it.
 
-Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${characterPrompt}. 
+Create a friendly, cartoon-style fitness avatar character portrait. The character is: ${effectivePrompt}. 
 ${characterSpecificRequirements}
 CRITICAL BACKGROUND REQUIREMENT:
 - The background MUST be completely plain white (#FFFFFF) with NO gradients, shadows, or any other elements
