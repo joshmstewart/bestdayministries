@@ -5165,6 +5165,48 @@ export type Database = {
         }
         Relationships: []
       }
+      health_check_results: {
+        Row: {
+          alert_sent: boolean
+          alive_count: number
+          all_results: Json
+          checked_at: string
+          dead_count: number
+          dead_critical_count: number
+          dead_functions: Json
+          id: string
+          scope: string
+          slow_count: number
+          total_checked: number
+        }
+        Insert: {
+          alert_sent?: boolean
+          alive_count?: number
+          all_results?: Json
+          checked_at?: string
+          dead_count?: number
+          dead_critical_count?: number
+          dead_functions?: Json
+          id?: string
+          scope?: string
+          slow_count?: number
+          total_checked?: number
+        }
+        Update: {
+          alert_sent?: boolean
+          alive_count?: number
+          all_results?: Json
+          checked_at?: string
+          dead_count?: number
+          dead_critical_count?: number
+          dead_functions?: Json
+          id?: string
+          scope?: string
+          slow_count?: number
+          total_checked?: number
+        }
+        Relationships: []
+      }
       help_faqs: {
         Row: {
           answer: string
