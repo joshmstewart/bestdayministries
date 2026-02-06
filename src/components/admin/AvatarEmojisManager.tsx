@@ -1168,10 +1168,10 @@ STYLE:
                                     src={img.image_url || ""} 
                                     alt={`${avatar.name} - ${emotion?.name}`}
                                     className="w-full h-full object-cover"
-                                    style={scale > 1 ? {
-                                      transform: `scale(${scale})`,
+                                    style={{
+                                      transform: `scale(${scale}) translate(${img.crop_x || 0}%, ${img.crop_y || 0}%)`,
                                       transformOrigin: 'center center',
-                                    } : undefined}
+                                    }}
                                   />
                                 </div>
                                 {img.is_approved && (
