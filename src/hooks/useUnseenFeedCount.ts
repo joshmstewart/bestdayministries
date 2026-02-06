@@ -10,9 +10,7 @@ interface UseUnseenFeedCountReturn {
   showBadge: boolean;
 }
 
-// Cache for unseen count to avoid repeated queries
-const unseenCountCache = new Map<string, { count: number; timestamp: number }>();
-const CACHE_TTL = 30000; // 30 seconds
+const POLL_INTERVAL = 30000; // 30 seconds
 
 export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
   const { user } = useAuth();
@@ -27,7 +25,6 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
     setLoading,
     markAsSeen: markAsSeenInStore,
   } = useFeedBadgeStore();
-  const fetchInProgress = useRef(false);
   const hasFetchedPrefs = useRef(false);
 
   // Fetch user's preference and last seen timestamp (only once per user)
@@ -61,59 +58,45 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
     fetchUserPrefs();
   }, [user?.id, setShowBadge, setLastSeenAt, setLoading]);
 
-  // Fetch unseen count from community_feed_items view
+  // Fetch unseen count and poll periodically
   useEffect(() => {
+    if (!user?.id || !showBadge || !lastSeenAt) {
+      setUnseenCount(0);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     async function fetchUnseenCount() {
-      if (!user?.id || !showBadge) {
-        setUnseenCount(0);
-        setLoading(false);
-        return;
-      }
-
-      // If no lastSeenAt, user hasn't visited feed yet - don't show badge
-      if (!lastSeenAt) {
-        setUnseenCount(0);
-        setLoading(false);
-        return;
-      }
-
-      // Check cache first
-      const cacheKey = `${user.id}-${lastSeenAt}`;
-      const cached = unseenCountCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        setUnseenCount(cached.count);
-        setLoading(false);
-        return;
-      }
-
-      // Prevent duplicate fetches
-      if (fetchInProgress.current) return;
-      fetchInProgress.current = true;
-
       try {
-        // Query using created_at which is the column available in the view
         const { count, error } = await supabase
           .from('community_feed_items')
           .select('*', { count: 'exact', head: true })
-          .gt('created_at', lastSeenAt);
+          .gt('created_at', lastSeenAt!);
 
         if (error) throw error;
-
-        const newCount = count ?? 0;
-        setUnseenCount(newCount);
-        
-        // Cache the result
-        unseenCountCache.set(cacheKey, { count: newCount, timestamp: Date.now() });
+        if (!cancelled) {
+          setUnseenCount(count ?? 0);
+        }
       } catch (err) {
         console.error('Error fetching unseen count:', err);
-        setUnseenCount(0);
+        if (!cancelled) setUnseenCount(0);
       } finally {
-        setLoading(false);
-        fetchInProgress.current = false;
+        if (!cancelled) setLoading(false);
       }
     }
 
+    // Initial fetch
     fetchUnseenCount();
+
+    // Poll for new items
+    const interval = setInterval(fetchUnseenCount, POLL_INTERVAL);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [user?.id, showBadge, lastSeenAt, setUnseenCount, setLoading]);
 
   // Mark feed as seen (update last_seen_at to now)
@@ -131,14 +114,7 @@ export function useUnseenFeedCount(): UseUnseenFeedCountReturn {
       if (error) throw error;
 
       setLastSeenAt(now);
-      markAsSeenInStore(); // This updates the global store, clearing badge everywhere
-      
-      // Clear cache for this user
-      unseenCountCache.forEach((_, key) => {
-        if (key.startsWith(user.id)) {
-          unseenCountCache.delete(key);
-        }
-      });
+      markAsSeenInStore();
     } catch (err) {
       console.error('Error marking feed as seen:', err);
     }
