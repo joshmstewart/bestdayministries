@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, ChevronDown, ChevronRight, Sparkles, Lock, Coins } from "lucide-react";
+import { Loader2, Check, ChevronDown, ChevronRight, Sparkles, Lock } from "lucide-react";
+import { CoinIcon } from "@/components/CoinIcon";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useCoins } from "@/hooks/useCoins";
@@ -304,7 +305,7 @@ export const ProfileAvatarPicker = ({
                 )}
                 {purchaseAvatar?.description && <p>{purchaseAvatar.description}</p>}
                 <div className="flex items-center justify-center gap-2 py-1">
-                  <Coins className="h-5 w-5 text-yellow-500" />
+                  <CoinIcon size={20} />
                   <span className="font-bold text-lg">{purchaseAvatar?.price_coins} coins</span>
                 </div>
                 <p className="text-sm text-center">
@@ -325,7 +326,7 @@ export const ProfileAvatarPicker = ({
               {purchaseMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <Coins className="h-4 w-4 mr-2" />
+                <CoinIcon size={16} className="mr-2" />
               )}
               Unlock
             </AlertDialogAction>
@@ -389,7 +390,7 @@ function AvatarButton({
       {/* Price badge outside the overflow-hidden button */}
       {showOwnership && !isAvailable && (
         <Badge className="absolute -top-2 -right-2 px-1.5 py-0.5 text-[10px] gap-0.5 z-10 shadow-md bg-foreground text-background border-foreground">
-          <Coins className="h-3 w-3" />
+          <CoinIcon size={12} />
           {avatar.price_coins}
         </Badge>
       )}
