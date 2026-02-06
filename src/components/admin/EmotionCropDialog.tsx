@@ -42,13 +42,15 @@ export function EmotionCropDialog({
 }: EmotionCropDialogProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [cropScale, setCropScale] = useState(1);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
   // Drag state
   const isDragging = useRef(false);
-  const dragStart = useRef({ x: 0, y: 0, startScale: 1 });
+  const dragStart = useRef({ x: 0, y: 0, startPanX: 0, startPanY: 0 });
   const previewRef = useRef<HTMLDivElement>(null);
 
   const current = images[currentIndex];
@@ -58,6 +60,8 @@ export function EmotionCropDialog({
   useEffect(() => {
     if (open && current) {
       setCropScale(current.crop_scale || 1);
+      setPanX(0);
+      setPanY(0);
       setDirty(false);
     }
   }, [currentIndex, open, current?.id]);
@@ -147,19 +151,23 @@ export function EmotionCropDialog({
   // Drag to adjust scale
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true;
-    dragStart.current = { x: e.clientX, y: e.clientY, startScale: cropScale };
+    dragStart.current = { x: e.clientX, y: e.clientY, startPanX: panX, startPanY: panY };
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [cropScale]);
+  }, [panX, panY]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current || !previewRef.current) return;
     const rect = previewRef.current.getBoundingClientRect();
-    const dy = dragStart.current.y - e.clientY;
-    const sensitivity = 2 / rect.height;
-    const newScale = Math.max(1, Math.min(2, dragStart.current.startScale + dy * sensitivity));
-    setCropScale(Math.round(newScale * 100) / 100);
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    // Convert pixel drag to percentage offset, scaled by zoom level
+    const maxPan = (cropScale - 1) * 50; // max pan in % based on zoom
+    const newPanX = Math.max(-maxPan, Math.min(maxPan, dragStart.current.startPanX + (dx / rect.width) * 100));
+    const newPanY = Math.max(-maxPan, Math.min(maxPan, dragStart.current.startPanY + (dy / rect.height) * 100));
+    setPanX(Math.round(newPanX * 100) / 100);
+    setPanY(Math.round(newPanY * 100) / 100);
     setDirty(true);
-  }, []);
+  }, [cropScale]);
 
   const handlePointerUp = useCallback(() => {
     isDragging.current = false;
@@ -175,7 +183,7 @@ export function EmotionCropDialog({
         </DialogTitle>
 
         <div className="text-xs text-muted-foreground text-center">
-          {currentIndex + 1} of {images.length} • Drag up/down to zoom, or use slider
+          {currentIndex + 1} of {images.length} • Drag to pan, use slider to zoom
         </div>
 
         {/* Large circular preview */}
@@ -202,8 +210,8 @@ export function EmotionCropDialog({
               alt={emotion?.name || ""}
               className="w-full h-full object-cover pointer-events-none"
               draggable={false}
-              style={cropScale > 1 ? {
-                transform: `scale(${cropScale})`,
+              style={(cropScale > 1 || panX !== 0 || panY !== 0) ? {
+                transform: `scale(${cropScale}) translate(${panX}%, ${panY}%)`,
                 transformOrigin: "center center",
               } : undefined}
             />
@@ -222,7 +230,7 @@ export function EmotionCropDialog({
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
           <Move className="h-3 w-3" />
-          <span>Drag to zoom</span>
+          <span>Drag to pan</span>
           {current.is_approved && (
             <span className="ml-2 text-green-600 flex items-center gap-1">
               <Check className="h-3 w-3" /> Approved
@@ -261,8 +269,8 @@ export function EmotionCropDialog({
                 src={current.image_url || ""}
                 alt=""
                 className="w-full h-full object-cover"
-                style={cropScale > 1 ? {
-                  transform: `scale(${cropScale})`,
+                style={(cropScale > 1 || panX !== 0 || panY !== 0) ? {
+                  transform: `scale(${cropScale}) translate(${panX}%, ${panY}%)`,
                   transformOrigin: "center center",
                 } : undefined}
               />
@@ -284,7 +292,7 @@ export function EmotionCropDialog({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { setCropScale(1); setDirty(true); }}
+            onClick={() => { setCropScale(1); setPanX(0); setPanY(0); setDirty(true); }}
             disabled={regenerating}
           >
             Reset to 1x
