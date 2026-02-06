@@ -54,6 +54,21 @@ export function useHealthCheck() {
       };
 
       setReport(newReport);
+
+      // Persist to DB so badge/alerts update via realtime
+      const deadCritical = enriched.filter(r => r.tier === 'critical' && r.status === 'dead').length;
+      const deadNames = enriched.filter(r => r.status === 'dead').map(r => r.name);
+      await supabase.from('health_check_results').insert({
+        scope,
+        total_checked: enriched.length,
+        alive_count: data.summary.alive,
+        dead_count: data.summary.dead,
+        slow_count: data.summary.slow,
+        dead_critical_count: deadCritical,
+        dead_function_names: deadNames,
+        alert_sent: false,
+      });
+
       return newReport;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Health check failed';

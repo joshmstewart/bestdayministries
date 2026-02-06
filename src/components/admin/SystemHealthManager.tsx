@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useHealthCheck, type HealthResult } from '@/hooks/useHealthCheck';
 import { TIER_CONFIG, type FunctionTier, FUNCTION_REGISTRY } from '@/lib/edgeFunctionRegistry';
-import { Activity, AlertTriangle, CheckCircle2, Loader2, RefreshCw, XCircle, Clock } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle2, Copy, Loader2, RefreshCw, XCircle, Clock } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 function StatusIcon({ status }: { status: HealthResult['status'] }) {
   switch (status) {
@@ -98,13 +99,28 @@ export function SystemHealthManager() {
             <div className="rounded-md bg-card border p-3 text-sm space-y-1.5">
               <p className="font-medium">🔧 How to fix:</p>
               <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>Copy the dead function name(s) above</li>
-                <li>Ask Lovable to <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">"redeploy [function-name]"</span></li>
+                <li>Copy the dead function names below</li>
+                <li>Paste into Lovable chat: <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">"redeploy [function-names]"</span></li>
                 <li>Re-run the health check to verify</li>
               </ol>
-              <p className="text-xs text-muted-foreground mt-2">
-                Dead functions usually mean a deployment failed silently. Redeploying fixes it.
-              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={async () => {
+                  const deadNames = report?.results.filter(r => r.status === 'dead').map(r => r.name) ?? [];
+                  const text = `Please redeploy these dead edge functions: ${deadNames.join(', ')}`;
+                  try {
+                    await navigator.clipboard.writeText(text);
+                    toast({ title: "Copied to clipboard", description: "Paste into Lovable chat to request redeployment", duration: 3000 });
+                  } catch {
+                    toast({ title: "Copy failed", description: text, duration: 10000 });
+                  }
+                }}
+              >
+                <Copy className="h-4 w-4 mr-1" />
+                Copy failed function names
+              </Button>
             </div>
           </CardContent>
         </Card>
