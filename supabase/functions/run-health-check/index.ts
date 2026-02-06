@@ -135,74 +135,65 @@ Deno.serve(async (req) => {
             console.error("Failed to create notifications:", notifError);
           }
 
-          // 2. Send email alert to all admins
+          // 2. Send email alert to owners only (they're the ones who can fix it)
           if (resendApiKey) {
             const resend = new Resend(resendApiKey);
 
-            // Get admin emails
-            const adminIds = adminUsers.map(a => a.user_id);
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('id, email, display_name')
-              .in('id', adminIds);
+            const { data: ownerRoles } = await supabase
+              .from('user_roles')
+              .select('user_id')
+              .eq('role', 'owner');
 
-            if (profiles && profiles.length > 0) {
-              const adminEmails = profiles
-                .filter(p => p.email)
-                .map(p => p.email!);
+            const ownerIds = (ownerRoles || []).map(o => o.user_id);
+            if (ownerIds.length > 0) {
+              const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, email, display_name')
+                .in('id', ownerIds);
 
-              if (adminEmails.length > 0) {
-                const deadListHtml = deadFunctions.map(f => 
-                  `<li style="margin-bottom: 8px;">
-                    <strong style="color: #dc2626;">${f.name}</strong>
-                    <span style="color: #6b7280; font-size: 13px;"> — ${f.error || 'Not responding'}</span>
-                  </li>`
-                ).join('');
+              if (profiles && profiles.length > 0) {
+                const ownerEmails = profiles.filter(p => p.email).map(p => p.email!);
 
-                try {
-                  await resend.emails.send({
-                    from: SENDERS.notifications,
-                    to: adminEmails,
-                    subject: `🚨 ${deadCount} Critical Function${deadCount > 1 ? 's' : ''} DOWN — ${ORGANIZATION_NAME}`,
-                    html: `
-                      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                        <div style="background: #fef2f2; border: 2px solid #dc2626; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-                          <h1 style="color: #dc2626; margin: 0 0 8px 0; font-size: 20px;">
-                            🚨 System Health Alert
-                          </h1>
-                          <p style="color: #991b1b; margin: 0; font-size: 16px;">
-                            ${deadCount} critical backend function${deadCount > 1 ? 's are' : ' is'} not responding.
-                          </p>
+                if (ownerEmails.length > 0) {
+                  const deadListHtml = deadFunctions.map(f =>
+                    `<li style="margin-bottom: 8px;">
+                      <strong style="color: #dc2626;">${f.name}</strong>
+                      <span style="color: #6b7280; font-size: 13px;"> — ${f.error || 'Not responding'}</span>
+                    </li>`
+                  ).join('');
+
+                  try {
+                    await resend.emails.send({
+                      from: SENDERS.notifications,
+                      to: ownerEmails,
+                      subject: `🚨 ${deadCount} Critical Function${deadCount > 1 ? 's' : ''} DOWN — ${ORGANIZATION_NAME}`,
+                      html: `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                          <div style="background: #fef2f2; border: 2px solid #dc2626; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                            <h1 style="color: #dc2626; margin: 0 0 8px 0; font-size: 20px;">🚨 System Health Alert</h1>
+                            <p style="color: #991b1b; margin: 0; font-size: 16px;">
+                              ${deadCount} critical backend function${deadCount > 1 ? 's are' : ' is'} not responding.
+                            </p>
+                          </div>
+                          <h2 style="color: #111; font-size: 16px; margin-bottom: 12px;">Down Functions:</h2>
+                          <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">${deadListHtml}</ul>
+                          <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                            <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px;">🔧 How to fix:</p>
+                            <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: #4b5563;">
+                              <li style="margin-bottom: 4px;">Open Lovable chat</li>
+                              <li style="margin-bottom: 4px;">Ask: <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">redeploy ${deadFunctions[0]?.name || 'function-name'}</code></li>
+                              <li>Check the Health tab in Admin to verify</li>
+                            </ol>
+                          </div>
+                          <a href="${SITE_URL}/admin?tab=system-health" style="display: inline-block; background: #dc2626; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View System Health →</a>
+                          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">Checked at: ${new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} MST</p>
                         </div>
-                        
-                        <h2 style="color: #111; font-size: 16px; margin-bottom: 12px;">Down Functions:</h2>
-                        <ul style="list-style: none; padding: 0; margin: 0 0 24px 0;">
-                          ${deadListHtml}
-                        </ul>
-
-                        <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-                          <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px;">🔧 How to fix:</p>
-                          <ol style="margin: 0; padding-left: 20px; font-size: 14px; color: #4b5563;">
-                            <li style="margin-bottom: 4px;">Open Lovable chat</li>
-                            <li style="margin-bottom: 4px;">Ask: <code style="background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">redeploy ${deadFunctions[0]?.name || 'function-name'}</code></li>
-                            <li>Check the Health tab in Admin to verify</li>
-                          </ol>
-                        </div>
-
-                        <a href="${SITE_URL}/admin?tab=system-health" 
-                           style="display: inline-block; background: #dc2626; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-                          View System Health →
-                        </a>
-
-                        <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-                          Checked at: ${new Date().toLocaleString('en-US', { timeZone: 'America/Denver' })} MST
-                        </p>
-                      </div>
-                    `,
-                  });
-                  console.log(`Health alert email sent to ${adminEmails.length} admin(s)`);
-                } catch (emailErr) {
-                  console.error("Failed to send health alert email:", emailErr);
+                      `,
+                    });
+                    console.log(`Health alert email sent to ${ownerEmails.length} owner(s)`);
+                  } catch (emailErr) {
+                    console.error("Failed to send health alert email:", emailErr);
+                  }
                 }
               }
             }
