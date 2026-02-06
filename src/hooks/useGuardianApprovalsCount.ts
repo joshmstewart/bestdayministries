@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -7,8 +7,8 @@ export const useGuardianApprovalsCount = () => {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hasLinkedBesties, setHasLinkedBesties] = useState(false);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
-  // Users who can approve: guardians, or admins/owners who are linked to besties
   const canApprove = isGuardian || isAdmin || isOwner;
 
   const fetchApprovalsCount = useCallback(async () => {
@@ -20,7 +20,6 @@ export const useGuardianApprovalsCount = () => {
     }
 
     try {
-      // Get all linked besties and their approval requirements
       const { data: links, error: linksError } = await supabase
         .from("caregiver_bestie_links")
         .select("bestie_id, require_post_approval, require_comment_approval, require_message_approval, require_prayer_approval")
@@ -37,11 +36,9 @@ export const useGuardianApprovalsCount = () => {
       setHasLinkedBesties(true);
       let totalCount = 0;
 
-      // Fetch pending posts, comments, messages, and prayers in parallel
       const postLinks = links.filter(l => l.require_post_approval);
       const commentLinks = links.filter(l => l.require_comment_approval);
       const messageLinks = links.filter(l => l.require_message_approval);
-      // All links can have prayer approval requirement
       const prayerLinks = links.filter(l => (l as any).require_prayer_approval !== false);
 
       const results: { count: number | null }[] = [];
@@ -73,7 +70,6 @@ export const useGuardianApprovalsCount = () => {
         results.push({ count });
       }
 
-      // Count pending prayer requests
       if (prayerLinks.length > 0) {
         const { count } = await supabase
           .from("prayer_requests")
@@ -108,9 +104,9 @@ export const useGuardianApprovalsCount = () => {
 
     fetchApprovalsCount();
 
-    // Set up realtime subscriptions
+    const id = instanceId.current;
     const postsChannel = supabase
-      .channel("guardian-approvals-posts")
+      .channel(`guardian-approvals-posts-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "discussion_posts" },
@@ -119,7 +115,7 @@ export const useGuardianApprovalsCount = () => {
       .subscribe();
 
     const commentsChannel = supabase
-      .channel("guardian-approvals-comments")
+      .channel(`guardian-approvals-comments-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "discussion_comments" },
@@ -128,7 +124,7 @@ export const useGuardianApprovalsCount = () => {
       .subscribe();
 
     const messagesChannel = supabase
-      .channel("guardian-approvals-messages")
+      .channel(`guardian-approvals-messages-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sponsor_messages" },
@@ -137,7 +133,7 @@ export const useGuardianApprovalsCount = () => {
       .subscribe();
 
     const prayersChannel = supabase
-      .channel("guardian-approvals-prayers")
+      .channel(`guardian-approvals-prayers-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "prayer_requests" },
@@ -146,7 +142,7 @@ export const useGuardianApprovalsCount = () => {
       .subscribe();
 
     const linksChannel = supabase
-      .channel("guardian-approvals-links")
+      .channel(`guardian-approvals-links-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "caregiver_bestie_links" },

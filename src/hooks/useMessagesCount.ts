@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -6,6 +6,7 @@ export const useMessagesCount = () => {
   const { isAdmin, loading: authLoading, user } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   const fetchCount = useCallback(async () => {
     if (!isAdmin || !user) {
@@ -15,7 +16,6 @@ export const useMessagesCount = () => {
     }
 
     try {
-      // Fetch all submissions and replies in parallel
       const [submissionsResult, repliesResult] = await Promise.all([
         supabase
           .from("contact_form_submissions")
@@ -31,7 +31,6 @@ export const useMessagesCount = () => {
       const submissions = submissionsResult.data || [];
       const replies = repliesResult.data || [];
 
-      // Create a map of the latest user reply per submission
       const latestUserReplyBySubmission = new Map<string, string>();
       replies
         .filter(r => r.sender_type === "user")
@@ -45,20 +44,15 @@ export const useMessagesCount = () => {
       let totalCount = 0;
 
       submissions.forEach(submission => {
-        // Only count if unassigned OR assigned to current user
         const isRelevant = !submission.assigned_to || submission.assigned_to === user.id;
-        
         if (!isRelevant) return;
         
-        // Check if this submission needs attention (count once per submission, not per reason)
         let needsAttention = false;
         
-        // New submissions need attention
         if (submission.status === "new") {
           needsAttention = true;
         }
 
-        // Submissions with unread user replies need attention
         const latestUserReply = latestUserReplyBySubmission.get(submission.id);
         if (latestUserReply) {
           const repliedAt = submission.replied_at ? new Date(submission.replied_at) : null;
@@ -92,8 +86,9 @@ export const useMessagesCount = () => {
 
     fetchCount();
 
+    const id = instanceId.current;
     const submissionsChannel = supabase
-      .channel("messages-submissions-count")
+      .channel(`messages-submissions-count-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "contact_form_submissions" },
@@ -102,7 +97,7 @@ export const useMessagesCount = () => {
       .subscribe();
 
     const repliesChannel = supabase
-      .channel("messages-replies-count")
+      .channel(`messages-replies-count-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "contact_form_replies" },

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -6,6 +6,7 @@ export const useModerationCount = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   const fetchModerationCount = useCallback(async () => {
     if (!isAdmin) {
@@ -15,7 +16,6 @@ export const useModerationCount = () => {
     }
 
     try {
-      // Fetch unmoderated posts and comments in parallel
       const [postsResult, commentsResult] = await Promise.all([
         supabase
           .from("discussion_posts")
@@ -49,9 +49,9 @@ export const useModerationCount = () => {
 
     fetchModerationCount();
 
-    // Set up realtime subscriptions
+    const id = instanceId.current;
     const postsChannel = supabase
-      .channel("moderation-posts-count")
+      .channel(`moderation-posts-count-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "discussion_posts" },
@@ -60,7 +60,7 @@ export const useModerationCount = () => {
       .subscribe();
 
     const commentsChannel = supabase
-      .channel("moderation-comments-count")
+      .channel(`moderation-comments-count-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "discussion_comments" },

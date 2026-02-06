@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -6,6 +6,7 @@ export const useSponsorUnreadCount = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const instanceId = useRef(Math.random().toString(36).slice(2, 8));
 
   const fetchUnreadCount = useCallback(async () => {
     if (!user) {
@@ -15,7 +16,6 @@ export const useSponsorUnreadCount = () => {
     }
 
     try {
-      // Get all sponsorships for this user
       const { data: sponsorships, error: sponsorshipsError } = await supabase
         .from("sponsorships")
         .select("bestie_id")
@@ -30,7 +30,6 @@ export const useSponsorUnreadCount = () => {
         return;
       }
 
-      // Filter out null bestie_ids
       const bestieIds = sponsorships
         .map(s => s.bestie_id)
         .filter((id): id is string => id !== null);
@@ -41,7 +40,6 @@ export const useSponsorUnreadCount = () => {
         return;
       }
 
-      // Count unread messages from all sponsored besties
       const { count: unreadCount, error: countError } = await supabase
         .from("sponsor_messages")
         .select("*", { count: "exact", head: true })
@@ -70,8 +68,9 @@ export const useSponsorUnreadCount = () => {
 
     fetchUnreadCount();
 
+    const id = instanceId.current;
     const messagesChannel = supabase
-      .channel("sponsor-messages-unread")
+      .channel(`sponsor-messages-unread-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sponsor_messages" },
@@ -80,7 +79,7 @@ export const useSponsorUnreadCount = () => {
       .subscribe();
 
     const sponsorshipsChannel = supabase
-      .channel("sponsorships-unread")
+      .channel(`sponsorships-unread-${id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sponsorships" },
