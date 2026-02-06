@@ -131,26 +131,36 @@ export const AvatarCropManager = () => {
         </p>
       </div>
 
-      {/* Avatar grid */}
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-        {avatars?.map((avatar) => (
-          <button
-            key={avatar.id}
-            onClick={() => selectAvatar(avatar)}
-            className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-              selectedId === avatar.id
-                ? "border-primary ring-2 ring-primary ring-offset-2 scale-105"
-                : "border-border hover:border-primary/50"
-            }`}
-            title={avatar.name}
-          >
-            {avatar.preview_image_url ? (
-              <img src={avatar.preview_image_url} alt={avatar.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">?</div>
-            )}
-          </button>
-        ))}
+      {/* Avatar grid — show cropped circles */}
+      <div className="grid grid-cols-5 sm:grid-cols-7 md:grid-cols-9 lg:grid-cols-11 gap-3">
+        {avatars?.map((avatar) => {
+          const style = avatar.preview_image_url
+            ? getCropTransform(avatar.profile_crop_x, avatar.profile_crop_y, avatar.profile_crop_scale)
+            : undefined;
+          return (
+            <button
+              key={avatar.id}
+              onClick={() => selectAvatar(avatar)}
+              className={`relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all mx-auto ${
+                selectedId === avatar.id
+                  ? "border-primary ring-2 ring-primary ring-offset-2 scale-110"
+                  : "border-border hover:border-primary/50"
+              }`}
+              title={avatar.name}
+            >
+              {avatar.preview_image_url ? (
+                <img
+                  src={avatar.preview_image_url}
+                  alt={avatar.name}
+                  className="w-full h-full object-cover"
+                  style={style}
+                />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground">?</div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Crop editor */}
