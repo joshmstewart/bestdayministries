@@ -283,36 +283,54 @@ serve(async (req) => {
 
     const publicUrl = urlData.publicUrl;
 
-    // Compute average crop_scale from existing edited images for this avatar
+    // Compute average crop settings from existing edited images for this avatar
     let avgCropScale = 1.0;
+    let avgCropX = 0;
+    let avgCropY = 0;
     try {
       const { data: existingCrops } = await supabaseAdmin
         .from("avatar_emotion_images")
-        .select("crop_scale")
+        .select("crop_scale, crop_x, crop_y")
         .eq("avatar_id", avatarId)
         .neq("emotion_type_id", emotionTypeId)
         .not("crop_scale", "eq", 1); // Only images that have been edited (not default 1.0)
       
       if (existingCrops && existingCrops.length > 0) {
-        const sum = existingCrops.reduce((acc: number, row: any) => acc + (row.crop_scale || 1), 0);
-        avgCropScale = Math.round((sum / existingCrops.length) * 100) / 100;
-        console.log(`Average crop_scale from ${existingCrops.length} edited images: ${avgCropScale}`);
+        const scaleSum = existingCrops.reduce((acc: number, row: any) => acc + (row.crop_scale || 1), 0);
+        const xSum = existingCrops.reduce((acc: number, row: any) => acc + (row.crop_x || 0), 0);
+        const ySum = existingCrops.reduce((acc: number, row: any) => acc + (row.crop_y || 0), 0);
+        const count = existingCrops.length;
+        avgCropScale = Math.round((scaleSum / count) * 100) / 100;
+        avgCropX = Math.round(xSum / count);
+        avgCropY = Math.round(ySum / count);
+        console.log(`Average crop from ${count} edited images: scale=${avgCropScale}, x=${avgCropX}, y=${avgCropY}`);
+      } else {
+        // Sensible defaults when no edited images exist yet (face-focused zoom)
+        avgCropScale = 1.77;
+        avgCropX = 51;
+        avgCropY = 8;
+        console.log("No edited images found, using default crop: scale=1.77, x=51, y=8");
       }
     } catch (e) {
-      console.error("Failed to compute average crop_scale, defaulting to 1.0:", e);
+      console.error("Failed to compute average crop, using defaults:", e);
+      avgCropScale = 1.77;
+      avgCropX = 51;
+      avgCropY = 8;
     }
 
     // Upsert to database
     const { error: dbError } = await supabaseAdmin
       .from("avatar_emotion_images")
       .upsert({
-        avatar_id: avatarId,
+      avatar_id: avatarId,
         emotion_type_id: emotionTypeId,
         image_url: publicUrl,
         prompt_used: prompt,
         generation_notes: notes || null,
         is_approved: false,
         crop_scale: avgCropScale,
+        crop_x: avgCropX,
+        crop_y: avgCropY,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: "avatar_id,emotion_type_id",
@@ -330,7 +348,9 @@ serve(async (req) => {
         success: true, 
         imageUrl: publicUrl,
         cropScale: avgCropScale,
-        message: "Image generated successfully" 
+        cropX: avgCropX,
+        cropY: avgCropY,
+        message: "Image generated successfully"
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
