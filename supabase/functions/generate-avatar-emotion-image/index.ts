@@ -90,12 +90,14 @@ serve(async (req) => {
     }
 
     // Determine background color based on emotion category
-    const backgroundColors: Record<string, string> = {
-      positive: "#4CAF50", // Green
-      negative: "#EF5350", // Red
-      neutral: "#9E9E9E",  // Gray
+    const backgroundColors: Record<string, { hex: string; name: string }> = {
+      positive: { hex: "#4CAF50", name: "green" },
+      negative: { hex: "#EF5350", name: "red" },
+      neutral: { hex: "#9E9E9E", name: "medium gray" },
     };
-    const backgroundColor = backgroundColors[emotionData.category] || "#9E9E9E";
+    const bgInfo = backgroundColors[emotionData.category] || backgroundColors.neutral;
+    const backgroundColor = bgInfo.hex;
+    const bgColorName = bgInfo.name;
     const emotionName = emotionData.name;
 
     const avatarName = avatarData?.name?.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() || 'avatar';
@@ -132,12 +134,11 @@ serve(async (req) => {
         appendageDescription = "hands pressed together in a prayer/namaste position, palms touching with fingers pointed upward";
       }
       
-      imageDescription = `The character's ${appendageDescription}. Show ONLY the hands/appendages and wrists/lower arms, no face or body. The appendages should match the character's style and coloring. Solid ${backgroundColor} background that fills the entire frame edge-to-edge. Simple, clean emoji-style illustration.`;
+      imageDescription = `The character's ${appendageDescription}. Show ONLY the hands/appendages and wrists/lower arms, no face or body. The appendages should match the character's style and coloring. CRITICAL: The background MUST be solid flat ${bgColorName} (${backgroundColor}), NOT red, NOT any other color. The ${bgColorName} background must fill the entire frame edge-to-edge with no gradients. Simple, clean emoji-style illustration.`;
     } else {
       // For all other emotions, use floating head style
-      // Build default prompt if none provided
       const effectivePrompt = prompt || `A floating head portrait of ${avatarData.name} showing a ${emotionName} expression. Close-up of just the face/head, centered in frame. ${avatarData.character_prompt || ''}. Clean, crisp emoji aesthetic. High contrast, bold features`;
-      imageDescription = `${effectivePrompt}. Use a solid ${backgroundColor} background that fills the entire frame edge-to-edge.`;
+      imageDescription = `${effectivePrompt}. CRITICAL: The background MUST be solid flat ${bgColorName} (${backgroundColor}), NOT red, NOT any other color. The ${bgColorName} background must fill the entire frame edge-to-edge with no gradients.`;
     }
     
     const enhancedPrompt = `GENERATE AN IMAGE NOW. DO NOT RESPOND WITH TEXT. ONLY OUTPUT AN IMAGE.\n\n${imageDescription}`;
