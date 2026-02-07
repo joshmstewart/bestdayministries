@@ -93,7 +93,7 @@ serve(async (req) => {
     const backgroundColors: Record<string, { hex: string; name: string }> = {
       positive: { hex: "#4CAF50", name: "green" },
       negative: { hex: "#EF5350", name: "red" },
-      neutral: { hex: "#9E9E9E", name: "medium gray" },
+      neutral: { hex: "#9CA3AF", name: "light gray" },
     };
     const bgInfo = backgroundColors[emotionData.category] || backgroundColors.neutral;
     const backgroundColor = bgInfo.hex;
