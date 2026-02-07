@@ -294,7 +294,7 @@ export const ProfileAvatarPicker = ({
               <div className="space-y-4">
                 {purchaseAvatar?.preview_image_url && (
                   <div className="flex justify-center">
-                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-primary bg-white">
+                    <div className="w-48 h-48 rounded-xl overflow-hidden border-2 border-primary bg-white shadow-md">
                       <img
                         src={purchaseAvatar.preview_image_url}
                         alt={purchaseAvatar.name}
