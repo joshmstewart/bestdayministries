@@ -201,7 +201,7 @@ serve(async (req) => {
           throw new Error(`Failed to decode image: ${e instanceof Error ? e.message : String(e)}`);
         }
 
-        const TARGET = 256;
+        const TARGET = 512;
         const SKIP_MAX_BYTES = 100 * 1024;
         const isAlreadySmall = originalSize < SKIP_MAX_BYTES;
         const isAlreadyTargetSize = decoded.width === TARGET && decoded.height === TARGET;

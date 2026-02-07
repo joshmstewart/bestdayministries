@@ -234,7 +234,7 @@ serve(async (req) => {
     let imageBuffer: Uint8Array;
     try {
       const decoded = await Image.decode(rawBuffer);
-      decoded.resize(256, 256);
+      decoded.resize(512, 512);
       // Encode PNG with max compression (level 3)
       imageBuffer = await decoded.encode(3);
       console.log(`Image compressed locally: ${rawBuffer.byteLength} -> ${imageBuffer.byteLength} bytes (${Math.round((1 - imageBuffer.byteLength / rawBuffer.byteLength) * 100)}% reduction)`);
