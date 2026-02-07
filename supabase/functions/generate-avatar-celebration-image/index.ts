@@ -1,12 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { translateCharacterName } from "../_shared/character-name-translator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,7 +26,6 @@ serve(async (req) => {
       throw new Error("Authorization required");
     }
 
-    // Verify admin access
     const { data: { user }, error: userError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", "")
     );
@@ -80,23 +79,19 @@ serve(async (req) => {
     };
 
     const prompts = celebrationPrompts[celebrationType] || celebrationPrompts.game_win;
-    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
 
     // Check for character-specific enhancements
     const isBubbleBenny = avatar.name?.toLowerCase().includes("bubble benny");
     const isXeroxXander = avatar.name?.toLowerCase().includes("xerox xander");
     
-    // Build character-specific additions
     let characterEnhancements = "";
     if (isBubbleBenny) {
-      // Bubble Benny should always have soap bubbles on him and be blowing bubbles when celebrating
       characterEnhancements = " CRITICAL: This character is 'Bubble Benny' - they MUST have iridescent soap bubbles floating all around them and soap-bubble texture on their skin. They should also be holding a bubble wand and blowing a big celebratory soap bubble.";
     } else if (isXeroxXander) {
-      // Xerox Xander's whole concept is that he copied himself - always show 2 identical characters
       characterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side celebrating together. Both copies should look exactly the same and be doing the same celebration pose or mirrored poses. Show the twins high-fiving, jumping together, or doing synchronized celebration moves.";
     }
 
-    // Build sex/anatomical consistency constraint if defined
+    // Build sex/anatomical consistency constraint
     let sexConstraint = "";
     if (avatar.sex === "male") {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build - muscular pecs are fine but NO breasts or feminine breast-like shapes. Use masculine torso proportions and an appropriate male physique including a visible bulge in the crotch area. Do NOT give this character any feminine body characteristics.";
@@ -106,27 +101,51 @@ serve(async (req) => {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is ANDROGYNOUS. The body should have a neutral, gender-ambiguous build - neither distinctly masculine nor feminine. Use slender proportions, a flat or very subtle chest, and avoid strongly gendered body characteristics.";
     }
 
-    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-
     console.log("Generating celebration image for avatar:", avatar.name);
 
-    // Call Lovable AI to generate the image with retry logic for IMAGE_PROHIBITED_CONTENT
+    // --- Retry with reference image, then fall back to text-only ---
     const MAX_ATTEMPTS = 3;
     let imageData: string | null = null;
+    let usedTextFallback = false;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      console.log(`Image generation attempt ${attempt}/${MAX_ATTEMPTS}`);
+      const isLastAttempt = attempt === MAX_ATTEMPTS;
+      const useTextOnly = isLastAttempt;
       
-      // On retries, pick a different random prompt to avoid the same content block
-      const retryPrompt = attempt > 1 
-        ? prompts[Math.floor(Math.random() * prompts.length)]
-        : randomPrompt;
-      
-      const currentPrompt = `Create a celebration image showing the EXACT same character from the reference image ${retryPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, body shape, outfit details, accessories, and art style, preserving their thematic identity/costume style exactly as shown in the reference.${sexConstraint}${characterEnhancements}
+      // Pick a different random prompt on each attempt
+      const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+
+      let messageContent: any;
+
+      if (useTextOnly) {
+        // Text-only fallback using translateCharacterName for copyrighted characters
+        const translation = translateCharacterName(avatar.name || '', avatar.character_prompt);
+        const characterDesc = translation.translatedPrompt || avatar.character_prompt || avatar.name;
+        
+        console.log(`Attempt ${attempt}: TEXT-ONLY fallback (translated: ${translation.wasTranslated})`);
+        
+        messageContent = `Generate a celebration image of ${characterDesc} ${randomPrompt}. Keep the character's thematic identity/costume style exactly as described.${sexConstraint}${characterEnhancements}
+
+CRITICAL COSTUME RULE: Do NOT add a cape, cloak, shawl, or any back-draped/flowing fabric unless it is part of the character's signature look.
+
+The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition. IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image - purely visual celebration only.`;
+        usedTextFallback = true;
+      } else {
+        // Reference image attempt
+        console.log(`Attempt ${attempt}: Using reference image`);
+        
+        messageContent = [
+          {
+            type: "text",
+            text: `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, body shape, outfit details, accessories, and art style, preserving their thematic identity/costume style exactly as shown in the reference.${sexConstraint}${characterEnhancements}
 
 CRITICAL COSTUME RULE: Do NOT add a cape, cloak, shawl, or any back-draped/flowing fabric unless it is clearly present on the character in the reference image. If the reference image does NOT have a cape/cloak, then the generated image must NOT include one.
 
-The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition. IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image - purely visual celebration only.`;
+The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition. IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image - purely visual celebration only.`,
+          },
+          { type: "image_url", image_url: { url: avatarImageUrl } },
+        ];
+      }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -136,15 +155,7 @@ The image should be joyful and celebratory, suitable for a game victory screen. 
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-image",
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: currentPrompt },
-                { type: "image_url", image_url: { url: avatarImageUrl } }
-              ],
-            },
-          ],
+          messages: [{ role: "user", content: messageContent }],
           modalities: ["image", "text"],
         }),
       });
@@ -164,7 +175,7 @@ The image should be joyful and celebratory, suitable for a game victory screen. 
         }
         const errorText = await response.text();
         console.error(`AI API error (attempt ${attempt}):`, response.status, errorText);
-        if (attempt === MAX_ATTEMPTS) throw new Error("Failed to generate image");
+        if (isLastAttempt) throw new Error("Failed to generate image");
         continue;
       }
 
@@ -172,32 +183,29 @@ The image should be joyful and celebratory, suitable for a game victory screen. 
       imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
       if (imageData) {
-        console.log(`Successfully generated image on attempt ${attempt}`);
+        console.log(`Successfully generated image on attempt ${attempt}${useTextOnly ? ' (text-only fallback)' : ' (reference image)'}`);
         break;
       }
 
-      const finishReason = aiResponse.choices?.[0]?.native_finish_reason || 
-                           aiResponse.choices?.[0]?.finish_reason;
+      const finishReason = aiResponse.choices?.[0]?.native_finish_reason || aiResponse.choices?.[0]?.finish_reason;
       console.warn(`No image on attempt ${attempt}, finish_reason: ${finishReason}`);
       
-      if (attempt === MAX_ATTEMPTS) {
+      if (isLastAttempt) {
         console.error("All attempts exhausted. Last response:", JSON.stringify(aiResponse));
       }
     }
 
     if (!imageData) {
-      throw new Error("Image generation blocked by content filter after 3 attempts. Try a different avatar.");
+      throw new Error("Image generation blocked by content filter after all attempts. Try a different avatar.");
     }
 
     // Extract base64 data
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-    // Generate unique filename
     const timestamp = Date.now();
     const fileName = `${avatarId}/celebration_${celebrationType}_${timestamp}.png`;
 
-    // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from("avatar-celebration-images")
       .upload(fileName, imageBuffer, {
@@ -210,14 +218,12 @@ The image should be joyful and celebratory, suitable for a game victory screen. 
       throw new Error("Failed to save image");
     }
 
-    // Get the public URL
     const { data: urlData } = supabase.storage
       .from("avatar-celebration-images")
       .getPublicUrl(fileName);
 
     const imageUrl = urlData.publicUrl;
 
-    // Get current max display_order for this avatar
     const { data: existing } = await supabase
       .from("fitness_avatar_celebration_images")
       .select("display_order")
@@ -227,7 +233,6 @@ The image should be joyful and celebratory, suitable for a game victory screen. 
 
     const nextOrder = existing && existing.length > 0 ? existing[0].display_order + 1 : 0;
 
-    // Save to database
     const { data: savedImage, error: saveError } = await supabase
       .from("fitness_avatar_celebration_images")
       .insert({
@@ -246,10 +251,7 @@ The image should be joyful and celebratory, suitable for a game victory screen. 
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        image: savedImage,
-      }),
+      JSON.stringify({ success: true, image: savedImage, usedTextFallback }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
