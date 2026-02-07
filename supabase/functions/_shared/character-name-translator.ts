@@ -382,6 +382,80 @@ const CHARACTER_TRANSLATIONS: CharacterTranslation[] = [
     characterType: 'monster'
   },
   
+  // Star Wars Characters
+  {
+    patterns: [/darth vader/i, /vader/i, /anakin skywalker/i],
+    visualDescription: "a towering dark lord in a black armored suit with a life-support chest panel of buttons and lights, long flowing black cape, and a distinctive black full-face helmet with a skull-like breathing mask and triangular eye lenses that completely covers the head and face with no visible skin, carrying a glowing red laser sword",
+    characterType: 'superhero'
+  },
+  {
+    patterns: [/grogu/i, /baby yoda/i, /the child/i],
+    visualDescription: "a tiny adorable green alien infant with very large pointed ears, big dark expressive eyes, wearing a small brown robe, sitting in a floating pod, gentle and curious expression",
+    characterType: 'monster'
+  },
+  {
+    patterns: [/mandalorian/i, /mando/i, /din djarin/i],
+    visualDescription: "a lone bounty hunter in shiny silver beskar armor covering the entire body including a T-visored helmet that completely covers the head and face with no visible skin or hair, a flowing brown cape, carrying futuristic weapons, rugged and battle-worn",
+    characterType: 'superhero'
+  },
+  {
+    patterns: [/chewbacca/i, /chewie/i],
+    visualDescription: "a very tall furry Wookiee warrior with long shaggy brown fur covering the entire body, a bandolier strap across the chest, carrying a large bowcaster crossbow weapon, loyal and fierce",
+    characterType: 'animal'
+  },
+  {
+    patterns: [/r2[-\s]?d2/i, /r2d2/i, /artoo/i],
+    visualDescription: "a small cylindrical white and blue astromech droid robot on three legs, a domed rotating head with a single red eye sensor, various panels and tools, beeps and whistles, loyal and brave",
+    characterType: 'monster'
+  },
+  {
+    patterns: [/c[-\s]?3po/i, /c3po/i, /threepio/i],
+    visualDescription: "a tall shiny golden humanoid protocol droid robot with round eyes, stiff posture, polished metallic gold body covering everything, worry-prone and proper demeanor",
+    characterType: 'monster'
+  },
+  {
+    patterns: [/yoda/i, /master yoda/i],
+    visualDescription: "a small ancient green alien Jedi master with large pointed ears, wispy white hair, wearing simple brown and tan robes, leaning on a walking stick, wise and powerful",
+    characterType: 'monster'
+  },
+  {
+    patterns: [/boba fett/i],
+    visualDescription: "a legendary bounty hunter in green and red dented Mandalorian armor covering the entire body including a T-visored helmet that completely covers the head and face with no visible skin or hair, jetpack on back, cape, wrist-mounted weapons, battle-scarred",
+    characterType: 'superhero'
+  },
+  
+  // Other Iconic Characters
+  {
+    patterns: [/master chief/i, /spartan 117/i, /john 117/i],
+    visualDescription: "a super-soldier in olive green futuristic MJOLNIR power armor covering the entire body including a fully enclosed helmet with a gold reflective visor that completely covers the head and face with no visible skin or hair, carrying a futuristic assault rifle, tall and imposing",
+    characterType: 'superhero'
+  },
+  {
+    patterns: [/indiana jones/i, /indy/i],
+    visualDescription: "a rugged adventurer archaeologist wearing a brown leather jacket, khaki shirt and pants, a brown fedora hat, carrying a coiled leather whip, stubbled face, confident explorer",
+    characterType: 'human'
+  },
+  {
+    patterns: [/gandalf/i],
+    visualDescription: "a tall ancient wizard with a long flowing white beard, pointed wide-brimmed hat, long gray or white robes, carrying a gnarled wooden staff that glows, wise and powerful",
+    characterType: 'human'
+  },
+  {
+    patterns: [/totoro/i],
+    visualDescription: "a very large round fluffy gray forest spirit creature with a wide grinning mouth, small pointed ears, whiskers, tiny eyes, holding an umbrella, gentle and magical",
+    characterType: 'monster'
+  },
+  {
+    patterns: [/iron giant/i],
+    visualDescription: "a massive friendly robot made of dark gray metal with a round head, glowing eyes, enormous build towering over trees, gentle and protective despite his size",
+    characterType: 'monster'
+  },
+  {
+    patterns: [/mega\s*man/i, /megaman/i, /rock\s*man/i],
+    visualDescription: "a small blue robot hero with a round helmet with a blue visor, a blue armored suit, an arm cannon weapon on one arm, determined expression, classic retro video game style",
+    characterType: 'superhero'
+  },
+  
   // Power Rangers / Super Sentai
   {
     patterns: [/power ranger/i, /red ranger/i],
