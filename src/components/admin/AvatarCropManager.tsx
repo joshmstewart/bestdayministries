@@ -225,12 +225,12 @@ export const AvatarCropManager = () => {
                   value={[cropScale]}
                   onValueChange={([v]) => setCropScale(v)}
                   min={1}
-                  max={2}
+                  max={3}
                   step={0.05}
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>1x (full)</span>
-                  <span>2x (zoomed)</span>
+                  <span>3x (zoomed)</span>
                 </div>
 
                 <div className="flex gap-2 pt-2">
