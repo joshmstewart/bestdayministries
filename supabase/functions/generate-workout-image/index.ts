@@ -1,12 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { translateCharacterName } from "../_shared/character-name-translator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -330,31 +330,7 @@ serve(async (req) => {
     console.log("Selected workout:", selectedWorkoutName);
     console.log("Selected location:", selectedLocationName);
 
-    // Build the message content - use image-to-image if avatar has an image
-    let messageContent: any;
-    
-    if (avatarImageUrl) {
-      // Use image-to-image editing with the avatar's actual image
-      messageContent = [
-        {
-          type: "text",
-          text: prompt,
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: avatarImageUrl,
-          },
-        },
-      ];
-      console.log("Using image-to-image with avatar image");
-    } else {
-      // Fallback to text-only generation if no avatar image
-      messageContent = `${avatar.character_prompt}, ${prompt}`;
-      console.log("Fallback: Using text-only generation (no avatar image)");
-    }
-
-    // Call Lovable AI to generate/edit the image with retry logic
+    // --- Retry with reference image, then fall back to text-only ---
     const MAX_RETRIES = 3;
     let imageData: string | null = null;
     let lastError: string | null = null;
@@ -362,6 +338,31 @@ serve(async (req) => {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       console.log(`Image generation attempt ${attempt}/${MAX_RETRIES}`);
       
+      const isLastAttempt = attempt === MAX_RETRIES;
+      const useTextOnly = isLastAttempt && !!avatarImageUrl; // Only fall back if we were using reference image
+      
+      let messageContent: any;
+      
+      if (useTextOnly) {
+        // Text-only fallback using translateCharacterName for copyrighted characters
+        const translation = translateCharacterName(avatar.name || '', avatar.character_prompt);
+        const characterDesc = translation.translatedPrompt || avatar.character_prompt || avatar.name;
+        
+        console.log(`Attempt ${attempt}: TEXT-ONLY fallback (translated: ${translation.wasTranslated})`);
+        messageContent = `Generate an image of ${characterDesc}. ${prompt}`;
+      } else if (avatarImageUrl) {
+        // Reference image attempt
+        messageContent = [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: avatarImageUrl } },
+        ];
+        console.log(`Attempt ${attempt}: Using reference image`);
+      } else {
+        // No avatar image at all - text-only from the start
+        messageContent = `${avatar.character_prompt}, ${prompt}`;
+        console.log(`Attempt ${attempt}: Text-only (no avatar image)`);
+      }
+
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -369,14 +370,8 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // Nano Banana image model
-          model: "google/gemini-2.5-flash-image-preview",
-          messages: [
-            {
-              role: "user",
-              content: messageContent,
-            },
-          ],
+          model: "google/gemini-2.5-flash-image",
+          messages: [{ role: "user", content: messageContent }],
           modalities: ["image", "text"],
         }),
       });
@@ -397,18 +392,17 @@ serve(async (req) => {
         const errorText = await response.text();
         console.error(`AI API error (attempt ${attempt}):`, response.status, errorText);
         lastError = "Failed to generate image";
-        continue; // Retry on server errors
+        continue;
       }
 
       const aiResponse = await response.json();
       imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
       if (imageData) {
-        console.log(`Image generated successfully on attempt ${attempt}`);
-        break; // Success! Exit retry loop
+        console.log(`Image generated successfully on attempt ${attempt}${useTextOnly ? ' (text-only fallback)' : ''}`);
+        break;
       }
       
-      // Model returned text but no image - log and retry
       const textResponse = aiResponse.choices?.[0]?.message?.content;
       console.warn(`Attempt ${attempt}: Model returned text but no image. Text: "${textResponse?.substring(0, 100)}..."`);
       lastError = "AI model did not generate an image. This sometimes happens - retrying...";

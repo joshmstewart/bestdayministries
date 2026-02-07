@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { translateCharacterName } from "../_shared/character-name-translator.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +25,7 @@ const CHORE_ACTIVITIES = [
   { name: "Brushing Teeth", prompt: "brushing teeth at the bathroom sink with a toothbrush" },
 ];
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -54,8 +54,6 @@ serve(async (req) => {
     }
 
     const { targetUserId } = await req.json();
-
-    // Use targetUserId if provided (for guardians acting on behalf of bestie), otherwise use the authenticated user
     const userId = targetUserId || user.id;
 
     // Verify if using targetUserId that user is a guardian of that bestie
@@ -68,7 +66,6 @@ serve(async (req) => {
         .maybeSingle();
 
       if (linkError || !link) {
-        // Also check if admin/owner
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
@@ -90,14 +87,9 @@ serve(async (req) => {
       .maybeSingle();
 
     if (avatarError || !userAvatar?.fitness_avatars) {
-      // No avatar selected - return gracefully (same as workout behavior)
       console.log("No avatar selected for user", userId);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          skipped: true,
-          reason: "No fitness avatar selected" 
-        }),
+        JSON.stringify({ success: false, skipped: true, reason: "No fitness avatar selected" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -107,11 +99,7 @@ serve(async (req) => {
 
     if (!avatarImageUrl) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          skipped: true,
-          reason: "Avatar has no image" 
-        }),
+        JSON.stringify({ success: false, skipped: true, reason: "Avatar has no image" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -126,7 +114,6 @@ serve(async (req) => {
       .select("pack_id, is_enabled")
       .eq("user_id", userId);
 
-    // Get all free packs (these are always available)
     const { data: freePacks } = await supabase
       .from("workout_location_packs")
       .select("id")
@@ -134,8 +121,6 @@ serve(async (req) => {
       .eq("is_free", true);
 
     const freePackIds = (freePacks || []).map((p) => p.id);
-
-    // Build list of enabled pack IDs
     const enabledPackIds = new Set<string>(freePackIds);
 
     if (userPacks && userPacks.length > 0) {
@@ -143,13 +128,11 @@ serve(async (req) => {
         if (up.is_enabled) {
           enabledPackIds.add(up.pack_id);
         } else {
-          // If user explicitly disabled a free pack, remove it
           enabledPackIds.delete(up.pack_id);
         }
       }
     }
 
-    // Query locations from enabled packs
     let locationsQuery = supabase
       .from("workout_locations")
       .select("id, name, prompt_text, pack_id, workout_location_packs(name)")
@@ -167,7 +150,6 @@ serve(async (req) => {
     let selectedLocationPackName: string | null = null;
 
     if (!locationsError && locations && locations.length > 0) {
-      // Get user's recently used locations to avoid repetition
       const { data: recentImages } = await supabase
         .from("chore_celebration_images")
         .select("location_id")
@@ -180,27 +162,19 @@ serve(async (req) => {
         (recentImages || []).map((img) => img.location_id).filter(Boolean)
       );
 
-      // Filter out recently used locations if we have enough variety
-      let availableLocations = locations.filter(
-        (loc) => !recentLocationIds.has(loc.id)
-      );
+      let availableLocations = locations.filter((loc) => !recentLocationIds.has(loc.id));
 
-      // If we've used most locations, allow repeats from older ones
       if (availableLocations.length < 3) {
         const veryRecentIds = new Set(
           (recentImages || []).slice(0, 3).map((img) => img.location_id).filter(Boolean)
         );
-        availableLocations = locations.filter(
-          (loc) => !veryRecentIds.has(loc.id)
-        );
+        availableLocations = locations.filter((loc) => !veryRecentIds.has(loc.id));
       }
 
-      // If still not enough, just use all locations
       if (availableLocations.length === 0) {
         availableLocations = locations;
       }
 
-      // Pick a random location
       const randomLocation = availableLocations[Math.floor(Math.random() * availableLocations.length)];
       selectedLocation = randomLocation.prompt_text;
       selectedLocationName = randomLocation.name;
@@ -211,7 +185,7 @@ serve(async (req) => {
       console.log("No locations found, using default home interior");
     }
 
-    // Build sex/anatomical consistency constraint if defined
+    // Build sex/anatomical consistency constraint
     let sexConstraint = "";
     if (avatar.sex === "male") {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is MALE. The body MUST have a masculine build - muscular pecs are fine but NO breasts or feminine breast-like shapes. Use masculine torso proportions and an appropriate male physique. Do NOT give this character any feminine body characteristics.";
@@ -233,59 +207,94 @@ serve(async (req) => {
       characterEnhancements = " CRITICAL: This character is 'Xerox Xander' whose superpower is that he copied/duplicated himself. You MUST show TWO IDENTICAL versions of this character side by side doing the chore TOGETHER.";
     }
 
-    // Build the prompt
-    const prompt = `Use the EXACT same character from the reference image. Show them ${randomActivity.prompt}, looking proud and happy about completing their chores. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style. Adapt their outfit appropriately for the household task.${sexConstraint}${characterEnhancements} Background/location: ${selectedLocation}. The character should have a celebratory, accomplished expression. High quality, bright and cheerful cartoon illustration style.`;
+    // Build the base prompt (without "from the reference image" phrasing for text-only fallback)
+    const baseActivityDesc = `${randomActivity.prompt}, looking proud and happy about completing their chores`;
+    const baseStyleRules = `${sexConstraint}${characterEnhancements} Background/location: ${selectedLocation}. The character should have a celebratory, accomplished expression. High quality, bright and cheerful cartoon illustration style.`;
 
-    console.log("Generating chore celebration image");
-    console.log("Activity:", randomActivity.name);
-    console.log("Location:", selectedLocationName || "default");
+    // --- Retry with reference image, then fall back to text-only ---
+    const MAX_ATTEMPTS = 3;
+    let imageData: string | null = null;
+    let usedTextFallback = false;
 
-    // Call Lovable AI to generate the image
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const isLastAttempt = attempt === MAX_ATTEMPTS;
+      const useTextOnly = isLastAttempt; // Last attempt = text-only fallback
+
+      let messageContent: any;
+
+      if (useTextOnly) {
+        // Text-only fallback using translateCharacterName for copyrighted characters
+        const translation = translateCharacterName(avatar.name || '', avatar.character_prompt);
+        const characterDesc = translation.translatedPrompt || avatar.character_prompt || avatar.name;
+        
+        console.log(`Attempt ${attempt}: TEXT-ONLY fallback (translated: ${translation.wasTranslated})`);
+        
+        messageContent = `Generate an image of ${characterDesc} shown ${baseActivityDesc}. Keep the character's thematic identity/costume style. Adapt their outfit appropriately for the household task.${baseStyleRules}
+
+CRITICAL COSTUME RULE: Do NOT add a cape, cloak, shawl, or any back-draped/flowing fabric unless it is part of the character's signature look.
+IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image.`;
+        usedTextFallback = true;
+      } else {
+        // Reference image attempt
+        console.log(`Attempt ${attempt}: Using reference image`);
+        
+        messageContent = [
           {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: avatarImageUrl } }
-            ],
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+            type: "text",
+            text: `Use the EXACT same character from the reference image. Show them ${baseActivityDesc}. Keep the character COMPLETELY identical - same gender, face, hair, art style, AND their thematic identity/costume style. Adapt their outfit appropriately for the household task.${baseStyleRules}
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+CRITICAL COSTUME RULE: Do NOT add a cape, cloak, shawl, or any back-draped/flowing fabric unless it is clearly present on the character in the reference image.
+IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image.`,
+          },
+          { type: "image_url", image_url: { url: avatarImageUrl } },
+        ];
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please try again later." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          messages: [{ role: "user", content: messageContent }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please try again later." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const errorText = await response.text();
+        console.error(`AI API error (attempt ${attempt}):`, response.status, errorText);
+        continue;
       }
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      throw new Error("Failed to generate image");
+
+      const aiResponse = await response.json();
+      imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (imageData) {
+        console.log(`Successfully generated image on attempt ${attempt}${useTextOnly ? ' (text-only fallback)' : ' (reference image)'}`);
+        break;
+      }
+
+      const finishReason = aiResponse.choices?.[0]?.native_finish_reason || aiResponse.choices?.[0]?.finish_reason;
+      console.warn(`No image on attempt ${attempt}, finish_reason: ${finishReason}`);
     }
 
-    const aiResponse = await response.json();
-    const imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
     if (!imageData) {
-      console.error("No image in AI response:", JSON.stringify(aiResponse));
-      throw new Error("No image generated");
+      throw new Error("Image generation failed after all attempts. Please try again.");
     }
 
     // Extract base64 data
@@ -297,7 +306,7 @@ serve(async (req) => {
     const timestamp = Date.now();
     const fileName = `${userId}/${today}_${timestamp}.png`;
 
-    // Upload to Supabase Storage (use workout-images bucket which already exists)
+    // Upload to storage
     const { error: uploadError } = await supabase.storage
       .from("workout-images")
       .upload(`chore-celebrations/${fileName}`, imageBuffer, {
@@ -310,14 +319,13 @@ serve(async (req) => {
       throw new Error("Failed to save image");
     }
 
-    // Get the public URL
     const { data: urlData } = supabase.storage
       .from("workout-images")
       .getPublicUrl(`chore-celebrations/${fileName}`);
 
     const imageUrl = urlData.publicUrl;
 
-    // Save to database with location info
+    // Save to database
     const { data: savedImage, error: saveError } = await supabase
       .from("chore_celebration_images")
       .insert({
@@ -344,6 +352,7 @@ serve(async (req) => {
         image: savedImage,
         activity: randomActivity.name,
         location: selectedLocationName,
+        usedTextFallback,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
