@@ -1002,13 +1002,13 @@ STYLE:
                         value={[cropScale]}
                         onValueChange={(value) => setCropScale(value[0])}
                         min={1}
-                        max={2}
+                        max={3}
                         step={0.05}
                         className="w-full"
                       />
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>1x (full)</span>
-                        <span>2x (zoomed)</span>
+                        <span>3x (zoomed)</span>
                       </div>
                     </div>
                   </div>

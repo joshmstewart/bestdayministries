@@ -281,12 +281,12 @@ export function EmotionCropDialog({
             value={[cropScale]}
             onValueChange={([v]) => handleScaleChange(v)}
             min={1}
-            max={2}
+            max={3}
             step={0.01}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>1x</span>
-            <span>2x</span>
+            <span>3x</span>
           </div>
         </div>
 
