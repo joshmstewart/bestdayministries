@@ -106,61 +106,87 @@ serve(async (req) => {
       sexConstraint = " CRITICAL ANATOMICAL CONSISTENCY: This character is ANDROGYNOUS. The body should have a neutral, gender-ambiguous build - neither distinctly masculine nor feminine. Use slender proportions, a flat or very subtle chest, and avoid strongly gendered body characteristics.";
     }
 
-    const prompt = `Create a celebration image showing the EXACT same character from the reference image ${randomPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, body shape, outfit details, accessories, and art style, preserving their thematic identity/costume style exactly as shown in the reference.${sexConstraint}${characterEnhancements}
+    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+
+    console.log("Generating celebration image for avatar:", avatar.name);
+
+    // Call Lovable AI to generate the image with retry logic for IMAGE_PROHIBITED_CONTENT
+    const MAX_ATTEMPTS = 3;
+    let imageData: string | null = null;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      console.log(`Image generation attempt ${attempt}/${MAX_ATTEMPTS}`);
+      
+      // On retries, pick a different random prompt to avoid the same content block
+      const retryPrompt = attempt > 1 
+        ? prompts[Math.floor(Math.random() * prompts.length)]
+        : randomPrompt;
+      
+      const currentPrompt = `Create a celebration image showing the EXACT same character from the reference image ${retryPrompt}. Keep the character COMPLETELY identical - same gender, face, hair, body shape, outfit details, accessories, and art style, preserving their thematic identity/costume style exactly as shown in the reference.${sexConstraint}${characterEnhancements}
 
 CRITICAL COSTUME RULE: Do NOT add a cape, cloak, shawl, or any back-draped/flowing fabric unless it is clearly present on the character in the reference image. If the reference image does NOT have a cape/cloak, then the generated image must NOT include one.
 
 The image should be joyful and celebratory, suitable for a game victory screen. High quality cartoon illustration, vibrant colors, energetic composition. IMPORTANT: Do NOT include any text, words, letters, numbers, or written language anywhere in the image - purely visual celebration only.`;
 
-    console.log("Generating celebration image for avatar:", avatar.name);
-    console.log("Using prompt:", prompt);
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: currentPrompt },
+                { type: "image_url", image_url: { url: avatarImageUrl } }
+              ],
+            },
+          ],
+          modalities: ["image", "text"],
+        }),
+      });
 
-    // Call Lovable AI to generate the image
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: avatarImageUrl } }
-            ],
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please try again later." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const errorText = await response.text();
+        console.error(`AI API error (attempt ${attempt}):`, response.status, errorText);
+        if (attempt === MAX_ATTEMPTS) throw new Error("Failed to generate image");
+        continue;
+      }
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      const aiResponse = await response.json();
+      imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      if (imageData) {
+        console.log(`Successfully generated image on attempt ${attempt}`);
+        break;
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please try again later." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+
+      const finishReason = aiResponse.choices?.[0]?.native_finish_reason || 
+                           aiResponse.choices?.[0]?.finish_reason;
+      console.warn(`No image on attempt ${attempt}, finish_reason: ${finishReason}`);
+      
+      if (attempt === MAX_ATTEMPTS) {
+        console.error("All attempts exhausted. Last response:", JSON.stringify(aiResponse));
       }
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      throw new Error("Failed to generate image");
     }
 
-    const aiResponse = await response.json();
-    const imageData = aiResponse.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
     if (!imageData) {
-      console.error("No image in AI response:", JSON.stringify(aiResponse));
-      throw new Error("No image generated");
+      throw new Error("Image generation blocked by content filter after 3 attempts. Try a different avatar.");
     }
 
     // Extract base64 data
