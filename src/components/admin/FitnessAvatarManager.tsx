@@ -120,6 +120,22 @@ const avatarTemplates: AvatarTemplate[] = [
   { name: 'Bluey', character_type: 'icons', prompt: 'a cute blue heeler puppy with blue fur, brown nose, playful expression, cartoon style, very friendly and imaginative' },
   { name: 'Peppa Pig', character_type: 'icons', prompt: 'a pink cartoon pig with a round head viewed from side, small tail, wearing a red dress, simple cute style' },
   { name: 'Cocomelon JJ', character_type: 'icons', prompt: 'a cute toddler with a round head, big eyes, wearing a onesie, sweet innocent expression, simple cartoon style' },
+  // Star Wars
+  { name: 'Darth Vader', character_type: 'icons', prompt: 'a towering dark lord in a black armored suit with a life-support chest panel of buttons and lights, long flowing black cape, and a distinctive black full-face helmet with a skull-like breathing mask and triangular eye lenses that completely covers the head and face with no visible skin, carrying a glowing red laser sword' },
+  { name: 'Grogu', character_type: 'icons', prompt: 'a tiny adorable green alien infant with very large pointed ears, big dark expressive eyes, wearing a small brown robe, sitting in a floating pod, gentle and curious expression' },
+  { name: 'The Mandalorian', character_type: 'icons', prompt: 'a lone bounty hunter in shiny silver beskar armor covering the entire body including a T-visored helmet that completely covers the head and face with no visible skin or hair, a flowing brown cape, carrying futuristic weapons, rugged and battle-worn' },
+  { name: 'Chewbacca', character_type: 'icons', prompt: 'a very tall furry Wookiee warrior with long shaggy brown fur covering the entire body, a bandolier strap across the chest, carrying a large bowcaster crossbow weapon, loyal and fierce' },
+  { name: 'R2-D2', character_type: 'icons', prompt: 'a small cylindrical white and blue astromech droid robot on three legs, a domed rotating head with a single red eye sensor, various panels and tools, beeps and whistles, loyal and brave' },
+  { name: 'C-3PO', character_type: 'icons', prompt: 'a tall shiny golden humanoid protocol droid robot with round eyes, stiff posture, polished metallic gold body covering everything, worry-prone and proper demeanor' },
+  { name: 'Yoda', character_type: 'icons', prompt: 'a small ancient green alien Jedi master with large pointed ears, wispy white hair, wearing simple brown and tan robes, leaning on a walking stick, wise and powerful' },
+  { name: 'Boba Fett', character_type: 'icons', prompt: 'a legendary bounty hunter in green and red dented Mandalorian armor covering the entire body including a T-visored helmet that completely covers the head and face with no visible skin or hair, jetpack on back, cape, wrist-mounted weapons, battle-scarred' },
+  // Other Iconic
+  { name: 'Master Chief', character_type: 'icons', prompt: 'a super-soldier in olive green futuristic MJOLNIR power armor covering the entire body including a fully enclosed helmet with a gold reflective visor that completely covers the head and face with no visible skin or hair, carrying a futuristic assault rifle, tall and imposing' },
+  { name: 'Indiana Jones', character_type: 'icons', prompt: 'a rugged adventurer archaeologist wearing a brown leather jacket, khaki shirt and pants, a brown fedora hat, carrying a coiled leather whip, stubbled face, confident explorer' },
+  { name: 'Gandalf', character_type: 'icons', prompt: 'a tall ancient wizard with a long flowing white beard, pointed wide-brimmed hat, long gray or white robes, carrying a gnarled wooden staff that glows, wise and powerful' },
+  { name: 'Totoro', character_type: 'icons', prompt: 'a very large round fluffy gray forest spirit creature with a wide grinning mouth, small pointed ears, whiskers, tiny eyes, holding an umbrella, gentle and magical' },
+  { name: 'The Iron Giant', character_type: 'icons', prompt: 'a massive friendly robot made of dark gray metal with a round head, glowing eyes, enormous build towering over trees, gentle and protective despite his size' },
+  { name: 'Mega Man', character_type: 'icons', prompt: 'a small blue robot hero with a round helmet with a blue visor, a blue armored suit, an arm cannon weapon on one arm, determined expression, classic retro video game style' },
 
   // ========== ANIMALS (50) ==========
   { name: 'Sporty Cat', character_type: 'animal', prompt: 'A friendly orange tabby cat with an athletic build, wearing a colorful headband and wristbands' },
