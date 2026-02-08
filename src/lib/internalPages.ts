@@ -53,7 +53,8 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/profile", label: "Profile" },
   { value: "/donation-history", label: "Donation History" },
   { value: "/notifications", label: "Notifications" },
-  { value: "/newsletter", label: "Newsletter" },
+  { value: "/newsletter", label: "Newsletter Signup" },
+  { value: "/newsletters", label: "Newsletter Archive" },
   
   // Guardian/Bestie
   { value: "/guardian-links", label: "My Besties" },
