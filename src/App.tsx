@@ -63,6 +63,8 @@ const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Newsletter = lazy(() => import("./pages/Newsletter"));
+const NewsletterArchive = lazy(() => import("./pages/NewsletterArchive"));
+const NewsletterView = lazy(() => import("./pages/NewsletterView"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const MemoryMatchPage = lazy(() => import("./pages/MemoryMatchPage"));
 const Match3Page = lazy(() => import("./pages/Match3Page"));
@@ -300,6 +302,8 @@ const App = () => {
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/newsletter" element={<Newsletter />} />
+              <Route path="/newsletters" element={<NewsletterArchive />} />
+              <Route path="/newsletters/:id" element={<NewsletterView />} />
               <Route path="/unsubscribe-success" element={<UnsubscribeSuccess />} />
               <Route path="/unsubscribe-error" element={<UnsubscribeError />} />
               <Route path="/help" element={<HelpCenter />} />

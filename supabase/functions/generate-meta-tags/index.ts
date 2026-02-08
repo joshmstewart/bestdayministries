@@ -13,6 +13,7 @@ interface MetaTagsRequest {
   image?: string;
   type?: string;
   eventId?: string;
+  newsletterId?: string;
   redirect?: string;
 }
 
@@ -32,12 +33,14 @@ Deno.serve(async (req) => {
     
     const urlObj = new URL(req.url);
     const eventId = urlObj.searchParams.get('eventId');
+    const newsletterId = urlObj.searchParams.get('newsletterId');
     const redirect = urlObj.searchParams.get('redirect');
     
-    if (req.method === 'GET' && (eventId || redirect)) {
+    if (req.method === 'GET' && (eventId || newsletterId || redirect)) {
       params = {
         url: redirect || urlObj.searchParams.get('url') || '',
         eventId: eventId || undefined,
+        newsletterId: newsletterId || undefined,
         redirect: redirect || undefined,
       };
     } else {
@@ -83,8 +86,25 @@ Deno.serve(async (req) => {
         finalTitle = event.title;
         finalDescription = event.description || finalDescription;
         finalImage = event.image_url || finalImage;
-        finalType = 'article'; // Facebook treats events better as articles
+        finalType = 'article';
         finalUrl = params.redirect || `${SITE_URL}/community?tab=feed&eventId=${event.id}`;
+      }
+    }
+
+    // Fetch newsletter data if newsletterId is provided
+    if (params.newsletterId) {
+      const { data: newsletter } = await supabase
+        .from('newsletter_campaigns')
+        .select('id, title, subject, preview_text, sent_at')
+        .eq('id', params.newsletterId)
+        .eq('status', 'sent')
+        .single();
+
+      if (newsletter) {
+        finalTitle = newsletter.title || newsletter.subject;
+        finalDescription = newsletter.preview_text || finalDescription;
+        finalType = 'article';
+        finalUrl = params.redirect || `${SITE_URL}/newsletters/${newsletter.id}`;
       }
     }
 
