@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { PRIMARY_DOMAIN } from "@/lib/domainConstants";
 import { 
   Share2, 
   Twitter, 
@@ -48,13 +49,13 @@ export const ShareButtons = ({
   
   // For social media platforms (Facebook, LinkedIn), use edge function URL for rich previews
   const getSocialShareUrl = () => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const shareBase = `https://${PRIMARY_DOMAIN}/share`;
     const redirectUrl = encodeURIComponent(shareUrl);
     if (eventId) {
-      return `${supabaseUrl}/functions/v1/generate-meta-tags?eventId=${eventId}&redirect=${redirectUrl}`;
+      return `${shareBase}?eventId=${eventId}&redirect=${redirectUrl}`;
     }
     if (newsletterId) {
-      return `${supabaseUrl}/functions/v1/generate-meta-tags?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
+      return `${shareBase}?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
     }
     return shareUrl;
   };
