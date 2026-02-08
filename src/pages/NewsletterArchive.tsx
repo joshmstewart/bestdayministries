@@ -16,7 +16,7 @@ const NewsletterArchive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("newsletter_campaigns")
-        .select("id, title, display_name, subject, preview_text, sent_at, sent_to_count")
+        .select("id, title, display_name, display_image_url, subject, preview_text, sent_at, sent_to_count")
         .eq("status", "sent")
         .order("sent_at", { ascending: false });
       if (error) throw error;
@@ -75,7 +75,14 @@ const NewsletterArchive = () => {
             <div className="grid gap-4">
               {newsletters?.map((newsletter) => (
                 <Link key={newsletter.id} to={`/newsletters/${newsletter.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer group">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer group overflow-hidden">
+                    {(newsletter as any).display_image_url && (
+                      <img
+                        src={(newsletter as any).display_image_url}
+                        alt=""
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
                     <CardContent className="p-6">
                       <h2 className="text-xl font-semibold group-hover:text-primary transition-colors mb-2">
                         {newsletter.display_name || newsletter.title || newsletter.subject}
