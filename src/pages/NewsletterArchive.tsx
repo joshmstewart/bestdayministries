@@ -96,11 +96,11 @@ const NewsletterArchive = () => {
                         </div>
                       </CardContent>
                       {(newsletter as any).display_image_url && (
-                        <div className="hidden sm:block w-48 flex-shrink-0">
+                        <div className="hidden sm:flex items-center p-4 flex-shrink-0">
                           <img
                             src={(newsletter as any).display_image_url}
                             alt=""
-                            className="w-full h-full object-cover"
+                            className="w-56 h-36 object-cover rounded-md"
                           />
                         </div>
                       )}
