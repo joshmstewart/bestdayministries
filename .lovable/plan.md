@@ -1,76 +1,70 @@
 
-# Prevent Silent Edge Function Failures
 
-## The Core Problem
+# Public Newsletter Archive with Shareable URLs
 
-You have **~170 backend functions** and **zero automated verification** that they're actually alive after deployment. When Lovable deploys functions, any individual one can silently fail (timeout, bundle error, infrastructure hiccup) and you'd never know until a user hits it. There's no health check, no smoke test, no monitoring -- just hope.
+## What We're Building
+A public-facing newsletter archive where anyone can browse past newsletters and read them as web pages. Each newsletter gets its own shareable URL with rich social media previews (so when shared on Facebook, LinkedIn, etc., it shows the newsletter title, preview text, and a nice card). Every page includes a subscribe CTA to convert readers into subscribers.
 
-That's unacceptable for critical functions like login, payments, and webhooks.
+## Pages and Routes
 
-## The Solution: A Health Check System
+### 1. Newsletter Archive List -- `/newsletters`
+- Public page (no login required)
+- Grid/list of all sent newsletters, newest first
+- Each card shows: title, preview text, sent date, recipient count
+- Click a card to open the full newsletter
+- Subscribe CTA at the top and bottom of the page
+- SEO-optimized with proper meta tags
 
-Build a single backend function that pings every other function and reports which ones are dead. Then surface the results in the Admin dashboard so you see problems immediately.
+### 2. Individual Newsletter Page -- `/newsletters/:id`
+- Public page showing the full HTML content of a single newsletter
+- Rendered in a styled container (max-width 600px to match email width)
+- Share buttons (Twitter, Facebook, LinkedIn, Copy Link) at top and bottom
+- Compact subscribe CTA sidebar/banner for non-subscribers
+- SEO meta tags dynamically set from campaign title, preview_text
+- "Back to all newsletters" navigation
 
-### What Gets Built
+### 3. Social Media Preview (Edge Function)
+- Extend the existing `generate-meta-tags` edge function to support `newsletterId` parameter
+- When shared on social media, the link goes through the edge function which returns proper OG tags, then redirects to the actual page
+- This solves the SPA crawling problem (crawlers can't execute JS)
 
-**1. A `health-check` backend function**
-- Accepts a list of function names (or defaults to ALL functions)
-- Sends a lightweight `OPTIONS` request to each one (the CORS preflight -- every function must handle this)
-- A 200 response = alive. Anything else (404, 500, timeout) = dead
-- Returns a report: which functions are alive, which are dead, response times
-- Categorizes functions by criticality (critical / important / utility)
+## Technical Details
 
-**2. A criticality registry**
-- Hardcoded list categorizing functions into tiers:
-  - **Critical** (login, payments, webhooks): `picture-password-login`, `stripe-webhook`, `create-sponsorship-checkout`, `create-marketplace-checkout`, `verify-sponsorship-payment`, `verify-marketplace-payment`, `create-donation-checkout`, `reconcile-donations-from-stripe`
-  - **Important** (user-facing features): `wordle-guess`, `scratch-card`, `text-to-speech`, `moderate-content`, `generate-full-recipe`, etc.
-  - **Utility** (admin/batch/seed): everything else
+### New Files
+- `src/pages/NewsletterArchive.tsx` -- list page at `/newsletters`
+- `src/pages/NewsletterView.tsx` -- individual newsletter page at `/newsletters/:id`
 
-**3. Admin dashboard tab: "System Health"**
-- Shows last health check results
-- Color-coded: green (alive), red (dead), yellow (slow > 2s)
-- "Run Health Check" button to trigger on demand
-- Critical functions highlighted at the top
-- Dead function count shown as a badge on the Admin tab
+### Modified Files
+- `src/App.tsx` -- add two new lazy-loaded routes
+- `src/lib/internalPages.ts` -- register `/newsletters` route
+- `supabase/functions/generate-meta-tags/index.ts` -- add `newsletterId` support
 
-**4. Automatic health check on page load (admin only)**
-- When an admin loads the Admin dashboard, automatically run health check against critical functions only (fast -- just ~10 requests)
-- Show a warning banner if any critical function is down
+### Database
+- **No schema changes needed** -- all required data (`title`, `subject`, `preview_text`, `html_content`, `sent_at`, `sent_to_count`) already exists in `newsletter_campaigns`
+- Add an RLS policy to allow public SELECT on `newsletter_campaigns` for `status = 'sent'` rows only (currently admin-only)
 
-### How It Works
-
-```text
-Admin opens dashboard
-        |
-        v
-Auto-check critical functions (OPTIONS requests)
-        |
-        v
-  All alive? ----YES----> Green checkmark, no action needed
-        |
-        NO
-        |
-        v
-  Red warning banner: "2 critical functions are DOWN: 
-  picture-password-login, stripe-webhook"
-  [Run Full Check] [View Details]
+### RLS Policy
+```sql
+CREATE POLICY "Anyone can view sent newsletters"
+  ON newsletter_campaigns FOR SELECT
+  USING (status = 'sent');
 ```
+This ensures only published/sent newsletters are visible publicly. Drafts, scheduled, and archived campaigns remain hidden.
 
-### Why OPTIONS Requests
+### Social Sharing Flow
+1. User clicks "Share on Facebook" on `/newsletters/:id`
+2. Share URL points to: `{supabase_url}/functions/v1/generate-meta-tags?newsletterId={id}&redirect={newsletter_page_url}`
+3. Facebook crawler hits edge function, gets proper OG tags (title, description, image)
+4. Edge function returns HTML with `meta http-equiv="refresh"` redirect to actual page
+5. Human visitors get instantly redirected to the real newsletter page
 
-Every function already handles `OPTIONS` for CORS preflight. It's the lightest possible check -- no auth needed, no side effects, instant response. If a function returns 404 on OPTIONS, it's not deployed.
+### Subscribe CTA
+- Reuses the existing compact `NewsletterSignup` component on individual pages
+- Archive list page gets a hero section with the full signup form
 
-## Implementation Steps
+### HTML Rendering
+- Newsletter `html_content` is rendered inside a sandboxed container using `dangerouslySetInnerHTML`
+- Wrapped in a 600px max-width container to match email rendering
+- DOMPurify sanitization applied for safety
+- Existing styles from the email HTML are preserved
 
-1. Create the criticality registry (a simple TypeScript map in `src/lib/edgeFunctionRegistry.ts`)
-2. Create the `health-check` backend function
-3. Create the `SystemHealthManager` admin component
-4. Add it to the Admin dashboard tabs
-5. Add auto-check on admin page load for critical functions
-6. Deploy and test
-
-## What This Does NOT Solve
-
-- It won't **prevent** functions from failing to deploy -- that's a platform-level issue
-- It won't auto-redeploy failed functions (not possible from within the app)
-- It **will** tell you immediately when something is wrong, so you can trigger a redeploy before users are affected
