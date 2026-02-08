@@ -100,12 +100,6 @@ const NewsletterArchive = () => {
             </div>
           )}
 
-          {/* Bottom Subscribe CTA */}
-          {newsletters && newsletters.length > 0 && (
-            <div className="mt-12">
-              <NewsletterSignup compact />
-            </div>
-          )}
         </div>
       </main>
 
