@@ -27,6 +27,7 @@ interface ShareButtonsProps {
   image?: string;
   compact?: boolean;
   eventId?: string; // For dynamic social media previews
+  newsletterId?: string; // For dynamic newsletter social media previews
 }
 
 export const ShareButtons = ({
@@ -38,6 +39,7 @@ export const ShareButtons = ({
   image,
   compact = false,
   eventId,
+  newsletterId,
 }: ShareButtonsProps) => {
   const [copied, setCopied] = useState(false);
   
@@ -46,10 +48,13 @@ export const ShareButtons = ({
   
   // For social media platforms (Facebook, LinkedIn), use edge function URL for rich previews
   const getSocialShareUrl = () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const redirectUrl = encodeURIComponent(shareUrl);
     if (eventId) {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const redirectUrl = encodeURIComponent(shareUrl);
       return `${supabaseUrl}/functions/v1/generate-meta-tags?eventId=${eventId}&redirect=${redirectUrl}`;
+    }
+    if (newsletterId) {
+      return `${supabaseUrl}/functions/v1/generate-meta-tags?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
     }
     return shareUrl;
   };

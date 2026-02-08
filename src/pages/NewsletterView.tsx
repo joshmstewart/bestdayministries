@@ -110,6 +110,7 @@ const NewsletterView = () => {
               title={displayTitle}
               description={newsletter.preview_text || ""}
               url={socialShareUrl}
+              newsletterId={id}
             />
           </div>
 
@@ -127,6 +128,7 @@ const NewsletterView = () => {
               title={displayTitle}
               description={newsletter.preview_text || ""}
               url={socialShareUrl}
+              newsletterId={id}
             />
             <NewsletterSignup compact />
           </div>
