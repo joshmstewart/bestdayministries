@@ -12,6 +12,7 @@ import { CampaignActions } from "./CampaignActions";
 import { CampaignStatsDialog } from "./CampaignStatsDialog";
 import { NewsletterPreviewDialog } from "./NewsletterPreviewDialog";
 import { SaveAsTemplateDialog } from "./SaveAsTemplateDialog";
+import { EditDisplayNameDialog } from "./EditDisplayNameDialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { format, formatDistanceToNow } from "date-fns";
@@ -50,6 +51,7 @@ export const NewsletterCampaigns = () => {
   const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
   const [templateCampaign, setTemplateCampaign] = useState<any>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [displayNameCampaign, setDisplayNameCampaign] = useState<any>(null);
 
   const { data: campaigns, isLoading } = useQuery({
     queryKey: ["newsletter-campaigns"],
@@ -255,6 +257,9 @@ export const NewsletterCampaigns = () => {
                 <div className="space-y-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-lg font-semibold">{campaign.title}</h4>
+                    {campaign.display_name && (
+                      <span className="text-sm text-muted-foreground">({campaign.display_name})</span>
+                    )}
                     <Badge variant={getStatusColor(campaign.status)}>
                       {campaign.status}
                     </Badge>
@@ -403,6 +408,14 @@ export const NewsletterCampaigns = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => setDisplayNameCampaign(campaign)}
+                        title="Edit Display Name"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => cloneCampaignMutation.mutate(campaign.id)}
                       >
                         <Copy className="h-4 w-4" />
@@ -519,6 +532,12 @@ export const NewsletterCampaigns = () => {
           campaignHtmlContent={templateCampaign.html_content || ""}
         />
       )}
+
+      <EditDisplayNameDialog
+        campaign={displayNameCampaign}
+        open={!!displayNameCampaign}
+        onOpenChange={(open) => { if (!open) setDisplayNameCampaign(null); }}
+      />
     </div>
   );
 };
