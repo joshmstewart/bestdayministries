@@ -6376,6 +6376,7 @@ export type Database = {
           analytics_synced_at: string | null
           created_at: string
           created_by: string
+          display_name: string | null
           failed_count: number | null
           html_content: string
           id: string
@@ -6397,6 +6398,7 @@ export type Database = {
           analytics_synced_at?: string | null
           created_at?: string
           created_by: string
+          display_name?: string | null
           failed_count?: number | null
           html_content: string
           id?: string
@@ -6418,6 +6420,7 @@ export type Database = {
           analytics_synced_at?: string | null
           created_at?: string
           created_by?: string
+          display_name?: string | null
           failed_count?: number | null
           html_content?: string
           id?: string

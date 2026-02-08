@@ -16,7 +16,7 @@ const NewsletterArchive = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("newsletter_campaigns")
-        .select("id, title, subject, preview_text, sent_at, sent_to_count")
+        .select("id, title, display_name, subject, preview_text, sent_at, sent_to_count")
         .eq("status", "sent")
         .order("sent_at", { ascending: false });
       if (error) throw error;
@@ -78,7 +78,7 @@ const NewsletterArchive = () => {
                   <Card className="hover:shadow-md transition-shadow cursor-pointer group">
                     <CardContent className="p-6">
                       <h2 className="text-xl font-semibold group-hover:text-primary transition-colors mb-2">
-                        {newsletter.title || newsletter.subject}
+                        {newsletter.display_name || newsletter.title || newsletter.subject}
                       </h2>
                       {newsletter.preview_text && (
                         <p className="text-muted-foreground line-clamp-2 mb-3">
