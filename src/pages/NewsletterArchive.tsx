@@ -76,31 +76,35 @@ const NewsletterArchive = () => {
               {newsletters?.map((newsletter) => (
                 <Link key={newsletter.id} to={`/newsletters/${newsletter.id}`}>
                   <Card className="hover:shadow-md transition-shadow cursor-pointer group overflow-hidden">
-                    {(newsletter as any).display_image_url && (
-                      <img
-                        src={(newsletter as any).display_image_url}
-                        alt=""
-                        className="w-full h-48 object-cover"
-                      />
-                    )}
-                    <CardContent className="p-6">
-                      <h2 className="text-xl font-semibold group-hover:text-primary transition-colors mb-2">
-                        {newsletter.display_name || newsletter.title || newsletter.subject}
-                      </h2>
-                      {newsletter.preview_text && (
-                        <p className="text-muted-foreground line-clamp-2 mb-3">
-                          {newsletter.preview_text}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        {newsletter.sent_at && (
-                          <span className="flex items-center gap-1.5">
-                            <Calendar className="h-4 w-4" />
-                            {format(new Date(newsletter.sent_at), "MMMM d, yyyy")}
-                          </span>
+                    <div className="flex">
+                      <CardContent className="p-6 flex-1 min-w-0">
+                        <h2 className="text-xl font-semibold group-hover:text-primary transition-colors mb-2">
+                          {newsletter.display_name || newsletter.title || newsletter.subject}
+                        </h2>
+                        {newsletter.preview_text && (
+                          <p className="text-muted-foreground line-clamp-2 mb-3">
+                            {newsletter.preview_text}
+                          </p>
                         )}
-                      </div>
-                    </CardContent>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          {newsletter.sent_at && (
+                            <span className="flex items-center gap-1.5">
+                              <Calendar className="h-4 w-4" />
+                              {format(new Date(newsletter.sent_at), "MMMM d, yyyy")}
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                      {(newsletter as any).display_image_url && (
+                        <div className="hidden sm:block w-48 flex-shrink-0">
+                          <img
+                            src={(newsletter as any).display_image_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </Card>
                 </Link>
               ))}
