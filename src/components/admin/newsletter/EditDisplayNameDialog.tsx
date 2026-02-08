@@ -1,17 +1,30 @@
-import { useState, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { ImagePlus, X, Loader2 } from "lucide-react";
+import { ImagePlus, X, Loader2, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface EditDisplayNameDialogProps {
   campaign: { id: string; title: string; display_name?: string | null; display_image_url?: string | null } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+function extractImagesFromHtml(html: string): string[] {
+  const urls: string[] = [];
+  const regex = /<img[^>]+src=["']([^"']+)["']/gi;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html)) !== null) {
+    if (match[1] && !urls.includes(match[1])) {
+      urls.push(match[1]);
+    }
+  }
+  return urls;
 }
 
 export const EditDisplayNameDialog = ({ campaign, open, onOpenChange }: EditDisplayNameDialogProps) => {
@@ -28,6 +41,27 @@ export const EditDisplayNameDialog = ({ campaign, open, onOpenChange }: EditDisp
     setDisplayName(campaign.display_name || "");
     setImageUrl(campaign.display_image_url || "");
   }
+
+  // Fetch html_content to extract images
+  const { data: htmlContent } = useQuery({
+    queryKey: ["newsletter-campaign-content", campaign?.id],
+    queryFn: async () => {
+      if (!campaign?.id) return null;
+      const { data, error } = await supabase
+        .from("newsletter_campaigns")
+        .select("html_content")
+        .eq("id", campaign.id)
+        .single();
+      if (error) throw error;
+      return (data as any)?.html_content as string | null;
+    },
+    enabled: open && !!campaign?.id,
+  });
+
+  const contentImages = useMemo(() => {
+    if (!htmlContent) return [];
+    return extractImagesFromHtml(htmlContent);
+  }, [htmlContent]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,7 +124,7 @@ export const EditDisplayNameDialog = ({ campaign, open, onOpenChange }: EditDisp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Display Settings</DialogTitle>
           <DialogDescription>
@@ -147,6 +181,33 @@ export const EditDisplayNameDialog = ({ campaign, open, onOpenChange }: EditDisp
               onChange={handleImageUpload}
             />
           </div>
+
+          {/* Pick from newsletter content images */}
+          {contentImages.length > 0 && (
+            <div className="space-y-2">
+              <Label>Or pick from newsletter</Label>
+              <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                {contentImages.map((src, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setImageUrl(src)}
+                    className={cn(
+                      "relative rounded-md overflow-hidden border-2 aspect-video transition-colors",
+                      imageUrl === src ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
+                    )}
+                  >
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    {imageUrl === src && (
+                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                        <Check className="h-5 w-5 text-primary-foreground bg-primary rounded-full p-0.5" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
