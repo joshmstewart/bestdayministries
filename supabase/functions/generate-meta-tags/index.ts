@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     if (params.newsletterId) {
       const { data: newsletter } = await supabase
         .from('newsletter_campaigns')
-        .select('id, title, display_name, subject, preview_text, sent_at')
+        .select('id, title, display_name, display_image_url, subject, preview_text, sent_at')
         .eq('id', params.newsletterId)
         .eq('status', 'sent')
         .single();
@@ -103,6 +103,9 @@ Deno.serve(async (req) => {
       if (newsletter) {
         finalTitle = newsletter.display_name || newsletter.title || newsletter.subject;
         finalDescription = newsletter.preview_text || finalDescription;
+        if (newsletter.display_image_url) {
+          finalImage = newsletter.display_image_url;
+        }
         finalType = 'article';
         finalUrl = params.redirect || `${SITE_URL}/newsletters/${newsletter.id}`;
       }
