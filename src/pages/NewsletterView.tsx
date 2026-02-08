@@ -122,7 +122,7 @@ const NewsletterView = () => {
           {/* Newsletter Content */}
           <div className="max-w-[600px] mx-auto border rounded-lg overflow-hidden bg-card shadow-sm">
             <div
-              className="newsletter-content"
+              className="newsletter-content p-4 sm:p-6"
               dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
             />
           </div>
