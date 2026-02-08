@@ -92,12 +92,6 @@ const NewsletterArchive = () => {
                             {format(new Date(newsletter.sent_at), "MMMM d, yyyy")}
                           </span>
                         )}
-                        {newsletter.sent_to_count && (
-                          <span className="flex items-center gap-1.5">
-                            <Users className="h-4 w-4" />
-                            {newsletter.sent_to_count.toLocaleString()} recipients
-                          </span>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
