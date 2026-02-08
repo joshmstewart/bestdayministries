@@ -47,6 +47,7 @@ export const NewsletterCampaignDialog = ({
 }: NewsletterCampaignDialogProps) => {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [subject, setSubject] = useState("");
   const [previewText, setPreviewText] = useState("");
   const [htmlContent, setHtmlContent] = useState("");
@@ -86,6 +87,7 @@ export const NewsletterCampaignDialog = ({
   useEffect(() => {
     if (campaign) {
       setTitle(campaign.title || "");
+      setDisplayName(campaign.display_name || "");
       setSubject(campaign.subject || "");
       setPreviewText(campaign.preview_text || "");
       setHtmlContent(campaign.html_content || "");
@@ -115,6 +117,7 @@ export const NewsletterCampaignDialog = ({
       setSequenceSteps([]);
     } else {
       setTitle("");
+      setDisplayName("");
       setSubject("");
       setPreviewText("");
       setHtmlContent("");
@@ -159,6 +162,7 @@ export const NewsletterCampaignDialog = ({
 
       const campaignData = {
         title,
+        display_name: displayName || null,
         subject,
         preview_text: previewText,
         html_content: htmlContent,
@@ -227,6 +231,19 @@ export const NewsletterCampaignDialog = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Monthly Newsletter - January 2025"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="displayName">Display Name (Optional)</Label>
+            <Input
+              id="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Public-facing title shown on newsletter archive"
+            />
+            <p className="text-xs text-muted-foreground">
+              If set, this will be used on the public newsletter page instead of the campaign title.
+            </p>
           </div>
 
           <div className="space-y-2">

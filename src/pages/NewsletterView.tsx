@@ -19,7 +19,7 @@ const NewsletterView = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("newsletter_campaigns")
-        .select("id, title, subject, preview_text, html_content, sent_at, sent_to_count")
+        .select("id, title, display_name, subject, preview_text, html_content, sent_at, sent_to_count")
         .eq("id", id!)
         .eq("status", "sent")
         .single();
@@ -29,7 +29,7 @@ const NewsletterView = () => {
     enabled: !!id,
   });
 
-  const displayTitle = newsletter?.title || newsletter?.subject || "Newsletter";
+  const displayTitle = newsletter?.display_name || newsletter?.title || newsletter?.subject || "Newsletter";
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const pageUrl = `${window.location.origin}/newsletters/${id}`;
   const socialShareUrl = newsletter
