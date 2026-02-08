@@ -141,13 +141,9 @@ Deno.serve(async (req) => {
   <!-- Canonical -->
   <link rel="canonical" href="${finalUrl}">
   
-  <!-- Redirect to actual page (delayed for crawlers) -->
-  <meta http-equiv="refresh" content="1; url=${finalUrl}">
-  <script>
-    // Only redirect for real browsers, not crawlers
-    var isBot = /facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|Slackbot|Discordbot|TelegramBot/i.test(navigator.userAgent);
-    if (!isBot) { window.location.href = "${finalUrl}"; }
-  </script>
+  <!-- Redirect real browsers only via JS (crawlers don't execute JS, so they read OG tags above) -->
+  <script>window.location.replace("${finalUrl}");</script>
+  <noscript><meta http-equiv="refresh" content="0; url=${finalUrl}"></noscript>
 </head>
 <body>
   <p>Redirecting to <a href="${finalUrl}">${finalUrl}</a>...</p>
