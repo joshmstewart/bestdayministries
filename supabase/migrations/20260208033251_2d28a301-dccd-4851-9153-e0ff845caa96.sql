@@ -1,0 +1,1 @@
+ALTER TABLE public.newsletter_campaigns ADD COLUMN display_image_url TEXT;
