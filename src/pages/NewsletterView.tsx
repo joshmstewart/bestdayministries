@@ -30,11 +30,7 @@ const NewsletterView = () => {
   });
 
   const displayTitle = newsletter?.display_name || newsletter?.title || newsletter?.subject || "Newsletter";
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const pageUrl = `${window.location.origin}/newsletters/${id}`;
-  const socialShareUrl = newsletter
-    ? `${supabaseUrl}/functions/v1/generate-meta-tags?newsletterId=${id}&redirect=${encodeURIComponent(pageUrl)}`
-    : pageUrl;
+  const pageUrl = `https://bestdayministries.org/newsletters/${id}`;
 
   if (isLoading) {
     return (
@@ -109,7 +105,7 @@ const NewsletterView = () => {
             <ShareButtons
               title={displayTitle}
               description={newsletter.preview_text || ""}
-              url={socialShareUrl}
+              url={pageUrl}
               newsletterId={id}
             />
           </div>
@@ -127,7 +123,7 @@ const NewsletterView = () => {
             <ShareButtons
               title={displayTitle}
               description={newsletter.preview_text || ""}
-              url={socialShareUrl}
+              url={pageUrl}
               newsletterId={id}
             />
             <NewsletterSignup compact />
