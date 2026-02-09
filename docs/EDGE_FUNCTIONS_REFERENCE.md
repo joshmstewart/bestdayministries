@@ -76,6 +76,10 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`sentry-webhook`** - [Webhook] Receives Sentry error alerts, logs to `error_logs`
 - **`resend-webhook`** - [Webhook] Receives Resend email events (delivered, bounced, etc.)
 
+### SEO & Social Sharing
+- **`generate-sitemap`** - [Public] Generates dynamic XML sitemap (static pages + posts + events + albums + vendors)
+- **`generate-meta-tags`** - [Public, GET] Returns HTML page with dynamic OG meta tags for social sharing previews. Supports `eventId`, `newsletterId`, and `redirect` query params. Proxied via Cloudflare Redirect Rule at `/share` path on primary domain. Uses JS-only redirect so crawlers read OG tags before browser navigates away.
+
 ### Utility Functions
 - **`get-sentry-dsn`** - [Public] Returns Sentry DSN for client-side error tracking
 - **`get-google-places-key`** - [Public] Returns Google Places API key for location autocomplete
