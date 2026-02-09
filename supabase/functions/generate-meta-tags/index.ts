@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     const newsletterId = urlObj.searchParams.get('newsletterId');
     const redirect = urlObj.searchParams.get('redirect');
     
-    if (req.method === 'GET' && (eventId || newsletterId || redirect)) {
+    if (req.method === 'GET') {
       params = {
         url: redirect || urlObj.searchParams.get('url') || '',
         eventId: eventId || undefined,
