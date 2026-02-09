@@ -1,119 +1,86 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { SITE_URL } from '../_shared/domainConstants.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Edge function for generating dynamic OG meta tags for social sharing
+const SITE_URL = 'https://bestdayministries.org'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
-
-interface MetaTagsRequest {
-  url: string;
-  title?: string;
-  description?: string;
-  image?: string;
-  type?: string;
-  eventId?: string;
-  newsletterId?: string;
-  redirect?: string;
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    )
 
-    // Support both JSON body and URL query params
-    let params: MetaTagsRequest = { url: '' };
-    
-    const urlObj = new URL(req.url);
-    const eventId = urlObj.searchParams.get('eventId');
-    const newsletterId = urlObj.searchParams.get('newsletterId');
-    const redirect = urlObj.searchParams.get('redirect');
-    
-    if (req.method === 'GET') {
-      params = {
-        url: redirect || urlObj.searchParams.get('url') || '',
-        eventId: eventId || undefined,
-        newsletterId: newsletterId || undefined,
-        redirect: redirect || undefined,
-      };
-    } else {
-      params = await req.json() as MetaTagsRequest;
-    }
-
-    const { url, title, description, image, type = 'website' } = params;
+    const urlObj = new URL(req.url)
+    const eventId = urlObj.searchParams.get('eventId')
+    const newsletterId = urlObj.searchParams.get('newsletterId')
+    const redirect = urlObj.searchParams.get('redirect')
 
     // Load SEO settings from database
     const { data: settings } = await supabase
       .from('app_settings')
       .select('setting_key, setting_value')
-      .in('setting_key', ['site_title', 'site_description', 'og_image_url', 'twitter_handle']);
+      .in('setting_key', ['site_title', 'site_description', 'og_image_url', 'twitter_handle'])
 
-    const settingsMap: Record<string, any> = {};
-    settings?.forEach((setting) => {
+    const settingsMap: Record<string, string> = {}
+    settings?.forEach((s: any) => {
       try {
-        settingsMap[setting.setting_key] = 
-          typeof setting.setting_value === 'string' 
-            ? JSON.parse(setting.setting_value) 
-            : setting.setting_value;
+        settingsMap[s.setting_key] = typeof s.setting_value === 'string' ? JSON.parse(s.setting_value) : s.setting_value
       } catch {
-        settingsMap[setting.setting_key] = setting.setting_value;
+        settingsMap[s.setting_key] = s.setting_value
       }
-    });
+    })
 
-    let finalTitle = title || settingsMap.site_title || 'Joy House Community';
-    let finalDescription = description || settingsMap.site_description || 'Building a supportive community for adults with special needs';
-    let finalImage = image || settingsMap.og_image_url || 'https://lovable.dev/opengraph-image-p98pqg.png';
-    let finalType = type;
-    let finalUrl = url;
-    const twitterHandle = settingsMap.twitter_handle || '';
+    let finalTitle = settingsMap.site_title || 'Joy House Community'
+    let finalDescription = settingsMap.site_description || 'Building a supportive community for adults with special needs'
+    let finalImage = settingsMap.og_image_url || 'https://lovable.dev/opengraph-image-p98pqg.png'
+    let finalType = 'website'
+    let finalUrl = redirect || urlObj.searchParams.get('url') || SITE_URL
 
     // Fetch event data if eventId is provided
-    if (params.eventId) {
+    if (eventId) {
       const { data: event } = await supabase
         .from('events')
-        .select('id, title, description, image_url, event_date, location')
-        .eq('id', params.eventId)
-        .single();
+        .select('id, title, description, image_url')
+        .eq('id', eventId)
+        .single()
 
       if (event) {
-        finalTitle = event.title;
-        finalDescription = event.description || finalDescription;
-        finalImage = event.image_url || finalImage;
-        finalType = 'article';
-        finalUrl = params.redirect || `${SITE_URL}/community?tab=feed&eventId=${event.id}`;
+        finalTitle = event.title
+        finalDescription = event.description || finalDescription
+        finalImage = event.image_url || finalImage
+        finalType = 'article'
+        finalUrl = redirect || `${SITE_URL}/community?tab=feed&eventId=${event.id}`
       }
     }
 
     // Fetch newsletter data if newsletterId is provided
-    if (params.newsletterId) {
+    if (newsletterId) {
       const { data: newsletter } = await supabase
         .from('newsletter_campaigns')
-        .select('id, title, display_name, display_image_url, subject, preview_text, sent_at')
-        .eq('id', params.newsletterId)
+        .select('id, title, display_name, display_image_url, subject, preview_text')
+        .eq('id', newsletterId)
         .eq('status', 'sent')
-        .single();
+        .single()
 
       if (newsletter) {
-        finalTitle = newsletter.display_name || newsletter.title || newsletter.subject;
-        finalDescription = newsletter.preview_text || finalDescription;
-        if (newsletter.display_image_url) {
-          finalImage = newsletter.display_image_url;
-        }
-        finalType = 'article';
-        finalUrl = params.redirect || `${SITE_URL}/newsletters/${newsletter.id}`;
+        finalTitle = newsletter.display_name || newsletter.title || newsletter.subject
+        finalDescription = newsletter.preview_text || finalDescription
+        if (newsletter.display_image_url) finalImage = newsletter.display_image_url
+        finalType = 'article'
+        finalUrl = redirect || `${SITE_URL}/newsletters/${newsletter.id}`
       }
     }
 
-    // Generate HTML with meta tags
-    // Use content="1" (1 second delay) so crawlers read meta tags before redirect
+    const twitterHandle = settingsMap.twitter_handle || ''
+
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -121,8 +88,6 @@ Deno.serve(async (req) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${finalTitle}</title>
   <meta name="description" content="${finalDescription}">
-  
-  <!-- Open Graph -->
   <meta property="og:title" content="${finalTitle}">
   <meta property="og:description" content="${finalDescription}">
   <meta property="og:type" content="${finalType}">
@@ -131,41 +96,28 @@ Deno.serve(async (req) => {
   <meta property="og:image:height" content="630">
   <meta property="og:url" content="${finalUrl}">
   <meta property="og:site_name" content="Joy House Community">
-  
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${finalTitle}">
   <meta name="twitter:description" content="${finalDescription}">
   <meta name="twitter:image" content="${finalImage}">
   ${twitterHandle ? `<meta name="twitter:site" content="@${twitterHandle}">` : ''}
-  
-  <!-- Canonical -->
   <link rel="canonical" href="${finalUrl}">
-  
-  <!-- Redirect real browsers only via JS (crawlers don't execute JS, so they read OG tags above) -->
   <script>window.location.replace("${finalUrl}");</script>
   <noscript><meta http-equiv="refresh" content="0; url=${finalUrl}"></noscript>
 </head>
 <body>
   <p>Redirecting to <a href="${finalUrl}">${finalUrl}</a>...</p>
 </body>
-</html>`;
+</html>`
 
     return new Response(html, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/html',
-      },
-    });
+      headers: { ...corsHeaders, 'Content-Type': 'text/html' },
+    })
   } catch (error) {
-    console.error('Error generating meta tags:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error generating meta tags:', error)
     return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})
