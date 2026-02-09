@@ -95,7 +95,17 @@ Update `index.html` with your most important/common meta tags. This is the ONLY 
 This edge function generates an HTML page with proper OG meta tags, then redirects the browser via JS. Social crawlers (which don't execute JS) read the OG tags; human visitors get redirected instantly.
 
 **Cloudflare Proxy Setup (ACTIVE):**
-A Cloudflare Redirect Rule proxies `bestdayministries.org/share?...` to the edge function. This means shared URLs show the custom domain, not the Supabase domain.
+A Cloudflare **Redirect Rule** (under Rules → Redirect Rules) proxies `bestdayministries.org/share?...` to the edge function. This means shared URLs show the custom domain, not the Supabase domain.
+
+**CRITICAL Cloudflare Rule Configuration:**
+- Rule type: **Custom filter expression** (NOT wildcard pattern — wildcard `*` doesn't match query-string-only paths like `/share?id=...`)
+- Expression: `(http.request.uri.path eq "/share")`
+- Target URL: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/social-preview`
+- Status code: **302**
+- **Preserve query string**: ✅ checked
+- Place at: **First**
+
+**⚠️ Common Mistake:** Using wildcard pattern `https://bestdayministries.org/share*` does NOT work because the `*` matches path characters only. When the URL is `/share?newsletterId=...`, there are no path characters after `/share`, so the rule never fires and Facebook sees default `index.html` tags instead.
 
 **Query Parameters:**
 | Param | Description |
