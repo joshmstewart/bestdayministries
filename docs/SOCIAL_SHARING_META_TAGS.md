@@ -105,7 +105,9 @@ A Cloudflare **Redirect Rule** (under Rules → Redirect Rules) proxies `bestday
 - **Preserve query string**: ✅ checked
 - Place at: **First**
 
-**⚠️ Common Mistake:** Using wildcard pattern `https://bestdayministries.org/share*` does NOT work because the `*` matches path characters only. When the URL is `/share?newsletterId=...`, there are no path characters after `/share`, so the rule never fires and Facebook sees default `index.html` tags instead.
+**⚠️ Common Mistake #1:** Using wildcard pattern `https://bestdayministries.org/share*` does NOT work because the `*` matches path characters only. When the URL is `/share?newsletterId=...`, there are no path characters after `/share`, so the rule never fires and Facebook sees default `index.html` tags instead.
+
+**⚠️ Common Mistake #2 (CRITICAL):** If a Cloudflare **Worker** has a catch-all route (e.g., `bestdayministries.org/*`), it intercepts `/share` requests **BEFORE** the Redirect Rule fires (Workers execute first in Cloudflare's pipeline). The fix is to add a **Worker exclusion route** for `bestdayministries.org/share*` with Worker set to "None", placed ABOVE the catch-all route. Without this exclusion, the Worker serves `index.html` and Facebook sees default tags.
 
 **Query Parameters:**
 | Param | Description |
