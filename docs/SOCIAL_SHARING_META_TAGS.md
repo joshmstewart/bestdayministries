@@ -88,7 +88,7 @@ Update `index.html` with your most important/common meta tags. This is the ONLY 
 
 ### Solution 3: Edge Function for Dynamic Meta Tags (ACTIVE ✅)
 
-**File:** `supabase/functions/social-preview/index.ts` (renamed from `generate-meta-tags` in Feb 2026)
+**File:** `supabase/functions/generate-meta-tags/index.ts` (briefly renamed to `social-preview` in Feb 2026, reverted due to persistent 404s — see Deployment Note)
 **Auth:** Public (verify_jwt = false)
 **Method:** GET
 
@@ -100,7 +100,7 @@ A Cloudflare **Redirect Rule** (under Rules → Redirect Rules) proxies `bestday
 **CRITICAL Cloudflare Rule Configuration:**
 - Rule type: **Custom filter expression** (NOT wildcard pattern — wildcard `*` doesn't match query-string-only paths like `/share?id=...`)
 - Expression: `(http.request.uri.path eq "/share")`
-- Target URL: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/social-preview`
+- Target URL: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/generate-meta-tags`
 - Status code: **302**
 - **Preserve query string**: ✅ checked
 - Place at: **First**
@@ -125,9 +125,9 @@ https://bestdayministries.org/share?eventId={id}&redirect=https://bestdayministr
 **Testing:**
 - [Facebook Debugger](https://developers.facebook.com/tools/debug/)
 - [OpenGraph.xyz](https://www.opengraph.xyz/)
-- Direct: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/social-preview?redirect=https://bestdayministries.org`
+- Direct: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/generate-meta-tags?redirect=https://bestdayministries.org`
 
-**Deployment Note (Feb 2026):** Originally named `generate-meta-tags` but renamed to `social-preview` due to persistent deployment issues where the function would report "deployed successfully" but return 404. The simplified version also inlines `SITE_URL` instead of importing from `_shared/domainConstants.ts` and uses `@supabase/supabase-js@2` (not pinned). If deployment issues recur, try delete + redeploy.
+**Deployment Note (Feb 2026):** Was briefly renamed to `social-preview` but reverted to `generate-meta-tags` because the renamed function returned persistent 404s despite reporting "deployed successfully." The `social-preview` name never worked reliably — `generate-meta-tags` is the canonical name that matches `config.toml`. **NEVER rename this function** — keep it as `generate-meta-tags`. Both names exist in `config.toml` for safety. The function inlines `SITE_URL` instead of importing from `_shared/domainConstants.ts` and uses `@supabase/supabase-js@2` (not pinned).
 
 **Pros:** Dynamic, page-specific meta tags; works with Cloudflare proxy
 **Cons:** Requires Cloudflare setup for custom domain URLs
