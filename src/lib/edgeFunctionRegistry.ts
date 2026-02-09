@@ -70,7 +70,7 @@ const important: FunctionRegistryEntry[] = [
   { name: 'track-newsletter-click', tier: 'important', description: 'Newsletter analytics' },
   { name: 'process-inbound-email', tier: 'important', description: 'Inbound email routing' },
   { name: 'generate-sitemap', tier: 'important', description: 'SEO sitemap' },
-  { name: 'generate-meta-tags', tier: 'important', description: 'SEO meta tags' },
+  { name: 'social-preview', tier: 'important', description: 'SEO meta tags for social sharing' },
   { name: 'claim-streak-reward', tier: 'important', description: 'Streak rewards' },
   { name: 'get-donation-history', tier: 'important', description: 'Donation history' },
   { name: 'generate-avatar-image', tier: 'important', description: 'Avatar generation' },
