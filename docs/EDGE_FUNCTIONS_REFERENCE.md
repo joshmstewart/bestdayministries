@@ -78,7 +78,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 
 ### SEO & Social Sharing
 - **`generate-sitemap`** - [Public] Generates dynamic XML sitemap (static pages + posts + events + albums + vendors)
-- **`generate-meta-tags`** - [Public, GET] Returns HTML page with dynamic OG meta tags for social sharing previews. Supports `eventId`, `newsletterId`, and `redirect` query params. Proxied via Cloudflare Redirect Rule at `/share` path on primary domain. Uses JS-only redirect so crawlers read OG tags before browser navigates away.
+- **`social-preview`** - [Public, GET] Returns HTML page with dynamic OG meta tags for social sharing previews. Supports `eventId`, `newsletterId`, and `redirect` query params. Proxied via Cloudflare Redirect Rule at `/share` path on primary domain. Uses JS-only redirect so crawlers read OG tags before browser navigates away. Renamed from `generate-meta-tags` (Feb 2026) due to persistent deployment issues with the old name.
 
 ### Utility Functions
 - **`get-sentry-dsn`** - [Public] Returns Sentry DSN for client-side error tracking

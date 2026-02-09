@@ -88,7 +88,7 @@ Update `index.html` with your most important/common meta tags. This is the ONLY 
 
 ### Solution 3: Edge Function for Dynamic Meta Tags (ACTIVE ✅)
 
-**File:** `supabase/functions/generate-meta-tags/index.ts`
+**File:** `supabase/functions/social-preview/index.ts` (renamed from `generate-meta-tags` in Feb 2026)
 **Auth:** Public (verify_jwt = false)
 **Method:** GET
 
@@ -115,9 +115,9 @@ https://bestdayministries.org/share?eventId={id}&redirect=https://bestdayministr
 **Testing:**
 - [Facebook Debugger](https://developers.facebook.com/tools/debug/)
 - [OpenGraph.xyz](https://www.opengraph.xyz/)
-- Direct: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/generate-meta-tags?redirect=https://bestdayministries.org`
+- Direct: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/social-preview?redirect=https://bestdayministries.org`
 
-**Deployment Note (Feb 2026):** This function failed to deploy silently multiple times. The fix was rewriting the file cleanly with simplified imports (`@supabase/supabase-js@2` instead of `@2.58.0`) and inlining the `SITE_URL` constant instead of importing from `_shared/domainConstants.ts`. If deployment issues recur, try delete + redeploy.
+**Deployment Note (Feb 2026):** Originally named `generate-meta-tags` but renamed to `social-preview` due to persistent deployment issues where the function would report "deployed successfully" but return 404. The simplified version also inlines `SITE_URL` instead of importing from `_shared/domainConstants.ts` and uses `@supabase/supabase-js@2` (not pinned). If deployment issues recur, try delete + redeploy.
 
 **Pros:** Dynamic, page-specific meta tags; works with Cloudflare proxy
 **Cons:** Requires Cloudflare setup for custom domain URLs

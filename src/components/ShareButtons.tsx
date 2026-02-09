@@ -50,11 +50,12 @@ export const ShareButtons = ({
   // For social media platforms (Facebook, LinkedIn), use edge function URL for rich previews
   const getSocialShareUrl = () => {
     const shareBase = `https://${PRIMARY_DOMAIN}/share`;
-    const redirectUrl = encodeURIComponent(shareUrl);
     if (eventId) {
+      const redirectUrl = encodeURIComponent(shareUrl);
       return `${shareBase}?eventId=${eventId}&redirect=${redirectUrl}`;
     }
     if (newsletterId) {
+      const redirectUrl = encodeURIComponent(shareUrl);
       return `${shareBase}?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
     }
     return shareUrl;
