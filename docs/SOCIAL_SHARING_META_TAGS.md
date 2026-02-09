@@ -86,22 +86,41 @@ Update `index.html` with your most important/common meta tags. This is the ONLY 
 
 **Cons:** All pages show the same preview
 
-### Solution 3: Edge Function for Dynamic Meta Tags (Advanced)
+### Solution 3: Edge Function for Dynamic Meta Tags (ACTIVE ✅)
 
-Created: `supabase/functions/generate-meta-tags/index.ts`
+**File:** `supabase/functions/generate-meta-tags/index.ts`
+**Auth:** Public (verify_jwt = false)
+**Method:** GET
 
-This generates HTML with proper meta tags for each URL, but requires additional setup:
+This edge function generates an HTML page with proper OG meta tags, then redirects the browser via JS. Social crawlers (which don't execute JS) read the OG tags; human visitors get redirected instantly.
 
-**How to use:**
-1. Share links through the edge function:
-   ```
-   https://your-project.supabase.co/functions/v1/generate-meta-tags
-   ```
-2. Pass URL parameters for page-specific tags
-3. Edge function redirects to real page after crawler reads tags
+**Cloudflare Proxy Setup (ACTIVE):**
+A Cloudflare Redirect Rule proxies `bestdayministries.org/share?...` to the edge function. This means shared URLs show the custom domain, not the Supabase domain.
 
-**Pros:** Dynamic, page-specific meta tags
-**Cons:** Requires URL structure changes for sharing
+**Query Parameters:**
+| Param | Description |
+|-------|-------------|
+| `eventId` | Fetches event title/description/image from `events` table |
+| `newsletterId` | Fetches newsletter title/preview/image from `newsletter_campaigns` (sent only) |
+| `redirect` | URL to redirect browsers to after crawlers read OG tags |
+
+**Share URL format:**
+```
+https://bestdayministries.org/share?newsletterId={id}&redirect=https://bestdayministries.org/newsletters/{id}
+https://bestdayministries.org/share?eventId={id}&redirect=https://bestdayministries.org/community?tab=feed&eventId={id}
+```
+
+**Fallback defaults** loaded from `app_settings` table: `site_title`, `site_description`, `og_image_url`, `twitter_handle`.
+
+**Testing:**
+- [Facebook Debugger](https://developers.facebook.com/tools/debug/)
+- [OpenGraph.xyz](https://www.opengraph.xyz/)
+- Direct: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/generate-meta-tags?redirect=https://bestdayministries.org`
+
+**Deployment Note (Feb 2026):** This function failed to deploy silently multiple times. The fix was rewriting the file cleanly with simplified imports (`@supabase/supabase-js@2` instead of `@2.58.0`) and inlining the `SITE_URL` constant instead of importing from `_shared/domainConstants.ts`. If deployment issues recur, try delete + redeploy.
+
+**Pros:** Dynamic, page-specific meta tags; works with Cloudflare proxy
+**Cons:** Requires Cloudflare setup for custom domain URLs
 
 ### Solution 4: Meta Tag Proxy Service (Recommended for Production)
 
