@@ -216,7 +216,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         initCompletedRef.current = false;
 
         // Watchdog: if auth init hangs (Safari IndexedDB corruption), trigger self-heal.
-        const watchdog = window.setTimeout(async () => {
+        // Skip watchdog entirely if we're already in a recovery reload to prevent loops.
+        const alreadyRecovering = window.location.search.includes('__reason=auth_init_timeout');
+        const watchdog = alreadyRecovering ? null : window.setTimeout(async () => {
           if (!mounted) return;
           if (initCompletedRef.current) return;
           if (hasExceededRecoveryAttempts()) return;
@@ -233,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const resolvedSession = await reconcileAuthSessions();
 
-        window.clearTimeout(watchdog);
+        if (watchdog) window.clearTimeout(watchdog);
         
         if (!mounted) return;
 

@@ -6,7 +6,10 @@
 const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BUILD_VERSION_KEY = 'app_build_version';
 const RECOVERY_ATTEMPTS_KEY = 'app_recovery_attempts';
+const RECOVERY_TIMESTAMP_KEY = 'app_recovery_last_ts';
 const MAX_AUTO_RECOVERY_ATTEMPTS = 2;
+// Minimum ms between recovery reloads to prevent tight loops
+const MIN_RECOVERY_INTERVAL_MS = 30_000;
 
 /**
  * Clear all browser Cache API entries (service worker caches, etc.)
@@ -150,7 +153,9 @@ export function storeBuildVersion(version: string): void {
  */
 export function getRecoveryAttempts(): number {
   try {
-    const attempts = sessionStorage.getItem(RECOVERY_ATTEMPTS_KEY);
+    // Use localStorage (not sessionStorage) so the counter survives
+    // Safari's sessionStorage clearing on location.replace navigations.
+    const attempts = localStorage.getItem(RECOVERY_ATTEMPTS_KEY);
     return attempts ? parseInt(attempts, 10) : 0;
   } catch {
     return 0;
@@ -164,7 +169,8 @@ export function incrementRecoveryAttempts(): number {
   try {
     const current = getRecoveryAttempts();
     const next = current + 1;
-    sessionStorage.setItem(RECOVERY_ATTEMPTS_KEY, String(next));
+    localStorage.setItem(RECOVERY_ATTEMPTS_KEY, String(next));
+    localStorage.setItem(RECOVERY_TIMESTAMP_KEY, String(Date.now()));
     return next;
   } catch {
     return 0;
@@ -176,7 +182,8 @@ export function incrementRecoveryAttempts(): number {
  */
 export function resetRecoveryAttempts(): void {
   try {
-    sessionStorage.removeItem(RECOVERY_ATTEMPTS_KEY);
+    localStorage.removeItem(RECOVERY_ATTEMPTS_KEY);
+    localStorage.removeItem(RECOVERY_TIMESTAMP_KEY);
   } catch {
     // Ignore
   }
@@ -186,7 +193,20 @@ export function resetRecoveryAttempts(): void {
  * Check if we've exceeded max auto-recovery attempts
  */
 export function hasExceededRecoveryAttempts(): boolean {
-  return getRecoveryAttempts() >= MAX_AUTO_RECOVERY_ATTEMPTS;
+  if (getRecoveryAttempts() >= MAX_AUTO_RECOVERY_ATTEMPTS) return true;
+  
+  // Also block if we just reloaded very recently (prevents tight loops
+  // when sessionStorage/localStorage is being cleared during the reload).
+  try {
+    const lastTs = localStorage.getItem(RECOVERY_TIMESTAMP_KEY);
+    if (lastTs) {
+      const elapsed = Date.now() - parseInt(lastTs, 10);
+      if (elapsed < MIN_RECOVERY_INTERVAL_MS) return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
 }
 
 /**
