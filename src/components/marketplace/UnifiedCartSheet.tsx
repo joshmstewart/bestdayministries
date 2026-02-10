@@ -224,38 +224,39 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   }, [vendorTotals, coffeeNeedsCalculatedShipping]);
 
   // Get coffee shipping display
-  const getCoffeeShippingDisplay = (): { label: string; isPending: boolean; shippingCents: number } => {
+  const getCoffeeShippingDisplay = (): { label: string; isPending: boolean; shippingCents: number; carrier: string | null } => {
     // If we have a calculated result from the edge function
     if (shippingResult?.success) {
       const coffeeResult = shippingResult.vendor_shipping.find(v => v.vendor_id === COFFEE_VENDOR_ID);
       if (coffeeResult) {
-        if (coffeeResult.shipping_cents === 0) return { label: 'FREE', isPending: false, shippingCents: 0 };
-        return { label: `$${(coffeeResult.shipping_cents / 100).toFixed(2)}`, isPending: false, shippingCents: coffeeResult.shipping_cents };
+        const carrier = coffeeResult.carrier?.toUpperCase() || null;
+        if (coffeeResult.shipping_cents === 0) return { label: 'FREE', isPending: false, shippingCents: 0, carrier };
+        return { label: `$${(coffeeResult.shipping_cents / 100).toFixed(2)}`, isPending: false, shippingCents: coffeeResult.shipping_cents, carrier };
       }
     }
 
     // No coffee items
-    if (!hasCoffeeItems) return { label: '—', isPending: false, shippingCents: 0 };
+    if (!hasCoffeeItems) return { label: '—', isPending: false, shippingCents: 0, carrier: null };
 
     // No settings configured - use default
     if (!coffeeShippingSettings || !coffeeShippingSettings.shipping_mode) {
-      return { label: `$${FLAT_SHIPPING_RATE.toFixed(2)}`, isPending: false, shippingCents: Math.round(FLAT_SHIPPING_RATE * 100) };
+      return { label: `$${FLAT_SHIPPING_RATE.toFixed(2)}`, isPending: false, shippingCents: Math.round(FLAT_SHIPPING_RATE * 100), carrier: null };
     }
 
     // Check free shipping threshold
     const freeThreshold = coffeeShippingSettings.free_shipping_threshold;
     if (!coffeeShippingSettings.disable_free_shipping && freeThreshold != null && coffeeSubtotal >= freeThreshold) {
-      return { label: 'FREE', isPending: false, shippingCents: 0 };
+      return { label: 'FREE', isPending: false, shippingCents: 0, carrier: null };
     }
 
     // Calculated shipping requires ZIP
     if (coffeeShippingSettings.shipping_mode === 'calculated') {
-      return { label: 'Pending', isPending: true, shippingCents: 0 };
+      return { label: 'Pending', isPending: true, shippingCents: 0, carrier: null };
     }
 
     // Flat rate
     const flatRate = coffeeShippingSettings.flat_rate_amount ?? FLAT_SHIPPING_RATE;
-    return { label: `$${flatRate.toFixed(2)}`, isPending: false, shippingCents: Math.round(flatRate * 100) };
+    return { label: `$${flatRate.toFixed(2)}`, isPending: false, shippingCents: Math.round(flatRate * 100), carrier: null };
   };
 
   const coffeeShipping = getCoffeeShippingDisplay();
@@ -758,7 +759,14 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
                         {/* Coffee shipping line */}
                         <div className="flex justify-between items-center text-sm pt-3 mt-2 border-t border-border/50">
-                          <span className="text-muted-foreground font-medium">Shipping</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-muted-foreground font-medium">Shipping</span>
+                            {coffeeShipping.carrier && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                via {coffeeShipping.carrier}
+                              </span>
+                            )}
+                          </div>
                           <span
                             className={
                               coffeeShipping.isPending
