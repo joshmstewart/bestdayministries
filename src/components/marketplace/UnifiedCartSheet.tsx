@@ -434,7 +434,6 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
           }
           const existingVi = (coffeeItem.variant_info || {}) as any;
           updateData.unit_price = applicablePrice;
-          updateData.tier_quantity = newQuantity;
           updateData.variant_info = { ...existingVi, price_per_unit: applicablePrice };
         }
       } catch (e) {
