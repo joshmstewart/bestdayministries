@@ -85,11 +85,12 @@ export function DailyBar() {
     }
   }, [moodTtsEnabled]);
 
-  // Calculate if all daily items are completed
+  // Calculate if all daily items are completed - MUST wait for data to load to prevent false positives
   const allCompleted = useMemo(() => {
+    if (loading) return false; // Never trigger during loading - prevents race condition false completions
     const stickersCompleted = !hasAvailableCard;
     return completions.mood && completions.fortune && completions["daily-five"] && stickersCompleted;
-  }, [completions, hasAvailableCard]);
+  }, [completions, hasAvailableCard, loading]);
 
   // Track and award bonus for completing all daily activities
   const { showCelebration, setShowCelebration, coinsAwarded } = useDailyEngagementBonus({ allCompleted });
