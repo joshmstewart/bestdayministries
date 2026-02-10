@@ -44,7 +44,7 @@ interface Profile {
 const ProfileSettings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, refetchProfile } = useAuth();
   const { downloadFriendCode } = useCodeImageDownload();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -341,6 +341,8 @@ const ProfileSettings = () => {
 
       // Reload profile to get updated data
       await loadProfile(user.id);
+      // Also refresh the global AuthContext profile so header/other components update
+      await refetchProfile();
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast({
