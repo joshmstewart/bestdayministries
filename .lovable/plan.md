@@ -1,70 +1,66 @@
 
 
-# Public Newsletter Archive with Shareable URLs
+# Fix: Chaotic Page Load / Logout / Recovery Loop
 
-## What We're Building
-A public-facing newsletter archive where anyone can browse past newsletters and read them as web pages. Each newsletter gets its own shareable URL with rich social media previews (so when shared on Facebook, LinkedIn, etc., it shows the newsletter title, preview text, and a nice card). Every page includes a subscribe CTA to convert readers into subscribers.
+## Problem Summary
+When you load the page, multiple competing systems fight with each other, causing reloads, flashing banners, and delayed login. The root causes are:
 
-## Pages and Routes
+1. **Unnecessary build-version reloads** -- the system thinks every deploy is a "mismatch" because no build version is actually set, so it clears caches and reloads on nearly every visit
+2. **Too-aggressive auth watchdog** -- a 7-second timer reloads the page if auth takes too long, but the dual-client validation (4 network calls) regularly takes longer than that on slower connections
+3. **Auth event storm** -- mirroring sessions between two clients fires auth change events that cascade into redundant processing
+4. **Stale recovery counter** -- old recovery attempts accumulate and eventually show the "Fix Now" banner even when nothing is wrong
 
-### 1. Newsletter Archive List -- `/newsletters`
-- Public page (no login required)
-- Grid/list of all sent newsletters, newest first
-- Each card shows: title, preview text, sent date, recipient count
-- Click a card to open the full newsletter
-- Subscribe CTA at the top and bottom of the page
-- SEO-optimized with proper meta tags
+## Plan
 
-### 2. Individual Newsletter Page -- `/newsletters/:id`
-- Public page showing the full HTML content of a single newsletter
-- Rendered in a styled container (max-width 600px to match email width)
-- Share buttons (Twitter, Facebook, LinkedIn, Copy Link) at top and bottom
-- Compact subscribe CTA sidebar/banner for non-subscribers
-- SEO meta tags dynamically set from campaign title, preview_text
-- "Back to all newsletters" navigation
+### 1. Disable the build-version reload loop
+The `VITE_BUILD_VERSION` env var is never set, so it always returns `'dev'`. This means the mismatch check either always or never fires depending on timing. Remove the `checkAndRecoverFromBuildMismatch()` call from `main.tsx` entirely -- it was designed for a scenario that doesn't apply and is currently just causing unnecessary reloads.
 
-### 3. Social Media Preview (Edge Function)
-- Extend the existing `generate-meta-tags` edge function to support `newsletterId` parameter
-- When shared on social media, the link goes through the edge function which returns proper OG tags, then redirects to the actual page
-- This solves the SPA crawling problem (crawlers can't execute JS)
+**Files:** `src/main.tsx`
 
-## Technical Details
+### 2. Increase the auth watchdog timeout (or remove it)
+The 7-second watchdog in `AuthContext` fires `clearAllCaches + forceCacheBustingReload` if auth init hasn't completed. But the reconciliation does 4 sequential network calls (2x `getSession`, 2x `getUser`) plus potential mirroring -- this can easily take 7+ seconds on mobile or slow connections. Increase the timeout to 15 seconds, and add a check so the watchdog only fires if the page is visually broken (no session AND no content rendered), not just "slow."
 
-### New Files
-- `src/pages/NewsletterArchive.tsx` -- list page at `/newsletters`
-- `src/pages/NewsletterView.tsx` -- individual newsletter page at `/newsletters/:id`
+**Files:** `src/contexts/AuthContext.tsx`
 
-### Modified Files
-- `src/App.tsx` -- add two new lazy-loaded routes
-- `src/lib/internalPages.ts` -- register `/newsletters` route
-- `supabase/functions/generate-meta-tags/index.ts` -- add `newsletterId` support
+### 3. Reduce auth init from 4 network calls to 2
+Currently reconciliation calls `getSession()` on both clients, then `getUser()` on both. Since the persistent client is the source of truth, we can skip validating the standard client's session independently -- just validate the persistent session, and if valid, mirror it. This cuts 2 network calls from every page load.
 
-### Database
-- **No schema changes needed** -- all required data (`title`, `subject`, `preview_text`, `html_content`, `sent_at`, `sent_to_count`) already exists in `newsletter_campaigns`
-- Add an RLS policy to allow public SELECT on `newsletter_campaigns` for `status = 'sent'` rows only (currently admin-only)
+**Files:** `src/contexts/AuthContext.tsx`
 
-### RLS Policy
-```sql
-CREATE POLICY "Anyone can view sent newsletters"
-  ON newsletter_campaigns FOR SELECT
-  USING (status = 'sent');
+### 4. Debounce auth state change handlers
+Add a short debounce (200ms) to the `onAuthStateChange` handlers so that the rapid-fire events from session mirroring collapse into a single state update instead of 4-5 sequential processing attempts.
+
+**Files:** `src/contexts/AuthContext.tsx`
+
+### 5. Auto-reset recovery counter on successful load
+After auth completes successfully (user is logged in, profile loaded), automatically call `resetRecoveryAttempts()`. This prevents stale counters from accumulating across sessions and eventually showing the "Fix Now" banner when nothing is wrong.
+
+**Files:** `src/contexts/AuthContext.tsx`, import `resetRecoveryAttempts` from cacheManager
+
+### Technical Details
+
+**Current page load sequence (broken):**
+```text
+main.tsx
+  -> sanitizeBrowserStorageForStartup()     (clears risky keys)
+  -> checkAndRecoverFromBuildMismatch()      (RELOAD #1 if version != stored)
+  -> React mounts -> AuthProvider
+    -> reconcileAuthSessions()               (4 network calls, 3-10s)
+    -> 7s watchdog fires if still loading    (RELOAD #2)
+    -> onAuthStateChange fires 4-5x          (event storm)
+    -> if 3 reloads accumulated -> "Fix Now" banner blocks page
 ```
-This ensures only published/sent newsletters are visible publicly. Drafts, scheduled, and archived campaigns remain hidden.
 
-### Social Sharing Flow
-1. User clicks "Share on Facebook" on `/newsletters/:id`
-2. Share URL points to: `{supabase_url}/functions/v1/generate-meta-tags?newsletterId={id}&redirect={newsletter_page_url}`
-3. Facebook crawler hits edge function, gets proper OG tags (title, description, image)
-4. Edge function returns HTML with `meta http-equiv="refresh"` redirect to actual page
-5. Human visitors get instantly redirected to the real newsletter page
+**After fix:**
+```text
+main.tsx
+  -> sanitizeBrowserStorageForStartup()     (unchanged)
+  -> React mounts -> AuthProvider
+    -> simplified reconciliation             (2 network calls, 1-4s)
+    -> 15s watchdog (safety net only)
+    -> debounced auth change handler         (1 state update)
+    -> resetRecoveryAttempts() on success    (clears counter)
+```
 
-### Subscribe CTA
-- Reuses the existing compact `NewsletterSignup` component on individual pages
-- Archive list page gets a hero section with the full signup form
-
-### HTML Rendering
-- Newsletter `html_content` is rendered inside a sandboxed container using `dangerouslySetInnerHTML`
-- Wrapped in a 600px max-width container to match email rendering
-- DOMPurify sanitization applied for safety
-- Existing styles from the email HTML are preserved
+**Expected result:** Page loads once, auth resolves in 1-4 seconds, no reloads, no banners, no event storms.
 
