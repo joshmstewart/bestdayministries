@@ -50,7 +50,11 @@ Deno.serve(async (req: Request) => {
     let finalDescription = settingsMap.site_description || 'Building a supportive community for adults with special needs'
     let finalImage = settingsMap.og_image_url || 'https://lovable.dev/opengraph-image-p98pqg.png'
     let finalType = 'website'
-    let finalUrl = redirect || urlObj.searchParams.get('url') || SITE_URL
+    // redirectTarget = where JS sends real users after crawlers read OG tags
+    const redirectTarget = redirect || urlObj.searchParams.get('url') || SITE_URL
+    let finalRedirect = redirectTarget
+    // ogUrl = the canonical URL shown in social previews (always custom domain)
+    let ogUrl = redirectTarget
 
     if (eventId) {
       const events = await querySupabase(
@@ -63,7 +67,8 @@ Deno.serve(async (req: Request) => {
         finalDescription = event.description || finalDescription
         finalImage = event.image_url || finalImage
         finalType = 'article'
-        finalUrl = redirect || `${SITE_URL}/community?tab=feed&eventId=${event.id}`
+        finalRedirect = redirect || `${SITE_URL}/community?tab=feed&eventId=${event.id}`
+        ogUrl = `${SITE_URL}/share?eventId=${event.id}&redirect=${encodeURIComponent(finalRedirect)}`
       }
     }
 
@@ -78,7 +83,8 @@ Deno.serve(async (req: Request) => {
         finalDescription = newsletter.preview_text || finalDescription
         if (newsletter.display_image_url) finalImage = newsletter.display_image_url
         finalType = 'article'
-        finalUrl = redirect || `${SITE_URL}/newsletters/${newsletter.id}`
+        finalRedirect = redirect || `${SITE_URL}/newsletters/${newsletter.id}`
+        ogUrl = `${SITE_URL}/share?newsletterId=${newsletter.id}&redirect=${encodeURIComponent(finalRedirect)}`
       }
     }
 
@@ -97,19 +103,19 @@ Deno.serve(async (req: Request) => {
   <meta property="og:image" content="${finalImage}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:url" content="${finalUrl}">
+  <meta property="og:url" content="${ogUrl}">
   <meta property="og:site_name" content="Joy House Community">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${finalTitle}">
   <meta name="twitter:description" content="${finalDescription}">
   <meta name="twitter:image" content="${finalImage}">
   ${twitterHandle ? `<meta name="twitter:site" content="@${twitterHandle}">` : ''}
-  <link rel="canonical" href="${finalUrl}">
-  <script>window.location.replace("${finalUrl}");</script>
-  <noscript><meta http-equiv="refresh" content="0; url=${finalUrl}"></noscript>
+  <link rel="canonical" href="${ogUrl}">
+  <script>window.location.replace("${finalRedirect}");</script>
+  <noscript><meta http-equiv="refresh" content="0; url=${finalRedirect}"></noscript>
 </head>
 <body>
-  <p>Redirecting to <a href="${finalUrl}">${finalUrl}</a>...</p>
+  <p>Redirecting to <a href="${finalRedirect}">${finalRedirect}</a>...</p>
 </body>
 </html>`
 
