@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sparkles, PenTool, Loader2, ExternalLink, Check, Volume2, VolumeX } from "lucide-react";
+import { Sparkles, PenTool, Loader2, ExternalLink, Check, Volume2, VolumeX, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuickMoodPicker } from "./QuickMoodPicker";
 import { DailyFortunePopup } from "./DailyFortunePopup";
@@ -367,7 +367,7 @@ export function DailyBar() {
       {/* Daily Five Popup */}
       <Dialog open={activePopup === "daily-five"} onOpenChange={(open) => !open && handlePopupClose("daily-five")}>
         {/* Use a clamped width so keyboard keys have room; remove shrink-to-content behavior */}
-        <DialogContent className="w-[min(400px,calc(100vw-1rem))] max-w-none p-4">
+        <DialogContent className="w-[min(400px,calc(100vw-1rem))] max-w-none p-4" hideCloseButton>
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -376,18 +376,28 @@ export function DailyBar() {
                   Daily Five
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  handlePopupClose("daily-five");
-                  navigate("/games/daily-five");
-                }}
-                className="text-xs text-muted-foreground"
-              >
-                <ExternalLink className="h-3 w-3 mr-1" />
-                Full Page
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    handlePopupClose("daily-five");
+                    navigate("/games/daily-five");
+                  }}
+                  className="text-xs text-muted-foreground"
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Full Page
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-accent"
+                  onClick={() => handlePopupClose("daily-five")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </DialogTitle>
             <DialogDescription className="sr-only">
               Play today's word puzzle
