@@ -27,50 +27,39 @@ async function clearBrowserCacheAPI(): Promise<void> {
 }
 
 /**
- * Delete IndexedDB databases used for auth storage
+ * Delete IndexedDB databases that are NOT auth-related.
+ * Auth databases must be preserved to keep users logged in across deploys.
  */
-function clearIndexedDBAuth(): void {
-  const dbsToDelete = [
-    'supabase-auth-storage',
-    // Some browsers might have other Supabase IDB databases
-    `sb-${SUPABASE_PROJECT_ID}-auth`,
-  ];
-
-  for (const dbName of dbsToDelete) {
-    try {
-      const request = indexedDB.deleteDatabase(dbName);
-      request.onsuccess = () => {
-        console.log(`[CacheManager] Deleted IndexedDB: ${dbName}`);
-      };
-      request.onerror = () => {
-        console.warn(`[CacheManager] Failed to delete IndexedDB: ${dbName}`);
-      };
-    } catch (e) {
-      console.warn(`[CacheManager] Error deleting IndexedDB ${dbName}:`, e);
-    }
-  }
+function clearNonAuthIndexedDB(): void {
+  // Intentionally empty: we no longer delete any IndexedDB databases during
+  // cache recovery. The only IDB database we use ('supabase-auth-storage')
+  // stores auth tokens and must survive across deploys.
+  console.log('[CacheManager] Skipping IndexedDB clear (preserving auth)');
 }
 
 /**
- * Clear specific localStorage keys that are known to cause issues
+ * Clear specific localStorage keys that are known to cause issues,
+ * but PRESERVE Supabase auth tokens so users stay logged in.
  */
-function clearRiskyLocalStorageKeys(): void {
+function clearNonAuthLocalStorageKeys(): void {
   const riskyKeys = [
     'shopify-cart',
     'admin_session_backup',
-    'zustand', // Any zustand state
+    'zustand',
   ];
 
-  // Also clear Supabase auth tokens
-  const authTokenKey = `sb-${SUPABASE_PROJECT_ID}-auth-token`;
-  riskyKeys.push(authTokenKey);
-
-  // Find any keys starting with sb- prefix
   try {
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith('sb-') || riskyKeys.includes(key))) {
+      if (!key) continue;
+      
+      // NEVER remove auth tokens — these keep users logged in
+      if (key.startsWith('sb-') && (key.includes('auth-token') || key.includes('refresh-token') || key.includes('provider-token'))) {
+        continue;
+      }
+      
+      if (riskyKeys.includes(key)) {
         keysToRemove.push(key);
       }
     }
@@ -112,11 +101,11 @@ export async function clearAllCaches(): Promise<void> {
   console.log('[CacheManager] Starting comprehensive cache clear...');
   
   await clearBrowserCacheAPI();
-  clearIndexedDBAuth();
-  clearRiskyLocalStorageKeys();
+  clearNonAuthIndexedDB();
+  clearNonAuthLocalStorageKeys();
   clearSessionStorage();
   
-  console.log('[CacheManager] Cache clear complete');
+  console.log('[CacheManager] Cache clear complete (auth preserved)');
 }
 
 /**
