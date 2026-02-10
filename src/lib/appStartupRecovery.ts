@@ -14,6 +14,7 @@ import {
   clearAllCaches,
   incrementRecoveryAttempts,
   hasExceededRecoveryAttempts,
+  shouldThrottleRecovery,
   forceCacheBustingReload,
 } from './cacheManager';
 
@@ -163,10 +164,15 @@ function shouldForceRefreshFromError(message: string): boolean {
 async function handleChunkLoadError(reason: string) {
   console.log('[Recovery] Chunk load error detected:', reason);
   
-  // Check if we've already exceeded max attempts
+  // Check if we've already exceeded max attempts — let banner show
   if (hasExceededRecoveryAttempts()) {
     console.log('[Recovery] Max attempts exceeded, showing recovery banner');
-    // Don't reload - let the banner show
+    return;
+  }
+  
+  // Throttle: don't reload if we just reloaded very recently
+  if (shouldThrottleRecovery()) {
+    console.log('[Recovery] Throttled — too soon since last recovery');
     return;
   }
   
@@ -189,20 +195,18 @@ export async function checkAndRecoverFromBuildMismatch(): Promise<void> {
   if (typeof window === "undefined") return;
   
   try {
-    // Check if we've exceeded recovery attempts - don't loop
-    if (hasExceededRecoveryAttempts()) {
-      console.log('[Recovery] Recovery attempts exceeded, waiting for user action');
+    // Don't loop if we've exhausted attempts or just reloaded
+    if (hasExceededRecoveryAttempts() || shouldThrottleRecovery()) {
+      console.log('[Recovery] Skipping build check — exceeded or throttled');
       return;
     }
     
     // Check for build version mismatch
     if (checkBuildVersionMismatch()) {
       await performProactiveRecovery();
-      // This function will trigger a reload, so we won't reach here
     }
   } catch (e) {
     console.warn('[Recovery] Error during build version check:', e);
-    // Don't block startup
   }
 }
 
