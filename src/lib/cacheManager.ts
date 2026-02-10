@@ -7,9 +7,9 @@ const SUPABASE_PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const BUILD_VERSION_KEY = 'app_build_version';
 const RECOVERY_ATTEMPTS_KEY = 'app_recovery_attempts';
 const RECOVERY_TIMESTAMP_KEY = 'app_recovery_last_ts';
-const MAX_AUTO_RECOVERY_ATTEMPTS = 2;
+const MAX_AUTO_RECOVERY_ATTEMPTS = 3;
 // Minimum ms between recovery reloads to prevent tight loops
-const MIN_RECOVERY_INTERVAL_MS = 30_000;
+const MIN_RECOVERY_INTERVAL_MS = 60_000;
 
 /**
  * Clear all browser Cache API entries (service worker caches, etc.)
@@ -193,10 +193,16 @@ export function resetRecoveryAttempts(): void {
  * Check if we've exceeded max auto-recovery attempts
  */
 export function hasExceededRecoveryAttempts(): boolean {
-  if (getRecoveryAttempts() >= MAX_AUTO_RECOVERY_ATTEMPTS) return true;
-  
-  // Also block if we just reloaded very recently (prevents tight loops
-  // when sessionStorage/localStorage is being cleared during the reload).
+  // Only show the banner after genuinely exhausting all auto-recovery attempts.
+  // The timestamp guard is used separately in shouldThrottleRecovery().
+  return getRecoveryAttempts() >= MAX_AUTO_RECOVERY_ATTEMPTS;
+}
+
+/**
+ * Returns true if a recovery reload happened too recently.
+ * Used ONLY to throttle automatic reloads — NOT to show the banner.
+ */
+export function shouldThrottleRecovery(): boolean {
   try {
     const lastTs = localStorage.getItem(RECOVERY_TIMESTAMP_KEY);
     if (lastTs) {
