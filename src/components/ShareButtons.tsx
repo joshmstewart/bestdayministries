@@ -47,16 +47,18 @@ export const ShareButtons = ({
   // Use current URL if not provided
   const shareUrl = url || window.location.href;
   
-  // For social media platforms (Facebook, LinkedIn), use edge function URL for rich previews
+  // For social media platforms (Facebook, LinkedIn), use edge function URL directly for rich previews.
+  // This bypasses the Cloudflare redirect rule entirely — the edge function serves OG tags to crawlers
+  // and redirects real users to the actual page via window.location.replace.
   const getSocialShareUrl = () => {
-    const shareBase = `https://${PRIMARY_DOMAIN}/share`;
+    const edgeFunctionBase = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-meta-tags`;
     if (eventId) {
       const redirectUrl = encodeURIComponent(shareUrl);
-      return `${shareBase}?eventId=${eventId}&redirect=${redirectUrl}`;
+      return `${edgeFunctionBase}?eventId=${eventId}&redirect=${redirectUrl}`;
     }
     if (newsletterId) {
       const redirectUrl = encodeURIComponent(shareUrl);
-      return `${shareBase}?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
+      return `${edgeFunctionBase}?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
     }
     return shareUrl;
   };
