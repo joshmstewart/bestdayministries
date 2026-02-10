@@ -115,7 +115,7 @@ export default function MyFortunes() {
                 <div className="space-y-2">
                   <h3 className="font-semibold text-lg">No saved fortunes yet</h3>
                   <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                    Tap the bookmark icon on any Daily Inspiration to save it here for later!
+                    Tap the bookmark icon on any Daily Fortune to save it here for later!
                   </p>
                 </div>
                 <Button
