@@ -776,14 +776,19 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                           </div>
                           <span
                             className={
-                              coffeeShipping.isPending
-                                ? "text-accent-foreground font-semibold italic"
-                                : coffeeShipping.label === 'FREE'
-                                  ? "text-primary font-semibold"
-                                  : "font-semibold"
+                              isCalculatingShipping
+                                ? "text-muted-foreground italic flex items-center gap-1"
+                                : coffeeShipping.isPending
+                                  ? "text-accent-foreground font-semibold italic"
+                                  : coffeeShipping.label === 'FREE'
+                                    ? "text-primary font-semibold"
+                                    : "font-semibold"
                             }
                           >
-                            {coffeeShipping.label}
+                            {isCalculatingShipping
+                              ? <><Loader2 className="h-3 w-3 animate-spin" />Calculating...</>
+                              : coffeeShipping.label
+                            }
                           </span>
                         </div>
                       </div>
@@ -888,14 +893,19 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                             <span className="text-muted-foreground font-medium">Shipping</span>
                             <span
                               className={
-                                vendorShipping.isPending
-                                  ? "text-accent-foreground font-semibold italic"
-                                  : vendorShipping.label === 'FREE'
-                                    ? "text-primary font-semibold"
-                                    : "font-semibold"
+                                isCalculatingShipping
+                                  ? "text-muted-foreground italic flex items-center gap-1"
+                                  : vendorShipping.isPending
+                                    ? "text-accent-foreground font-semibold italic"
+                                    : vendorShipping.label === 'FREE'
+                                      ? "text-primary font-semibold"
+                                      : "font-semibold"
                               }
                             >
-                              {vendorShipping.label}
+                              {isCalculatingShipping
+                                ? <><Loader2 className="h-3 w-3 animate-spin" />Calculating...</>
+                                : vendorShipping.label
+                              }
                             </span>
                           </div>
                         </div>
