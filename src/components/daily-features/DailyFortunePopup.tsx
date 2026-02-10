@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FortuneComments } from "./FortuneComments";
 import { useSavedFortunes } from "@/hooks/useSavedFortunes";
+import { awardCoinReward } from "@/utils/awardCoinReward";
 
 interface Fortune {
   id: string;
@@ -253,13 +254,17 @@ export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false }: 
           if (!viewRecorded && user && fortunePost) {
             setViewRecorded(true);
             try {
-              await supabase
+              const { error } = await supabase
                 .from("daily_fortune_views")
                 .upsert({
                   user_id: user.id,
                   fortune_post_id: fortunePost.id,
                   view_date: getMSTDate(),
                 }, { onConflict: 'user_id,view_date' });
+              if (!error) {
+                // Award 5 coins for viewing the daily fortune (only on first view of the day)
+                await awardCoinReward(user.id, "daily_fortune_view", "Daily Fortune revealed! ✨");
+              }
             } catch (error) {
               // Silently fail - not critical
               console.error("Error recording fortune view:", error);
