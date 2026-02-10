@@ -938,17 +938,19 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                       <div className="flex justify-between text-sm">
                         <span>
                           Shipping
-                          {shippingTotal === 0 && <span className="ml-1 text-primary">(Free)</span>}
-                          {shippingTotal == null && (
+                          {!isCalculatingShipping && shippingTotal === 0 && <span className="ml-1 text-primary">(Free)</span>}
+                          {!isCalculatingShipping && shippingTotal == null && (
                             <span className="ml-1 text-muted-foreground">(pending)</span>
                           )}
                         </span>
-                        <span className={shippingTotal == null ? "text-accent-foreground font-medium italic" : ""}>
-                          {shippingTotal == null
-                            ? 'Pending'
-                            : shippingTotal > 0
-                              ? `$${shippingTotal.toFixed(2)}`
-                              : 'FREE'
+                        <span className={isCalculatingShipping ? "text-muted-foreground italic flex items-center gap-1" : shippingTotal == null ? "text-accent-foreground font-medium italic" : ""}>
+                          {isCalculatingShipping
+                            ? <><Loader2 className="h-3 w-3 animate-spin" />Calculating...</>
+                            : shippingTotal == null
+                              ? 'Pending'
+                              : shippingTotal > 0
+                                ? `$${shippingTotal.toFixed(2)}`
+                                : 'FREE'
                           }
                         </span>
                       </div>
