@@ -113,8 +113,11 @@ async function getShipStationRate(
 ): Promise<ShipStationSuccess | ShipStationError> {
   const authHeader = "Basic " + btoa(`${apiKey}:${apiSecret}`);
   
+  // ShipStation uses "stamps_com" for USPS, "ups" for UPS
+  const shipStationCarrierCode = carrier === "usps" ? "stamps_com" : carrier;
+  
   const requestBody = {
-    carrierCode: carrier,
+    carrierCode: shipStationCarrierCode,
     fromPostalCode: fromZip,
     toPostalCode: toZip,
     toCountry: "US",
