@@ -5,7 +5,6 @@ import "./index.css";
 import {
   installStartupRecoveryListeners,
   sanitizeBrowserStorageForStartup,
-  checkAndRecoverFromBuildMismatch,
 } from "@/lib/appStartupRecovery";
 import { initGA } from "@/lib/analytics";
 
@@ -13,10 +12,6 @@ import { initGA } from "@/lib/analytics";
 // that makes the app appear blank until "Clear site data". We proactively recover.
 installStartupRecoveryListeners();
 sanitizeBrowserStorageForStartup();
-
-// Check for build version mismatch and recover proactively
-// This is async but we don't await - if recovery is needed, it will reload the page
-checkAndRecoverFromBuildMismatch();
 
 // Initialize Google Analytics
 initGA();

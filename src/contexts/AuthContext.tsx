@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
 import { idbAuthStorage } from "@/lib/idbAuthStorage";
@@ -13,6 +13,7 @@ import {
   forceCacheBustingReload,
   hasExceededRecoveryAttempts,
   incrementRecoveryAttempts,
+  resetRecoveryAttempts,
 } from "@/lib/cacheManager";
 
 type UserRole = "supporter" | "bestie" | "caregiver" | "moderator" | "admin" | "owner";
@@ -51,33 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const mirroringInProgressRef = useRef(false);
   const lastProcessedSessionIdRef = useRef<string | null>(null);
   const initCompletedRef = useRef(false);
-
-  /**
-   * Validates a session by calling getUser() on the server.
-   * Returns null if the session is invalid (e.g., "session_not_found").
-   */
-  const validateSession = async (
-    client: typeof supabase | typeof supabasePersistent,
-    candidateSession: Session | null
-  ): Promise<Session | null> => {
-    if (!candidateSession?.access_token) return null;
-
-    try {
-      const { data: { user }, error } = await client.auth.getUser();
-      if (error || !user) {
-        console.log("[AuthContext] Session validation failed:", error?.message);
-        return null;
-      }
-      return candidateSession;
-    } catch (e) {
-      console.log("[AuthContext] Session validation exception:", e);
-      return null;
-    }
-  };
+  const authChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAuthChangeRef = useRef<{ source: "persistent" | "standard"; event: string; session: Session | null } | null>(null);
 
   /**
    * Clears invalid auth tokens from storage without calling signOut endpoints.
-   * This prevents the "fresh session invalidated" bug while still cleaning up stale tokens.
    */
   const clearInvalidStorageEntry = async (
     storage: "localStorage" | "indexedDB",
@@ -96,69 +75,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Reconciles auth sessions between localStorage (standard) and IndexedDB (persistent).
-   * Validates each session server-side and clears invalid ones.
-   * Returns the valid session to use, or null if none.
+   * Simplified reconciliation: only validate persistent client (source of truth),
+   * then mirror to standard client. 2 network calls instead of 4.
    */
   const reconcileAuthSessions = async (): Promise<Session | null> => {
     if (syncInProgressRef.current) return session;
     syncInProgressRef.current = true;
 
     try {
-      // Read both sessions in parallel
-      const [standardResult, persistentResult] = await Promise.all([
-        supabase.auth.getSession(),
-        supabasePersistent.auth.getSession(),
-      ]);
+      // Step 1: Get session from persistent client (source of truth)
+      const { data: { session: persistentSession } } = await supabasePersistent.auth.getSession();
 
-      const standardSession = standardResult.data.session;
-      const persistentSession = persistentResult.data.session;
-
-      // Validate both sessions server-side
-      const [validStandard, validPersistent] = await Promise.all([
-        validateSession(supabase, standardSession),
-        validateSession(supabasePersistent, persistentSession),
-      ]);
-
-      // Clear invalid sessions from storage
-      if (standardSession && !validStandard) {
-        await clearInvalidStorageEntry("localStorage", STANDARD_AUTH_STORAGE_KEY);
-      }
-      if (persistentSession && !validPersistent) {
-        await clearInvalidStorageEntry("indexedDB", PERSISTENT_AUTH_STORAGE_KEY);
-      }
-
-      // Pick the winner among valid sessions (prefer persistent as source of truth)
-      const winner = validPersistent ?? validStandard ?? null;
-
-      // Mirror winner to the client that's missing it
-      if (winner?.access_token && winner?.refresh_token) {
-        if (!validStandard || validStandard.user.id !== winner.user.id) {
-          try {
-            await supabase.auth.setSession({
-              access_token: winner.access_token,
-              refresh_token: winner.refresh_token,
-            });
-            console.log("[AuthContext] Mirrored session to standard client");
-          } catch (e) {
-            console.warn("[AuthContext] Failed to mirror to standard client:", e);
+      // Step 2: Validate the persistent session server-side (1 getUser call)
+      let validSession: Session | null = null;
+      if (persistentSession?.access_token) {
+        try {
+          const { data: { user }, error } = await supabasePersistent.auth.getUser();
+          if (!error && user) {
+            validSession = persistentSession;
+          } else {
+            console.log("[AuthContext] Persistent session invalid:", error?.message);
+            await clearInvalidStorageEntry("indexedDB", PERSISTENT_AUTH_STORAGE_KEY);
           }
-        }
-
-        if (!validPersistent || validPersistent.user.id !== winner.user.id) {
-          try {
-            await supabasePersistent.auth.setSession({
-              access_token: winner.access_token,
-              refresh_token: winner.refresh_token,
-            });
-            console.log("[AuthContext] Mirrored session to persistent client");
-          } catch (e) {
-            console.warn("[AuthContext] Failed to mirror to persistent client:", e);
-          }
+        } catch (e) {
+          console.log("[AuthContext] Persistent session validation exception:", e);
         }
       }
 
-      return winner;
+      // Step 3: If persistent has no valid session, try standard as fallback
+      if (!validSession) {
+        const { data: { session: standardSession } } = await supabase.auth.getSession();
+        if (standardSession?.access_token) {
+          try {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (!error && user) {
+              validSession = standardSession;
+              // Mirror to persistent
+              mirroringInProgressRef.current = true;
+              try {
+                await supabasePersistent.auth.setSession({
+                  access_token: standardSession.access_token,
+                  refresh_token: standardSession.refresh_token,
+                });
+              } catch { /* ignore */ } finally {
+                mirroringInProgressRef.current = false;
+              }
+            } else {
+              await clearInvalidStorageEntry("localStorage", STANDARD_AUTH_STORAGE_KEY);
+            }
+          } catch { /* ignore */ }
+        }
+      }
+
+      // Step 4: Mirror valid session to standard client if needed
+      if (validSession?.access_token && validSession?.refresh_token) {
+        mirroringInProgressRef.current = true;
+        try {
+          await supabase.auth.setSession({
+            access_token: validSession.access_token,
+            refresh_token: validSession.refresh_token,
+          });
+        } catch { /* ignore */ } finally {
+          mirroringInProgressRef.current = false;
+        }
+      }
+
+      return validSession;
     } catch (error) {
       console.warn("[AuthContext] Reconciliation error:", error);
       return session;
@@ -169,7 +151,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (currentUser: User) => {
     try {
-      // Fetch role and profile in parallel using persistent client
       const [roleResult, profileResult] = await Promise.all([
         supabasePersistent
           .from("user_roles")
@@ -215,8 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         initCompletedRef.current = false;
 
-        // Watchdog: if auth init hangs (Safari IndexedDB corruption), trigger self-heal.
-        // Skip watchdog entirely if we're already in a recovery reload to prevent loops.
+        // Watchdog: 15s safety net for genuinely stuck init (e.g., Safari IndexedDB corruption).
         const alreadyRecovering = window.location.search.includes('__reason=auth_init_timeout');
         const watchdog = alreadyRecovering ? null : window.setTimeout(async () => {
           if (!mounted) return;
@@ -231,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // ignore
           }
           forceCacheBustingReload("auth_init_timeout");
-        }, 7000);
+        }, 15000);
 
         const resolvedSession = await reconcileAuthSessions();
 
@@ -244,6 +224,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(resolvedSession.user);
           setUserId(resolvedSession.user.id);
           await fetchUserData(resolvedSession.user);
+          // Auth succeeded — reset stale recovery counter
+          resetRecoveryAttempts();
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -258,39 +240,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
 
     /**
-     * Handles auth state changes from either client.
-     * For SIGNED_IN events, treats the event's session as authoritative.
+     * Core auth change handler — called after debounce.
      */
-    const handleAuthChange = async (
+    const processAuthChange = async (
       source: "persistent" | "standard",
       event: string,
       eventSession: Session | null
     ) => {
       if (!mounted) return;
       
-      // Skip if we're currently mirroring (to prevent infinite loops)
-      if (mirroringInProgressRef.current) {
-        console.log("[AuthContext] Skipping auth change - mirroring in progress");
-        return;
-      }
+      if (mirroringInProgressRef.current) return;
 
-      // Skip if we already processed this exact session (by session_id)
       const sessionId = eventSession?.user?.id ? `${eventSession.user.id}-${eventSession.expires_at}` : null;
-      if (sessionId && sessionId === lastProcessedSessionIdRef.current) {
-        console.log("[AuthContext] Skipping auth change - already processed this session");
-        return;
-      }
+      if (sessionId && sessionId === lastProcessedSessionIdRef.current) return;
 
-      // For SIGNED_IN events, the event session is authoritative - use it directly
-      // This prevents old sessions with later expires_at from "winning"
       if (event === "SIGNED_IN" && eventSession?.access_token) {
-        console.log("[AuthContext] SIGNED_IN event - using event session as authoritative");
-        
-        // Mark the session as processed to avoid duplicates
         lastProcessedSessionIdRef.current = sessionId;
         
-        // Mirror ONLY to the other client (never call setSession on the emitting client)
-        // Calling setSession on both clients here can cause event storms and UI hangs.
         mirroringInProgressRef.current = true;
         try {
           if (source === "persistent") {
@@ -298,30 +264,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               access_token: eventSession.access_token,
               refresh_token: eventSession.refresh_token,
             });
-            console.log("[AuthContext] Mirrored SIGNED_IN session to standard client");
           } else {
             await supabasePersistent.auth.setSession({
               access_token: eventSession.access_token,
               refresh_token: eventSession.refresh_token,
             });
-            console.log("[AuthContext] Mirrored SIGNED_IN session to persistent client");
           }
-        } catch (e) {
-          console.warn("[AuthContext] Failed to mirror SIGNED_IN session:", e);
-        } finally {
+        } catch { /* ignore */ } finally {
           mirroringInProgressRef.current = false;
         }
 
         setSession(eventSession);
         setUser(eventSession.user);
         setUserId(eventSession.user.id);
+        resetRecoveryAttempts();
         setTimeout(() => {
           if (mounted) fetchUserData(eventSession.user);
         }, 0);
         return;
       }
 
-      // For other events, reconcile normally
       const resolvedSession = await reconcileAuthSessions();
       if (!mounted) return;
 
@@ -330,6 +292,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (resolvedSession?.user) {
         setUserId(resolvedSession.user.id);
+        resetRecoveryAttempts();
         setTimeout(() => {
           if (mounted) fetchUserData(resolvedSession.user);
         }, 0);
@@ -340,7 +303,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Listen for auth changes on BOTH clients
+    /**
+     * Debounced auth change handler — collapses rapid-fire events (e.g., from mirroring)
+     * into a single state update after 200ms of quiet.
+     */
+    const handleAuthChange = (
+      source: "persistent" | "standard",
+      event: string,
+      eventSession: Session | null
+    ) => {
+      pendingAuthChangeRef.current = { source, event, session: eventSession };
+      
+      if (authChangeTimerRef.current) {
+        clearTimeout(authChangeTimerRef.current);
+      }
+      
+      authChangeTimerRef.current = setTimeout(() => {
+        const pending = pendingAuthChangeRef.current;
+        if (pending) {
+          processAuthChange(pending.source, pending.event, pending.session);
+          pendingAuthChangeRef.current = null;
+        }
+      }, 200);
+    };
+
     const {
       data: { subscription: persistentSub },
     } = supabasePersistent.auth.onAuthStateChange((event, session) => {
@@ -357,6 +343,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       persistentSub.unsubscribe();
       standardSub.unsubscribe();
+      if (authChangeTimerRef.current) {
+        clearTimeout(authChangeTimerRef.current);
+      }
     };
   }, []);
 
