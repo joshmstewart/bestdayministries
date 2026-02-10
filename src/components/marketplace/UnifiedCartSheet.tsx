@@ -353,6 +353,9 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
   const processingFee: number | null = cartTotal != null ? calculateProcessingFee(cartTotal) : null;
   const grandTotal: number | null = cartTotal != null && processingFee != null ? cartTotal + processingFee : null;
 
+  // Total quantity across all items (needed to detect quantity changes for shipping recalc)
+  const cartTotalQuantity = cartItems?.reduce((sum, item: any) => sum + (item.quantity || 0), 0) ?? 0;
+
   // Auto-recalculate shipping when cart changes and we have an address
   useEffect(() => {
     if (cartItems && shippingAddress && hasCalculatedShippingVendor) {
@@ -364,7 +367,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
       setShippingResult(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartItems?.length, cartSubtotal, hasCalculatedShippingVendor]);
+  }, [cartItems?.length, cartSubtotal, cartTotalQuantity, hasCalculatedShippingVendor]);
 
   const calculateShipping = async (address: ShippingAddress) => {
     setIsCalculatingShipping(true);
