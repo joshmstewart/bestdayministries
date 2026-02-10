@@ -433,7 +433,7 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
             }
           }
           const existingVi = (coffeeItem.variant_info || {}) as any;
-          updateData.unit_price = applicablePrice;
+          // unit_price column doesn't exist on shopping_cart; price stored in variant_info only
           updateData.variant_info = { ...existingVi, price_per_unit: applicablePrice };
         }
       } catch (e) {
