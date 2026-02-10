@@ -1,3 +1,4 @@
+// Social sharing meta tags proxy — v2
 const SITE_URL = 'https://bestdayministries.org'
 
 const corsHeaders = {
