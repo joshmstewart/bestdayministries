@@ -720,7 +720,10 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                             const vi = (item.variant_info || {}) as any;
                             const name = coffee?.name || vi?.product_name || 'Coffee item';
                             const pricePerUnit = Number(vi?.price_per_unit ?? coffee?.selling_price ?? 0);
+                            const basePrice = Number(coffee?.selling_price ?? 0);
                             const imageUrl = coffee?.images?.[0] || '/placeholder.svg';
+                            const hasBulkDiscount = basePrice > 0 && pricePerUnit < basePrice;
+                            const totalSaved = hasBulkDiscount ? (basePrice - pricePerUnit) * item.quantity : 0;
 
                             return (
                               <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-card">
@@ -744,10 +747,24 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
                                   >
                                     <h4 className="font-medium truncate text-sm">{name}</h4>
                                   </Link>
-                                  <p className="font-semibold text-sm text-primary">
-                                    ${pricePerUnit.toFixed(2)}
-                                    <span className="text-muted-foreground font-normal"> each</span>
-                                  </p>
+                                  {hasBulkDiscount ? (
+                                    <div className="space-y-0.5">
+                                      <p className="font-semibold text-sm text-primary">
+                                        ${pricePerUnit.toFixed(2)}
+                                        <span className="text-muted-foreground font-normal"> each</span>
+                                        <span className="ml-1.5 text-xs line-through text-muted-foreground/60">${basePrice.toFixed(2)}</span>
+                                      </p>
+                                      <p className="text-xs font-semibold text-green-600 dark:text-green-400 flex items-center gap-1">
+                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                        You save ${totalSaved.toFixed(2)} with bulk pricing!
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <p className="font-semibold text-sm text-primary">
+                                      ${pricePerUnit.toFixed(2)}
+                                      <span className="text-muted-foreground font-normal"> each</span>
+                                    </p>
+                                  )}
                                 </div>
 
                                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
