@@ -86,28 +86,29 @@ Update `index.html` with your most important/common meta tags. This is the ONLY 
 
 **Cons:** All pages show the same preview
 
-### Solution 3: Edge Function for Dynamic Meta Tags (ACTIVE ✅)
+### Solution 3: Edge Function + Smart Cloudflare Worker (ACTIVE ✅)
 
-**File:** `supabase/functions/generate-meta-tags/index.ts` (briefly renamed to `social-preview` in Feb 2026, reverted due to persistent 404s — see Deployment Note)
+**File:** `supabase/functions/generate-meta-tags/index.ts`
 **Auth:** Public (verify_jwt = false)
 **Method:** GET
 
-This edge function generates an HTML page with proper OG meta tags, then redirects the browser via JS. Social crawlers (which don't execute JS) read the OG tags; human visitors get redirected instantly.
+This edge function generates HTML with OG meta tags, then redirects browsers via JS.
 
-**Cloudflare Proxy Setup (ACTIVE):**
-A Cloudflare **Redirect Rule** (under Rules → Redirect Rules) proxies `bestdayministries.org/share?...` to the edge function. This means shared URLs show the custom domain, not the Supabase domain.
+**Cloudflare Worker Smart Routing (ACTIVE):**
+The catch-all Cloudflare Worker includes user-agent detection at the top of its `fetch` handler:
 
-**CRITICAL Cloudflare Rule Configuration:**
-- Rule type: **Custom filter expression** (NOT wildcard pattern — wildcard `*` doesn't match query-string-only paths like `/share?id=...`)
-- Expression: `(http.request.uri.path eq "/share")`
-- Target URL: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/generate-meta-tags`
-- Status code: **302**
-- **Preserve query string**: ✅ checked
-- Place at: **First**
+1. **`/share` + crawler user-agent** → Worker fetches HTML from edge function, returns it directly (keeps `bestdayministries.org` visible)
+2. **`/share` + real browser** → 302 redirect to edge function
+3. **Everything else** → Normal SPA behavior
 
-**⚠️ Common Mistake #1:** Using wildcard pattern `https://bestdayministries.org/share*` does NOT work because the `*` matches path characters only. When the URL is `/share?newsletterId=...`, there are no path characters after `/share`, so the rule never fires and Facebook sees default `index.html` tags instead.
+This avoids fighting Cloudflare's pipeline (Workers execute before Redirect Rules).
 
-**⚠️ Common Mistake #2 (CRITICAL):** If a Cloudflare **Worker** has a catch-all route (e.g., `bestdayministries.org/*`), it intercepts `/share` requests **BEFORE** the Redirect Rule fires (Workers execute first in Cloudflare's pipeline). The fix is to add a **Worker exclusion route** for `bestdayministries.org/share*` with Worker set to "None", placed ABOVE the catch-all route. Without this exclusion, the Worker serves `index.html` and Facebook sees default tags.
+**Crawler detection:** facebookexternalhit, facebot, linkedinbot, twitterbot, slackbot, discordbot, whatsapp, telegrambot, applebot, embedly, pinterest, bingbot, googlebot.
+
+**⚠️ PREVIOUS FAILED APPROACHES:**
+- Worker exclusion route → never confirmed working
+- Redirect Rules alone → Workers intercept first
+- Direct edge function URLs → shows `supabase.co` domain
 
 **Query Parameters:**
 | Param | Description |
@@ -119,20 +120,20 @@ A Cloudflare **Redirect Rule** (under Rules → Redirect Rules) proxies `bestday
 **Share URL format:**
 ```
 https://bestdayministries.org/share?newsletterId={id}&redirect=https://bestdayministries.org/newsletters/{id}
-https://bestdayministries.org/share?eventId={id}&redirect=https://bestdayministries.org/community?tab=feed&eventId={id}
 ```
 
-**Fallback defaults** loaded from `app_settings` table: `site_title`, `site_description`, `og_image_url`, `twitter_handle`.
+**OG URL strategy:** `og:url` and `canonical` → custom domain `/share` URL. JS redirect → actual page.
 
 **Testing:**
-- [Facebook Debugger](https://developers.facebook.com/tools/debug/)
-- [OpenGraph.xyz](https://www.opengraph.xyz/)
-- Direct: `https://nbvijawmjkycyweioglk.supabase.co/functions/v1/generate-meta-tags?redirect=https://bestdayministries.org`
+```bash
+curl -A "facebookexternalhit/1.1" "https://bestdayministries.org/share?newsletterId=XYZ"
+curl -A "Mozilla/5.0" -I "https://bestdayministries.org/share?newsletterId=XYZ"
+```
 
-**Deployment Note (Feb 2026):** Was briefly renamed to `social-preview` but reverted to `generate-meta-tags` because the renamed function returned persistent 404s despite reporting "deployed successfully." The `social-preview` name never worked reliably — `generate-meta-tags` is the canonical name that matches `config.toml`. **NEVER rename this function** — keep it as `generate-meta-tags`. Both names exist in `config.toml` for safety. The function inlines `SITE_URL` instead of importing from `_shared/domainConstants.ts` and uses `@supabase/supabase-js@2` (not pinned).
+**NEVER rename this function** — `generate-meta-tags` is sacred (see Feb 2026 incident).
 
-**Pros:** Dynamic, page-specific meta tags; works with Cloudflare proxy
-**Cons:** Requires Cloudflare setup for custom domain URLs
+**Pros:** Dynamic meta tags; custom domain in social previews
+**Cons:** Requires Cloudflare Worker update
 
 ### Solution 4: Meta Tag Proxy Service (Recommended for Production)
 
