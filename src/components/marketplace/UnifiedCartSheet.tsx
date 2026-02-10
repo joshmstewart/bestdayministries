@@ -412,9 +412,39 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     const newQuantity = currentQuantity + delta;
     if (newQuantity < 1) return;
 
+    // Check if this is a coffee item – if so, recalculate tiered pricing
+    const coffeeItem = coffeeCartItems.find((i: any) => i.id === cartItemId);
+    let updateData: Record<string, any> = { quantity: newQuantity };
+
+    if (coffeeItem?.coffee_product_id) {
+      try {
+        const { data: tiers } = await supabase
+          .from('coffee_product_tiers')
+          .select('min_quantity, price_per_unit')
+          .eq('product_id', coffeeItem.coffee_product_id)
+          .order('min_quantity', { ascending: true });
+
+        if (tiers && tiers.length > 0) {
+          // Find the highest tier that applies to newQuantity
+          let applicablePrice = coffeeItem.coffee_product?.selling_price ?? 0;
+          for (const tier of tiers) {
+            if (newQuantity >= tier.min_quantity) {
+              applicablePrice = tier.price_per_unit;
+            }
+          }
+          const existingVi = (coffeeItem.variant_info || {}) as any;
+          updateData.unit_price = applicablePrice;
+          updateData.tier_quantity = newQuantity;
+          updateData.variant_info = { ...existingVi, price_per_unit: applicablePrice };
+        }
+      } catch (e) {
+        console.error('Failed to fetch tiered pricing:', e);
+      }
+    }
+
     const { error } = await supabase
       .from('shopping_cart')
-      .update({ quantity: newQuantity })
+      .update(updateData)
       .eq('id', cartItemId);
 
     if (error) {
