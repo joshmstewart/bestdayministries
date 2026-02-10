@@ -235,7 +235,7 @@ export function DailyFortune({ onReveal }: DailyFortuneProps = {}) {
             </div>
             <div>
               <h3 className="font-semibold text-sm bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Daily Inspiration
+                Daily Fortune
               </h3>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 {getSourceIcon(fortune.source_type)}
