@@ -223,13 +223,17 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     return storeNeedsCalculated || coffeeNeedsCalculatedShipping;
   }, [vendorTotals, coffeeNeedsCalculatedShipping]);
 
+  // Determine expected carrier from bag count: 1 bag = USPS, 2+ = UPS
+  const coffeeBagCount = coffeeCartItems.reduce((sum, item: any) => sum + (item.quantity || 0), 0);
+  const expectedCoffeeCarrier = coffeeBagCount >= 2 ? 'UPS' : 'USPS';
+
   // Get coffee shipping display
   const getCoffeeShippingDisplay = (): { label: string; isPending: boolean; shippingCents: number; carrier: string | null } => {
     // If we have a calculated result from the edge function
     if (shippingResult?.success) {
       const coffeeResult = shippingResult.vendor_shipping.find(v => v.vendor_id === COFFEE_VENDOR_ID);
       if (coffeeResult) {
-        const carrier = coffeeResult.carrier?.toUpperCase() || null;
+        const carrier = coffeeResult.carrier?.toUpperCase() || expectedCoffeeCarrier;
         if (coffeeResult.shipping_cents === 0) return { label: 'FREE', isPending: false, shippingCents: 0, carrier };
         return { label: `$${(coffeeResult.shipping_cents / 100).toFixed(2)}`, isPending: false, shippingCents: coffeeResult.shipping_cents, carrier };
       }
@@ -240,23 +244,23 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
 
     // No settings configured - use default
     if (!coffeeShippingSettings || !coffeeShippingSettings.shipping_mode) {
-      return { label: `$${FLAT_SHIPPING_RATE.toFixed(2)}`, isPending: false, shippingCents: Math.round(FLAT_SHIPPING_RATE * 100), carrier: null };
+      return { label: `$${FLAT_SHIPPING_RATE.toFixed(2)}`, isPending: false, shippingCents: Math.round(FLAT_SHIPPING_RATE * 100), carrier: expectedCoffeeCarrier };
     }
 
     // Check free shipping threshold
     const freeThreshold = coffeeShippingSettings.free_shipping_threshold;
     if (!coffeeShippingSettings.disable_free_shipping && freeThreshold != null && coffeeSubtotal >= freeThreshold) {
-      return { label: 'FREE', isPending: false, shippingCents: 0, carrier: null };
+      return { label: 'FREE', isPending: false, shippingCents: 0, carrier: expectedCoffeeCarrier };
     }
 
     // Calculated shipping requires ZIP
     if (coffeeShippingSettings.shipping_mode === 'calculated') {
-      return { label: 'Pending', isPending: true, shippingCents: 0, carrier: null };
+      return { label: 'Pending', isPending: true, shippingCents: 0, carrier: expectedCoffeeCarrier };
     }
 
     // Flat rate
     const flatRate = coffeeShippingSettings.flat_rate_amount ?? FLAT_SHIPPING_RATE;
-    return { label: `$${flatRate.toFixed(2)}`, isPending: false, shippingCents: Math.round(flatRate * 100), carrier: null };
+    return { label: `$${flatRate.toFixed(2)}`, isPending: false, shippingCents: Math.round(flatRate * 100), carrier: expectedCoffeeCarrier };
   };
 
   const coffeeShipping = getCoffeeShippingDisplay();
