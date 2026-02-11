@@ -6,13 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, ZoomIn, Move } from "lucide-react";
+import { Loader2, ZoomIn, Move, ImageDown } from "lucide-react";
 import { invalidateAvatarCache } from "@/hooks/useProfileAvatarUrl";
 
 interface AvatarCropSettings {
   id: string;
   name: string;
   preview_image_url: string | null;
+  thumbnail_sm_url: string | null;
+  thumbnail_md_url: string | null;
   profile_crop_x: number;
   profile_crop_y: number;
   profile_crop_scale: number;
@@ -45,7 +47,7 @@ export const AvatarCropManager = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fitness_avatars")
-        .select("id, name, preview_image_url, profile_crop_x, profile_crop_y, profile_crop_scale")
+        .select("id, name, preview_image_url, thumbnail_sm_url, thumbnail_md_url, profile_crop_x, profile_crop_y, profile_crop_scale")
         .eq("is_active", true)
         .order("display_order");
       if (error) throw error;
@@ -114,6 +116,35 @@ export const AvatarCropManager = () => {
   const selected = avatars?.find((a) => a.id === selectedId);
   const cropStyle = getCropTransform(cropX, cropY, cropScale);
 
+  // Thumbnail compression state
+  const [compressing, setCompressing] = useState(false);
+
+  const needsThumbnails = avatars?.filter(a => a.preview_image_url && (!a.thumbnail_sm_url || !a.thumbnail_md_url)).length || 0;
+
+  const handleCompress = async () => {
+    setCompressing(true);
+    try {
+      let remaining = needsThumbnails;
+      while (remaining > 0) {
+        const { data, error } = await supabase.functions.invoke("compress-fitness-avatars");
+        if (error) throw error;
+        const result = data as { processed: number; remaining: number; failed: number };
+        remaining = result.remaining;
+        if (result.processed === 0 && result.remaining > 0) {
+          // Safety: avoid infinite loop if nothing processes
+          break;
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-avatar-crops"] });
+      toast.success("Thumbnails generated successfully");
+    } catch (err) {
+      toast.error("Failed to generate thumbnails");
+      console.error(err);
+    } finally {
+      setCompressing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -124,11 +155,25 @@ export const AvatarCropManager = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Profile Crop Settings</h3>
-        <p className="text-sm text-muted-foreground">
-          Adjust how each avatar appears when displayed as a circle in profiles. Drag to reposition, use slider to zoom.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Profile Crop Settings</h3>
+          <p className="text-sm text-muted-foreground">
+            Adjust how each avatar appears when displayed as a circle in profiles. Drag to reposition, use slider to zoom.
+          </p>
+        </div>
+        {needsThumbnails > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCompress}
+            disabled={compressing}
+            className="shrink-0"
+          >
+            {compressing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImageDown className="h-4 w-4 mr-2" />}
+            Compress ({needsThumbnails})
+          </Button>
+        )}
       </div>
 
       {/* Avatar grid — show cropped circles */}
@@ -150,7 +195,7 @@ export const AvatarCropManager = () => {
             >
               {avatar.preview_image_url ? (
                 <img
-                  src={avatar.preview_image_url}
+                  src={avatar.thumbnail_md_url || avatar.preview_image_url}
                   alt={avatar.name}
                   className="w-full h-full object-cover"
                   style={style}

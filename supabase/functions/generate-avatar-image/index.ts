@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { translateCharacterName } from "../_shared/character-name-translator.ts";
+import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -461,6 +462,49 @@ OUTPUT: Generate the image immediately.`;
     if (updateError) {
       console.error("Update error:", updateError);
       throw new Error("Failed to update avatar record");
+    }
+
+    // Auto-generate thumbnails for the new image
+    let thumbnailSmUrl: string | null = null;
+    let thumbnailMdUrl: string | null = null;
+    try {
+      const originalImage = await Image.decode(imageBuffer);
+      const sizes = [
+        { key: "sm", size: 128, folder: "thumbnails-sm" },
+        { key: "md", size: 256, folder: "thumbnails-md" },
+      ] as const;
+
+      for (const { key, size, folder } of sizes) {
+        const resized = originalImage.clone().resize(size, size);
+        const compressed = await resized.encode(3);
+        const thumbFileName = `thumb-${key}-${avatarId}-${Date.now()}.png`;
+        const thumbPath = `fitness-avatars/${folder}/${thumbFileName}`;
+
+        const { error: thumbUploadError } = await supabase.storage
+          .from("app-assets")
+          .upload(thumbPath, compressed, { contentType: "image/png", upsert: true });
+
+        if (!thumbUploadError) {
+          const { data: thumbUrlData } = supabase.storage
+            .from("app-assets")
+            .getPublicUrl(thumbPath);
+          if (key === "sm") thumbnailSmUrl = thumbUrlData.publicUrl;
+          else thumbnailMdUrl = thumbUrlData.publicUrl;
+          console.log(`  ${key} thumbnail: ${size}px → ${compressed.length} bytes`);
+        } else {
+          console.error(`Thumbnail ${key} upload error:`, thumbUploadError);
+        }
+      }
+
+      // Update thumbnail URLs
+      if (thumbnailSmUrl || thumbnailMdUrl) {
+        const thumbUpdate: Record<string, string> = {};
+        if (thumbnailSmUrl) thumbUpdate.thumbnail_sm_url = thumbnailSmUrl;
+        if (thumbnailMdUrl) thumbUpdate.thumbnail_md_url = thumbnailMdUrl;
+        await supabase.from("fitness_avatars").update(thumbUpdate).eq("id", avatarId);
+      }
+    } catch (thumbErr) {
+      console.error("Thumbnail generation failed (non-fatal):", thumbErr);
     }
 
     console.log(`Avatar image generated successfully: ${imageUrl}`);

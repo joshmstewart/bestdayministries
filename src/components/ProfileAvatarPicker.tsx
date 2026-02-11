@@ -43,6 +43,7 @@ interface FitnessAvatar {
   name: string;
   description: string | null;
   preview_image_url: string | null;
+  thumbnail_md_url: string | null;
   is_free: boolean;
   price_coins: number;
   display_order: number;
@@ -89,7 +90,7 @@ export const ProfileAvatarPicker = ({
     queryFn: async () => {
       let query = supabase
         .from("fitness_avatars")
-        .select("id, name, description, preview_image_url, is_free, price_coins, display_order, category")
+        .select("id, name, description, preview_image_url, thumbnail_md_url, is_free, price_coins, display_order, category")
         .eq("is_active", true)
         .order("display_order");
 
@@ -213,7 +214,7 @@ export const ProfileAvatarPicker = ({
               {selectedAvatar?.preview_image_url && (
                 <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-primary bg-white flex-shrink-0">
                   <img
-                    src={selectedAvatar.preview_image_url}
+                    src={selectedAvatar.thumbnail_md_url || selectedAvatar.preview_image_url}
                     alt={selectedAvatar.name}
                     className="w-full h-full object-cover"
                   />
@@ -296,7 +297,7 @@ export const ProfileAvatarPicker = ({
                   <div className="flex justify-center">
                     <div className="w-48 h-48 rounded-xl overflow-hidden border-2 border-primary bg-white shadow-md">
                       <img
-                        src={purchaseAvatar.preview_image_url}
+                        src={purchaseAvatar.thumbnail_md_url || purchaseAvatar.preview_image_url}
                         alt={purchaseAvatar.name}
                         className="w-full h-full object-cover"
                       />
@@ -368,7 +369,7 @@ function AvatarButton({
       >
         {avatar.preview_image_url ? (
           <img
-            src={avatar.preview_image_url}
+            src={avatar.thumbnail_md_url || avatar.preview_image_url}
             alt={avatar.name}
             className="w-full h-full object-cover"
           />
