@@ -35,6 +35,7 @@ interface FitnessAvatar {
   name: string;
   description: string | null;
   preview_image_url: string | null;
+  thumbnail_md_url: string | null;
   character_prompt: string;
   is_free: boolean;
   price_coins: number;
@@ -345,7 +346,7 @@ export const FitnessAvatarPicker = ({ userId, onAvatarSelected }: FitnessAvatarP
                         )}>
                           {avatar.preview_image_url ? (
                             <img 
-                              src={avatar.preview_image_url} 
+                              src={avatar.thumbnail_md_url || avatar.preview_image_url} 
                               alt={avatar.name}
                               className="w-full h-full object-contain"
                             />

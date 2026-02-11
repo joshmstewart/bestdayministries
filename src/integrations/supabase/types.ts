@@ -4960,6 +4960,8 @@ export type Database = {
           profile_crop_x: number
           profile_crop_y: number
           sex: string | null
+          thumbnail_md_url: string | null
+          thumbnail_sm_url: string | null
           updated_at: string
         }
         Insert: {
@@ -4980,6 +4982,8 @@ export type Database = {
           profile_crop_x?: number
           profile_crop_y?: number
           sex?: string | null
+          thumbnail_md_url?: string | null
+          thumbnail_sm_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -5000,6 +5004,8 @@ export type Database = {
           profile_crop_x?: number
           profile_crop_y?: number
           sex?: string | null
+          thumbnail_md_url?: string | null
+          thumbnail_sm_url?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -25,6 +25,10 @@ export const AvatarDisplay = ({
   const avatarData = useProfileAvatarData(profileAvatarId);
 
   if (avatarData) {
+    // Use small thumbnail for sm/md/lg sizes (128px covers 2x retina at 64px)
+    // Fall back to full image if thumbnail not yet generated
+    const imgSrc = avatarData.thumbnailSmUrl || avatarData.url;
+
     const scale = avatarData.cropScale ?? 1;
     const offsetX = ((avatarData.cropX ?? 50) - 50) * (scale - 1) * 0.5;
     const offsetY = ((avatarData.cropY ?? 50) - 50) * (scale - 1) * 0.5;
@@ -38,7 +42,7 @@ export const AvatarDisplay = ({
         title={displayName}
       >
         <img
-          src={avatarData.url}
+          src={imgSrc}
           alt={displayName}
           className="w-full h-full object-cover"
           style={{
