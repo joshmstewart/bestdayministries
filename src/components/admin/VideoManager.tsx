@@ -31,7 +31,11 @@ interface Video {
   youtube_url?: string | null;
 }
 
-export const VideoManager = () => {
+interface VideoManagerProps {
+  onVideoSaved?: () => void;
+}
+
+export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -288,6 +292,7 @@ export const VideoManager = () => {
       setCoverPreviewUrl(null);
       setUploadProgress(null);
       loadVideos();
+      onVideoSaved?.();
     } catch (error: any) {
       console.error("Error saving video:", error);
       if (error.message !== 'Upload cancelled') {
