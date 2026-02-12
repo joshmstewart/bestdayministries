@@ -118,6 +118,9 @@ const VendorAuth = () => {
         const hasAccess = await checkVendorAccess(session.user.id);
         if (hasAccess) {
           navigate("/vendor-dashboard", { replace: true });
+        } else {
+          // Logged-in user without vendor access — show vendor application form directly
+          setIsAddingNewVendor(true);
         }
       }
     });
@@ -136,6 +139,8 @@ const VendorAuth = () => {
         const hasAccess = await checkVendorAccess(session.user.id);
         if (hasAccess) {
           navigate("/vendor-dashboard", { replace: true });
+        } else {
+          setIsAddingNewVendor(true);
         }
       }
     });
