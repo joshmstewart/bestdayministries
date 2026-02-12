@@ -165,6 +165,7 @@ export const VideoManager = () => {
           toast({
             title: "Compression unavailable",
             description: "Your browser doesn't support video compression. Try Chrome or Firefox on a desktop for smaller uploads. Uploading original file.",
+            variant: "destructive",
           });
         }
 
