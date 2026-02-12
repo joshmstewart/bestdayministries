@@ -229,7 +229,7 @@ export default function AlbumDetailDialog({
             <div className="px-4 py-2 border-b border-border shrink-0">
               <h3 className="text-sm font-semibold flex items-center gap-1.5">
                 <MessageSquare className="w-4 h-4" />
-                Comments ({comments.length})
+                Album Comments ({comments.length})
               </h3>
             </div>
 
