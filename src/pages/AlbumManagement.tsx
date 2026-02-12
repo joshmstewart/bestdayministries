@@ -49,7 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SortableMediaItem, AlbumMedia } from "@/components/album/SortableMediaItem";
-import { AddVideoDialog } from "@/components/album/AddVideoDialog";
+import { VideoLibraryPickerDialog, VideoPickerResult } from "@/components/album/VideoLibraryPickerDialog";
 
 interface Album {
   id: string;
@@ -63,18 +63,6 @@ interface Album {
   is_public: boolean;
   images?: AlbumMedia[];
   event?: { title: string } | null;
-}
-
-interface LibraryVideo {
-  id: string;
-  title: string;
-  video_url: string;
-}
-
-interface Event {
-  id: string;
-  title: string;
-  event_date: string;
 }
 
 interface Event {
@@ -123,7 +111,7 @@ export default function AlbumManagement() {
   const [existingImages, setExistingImages] = useState<AlbumMedia[]>([]);
   const [visibleToRoles, setVisibleToRoles] = useState<Array<'caregiver' | 'bestie' | 'supporter' | 'admin' | 'owner'>>(['caregiver', 'bestie', 'supporter']);
   const [showAddVideoDialog, setShowAddVideoDialog] = useState(false);
-  const [libraryVideos, setLibraryVideos] = useState<LibraryVideo[]>([]);
+  const [pendingVideos, setPendingVideos] = useState<VideoPickerResult[]>([]);
 
   useEffect(() => {
     checkAdminAccess();
@@ -152,7 +140,7 @@ export default function AlbumManagement() {
     }
 
     setIsAdmin(true);
-    await Promise.all([loadAlbums(), loadEvents(), loadLibraryVideos()]);
+    await Promise.all([loadAlbums(), loadEvents()]);
   };
 
   const loadAlbums = async () => {
@@ -206,15 +194,6 @@ export default function AlbumManagement() {
     if (data) setEvents(data);
   };
 
-  const loadLibraryVideos = async () => {
-    const { data } = await supabase
-      .from("videos")
-      .select("id, title, video_url")
-      .eq("is_active", true)
-      .order("created_at", { ascending: false });
-    
-    if (data) setLibraryVideos(data);
-  };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -380,12 +359,13 @@ export default function AlbumManagement() {
     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
     setEditingAlbum(null);
     setExistingImages([]);
+    setPendingVideos([]);
     setShowForm(false);
   };
 
   const handleSubmit = async () => {
-    if (!title || (selectedImages.length === 0 && !editingAlbum?.images?.length && existingImages.length === 0)) {
-      toast.error("Please provide a title and at least one image");
+    if (!title || (selectedImages.length === 0 && pendingVideos.length === 0 && !editingAlbum?.images?.length && existingImages.length === 0)) {
+      toast.error("Please provide a title and at least one image or video");
       return;
     }
 
@@ -494,6 +474,24 @@ export default function AlbumManagement() {
             .eq("id", albumId);
           coverImageUrl = publicUrl;
         }
+      }
+
+      // Insert pending videos (for new albums or editing)
+      for (let i = 0; i < pendingVideos.length; i++) {
+        const pv = pendingVideos[i];
+        const videoOrder = existingImages.length + selectedImages.length + i;
+        const { error: videoError } = await supabase
+          .from("album_images")
+          .insert({
+            album_id: albumId,
+            video_type: pv.type === 'youtube' ? 'youtube' : 'upload',
+            video_url: pv.url || null,
+            youtube_url: pv.youtubeUrl || null,
+            video_id: pv.videoId || null,
+            caption: pv.caption || null,
+            display_order: videoOrder,
+          });
+        if (videoError) throw videoError;
       }
 
       // If album is marked as a post, create or update the discussion post
@@ -1100,6 +1098,35 @@ export default function AlbumManagement() {
                       ))}
                     </div>
                   )}
+                  {/* Pending Videos preview (for new albums) */}
+                  {pendingVideos.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm text-muted-foreground">Pending Videos ({pendingVideos.length})</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {pendingVideos.map((pv, index) => (
+                          <div key={index} className="relative rounded-lg border bg-muted/30 p-2">
+                            <div className="aspect-video bg-muted rounded flex items-center justify-center">
+                              {pv.type === 'youtube' ? (
+                                <Youtube className="w-8 h-8 text-muted-foreground" />
+                              ) : (
+                                <Play className="w-8 h-8 text-muted-foreground" />
+                              )}
+                            </div>
+                            <p className="text-xs mt-1 truncate">{pv.caption || (pv.type === 'youtube' ? 'YouTube Video' : 'Library Video')}</p>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6"
+                              onClick={() => setPendingVideos(prev => prev.filter((_, i) => i !== index))}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
@@ -1279,59 +1306,62 @@ export default function AlbumManagement() {
         </DialogContent>
       </Dialog>
 
-      <AddVideoDialog
+      <VideoLibraryPickerDialog
         open={showAddVideoDialog}
         onOpenChange={setShowAddVideoDialog}
-        existingVideos={libraryVideos}
-        onVideoAdded={async (video) => {
-          if (!editingAlbum) {
-            toast.error("Please create or edit an album first to add videos");
-            return;
-          }
-          
-          try {
-            const nextOrder = existingImages.length;
-            const { error } = await supabase
-              .from("album_images")
-              .insert({
-                album_id: editingAlbum.id,
-                video_type: video.type === 'youtube' ? 'youtube' : 'upload',
-                video_url: video.url || null,
-                youtube_url: video.youtubeUrl || null,
-                video_id: video.videoId || null,
-                caption: video.caption || null,
-                display_order: nextOrder,
-              });
+        onVideoSelected={(video) => {
+          if (editingAlbum) {
+            // Insert immediately for existing albums
+            (async () => {
+              try {
+                const nextOrder = existingImages.length;
+                const { error } = await supabase
+                  .from("album_images")
+                  .insert({
+                    album_id: editingAlbum.id,
+                    video_type: video.type === 'youtube' ? 'youtube' : 'upload',
+                    video_url: video.url || null,
+                    youtube_url: video.youtubeUrl || null,
+                    video_id: video.videoId || null,
+                    caption: video.caption || null,
+                    display_order: nextOrder,
+                  });
 
-            if (error) throw error;
+                if (error) throw error;
 
-            toast.success("Video added to album");
-            loadAlbums();
-            
-            // Reload existing images for the editing form
-            const { data: images } = await supabase
-              .from("album_images")
-              .select("*")
-              .eq("album_id", editingAlbum.id)
-              .order("display_order", { ascending: true });
-            
-            if (images) {
-              const mappedImages: AlbumMedia[] = images.map(img => ({
-                id: img.id,
-                image_url: img.image_url,
-                video_url: img.video_url,
-                video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
-                youtube_url: img.youtube_url,
-                video_id: img.video_id,
-                caption: img.caption,
-                display_order: img.display_order,
-                original_image_url: img.original_image_url,
-              }));
-              setExistingImages(mappedImages);
-            }
-          } catch (error: any) {
-            console.error("Error adding video:", error);
-            toast.error(error.message || "Failed to add video");
+                toast.success("Video added to album");
+                loadAlbums();
+                
+                // Reload existing images for the editing form
+                const { data: images } = await supabase
+                  .from("album_images")
+                  .select("*")
+                  .eq("album_id", editingAlbum.id)
+                  .order("display_order", { ascending: true });
+                
+                if (images) {
+                  const mappedImages: AlbumMedia[] = images.map(img => ({
+                    id: img.id,
+                    image_url: img.image_url,
+                    video_url: img.video_url,
+                    video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
+                    youtube_url: img.youtube_url,
+                    video_id: img.video_id,
+                    caption: img.caption,
+                    display_order: img.display_order,
+                    original_image_url: img.original_image_url,
+                  }));
+                  setExistingImages(mappedImages);
+                }
+              } catch (error: any) {
+                console.error("Error adding video:", error);
+                toast.error(error.message || "Failed to add video");
+              }
+            })();
+          } else {
+            // Queue for new album creation
+            setPendingVideos(prev => [...prev, video]);
+            toast.success("Video queued — it will be added when you create the album");
           }
         }}
       />
