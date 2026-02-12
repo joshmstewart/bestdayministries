@@ -163,9 +163,8 @@ export const VideoManager = () => {
           }
         } else if (shouldCompress(videoFile) && !isCompressionSupported()) {
           toast({
-            title: "Compression unavailable",
-            description: "Your browser doesn't support video compression. Try Chrome or Firefox on a desktop for smaller uploads. Uploading original file.",
-            variant: "destructive",
+            title: "Uploading original file",
+            description: "Video compression requires specific server headers (COOP/COEP) that aren't available in this environment. The original file will be uploaded instead.",
           });
         }
 
