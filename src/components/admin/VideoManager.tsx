@@ -163,8 +163,8 @@ export const VideoManager = () => {
           }
         } else if (shouldCompress(videoFile) && !isCompressionSupported()) {
           toast({
-            title: "Uploading original file",
-            description: "Video compression requires specific server headers (COOP/COEP) that aren't available in this environment. The original file will be uploaded instead.",
+            title: "Large file notice",
+            description: "Video compression isn't available in this environment, so the original file will be uploaded. This may take longer for large files.",
           });
         }
 
