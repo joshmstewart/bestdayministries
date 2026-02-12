@@ -36,6 +36,7 @@ const VendorAuth = () => {
   const { toast } = useToast();
   
   const [isAddingNewVendor, setIsAddingNewVendor] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -111,6 +112,7 @@ const VendorAuth = () => {
         // If ?new=true, show form to add new vendor
         if (newParam === 'true') {
           setIsAddingNewVendor(true);
+          setAuthChecked(true);
           return;
         }
         
@@ -123,6 +125,7 @@ const VendorAuth = () => {
           setIsAddingNewVendor(true);
         }
       }
+      setAuthChecked(true);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -644,6 +647,15 @@ const VendorAuth = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Don't render the signup form until we've checked auth
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
