@@ -92,8 +92,8 @@ const VendorAuth = () => {
       return (ownedVendors?.length ?? 0) > 0 || (teamMemberships?.length ?? 0) > 0;
     };
 
-    if (isAuthenticated && user) {
-      setExistingUser({ id: user.id, email: user.email || '' });
+    const proceedWithUser = (resolvedUser: { id: string; email: string }) => {
+      setExistingUser(resolvedUser);
 
       if (newParam === 'true') {
         setIsAddingNewVendor(true);
@@ -101,18 +101,46 @@ const VendorAuth = () => {
         return;
       }
 
-      checkVendorAccess(user.id).then((hasAccess) => {
+      checkVendorAccess(resolvedUser.id).then((hasAccess) => {
         if (hasAccess) {
           navigate("/vendor-dashboard", { replace: true });
         } else {
-          // Logged-in user without vendor access — show vendor application directly
           setIsAddingNewVendor(true);
         }
         setVendorCheckDone(true);
+      }).catch(() => {
+        // Even if vendor check fails, show the application form (not signup)
+        setIsAddingNewVendor(true);
+        setVendorCheckDone(true);
       });
+    };
+
+    if (isAuthenticated && user) {
+      // AuthContext confirmed user is logged in
+      proceedWithUser({ id: user.id, email: user.email || '' });
     } else {
-      // Not authenticated — show signup form
-      setVendorCheckDone(true);
+      // AuthContext says not authenticated — but AuthContext reconciliation can
+      // silently fail (IndexedDB timeout, Safari corruption, etc.).
+      // SAFETY NET: directly check BOTH clients before showing signup form.
+      const directSessionCheck = async () => {
+        try {
+          const [persistentResult, standardResult] = await Promise.all([
+            supabasePersistent.auth.getSession(),
+            supabase.auth.getSession(),
+          ]);
+          const foundSession = persistentResult.data.session || standardResult.data.session;
+          if (foundSession?.user) {
+            console.log('[VendorAuth] Safety net caught a session AuthContext missed');
+            proceedWithUser({ id: foundSession.user.id, email: foundSession.user.email || '' });
+            return;
+          }
+        } catch (e) {
+          console.warn('[VendorAuth] Safety net session check failed:', e);
+        }
+        // Truly not authenticated — show signup form
+        setVendorCheckDone(true);
+      };
+      directSessionCheck();
     }
   }, [authLoading, isAuthenticated, user, navigate, searchParams]);
 
