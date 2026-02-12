@@ -161,6 +161,55 @@ export type Database = {
         }
         Relationships: []
       }
+      album_comments: {
+        Row: {
+          album_id: string
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          album_id: string
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          album_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "album_comments_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "album_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       album_images: {
         Row: {
           album_id: string
@@ -267,6 +316,7 @@ export type Database = {
           allow_admin_edit: boolean
           allow_owner_edit: boolean
           audio_url: string | null
+          comments_count: number
           cover_image_url: string | null
           created_at: string
           created_by: string
@@ -285,6 +335,7 @@ export type Database = {
           allow_admin_edit?: boolean
           allow_owner_edit?: boolean
           audio_url?: string | null
+          comments_count?: number
           cover_image_url?: string | null
           created_at?: string
           created_by: string
@@ -303,6 +354,7 @@ export type Database = {
           allow_admin_edit?: boolean
           allow_owner_edit?: boolean
           audio_url?: string | null
+          comments_count?: number
           cover_image_url?: string | null
           created_at?: string
           created_by?: string

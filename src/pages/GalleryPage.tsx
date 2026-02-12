@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, ImageIcon, MessageSquare } from "lucide-react";
 import Footer from "@/components/Footer";
-import ImageLightbox from "@/components/ImageLightbox";
+import AlbumDetailDialog from "@/components/AlbumDetailDialog";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 
 interface Album {
@@ -25,9 +25,7 @@ const GalleryPage = () => {
   const navigate = useNavigate();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string | null }[]>([]);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
 
   useEffect(() => {
     loadAlbums();
@@ -68,20 +66,8 @@ const GalleryPage = () => {
     setLoading(false);
   };
 
-  const openAlbumLightbox = (album: Album) => {
-    if (album.images.length > 0) {
-      setLightboxImages(album.images);
-      setLightboxIndex(0);
-      setLightboxOpen(true);
-    }
-  };
-
-  const goToPreviousLightbox = () => {
-    setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
-  };
-
-  const goToNextLightbox = () => {
-    setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
+  const openAlbumDetail = (album: Album) => {
+    setSelectedAlbum(album);
   };
 
   if (loading) {
@@ -119,7 +105,7 @@ const GalleryPage = () => {
                   <Card
                     key={album.id}
                     className="group cursor-pointer overflow-hidden border-2 hover:border-primary/50 transition-all hover:shadow-lg"
-                    onClick={() => openAlbumLightbox(album)}
+                    onClick={() => openAlbumDetail(album)}
                   >
                     <div className="aspect-square relative bg-muted">
                       {coverImage ? (
@@ -173,13 +159,12 @@ const GalleryPage = () => {
             </div>
           )}
 
-          <ImageLightbox
-            images={lightboxImages}
-            currentIndex={lightboxIndex}
-            isOpen={lightboxOpen}
-            onClose={() => setLightboxOpen(false)}
-            onPrevious={goToPreviousLightbox}
-            onNext={goToNextLightbox}
+          <AlbumDetailDialog
+            albumId={selectedAlbum?.id || null}
+            albumTitle={selectedAlbum?.title}
+            images={selectedAlbum?.images.filter(img => img.image_url).map(img => ({ image_url: img.image_url!, caption: img.caption })) || []}
+            isOpen={!!selectedAlbum}
+            onClose={() => setSelectedAlbum(null)}
           />
         </div>
       </main>
