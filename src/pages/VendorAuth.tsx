@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { supabasePersistent } from "@/lib/supabaseWithPersistentAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,9 +35,10 @@ const VendorAuth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   
   const [isAddingNewVendor, setIsAddingNewVendor] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [vendorCheckDone, setVendorCheckDone] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -77,96 +79,42 @@ const VendorAuth = () => {
   });
 
   useEffect(() => {
+    // Wait for AuthContext to finish loading
+    if (authLoading) return;
+
     const newParam = searchParams.get('new');
     
     const checkVendorAccess = async (userId: string) => {
-      // Check if user owns any vendors
-      const { data: ownedVendors } = await supabase
-        .from('vendors')
-        .select('id')
-        .eq('user_id', userId);
-      
-      if (ownedVendors && ownedVendors.length > 0) {
-        return true;
-      }
-      
-      // Check if user is a team member of any vendors
-      const { data: teamMemberships } = await supabase
-        .from('vendor_team_members')
-        .select('vendor_id, accepted_at')
-        .eq('user_id', userId)
-        .not('accepted_at', 'is', null);
-      
-      if (teamMemberships && teamMemberships.length > 0) {
-        return true;
-      }
-      
-      return false;
+      const [{ data: ownedVendors }, { data: teamMemberships }] = await Promise.all([
+        supabase.from('vendors').select('id').eq('user_id', userId),
+        supabase.from('vendor_team_members').select('vendor_id, accepted_at').eq('user_id', userId).not('accepted_at', 'is', null),
+      ]);
+      return (ownedVendors?.length ?? 0) > 0 || (teamMemberships?.length ?? 0) > 0;
     };
-    
-    // Check if user is already logged in - check BOTH clients (persistent is source of truth)
-    const checkAuth = async () => {
-      // Try persistent client first (IndexedDB - source of truth for iOS PWA)
-      let session = null;
-      try {
-        const persistentResult = await supabasePersistent.auth.getSession();
-        session = persistentResult.data.session;
-      } catch (e) {
-        console.warn('Persistent auth check failed, falling back to standard client', e);
+
+    if (isAuthenticated && user) {
+      setExistingUser({ id: user.id, email: user.email || '' });
+
+      if (newParam === 'true') {
+        setIsAddingNewVendor(true);
+        setVendorCheckDone(true);
+        return;
       }
-      
-      // Fall back to standard client if persistent didn't have a session
-      if (!session) {
-        const standardResult = await supabase.auth.getSession();
-        session = standardResult.data.session;
-      }
-      
-      if (session?.user) {
-        setExistingUser({ id: session.user.id, email: session.user.email || '' });
-        
-        // If ?new=true, show form to add new vendor
-        if (newParam === 'true') {
-          setIsAddingNewVendor(true);
-          setAuthChecked(true);
-          return;
-        }
-        
-        // Check if they have vendor access (owned or team member)
-        const hasAccess = await checkVendorAccess(session.user.id);
+
+      checkVendorAccess(user.id).then((hasAccess) => {
         if (hasAccess) {
           navigate("/vendor-dashboard", { replace: true });
         } else {
-          // Logged-in user without vendor access — show vendor application form directly
+          // Logged-in user without vendor access — show vendor application directly
           setIsAddingNewVendor(true);
         }
-      }
-      setAuthChecked(true);
-    };
-    
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && event === 'SIGNED_IN') {
-        setExistingUser({ id: session.user.id, email: session.user.email || '' });
-        
-        // If adding new vendor, don't redirect
-        if (newParam === 'true') {
-          setIsAddingNewVendor(true);
-          return;
-        }
-        
-        // Check if they have vendor access (owned or team member)
-        const hasAccess = await checkVendorAccess(session.user.id);
-        if (hasAccess) {
-          navigate("/vendor-dashboard", { replace: true });
-        } else {
-          setIsAddingNewVendor(true);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate, searchParams]);
+        setVendorCheckDone(true);
+      });
+    } else {
+      // Not authenticated — show signup form
+      setVendorCheckDone(true);
+    }
+  }, [authLoading, isAuthenticated, user, navigate, searchParams]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => {
@@ -442,7 +390,7 @@ const VendorAuth = () => {
               
               <div>
                 <h1 className="text-2xl font-black text-foreground mb-2">
-                  Create Another Vendor
+                  Vendor Application
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   Logged in as {existingUser.email}
@@ -669,7 +617,7 @@ const VendorAuth = () => {
   }
 
   // Don't render the signup form until we've checked auth
-  if (!authChecked) {
+  if (authLoading || !vendorCheckDone) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

@@ -60,4 +60,11 @@ Vendors can set the Vendor Dashboard as their default homepage on login:
 - **New:** Vendor is a status, any user can apply while keeping their primary role
 - **Benefit:** Guardians can manage bestie vendor accounts, one login for all features
 
+## Auth Detection (CRITICAL)
+- VendorAuth uses `useAuth()` from AuthContext (NOT manual `getSession()` calls)
+- AuthContext handles dual-client (localStorage + IndexedDB) reconciliation
+- Page shows loading spinner until AuthContext `loading` is false
+- If `isAuthenticated` → skips signup form → shows vendor application directly
+- If not authenticated → shows signup + vendor application combined form
+
 **Files:** `VendorAuth.tsx`, `VendorDashboard.tsx`, `Auth.tsx`
