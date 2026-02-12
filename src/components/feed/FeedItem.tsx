@@ -25,7 +25,7 @@ import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 import { CoinIcon } from "@/components/CoinIcon";
 import { DailyFortunePopup } from "@/components/daily-features/DailyFortunePopup";
-import ImageLightbox from "@/components/ImageLightbox";
+import AlbumDetailDialog from "@/components/AlbumDetailDialog";
 
 export interface FeedItemData {
   id: string;
@@ -112,10 +112,9 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
   const { repostToFeed, removeRepost, isReposting } = useFeedRepost();
 
-  // Album lightbox state
+  // Album detail dialog state
   const [albumImages, setAlbumImages] = useState<{ image_url: string; caption?: string | null }[]>([]);
-  const [albumLightboxOpen, setAlbumLightboxOpen] = useState(false);
-  const [albumLightboxIndex, setAlbumLightboxIndex] = useState(0);
+  const [albumDetailOpen, setAlbumDetailOpen] = useState(false);
 
   const isOwner = user?.id === item.author_id;
   const isRepost = item.extra_data?.is_repost === true;
@@ -651,8 +650,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                         image_url: img.image_url!,
                         caption: img.caption
                       })));
-                      setAlbumLightboxIndex(0);
-                      setAlbumLightboxOpen(true);
+                      setAlbumDetailOpen(true);
                     } else {
                       // No images, open regular dialog
                       setDialogOpen(true);
@@ -1003,19 +1001,14 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
         </Dialog>
       )}
 
-      {/* Album Lightbox */}
+      {/* Album Detail Dialog */}
       {item.item_type === 'album' && (
-        <ImageLightbox
+        <AlbumDetailDialog
+          albumId={item.id}
+          albumTitle={item.title}
           images={albumImages}
-          currentIndex={albumLightboxIndex}
-          isOpen={albumLightboxOpen}
-          onClose={() => setAlbumLightboxOpen(false)}
-          onPrevious={() => setAlbumLightboxIndex((prev) => 
-            prev === 0 ? albumImages.length - 1 : prev - 1
-          )}
-          onNext={() => setAlbumLightboxIndex((prev) => 
-            prev === albumImages.length - 1 ? 0 : prev + 1
-          )}
+          isOpen={albumDetailOpen}
+          onClose={() => setAlbumDetailOpen(false)}
         />
       )}
     </>

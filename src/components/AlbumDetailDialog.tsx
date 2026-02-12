@@ -1,0 +1,333 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Send,
+  MessageSquare,
+  Trash2,
+  Loader2,
+  ImageIcon,
+} from "lucide-react";
+
+interface AlbumImage {
+  image_url: string;
+  caption?: string | null;
+}
+
+interface AlbumComment {
+  id: string;
+  content: string;
+  created_at: string;
+  author_id: string;
+  author: {
+    display_name: string;
+    avatar_number: number | null;
+    profile_avatar_id: string | null;
+  } | null;
+}
+
+interface AlbumDetailDialogProps {
+  albumId: string | null;
+  albumTitle?: string;
+  images: AlbumImage[];
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function AlbumDetailDialog({
+  albumId,
+  albumTitle,
+  images,
+  isOpen,
+  onClose,
+}: AlbumDetailDialogProps) {
+  const { user, isAdmin } = useAuth();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [comments, setComments] = useState<AlbumComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
+
+  const loadComments = useCallback(async () => {
+    if (!albumId) return;
+    setLoadingComments(true);
+    const { data, error } = await supabase
+      .from("album_comments")
+      .select(
+        "id, content, created_at, author_id, author:profiles_public!album_comments_author_id_fkey(display_name, avatar_number, profile_avatar_id)"
+      )
+      .eq("album_id", albumId)
+      .order("created_at", { ascending: true });
+
+    if (!error && data) {
+      setComments(
+        data.map((c: any) => ({
+          ...c,
+          author: Array.isArray(c.author) ? c.author[0] : c.author,
+        }))
+      );
+    }
+    setLoadingComments(false);
+  }, [albumId]);
+
+  useEffect(() => {
+    if (isOpen && albumId) {
+      setCurrentIndex(0);
+      loadComments();
+    }
+  }, [isOpen, albumId, loadComments]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!isOpen || !albumId) return;
+
+    const channel = supabase
+      .channel(`album-comments-${albumId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "album_comments",
+          filter: `album_id=eq.${albumId}`,
+        },
+        () => {
+          loadComments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, albumId, loadComments]);
+
+  // Scroll to bottom when new comments arrive
+  useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [comments.length]);
+
+  const handleSubmitComment = async () => {
+    if (!user || !albumId || !newComment.trim()) return;
+    setSubmitting(true);
+    const { error } = await supabase.from("album_comments").insert({
+      album_id: albumId,
+      author_id: user.id,
+      content: newComment.trim(),
+    });
+    if (error) {
+      toast.error("Failed to post comment");
+    } else {
+      setNewComment("");
+    }
+    setSubmitting(false);
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    const { error } = await supabase
+      .from("album_comments")
+      .delete()
+      .eq("id", commentId);
+    if (error) {
+      toast.error("Failed to delete comment");
+    }
+  };
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const currentImage = images[currentIndex];
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent
+        className="!max-w-4xl !max-h-[90vh] !h-[90vh] p-0 overflow-hidden !flex !flex-col"
+        hideCloseButton
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+          <h2 className="font-bold text-lg line-clamp-1">
+            {albumTitle || "Album"}
+          </h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Body: Image + Comments */}
+        <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+          {/* Image carousel section */}
+          <div className="relative flex items-center justify-center bg-black md:flex-1 min-h-[200px] md:min-h-0">
+            {images.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 text-white/50">
+                <ImageIcon className="w-12 h-12" />
+                <span className="text-sm">No images</span>
+              </div>
+            ) : (
+              <>
+                <img
+                  src={currentImage?.image_url}
+                  alt={currentImage?.caption || `Image ${currentIndex + 1}`}
+                  className="max-w-full max-h-[40vh] md:max-h-full object-contain"
+                />
+
+                {/* Navigation */}
+                {images.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      onClick={goToPrevious}
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      onClick={goToNext}
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </Button>
+
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-xs">
+                      {currentIndex + 1} / {images.length}
+                    </div>
+                  </>
+                )}
+
+                {/* Caption */}
+                {currentImage?.caption && (
+                  <div className="absolute bottom-8 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-center">
+                    <p className="text-white text-sm">{currentImage.caption}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Comments section */}
+          <div className="flex flex-col md:w-[320px] lg:w-[360px] border-t md:border-t-0 md:border-l border-border min-h-0 flex-1 md:flex-none md:h-full">
+            {/* Comments header */}
+            <div className="px-4 py-2 border-b border-border shrink-0">
+              <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                <MessageSquare className="w-4 h-4" />
+                Comments ({comments.length})
+              </h3>
+            </div>
+
+            {/* Comments list */}
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="p-3 space-y-3">
+                {loadingComments ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-center text-muted-foreground text-sm py-8">
+                    No comments yet. Be the first!
+                  </p>
+                ) : (
+                  comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="group flex gap-2 text-sm"
+                    >
+                      <AvatarDisplay
+                        profileAvatarId={comment.author?.profile_avatar_id}
+                        displayName={comment.author?.display_name || "User"}
+                        size="sm"
+                        className="shrink-0 mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="font-semibold text-xs">
+                            {comment.author?.display_name || "User"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(
+                              new Date(comment.created_at),
+                              { addSuffix: true }
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground break-words">
+                          {comment.content}
+                        </p>
+                      </div>
+                      {(comment.author_id === user?.id || isAdmin) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={() => handleDeleteComment(comment.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                )}
+                <div ref={commentsEndRef} />
+              </div>
+            </ScrollArea>
+
+            {/* Comment input */}
+            {user ? (
+              <div className="p-3 border-t border-border shrink-0">
+                <div className="flex gap-2">
+                  <Textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="min-h-[36px] max-h-[80px] text-sm resize-none"
+                    rows={1}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmitComment();
+                      }
+                    }}
+                  />
+                  <Button
+                    size="icon"
+                    onClick={handleSubmitComment}
+                    disabled={!newComment.trim() || submitting}
+                    className="shrink-0"
+                  >
+                    {submitting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 border-t border-border text-center text-xs text-muted-foreground shrink-0">
+                Sign in to comment
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
