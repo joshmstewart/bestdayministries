@@ -163,8 +163,9 @@ export const VideoManager = () => {
           }
         } else if (shouldCompress(videoFile) && !isCompressionSupported()) {
           toast({
-            title: "Large file notice",
-            description: "Video compression isn't available in this environment, so the original file will be uploaded. This may take longer for large files.",
+            title: "Video compression unavailable",
+            description: "To compress videos before uploading, open this site directly in Chrome or Firefox (not inside a preview or embedded frame). Uploading the original file for now — this may be slower for large files.",
+            variant: "destructive",
           });
         }
 
