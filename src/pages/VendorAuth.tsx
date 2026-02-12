@@ -104,8 +104,23 @@ const VendorAuth = () => {
       return false;
     };
     
-    // Check if user is already logged in
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Check if user is already logged in - check BOTH clients (persistent is source of truth)
+    const checkAuth = async () => {
+      // Try persistent client first (IndexedDB - source of truth for iOS PWA)
+      let session = null;
+      try {
+        const persistentResult = await supabasePersistent.auth.getSession();
+        session = persistentResult.data.session;
+      } catch (e) {
+        console.warn('Persistent auth check failed, falling back to standard client', e);
+      }
+      
+      // Fall back to standard client if persistent didn't have a session
+      if (!session) {
+        const standardResult = await supabase.auth.getSession();
+        session = standardResult.data.session;
+      }
+      
       if (session?.user) {
         setExistingUser({ id: session.user.id, email: session.user.email || '' });
         
@@ -126,7 +141,9 @@ const VendorAuth = () => {
         }
       }
       setAuthChecked(true);
-    });
+    };
+    
+    checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user && event === 'SIGNED_IN') {
