@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { TextToSpeech } from "@/components/TextToSpeech";
-import { Heart, MessageSquare, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle, ChevronDown, ChevronUp, Bookmark } from "lucide-react";
+import { Heart, MessageSquare, Loader2, Sparkles, BookOpen, Quote, Star, ExternalLink, Lightbulb, ThumbsUp, MessageCircle, Bookmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,6 @@ export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false }: 
   const [liking, setLiking] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [viewRecorded, setViewRecorded] = useState(false);
-  const [showComments, setShowComments] = useState(defaultCommentsExpanded);
   const [commentCount, setCommentCount] = useState(0);
   const { isSaved, toggleSave } = useSavedFortunes();
 
@@ -317,23 +316,10 @@ export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false }: 
               <Heart className={cn("w-4 h-4", hasLiked && "fill-current")} />
               <span className="text-xs">{likesCount}</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowComments(!showComments)}
-              className="gap-1"
-            >
+            <span className="flex items-center gap-1 text-xs text-muted-foreground px-2">
               <MessageSquare className="w-4 h-4" />
-              <span className="text-xs">Comment</span>
-              {commentCount > 0 && (
-                <span className="text-xs text-muted-foreground">({commentCount})</span>
-              )}
-              {showComments ? (
-                <ChevronUp className="w-3 h-3" />
-              ) : (
-                <ChevronDown className="w-3 h-3" />
-              )}
-            </Button>
+              {commentCount > 0 ? `${commentCount} comment${commentCount !== 1 ? 's' : ''}` : ''}
+            </span>
             {fortunePost && (
               <Button
                 variant="ghost"
@@ -354,9 +340,13 @@ export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false }: 
         </div>
       )}
 
-      {/* Inline comments section */}
-      {revealed && showComments && fortunePost && (
+      {/* Inline comments section - always visible when revealed */}
+      {revealed && fortunePost && (
         <div className="border-t pt-3">
+          <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+            <MessageCircle className="w-4 h-4 text-primary" />
+            {commentCount > 0 ? "Continue the discussion!" : "Start the discussion!"}
+          </p>
           <FortuneComments fortunePostId={fortunePost.id} />
         </div>
       )}

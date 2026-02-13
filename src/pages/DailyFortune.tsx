@@ -3,8 +3,7 @@ import Footer from "@/components/Footer";
 import { DailyFortune as DailyFortuneComponent } from "@/components/daily-features/DailyFortune";
 import { FortuneComments } from "@/components/daily-features/FortuneComments";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, BookMarked, ChevronDown, MessageCircle } from "lucide-react";
+import { ArrowLeft, BookMarked, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function DailyFortunePage() {
   const navigate = useNavigate();
   const [fortunePostId, setFortunePostId] = useState<string | null>(null);
-  const [commentsExpanded, setCommentsExpanded] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   // Get MST date
   const getMSTDate = () => {
@@ -39,14 +38,28 @@ export default function DailyFortunePage() {
       
       if (data) {
         setFortunePostId(data.id);
+        
+        // Check comment count
+        if (data.id) {
+          const { data: fortuneData } = await supabase
+            .from("daily_fortune_posts")
+            .select("discussion_post_id")
+            .eq("id", data.id)
+            .maybeSingle();
+          
+          if (fortuneData?.discussion_post_id) {
+            const { count } = await supabase
+              .from("discussion_comments")
+              .select("id", { count: "exact", head: true })
+              .eq("post_id", fortuneData.discussion_post_id)
+              .eq("approval_status", "approved");
+            setCommentCount(count || 0);
+          }
+        }
       }
     };
     loadFortunePost();
   }, []);
-
-  const handleFortuneReveal = () => {
-    setCommentsExpanded(true);
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -76,29 +89,16 @@ export default function DailyFortunePage() {
         </h1>
 
         <div className="space-y-6">
-          <DailyFortuneComponent onReveal={handleFortuneReveal} />
+          <DailyFortuneComponent />
           
           {fortunePostId && (
-            <Collapsible open={commentsExpanded} onOpenChange={setCommentsExpanded}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between gap-2 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20"
-                >
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">Discussion</span>
-                    <span className="text-xs text-muted-foreground">
-                      — share your thoughts!
-                    </span>
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${commentsExpanded ? 'rotate-180' : ''}`} />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-4">
-                <FortuneComments fortunePostId={fortunePostId} />
-              </CollapsibleContent>
-            </Collapsible>
+            <div className="rounded-lg border bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 p-4">
+              <p className="font-semibold flex items-center gap-2 mb-3">
+                <MessageCircle className="h-4 w-4 text-primary" />
+                {commentCount > 0 ? "Continue the discussion!" : "Start the discussion!"}
+              </p>
+              <FortuneComments fortunePostId={fortunePostId} />
+            </div>
           )}
         </div>
       </main>
