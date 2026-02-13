@@ -4,6 +4,7 @@ import { Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { audioManager } from "@/lib/audioManager";
 
 interface TextToSpeechProps {
   text: string;
@@ -25,7 +26,7 @@ export const TextToSpeech = memo(({
   const { user } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackRef = useRef<{ stop: () => void } | null>(null);
   const [userVoice, setUserVoice] = useState<string>('Sarah');
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -68,12 +69,12 @@ export const TextToSpeech = memo(({
     loadUserVoice();
   }, [user?.id]);
 
-  // Cleanup audio on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+      if (playbackRef.current) {
+        playbackRef.current.stop();
+        playbackRef.current = null;
       }
     };
   }, []);
@@ -83,10 +84,10 @@ export const TextToSpeech = memo(({
     e.stopPropagation();
     
     try {
-      if (isPlaying && audioRef.current) {
+      if (isPlaying && playbackRef.current) {
         // Stop current playback
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+        playbackRef.current.stop();
+        playbackRef.current = null;
         setIsPlaying(false);
         onPlayingChange?.(false);
         return;
@@ -107,39 +108,27 @@ export const TextToSpeech = memo(({
         throw new Error('No audio content received');
       }
 
-      // Create audio element from base64 using a data URI
-      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-      const newAudio = new Audio(audioUrl);
+      // Decode the base64 audio into an ArrayBuffer then AudioBuffer
+      const binaryString = atob(data.audioContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
 
-      newAudio.onended = () => {
+      const audioBuffer = await audioManager.decodeBuffer(bytes.buffer);
+      if (!audioBuffer) {
+        throw new Error('Failed to decode audio');
+      }
+
+      // Play through AudioManager (ambient, mixes with music)
+      const handle = audioManager.playBufferWithControl(audioBuffer, 1, () => {
         setIsPlaying(false);
         onPlayingChange?.(false);
-      };
+      });
 
-      newAudio.onerror = () => {
-        setIsPlaying(false);
-        toast({
-          title: "Playback Error",
-          description: "Failed to play audio",
-          variant: "destructive",
-        });
-      };
-
-      audioRef.current = newAudio;
-      
-      // Start playback immediately
-      try {
-        await newAudio.play();
-        setIsPlaying(true);
-        onPlayingChange?.(true);
-      } catch (playError) {
-        console.error('TTS - Failed to play audio:', playError);
-        toast({
-          title: "Playback Error",
-          description: "Failed to start audio playback",
-          variant: "destructive",
-        });
-      }
+      playbackRef.current = handle;
+      setIsPlaying(true);
+      onPlayingChange?.(true);
 
     } catch (error) {
       console.error('Text-to-speech error:', error);

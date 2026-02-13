@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { audioManager } from "@/lib/audioManager";
 
 interface SoundEffect {
   event_type: string;
@@ -90,15 +91,7 @@ export function useSoundEffects() {
       return;
     }
 
-    try {
-      const audio = new Audio(effect.file_url);
-      audio.volume = effect.volume;
-      audio.play().catch(() => {
-        // Audio playback failed - user interaction may be required
-      });
-    } catch {
-      // Error creating audio - silently fail
-    }
+    audioManager.playUrl(effect.file_url, effect.volume);
   };
 
   return { playSound, loading, soundEffects };
