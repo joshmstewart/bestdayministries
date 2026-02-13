@@ -31,8 +31,16 @@ interface Video {
   youtube_url?: string | null;
 }
 
+export interface SavedVideoData {
+  id: string;
+  title: string;
+  video_url: string | null;
+  youtube_url: string | null;
+  video_type: string;
+}
+
 interface VideoManagerProps {
-  onVideoSaved?: () => void;
+  onVideoSaved?: (videoData?: SavedVideoData) => void;
 }
 
 export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
@@ -258,6 +266,8 @@ export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
         videoData.youtube_url = youtubeUrl;
       }
 
+      let savedVideoResult: SavedVideoData | undefined;
+
       if (editingId) {
         const { error } = await supabase
           .from("videos")
@@ -267,9 +277,18 @@ export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
         if (error) throw error;
       } else {
         videoData.created_by = user.id;
-        const { error } = await supabase.from("videos").insert(videoData);
+        const { data: insertedVideo, error } = await supabase.from("videos").insert(videoData).select("id, title, video_url, youtube_url, video_type").single();
 
         if (error) throw error;
+
+        // Pass the saved video data back so callers can auto-link it
+        savedVideoResult = insertedVideo ? {
+          id: insertedVideo.id,
+          title: insertedVideo.title,
+          video_url: insertedVideo.video_url,
+          youtube_url: insertedVideo.youtube_url,
+          video_type: insertedVideo.video_type || 'upload',
+        } : undefined;
       }
 
       toast({
@@ -292,7 +311,7 @@ export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
       setCoverPreviewUrl(null);
       setUploadProgress(null);
       loadVideos();
-      onVideoSaved?.();
+      onVideoSaved?.(savedVideoResult);
     } catch (error: any) {
       console.error("Error saving video:", error);
       if (error.message !== 'Upload cancelled') {
