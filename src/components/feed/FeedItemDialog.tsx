@@ -16,6 +16,7 @@ import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemData } from "./FeedItem";
 import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
+import ImageLightbox from "@/components/ImageLightbox";
 
 interface IngredientWithCategory {
   name: string;
@@ -68,6 +69,7 @@ export function FeedItemDialog({
   const { user } = useAuth();
   const [unsharing, setUnsharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [drinkIngredients, setDrinkIngredients] = useState<IngredientWithCategory[]>([]);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
   const [beatInstruments, setBeatInstruments] = useState<BeatInstrument[]>([]);
@@ -278,7 +280,8 @@ export function FeedItemDialog({
               <img
                 src={item.image_url}
                 alt={item.title}
-                className="w-full h-auto max-h-[60vh] object-contain"
+                className="w-full h-auto max-h-[60vh] object-contain cursor-pointer"
+                onClick={() => setLightboxOpen(true)}
               />
               {/* Beat play overlay */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
@@ -573,6 +576,17 @@ export function FeedItemDialog({
           </div>
         </div>
       </DialogContent>
+
+      {item.image_url && (
+        <ImageLightbox
+          images={[{ image_url: item.image_url, caption: item.title }]}
+          currentIndex={0}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          onPrevious={() => {}}
+          onNext={() => {}}
+        />
+      )}
     </Dialog>
   );
 }
