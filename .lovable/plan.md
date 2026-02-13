@@ -1,64 +1,100 @@
 
 
-## Album Video Upload Issues and Unified Video Flow
+# Fix Mobile Audio Behavior (Mute Switch + Music Interruption)
 
-### Problem 1: Videos can't be added when creating a new album
-The current code requires an album to already exist in the database before a video can be added (the "Add Video" button checks for `editingAlbum` and shows an error if it's null). This means videos can only be added when editing an existing album, not when creating one for the first time.
+## The Two Problems
 
-### Problem 2: Two separate video upload systems
-The album's "Add Video" dialog has its own independent video upload pipeline, completely separate from the Admin Media/Videos tab (VideoManager). This creates confusion and duplication.
+1. **Sounds ignore the mute switch**: On iPhones, flipping the silent switch should silence app sounds, but currently it does not.
+2. **Sounds stop background music**: When a sticker pack opens or any sound plays, it kills whatever music the user was listening to (Spotify, Apple Music, etc.).
 
-### Solution: Unified Video Flow via Library Picker
+## Root Cause
 
-Instead of having the album "Add Video" button open a separate upload dialog, it will open a **Video Library Picker** -- a dialog that shows all videos from the Media/Videos library. From there, the user can:
+Both problems stem from the same underlying issue: the app uses `new Audio()` (HTMLAudioElement) for all sound playback. On iOS, this creates a "media" audio session that:
+- Ignores the silent/ringer switch
+- Takes exclusive audio focus, pausing other apps' audio
 
-1. **Select an existing video** from the library to add to the album
-2. **Upload a new video** using the full VideoManager upload form (embedded in a popup), which saves to the video library first, then auto-selects it for the album
+## Solution
 
-### Implementation Steps
+Replace all sound-effect playback with a shared `AudioContext` configured to behave as "ambient" audio. This is a two-part approach:
 
-**Step 1: Create a VideoLibraryPickerDialog component**
-- New file: `src/components/album/VideoLibraryPickerDialog.tsx`
-- Shows a grid/list of all videos from the `videos` table (same data as Media tab)
-- Each video card shows thumbnail, title, and a "Select" button
-- Has an "Upload New Video" button at the top that opens the VideoManager upload form in a nested dialog
-- When a video is selected (or newly uploaded), it calls `onVideoSelected` callback with the video ID and URL
-- Also keeps the YouTube URL tab for quick YouTube embeds (no library entry needed)
+### Part 1: Capacitor Native Audio Session (for the native app)
 
-**Step 2: Modify AlbumManagement.tsx**
-- Replace the `AddVideoDialog` usage with the new `VideoLibraryPickerDialog`
-- Allow video additions during album creation (not just editing):
-  - Track pending videos in local state (alongside `selectedImages`)
-  - When creating a new album, insert pending videos into `album_images` after the album is created (same pattern as images)
-- When editing, insert directly into `album_images` as it does now
+Since the project already uses Capacitor, install and configure `@nicepkg/capacitor-native-audio` (or a similar Capacitor audio session plugin) that can set the iOS audio session category to `ambient`. This:
+- Respects the mute/silent switch
+- Mixes with other audio (won't pause Spotify)
 
-**Step 3: Update the onVideoAdded handler**
-- For new albums: store video selections in a `pendingVideos` state array, display them in the form preview, and insert them during `handleSubmit`
-- For existing albums: insert immediately into `album_images` as before, then refresh
+If no suitable Capacitor plugin exists, create a small custom native plugin or use `@nicepkg/capacitor-silent` to detect the silent switch, combined with the Web Audio API approach below.
 
-**Step 4: Remove the standalone AddVideoDialog**
-- The old `AddVideoDialog` with its own upload pipeline will be replaced by the new unified component
+### Part 2: Web Audio API with "Ambient" Behavior (for both web and native)
 
-### Technical Details
+Refactor the `useSoundEffects` hook (the central sound playback system) to:
+
+1. **Use a single shared `AudioContext`** instead of creating `new Audio()` elements per sound
+2. **Fetch and decode audio buffers** for each sound effect URL upfront (or lazily on first use)
+3. **Play sounds through `AudioContext`** buffer sources, which on iOS with the correct session category will mix with other audio
+
+### Files to Modify
+
+1. **`src/hooks/useSoundEffects.ts`** -- The main change. Replace `new Audio()` with:
+   - A shared `AudioContext` (singleton)
+   - `fetch()` + `decodeAudioData()` to load sound files into buffers
+   - `createBufferSource()` + `connect()` + `start()` to play them
+   - Volume control via `GainNode`
+
+2. **`src/components/PackOpeningDialog.tsx`** -- No changes needed (it already uses `useSoundEffects.playSound()`)
+
+3. **`src/components/chores/SpinningWheel.tsx`** -- Refactor its local `new Audio()` pool to use the shared audio system
+
+4. **`src/components/TextToSpeech.tsx`** -- Refactor `new Audio(audioUrl)` to use `AudioContext.decodeAudioData` for the base64 TTS audio
+
+5. **`src/components/AudioPlayer.tsx`** -- This uses `<audio>` element with user-initiated play, which is fine. But we should add the `playsInline` attribute for iOS.
+
+6. **Other scattered `new Audio()` usages** (admin previews, profile settings, etc.) -- Lower priority since those are admin/settings pages, but ideally converted too
+
+7. **New file: `src/lib/audioManager.ts`** -- A singleton audio manager that:
+   - Creates and manages one `AudioContext`
+   - Handles buffer caching
+   - Provides a `playBuffer(url, volume)` method
+   - On Capacitor native: configures the audio session category
+
+8. **`capacitor.config.ts`** -- Add any needed plugin configuration for native audio session
+
+## Technical Details
+
+### The AudioManager Singleton
 
 ```text
-Current Flow:
-  Album "Add Video" --> AddVideoDialog --> [Upload tab | YouTube tab | Library dropdown]
-                                              |
-                                        (separate upload to storage, no library entry)
-
-New Flow:
-  Album "Add Video" --> VideoLibraryPickerDialog
-                            |
-                            +--> Browse existing library videos --> Select --> Add to album
-                            |
-                            +--> "Upload New" --> VideoManager upload form (popup) --> saves to library --> auto-selects --> Add to album
-                            |
-                            +--> YouTube URL tab --> quick embed (no library entry)
+AudioManager (singleton)
+  |-- audioContext: AudioContext (created on first user interaction)
+  |-- bufferCache: Map<string, AudioBuffer>
+  |-- loadBuffer(url): fetches + decodes + caches
+  |-- play(url, volume): loads if needed, creates source, plays
+  |-- Capacitor: sets iOS audio session to "ambient"
 ```
 
-### Files to Create/Modify
-- **Create**: `src/components/album/VideoLibraryPickerDialog.tsx` -- new unified picker
-- **Modify**: `src/pages/AlbumManagement.tsx` -- swap dialog, add pending video state for new albums, handle video insert during create
-- **Delete (or archive)**: `src/components/album/AddVideoDialog.tsx` -- replaced by new component
+### Key Behavioral Changes
+
+- **Mute switch respected**: The "ambient" audio session category on iOS respects the hardware silent switch
+- **Music keeps playing**: "Ambient" category mixes with other audio sources instead of taking exclusive focus
+- **User interaction still required**: AudioContext must be resumed after a user gesture (already handled in the app's existing patterns)
+
+### Capacitor Plugin Evaluation
+
+Need to evaluate which Capacitor plugin best handles iOS audio session configuration. Options:
+- `capacitor-plugin-audio-session` -- set category to `.ambient` or `.playback` with `.mixWithOthers`
+- Custom Swift plugin (small, just sets `AVAudioSession.sharedInstance().setCategory(.ambient)`)
+- If no plugin works well, the Web Audio API approach alone still fixes the music-interruption issue on most browsers
+
+### Migration Strategy
+
+- All changes go through the centralized `audioManager.ts`
+- Existing `useSoundEffects` hook API stays the same (`playSound('event_type')`) -- no consumer changes needed
+- The `PackOpeningDialog` and all other callers continue working identically
+- Graceful fallback: if `AudioContext` is unavailable, fall back to `new Audio()` (desktop browsers)
+
+## Risk Assessment
+
+- **Low risk**: The `playSound` API surface doesn't change, only the internal implementation
+- **Testing needed**: Must test on actual iOS device with silent switch and background music playing
+- **Edge case**: Very first sound after app load may require a user tap (AudioContext resume) -- already handled in existing patterns
 
