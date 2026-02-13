@@ -140,7 +140,7 @@ export default function AudioPlayer({ src, className }: AudioPlayerProps) {
 
   return (
     <div className={cn("inline-flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg", className)}>
-      <audio ref={audioRef} src={src} />
+      <audio ref={audioRef} src={src} playsInline />
       
       <Button
         onClick={togglePlay}

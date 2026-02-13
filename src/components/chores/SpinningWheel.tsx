@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { audioManager } from "@/lib/audioManager";
 import defaultCoinImage from "@/assets/joycoin.png";
 
 export interface WheelSegment {
@@ -109,7 +110,7 @@ export function SpinningWheel({
   const wheelRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const tickIntervalRef = useRef<number | null>(null);
-  const audioPoolRef = useRef<HTMLAudioElement[]>([]);
+  const clickBufferRef = useRef<AudioBuffer | null>(null);
   const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spinInProgressRef = useRef(false);
 
@@ -147,19 +148,22 @@ export function SpinningWheel({
     fetchImages();
   }, []);
 
-  const getAudioFromPool = useCallback(() => {
-    if (!clickSoundUrl) return null;
+  const playClickSound = useCallback((volume: number) => {
+    if (!clickSoundUrl) return;
     
-    let audio = audioPoolRef.current.find(a => a.paused || a.ended);
-    
-    if (!audio) {
-      audio = new Audio(clickSoundUrl);
-      audio.volume = clickSoundVolume;
-      audioPoolRef.current.push(audio);
+    const cached = clickBufferRef.current;
+    if (cached) {
+      audioManager.playBuffer(cached, volume);
+      return;
     }
-    
-    return audio;
-  }, [clickSoundUrl, clickSoundVolume]);
+    // Load on first use, play when ready
+    audioManager.loadBuffer(clickSoundUrl).then((buf) => {
+      if (buf) {
+        clickBufferRef.current = buf;
+        audioManager.playBuffer(buf, volume);
+      }
+    });
+  }, [clickSoundUrl]);
 
   const getAudioContext = useCallback(() => {
     if (!audioContextRef.current) {
@@ -169,36 +173,19 @@ export function SpinningWheel({
   }, []);
 
   // iOS Safari often blocks programmatic audio unless it's first "unlocked" by a user gesture.
-  // We prime both the AudioContext and HTMLAudio here so the tick + win sounds can play.
   const unlockAudio = useCallback(() => {
     try {
-      const audioContext = getAudioContext();
-      if (audioContext.state === "suspended") {
-        audioContext.resume().catch(() => {});
-      }
-
+      audioManager.ensureRunning();
+      // Pre-load click sound buffer
       if (clickSoundUrl) {
-        const audio = getAudioFromPool();
-        if (audio) {
-          const prevVolume = audio.volume;
-          audio.currentTime = 0;
-          audio.volume = 0;
-          audio
-            .play()
-            .then(() => {
-              audio.pause();
-              audio.currentTime = 0;
-              audio.volume = prevVolume;
-            })
-            .catch(() => {
-              audio.volume = prevVolume;
-            });
-        }
+        audioManager.loadBuffer(clickSoundUrl).then((buf) => {
+          if (buf) clickBufferRef.current = buf;
+        });
       }
     } catch {
       // Silent fail
     }
-  }, [clickSoundUrl, getAudioContext, getAudioFromPool]);
+  }, [clickSoundUrl]);
 
   const playSpinSounds = useCallback(() => {
     const duration = 4000;
@@ -225,12 +212,7 @@ export function SpinningWheel({
       
       if (elapsed - lastTickTime >= interval) {
         if (clickSoundUrl) {
-          const audio = getAudioFromPool();
-          if (audio) {
-            audio.currentTime = 0;
-            audio.volume = clickSoundVolume * (0.5 + velocity * 0.5);
-            audio.play().catch(() => {});
-          }
+          playClickSound(clickSoundVolume * (0.5 + velocity * 0.5));
         } else {
           const audioContext = getAudioContext();
           createTickSound(audioContext, 0.15 + velocity * 0.2);
@@ -242,7 +224,7 @@ export function SpinningWheel({
     };
     
     tickIntervalRef.current = requestAnimationFrame(tick);
-  }, [clickSoundUrl, clickSoundVolume, getAudioFromPool, getAudioContext]);
+  }, [clickSoundUrl, clickSoundVolume, playClickSound, getAudioContext]);
 
   // Cleanup on unmount - clear all timers and audio context
   useEffect(() => {
