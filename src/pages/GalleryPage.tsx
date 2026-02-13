@@ -17,7 +17,7 @@ interface Album {
   audio_url: string | null;
   is_post: boolean;
   event: { title: string; event_date: string } | null;
-  images: { id: string; image_url: string; caption: string | null }[];
+  images: { id: string; image_url: string | null; video_url: string | null; video_type: string | null; youtube_url: string | null; caption: string | null }[];
   linkedPost?: { id: string; title: string } | null;
 }
 
@@ -46,7 +46,7 @@ const GalleryPage = () => {
         albumsData.map(async (album) => {
           const { data: images } = await supabase
             .from("album_images")
-            .select("id, image_url, caption")
+            .select("id, image_url, video_url, video_type, youtube_url, caption")
             .eq("album_id", album.id)
             .order("display_order", { ascending: true });
 
@@ -162,7 +162,7 @@ const GalleryPage = () => {
           <AlbumDetailDialog
             albumId={selectedAlbum?.id || null}
             albumTitle={selectedAlbum?.title}
-            images={selectedAlbum?.images.filter(img => img.image_url).map(img => ({ image_url: img.image_url!, caption: img.caption })) || []}
+            images={selectedAlbum?.images.filter(img => img.image_url || img.video_url || img.youtube_url).map(img => ({ image_url: img.image_url, video_url: img.video_url, video_type: img.video_type, youtube_url: img.youtube_url, caption: img.caption })) || []}
             isOpen={!!selectedAlbum}
             onClose={() => setSelectedAlbum(null)}
           />

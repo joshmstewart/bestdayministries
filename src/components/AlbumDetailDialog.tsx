@@ -18,9 +18,14 @@ import {
   Loader2,
   ImageIcon,
 } from "lucide-react";
+import { VideoPlayer } from "@/components/VideoPlayer";
+import { YouTubeEmbed } from "@/components/YouTubeEmbed";
 
-interface AlbumImage {
-  image_url: string;
+export interface AlbumMedia {
+  image_url?: string | null;
+  video_url?: string | null;
+  video_type?: string | null;
+  youtube_url?: string | null;
   caption?: string | null;
 }
 
@@ -39,7 +44,7 @@ interface AlbumComment {
 interface AlbumDetailDialogProps {
   albumId: string | null;
   albumTitle?: string;
-  images: AlbumImage[];
+  images: AlbumMedia[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -177,15 +182,25 @@ export default function AlbumDetailDialog({
             {images.length === 0 ? (
               <div className="flex flex-col items-center gap-2 text-white/50">
                 <ImageIcon className="w-12 h-12" />
-                <span className="text-sm">No images</span>
+                <span className="text-sm">No media</span>
               </div>
             ) : (
               <>
-                <img
-                  src={currentImage?.image_url}
-                  alt={currentImage?.caption || `Image ${currentIndex + 1}`}
-                  className="max-w-full max-h-[40vh] md:max-h-full object-contain"
-                />
+                {currentImage?.video_type === 'youtube' && currentImage?.youtube_url ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <YouTubeEmbed url={currentImage.youtube_url} />
+                  </div>
+                ) : currentImage?.video_type === 'upload' && currentImage?.video_url ? (
+                  <div className="w-full h-full flex items-center justify-center p-4">
+                    <VideoPlayer src={currentImage.video_url} />
+                  </div>
+                ) : (
+                  <img
+                    src={currentImage?.image_url || ''}
+                    alt={currentImage?.caption || `Image ${currentIndex + 1}`}
+                    className="max-w-full max-h-[40vh] md:max-h-full object-contain"
+                  />
+                )}
 
                 {/* Navigation */}
                 {images.length > 1 && (
