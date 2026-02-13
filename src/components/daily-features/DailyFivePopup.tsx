@@ -153,7 +153,15 @@ export function DailyFivePopup({ onComplete }: DailyFivePopupProps) {
         body: { guess: currentGuess }
       });
       
-      if (error) throw error;
+      if (error) {
+        // Check if the error context contains a message from the edge function
+        if (data?.error) {
+          toast.error(data.error);
+        } else {
+          toast.error("Not a valid word. Try again!");
+        }
+        return;
+      }
       
       if (data.error) {
         toast.error(data.error);
