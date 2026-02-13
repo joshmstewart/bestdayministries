@@ -17,6 +17,7 @@ import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemData } from "./FeedItem";
 import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 import ImageLightbox from "@/components/ImageLightbox";
+import AlbumDetailDialog from "@/components/AlbumDetailDialog";
 
 interface IngredientWithCategory {
   name: string;
@@ -75,6 +76,8 @@ export function FeedItemDialog({
   const [beatInstruments, setBeatInstruments] = useState<BeatInstrument[]>([]);
   const [loadingBeatInstruments, setLoadingBeatInstruments] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
+  const [albumDetailOpen, setAlbumDetailOpen] = useState(false);
+  const [albumImages, setAlbumImages] = useState<{ image_url?: string | null; video_url?: string | null; video_type?: string | null; youtube_url?: string | null; caption?: string | null }[]>([]);
 
   // Fetch drink ingredients when a drink item is opened
   useEffect(() => {
@@ -281,7 +284,27 @@ export function FeedItemDialog({
                 src={item.image_url}
                 alt={item.title}
                 className="w-full h-auto max-h-[60vh] object-contain cursor-pointer"
-                onClick={() => setLightboxOpen(true)}
+                onClick={async () => {
+                  if (item.item_type === 'album') {
+                    try {
+                      const { data: images } = await supabase
+                        .from('album_images')
+                        .select('id, image_url, video_url, video_type, youtube_url, caption, display_order')
+                        .eq('album_id', item.id)
+                        .order('display_order', { ascending: true });
+                      if (images && images.length > 0) {
+                        setAlbumImages(images.filter(img => img.image_url || img.video_url || img.youtube_url).map(img => ({
+                          image_url: img.image_url, video_url: img.video_url, video_type: img.video_type, youtube_url: img.youtube_url, caption: img.caption
+                        })));
+                        setAlbumDetailOpen(true);
+                      }
+                    } catch (e) {
+                      console.error('Error fetching album images:', e);
+                    }
+                  } else {
+                    setLightboxOpen(true);
+                  }
+                }}
               />
               {/* Beat play overlay */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
@@ -577,7 +600,7 @@ export function FeedItemDialog({
         </div>
       </DialogContent>
 
-      {item.image_url && (
+      {item.image_url && item.item_type !== 'album' && (
         <ImageLightbox
           images={[{ image_url: item.image_url, caption: item.title }]}
           currentIndex={0}
@@ -585,6 +608,16 @@ export function FeedItemDialog({
           onClose={() => setLightboxOpen(false)}
           onPrevious={() => {}}
           onNext={() => {}}
+        />
+      )}
+
+      {item.item_type === 'album' && (
+        <AlbumDetailDialog
+          albumId={item.id}
+          albumTitle={item.title}
+          images={albumImages}
+          isOpen={albumDetailOpen}
+          onClose={() => setAlbumDetailOpen(false)}
         />
       )}
     </Dialog>
