@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Video, Youtube, Library, Play, Check, Search, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { VideoManager } from "@/components/admin/VideoManager";
+import { VideoManager, SavedVideoData } from "@/components/admin/VideoManager";
 
 interface LibraryVideo {
   id: string;
@@ -272,13 +272,26 @@ export function VideoLibraryPickerDialog({
           <TabsContent value="upload" className="flex-1 flex flex-col min-h-0 mt-4 overflow-y-auto max-h-[50vh]">
             <div className="bg-muted/50 rounded-lg p-3 mb-3">
               <p className="text-sm text-muted-foreground">
-                Upload a video below. Once saved, switch to the <strong>Library</strong> tab to select it for this album.
+                Upload a video below. It will be <strong>automatically added</strong> to the album once saved.
               </p>
             </div>
-            <VideoManager onVideoSaved={() => {
-              loadVideos();
-              setActiveTab('library');
-              toast.success("Video saved! Select it from the library to add to album.");
+            <VideoManager onVideoSaved={(videoData?: SavedVideoData) => {
+              if (videoData) {
+                // Auto-add the uploaded video to the album
+                const isYouTube = videoData.video_type === 'youtube';
+                onVideoSelected({
+                  type: isYouTube ? 'youtube' : 'upload',
+                  videoId: videoData.id,
+                  url: videoData.video_url || undefined,
+                  youtubeUrl: videoData.youtube_url || undefined,
+                  caption: videoData.title,
+                });
+                onOpenChange(false);
+                toast.success("Video uploaded and added to album!");
+              } else {
+                loadVideos();
+                setActiveTab('library');
+              }
             }} />
           </TabsContent>
 
