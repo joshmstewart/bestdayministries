@@ -28,10 +28,10 @@ const qualitySettings = {
 
 /**
  * Check if FFmpeg WASM is supported in the current browser
+ * Uses single-threaded build so SharedArrayBuffer is NOT required
  */
 export function isCompressionSupported(): boolean {
-  // Check for SharedArrayBuffer which is required for FFmpeg WASM
-  return typeof SharedArrayBuffer !== 'undefined';
+  return typeof WebAssembly !== 'undefined';
 }
 
 /**
@@ -66,7 +66,7 @@ export async function loadFFmpeg(
 
     onProgress?.(10, 'Downloading video processor...');
 
-    // Load FFmpeg core from CDN
+    // Load single-threaded FFmpeg core (no SharedArrayBuffer needed)
     const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
     
     await ffmpeg.load({

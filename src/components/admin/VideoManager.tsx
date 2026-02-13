@@ -166,7 +166,11 @@ export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
             });
           }
         } else if (shouldCompress(videoFile) && !isCompressionSupported()) {
-          console.info('Video compression not available in this environment, uploading original file.');
+          toast({
+            title: "Video compression unavailable",
+            description: "Your browser doesn't support WebAssembly. Uploading the original file instead.",
+            variant: "destructive",
+          });
         }
 
         // Upload with progress tracking
