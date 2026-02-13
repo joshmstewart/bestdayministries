@@ -166,11 +166,7 @@ export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
             });
           }
         } else if (shouldCompress(videoFile) && !isCompressionSupported()) {
-          toast({
-            title: "Video compression unavailable",
-            description: "To compress videos before uploading, open this site directly in Chrome or Firefox (not inside a preview or embedded frame). Uploading the original file for now — this may be slower for large files.",
-            variant: "destructive",
-          });
+          console.info('Video compression not available in this environment, uploading original file.');
         }
 
         // Upload with progress tracking
