@@ -229,7 +229,7 @@ export default function AlbumDetailDialog({
                       <ChevronRight className="w-6 h-6" />
                     </Button>
 
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-xs">
+                    <div className="absolute top-2 right-2 bg-black/50 text-white px-3 py-1 rounded-full text-xs pointer-events-none">
                       {currentIndex + 1} / {images.length}
                     </div>
                   </>
