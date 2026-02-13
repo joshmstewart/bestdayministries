@@ -187,12 +187,19 @@ export default function AlbumDetailDialog({
             ) : (
               <>
                 {currentImage?.video_type === 'youtube' && currentImage?.youtube_url ? (
-                  <div className="w-full h-full flex items-center justify-center p-4">
-                    <YouTubeEmbed url={currentImage.youtube_url} />
+                  <div className="w-full h-full flex items-center justify-center p-4 overflow-hidden">
+                    <div className="w-full max-h-full">
+                      <YouTubeEmbed url={currentImage.youtube_url} />
+                    </div>
                   </div>
                 ) : currentImage?.video_type === 'upload' && currentImage?.video_url ? (
-                  <div className="w-full h-full flex items-center justify-center p-4">
-                    <VideoPlayer src={currentImage.video_url} />
+                  <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                    <video
+                      src={currentImage.video_url}
+                      controls
+                      playsInline
+                      className="max-w-full max-h-full object-contain"
+                    />
                   </div>
                 ) : (
                   <img
