@@ -113,7 +113,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const { repostToFeed, removeRepost, isReposting } = useFeedRepost();
 
   // Album detail dialog state
-  const [albumImages, setAlbumImages] = useState<{ image_url: string; caption?: string | null }[]>([]);
+  const [albumImages, setAlbumImages] = useState<{ image_url?: string | null; video_url?: string | null; video_type?: string | null; youtube_url?: string | null; caption?: string | null }[]>([]);
   const [albumDetailOpen, setAlbumDetailOpen] = useState(false);
 
   const isOwner = user?.id === item.author_id;
@@ -639,15 +639,18 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   try {
                     const { data: images, error } = await supabase
                       .from('album_images')
-                      .select('id, image_url, caption, display_order')
+                      .select('id, image_url, video_url, video_type, youtube_url, caption, display_order')
                       .eq('album_id', item.id)
                       .order('display_order', { ascending: true });
                     
                     if (error) throw error;
                     
                     if (images && images.length > 0) {
-                      setAlbumImages(images.filter(img => img.image_url).map(img => ({
-                        image_url: img.image_url!,
+                      setAlbumImages(images.filter(img => img.image_url || img.video_url || img.youtube_url).map(img => ({
+                        image_url: img.image_url,
+                        video_url: img.video_url,
+                        video_type: img.video_type,
+                        youtube_url: img.youtube_url,
                         caption: img.caption
                       })));
                       setAlbumDetailOpen(true);
