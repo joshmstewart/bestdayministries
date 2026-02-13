@@ -237,8 +237,10 @@ export default function AlbumDetailDialog({
 
                 {/* Caption */}
                 {currentImage?.caption && (
-                  <div className="absolute bottom-8 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-center">
-                    <p className="text-white text-sm">{currentImage.caption}</p>
+                  <div className="absolute top-2 left-0 right-0 text-center pointer-events-none">
+                    <span className="bg-black/60 text-white text-sm px-3 py-1 rounded-full">
+                      {currentImage.caption}
+                    </span>
                   </div>
                 )}
               </>
