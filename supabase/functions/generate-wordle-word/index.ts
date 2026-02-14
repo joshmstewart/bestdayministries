@@ -77,7 +77,8 @@ The word must:
 - Be a STANDARD, COMMON English word found in major dictionaries (Merriam-Webster, Oxford)
 - Be a word most English speakers would recognize and use regularly
 - Use standard/formal spelling (e.g., "AUNT" not "AUNTY", "READY" not "REDDY")
-- NOT be a proper noun, name, surname, or brand name
+- ABSOLUTELY NOT be a proper noun, name, character name, fictional character, or person's name (e.g., SANTA, JESUS, HOMER, ALICE are ALL BANNED - these are names, not words)
+- NOT be a brand name, place name, or any word that is primarily known as a name
 - NOT be slang, informal variants, or regional spellings
 - NOT be an abbreviation or acronym
 - Be appropriate for all ages (family-friendly)
