@@ -1079,6 +1079,125 @@ export type Database = {
         }
         Relationships: []
       }
+      bike_ride_events: {
+        Row: {
+          actual_miles: number | null
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          mile_goal: number
+          ride_date: string
+          rider_name: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_miles?: number | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mile_goal: number
+          ride_date: string
+          rider_name: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_miles?: number | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          mile_goal?: number
+          ride_date?: string
+          rider_name?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bike_ride_pledges: {
+        Row: {
+          calculated_total: number | null
+          cents_per_mile: number | null
+          charge_error: string | null
+          charge_status: string
+          created_at: string
+          event_id: string
+          flat_amount: number | null
+          id: string
+          message: string | null
+          pledge_type: string
+          pledger_email: string
+          pledger_name: string
+          pledger_user_id: string | null
+          stripe_customer_id: string | null
+          stripe_mode: string
+          stripe_payment_intent_id: string | null
+          stripe_payment_method_id: string | null
+          stripe_setup_intent_id: string | null
+        }
+        Insert: {
+          calculated_total?: number | null
+          cents_per_mile?: number | null
+          charge_error?: string | null
+          charge_status?: string
+          created_at?: string
+          event_id: string
+          flat_amount?: number | null
+          id?: string
+          message?: string | null
+          pledge_type: string
+          pledger_email: string
+          pledger_name: string
+          pledger_user_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_setup_intent_id?: string | null
+        }
+        Update: {
+          calculated_total?: number | null
+          cents_per_mile?: number | null
+          charge_error?: string | null
+          charge_status?: string
+          created_at?: string
+          event_id?: string
+          flat_amount?: number | null
+          id?: string
+          message?: string | null
+          pledge_type?: string
+          pledger_email?: string
+          pledger_name?: string
+          pledger_user_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          stripe_setup_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bike_ride_pledges_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "bike_ride_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_templates: {
         Row: {
           auto_send: boolean
