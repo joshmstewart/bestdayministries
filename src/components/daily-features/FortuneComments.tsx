@@ -19,6 +19,7 @@ interface Comment {
     display_name: string | null;
     avatar_number: number | null;
     avatar_url: string | null;
+    profile_avatar_id: string | null;
   };
 }
 
@@ -66,7 +67,7 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
           const userIds = [...new Set(data.map((c) => c.author_id))];
           const { data: profiles } = await supabase
             .from("profiles")
-            .select("id, display_name, avatar_number, avatar_url")
+            .select("id, display_name, avatar_number, avatar_url, profile_avatar_id")
             .in("id", userIds);
 
           const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
@@ -301,6 +302,7 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
               className="flex gap-2 p-2 rounded-lg bg-muted/50"
             >
               <AvatarDisplay
+                profileAvatarId={comment.profile?.profile_avatar_id}
                 displayName={comment.profile?.display_name || "User"}
                 size="sm"
               />
