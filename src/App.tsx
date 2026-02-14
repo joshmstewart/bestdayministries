@@ -95,6 +95,7 @@ const DailyFortune = lazy(() => import("./pages/DailyFortune"));
 const MyFortunes = lazy(() => import("./pages/MyFortunes"));
 const CoffeeProductDetail = lazy(() => import("./pages/CoffeeProductDetail"));
 const ShareRedirect = lazy(() => import("./pages/ShareRedirect"));
+const BikeRidePledge = lazy(() => import("./pages/BikeRidePledge"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -333,6 +334,7 @@ const App = () => {
             <Route path="/workout-tracker" element={<WorkoutTracker />} />
             <Route path="/checkout-success" element={<CheckoutSuccess />} />
             <Route path="/share" element={<ShareRedirect />} />
+            <Route path="/bike-ride-pledge" element={<BikeRidePledge />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

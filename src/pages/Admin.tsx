@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone, Activity } from "lucide-react";
+import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone, Activity, Bike } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
@@ -68,6 +68,7 @@ import { StoreItemsManager } from "@/components/admin/StoreItemsManager";
 import { BeatPadSoundsManager } from "@/components/admin/BeatPadSoundsManager";
 
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
+import { BikeRideManager } from "@/components/admin/BikeRideManager";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
 
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
@@ -353,6 +354,10 @@ const Admin = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="settings" className="text-sm px-2.5 py-1.5">Settings</TabsTrigger>
+            <TabsTrigger value="bike-ride" className="gap-1.5 text-sm px-2.5 py-1.5">
+              <Bike className="w-3 h-3" />
+              Bike Ride
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics">
@@ -1029,6 +1034,10 @@ const Admin = () => {
 
           <TabsContent value="system-health">
             <SystemHealthManager />
+          </TabsContent>
+
+          <TabsContent value="bike-ride">
+            <BikeRideManager />
           </TabsContent>
 
           <TabsContent value="settings">
