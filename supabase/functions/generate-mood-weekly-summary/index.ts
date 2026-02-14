@@ -31,10 +31,10 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch mood entries for the week
+    // Fetch mood entries for the week INCLUDING notes
     const { data: entries, error: entriesError } = await supabase
       .from("mood_entries")
-      .select("entry_date, mood_emoji, mood_label")
+      .select("entry_date, mood_emoji, mood_label, note")
       .eq("user_id", userId)
       .gte("entry_date", weekStart)
       .lte("entry_date", weekEnd)
@@ -65,6 +65,7 @@ serve(async (req) => {
       mood: e.mood_label,
       emoji: e.mood_emoji,
       category: categoryMap[e.mood_label] || "neutral",
+      note: e.note || null,
     }));
 
     const categoryCounts = {
@@ -73,28 +74,35 @@ serve(async (req) => {
       negative: moodData.filter(m => m.category === "negative").length,
     };
 
-    const prompt = `You are a caring, supportive wellness companion for adults with intellectual and developmental disabilities (IDD). 
+    const entriesWithNotes = moodData.filter(m => m.note);
 
-Analyze this person's mood data from the past week and provide a brief, encouraging summary.
+    const prompt = `You are a caring, perceptive wellness companion for adults with intellectual and developmental disabilities (IDD). 
+
+Analyze this person's mood data from the past week and provide a thoughtful, personalized summary.
 
 Mood entries this week:
-${moodData.map(m => `- ${m.date}: ${m.emoji} ${m.mood}`).join("\n")}
+${moodData.map(m => {
+  let line = `- ${m.date}: ${m.emoji} ${m.mood}`;
+  if (m.note) line += ` — they shared: "${m.note}"`;
+  return line;
+}).join("\n")}
 
 Summary: ${categoryCounts.positive} positive, ${categoryCounts.neutral} neutral, ${categoryCounts.negative} negative moods.
+${entriesWithNotes.length > 0 ? `\nThis person left ${entriesWithNotes.length} personal note(s) this week. These are IMPORTANT — they reveal what's actually going on in their life.` : ''}
 
 CRITICAL RULES:
-- Write 2-3 short, simple sentences
-- Use observational language ONLY - NEVER use "I" statements like "I noticed" or "I see"
-- Start with something like "This week showed..." or "What a week!" or the person's name pattern
+- Write 3-4 short, simple sentences
+- Use observational language ONLY — NEVER use "I" statements like "I noticed" or "I see"
 - Use simple, friendly words that are easy to understand
 - Be warm and encouraging, especially if there were hard days
-- If mostly positive: celebrate it!
-- If mixed or challenging: acknowledge the hard days AND highlight any bright spots
-- End with gentle encouragement for the coming week
-
-Example good responses:
-- "This week had some ups and downs! There were a few hard days, but Thursday brought a really happy moment. Every feeling matters, and next week is a fresh start!"
-- "What a positive week! Lots of happy and calm feelings showed up. Keep doing whatever brought those good vibes!"`;
+${entriesWithNotes.length > 0 ? `- MOST IMPORTANT: Reference the specific things they shared in their notes! If they talked about health issues, relationship concerns, or specific events, weave those into the summary naturally
+- Don't just say "there were some hard days" — say what made them hard based on what they shared
+- If they shared progress or improvement, celebrate the SPECIFIC thing that got better` : '- Without notes to reference, focus on the emotional patterns and trajectory across the week'}
+- Notice the emotional arc: did the week trend better or worse? Was there a turning point?
+- If mostly positive: celebrate specific moments
+- If mixed or challenging: acknowledge what was hard AND highlight genuine bright spots
+- End with gentle, specific encouragement for the coming week (not generic "next week is a fresh start")
+- Each summary should feel like it was written by someone who actually read and cared about each entry`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
