@@ -37,10 +37,10 @@ serve(async (req) => {
       const { data: { user } } = await userClient.auth.getUser();
       
       if (user) {
-        // Fetch recent mood entries (last 7 days) for context
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const dateStr = sevenDaysAgo.toISOString().split('T')[0];
+        // Fetch recent mood entries (last 30 days) for richer context
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const dateStr = thirtyDaysAgo.toISOString().split('T')[0];
         
         const { data: recentEntries } = await supabase
           .from("mood_entries")
@@ -48,11 +48,11 @@ serve(async (req) => {
           .eq("user_id", user.id)
           .gte("entry_date", dateStr)
           .order("entry_date", { ascending: false })
-          .limit(10);
+          .limit(20);
         
         if (recentEntries && recentEntries.length > 0) {
           // Skip the current entry (it may have just been inserted)
-          const pastEntries = recentEntries.slice(0, 10);
+          const pastEntries = recentEntries.slice(0, 20);
           if (pastEntries.length > 0) {
             recentHistory = `\nRecent mood history (for context, reference naturally if relevant — don't list them back):
 ${pastEntries.map(e => {
