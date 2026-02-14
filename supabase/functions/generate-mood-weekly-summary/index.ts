@@ -40,6 +40,19 @@ serve(async (req) => {
       .lte("entry_date", weekEnd)
       .order("entry_date", { ascending: true });
 
+    // Fetch previous 3 weeks of mood data for trend context
+    const threeWeeksBeforeStart = new Date(weekStart);
+    threeWeeksBeforeStart.setDate(threeWeeksBeforeStart.getDate() - 21);
+    const prevStartStr = threeWeeksBeforeStart.toISOString().split('T')[0];
+
+    const { data: previousEntries } = await supabase
+      .from("mood_entries")
+      .select("entry_date, mood_emoji, mood_label, note")
+      .eq("user_id", userId)
+      .gte("entry_date", prevStartStr)
+      .lt("entry_date", weekStart)
+      .order("entry_date", { ascending: true });
+
     if (entriesError) throw entriesError;
 
     if (!entries || entries.length < 3) {
@@ -76,6 +89,28 @@ serve(async (req) => {
 
     const entriesWithNotes = moodData.filter(m => m.note);
 
+    // Build previous weeks context
+    let previousWeeksContext = "";
+    if (previousEntries && previousEntries.length > 0) {
+      const prevData = previousEntries.map(e => ({
+        date: e.entry_date,
+        mood: e.mood_label,
+        emoji: e.mood_emoji,
+        category: categoryMap[e.mood_label] || "neutral",
+        note: e.note || null,
+      }));
+      const prevPositive = prevData.filter(m => m.category === "positive").length;
+      const prevNegative = prevData.filter(m => m.category === "negative").length;
+      const prevNotes = prevData.filter(m => m.note);
+      previousWeeksContext = `\nPrevious 3 weeks context (${prevData.length} entries: ${prevPositive} positive, ${prevData.length - prevPositive - prevNegative} neutral, ${prevNegative} negative):
+${prevData.map(m => {
+  let line = `- ${m.date}: ${m.emoji} ${m.mood}`;
+  if (m.note) line += ` — "${m.note}"`;
+  return line;
+}).join("\n")}
+${prevNotes.length > 0 ? `\nThey shared ${prevNotes.length} note(s) in previous weeks — use these for trend comparison.` : ''}`;
+    }
+
     const prompt = `You are a caring, perceptive wellness companion for adults with intellectual and developmental disabilities (IDD). 
 
 Analyze this person's mood data from the past week and provide a thoughtful, personalized summary.
@@ -89,6 +124,7 @@ ${moodData.map(m => {
 
 Summary: ${categoryCounts.positive} positive, ${categoryCounts.neutral} neutral, ${categoryCounts.negative} negative moods.
 ${entriesWithNotes.length > 0 ? `\nThis person left ${entriesWithNotes.length} personal note(s) this week. These are IMPORTANT — they reveal what's actually going on in their life.` : ''}
+${previousWeeksContext}
 
 CRITICAL RULES:
 - Write 3-4 short, simple sentences
