@@ -1,100 +1,114 @@
 
 
-# Fix Mobile Audio Behavior (Mute Switch + Music Interruption)
+# Bike Ride Pledge Fundraiser
 
-## The Two Problems
+## Overview
+A fundraiser where supporters pledge cents-per-mile OR make a flat donation for a specific bike ride event. The ride has a known maximum distance (e.g., 118 miles), so pledgers always see their maximum possible total upfront. After the ride, an admin enters actual miles ridden and the system charges all per-mile pledgers.
 
-1. **Sounds ignore the mute switch**: On iPhones, flipping the silent switch should silence app sounds, but currently it does not.
-2. **Sounds stop background music**: When a sticker pack opens or any sound plays, it kills whatever music the user was listening to (Spotify, Apple Music, etc.).
-
-## Root Cause
-
-Both problems stem from the same underlying issue: the app uses `new Audio()` (HTMLAudioElement) for all sound playback. On iOS, this creates a "media" audio session that:
-- Ignores the silent/ringer switch
-- Takes exclusive audio focus, pausing other apps' audio
-
-## Solution
-
-Replace all sound-effect playback with a shared `AudioContext` configured to behave as "ambient" audio. This is a two-part approach:
-
-### Part 1: Capacitor Native Audio Session (for the native app)
-
-Since the project already uses Capacitor, install and configure `@nicepkg/capacitor-native-audio` (or a similar Capacitor audio session plugin) that can set the iOS audio session category to `ambient`. This:
-- Respects the mute/silent switch
-- Mixes with other audio (won't pause Spotify)
-
-If no suitable Capacitor plugin exists, create a small custom native plugin or use `@nicepkg/capacitor-silent` to detect the silent switch, combined with the Web Audio API approach below.
-
-### Part 2: Web Audio API with "Ambient" Behavior (for both web and native)
-
-Refactor the `useSoundEffects` hook (the central sound playback system) to:
-
-1. **Use a single shared `AudioContext`** instead of creating `new Audio()` elements per sound
-2. **Fetch and decode audio buffers** for each sound effect URL upfront (or lazily on first use)
-3. **Play sounds through `AudioContext`** buffer sources, which on iOS with the correct session category will mix with other audio
-
-### Files to Modify
-
-1. **`src/hooks/useSoundEffects.ts`** -- The main change. Replace `new Audio()` with:
-   - A shared `AudioContext` (singleton)
-   - `fetch()` + `decodeAudioData()` to load sound files into buffers
-   - `createBufferSource()` + `connect()` + `start()` to play them
-   - Volume control via `GainNode`
-
-2. **`src/components/PackOpeningDialog.tsx`** -- No changes needed (it already uses `useSoundEffects.playSound()`)
-
-3. **`src/components/chores/SpinningWheel.tsx`** -- Refactor its local `new Audio()` pool to use the shared audio system
-
-4. **`src/components/TextToSpeech.tsx`** -- Refactor `new Audio(audioUrl)` to use `AudioContext.decodeAudioData` for the base64 TTS audio
-
-5. **`src/components/AudioPlayer.tsx`** -- This uses `<audio>` element with user-initiated play, which is fine. But we should add the `playsInline` attribute for iOS.
-
-6. **Other scattered `new Audio()` usages** (admin previews, profile settings, etc.) -- Lower priority since those are admin/settings pages, but ideally converted too
-
-7. **New file: `src/lib/audioManager.ts`** -- A singleton audio manager that:
-   - Creates and manages one `AudioContext`
-   - Handles buffer caching
-   - Provides a `playBuffer(url, volume)` method
-   - On Capacitor native: configures the audio session category
-
-8. **`capacitor.config.ts`** -- Add any needed plugin configuration for native audio session
-
-## Technical Details
-
-### The AudioManager Singleton
+## How It Works
 
 ```text
-AudioManager (singleton)
-  |-- audioContext: AudioContext (created on first user interaction)
-  |-- bufferCache: Map<string, AudioBuffer>
-  |-- loadBuffer(url): fetches + decodes + caches
-  |-- play(url, volume): loads if needed, creates source, plays
-  |-- Capacitor: sets iOS audio session to "ambient"
+BEFORE THE RIDE              AFTER THE RIDE              CHARGE PHASE
+-----------------            ----------------            ---------------
+- Admin creates event        - Admin enters actual       - System calculates:
+  (title, date, max miles)     miles ridden (e.g., 98)     cents_per_mile x
+- Supporters pledge                                        actual_miles
+  e.g., $0.25/mile                                       - Charges saved cards
+- UI shows "up to $29.50"                                - Sends receipts
+  (based on 118 mile max)
+- Card saved via Stripe
+  Setup Intent (no charge)
 ```
 
-### Key Behavioral Changes
+## The Natural Cap
 
-- **Mute switch respected**: The "ambient" audio session category on iOS respects the hardware silent switch
-- **Music keeps playing**: "Ambient" category mixes with other audio sources instead of taking exclusive focus
-- **User interaction still required**: AudioContext must be resumed after a user gesture (already handled in the app's existing patterns)
+The event's `mile_goal` (e.g., 118 miles) serves as the maximum possible charge. No separate cap field needed.
 
-### Capacitor Plugin Evaluation
+- Pledger sets: 25 cents/mile
+- UI displays: "Up to $29.50" (0.25 x 118)
+- Actual charge after ride: 0.25 x actual_miles (which is always less than or equal to mile_goal)
+- The `process-bike-ride-charges` edge function enforces: `actual_miles` cannot exceed `mile_goal`
 
-Need to evaluate which Capacitor plugin best handles iOS audio session configuration. Options:
-- `capacitor-plugin-audio-session` -- set category to `.ambient` or `.playback` with `.mixWithOthers`
-- Custom Swift plugin (small, just sets `AVAudioSession.sharedInstance().setCategory(.ambient)`)
-- If no plugin works well, the Web Audio API approach alone still fixes the music-interruption issue on most browsers
+## Pledge Types
 
-### Migration Strategy
+1. **Per-mile pledge**: Card saved now, charged after the ride based on actual miles
+2. **Flat donation**: Charged immediately via existing donation checkout flow
 
-- All changes go through the centralized `audioManager.ts`
-- Existing `useSoundEffects` hook API stays the same (`playSound('event_type')`) -- no consumer changes needed
-- The `PackOpeningDialog` and all other callers continue working identically
-- Graceful fallback: if `AudioContext` is unavailable, fall back to `new Audio()` (desktop browsers)
+## Database
 
-## Risk Assessment
+### `bike_ride_events` table
+- id, title, description, rider_name, ride_date
+- mile_goal (numeric) -- the max possible miles (e.g., 118)
+- actual_miles (numeric, nullable) -- filled after ride
+- status: draft / active / completed / charges_processed
+- cover_image_url, is_active, created_by, timestamps
 
-- **Low risk**: The `playSound` API surface doesn't change, only the internal implementation
-- **Testing needed**: Must test on actual iOS device with silent switch and background music playing
-- **Edge case**: Very first sound after app load may require a user tap (AudioContext resume) -- already handled in existing patterns
+### `bike_ride_pledges` table
+- id, event_id (FK), pledger_email, pledger_name, pledger_user_id (nullable)
+- pledge_type: "per_mile" or "flat"
+- cents_per_mile (numeric, nullable) -- e.g., 25 means $0.25/mile
+- flat_amount (numeric, nullable) -- for flat donations
+- calculated_total (numeric, nullable) -- filled when charges processed
+- stripe_customer_id, stripe_setup_intent_id, stripe_payment_method_id
+- stripe_payment_intent_id (filled after charge)
+- charge_status: pending / charged / failed
+- stripe_mode: test / live
+- message (optional encouragement text)
+- created_at
 
+## Edge Functions
+
+### 1. `create-bike-pledge`
+- Creates Stripe Setup Intent (saves card, no charge)
+- Stores pledge details in database
+- For flat donations: redirects to existing donation checkout with event metadata
+
+### 2. `process-bike-ride-charges` (admin-only)
+- Takes event_id and actual_miles
+- Validates actual_miles does not exceed mile_goal
+- For each per-mile pledge: calculates total, creates PaymentIntent with saved payment method
+- Updates pledge records with charge results
+- Returns summary of successes/failures
+
+### 3. `get-bike-ride-status` (public)
+- Returns event details and aggregate stats
+- Total pledgers, estimated total at mile goal, supporter messages
+
+## Frontend
+
+### Public Page: `/bike-ride-pledge`
+- Hero with ride details (who, when, how far)
+- Live stats: X pledgers, estimated $Y at goal
+- Pledge form:
+  - Per-mile: slider/input for cents per mile (range: 5 cents to $5.00)
+  - Shows calculated "up to $XX.XX" based on mile_goal in real-time
+  - Flat: dollar amount input
+- Stripe card form (Setup Intent for per-mile)
+- Wall of supporter messages
+- Progress indicator
+
+### Admin UI (under Admin panel)
+- Create/edit bike ride events
+- View all pledges
+- Enter actual miles after ride completion
+- "Process Charges" button with confirmation showing:
+  - Number of pledgers to charge
+  - Total amount to be collected
+  - Breakdown of each pledge
+- Results dashboard (successful/failed charges)
+
+## Security
+- RLS: events visible to all authenticated users; pledges visible to own + admins; admin-only for create/update/delete events and processing charges
+- `payment_method_id` only stored server-side, protected by RLS
+- Charges executed only by admin edge function
+- `actual_miles` validated to never exceed `mile_goal`
+- Amount calculated server-side from database values, never from client input
+
+## Implementation Order
+1. Database tables + RLS policies
+2. `create-bike-pledge` edge function (Setup Intent flow)
+3. Public pledge page UI with real-time "up to" calculation
+4. `get-bike-ride-status` edge function
+5. `process-bike-ride-charges` edge function
+6. Admin management UI
+7. Post-charge email notifications (reuses existing Resend setup)
