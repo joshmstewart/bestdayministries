@@ -202,28 +202,28 @@ export default function AlbumDetailDialog({
                     />
                   </div>
                 ) : (
-                  <img
-                    src={currentImage?.image_url || ''}
-                    alt={currentImage?.caption || `Image ${currentIndex + 1}`}
-                    className="max-w-full max-h-full object-contain"
-                  />
+                  <div className="w-full h-full flex items-center justify-center">
+                    <img
+                      src={currentImage?.image_url || ''}
+                      alt={currentImage?.caption || `Image ${currentIndex + 1}`}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
                 )}
 
                 {/* Navigation */}
                 {images.length > 1 && (
                   <>
                     <Button
-                      variant="ghost"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 hover:bg-black/90 text-white border border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 hover:bg-black/90 text-white hover:text-white border border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
                       onClick={goToPrevious}
                     >
                       <ChevronLeft className="w-6 h-6" />
                     </Button>
                     <Button
-                      variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 hover:bg-black/90 text-white border border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 hover:bg-black/90 text-white hover:text-white border border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
                       onClick={goToNext}
                     >
                       <ChevronRight className="w-6 h-6" />
