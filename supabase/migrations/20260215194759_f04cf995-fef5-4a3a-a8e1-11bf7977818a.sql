@@ -1,0 +1,1 @@
+ALTER TABLE public.feed_reposts ADD COLUMN caption text;

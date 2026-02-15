@@ -6,7 +6,7 @@ import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 export function useFeedRepost() {
   const [isReposting, setIsReposting] = useState(false);
 
-  const repostToFeed = async (itemType: string, itemId: string) => {
+  const repostToFeed = async (itemType: string, itemId: string, caption?: string) => {
     setIsReposting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -21,6 +21,7 @@ export function useFeedRepost() {
           original_item_type: itemType,
           original_item_id: itemId,
           reposted_by: user.id,
+          caption: caption || null,
         });
 
       if (error) throw error;

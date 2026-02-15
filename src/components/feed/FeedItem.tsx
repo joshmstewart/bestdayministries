@@ -21,6 +21,7 @@ import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { FeedItemDialog } from "./FeedItemDialog";
 import { useFeedRepost } from "@/hooks/useFeedRepost";
+import { RepostCaptionDialog } from "./RepostCaptionDialog";
 import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 import { MemoryMatchGridPreview } from "@/components/store/MemoryMatchGridPreview";
 import { CoinIcon } from "@/components/CoinIcon";
@@ -116,8 +117,12 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const [albumImages, setAlbumImages] = useState<{ image_url?: string | null; video_url?: string | null; video_type?: string | null; youtube_url?: string | null; caption?: string | null }[]>([]);
   const [albumDetailOpen, setAlbumDetailOpen] = useState(false);
 
+  // Repost caption dialog state
+  const [repostDialogOpen, setRepostDialogOpen] = useState(false);
+
   const isOwner = user?.id === item.author_id;
   const isRepost = item.extra_data?.is_repost === true;
+  const repostCaption = item.extra_data?.repost_caption as string | null;
   const config = typeConfig[item.item_type] || typeConfig.post;
   const Icon = config.icon;
 
@@ -627,6 +632,13 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             </div>
           </div>
 
+          {/* Repost caption display */}
+          {isRepost && repostCaption && (
+            <p className="text-sm text-muted-foreground italic px-1">
+              "{repostCaption}"
+            </p>
+          )}
+
           {/* Image or Joke Display - clicking opens dialog */}
           <div 
             className="cursor-pointer"
@@ -923,10 +935,9 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={async (e) => {
+                  onClick={(e) => {
                     e.stopPropagation();
-                    const success = await repostToFeed(item.item_type, item.id);
-                    if (success) onRefresh?.();
+                    setRepostDialogOpen(true);
                   }}
                   disabled={isReposting}
                   className="h-8 gap-1 text-muted-foreground hover:text-primary"
@@ -1014,6 +1025,16 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
           onClose={() => setAlbumDetailOpen(false)}
         />
       )}
+      {/* Repost Caption Dialog */}
+      <RepostCaptionDialog
+        open={repostDialogOpen}
+        onOpenChange={setRepostDialogOpen}
+        itemType={item.item_type}
+        onConfirm={async (caption) => {
+          const success = await repostToFeed(item.item_type, item.id, caption || undefined);
+          if (success) onRefresh?.();
+        }}
+      />
     </>
   );
 }
