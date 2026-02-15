@@ -621,7 +621,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
               ) : (
                 <MessageCircle className="w-8 h-8" />
               )}
-              <span className="text-sm font-medium">Chat More</span>
+              <span className="text-sm font-medium">Look Deeper</span>
             </button>
           </div>
         </div>
