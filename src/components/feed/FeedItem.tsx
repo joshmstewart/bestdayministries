@@ -680,22 +680,58 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               }
             }}
           >
-            {/* Special display for fortunes - hidden by default */}
-            {item.item_type === 'fortune' ? (
-              <div className="py-10 px-6 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-800/50 dark:to-purple-800/50 flex items-center justify-center">
-                    <Sparkles className="h-8 w-8 text-indigo-500 animate-pulse" />
+            {/* Special display for fortunes - past fortunes show quote, today's stay hidden */}
+            {item.item_type === 'fortune' ? (() => {
+              const postDate = item.extra_data?.post_date as string | undefined;
+              // Calculate today's MST date
+              const now = new Date();
+              const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+              const mstTime = new Date(utc + (-7 * 60 * 60000));
+              const todayMST = mstTime.toISOString().split('T')[0];
+              const isPastFortune = postDate && postDate < todayMST;
+              const fortuneContent = item.extra_data?.fortune_content as string | undefined;
+              const fortuneAuthor = item.extra_data?.fortune_author as string | undefined;
+
+              if (isPastFortune && fortuneContent) {
+                return (
+                  <div className="py-8 px-6 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30">
+                    <div className="flex flex-col items-center gap-3">
+                      <Sparkles className="h-6 w-6 text-indigo-500" />
+                      <p className="text-center text-lg font-serif italic text-foreground leading-relaxed">
+                        "{fortuneContent}"
+                      </p>
+                      {fortuneAuthor && (
+                        <p className="text-center text-sm text-muted-foreground">
+                          — {fortuneAuthor}
+                        </p>
+                      )}
+                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                        <TextToSpeech 
+                          text={`${fortuneContent}${fortuneAuthor ? `. By ${fortuneAuthor}` : ''}`} 
+                          size="icon" 
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-center text-base font-medium text-foreground">
-                    Tap to reveal today's inspiration ✨
-                  </p>
-                  <p className="text-center text-sm text-muted-foreground">
-                    Open your daily fortune and share your thoughts
-                  </p>
+                );
+              }
+
+              return (
+                <div className="py-10 px-6 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-200 to-purple-200 dark:from-indigo-800/50 dark:to-purple-800/50 flex items-center justify-center">
+                      <Sparkles className="h-8 w-8 text-indigo-500 animate-pulse" />
+                    </div>
+                    <p className="text-center text-base font-medium text-foreground">
+                      Tap to reveal today's inspiration ✨
+                    </p>
+                    <p className="text-center text-sm text-muted-foreground">
+                      Open your daily fortune and share your thoughts
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : item.item_type === 'joke' && item.extra_data?.question ? (
+              );
+            })() : item.item_type === 'joke' && item.extra_data?.question ? (
               <div className="p-6 py-8 bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30">
                 <div className="space-y-5">
                   <div className="flex items-center justify-center gap-2 py-2">
