@@ -1,105 +1,73 @@
 
 
-## Fix Video Thumbnails in Album Management
+## Unify Album Media Upload Experience
 
-### Problem
+### What Changes for You
 
-Video thumbnails don't appear in the album admin grid because:
+- The two separate buttons ("Select Images" and "Add Video") merge into one "Add Media" button that accepts both photos and videos
+- A second "Video Library" button stays for picking existing videos or YouTube links
+- Every pending item -- whether photo or video -- shows in one grid with a caption field underneath, so you can fill in metadata for each one the same way
+- Videos uploaded from the file picker will show a progress bar and auto-generate a thumbnail from the first frame
 
-1. **Library videos**: When a video is selected from the library, its `cover_url` (from the `videos` table) is never copied into the `album_images.image_url` field. The `VideoPickerResult` interface doesn't even carry thumbnail info.
-2. **Uploaded videos with no cover**: If a video has no `cover_url` set, there's no fallback -- just a generic play icon placeholder.
-3. **YouTube videos**: The `SortableMediaItem` component already handles YouTube thumbnails via `getYouTubeThumbnail()`, but this only works if `youtube_url` is set, which it is -- so YouTube should work. The issue is primarily with uploaded/library videos.
+### Metadata Handling (Captions)
 
-### Changes
+- **Photos**: Same as today -- crop dialog first, then inline caption input
+- **Videos from file picker**: Upload starts immediately in the background; inline caption input appears right away just like photos
+- **Videos from library**: Caption is entered in the library picker dialog (unchanged)
+- **After saving**: Both types get the same edit-caption button on the saved media grid (unchanged)
 
-#### 1. Add `thumbnailUrl` to `VideoPickerResult` interface
+### Technical Details
 
-**File: `src/components/album/VideoLibraryPickerDialog.tsx`**
+#### 1. Standardize `video_type` values globally
 
-- Add `thumbnailUrl?: string` to the `VideoPickerResult` interface
-- When selecting a library video, include `video.cover_url || video.thumbnail_url` as `thumbnailUrl`
-- When a video is uploaded via the dialog's upload tab, pass along the cover_url if available
+**Files:** `VideoSection.tsx`, `SectionContentDialog.tsx`, `SupportPageManager.tsx`, `AlbumDetailDialog.tsx`
 
-#### 2. Store thumbnail as `image_url` when inserting video into album
+- Replace all `'uploaded'` string literals with `'upload'`
+- Remove redundant fallback checks
 
-**File: `src/pages/AlbumManagement.tsx`**
-
-- In both video insert locations (editing existing album and saving new album), set `image_url: video.thumbnailUrl || null` so the thumbnail gets stored in the database
-- This means `SortableMediaItem` will find it via its existing `media.image_url` check -- no changes needed there
-
-#### 3. Auto-generate thumbnail from first frame for videos without covers
+#### 2. Unify file input to accept images and videos
 
 **File: `src/pages/AlbumManagement.tsx`**
 
-- After inserting a video that has a `video_url` but no `thumbnailUrl`, use a hidden HTML5 `<video>` element to capture the first frame:
-  - Create a video element, set `src`, wait for `loadeddata` event
-  - Seek to 0.1s, draw the frame onto a canvas, export as JPEG blob
-  - Upload the blob to storage and update `album_images.image_url`
-- This runs as a background operation after the insert, so it doesn't block the UI
-- Add a utility function `captureVideoFirstFrame(videoUrl: string): Promise<Blob | null>` for this
+- Change `accept` attribute to `"image/*,.heic,.heif,video/mp4,video/webm,video/quicktime"`
+- Rename button label to "Add Media"
+- In `handleImageSelect`, detect file type:
+  - `file.type.startsWith('image/')` or HEIC: existing image flow (HEIC convert, crop, queue to `selectedImages`)
+  - `file.type.startsWith('video/')`: new inline video upload flow
 
-#### 4. Backfill existing album videos (optional enhancement)
+#### 3. Inline video upload with progress and thumbnail
 
-- When loading album images, for any video entries where `image_url` is null and `video_id` is set, look up the video's `cover_url` from the `videos` table and use that as the display thumbnail (in-memory only, or update the record)
+**File: `src/pages/AlbumManagement.tsx`**
 
-### Technical Detail
+- For video files from the file input:
+  - Generate an immediate local thumbnail using `URL.createObjectURL` and `captureVideoFirstFrame`
+  - Start uploading via `uploadWithProgress` to the `videos` storage bucket
+  - Create a `videos` table record (registering in the video library)
+  - Queue into `pendingVideos` with `thumbnailUrl` set to the local preview
+  - Show upload progress as an overlay on the thumbnail
+  - On completion, update the `pendingVideos` entry with the final URL
 
-```typescript
-// VideoPickerResult - add thumbnailUrl
-export interface VideoPickerResult {
-  type: 'upload' | 'youtube' | 'library';
-  videoId?: string;
-  url?: string;
-  youtubeUrl?: string;
-  caption?: string;
-  thumbnailUrl?: string;  // NEW
-}
+#### 4. Merge pending media into one grid with uniform caption inputs
 
-// When selecting from library:
-onVideoSelected({
-  type: isYouTube ? 'youtube' : 'library',
-  videoId: video.id,
-  url: video.video_url || undefined,
-  youtubeUrl: video.youtube_url || undefined,
-  caption: caption.trim() || video.title,
-  thumbnailUrl: video.cover_url || video.thumbnail_url || undefined,
-});
+**File: `src/pages/AlbumManagement.tsx`**
 
-// When inserting into album_images:
-.insert({
-  album_id: albumId,
-  video_type: video.type === 'youtube' ? 'youtube' : 'upload',
-  video_url: video.url || null,
-  youtube_url: video.youtubeUrl || null,
-  video_id: video.videoId || null,
-  caption: video.caption || null,
-  image_url: video.thumbnailUrl || null,  // NEW - store thumbnail
-  display_order: videoOrder,
-})
+- Combine the two separate preview sections (images at line 1225 and videos at line 1268) into a single "Pending Media" grid
+- Each item shows: thumbnail, type badge (Photo/Video/YouTube), crop button (images only), delete button, and an inline caption input
+- For images, caption state stays in `imageCaptions[]`
+- For videos, add editable caption support: update `pendingVideos[i].caption` on change
 
-// First-frame capture utility
-async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
-  return new Promise((resolve) => {
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.muted = true;
-    video.src = videoUrl;
-    video.currentTime = 0.1;
-    video.addEventListener('seeked', () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d')?.drawImage(video, 0, 0);
-      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
-    }, { once: true });
-    video.addEventListener('error', () => resolve(null), { once: true });
-    video.load();
-  });
-}
-```
+#### 5. Keep Video Library button as secondary option
+
+- The "Video Library" button remains for browsing existing library videos or adding YouTube links
+- Videos picked this way still go through the `VideoLibraryPickerDialog` where caption is entered before confirming
 
 ### Files Modified
 
-- `src/components/album/VideoLibraryPickerDialog.tsx` - Add `thumbnailUrl` to interface and populate it
-- `src/pages/AlbumManagement.tsx` - Use `thumbnailUrl` on insert, add first-frame capture fallback
+| File | Change |
+|------|--------|
+| `src/components/VideoSection.tsx` | `'uploaded'` to `'upload'` |
+| `src/components/admin/SectionContentDialog.tsx` | `'uploaded'` to `'upload'` |
+| `src/components/admin/SupportPageManager.tsx` | `'uploaded'` to `'upload'` |
+| `src/components/AlbumDetailDialog.tsx` | Remove redundant `'uploaded'` check |
+| `src/pages/AlbumManagement.tsx` | Unified file input, inline video upload, merged pending media grid with caption inputs |
 
