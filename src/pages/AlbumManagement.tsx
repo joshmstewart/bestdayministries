@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube, ChevronDown, ChevronRight } from "lucide-react";
-import { compressImage } from "@/lib/imageUtils";
+import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { compressImage, isHeicFile, convertHeicToJpeg } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -114,6 +114,7 @@ export default function AlbumManagement() {
   const [pendingVideos, setPendingVideos] = useState<VideoPickerResult[]>([]);
   const [expandedAlbums, setExpandedAlbums] = useState<Set<string>>(new Set());
   const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('4:3');
+  const [isConvertingHeic, setIsConvertingHeic] = useState(false);
 
   useEffect(() => {
     checkAdminAccess();
@@ -208,23 +209,54 @@ export default function AlbumManagement() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
-    if (imageFiles.length === 0) {
+    // Accept image/* types OR HEIC/HEIF files (whose MIME may be empty on desktop Chrome)
+    const isImageOrHeic = (file: File) =>
+      file.type.startsWith("image/") || isHeicFile(file);
+
+    const validFiles = files.filter(isImageOrHeic);
+    if (validFiles.length === 0) {
       toast.error("Please select image files");
+      return;
+    }
+
+    // Convert any HEIC files to JPEG before processing
+    const hasHeic = validFiles.some(isHeicFile);
+    if (hasHeic) {
+      toast.info("Converting iPhone photos...");
+    }
+    setIsConvertingHeic(hasHeic);
+
+    const processedFiles: File[] = [];
+    for (const file of validFiles) {
+      if (isHeicFile(file)) {
+        try {
+          const converted = await convertHeicToJpeg(file);
+          processedFiles.push(converted);
+        } catch (err) {
+          toast.error(`Could not convert ${file.name}. Try exporting as JPEG first.`);
+        }
+      } else {
+        processedFiles.push(file);
+      }
+    }
+    setIsConvertingHeic(false);
+
+    if (processedFiles.length === 0) {
+      toast.error("No images could be processed");
       return;
     }
 
     // Capture index of first new image before state updates
     const firstNewIndex = selectedImages.length;
 
-    toast.success(`${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} selected`);
+    toast.success(`${processedFiles.length} image${processedFiles.length > 1 ? 's' : ''} selected`);
     
-    setSelectedImages(prev => [...prev, ...imageFiles]);
-    setImageCaptions(prev => [...prev, ...new Array(imageFiles.length).fill("")]);
+    setSelectedImages(prev => [...prev, ...processedFiles]);
+    setImageCaptions(prev => [...prev, ...new Array(processedFiles.length).fill("")]);
 
     // Read all files in order and wait for them to complete
     const previews = await Promise.all(
-      imageFiles.map(file => {
+      processedFiles.map(file => {
         return new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result as string);
@@ -1048,19 +1080,25 @@ export default function AlbumManagement() {
                     <Input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif"
                       multiple
                       onChange={handleImageSelect}
                       className="hidden"
+                      disabled={isConvertingHeic}
                     />
                     <div className="flex gap-2 flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
+                        disabled={isConvertingHeic}
                       >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {editingAlbum ? "Add Images" : "Select Images"}
+                        {isConvertingHeic ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4 mr-2" />
+                        )}
+                        {isConvertingHeic ? "Converting..." : editingAlbum ? "Add Images" : "Select Images"}
                       </Button>
                       <Button
                         type="button"
