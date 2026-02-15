@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 import { logAiUsage } from "../_shared/ai-usage-logger.ts";
 
 const corsHeaders = {
@@ -24,6 +25,32 @@ serve(async (req) => {
   }
 
   try {
+    // Auth verification - extract and validate JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub as string;
+
     const requestBody = await req.json();
     
     // Validate inputs
@@ -46,7 +73,7 @@ serve(async (req) => {
     const sanitizedContent = content.length > 100 
       ? content.substring(0, 100) + '...' 
       : content;
-    console.log(`Moderating ${contentType} (length: ${content.length}):`, sanitizedContent);
+    console.log(`Moderating ${contentType} for user ${userId} (length: ${content.length}):`, sanitizedContent);
 
     const systemPrompt = `You are a content moderation assistant for a supportive community platform called Joy House, which serves individuals with intellectual and developmental disabilities and their caregivers.
 
@@ -132,12 +159,13 @@ Examples:
     const data = await response.json();
     const result = JSON.parse(data.choices[0].message.content);
     
-    console.log("Moderation result:", result);
+    console.log("Moderation result for user:", userId, result);
 
-    // Log AI usage
+    // Log AI usage with userId
     await logAiUsage({
       functionName: "moderate-content",
       model: "google/gemini-2.5-flash",
+      userId,
       metadata: { contentType, contentLength: content.length, approved: result.approved },
     });
 

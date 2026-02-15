@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.58.0";
+import { logAiUsage } from "../_shared/ai-usage-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +13,32 @@ serve(async (req) => {
   }
 
   try {
+    // Auth verification - extract and validate JWT
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claimsData.claims.sub as string;
+
     const { imageUrl } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -18,7 +46,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Moderating image:", imageUrl);
+    console.log("Moderating image for user:", userId, "url:", imageUrl);
 
     const systemPrompt = `You are an image moderation assistant for Joy House, a supportive community platform serving individuals with intellectual and developmental disabilities and their caregivers.
 
@@ -116,7 +144,15 @@ Examples:
     const data = await response.json();
     const result = JSON.parse(data.choices[0].message.content);
     
-    console.log("Image moderation result:", result);
+    console.log("Image moderation result for user:", userId, result);
+
+    // Log AI usage with userId
+    await logAiUsage({
+      functionName: "moderate-image",
+      model: "google/gemini-2.5-flash",
+      userId,
+      metadata: { approved: result.approved },
+    });
 
     return new Response(
       JSON.stringify(result),

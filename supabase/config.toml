@@ -10,10 +10,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.moderate-content]
-verify_jwt = true
+verify_jwt = false
 
 [functions.moderate-image]
-verify_jwt = true
+verify_jwt = false
 
 [functions.moderate-video]
 verify_jwt = true
