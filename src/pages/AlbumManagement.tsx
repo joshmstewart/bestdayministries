@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube, ChevronDown, ChevronRight, Loader2, ImageIcon, Film } from "lucide-react";
 import { compressImage, isHeicFile, convertHeicToJpeg } from "@/lib/imageUtils";
 import { uploadWithProgress, createUploadPath } from "@/lib/videoUpload";
@@ -140,7 +141,7 @@ export default function AlbumManagement() {
 
     // Check for admin-level access (owner role automatically has admin access)
     if (!roleData || (roleData.role !== "admin" && roleData.role !== "owner")) {
-      toast.error("Access denied. Admin privileges required.");
+      showErrorToast("Access denied. Admin privileges required.");
       navigate("/");
       return;
     }
@@ -170,7 +171,7 @@ export default function AlbumManagement() {
     ]);
 
     if (albumsResult.error) {
-      toast.error("Failed to load albums");
+      showErrorToastWithCopy("Failed to load albums", albumsResult.error);
       console.error(albumsResult.error);
     } else {
       // Build a video cover lookup from the videos table
@@ -328,7 +329,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
     }
 
     if (imageFiles.length === 0 && videoFiles.length === 0) {
-      toast.error("Please select image or video files");
+      showErrorToast("Please select image or video files");
       return;
     }
 
@@ -347,7 +348,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
             const converted = await convertHeicToJpeg(file);
             processedFiles.push(converted);
           } catch (err) {
-            toast.error(`Could not convert ${file.name}. Try exporting as JPEG first.`);
+            showErrorToastWithCopy(`Could not convert ${file.name}`, err);
           }
         } else {
           processedFiles.push(file);
@@ -444,7 +445,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
           title: file.name.replace(/\.[^/.]+$/, ''),
           video_url: publicUrl,
           video_type: 'upload',
-          uploaded_by: user.id,
+          created_by: user.id,
           is_active: true,
         } as any)
         .select('id')
@@ -485,7 +486,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
       toast.success(`Video "${file.name}" uploaded`);
     } catch (error: any) {
       console.error("Error uploading video:", error);
-      toast.error(error.message || "Failed to upload video");
+      showErrorToastWithCopy("Failed to upload video", error);
       // Remove the failed entry
       setPendingVideos(prev => prev.filter(pv => (pv as any)._tempIndex !== Date.now()));
     }
@@ -595,7 +596,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
         loadAlbums();
       } catch (error: any) {
         console.error("Error recropping image:", error);
-        toast.error(error.message || "Failed to recrop image");
+        showErrorToastWithCopy("Failed to recrop image", error);
       }
     }
   };
@@ -627,7 +628,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
 
   const handleSubmit = async () => {
     if (!title || (selectedImages.length === 0 && pendingVideos.length === 0 && !editingAlbum?.images?.length && existingImages.length === 0)) {
-      toast.error("Please provide a title and at least one image or video");
+      showErrorToast("Please provide a title and at least one image or video");
       return;
     }
 
@@ -800,7 +801,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
           
           if (updateError) {
             console.error("Error updating discussion post:", updateError);
-            toast.error("Album saved but failed to update discussion post: " + updateError.message);
+            showErrorToastWithCopy("Album saved but failed to update discussion post", updateError);
           }
         } else {
           // Create new post
@@ -810,7 +811,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
           
           if (insertError) {
             console.error("Error creating discussion post:", insertError);
-            toast.error("Album saved but failed to create discussion post: " + insertError.message);
+            showErrorToastWithCopy("Album saved but failed to create discussion post", insertError);
           }
         }
       } else if (!isPost && albumId) {
@@ -830,7 +831,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
       loadAlbums();
     } catch (error: any) {
       console.error("Error saving album:", error);
-      toast.error(error.message || "Failed to save album");
+      showErrorToastWithCopy("Failed to save album", error);
     } finally {
       setUploading(false);
     }
@@ -861,7 +862,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
       .eq("id", albumId);
 
     if (error) {
-      toast.error("Failed to delete album");
+      showErrorToastWithCopy("Failed to delete album", error);
       console.error(error);
     } else {
       toast.success("Album deleted successfully");
@@ -890,7 +891,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
       loadAlbums();
     } catch (error: any) {
       console.error("Error deleting image:", error);
-      toast.error("Failed to delete image");
+      showErrorToastWithCopy("Failed to delete image", error);
     }
   };
 
@@ -930,7 +931,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
       loadAlbums();
     } catch (error: any) {
       console.error("Error updating caption:", error);
-      toast.error(error.message || "Failed to update caption");
+      showErrorToastWithCopy("Failed to update caption", error);
     }
   };
 
@@ -965,7 +966,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
       loadAlbums();
     } catch (error: any) {
       console.error("Error updating image order:", error);
-      toast.error("Failed to update image order");
+      showErrorToastWithCopy("Failed to update image order", error);
       // Revert on error
       setExistingImages(existingImages);
     }
@@ -987,7 +988,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
       loadAlbums();
     } catch (error: any) {
       console.error("Error setting cover:", error);
-      toast.error("Failed to set cover image");
+      showErrorToastWithCopy("Failed to set cover image", error);
     }
   };
 
@@ -1084,7 +1085,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
                             setAudioPreview(URL.createObjectURL(file));
                             toast.success("Audio file selected");
                           } else {
-                            toast.error("Please select an audio file");
+                            showErrorToast("Please select an audio file");
                           }
                         }}
                         className="hidden"
@@ -1715,7 +1716,7 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
                 }
               } catch (error: any) {
                 console.error("Error adding video:", error);
-                toast.error(error.message || "Failed to add video");
+                showErrorToastWithCopy("Failed to add video", error);
               }
             })();
           } else {
