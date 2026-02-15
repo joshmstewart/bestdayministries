@@ -178,7 +178,7 @@ export default function AlbumDetailDialog({
         {/* Body: Image + Comments */}
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
           {/* Image carousel section */}
-          <div className="relative flex items-center justify-center bg-black md:flex-1 min-h-[200px] max-h-[60vh] md:max-h-none md:min-h-0 shrink-0">
+          <div className="relative flex items-center justify-center bg-black md:flex-1 min-h-[200px] max-h-[70vh] md:max-h-none md:min-h-0 shrink-0">
             {images.length === 0 ? (
               <div className="flex flex-col items-center gap-2 text-white/50">
                 <ImageIcon className="w-12 h-12" />
