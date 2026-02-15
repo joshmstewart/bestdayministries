@@ -325,11 +325,11 @@ export function FeedItemDialog({
                 </button>
               )}
             </div>
-          ) : (
-            <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mt-4">
-              <span className="text-8xl">🎨</span>
+          ) : item.description ? (
+            <div className="p-6 pt-12 bg-gradient-to-br from-muted/50 to-muted">
+              <p className="text-base leading-relaxed text-foreground whitespace-pre-wrap">{item.description}</p>
             </div>
-          )}
+          ) : null}
           
           {/* Info panel */}
           <div className="p-4 bg-background">
@@ -364,7 +364,7 @@ export function FeedItemDialog({
                 Created {format(new Date(item.created_at), "MMM d, yyyy")}
               </p>
             )}
-            {item.description && item.item_type !== 'beat' && item.item_type !== 'workout' && (
+            {item.description && item.image_url && item.item_type !== 'beat' && item.item_type !== 'workout' && (
               <p className="text-sm text-muted-foreground mt-2 italic">{item.description}</p>
             )}
 
