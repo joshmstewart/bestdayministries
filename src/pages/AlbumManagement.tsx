@@ -214,6 +214,9 @@ export default function AlbumManagement() {
       return;
     }
 
+    // Capture index of first new image before state updates
+    const firstNewIndex = selectedImages.length;
+
     toast.success(`${imageFiles.length} image${imageFiles.length > 1 ? 's' : ''} selected`);
     
     setSelectedImages(prev => [...prev, ...imageFiles]);
@@ -231,6 +234,10 @@ export default function AlbumManagement() {
     );
     
     setImagePreviews(prev => [...prev, ...previews]);
+
+    // Auto-open crop dialog for the first new image
+    setCropImageIndex(firstNewIndex);
+    setShowCropDialog(true);
 
     // Reset the input so the same files can be selected again if needed
     if (e.target) {
