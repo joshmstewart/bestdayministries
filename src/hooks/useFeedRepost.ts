@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 
 export function useFeedRepost() {
   const [isReposting, setIsReposting] = useState(false);
@@ -10,7 +11,7 @@ export function useFeedRepost() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("You must be signed in to repost");
+        showErrorToast("You must be signed in to repost");
         return false;
       }
 
@@ -28,7 +29,7 @@ export function useFeedRepost() {
       return true;
     } catch (error: any) {
       console.error("Error reposting:", error);
-      toast.error(error.message || "Failed to repost");
+      showErrorToastWithCopy("Failed to repost", error);
       return false;
     } finally {
       setIsReposting(false);
@@ -49,7 +50,7 @@ export function useFeedRepost() {
       return true;
     } catch (error: any) {
       console.error("Error removing repost:", error);
-      toast.error(error.message || "Failed to remove repost");
+      showErrorToastWithCopy("Failed to remove repost", error);
       return false;
     } finally {
       setIsReposting(false);

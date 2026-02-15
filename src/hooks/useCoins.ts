@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Generate a unique ID for each hook instance
@@ -118,7 +119,7 @@ export const useCoins = () => {
       fetchCoins();
     } catch (error) {
       console.error('Error awarding coins:', error);
-      toast.error("Failed to update coins");
+      showErrorToastWithCopy("Failed to update coins", error);
     }
   };
 
@@ -137,7 +138,7 @@ export const useCoins = () => {
 
       const currentCoins = currentProfile.coins || 0;
       if (currentCoins < amount) {
-        toast.error('Not enough coins!');
+        showErrorToast('Not enough coins!');
         return false;
       }
 
@@ -166,7 +167,7 @@ export const useCoins = () => {
       return true;
     } catch (error) {
       console.error('Error deducting coins:', error);
-      toast.error("Failed to deduct coins");
+      showErrorToastWithCopy("Failed to deduct coins", error);
       return false;
     }
   };

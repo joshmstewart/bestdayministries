@@ -6,6 +6,7 @@ import { BackButton } from "@/components/BackButton";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { toast } from "sonner";
+import { showErrorToast } from "@/lib/errorToast";
 import confetti from "canvas-confetti";
 import { CashDrawer } from "@/components/money-counting/CashDrawer";
 import { CustomerPayment } from "@/components/money-counting/CustomerPayment";
@@ -538,7 +539,7 @@ export default function MoneyCounting() {
     
     // Check if giving this would exceed what's needed
     if (currentGiven + denomValue > gameState.changeNeeded + 0.001) {
-      toast.error("That's too much change!");
+      showErrorToast("That's too much change!");
       return;
     }
 

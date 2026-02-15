@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -120,7 +121,7 @@ export default function EventManagement() {
 
     // Check for admin-level access (owner role automatically has admin access)
     if (!roleData || (roleData.role !== "admin" && roleData.role !== "owner")) {
-      toast.error("Access denied. Admin privileges required.");
+      showErrorToast("Access denied. Admin privileges required.");
       navigate("/");
       return;
     }
@@ -148,7 +149,7 @@ export default function EventManagement() {
     ]);
 
     if (eventsResult.error) {
-      toast.error("Failed to load events");
+      showErrorToastWithCopy("Failed to load events", eventsResult.error);
       console.error(eventsResult.error);
     } else {
       setEvents(eventsResult.data || []);
@@ -168,7 +169,7 @@ export default function EventManagement() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+      showErrorToast("Please select an image file");
       return;
     }
 
@@ -208,7 +209,7 @@ export default function EventManagement() {
     const isValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
 
     if (!isValidType && !isValidExtension) {
-      toast.error("Please select a valid audio file (MP3, WAV, M4A, MP4, WebM, or OGG)");
+      showErrorToast("Please select a valid audio file (MP3, WAV, M4A, MP4, WebM, or OGG)");
       return;
     }
 
@@ -246,7 +247,7 @@ export default function EventManagement() {
 
   const handleSubmit = async (saveAsDraft: boolean = false) => {
     if (!title || !description || !eventDate) {
-      toast.error("Please fill in all required fields");
+      showErrorToast("Please fill in all required fields");
       return;
     }
 
@@ -410,7 +411,7 @@ export default function EventManagement() {
 
         if (datesError) {
           console.error("Error saving additional dates:", datesError);
-          toast.error("Event saved but failed to add some dates");
+          showErrorToastWithCopy("Event saved but failed to add some dates", datesError);
         }
       }
 
@@ -425,7 +426,7 @@ export default function EventManagement() {
       }
     } catch (error: any) {
       console.error("Error saving event:", error);
-      toast.error(error.message || "Failed to save event");
+      showErrorToastWithCopy("Failed to save event", error);
     } finally {
       setUploading(false);
     }
@@ -489,7 +490,7 @@ export default function EventManagement() {
       .eq("id", eventId);
 
     if (error) {
-      toast.error("Failed to delete event");
+      showErrorToastWithCopy("Failed to delete event", error);
       console.error(error);
     } else {
       toast.success("Event deleted successfully");
@@ -504,7 +505,7 @@ export default function EventManagement() {
       .eq("id", eventId);
 
     if (error) {
-      toast.error("Failed to update event visibility");
+      showErrorToastWithCopy("Failed to update event visibility", error);
       console.error(error);
     } else {
       toast.success(isActive ? "Event is now visible" : "Event is now hidden");

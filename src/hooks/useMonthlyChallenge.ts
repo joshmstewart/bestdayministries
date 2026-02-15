@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 
 export interface ChallengeTheme {
   id: string;
@@ -184,7 +185,7 @@ export function useMonthlyChallenge(userId: string | null) {
 
     if (error) {
       console.error('Error selecting background:', error);
-      toast.error('Failed to select background');
+      showErrorToastWithCopy('Failed to select background', error);
       return;
     }
 
@@ -216,7 +217,7 @@ export function useMonthlyChallenge(userId: string | null) {
 
     if (error) {
       console.error('Error placing sticker:', error);
-      toast.error('Failed to place sticker');
+      showErrorToastWithCopy('Failed to place sticker', error);
       return false;
     }
 
@@ -268,7 +269,7 @@ export function useMonthlyChallenge(userId: string | null) {
 
     if (error) {
       console.error('Error removing sticker:', error);
-      toast.error('Failed to remove sticker');
+      showErrorToastWithCopy('Failed to remove sticker', error);
       return;
     }
 
@@ -291,7 +292,7 @@ export function useMonthlyChallenge(userId: string | null) {
 
     if (error) {
       console.error('Error completing challenge:', error);
-      toast.error('Failed to complete challenge');
+      showErrorToastWithCopy('Failed to complete challenge', error);
       return;
     }
 

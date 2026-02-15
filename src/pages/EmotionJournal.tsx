@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Heart, Calendar, TrendingUp, ChevronDown, ChevronUp, Save, MessageCircle, Loader2, Sparkles, Check, Pencil, X, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
 import { EmotionHistory } from '@/components/emotion-journal/EmotionHistory';
 import { EmotionStats } from '@/components/emotion-journal/EmotionStats';
 import { TextToSpeech } from '@/components/TextToSpeech';
@@ -417,7 +418,7 @@ export default function EmotionJournal() {
 
       if (error) {
         console.error('Error loading emotion types:', error);
-        toast.error('Failed to load emotions');
+        showErrorToastWithCopy('Failed to load emotions', error);
         return;
       }
 
@@ -516,7 +517,7 @@ export default function EmotionJournal() {
       window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (error) {
       console.error('Error saving entry:', error);
-      toast.error('Failed to save entry');
+      showErrorToastWithCopy('Failed to save entry', error);
     } finally {
       setIsSaving(false);
     }
@@ -573,7 +574,7 @@ export default function EmotionJournal() {
       }
     } catch (error) {
       console.error('Error saving edits:', error);
-      toast.error('Failed to save changes');
+      showErrorToastWithCopy('Failed to save changes', error);
     } finally {
       setIsSaving(false);
     }

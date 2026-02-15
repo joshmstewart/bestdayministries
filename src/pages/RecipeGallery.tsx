@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { PageLoadingState } from "@/components/common";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { toast } from "sonner";
+import { showErrorToast } from "@/lib/errorToast";
 import { RecipeDetailDialog } from "@/components/recipe-maker/RecipeDetailDialog";
 import { CookingModeDialog } from "@/components/recipe-maker/CookingModeDialog";
 import { CollapsibleShoppingTips } from "@/components/recipe-maker/CollapsibleShoppingTips";
@@ -256,7 +257,7 @@ const RecipeGallery = () => {
     });
 
     if (error) {
-      toast.error("Failed to save recipe");
+      showErrorToast("Failed to save recipe");
       return;
     }
 
