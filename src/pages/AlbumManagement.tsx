@@ -113,6 +113,7 @@ export default function AlbumManagement() {
   const [showAddVideoDialog, setShowAddVideoDialog] = useState(false);
   const [pendingVideos, setPendingVideos] = useState<VideoPickerResult[]>([]);
   const [expandedAlbums, setExpandedAlbums] = useState<Set<string>>(new Set());
+  const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('4:3');
 
   useEffect(() => {
     checkAdminAccess();
@@ -1298,9 +1299,11 @@ export default function AlbumManagement() {
           (cropImageIndex !== null ? imagePreviews[cropImageIndex] : "")
         }
         onCropComplete={handleCroppedImage}
-        aspectRatio={4 / 3}
+        allowAspectRatioChange={true}
+        selectedRatioKey={aspectRatioKey}
+        onAspectRatioKeyChange={setAspectRatioKey}
         title="Crop Album Image"
-        description={cropExistingImage ? "Cropping from original image - you can zoom in or out as needed" : "Adjust the crop area to match how this image will appear in the album (4:3 aspect ratio)"}
+        description={cropExistingImage ? "Cropping from original image - select aspect ratio and adjust" : "Select aspect ratio and adjust the crop area"}
       />
 
       <Dialog open={showCaptionDialog} onOpenChange={setShowCaptionDialog}>
