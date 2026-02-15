@@ -192,7 +192,7 @@ export default function AlbumDetailDialog({
                       <YouTubeEmbed url={currentImage.youtube_url} />
                     </div>
                   </div>
-                ) : (currentImage?.video_type === 'upload' || currentImage?.video_type === 'uploaded') && currentImage?.video_url ? (
+                ) : currentImage?.video_type === 'upload' && currentImage?.video_url ? (
                   <div className="w-full h-full flex items-center justify-center overflow-hidden">
                     <video
                       src={currentImage.video_url}

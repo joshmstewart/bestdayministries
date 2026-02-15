@@ -492,8 +492,8 @@ export const SupportPageManager = () => {
             <div>
               <Label htmlFor="video_type">Video Type</Label>
               <Select
-                value={content.video_type || "uploaded"}
-                onValueChange={(value: 'uploaded' | 'youtube') => {
+                value={content.video_type === 'uploaded' ? 'upload' : (content.video_type || "upload")}
+                onValueChange={(value: 'upload' | 'youtube') => {
                   setEditingSection({
                     ...section,
                     content: { 
@@ -510,13 +510,13 @@ export const SupportPageManager = () => {
                   <SelectValue placeholder="Select video type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="uploaded">Uploaded Video</SelectItem>
+                  <SelectItem value="upload">Uploaded Video</SelectItem>
                   <SelectItem value="youtube">YouTube Video</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            {content.video_type === "uploaded" ? (
+            {(content.video_type === "upload" || content.video_type === "uploaded") ? (
               <div>
                 <Label htmlFor="video_id">Select Video</Label>
                 <Select
@@ -529,7 +529,7 @@ export const SupportPageManager = () => {
                         content: {
                           ...content,
                           video_id: value,
-                          video_type: 'uploaded',
+                          video_type: 'upload',
                           video_url: selectedVideo.video_url,
                           youtube_url: undefined
                         }

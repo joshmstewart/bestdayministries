@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube, ChevronDown, ChevronRight, Loader2, ImageIcon, Film } from "lucide-react";
 import { compressImage, isHeicFile, convertHeicToJpeg } from "@/lib/imageUtils";
+import { uploadWithProgress, createUploadPath } from "@/lib/videoUpload";
+import { Progress } from "@/components/ui/progress";
 import AudioRecorder from "@/components/AudioRecorder";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -115,6 +117,7 @@ export default function AlbumManagement() {
   const [expandedAlbums, setExpandedAlbums] = useState<Set<string>>(new Set());
   const [aspectRatioKey, setAspectRatioKey] = useState<'1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '3:2' | '2:3'>('4:3');
   const [isConvertingHeic, setIsConvertingHeic] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<Map<number, number>>(new Map());
 
   useEffect(() => {
     checkAdminAccess();
@@ -308,75 +311,183 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
   };
 
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    // Accept image/* types OR HEIC/HEIF files (whose MIME may be empty on desktop Chrome)
-    const isImageOrHeic = (file: File) =>
-      file.type.startsWith("image/") || isHeicFile(file);
-
-    const validFiles = files.filter(isImageOrHeic);
-    if (validFiles.length === 0) {
-      toast.error("Please select image files");
-      return;
-    }
-
-    // Convert any HEIC files to JPEG before processing
-    const hasHeic = validFiles.some(isHeicFile);
-    if (hasHeic) {
-      toast.info("Converting iPhone photos...");
-    }
-    setIsConvertingHeic(hasHeic);
-
-    const processedFiles: File[] = [];
-    for (const file of validFiles) {
-      if (isHeicFile(file)) {
-        try {
-          const converted = await convertHeicToJpeg(file);
-          processedFiles.push(converted);
-        } catch (err) {
-          toast.error(`Could not convert ${file.name}. Try exporting as JPEG first.`);
-        }
-      } else {
-        processedFiles.push(file);
+    // Separate into images and videos
+    const imageFiles: File[] = [];
+    const videoFiles: File[] = [];
+    
+    for (const file of files) {
+      if (file.type.startsWith("video/")) {
+        videoFiles.push(file);
+      } else if (file.type.startsWith("image/") || isHeicFile(file)) {
+        imageFiles.push(file);
       }
     }
-    setIsConvertingHeic(false);
 
-    if (processedFiles.length === 0) {
-      toast.error("No images could be processed");
+    if (imageFiles.length === 0 && videoFiles.length === 0) {
+      toast.error("Please select image or video files");
       return;
     }
 
-    // Capture index of first new image before state updates
-    const firstNewIndex = selectedImages.length;
+    // Process image files (existing flow)
+    if (imageFiles.length > 0) {
+      const hasHeic = imageFiles.some(isHeicFile);
+      if (hasHeic) {
+        toast.info("Converting iPhone photos...");
+      }
+      setIsConvertingHeic(hasHeic);
 
-    toast.success(`${processedFiles.length} image${processedFiles.length > 1 ? 's' : ''} selected`);
-    
-    setSelectedImages(prev => [...prev, ...processedFiles]);
-    setImageCaptions(prev => [...prev, ...new Array(processedFiles.length).fill("")]);
+      const processedFiles: File[] = [];
+      for (const file of imageFiles) {
+        if (isHeicFile(file)) {
+          try {
+            const converted = await convertHeicToJpeg(file);
+            processedFiles.push(converted);
+          } catch (err) {
+            toast.error(`Could not convert ${file.name}. Try exporting as JPEG first.`);
+          }
+        } else {
+          processedFiles.push(file);
+        }
+      }
+      setIsConvertingHeic(false);
 
-    // Read all files in order and wait for them to complete
-    const previews = await Promise.all(
-      processedFiles.map(file => {
-        return new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-      })
-    );
-    
-    setImagePreviews(prev => [...prev, ...previews]);
+      if (processedFiles.length > 0) {
+        const firstNewIndex = selectedImages.length;
+        toast.success(`${processedFiles.length} image${processedFiles.length > 1 ? 's' : ''} selected`);
+        
+        setSelectedImages(prev => [...prev, ...processedFiles]);
+        setImageCaptions(prev => [...prev, ...new Array(processedFiles.length).fill("")]);
 
-    // Auto-open crop dialog for the first new image
-    setCropImageIndex(firstNewIndex);
-    setShowCropDialog(true);
+        const previews = await Promise.all(
+          processedFiles.map(file => {
+            return new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(file);
+            });
+          })
+        );
+        
+        setImagePreviews(prev => [...prev, ...previews]);
 
-    // Reset the input so the same files can be selected again if needed
+        // Auto-open crop dialog for the first new image
+        setCropImageIndex(firstNewIndex);
+        setShowCropDialog(true);
+      }
+    }
+
+    // Process video files (new inline upload flow)
+    if (videoFiles.length > 0) {
+      toast.success(`${videoFiles.length} video${videoFiles.length > 1 ? 's' : ''} selected — uploading...`);
+      
+      for (const file of videoFiles) {
+        await handleInlineVideoUpload(file);
+      }
+    }
+
+    // Reset the input so the same files can be selected again
     if (e.target) {
       e.target.value = '';
+    }
+  };
+
+  const handleInlineVideoUpload = async (file: File) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Generate local thumbnail immediately
+      const localUrl = URL.createObjectURL(file);
+      let thumbnailUrl: string | null = null;
+      try {
+        const thumbBlob = await captureVideoFirstFrame(localUrl);
+        if (thumbBlob) {
+          thumbnailUrl = URL.createObjectURL(thumbBlob);
+        }
+      } catch {
+        // Thumbnail generation failed, will use placeholder
+      }
+
+      // Add to pendingVideos immediately with a temp index for progress tracking
+      const tempIndex = Date.now();
+      const pendingEntry = {
+        type: 'upload' as const,
+        url: '', // Will be filled after upload
+        caption: '',
+        thumbnailUrl,
+        videoId: undefined,
+        _uploadProgress: 0,
+        _tempIndex: tempIndex,
+      } as VideoPickerResult & { _uploadProgress: number; _tempIndex: number };
+      setPendingVideos(prev => [...prev, pendingEntry]);
+
+      // Upload the video file
+      const uploadPath = createUploadPath(user.id, file.name);
+      const publicUrl = await uploadWithProgress('videos', uploadPath, file, {
+        onProgress: (event) => {
+          setPendingVideos(prev => prev.map(pv => 
+            (pv as any)._tempIndex === tempIndex 
+              ? { ...pv, _uploadProgress: event.percentage } 
+              : pv
+          ));
+        },
+      });
+
+      // Create video record in the videos table
+      const { data: videoRecord, error: videoError } = await supabase
+        .from('videos')
+        .insert({
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          video_url: publicUrl,
+          video_type: 'upload',
+          uploaded_by: user.id,
+          is_active: true,
+        } as any)
+        .select('id')
+        .single();
+
+      if (videoError) throw videoError;
+
+      // Upload thumbnail to storage if we have one
+      let storedThumbUrl = thumbnailUrl;
+      try {
+        const thumbBlob = await captureVideoFirstFrame(publicUrl);
+        if (thumbBlob) {
+          const thumbPath = `video-thumbs/${user.id}/${Date.now()}_thumb.jpg`;
+          const { error: thumbUploadError } = await supabase.storage
+            .from('app-assets')
+            .upload(thumbPath, thumbBlob, { contentType: 'image/jpeg', upsert: true });
+          if (!thumbUploadError) {
+            const { data: { publicUrl: thumbPublicUrl } } = supabase.storage
+              .from('app-assets')
+              .getPublicUrl(thumbPath);
+            storedThumbUrl = thumbPublicUrl;
+          }
+        }
+      } catch {
+        // Keep local thumbnail
+      }
+
+      // Update pending video with final data
+      setPendingVideos(prev => prev.map(pv => 
+        (pv as any)._tempIndex === tempIndex 
+          ? { ...pv, url: publicUrl, videoId: videoRecord?.id, thumbnailUrl: storedThumbUrl || thumbnailUrl, _uploadProgress: 100 } 
+          : pv
+      ));
+
+      // Revoke local object URLs
+      URL.revokeObjectURL(localUrl);
+
+      toast.success(`Video "${file.name}" uploaded`);
+    } catch (error: any) {
+      console.error("Error uploading video:", error);
+      toast.error(error.message || "Failed to upload video");
+      // Remove the failed entry
+      setPendingVideos(prev => prev.filter(pv => (pv as any)._tempIndex !== Date.now()));
     }
   };
 
@@ -1191,9 +1302,9 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
                     <Input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*,.heic,.heif"
+                      accept="image/*,.heic,.heif,video/mp4,video/webm,video/quicktime"
                       multiple
-                      onChange={handleImageSelect}
+                      onChange={handleMediaSelect}
                       className="hidden"
                       disabled={isConvertingHeic}
                     />
@@ -1209,94 +1320,132 @@ async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
                         ) : (
                           <Upload className="w-4 h-4 mr-2" />
                         )}
-                        {isConvertingHeic ? "Converting..." : editingAlbum ? "Add Images" : "Select Images"}
+                        {isConvertingHeic ? "Converting..." : "Add Media"}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
                         onClick={() => setShowAddVideoDialog(true)}
                       >
-                        <Video className="w-4 h-4 mr-2" />
-                        Add Video
+                        <Film className="w-4 h-4 mr-2" />
+                        Video Library
                       </Button>
                     </div>
                   </div>
                   
-                  {imagePreviews.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                      {imagePreviews.map((preview, index) => (
-                        <div key={index} className="relative space-y-2">
-                          <div className="relative">
-                            <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
-                            <div className="absolute top-2 right-2 flex gap-1">
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleCropImage(index)}
-                                title="Crop image"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => removeImage(index)}
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-                          <Input
-                            placeholder="Caption (optional)"
-                            value={imageCaptions[index]}
-                            onChange={(e) => {
-                              const newCaptions = [...imageCaptions];
-                              newCaptions[index] = e.target.value;
-                              setImageCaptions(newCaptions);
-                            }}
-                            className="text-sm"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Pending Videos preview (for new albums) */}
-                  {pendingVideos.length > 0 && (
+                  {/* Unified Pending Media grid */}
+                  {(imagePreviews.length > 0 || pendingVideos.length > 0) && (
                     <div className="mt-4 space-y-2">
-                      <p className="text-sm text-muted-foreground">Pending Videos ({pendingVideos.length})</p>
+                      <p className="text-sm text-muted-foreground">
+                        Pending Media ({imagePreviews.length + pendingVideos.length})
+                      </p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {pendingVideos.map((pv, index) => (
-                          <div key={index} className="relative rounded-lg border bg-muted/30 p-2">
-                            <div className="aspect-video bg-muted rounded flex items-center justify-center relative overflow-hidden">
-                              {pv.thumbnailUrl ? (
-                                <img src={pv.thumbnailUrl} alt={pv.caption || 'Video'} className="w-full h-full object-cover" />
-                              ) : pv.type === 'youtube' ? (
-                                <Youtube className="w-8 h-8 text-muted-foreground" />
-                              ) : (
-                                <Play className="w-8 h-8 text-muted-foreground" />
-                              )}
-                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
-                                  <Play className="w-4 h-4 text-white fill-white" />
-                                </div>
+                        {/* Pending Images */}
+                        {imagePreviews.map((preview, index) => (
+                          <div key={`img-${index}`} className="relative space-y-2">
+                            <div className="relative">
+                              <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                              <div className="absolute top-1 left-1">
+                                <span className="text-[10px] font-medium bg-black/60 text-white px-1.5 py-0.5 rounded flex items-center gap-1">
+                                  <ImageIcon className="w-3 h-3" /> Photo
+                                </span>
+                              </div>
+                              <div className="absolute top-1 right-1 flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleCropImage(index)}
+                                  title="Crop image"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => removeImage(index)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
                               </div>
                             </div>
-                            <p className="text-xs mt-1 truncate">{pv.caption || (pv.type === 'youtube' ? 'YouTube Video' : 'Library Video')}</p>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-1 right-1 h-6 w-6"
-                              onClick={() => setPendingVideos(prev => prev.filter((_, i) => i !== index))}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
+                            <Input
+                              placeholder="Caption (optional)"
+                              value={imageCaptions[index]}
+                              onChange={(e) => {
+                                const newCaptions = [...imageCaptions];
+                                newCaptions[index] = e.target.value;
+                                setImageCaptions(newCaptions);
+                              }}
+                              className="text-sm"
+                            />
                           </div>
                         ))}
+
+                        {/* Pending Videos */}
+                        {pendingVideos.map((pv, index) => {
+                          const progress = (pv as any)._uploadProgress;
+                          const isUploading = progress !== undefined && progress < 100 && pv.url === '';
+                          return (
+                            <div key={`vid-${index}`} className="relative space-y-2">
+                              <div className="relative h-32 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                                {pv.thumbnailUrl ? (
+                                  <img src={pv.thumbnailUrl} alt={pv.caption || 'Video'} className="w-full h-full object-cover" />
+                                ) : pv.type === 'youtube' ? (
+                                  <Youtube className="w-8 h-8 text-muted-foreground" />
+                                ) : (
+                                  <Play className="w-8 h-8 text-muted-foreground" />
+                                )}
+                                {/* Play icon overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                  <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+                                    <Play className="w-4 h-4 text-white fill-white" />
+                                  </div>
+                                </div>
+                                {/* Upload progress overlay */}
+                                {isUploading && (
+                                  <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/60">
+                                    <Progress value={progress} className="h-1.5" />
+                                    <p className="text-[10px] text-white text-center mt-0.5">{Math.round(progress)}%</p>
+                                  </div>
+                                )}
+                                {/* Type badge */}
+                                <div className="absolute top-1 left-1">
+                                  <span className="text-[10px] font-medium bg-black/60 text-white px-1.5 py-0.5 rounded flex items-center gap-1">
+                                    {pv.type === 'youtube' ? (
+                                      <><Youtube className="w-3 h-3" /> YouTube</>
+                                    ) : (
+                                      <><Film className="w-3 h-3" /> Video</>
+                                    )}
+                                  </span>
+                                </div>
+                                {/* Delete button */}
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute top-1 right-1 h-6 w-6"
+                                  onClick={() => setPendingVideos(prev => prev.filter((_, i) => i !== index))}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              <Input
+                                placeholder="Caption (optional)"
+                                value={pv.caption || ''}
+                                onChange={(e) => {
+                                  setPendingVideos(prev => prev.map((v, i) => 
+                                    i === index ? { ...v, caption: e.target.value } : v
+                                  ));
+                                }}
+                                className="text-sm"
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

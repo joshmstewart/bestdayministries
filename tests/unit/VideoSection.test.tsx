@@ -26,7 +26,7 @@ describe('VideoSection', () => {
   it('should render with uploaded video', () => {
     const content = {
       title: 'Test Video',
-      video_type: 'uploaded' as const,
+      video_type: 'upload' as const,
       video_url: 'https://example.com/video.mp4',
     };
 
