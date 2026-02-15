@@ -918,14 +918,14 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 </Button>
               )}
 
-              {/* Repost button for admins on events */}
-              {isAdmin && item.item_type === 'event' && (
+              {/* Repost button for admins on events and albums */}
+              {isAdmin && (item.item_type === 'event' || item.item_type === 'album') && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    const success = await repostToFeed('event', item.id);
+                    const success = await repostToFeed(item.item_type, item.id);
                     if (success) onRefresh?.();
                   }}
                   disabled={isReposting}
