@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { Plus, Trash2, Edit, MapPin, Eye, EyeOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -40,7 +41,7 @@ export const SavedLocationsManager = () => {
       .order("name");
 
     if (error) {
-      toast.error("Failed to load saved locations");
+      showErrorToastWithCopy("Loading saved locations", error);
       console.error(error);
     } else {
       setLocations(data || []);
@@ -59,7 +60,7 @@ export const SavedLocationsManager = () => {
 
   const handleSubmit = async () => {
     if (!name.trim() || !address.trim()) {
-      toast.error("Please fill in all fields");
+      showErrorToast("Please fill in all fields");
       return;
     }
 
@@ -81,7 +82,7 @@ export const SavedLocationsManager = () => {
         .eq("id", editingLocation.id);
 
       if (error) {
-        toast.error("Failed to update location");
+        showErrorToastWithCopy("Updating location", error);
         console.error(error);
       } else {
         toast.success("Location updated successfully");
@@ -94,7 +95,7 @@ export const SavedLocationsManager = () => {
         .insert(locationData);
 
       if (error) {
-        toast.error("Failed to create location");
+        showErrorToastWithCopy("Creating location", error);
         console.error(error);
       } else {
         toast.success("Location created successfully");
@@ -122,7 +123,7 @@ export const SavedLocationsManager = () => {
       .eq("id", id);
 
     if (error) {
-      toast.error("Failed to delete location");
+      showErrorToastWithCopy("Deleting location", error);
       console.error(error);
     } else {
       toast.success("Location deleted successfully");
@@ -137,7 +138,7 @@ export const SavedLocationsManager = () => {
       .eq("id", id);
 
     if (error) {
-      toast.error("Failed to update location");
+      showErrorToastWithCopy("Toggling location", error);
       console.error(error);
     } else {
       toast.success(isActive ? "Location activated" : "Location deactivated");

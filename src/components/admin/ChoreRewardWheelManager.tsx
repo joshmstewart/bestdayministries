@@ -8,6 +8,7 @@ import { ChoreRewardWheelDialog } from "@/components/chores/ChoreRewardWheelDial
 import { PackOpeningDialog } from "@/components/PackOpeningDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { Badge } from "@/components/ui/badge";
 
 interface WheelSegment {
@@ -103,7 +104,7 @@ export function ChoreRewardWheelManager() {
       refetchSpin();
     } catch (error) {
       console.error("Reset error:", error);
-      toast.error("Failed to reset spin");
+      showErrorToastWithCopy("Resetting spin", error);
     } finally {
       setResetting(false);
     }

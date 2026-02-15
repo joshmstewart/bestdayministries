@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { RichTextEditor, type RichTextEditorRef } from "./RichTextEditor";
 
 interface NewsletterTemplateDialogProps {
@@ -81,7 +82,7 @@ export const NewsletterTemplateDialog = ({ template, open, onOpenChange }: Newsl
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to save template");
+      showErrorToastWithCopy("Saving template", error);
     },
   });
 

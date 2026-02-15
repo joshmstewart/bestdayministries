@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Edit, Trash2, Eye, EyeOff, Sparkles, Loader2, Coins, BookOpen, Wand2, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
-import { showErrorToastWithCopy } from "@/lib/errorToast";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { compressImage } from "@/lib/imageUtils";
 
 interface BookIdea {
@@ -111,7 +111,7 @@ OUTPUT: High quality, print-ready, no watermarks.`;
 
   const handleGenerateCover = async () => {
     if (!aiPrompt.trim() && !fullCoverPrompt.trim()) {
-      toast.error("Please enter a description for the cover");
+      showErrorToast("Please enter a description for the cover");
       return;
     }
     
@@ -237,7 +237,7 @@ OUTPUT: High quality, print-ready, no watermarks.`;
 
   const handleGenerateDescription = async () => {
     if (!formData.title.trim()) {
-      toast.error("Please enter a title first");
+      showErrorToast("Please enter a title first");
       return;
     }
     

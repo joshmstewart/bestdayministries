@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -113,7 +114,7 @@ export const RecipeIngredientsManager = () => {
       .order("display_order");
 
     if (error) {
-      toast.error("Failed to load ingredients");
+      showErrorToastWithCopy("Loading ingredients", error);
       console.error(error);
     } else {
       // Add cache-busting timestamp to image URLs
@@ -286,7 +287,7 @@ export const RecipeIngredientsManager = () => {
 
   const handleAddIngredient = async (name: string, category: string) => {
     if (!name.trim()) {
-      toast.error("Please enter an ingredient name");
+      showErrorToast("Please enter an ingredient name");
       return;
     }
 
@@ -295,7 +296,7 @@ export const RecipeIngredientsManager = () => {
       i => i.name.toLowerCase() === name.toLowerCase()
     );
     if (exists) {
-      toast.error("This ingredient already exists");
+      showErrorToast("This ingredient already exists");
       return;
     }
 
@@ -337,7 +338,7 @@ export const RecipeIngredientsManager = () => {
       await loadIngredients();
     } catch (error) {
       console.error("Failed to add ingredient:", error);
-      toast.error("Failed to add ingredient");
+      showErrorToastWithCopy("Adding ingredient", error);
     } finally {
       setAddingIngredient(false);
     }
@@ -455,7 +456,7 @@ export const RecipeIngredientsManager = () => {
         const filtered = prev.filter((e) => e.ingredientName !== ingredient.name);
         return [...filtered, { ingredientName: ingredient.name, error: result.errorMessage || "Unknown error" }];
       });
-      toast.error(`Failed to regenerate icon for ${ingredient.name}`);
+      showErrorToast(`Failed to regenerate icon for ${ingredient.name}`);
     }
 
     setRegeneratingId(null);
@@ -489,7 +490,7 @@ export const RecipeIngredientsManager = () => {
       setIngredients(prev => prev.filter(i => i.id !== ingredientToDelete.id));
     } catch (error) {
       console.error("Failed to delete ingredient:", error);
-      toast.error("Failed to delete ingredient");
+      showErrorToastWithCopy("Deleting ingredient", error);
     } finally {
       setDeleting(false);
       setIngredientToDelete(null);
