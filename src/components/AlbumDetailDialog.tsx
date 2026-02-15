@@ -205,7 +205,7 @@ export default function AlbumDetailDialog({
                   <img
                     src={currentImage?.image_url || ''}
                     alt={currentImage?.caption || `Image ${currentIndex + 1}`}
-                    className="max-w-full max-h-[40vh] md:max-h-full object-contain"
+                    className="max-w-full max-h-full object-contain"
                   />
                 )}
 
@@ -215,7 +215,7 @@ export default function AlbumDetailDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white border border-white/20 shadow-lg"
                       onClick={goToPrevious}
                     >
                       <ChevronLeft className="w-6 h-6" />
@@ -223,7 +223,7 @@ export default function AlbumDetailDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white border border-white/20 shadow-lg"
                       onClick={goToNext}
                     >
                       <ChevronRight className="w-6 h-6" />
