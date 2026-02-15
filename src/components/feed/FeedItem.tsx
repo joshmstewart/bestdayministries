@@ -943,14 +943,14 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 gap-1 text-muted-foreground"
+                  className="gap-1.5 px-2"
                   onClick={(e) => {
                     e.stopPropagation();
                     setFortuneDialogOpen(true);
                   }}
                 >
                   <MessageSquare className="h-4 w-4" />
-                  <span className="text-xs">{item.comments_count || 0}</span>
+                  <span className="text-sm text-foreground">{item.comments_count || 0}</span>
                 </Button>
               )}
 
