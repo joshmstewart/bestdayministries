@@ -587,6 +587,7 @@ export default function AlbumManagement() {
     setVisibleToRoles((album as any).visible_to_roles || ['caregiver', 'bestie', 'supporter']);
     setExistingImages(album.images || []);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (albumId: string) => {
