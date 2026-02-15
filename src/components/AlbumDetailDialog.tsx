@@ -215,7 +215,7 @@ export default function AlbumDetailDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white border border-white/20 shadow-lg"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 hover:bg-black/90 text-white border border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
                       onClick={goToPrevious}
                     >
                       <ChevronLeft className="w-6 h-6" />
@@ -223,7 +223,7 @@ export default function AlbumDetailDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white border border-white/20 shadow-lg"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 hover:bg-black/90 text-white border border-white/30 shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
                       onClick={goToNext}
                     >
                       <ChevronRight className="w-6 h-6" />
