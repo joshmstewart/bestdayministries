@@ -705,11 +705,23 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                           — {fortuneAuthor}
                         </p>
                       )}
-                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                        <TextToSpeech 
-                          text={`${fortuneContent}${fortuneAuthor ? `. By ${fortuneAuthor}` : ''}`} 
-                          size="icon" 
-                        />
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                          <TextToSpeech 
+                            text={`${fortuneContent}${fortuneAuthor ? `. By ${fortuneAuthor}` : ''}`} 
+                            size="icon" 
+                          />
+                        </div>
+                        <button
+                          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFortuneDialogOpen(true);
+                          }}
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          <span>{item.comments_count || 0}</span>
+                        </button>
                       </div>
                     </div>
                   </div>
