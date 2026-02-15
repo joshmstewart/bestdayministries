@@ -5,7 +5,7 @@ interface VideoSectionProps {
   content?: {
     title?: string;
     description?: string;
-    video_type?: 'youtube' | 'uploaded';
+    video_type?: 'youtube' | 'upload';
     youtube_url?: string;
     video_url?: string;
   };

@@ -1189,8 +1189,8 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
             <div className="space-y-2">
               <Label htmlFor="video_type">Video Type</Label>
               <Select
-                value={content.video_type || "uploaded"}
-                onValueChange={(value: 'uploaded' | 'youtube') => {
+                value={content.video_type === 'uploaded' ? 'upload' : (content.video_type || "upload")}
+                onValueChange={(value: 'upload' | 'youtube') => {
                   setContent({ 
                     ...content, 
                     video_type: value,
@@ -1204,13 +1204,13 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
                   <SelectValue placeholder="Select video type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="uploaded">Uploaded Video</SelectItem>
+                  <SelectItem value="upload">Uploaded Video</SelectItem>
                   <SelectItem value="youtube">YouTube Video</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            {content.video_type === "uploaded" ? (
+            {(content.video_type === "upload" || content.video_type === "uploaded") ? (
               <div className="space-y-2">
                 <Label htmlFor="video_id">Select Video</Label>
                 <Select
@@ -1221,7 +1221,7 @@ const SectionContentDialog = ({ open, onOpenChange, section, onSave, tableName =
                       setContent({
                         ...content,
                         video_id: value,
-                        video_type: 'uploaded',
+                        video_type: 'upload',
                         video_url: selectedVideo.video_url,
                         youtube_url: undefined
                       });
