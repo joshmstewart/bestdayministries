@@ -149,7 +149,7 @@ export default function AlbumManagement() {
   const loadAlbums = async () => {
     setLoading(true);
     // Fetch albums and all images in parallel (eliminates N+1 query problem)
-    const [albumsResult, imagesResult] = await Promise.all([
+    const [albumsResult, imagesResult, videosResult] = await Promise.all([
       supabase
         .from("albums")
         .select(`
@@ -161,18 +161,33 @@ export default function AlbumManagement() {
         .from("album_images")
         .select("*")
         .order("display_order", { ascending: true }),
+      supabase
+        .from("videos")
+        .select("id, cover_url, thumbnail_url"),
     ]);
 
     if (albumsResult.error) {
       toast.error("Failed to load albums");
       console.error(albumsResult.error);
     } else {
+      // Build a video cover lookup from the videos table
+      const videoCoverMap = new Map<string, string>();
+      (videosResult.data || []).forEach(v => {
+        const cover = v.cover_url || v.thumbnail_url;
+        if (cover) videoCoverMap.set(v.id, cover);
+      });
+
       // Group images by album_id client-side
       const imagesByAlbum = new Map<string, AlbumMedia[]>();
       (imagesResult.data || []).forEach(img => {
+        // Backfill: if video has no image_url but has a video_id, use the video's cover
+        let imageUrl = img.image_url;
+        if (!imageUrl && img.video_id && videoCoverMap.has(img.video_id)) {
+          imageUrl = videoCoverMap.get(img.video_id)!;
+        }
         const mapped: AlbumMedia = {
           id: img.id,
-          image_url: img.image_url,
+          image_url: imageUrl,
           video_url: img.video_url,
           video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
           youtube_url: img.youtube_url,
