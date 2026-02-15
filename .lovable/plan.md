@@ -1,65 +1,105 @@
 
 
-## Robust HEIC Handling for Album Image Uploads
+## Fix Video Thumbnails in Album Management
 
 ### Problem
 
-The album upload flow has no HEIC support at all. Desktop Chrome doesn't natively handle HEIC files, so:
-1. The `accept="image/*"` attribute may not include `.heic` files on desktop Chrome
-2. The `file.type.startsWith("image/")` filter silently rejects HEIC files (whose MIME type is often empty on Chrome)
-3. There's no conversion step -- unlike `ImageUploadWithCrop` which uses `heic2any`
+Video thumbnails don't appear in the album admin grid because:
+
+1. **Library videos**: When a video is selected from the library, its `cover_url` (from the `videos` table) is never copied into the `album_images.image_url` field. The `VideoPickerResult` interface doesn't even carry thumbnail info.
+2. **Uploaded videos with no cover**: If a video has no `cover_url` set, there's no fallback -- just a generic play icon placeholder.
+3. **YouTube videos**: The `SortableMediaItem` component already handles YouTube thumbnails via `getYouTubeThumbnail()`, but this only works if `youtube_url` is set, which it is -- so YouTube should work. The issue is primarily with uploaded/library videos.
 
 ### Changes
 
+#### 1. Add `thumbnailUrl` to `VideoPickerResult` interface
+
+**File: `src/components/album/VideoLibraryPickerDialog.tsx`**
+
+- Add `thumbnailUrl?: string` to the `VideoPickerResult` interface
+- When selecting a library video, include `video.cover_url || video.thumbnail_url` as `thumbnailUrl`
+- When a video is uploaded via the dialog's upload tab, pass along the cover_url if available
+
+#### 2. Store thumbnail as `image_url` when inserting video into album
+
 **File: `src/pages/AlbumManagement.tsx`**
 
-1. **Add HEIC to file input accept attribute**
-   - Change `accept="image/*"` to `accept="image/*,.heic,.heif"` so the file picker shows HEIC files on desktop
+- In both video insert locations (editing existing album and saving new album), set `image_url: video.thumbnailUrl || null` so the thumbnail gets stored in the database
+- This means `SortableMediaItem` will find it via its existing `media.image_url` check -- no changes needed there
 
-2. **Import HEIC utilities**
-   - Import `isHeicFile` and `convertHeicToJpeg` from `@/lib/imageUtils` (already used in `ImageUploadWithCrop`)
+#### 3. Auto-generate thumbnail from first frame for videos without covers
 
-3. **Add a converting loading state**
-   - Add `const [isConvertingHeic, setIsConvertingHeic] = useState(false)` state
-   - Show a loading indicator on the upload button area while conversion is in progress
+**File: `src/pages/AlbumManagement.tsx`**
 
-4. **Update `handleImageSelect` to handle HEIC files**
-   - Remove the strict `file.type.startsWith("image/")` filter; replace with a check that accepts image types OR HEIC files (using `isHeicFile`)
-   - Before creating previews, loop through files and convert any HEIC files to JPEG using `convertHeicToJpeg`
-   - Wrap conversion in try/catch per file -- if one file fails, skip it with a toast error and continue with the rest
-   - Set `isConvertingHeic` true/false around the conversion loop
-   - Show a toast like "Converting iPhone photos..." during conversion
+- After inserting a video that has a `video_url` but no `thumbnailUrl`, use a hidden HTML5 `<video>` element to capture the first frame:
+  - Create a video element, set `src`, wait for `loadeddata` event
+  - Seek to 0.1s, draw the frame onto a canvas, export as JPEG blob
+  - Upload the blob to storage and update `album_images.image_url`
+- This runs as a background operation after the insert, so it doesn't block the UI
+- Add a utility function `captureVideoFirstFrame(videoUrl: string): Promise<Blob | null>` for this
 
-5. **Disable upload button during conversion**
-   - Disable the "Select Images" / "Add Images" button while `isConvertingHeic` is true
-   - Show a spinner icon (`Loader2`) instead of the `Upload` icon during conversion
+#### 4. Backfill existing album videos (optional enhancement)
+
+- When loading album images, for any video entries where `image_url` is null and `video_id` is set, look up the video's `cover_url` from the `videos` table and use that as the display thumbnail (in-memory only, or update the record)
 
 ### Technical Detail
 
 ```typescript
-// Updated filter - accept image/* OR heic/heif
-const isImageOrHeic = (file: File) => 
-  file.type.startsWith("image/") || isHeicFile(file);
-
-const validFiles = files.filter(isImageOrHeic);
-
-// Convert HEIC files before preview
-setIsConvertingHeic(true);
-const processedFiles: File[] = [];
-for (const file of validFiles) {
-  if (isHeicFile(file)) {
-    try {
-      const converted = await convertHeicToJpeg(file);
-      processedFiles.push(converted);
-    } catch (err) {
-      toast.error(`Could not convert ${file.name}. Try exporting as JPEG first.`);
-    }
-  } else {
-    processedFiles.push(file);
-  }
+// VideoPickerResult - add thumbnailUrl
+export interface VideoPickerResult {
+  type: 'upload' | 'youtube' | 'library';
+  videoId?: string;
+  url?: string;
+  youtubeUrl?: string;
+  caption?: string;
+  thumbnailUrl?: string;  // NEW
 }
-setIsConvertingHeic(false);
+
+// When selecting from library:
+onVideoSelected({
+  type: isYouTube ? 'youtube' : 'library',
+  videoId: video.id,
+  url: video.video_url || undefined,
+  youtubeUrl: video.youtube_url || undefined,
+  caption: caption.trim() || video.title,
+  thumbnailUrl: video.cover_url || video.thumbnail_url || undefined,
+});
+
+// When inserting into album_images:
+.insert({
+  album_id: albumId,
+  video_type: video.type === 'youtube' ? 'youtube' : 'upload',
+  video_url: video.url || null,
+  youtube_url: video.youtubeUrl || null,
+  video_id: video.videoId || null,
+  caption: video.caption || null,
+  image_url: video.thumbnailUrl || null,  // NEW - store thumbnail
+  display_order: videoOrder,
+})
+
+// First-frame capture utility
+async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.src = videoUrl;
+    video.currentTime = 0.1;
+    video.addEventListener('seeked', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d')?.drawImage(video, 0, 0);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.8);
+    }, { once: true });
+    video.addEventListener('error', () => resolve(null), { once: true });
+    video.load();
+  });
+}
 ```
 
-This follows the exact same pattern already used in `ImageUploadWithCrop.tsx` and `imageUtils.ts`, keeping things consistent across the codebase.
+### Files Modified
+
+- `src/components/album/VideoLibraryPickerDialog.tsx` - Add `thumbnailUrl` to interface and populate it
+- `src/pages/AlbumManagement.tsx` - Use `thumbnailUrl` on insert, add first-frame capture fallback
 
