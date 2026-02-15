@@ -257,8 +257,9 @@ export default function AlbumDetailDialog({
               </h3>
             </div>
 
-            {/* Comments list */}
-            <ScrollArea className="flex-1 min-h-0 md:flex-1 max-h-[40vh] md:max-h-none">
+            {/* Comments list - on mobile: no scroll wrapper (parent scrolls), on desktop: ScrollArea */}
+            {/* Desktop: independent scroll */}
+            <ScrollArea className="hidden md:flex flex-1 min-h-0">
               <div className="p-3 space-y-3">
                 {loadingComments ? (
                   <div className="flex items-center justify-center py-8">
@@ -270,10 +271,7 @@ export default function AlbumDetailDialog({
                   </p>
                 ) : (
                   comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="group flex gap-2 text-sm"
-                    >
+                    <div key={comment.id} className="group flex gap-2 text-sm">
                       <AvatarDisplay
                         profileAvatarId={comment.author?.profile_avatar_id}
                         displayName={comment.author?.display_name || "User"}
@@ -282,27 +280,15 @@ export default function AlbumDetailDialog({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-1.5">
-                          <span className="font-semibold text-xs">
-                            {comment.author?.display_name || "User"}
-                          </span>
+                          <span className="font-semibold text-xs">{comment.author?.display_name || "User"}</span>
                           <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(
-                              new Date(comment.created_at),
-                              { addSuffix: true }
-                            )}
+                            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                           </span>
                         </div>
-                        <p className="text-sm text-foreground break-words">
-                          {comment.content}
-                        </p>
+                        <p className="text-sm text-foreground break-words">{comment.content}</p>
                       </div>
                       {(comment.author_id === user?.id || isAdmin) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                          onClick={() => handleDeleteComment(comment.id)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => handleDeleteComment(comment.id)}>
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </Button>
                       )}
@@ -312,6 +298,43 @@ export default function AlbumDetailDialog({
                 <div ref={commentsEndRef} />
               </div>
             </ScrollArea>
+            {/* Mobile: plain div, scrolls with parent */}
+            <div className="md:hidden p-3 space-y-3">
+              {loadingComments ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-8">
+                  No comments yet. Be the first!
+                </p>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="group flex gap-2 text-sm">
+                    <AvatarDisplay
+                      profileAvatarId={comment.author?.profile_avatar_id}
+                      displayName={comment.author?.display_name || "User"}
+                      size="sm"
+                      className="shrink-0 mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-semibold text-xs">{comment.author?.display_name || "User"}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-foreground break-words">{comment.content}</p>
+                    </div>
+                    {(comment.author_id === user?.id || isAdmin) && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={() => handleDeleteComment(comment.id)}>
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
 
             {/* Comment input */}
             {user ? (
