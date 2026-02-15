@@ -34,6 +34,7 @@ export interface VideoPickerResult {
   url?: string;
   youtubeUrl?: string;
   caption?: string;
+  thumbnailUrl?: string;
 }
 
 interface VideoLibraryPickerDialogProps {
@@ -122,6 +123,7 @@ export function VideoLibraryPickerDialog({
       url: video.video_url || undefined,
       youtubeUrl: video.youtube_url || undefined,
       caption: caption.trim() || video.title,
+      thumbnailUrl: video.cover_url || video.thumbnail_url || undefined,
     });
     onOpenChange(false);
   };
@@ -285,6 +287,7 @@ export function VideoLibraryPickerDialog({
                   url: videoData.video_url || undefined,
                   youtubeUrl: videoData.youtube_url || undefined,
                   caption: videoData.title,
+                  thumbnailUrl: videoData.cover_url || videoData.thumbnail_url || undefined,
                 });
                 onOpenChange(false);
                 toast.success("Video uploaded and added to album!");

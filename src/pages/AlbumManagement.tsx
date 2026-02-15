@@ -205,6 +205,85 @@ export default function AlbumManagement() {
   };
 
 
+/** Capture the first frame of a video as a JPEG blob */
+async function captureVideoFirstFrame(videoUrl: string): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.preload = 'auto';
+    video.src = videoUrl;
+
+    const cleanup = () => {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+
+    video.addEventListener('loadeddata', () => {
+      video.currentTime = 0.1;
+    }, { once: true });
+
+    video.addEventListener('seeked', () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        canvas.getContext('2d')?.drawImage(video, 0, 0);
+        canvas.toBlob((blob) => {
+          cleanup();
+          resolve(blob);
+        }, 'image/jpeg', 0.8);
+      } catch {
+        cleanup();
+        resolve(null);
+      }
+    }, { once: true });
+
+    video.addEventListener('error', () => {
+      cleanup();
+      resolve(null);
+    }, { once: true });
+
+    video.load();
+  });
+}
+
+  /** Background: generate a thumbnail from video first frame and store it */
+  const generateAndStoreVideoThumbnail = async (videoUrl: string, albumImageId: string) => {
+    try {
+      const blob = await captureVideoFirstFrame(videoUrl);
+      if (!blob) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const path = `video-thumbs/${session.user.id}/${Date.now()}_thumb.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('app-assets')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+      if (uploadError) {
+        console.error('Thumbnail upload error:', uploadError);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(path);
+
+      await supabase
+        .from('album_images')
+        .update({ image_url: publicUrl })
+        .eq('id', albumImageId);
+
+      // Refresh if we're still editing
+      loadAlbums();
+    } catch (err) {
+      console.error('Auto-thumbnail generation failed:', err);
+    }
+  };
+
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -528,7 +607,7 @@ export default function AlbumManagement() {
       for (let i = 0; i < pendingVideos.length; i++) {
         const pv = pendingVideos[i];
         const videoOrder = existingImages.length + selectedImages.length + i;
-        const { error: videoError } = await supabase
+        const { data: insertedVideo, error: videoError } = await supabase
           .from("album_images")
           .insert({
             album_id: albumId,
@@ -537,9 +616,17 @@ export default function AlbumManagement() {
             youtube_url: pv.youtubeUrl || null,
             video_id: pv.videoId || null,
             caption: pv.caption || null,
+            image_url: pv.thumbnailUrl || null,
             display_order: videoOrder,
-          });
+          })
+          .select('id')
+          .single();
         if (videoError) throw videoError;
+
+        // Auto-generate thumbnail from first frame if none provided
+        if (!pv.thumbnailUrl && pv.url && insertedVideo) {
+          generateAndStoreVideoThumbnail(pv.url, insertedVideo.id);
+        }
       }
 
       // If album is marked as a post, create or update the discussion post
@@ -1160,12 +1247,19 @@ export default function AlbumManagement() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {pendingVideos.map((pv, index) => (
                           <div key={index} className="relative rounded-lg border bg-muted/30 p-2">
-                            <div className="aspect-video bg-muted rounded flex items-center justify-center">
-                              {pv.type === 'youtube' ? (
+                            <div className="aspect-video bg-muted rounded flex items-center justify-center relative overflow-hidden">
+                              {pv.thumbnailUrl ? (
+                                <img src={pv.thumbnailUrl} alt={pv.caption || 'Video'} className="w-full h-full object-cover" />
+                              ) : pv.type === 'youtube' ? (
                                 <Youtube className="w-8 h-8 text-muted-foreground" />
                               ) : (
                                 <Play className="w-8 h-8 text-muted-foreground" />
                               )}
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+                                  <Play className="w-4 h-4 text-white fill-white" />
+                                </div>
+                              </div>
                             </div>
                             <p className="text-xs mt-1 truncate">{pv.caption || (pv.type === 'youtube' ? 'YouTube Video' : 'Library Video')}</p>
                             <Button
@@ -1400,7 +1494,7 @@ export default function AlbumManagement() {
             (async () => {
               try {
                 const nextOrder = existingImages.length;
-                const { error } = await supabase
+                const { data: insertedVideo, error } = await supabase
                   .from("album_images")
                   .insert({
                     album_id: editingAlbum.id,
@@ -1409,10 +1503,18 @@ export default function AlbumManagement() {
                     youtube_url: video.youtubeUrl || null,
                     video_id: video.videoId || null,
                     caption: video.caption || null,
+                    image_url: video.thumbnailUrl || null,
                     display_order: nextOrder,
-                  });
+                  })
+                  .select('id')
+                  .single();
 
                 if (error) throw error;
+
+                // Auto-generate thumbnail from first frame if none provided
+                if (!video.thumbnailUrl && video.url && insertedVideo) {
+                  generateAndStoreVideoThumbnail(video.url, insertedVideo.id);
+                }
 
                 toast.success("Video added to album");
                 loadAlbums();

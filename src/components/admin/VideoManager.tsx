@@ -37,6 +37,8 @@ export interface SavedVideoData {
   video_url: string | null;
   youtube_url: string | null;
   video_type: string;
+  cover_url?: string | null;
+  thumbnail_url?: string | null;
 }
 
 interface VideoManagerProps {
@@ -277,7 +279,7 @@ export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
         if (error) throw error;
       } else {
         videoData.created_by = user.id;
-        const { data: insertedVideo, error } = await supabase.from("videos").insert(videoData).select("id, title, video_url, youtube_url, video_type").single();
+        const { data: insertedVideo, error } = await supabase.from("videos").insert(videoData).select("id, title, video_url, youtube_url, video_type, cover_url, thumbnail_url").single();
 
         if (error) throw error;
 
@@ -288,6 +290,8 @@ export const VideoManager = ({ onVideoSaved }: VideoManagerProps = {}) => {
           video_url: insertedVideo.video_url,
           youtube_url: insertedVideo.youtube_url,
           video_type: insertedVideo.video_type || 'upload',
+          cover_url: insertedVideo.cover_url,
+          thumbnail_url: insertedVideo.thumbnail_url,
         } : undefined;
       }
 
