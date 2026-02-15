@@ -5013,6 +5013,7 @@ export type Database = {
       }
       feed_reposts: {
         Row: {
+          caption: string | null
           created_at: string
           id: string
           original_item_id: string
@@ -5021,6 +5022,7 @@ export type Database = {
           reposted_by: string | null
         }
         Insert: {
+          caption?: string | null
           created_at?: string
           id?: string
           original_item_id: string
@@ -5029,6 +5031,7 @@ export type Database = {
           reposted_by?: string | null
         }
         Update: {
+          caption?: string | null
           created_at?: string
           id?: string
           original_item_id?: string
