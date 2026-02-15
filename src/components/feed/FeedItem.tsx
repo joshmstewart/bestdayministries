@@ -705,23 +705,11 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                           — {fortuneAuthor}
                         </p>
                       )}
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground" onClick={(e) => e.stopPropagation()}>
-                          <TextToSpeech 
-                            text={`${fortuneContent}${fortuneAuthor ? `. By ${fortuneAuthor}` : ''}`} 
-                            size="icon" 
-                          />
-                        </div>
-                        <button
-                          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFortuneDialogOpen(true);
-                          }}
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          <span>{item.comments_count || 0}</span>
-                        </button>
+                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                        <TextToSpeech 
+                          text={`${fortuneContent}${fortuneAuthor ? `. By ${fortuneAuthor}` : ''}`} 
+                          size="icon" 
+                        />
                       </div>
                     </div>
                   </div>
@@ -949,6 +937,22 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 likesCount={likesCount}
                 onLike={handleLike}
               />
+
+              {/* Comment count for fortune posts - opens fortune dialog */}
+              {item.item_type === 'fortune' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1 text-muted-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFortuneDialogOpen(true);
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="text-xs">{item.comments_count || 0}</span>
+                </Button>
+              )}
 
               {/* Remix button for beats */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
