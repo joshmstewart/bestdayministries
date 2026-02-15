@@ -206,6 +206,15 @@ export default function AlbumManagement() {
         images: imagesByAlbum.get(album.id) || [],
       }));
       setAlbums(albumsWithImages as Album[]);
+
+      // Background: auto-generate thumbnails for videos that have none
+      const allImages = imagesResult.data || [];
+      const videosNeedingThumbs = allImages.filter(
+        img => (img.video_type === 'upload') && !img.image_url && img.video_url && !videoCoverMap.get(img.video_id || '')
+      );
+      for (const img of videosNeedingThumbs) {
+        generateAndStoreVideoThumbnail(img.video_url!, img.id);
+      }
     }
     setLoading(false);
   };
