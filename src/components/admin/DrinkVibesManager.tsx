@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, RefreshCw, Sparkles, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 
 interface Vibe {
   id: string;
@@ -64,7 +65,7 @@ export const DrinkVibesManager = () => {
 
     if (error) {
       console.error("Error loading vibes:", error);
-      toast.error("Failed to load vibes");
+      showErrorToastWithCopy("Loading vibes", error);
     } else {
       const vibesWithCacheBust = (data || []).map(vibe => ({
         ...vibe,
@@ -138,7 +139,7 @@ export const DrinkVibesManager = () => {
       toast.success(`Regenerated icon for ${vibe.name}`);
       await loadVibes();
     } else {
-      toast.error(`Failed to regenerate icon for ${vibe.name}`);
+      showErrorToast(`Failed to regenerate icon for ${vibe.name}`);
     }
 
     setRegenerating(null);
@@ -165,15 +166,15 @@ export const DrinkVibesManager = () => {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast.error("Name is required");
+      showErrorToast("Name is required");
       return;
     }
     if (!formData.description.trim()) {
-      toast.error("Description is required");
+      showErrorToast("Description is required");
       return;
     }
     if (!formData.atmosphere_hint.trim()) {
-      toast.error("Atmosphere hint is required");
+      showErrorToast("Atmosphere hint is required");
       return;
     }
 
@@ -224,7 +225,7 @@ export const DrinkVibesManager = () => {
       await loadVibes();
     } catch (error) {
       console.error("Error saving vibe:", error);
-      toast.error("Failed to save vibe");
+      showErrorToastWithCopy("Saving vibe", error);
     } finally {
       setSaving(false);
     }
@@ -239,7 +240,7 @@ export const DrinkVibesManager = () => {
       .eq("id", vibe.id);
 
     if (error) {
-      toast.error("Failed to delete vibe");
+      showErrorToastWithCopy("Deleting vibe", error);
       console.error(error);
     } else {
       toast.success("Vibe deleted");
@@ -254,7 +255,7 @@ export const DrinkVibesManager = () => {
       .eq("id", vibe.id);
 
     if (error) {
-      toast.error("Failed to update vibe");
+      showErrorToastWithCopy("Toggling vibe", error);
     } else {
       setVibes(prev => 
         prev.map(v => v.id === vibe.id ? { ...v, is_active: !vibe.is_active } : v)

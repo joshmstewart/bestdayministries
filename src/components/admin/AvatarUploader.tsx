@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { Upload, Crop, Save } from "lucide-react";
 
 type AvatarCategory = "humans" | "animals" | "monsters" | "shapes";
@@ -255,7 +256,7 @@ export const AvatarUploader = () => {
 
   const handleSave = async () => {
     if (!selectedFile) {
-      toast.error("Please select an image first");
+      showErrorToast("Please select an image first");
       return;
     }
 
@@ -305,7 +306,7 @@ export const AvatarUploader = () => {
       
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      toast.error(error.message || "Failed to upload avatar");
+      showErrorToastWithCopy("Uploading avatar", error);
     } finally {
       setUploading(false);
     }

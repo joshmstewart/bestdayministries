@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ImageIcon, Trash2, ArrowLeftRight, Crop, Palette, MousePointerClick, Maximize2, Columns, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { ImageCropDialog } from '@/components/ImageCropDialog';
 import { compressImage, isHeicFile, convertHeicToJpeg } from '@/lib/imageUtils';
 import { Input } from '@/components/ui/input';
@@ -69,7 +70,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode, editor, 
   // Insert CTA marker into the text content
   const insertCta = () => {
     if (!ctaText || !ctaUrl) {
-      toast.error('Please fill in button text and URL');
+      showErrorToast('Please fill in button text and URL');
       return;
     }
     
@@ -111,7 +112,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode, editor, 
         processedFile = await convertHeicToJpeg(file);
         toast.success("HEIC image converted successfully");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to convert HEIC image");
+        showErrorToastWithCopy("Converting HEIC image", error);
         setUploading(false);
         return;
       }
@@ -154,7 +155,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode, editor, 
         setIsEditingExistingImage(false);
         toast.success('Image updated successfully');
       } catch (error: any) {
-        toast.error('Failed to update image: ' + error.message);
+        showErrorToastWithCopy('Updating image', error);
       } finally {
         setUploading(false);
       }
@@ -190,7 +191,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode, editor, 
       setImageToCrop('');
       toast.success('Image uploaded successfully');
     } catch (error: any) {
-      toast.error('Failed to upload image: ' + error.message);
+      showErrorToastWithCopy('Uploading image', error);
     } finally {
       setUploading(false);
     }
