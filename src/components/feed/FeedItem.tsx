@@ -705,12 +705,6 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                           — {fortuneAuthor}
                         </p>
                       )}
-                      <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                        <TextToSpeech 
-                          text={`${fortuneContent}${fortuneAuthor ? `. By ${fortuneAuthor}` : ''}`} 
-                          size="icon" 
-                        />
-                      </div>
                     </div>
                   </div>
                 );
@@ -1054,7 +1048,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-indigo-500" />
-                Daily Inspiration
+                Daily Fortune
               </DialogTitle>
               <DialogDescription>
                 Open your fortune and share your thoughts with the community
