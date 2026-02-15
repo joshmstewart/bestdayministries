@@ -1078,7 +1078,7 @@ export default function EmotionJournal() {
                     ) : (
                       <MessageCircle className="w-10 h-10" />
                     )}
-                    <span className="text-sm font-medium">Chat More</span>
+                    <span className="text-sm font-medium">Look Deeper</span>
                   </button>
                 </div>
               </div>
