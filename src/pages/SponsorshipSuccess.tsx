@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Heart, Home, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { trackDonationComplete } from "@/lib/analytics";
 
 const SponsorshipSuccess = () => {
@@ -75,8 +76,7 @@ const SponsorshipSuccess = () => {
       toast.success('Sponsorship confirmed!');
     } catch (error) {
       console.error('Error verifying payment:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Failed to verify payment: ${errorMessage}. Please contact support with your session ID.`);
+      showErrorToastWithCopy("Failed to verify payment. Please contact support with your session ID.", error);
     } finally {
       setVerifying(false);
       // Delay reset to prevent rapid re-triggers

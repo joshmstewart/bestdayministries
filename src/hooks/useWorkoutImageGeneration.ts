@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 
 interface GenerateImageParams {
   avatarId: string;
@@ -124,7 +125,7 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
       }
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "Failed to generate image");
+      showErrorToastWithCopy("Failed to generate image", error);
     },
     onSettled: () => {
       setIsGenerating(false);
@@ -160,7 +161,7 @@ export const useWorkoutImageGeneration = (userId: string | undefined) => {
     generateActivityImage,
     generateCelebrationImage: () => {
       if (!selectedAvatar?.id) {
-        toast.error("Please select a fitness avatar first!");
+        showErrorToast("Please select a fitness avatar first!");
         return;
       }
       return generateImageMutation.mutateAsync({

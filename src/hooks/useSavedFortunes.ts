@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 
 interface SavedFortune {
   id: string;
@@ -95,7 +96,7 @@ export function useSavedFortunes() {
 
   const toggleSave = useCallback(async (fortunePostId: string) => {
     if (!user) {
-      toast.error("Please sign in to save fortunes");
+      showErrorToast("Please sign in to save fortunes");
       return false;
     }
 
@@ -134,7 +135,7 @@ export function useSavedFortunes() {
       }
     } catch (error) {
       console.error("Error toggling save:", error);
-      toast.error("Failed to update saved fortunes");
+      showErrorToastWithCopy("Failed to update saved fortunes", error);
       return currentlySaved;
     }
   }, [user, isSaved]);

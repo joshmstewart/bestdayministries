@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ExternalLink, Package, Truck, Search, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 
@@ -120,7 +121,7 @@ export default function OrderHistory() {
       setOrders((data as unknown) as Order[]);
     } catch (error) {
       console.error("Error fetching orders:", error);
-      toast.error("Failed to load orders");
+      showErrorToastWithCopy("Failed to load orders", error);
     } finally {
       setLoading(false);
     }
@@ -130,7 +131,7 @@ export default function OrderHistory() {
     e.preventDefault();
     
     if (!orderNumber.trim() || !email.trim()) {
-      toast.error("Please enter both order number and email");
+      showErrorToast("Please enter both order number and email");
       return;
     }
 
@@ -145,7 +146,7 @@ export default function OrderHistory() {
       if (error) throw error;
       
       if (data.error) {
-        toast.error(data.error);
+        showErrorToast(data.error);
         return;
       }
 
@@ -153,7 +154,7 @@ export default function OrderHistory() {
       toast.success("Order found!");
     } catch (error) {
       console.error("Error looking up order:", error);
-      toast.error("Failed to find order. Please check your details and try again.");
+      showErrorToastWithCopy("Failed to find order", error);
     } finally {
       setLookupLoading(false);
     }

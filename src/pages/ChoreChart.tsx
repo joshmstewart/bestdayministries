@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Sparkles, Trophy, Calendar, Settings, ArrowLeft, Gift, List, CalendarDays, ImageIcon } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import confetti from "canvas-confetti";
 import { ChoreFormDialog } from "@/components/chores/ChoreFormDialog";
 import { ChoreManageDialog } from "@/components/chores/ChoreManageDialog";
@@ -320,7 +321,7 @@ export default function ChoreChart() {
       }
     } catch (error) {
       console.error('Error loading chore data:', error);
-      toast.error('Failed to load chores');
+      showErrorToastWithCopy('Failed to load chores', error);
     } finally {
       setLoading(false);
     }
@@ -479,7 +480,7 @@ export default function ChoreChart() {
       }
     } catch (error) {
       console.error('Error toggling completion:', error);
-      toast.error('Failed to update chore');
+      showErrorToastWithCopy('Failed to update chore', error);
     }
   };
 
@@ -540,7 +541,7 @@ export default function ChoreChart() {
       await awardCoinReward(targetUserId, 'chore_complete', 'Completed a missed chore');
     } catch (error) {
       console.error('Error adding missed chore:', error);
-      toast.error('Failed to add chore');
+      showErrorToastWithCopy('Failed to add chore', error);
     }
   };
 

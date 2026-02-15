@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Trash2, ArrowLeft } from "lucide-react";
@@ -49,7 +50,7 @@ export default function AvatarManagement() {
 
     // Check for admin-level access (owner role automatically has admin access)
     if (!roleData || (roleData.role !== "admin" && roleData.role !== "owner")) {
-      toast.error("Access denied. Admin privileges required.");
+      showErrorToast("Access denied. Admin privileges required.");
       navigate("/");
       return;
     }
@@ -66,7 +67,7 @@ export default function AvatarManagement() {
       .order("avatar_number");
 
     if (error) {
-      toast.error("Failed to load avatars");
+      showErrorToastWithCopy("Failed to load avatars", error);
       console.error(error);
     } else {
       setAvatars(data || []);
@@ -81,7 +82,7 @@ export default function AvatarManagement() {
       .eq("id", id);
 
     if (error) {
-      toast.error("Failed to update avatar");
+      showErrorToastWithCopy("Failed to update avatar", error);
       console.error(error);
     } else {
       toast.success("Avatar updated successfully");
@@ -104,7 +105,7 @@ export default function AvatarManagement() {
       .eq("id", avatarId);
 
     if (error) {
-      toast.error("Failed to delete avatar");
+      showErrorToastWithCopy("Failed to delete avatar", error);
       console.error(error);
     } else {
       toast.success(`Avatar ${avatarNumber} deleted successfully`);

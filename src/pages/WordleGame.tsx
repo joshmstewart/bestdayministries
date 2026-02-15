@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, Lightbulb, RefreshCw, Eye, EyeOff, Gamepad2, Trophy, RotateCcw, Loader2, HelpCircle, Calendar } from "lucide-react";
 import { WordleHowToDialog, useWordleHowTo } from "@/components/wordle/WordleHowToDialog";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { WordleGrid } from "@/components/wordle/WordleGrid";
 import { WordleKeyboard } from "@/components/wordle/WordleKeyboard";
 import { WordleEasyKeyboard } from "@/components/wordle/WordleEasyKeyboard";
@@ -108,7 +109,7 @@ export default function WordleGame() {
       await loadGameState();
     } catch (error: any) {
       console.error('Error resetting game:', error);
-      toast.error(error.message || "Failed to reset game");
+      showErrorToastWithCopy("Failed to reset game", error);
     } finally {
       setResetting(false);
     }
@@ -214,7 +215,7 @@ export default function WordleGame() {
       }
     } catch (error) {
       console.error("Error loading game state:", error);
-      toast.error("Failed to load game");
+      showErrorToastWithCopy("Failed to load game", error);
     } finally {
       setGameLoading(false);
     }
@@ -279,7 +280,7 @@ export default function WordleGame() {
       toast.success(enabled ? "Letter Mode enabled" : "Letter Mode disabled");
     } catch (error) {
       console.error("Error toggling easy mode:", error);
-      toast.error("Failed to save preference");
+      showErrorToastWithCopy("Failed to save preference", error);
     } finally {
       setSavingEasyMode(false);
     }
@@ -328,7 +329,7 @@ export default function WordleGame() {
 
   const handleSubmitGuess = async () => {
     if (currentGuess.length !== 5) {
-      toast.error("Word must be 5 letters");
+      showErrorToast("Word must be 5 letters");
       return;
     }
     
@@ -341,7 +342,7 @@ export default function WordleGame() {
       if (error) throw error;
       
       if (data.error) {
-        toast.error(data.error);
+        showErrorToast(data.error);
         return;
       }
 
@@ -376,7 +377,7 @@ export default function WordleGame() {
       }
     } catch (error) {
       console.error("Error submitting guess:", error);
-      toast.error("Failed to submit guess");
+      showErrorToastWithCopy("Failed to submit guess", error);
     } finally {
       setSubmitting(false);
     }
@@ -390,7 +391,7 @@ export default function WordleGame() {
       if (error) throw error;
       
       if (data.error) {
-        toast.error(data.error);
+        showErrorToast(data.error);
         return;
       }
 
@@ -403,7 +404,7 @@ export default function WordleGame() {
       toast.success(`Got 5 more guesses! (${data.remainingExtraRounds} continue${data.remainingExtraRounds === 1 ? '' : 's'} left)`);
     } catch (error) {
       console.error("Error continuing game:", error);
-      toast.error("Failed to continue game");
+      showErrorToastWithCopy("Failed to continue game", error);
     } finally {
       setContinuing(false);
     }
@@ -411,7 +412,7 @@ export default function WordleGame() {
 
   const handleUseHint = async () => {
     if (hintsUsed >= 3) {
-      toast.error("No hints remaining");
+      showErrorToast("No hints remaining");
       return;
     }
     
@@ -423,7 +424,7 @@ export default function WordleGame() {
       if (error) throw error;
       
       if (data.error) {
-        toast.error(data.error);
+        showErrorToast(data.error);
         return;
       }
 
@@ -432,7 +433,7 @@ export default function WordleGame() {
       toast.success(`Hint: Position ${data.hintPosition + 1} is "${data.hintLetter}"`);
     } catch (error) {
       console.error("Error getting hint:", error);
-      toast.error("Failed to get hint");
+      showErrorToastWithCopy("Failed to get hint", error);
     }
   };
 

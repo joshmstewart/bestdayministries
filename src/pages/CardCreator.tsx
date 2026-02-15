@@ -15,6 +15,7 @@ import { CardGallery } from "@/components/card-creator/CardGallery";
 import { CardCommunityGallery } from "@/components/card-creator/CardCommunityGallery";
 import { useCoins } from "@/hooks/useCoins";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { PriceRibbon } from "@/components/ui/price-ribbon";
@@ -184,7 +185,7 @@ export default function CardCreator() {
       }
     },
     onError: (error) => {
-      toast.error((error as Error).message);
+      showErrorToastWithCopy("Failed to purchase pack", error);
     },
   });
 
@@ -200,7 +201,7 @@ export default function CardCreator() {
       setTemplateToPurchase(template);
       setPurchaseDialogOpen(true);
     } else {
-      toast.error("Please sign in to purchase packs");
+      showErrorToast("Please sign in to purchase packs");
     }
   };
 

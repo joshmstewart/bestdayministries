@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AVAILABLE_APPS, AppConfig } from "@/components/community/appsConfig";
 import { toast } from "sonner";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
@@ -119,7 +120,7 @@ export function useAppConfigurations() {
       toast.success("App configuration updated");
     } catch (error) {
       console.error("Error updating app configuration:", error);
-      toast.error("Failed to update configuration");
+      showErrorToastWithCopy("Failed to update configuration", error);
     }
   };
 

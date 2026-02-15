@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, Sparkles, Users, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { z } from "zod";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -171,7 +172,7 @@ const SponsorBestie = () => {
 
     if (error) {
       console.error("Error loading besties:", error);
-      toast.error("Unable to load besties. Please refresh the page.");
+      showErrorToastWithCopy("Unable to load besties", error);
       return;
     }
 
@@ -272,7 +273,7 @@ const SponsorBestie = () => {
 
       // Check terms acceptance
       if (!acceptedTerms) {
-        toast.error("Please accept the Terms of Service and Privacy Policy to continue");
+        showErrorToast("Please accept the Terms of Service and Privacy Policy to continue");
         setLoading(false);
         return;
       }
@@ -284,13 +285,13 @@ const SponsorBestie = () => {
       });
 
       if (!validation.success) {
-        toast.error(validation.error.errors[0].message);
+        showErrorToast(validation.error.errors[0].message);
         setLoading(false);
         return;
       }
 
       if (!selectedBestie) {
-        toast.error("Please select a bestie to sponsor");
+        showErrorToast("Please select a bestie to sponsor");
         setLoading(false);
         return;
       }
@@ -354,7 +355,7 @@ const SponsorBestie = () => {
       }
     } catch (error) {
       console.error("Error creating sponsorship:", error);
-      toast.error("Failed to start sponsorship. Please try again.");
+      showErrorToastWithCopy("Failed to start sponsorship", error);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { showErrorToast } from "@/lib/errorToast";
 
 const SHOPIFY_API_VERSION = '2025-07';
 const SHOPIFY_STORE_PERMANENT_DOMAIN = 'bestdayministries-8hq66.myshopify.com';
@@ -113,9 +114,7 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
   });
 
   if (response.status === 402) {
-    toast.error("Shopify: Payment required", {
-      description: "Shopify API access requires an active Shopify billing plan.",
-    });
+    showErrorToast("Shopify: Payment required — Shopify API access requires an active Shopify billing plan.");
     return null;
   }
 
