@@ -248,7 +248,7 @@ export default function AlbumDetailDialog({
           </div>
 
           {/* Comments section */}
-          <div className="flex flex-col md:w-[320px] lg:w-[360px] border-t md:border-t-0 md:border-l border-border min-h-0 flex-1 md:flex-none md:h-full">
+          <div className="flex flex-col md:w-[320px] lg:w-[360px] border-t md:border-t-0 md:border-l border-border md:min-h-0 md:flex-none md:h-full">
             {/* Comments header */}
             <div className="px-4 py-2 border-b border-border shrink-0">
               <h3 className="text-sm font-semibold flex items-center gap-1.5">
@@ -258,7 +258,7 @@ export default function AlbumDetailDialog({
             </div>
 
             {/* Comments list */}
-            <ScrollArea className="flex-1 min-h-0">
+            <ScrollArea className="flex-1 min-h-0 md:flex-1 max-h-[40vh] md:max-h-none">
               <div className="p-3 space-y-3">
                 {loadingComments ? (
                   <div className="flex items-center justify-center py-8">
