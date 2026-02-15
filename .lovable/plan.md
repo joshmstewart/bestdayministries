@@ -1,43 +1,40 @@
 
+# Show Past Daily Fortunes as Revealed Quotes in the Feed
 
-## Fix Album Detail Dialog: Image Sizing and Arrow Visibility
+## Problem
+Fortune posts in the community feed always display as "Tap to reveal today's inspiration" blind cards, even after the fortune's day has passed. Once the fortune is no longer the current day's fortune, there's no reason to hide it -- users should see the actual quote directly.
 
-### Problem 1: Vertical images not filling available space
-The video elements are wrapped in `<div className="w-full h-full flex items-center justify-center">` containers, but images are rendered as a bare `<img>` tag. This means vertical/portrait images don't stretch to fill the available height the way videos do.
+## Solution
 
-**Fix**: Wrap the image in the same container pattern used by videos.
+### 1. Update the database view to include the fortune's date
+Add `post_date` from the `daily_fortune_posts` table into the `extra_data` JSON for fortune-type feed items. This lets the frontend determine whether the fortune is from today or a past day.
 
-### Problem 2: Navigation arrow icon disappearing
-The buttons use `variant="ghost"` which applies `hover:text-accent-foreground` -- this overrides the custom `text-white` class on hover, changing the chevron icon color to the theme's accent foreground (a dark color that's invisible against the dark button background). This is why sometimes you see the white arrow and sometimes you don't -- it disappears on hover/tap.
-
-**Fix**: Stop using `variant="ghost"` for these buttons. Use `variant={null}` or remove the variant entirely so no theme hover styles interfere with the custom styling.
+### 2. Update the feed card rendering
+In the `FeedItem` component, compare the fortune's `post_date` against today's MST date:
+- **Today's fortune**: Keep the current "Tap to reveal" blind card behavior
+- **Past fortunes**: Display the actual quote text directly in a styled card (using the fortune's gradient styling), with the author attribution if available
 
 ---
 
-### Technical Details
+## Technical Details
 
-**File**: `src/components/AlbumDetailDialog.tsx`
+### Database View Change
+Modify the `community_feed_items` view's fortune section to JOIN `daily_fortune_posts` and include the `post_date` and fortune content in `extra_data`:
 
-**Change 1 -- Image wrapper** (lines 204-210):
-```text
-Before:
-  <img src={...} className="max-w-full max-h-full object-contain" />
-
-After:
-  <div className="w-full h-full flex items-center justify-center">
-    <img src={...} className="max-w-full max-h-full object-contain" />
-  </div>
+```sql
+-- For the discussion_posts fortune section:
+-- JOIN daily_fortune_posts to get post_date and fortune content
+-- extra_data will include: is_fortune_post, fortune_post_id, post_date, fortune_content, fortune_author
 ```
 
-**Change 2 -- Navigation buttons** (lines 215-230):
-Replace `variant="ghost"` with no variant, and ensure all colors are explicitly set so no theme styles can override them:
-```text
-Before:
-  <Button variant="ghost" size="icon" className="... bg-black/70 hover:bg-black/90 text-white ...">
+The JOIN: `daily_fortune_posts dfp ON dfp.discussion_post_id = dp.id` with `daily_fortunes df ON dfp.fortune_id = df.id`
 
-After:
-  <Button size="icon" className="... bg-black/70 hover:bg-black/90 text-white hover:text-white ...">
-```
+### Frontend Change (FeedItem.tsx)
+- Extract `post_date` from `item.extra_data`
+- Compare with current MST date using the existing `getMSTDate()` pattern
+- If `post_date` is before today: render the fortune quote directly in a styled container with author attribution and a text-to-speech button
+- If `post_date` is today (or missing): keep the existing "Tap to reveal" card
 
-Adding explicit `hover:text-white` ensures the icon stays white even on hover/tap, overriding any inherited styles.
-
+### Files Modified
+- **New SQL migration**: Update `community_feed_items` view to include fortune metadata
+- **src/components/feed/FeedItem.tsx**: Conditional rendering for past vs. today fortunes
