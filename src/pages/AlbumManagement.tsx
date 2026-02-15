@@ -189,7 +189,7 @@ export default function AlbumManagement() {
           id: img.id,
           image_url: imageUrl,
           video_url: img.video_url,
-          video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
+          video_type: (img.video_type === 'uploaded' ? 'upload' : (img.video_type || 'image')) as 'image' | 'upload' | 'youtube',
           youtube_url: img.youtube_url,
           video_id: img.video_id,
           caption: img.caption,
