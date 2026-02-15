@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube } from "lucide-react";
+import { Images, Upload, X, Trash2, Edit, ArrowLeft, GripVertical, Mic, Info, MessageSquare, Video, Play, Youtube, ChevronDown, ChevronRight } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import AudioRecorder from "@/components/AudioRecorder";
 import { Switch } from "@/components/ui/switch";
@@ -112,6 +112,7 @@ export default function AlbumManagement() {
   const [visibleToRoles, setVisibleToRoles] = useState<Array<'caregiver' | 'bestie' | 'supporter' | 'admin' | 'owner'>>(['caregiver', 'bestie', 'supporter']);
   const [showAddVideoDialog, setShowAddVideoDialog] = useState(false);
   const [pendingVideos, setPendingVideos] = useState<VideoPickerResult[]>([]);
+  const [expandedAlbums, setExpandedAlbums] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     checkAdminAccess();
@@ -145,41 +146,48 @@ export default function AlbumManagement() {
 
   const loadAlbums = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("albums")
-      .select(`
-        *,
-        event:events(title)
-      `)
-      .order("created_at", { ascending: false });
+    // Fetch albums and all images in parallel (eliminates N+1 query problem)
+    const [albumsResult, imagesResult] = await Promise.all([
+      supabase
+        .from("albums")
+        .select(`
+          *,
+          event:events(title)
+        `)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("album_images")
+        .select("*")
+        .order("display_order", { ascending: true }),
+    ]);
 
-    if (error) {
+    if (albumsResult.error) {
       toast.error("Failed to load albums");
-      console.error(error);
+      console.error(albumsResult.error);
     } else {
-      // Load images for each album
-      const albumsWithImages = await Promise.all(
-        (data || []).map(async (album) => {
-          const { data: images } = await supabase
-            .from("album_images")
-            .select("*")
-            .eq("album_id", album.id)
-            .order("display_order", { ascending: true });
-          // Map the images to ensure correct video_type typing
-          const mappedImages: AlbumMedia[] = (images || []).map(img => ({
-            id: img.id,
-            image_url: img.image_url,
-            video_url: img.video_url,
-            video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
-            youtube_url: img.youtube_url,
-            video_id: img.video_id,
-            caption: img.caption,
-            display_order: img.display_order,
-            original_image_url: img.original_image_url,
-          }));
-          return { ...album, images: mappedImages };
-        })
-      );
+      // Group images by album_id client-side
+      const imagesByAlbum = new Map<string, AlbumMedia[]>();
+      (imagesResult.data || []).forEach(img => {
+        const mapped: AlbumMedia = {
+          id: img.id,
+          image_url: img.image_url,
+          video_url: img.video_url,
+          video_type: (img.video_type || 'image') as 'image' | 'upload' | 'youtube',
+          youtube_url: img.youtube_url,
+          video_id: img.video_id,
+          caption: img.caption,
+          display_order: img.display_order,
+          original_image_url: img.original_image_url,
+        };
+        const list = imagesByAlbum.get(img.album_id) || [];
+        list.push(mapped);
+        imagesByAlbum.set(img.album_id, list);
+      });
+
+      const albumsWithImages = (albumsResult.data || []).map(album => ({
+        ...album,
+        images: imagesByAlbum.get(album.id) || [],
+      }));
       setAlbums(albumsWithImages as Album[]);
     }
     setLoading(false);
@@ -1149,6 +1157,7 @@ export default function AlbumManagement() {
                 <Card key={album.id}>
                   {album.cover_image_url && (
                     <img
+                      loading="lazy"
                       src={album.cover_image_url}
                       alt={album.title}
                       className="w-full h-48 object-cover rounded-t-lg"
@@ -1187,55 +1196,82 @@ export default function AlbumManagement() {
                       </p>
                     )}
 
-                    <p className="text-xs text-muted-foreground">
-                      {album.images?.length || 0} images
-                    </p>
+                    {album.images && album.images.length > 0 ? (
+                      <div className="space-y-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-muted-foreground"
+                          onClick={() => setExpandedAlbums(prev => {
+                            const next = new Set(prev);
+                            if (next.has(album.id)) next.delete(album.id);
+                            else next.add(album.id);
+                            return next;
+                          })}
+                        >
+                          {expandedAlbums.has(album.id) ? (
+                            <ChevronDown className="w-3 h-3 mr-1" />
+                          ) : (
+                            <ChevronRight className="w-3 h-3 mr-1" />
+                          )}
+                          {album.images.length} media items
+                        </Button>
 
-                    {album.images && album.images.length > 0 && (
-                      <div className="grid grid-cols-4 gap-1 mt-2">
-                        {album.images.map((image) => (
-                          <div key={image.id} className="relative group">
-                            <img
-                              src={image.image_url}
-                              alt={image.caption || "Album image"}
-                              className="w-full h-16 object-cover rounded"
-                            />
-                            {image.caption && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] p-0.5 truncate">
-                                {image.caption}
+                        {expandedAlbums.has(album.id) && (
+                          <div className="grid grid-cols-4 gap-1">
+                            {album.images.slice(0, 8).map((image) => (
+                              <div key={image.id} className="relative group">
+                                <img
+                                  loading="lazy"
+                                  src={image.image_url || ''}
+                                  alt={image.caption || "Album image"}
+                                  className="w-full h-16 object-cover rounded"
+                                />
+                                {image.caption && (
+                                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] p-0.5 truncate">
+                                    {image.caption}
+                                  </div>
+                                )}
+                                <div className="absolute top-0 right-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="w-5 h-5"
+                                    onClick={() => handleEditCaption(image)}
+                                    title="Edit caption"
+                                  >
+                                    <MessageSquare className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="w-5 h-5"
+                                    onClick={() => handleCropExistingImage(image)}
+                                    title="Recrop image"
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="w-5 h-5"
+                                    onClick={() => handleDeleteImage(image.id, album.id)}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                            {album.images.length > 8 && (
+                              <div className="w-full h-16 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                                +{album.images.length - 8} more
                               </div>
                             )}
-                            <div className="absolute top-0 right-0 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="w-5 h-5"
-                                onClick={() => handleEditCaption(image)}
-                                title="Edit caption"
-                              >
-                                <MessageSquare className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="w-5 h-5"
-                                onClick={() => handleCropExistingImage(image)}
-                                title="Recrop image"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="w-5 h-5"
-                                onClick={() => handleDeleteImage(image.id, album.id)}
-                              >
-                                <X className="w-3 h-3" />
-                              </Button>
-                            </div>
                           </div>
-                        ))}
+                        )}
                       </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">0 media items</p>
                     )}
                   </CardContent>
                 </Card>
