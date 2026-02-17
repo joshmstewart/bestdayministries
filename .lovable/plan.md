@@ -1,40 +1,57 @@
 
-# Show Past Daily Fortunes as Revealed Quotes in the Feed
+
+# Fix Safari Desktop Infinite Loading
 
 ## Problem
-Fortune posts in the community feed always display as "Tap to reveal today's inspiration" blind cards, even after the fortune's day has passed. Once the fortune is no longer the current day's fortune, there's no reason to hide it -- users should see the actual quote directly.
 
-## Solution
+Safari desktop gets stuck in an infinite loading state -- not just after updates, but on regular visits (like this morning with no changes). This means **any user on Safari** can hit this, and most will just give up.
 
-### 1. Update the database view to include the fortune's date
-Add `post_date` from the `daily_fortune_posts` table into the `extra_data` JSON for fortune-type feed items. This lets the frontend determine whether the fortune is from today or a past day.
+The root causes are:
 
-### 2. Update the feed card rendering
-In the `FeedItem` component, compare the fortune's `post_date` against today's MST date:
-- **Today's fortune**: Keep the current "Tap to reveal" blind card behavior
-- **Past fortunes**: Display the actual quote text directly in a styled card (using the fortune's gradient styling), with the author attribution if available
+1. **The build-version recovery check exists but is never called.** The function `checkAndRecoverFromBuildMismatch()` was built but never wired into `main.tsx`, so stale cached JavaScript is never proactively cleared.
 
----
+2. **Safari's back-forward cache (bfcache) resurrects dead page states.** When Safari restores a page from bfcache, the app can resume in a broken/stuck state with no mechanism to detect and reload.
+
+3. **The dual-client auth reconciliation can hang on Safari.** IndexedDB operations have individual 1.5-second timeouts, but the overall `reconcileAuthSessions()` chains multiple IDB calls sequentially. If Safari's IndexedDB is sluggish (common after sleep/wake or tab restoration), the total time can exceed the 15-second watchdog -- or worse, the watchdog fires but the reload serves the same stuck page from cache.
+
+4. **Cache-busting reload doesn't actually bust Safari's cache.** The current `forceCacheBustingReload` uses `location.replace()` with a query param, but Safari can still serve the HTML from disk cache.
+
+## Solution (3 parts)
+
+### Part 1: Activate the Build Version Check
+Call `checkAndRecoverFromBuildMismatch()` in `main.tsx` before rendering. This proactively clears stale caches on the first visit after any deploy, preventing chunk load failures before they happen.
+
+### Part 2: Add bfcache Detection
+Add a `pageshow` event listener in `main.tsx` that detects when Safari restores a page from its back-forward cache (`event.persisted === true`) and forces a fresh reload. This is a standard, well-known fix for Safari.
+
+### Part 3: Improve Cache-Busting Reload
+Update `forceCacheBustingReload` in `cacheManager.ts` to use a more aggressive strategy: attempt `location.reload()` first (which is more likely to bypass Safari's cache than `location.replace()` with a query param), and set a sessionStorage flag to detect bfcache loops.
 
 ## Technical Details
 
-### Database View Change
-Modify the `community_feed_items` view's fortune section to JOIN `daily_fortune_posts` and include the `post_date` and fortune content in `extra_data`:
-
-```sql
--- For the discussion_posts fortune section:
--- JOIN daily_fortune_posts to get post_date and fortune content
--- extra_data will include: is_fortune_post, fortune_post_id, post_date, fortune_content, fortune_author
+### File: `src/main.tsx`
+- Import and call `checkAndRecoverFromBuildMismatch()` before `createRoot`
+- Add `pageshow` event listener for bfcache detection:
+```typescript
+window.addEventListener('pageshow', (event) => {
+  if ((event as PageTransitionEvent).persisted) {
+    window.location.reload();
+  }
+});
 ```
 
-The JOIN: `daily_fortune_posts dfp ON dfp.discussion_post_id = dp.id` with `daily_fortunes df ON dfp.fortune_id = df.id`
+### File: `src/lib/cacheManager.ts`
+- Update `forceCacheBustingReload` to prefer `window.location.reload()` over `location.replace()` with query params
+- Add a sessionStorage guard to prevent tight reload loops from bfcache restoration
 
-### Frontend Change (FeedItem.tsx)
-- Extract `post_date` from `item.extra_data`
-- Compare with current MST date using the existing `getMSTDate()` pattern
-- If `post_date` is before today: render the fortune quote directly in a styled container with author attribution and a text-to-speech button
-- If `post_date` is today (or missing): keep the existing "Tap to reveal" card
+### File: `src/lib/appStartupRecovery.ts`
+- No changes needed -- the exported function already works correctly
 
-### Files Modified
-- **New SQL migration**: Update `community_feed_items` view to include fortune metadata
-- **src/components/feed/FeedItem.tsx**: Conditional rendering for past vs. today fortunes
+## Impact
+
+- **Normal visits (no issues):** Zero impact -- version matches, no reload
+- **First visit after a deploy:** One automatic ~1-2 second reload to load fresh assets
+- **bfcache restoration:** Transparent reload to a fresh state
+- **Auth stays preserved:** Cache clearing already preserves auth tokens
+- **Other browsers:** No effect -- bfcache behavior is Safari-specific, and version checks are harmless everywhere
+
