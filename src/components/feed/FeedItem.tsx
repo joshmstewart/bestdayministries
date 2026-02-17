@@ -5,7 +5,7 @@ import {
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
   Calendar, HandHeart, Dumbbell, ChefHat, GlassWater, Laugh, Eye, Lock, Repeat2, Copy,
-  Activity, User, MapPin, Package, Clock, Sparkles
+  Activity, User, MapPin, Package, Clock, Sparkles, Bookmark
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -962,6 +962,56 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   </Link>
                 </Button>
               )}
+
+              {/* Save joke button */}
+              {item.item_type === 'joke' && item.extra_data?.question && !isOwner && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!user) {
+                      toast.error("Please sign in to save jokes");
+                      return;
+                    }
+                    try {
+                      // Check if already saved
+                      const { data: existing } = await supabase
+                        .from('saved_jokes')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .eq('question', item.extra_data.question)
+                        .maybeSingle();
+                      
+                      if (existing) {
+                        toast.info("You already have this joke saved!");
+                        return;
+                      }
+
+                      const { error } = await supabase
+                        .from('saved_jokes')
+                        .insert({
+                          user_id: user.id,
+                          question: item.extra_data.question,
+                          answer: item.extra_data.answer || '',
+                          category: item.extra_data.category || 'general',
+                          is_public: false,
+                          is_user_created: false,
+                        });
+                      if (error) throw error;
+                      toast.success("Joke saved to your collection! 😂");
+                    } catch (error) {
+                      console.error("Error saving joke:", error);
+                      showErrorToastWithCopy("Failed to save joke", error);
+                    }
+                  }}
+                  className="h-8 gap-1 text-muted-foreground hover:text-primary"
+                  title="Save to My Jokes"
+                >
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              )}
+
 
               {/* Unshare button for owner */}
               {isOwner && ['beat', 'coloring', 'card', 'chore_art', 'workout'].includes(item.item_type) && (
