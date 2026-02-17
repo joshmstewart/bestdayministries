@@ -120,6 +120,23 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   // Repost caption dialog state
   const [repostDialogOpen, setRepostDialogOpen] = useState(false);
 
+  // Saved joke state
+  const [isJokeSaved, setIsJokeSaved] = useState(false);
+
+  useEffect(() => {
+    if (item.item_type !== 'joke' || !user || !item.extra_data?.question) return;
+    const checkSaved = async () => {
+      const { data } = await supabase
+        .from('saved_jokes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('question', item.extra_data.question)
+        .maybeSingle();
+      setIsJokeSaved(!!data);
+    };
+    checkSaved();
+  }, [item.item_type, item.extra_data?.question, user]);
+
   const isOwner = user?.id === item.author_id;
   const isRepost = item.extra_data?.is_repost === true;
   const repostCaption = item.extra_data?.repost_caption as string | null;
@@ -975,40 +992,41 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                       return;
                     }
                     try {
-                      // Check if already saved
-                      const { data: existing } = await supabase
-                        .from('saved_jokes')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .eq('question', item.extra_data.question)
-                        .maybeSingle();
-                      
-                      if (existing) {
-                        toast.info("You already have this joke saved!");
-                        return;
+                      if (isJokeSaved) {
+                        // Unsave
+                        const { error } = await supabase
+                          .from('saved_jokes')
+                          .delete()
+                          .eq('user_id', user.id)
+                          .eq('question', item.extra_data.question);
+                        if (error) throw error;
+                        setIsJokeSaved(false);
+                        toast.success("Joke removed from your collection");
+                      } else {
+                        // Save
+                        const { error } = await supabase
+                          .from('saved_jokes')
+                          .insert({
+                            user_id: user.id,
+                            question: item.extra_data.question,
+                            answer: item.extra_data.answer || '',
+                            category: item.extra_data.category || 'general',
+                            is_public: false,
+                            is_user_created: false,
+                          });
+                        if (error) throw error;
+                        setIsJokeSaved(true);
+                        toast.success("Joke saved to your collection! 😂");
                       }
-
-                      const { error } = await supabase
-                        .from('saved_jokes')
-                        .insert({
-                          user_id: user.id,
-                          question: item.extra_data.question,
-                          answer: item.extra_data.answer || '',
-                          category: item.extra_data.category || 'general',
-                          is_public: false,
-                          is_user_created: false,
-                        });
-                      if (error) throw error;
-                      toast.success("Joke saved to your collection! 😂");
                     } catch (error) {
-                      console.error("Error saving joke:", error);
-                      showErrorToastWithCopy("Failed to save joke", error);
+                      console.error("Error toggling joke save:", error);
+                      showErrorToastWithCopy("Failed to update saved jokes", error);
                     }
                   }}
-                  className="h-8 gap-1 text-muted-foreground hover:text-primary"
-                  title="Save to My Jokes"
+                  className={cn("h-8 gap-1", isJokeSaved ? "text-primary" : "text-muted-foreground hover:text-primary")}
+                  title={isJokeSaved ? "Remove from My Jokes" : "Save to My Jokes"}
                 >
-                  <Bookmark className="h-4 w-4" />
+                  <Bookmark className="h-4 w-4" fill={isJokeSaved ? "currentColor" : "none"} />
                 </Button>
               )}
 
