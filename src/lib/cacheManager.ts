@@ -209,13 +209,29 @@ export function shouldThrottleRecovery(): boolean {
  */
 export function forceCacheBustingReload(reason: string): void {
   try {
-    const url = new URL(window.location.href);
-    url.searchParams.set('__refresh', String(Date.now()));
-    url.searchParams.set('__reason', reason);
-    window.location.replace(url.toString());
+    // Guard against tight reload loops (e.g. bfcache restoring a broken page repeatedly)
+    const loopKey = '__cache_bust_reload__';
+    const lastReload = sessionStorage.getItem(loopKey);
+    if (lastReload && Date.now() - parseInt(lastReload, 10) < 5_000) {
+      console.warn('[CacheManager] Reload loop detected, aborting');
+      return;
+    }
+    sessionStorage.setItem(loopKey, String(Date.now()));
+  } catch {
+    // sessionStorage may be unavailable; proceed anyway
+  }
+
+  try {
+    // Prefer location.reload() — Safari is more likely to bypass its cache
+    // with a full reload than with location.replace() + query params.
+    window.location.reload();
   } catch {
     try {
-      window.location.reload();
+      // Fallback: navigate with cache-busting query param
+      const url = new URL(window.location.href);
+      url.searchParams.set('__refresh', String(Date.now()));
+      url.searchParams.set('__reason', reason);
+      window.location.replace(url.toString());
     } catch {
       // Give up
     }
