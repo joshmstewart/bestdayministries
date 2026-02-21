@@ -43,6 +43,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/sponsor-bestie", label: "Sponsor a Bestie" },
   { value: "/sponsorship-success", label: "Sponsorship Success" },
   { value: "/bike-ride-pledge", label: "Bike Ride Fundraiser" },
+  { value: "/bike-ride-pledge-test", label: "Bike Ride Fundraiser (Test)" },
   
   // Marketplace
   { value: "/joyhousestore", label: "Joy House Store" },
