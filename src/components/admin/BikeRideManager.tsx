@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw } from "lucide-react";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 
 interface BikeEvent {
   id: string;
@@ -45,6 +46,7 @@ export function BikeRideManager() {
   const [selectedEvent, setSelectedEvent] = useState<BikeEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
 
   // Create/Edit form state
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -168,6 +170,22 @@ export function BikeRideManager() {
     }
   };
 
+  const handleReconcilePledges = async () => {
+    setReconciling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reconcile-bike-pledges');
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const s = data.summary;
+      toast({ title: `Reconciled: ${s.confirmed} confirmed, ${s.failed} failed, ${s.auto_cancelled} cancelled, ${s.skipped} skipped` });
+      if (selectedEvent) fetchPledges(selectedEvent.id);
+    } catch (err) {
+      showErrorToastWithCopy("Reconciling pledges", err);
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   const statusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'secondary';
@@ -246,10 +264,25 @@ export function BikeRideManager() {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Pledges for "{selectedEvent.title}"
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Pledges for "{selectedEvent.title}"
+                  </CardTitle>
+                  <CardDescription>{pledges.length} total pledges</CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReconcilePledges}
+                  disabled={reconciling}
+                  title="Check Stripe for pending pledges and auto-confirm/cancel"
+                >
+                  {reconciling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                  Reconcile Pending
+                </Button>
+              </div>
               <CardDescription>{pledges.length} total pledges</CardDescription>
             </CardHeader>
             <CardContent>

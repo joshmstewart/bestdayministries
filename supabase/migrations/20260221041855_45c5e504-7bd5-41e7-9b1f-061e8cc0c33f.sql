@@ -1,0 +1,2 @@
+ALTER TABLE public.bike_ride_pledges DROP CONSTRAINT bike_ride_pledges_charge_status_check;
+ALTER TABLE public.bike_ride_pledges ADD CONSTRAINT bike_ride_pledges_charge_status_check CHECK (charge_status IN ('pending', 'confirmed', 'charged', 'failed', 'refunded', 'cancelled'));
