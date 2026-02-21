@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
@@ -161,6 +162,9 @@ export default function BikeRidePledge() {
   const [pledgerEmail, setPledgerEmail] = useState("");
   const [message, setMessage] = useState("");
 
+  const [searchParams] = useSearchParams();
+  const forceTestMode = searchParams.get("test") === "true";
+
   const { toast } = useToast();
 
   const maxTotal = event ? (centsPerMile / 100) * event.mile_goal : 0;
@@ -172,7 +176,9 @@ export default function BikeRidePledge() {
 
   const fetchStripeKey = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("get-stripe-publishable-key");
+      const { data, error } = await supabase.functions.invoke("get-stripe-publishable-key", {
+        body: forceTestMode ? { force_test_mode: true } : undefined,
+      });
       if (error) throw error;
       if (data?.publishable_key) {
         setStripePromise(loadStripe(data.publishable_key));
@@ -213,6 +219,7 @@ export default function BikeRidePledge() {
           pledge_type: "per_mile",
           cents_per_mile: centsPerMile,
           message: message.trim() || undefined,
+          force_test_mode: forceTestMode,
         },
       });
 
