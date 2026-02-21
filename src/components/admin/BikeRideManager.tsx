@@ -266,24 +266,39 @@ export function BikeRideManager() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Pledges for "{selectedEvent.title}"
-                  </CardTitle>
-                  <CardDescription>{pledges.length} total pledges</CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReconcilePledges}
-                  disabled={reconciling}
-                  title="Check Stripe for pending pledges and auto-confirm/cancel"
-                >
-                  {reconciling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                  Reconcile Pending
-                </Button>
-              </div>
-              <CardDescription>{pledges.length} total pledges</CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                     <Users className="h-5 w-5" />
+                     Pledges for "{selectedEvent.title}"
+                   </CardTitle>
+                   <CardDescription>
+                     {pledges.length} total pledges
+                     {(() => {
+                       const confirmed = pledges.filter(p => p.charge_status === 'confirmed');
+                       const pending = pledges.filter(p => p.charge_status === 'pending');
+                       const testConfirmed = confirmed.filter(p => p.stripe_mode === 'test').length;
+                       const liveConfirmed = confirmed.filter(p => p.stripe_mode === 'live').length;
+                       return (
+                         <span className="ml-2">
+                           ({confirmed.length} confirmed
+                           {testConfirmed > 0 && <span> · <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">🟡 {testConfirmed} TEST</Badge></span>}
+                           {liveConfirmed > 0 && <span> · <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-0.5">🟢 {liveConfirmed} LIVE</Badge></span>}
+                           {pending.length > 0 && ` · ${pending.length} pending`})
+                         </span>
+                       );
+                     })()}
+                   </CardDescription>
+                 </div>
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={handleReconcilePledges}
+                   disabled={reconciling}
+                   title="Check Stripe for pending pledges and auto-confirm/cancel"
+                 >
+                   {reconciling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                   Reconcile Pending
+                 </Button>
+               </div>
             </CardHeader>
             <CardContent>
               {pledges.length > 0 ? (
