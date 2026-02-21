@@ -171,6 +171,20 @@ serve(async (req) => {
           })
           .eq('id', pledge.id);
 
+        // Send receipt email (fire and forget)
+        try {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-bike-pledge-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({ type: 'receipt', pledge_id: pledge.id }),
+          });
+        } catch (emailErr) {
+          console.error(`Failed to send receipt email for pledge ${pledge.id} (non-fatal):`, emailErr);
+        }
+
         results.push({
           pledge_id: pledge.id,
           pledger_name: pledge.pledger_name,
