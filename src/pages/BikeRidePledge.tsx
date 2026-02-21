@@ -89,6 +89,21 @@ function PledgeCardForm({
         } catch (updateErr) {
           console.error("Error updating pledge status:", updateErr);
         }
+        // Send confirmation email only after card is confirmed
+        try {
+          const { data: pledgeRow } = await supabase
+            .from("bike_ride_pledges")
+            .select("id")
+            .eq("stripe_setup_intent_id", setupIntent.id)
+            .single();
+          if (pledgeRow) {
+            await supabase.functions.invoke("send-bike-pledge-email", {
+              body: { type: "confirmation", pledge_id: pledgeRow.id },
+            });
+          }
+        } catch (emailErr) {
+          console.error("Failed to send confirmation email (non-fatal):", emailErr);
+        }
         toast({
           title: "Pledge Confirmed! 🎉",
           description: `Your card is saved. You'll be charged up to $${maxTotal.toFixed(2)} after the ride.`,

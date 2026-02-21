@@ -137,19 +137,8 @@ serve(async (req) => {
       throw new Error('Failed to save pledge');
     }
 
-    // Send confirmation email (fire and forget)
-    try {
-      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-bike-pledge-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({ type: 'confirmation', pledge_id: pledge.id }),
-      });
-    } catch (emailErr) {
-      console.error('Failed to send confirmation email (non-fatal):', emailErr);
-    }
+    // NOTE: Confirmation email is sent AFTER card is confirmed on the frontend,
+    // not here (pledge is still pending at this point).
 
     return new Response(
       JSON.stringify({
