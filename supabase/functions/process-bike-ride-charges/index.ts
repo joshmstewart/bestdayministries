@@ -67,13 +67,13 @@ serve(async (req) => {
       .update({ actual_miles: miles, status: 'completed' })
       .eq('id', event_id);
 
-    // Get all pending per-mile pledges
+    // Get all confirmed per-mile pledges (confirmed = card verified via Stripe)
     const { data: pledges } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('*')
       .eq('event_id', event_id)
       .eq('pledge_type', 'per_mile')
-      .eq('charge_status', 'pending');
+      .eq('charge_status', 'confirmed');
 
     if (!pledges || pledges.length === 0) {
       // Update status
