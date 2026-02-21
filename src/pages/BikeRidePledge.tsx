@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard } from "lucide-react";
 
 interface BikeEvent {
   id: string;
@@ -32,12 +34,126 @@ interface EventStats {
   messages: { name: string; message: string }[];
 }
 
+// Inner form that has access to Stripe context
+function PledgeCardForm({
+  clientSecret,
+  pledgerName,
+  maxTotal,
+  centsPerMile,
+  onSuccess,
+}: {
+  clientSecret: string;
+  pledgerName: string;
+  maxTotal: number;
+  centsPerMile: number;
+  onSuccess: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [confirming, setConfirming] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const handleConfirmCard = async () => {
+    if (!stripe || !elements) return;
+
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement) return;
+
+    setConfirming(true);
+    setCardError(null);
+
+    try {
+      const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: { name: pledgerName },
+        },
+      });
+
+      if (error) {
+        setCardError(error.message || "Card verification failed");
+        toast({
+          title: "Card Error",
+          description: error.message || "Please check your card details.",
+          variant: "destructive",
+        });
+      } else if (setupIntent?.status === "succeeded") {
+        toast({
+          title: "Pledge Confirmed! 🎉",
+          description: `Your card is saved. You'll be charged up to $${maxTotal.toFixed(2)} after the ride.`,
+        });
+        onSuccess();
+      }
+    } catch (err) {
+      console.error("Error confirming card:", err);
+      setCardError("An unexpected error occurred. Please try again.");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label className="text-base font-semibold flex items-center gap-2 mb-3">
+          <CreditCard className="h-4 w-4 text-primary" />
+          Card Details
+        </Label>
+        <div className="border rounded-md p-4 bg-background">
+          <CardElement
+            options={{
+              style: {
+                base: {
+                  fontSize: "16px",
+                  color: "hsl(var(--foreground))",
+                  "::placeholder": { color: "hsl(var(--muted-foreground))" },
+                },
+                invalid: { color: "hsl(var(--destructive))" },
+              },
+            }}
+          />
+        </div>
+        {cardError && (
+          <p className="text-sm text-destructive mt-2">{cardError}</p>
+        )}
+      </div>
+
+      <Button
+        onClick={handleConfirmCard}
+        disabled={confirming || !stripe}
+        className="w-full"
+        size="lg"
+      >
+        {confirming ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Verifying Card...
+          </>
+        ) : (
+          <>Confirm Pledge — {centsPerMile}¢/mile (up to ${maxTotal.toFixed(2)})</>
+        )}
+      </Button>
+
+      <p className="text-xs text-muted-foreground text-center">
+        Your card is saved securely with Stripe. You will only be charged after the ride
+        is complete, based on actual miles ridden.
+      </p>
+    </div>
+  );
+}
+
 export default function BikeRidePledge() {
   const [event, setEvent] = useState<BikeEvent | null>(null);
   const [stats, setStats] = useState<EventStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Stripe state
+  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [step, setStep] = useState<"form" | "card">("form");
 
   // Pledge form state
   const [centsPerMile, setCentsPerMile] = useState(25);
@@ -51,18 +167,31 @@ export default function BikeRidePledge() {
 
   useEffect(() => {
     fetchEventStatus();
+    fetchStripeKey();
   }, []);
+
+  const fetchStripeKey = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-stripe-publishable-key");
+      if (error) throw error;
+      if (data?.publishable_key) {
+        setStripePromise(loadStripe(data.publishable_key));
+      }
+    } catch (err) {
+      console.error("Error fetching Stripe key:", err);
+    }
+  };
 
   const fetchEventStatus = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('get-bike-ride-status');
+      const { data, error } = await supabase.functions.invoke("get-bike-ride-status");
       if (error) throw error;
       if (data?.event) {
         setEvent(data.event);
         setStats(data.stats);
       }
     } catch (err) {
-      console.error('Error fetching event:', err);
+      console.error("Error fetching event:", err);
     } finally {
       setLoading(false);
     }
@@ -76,12 +205,12 @@ export default function BikeRidePledge() {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-bike-pledge', {
+      const { data, error } = await supabase.functions.invoke("create-bike-pledge", {
         body: {
           event_id: event.id,
           pledger_name: pledgerName.trim(),
           pledger_email: pledgerEmail.trim().toLowerCase(),
-          pledge_type: 'per_mile',
+          pledge_type: "per_mile",
           cents_per_mile: centsPerMile,
           message: message.trim() || undefined,
         },
@@ -90,14 +219,12 @@ export default function BikeRidePledge() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Note: In a full implementation, you'd mount a Stripe card element
-      // and confirm the Setup Intent with the client_secret from the response.
-      // For now, we show success and the pledge is recorded.
-      setSuccess(true);
-      toast({ title: "Pledge submitted! 🎉", description: `Your card will be charged up to $${maxTotal.toFixed(2)} after the ride.` });
-      fetchEventStatus(); // Refresh stats
+      if (data?.client_secret) {
+        setClientSecret(data.client_secret);
+        setStep("card");
+      }
     } catch (err) {
-      console.error('Error submitting pledge:', err);
+      console.error("Error submitting pledge:", err);
       toast({
         title: "Error submitting pledge",
         description: err instanceof Error ? err.message : "Please try again",
@@ -106,6 +233,13 @@ export default function BikeRidePledge() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCardSuccess = () => {
+    setSuccess(true);
+    setStep("form");
+    setClientSecret(null);
+    fetchEventStatus();
   };
 
   if (loading) {
@@ -134,8 +268,8 @@ export default function BikeRidePledge() {
     );
   }
 
-  const rideDate = new Date(event.ride_date + 'T00:00:00');
-  const isCompleted = event.status === 'completed' || event.status === 'charges_processed';
+  const rideDate = new Date(event.ride_date + "T00:00:00");
+  const isCompleted = event.status === "completed" || event.status === "charges_processed";
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,15 +280,15 @@ export default function BikeRidePledge() {
           <div className="container max-w-4xl mx-auto px-4 text-center">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4">
               <Bike className="h-4 w-4" />
-              {isCompleted ? 'Ride Complete!' : 'Pledge Your Support'}
+              {isCompleted ? "Ride Complete!" : "Pledge Your Support"}
             </div>
             <h1 className="text-3xl md:text-5xl font-bold mb-3">{event.title}</h1>
             <p className="text-lg text-muted-foreground mb-2">
-              <span className="font-semibold text-foreground">{event.rider_name}</span> is riding{' '}
+              <span className="font-semibold text-foreground">{event.rider_name}</span> is riding{" "}
               <span className="font-semibold text-primary">{event.mile_goal} miles</span>
             </p>
             <p className="text-muted-foreground">
-              {rideDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {rideDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
             </p>
             {event.description && (
               <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">{event.description}</p>
@@ -188,7 +322,7 @@ export default function BikeRidePledge() {
                     <DollarSign className="h-6 w-6 mx-auto mb-2 text-primary" />
                     <div className="text-2xl font-bold">${stats.estimated_total_at_goal.toLocaleString()}</div>
                     <p className="text-sm text-muted-foreground">
-                      {isCompleted ? 'Total Raised' : 'Estimated at Goal'}
+                      {isCompleted ? "Total Raised" : "Estimated at Goal"}
                     </p>
                   </CardContent>
                 </Card>
@@ -212,13 +346,13 @@ export default function BikeRidePledge() {
                 <Card>
                   <CardContent className="pt-6 text-center space-y-4">
                     <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
-                    <h2 className="text-2xl font-bold">Pledge Received!</h2>
+                    <h2 className="text-2xl font-bold">Pledge Confirmed!</h2>
                     <p className="text-muted-foreground">
                       Thank you, {pledgerName}! You pledged {centsPerMile}¢ per mile
                       (up to <span className="font-semibold text-foreground">${maxTotal.toFixed(2)}</span>).
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Your card will be charged after the ride based on actual miles completed.
+                      Your card is saved and will be charged after the ride based on actual miles completed.
                     </p>
                   </CardContent>
                 </Card>
@@ -227,91 +361,132 @@ export default function BikeRidePledge() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Bike className="h-5 w-5 text-primary" />
-                      Make Your Pledge
+                      {step === "form" ? "Make Your Pledge" : "Enter Card Details"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* Cents per mile slider */}
-                    <div className="space-y-3">
-                      <Label className="text-base font-semibold">Cents Per Mile</Label>
-                      <div className="text-center">
-                        <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
-                        <span className="text-muted-foreground ml-1">per mile</span>
-                      </div>
-                      <Slider
-                        value={[centsPerMile]}
-                        onValueChange={([v]) => setCentsPerMile(v)}
-                        min={5}
-                        max={500}
-                        step={5}
-                        className="my-4"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>5¢</span>
-                        <span>$5.00</span>
-                      </div>
-                      <div className="bg-primary/10 rounded-lg p-4 text-center">
-                        <p className="text-sm text-muted-foreground">Maximum charge at {event.mile_goal} miles:</p>
-                        <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
-                      </div>
-                    </div>
+                    {step === "form" ? (
+                      <>
+                        {/* Cents per mile slider */}
+                        <div className="space-y-3">
+                          <Label className="text-base font-semibold">Cents Per Mile</Label>
+                          <div className="text-center">
+                            <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
+                            <span className="text-muted-foreground ml-1">per mile</span>
+                          </div>
+                          <Slider
+                            value={[centsPerMile]}
+                            onValueChange={([v]) => setCentsPerMile(v)}
+                            min={5}
+                            max={500}
+                            step={5}
+                            className="my-4"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>5¢</span>
+                            <span>$5.00</span>
+                          </div>
+                          <div className="bg-primary/10 rounded-lg p-4 text-center">
+                            <p className="text-sm text-muted-foreground">Maximum charge at {event.mile_goal} miles:</p>
+                            <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
+                          </div>
+                        </div>
 
-                    {/* Name & Email */}
-                    <div className="space-y-3">
-                      <div>
-                        <Label htmlFor="pledger-name">Your Name</Label>
-                        <Input
-                          id="pledger-name"
-                          value={pledgerName}
-                          onChange={e => setPledgerName(e.target.value)}
-                          placeholder="John Doe"
-                        />
+                        {/* Name & Email */}
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="pledger-name">Your Name</Label>
+                            <Input
+                              id="pledger-name"
+                              value={pledgerName}
+                              onChange={(e) => setPledgerName(e.target.value)}
+                              placeholder="John Doe"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="pledger-email">Your Email</Label>
+                            <Input
+                              id="pledger-email"
+                              type="email"
+                              value={pledgerEmail}
+                              onChange={(e) => setPledgerEmail(e.target.value)}
+                              placeholder="john@example.com"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Optional message */}
+                        <div>
+                          <Label htmlFor="pledge-message">Encouragement Message (optional)</Label>
+                          <Textarea
+                            id="pledge-message"
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder="You got this! 🚴"
+                            maxLength={500}
+                            rows={2}
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleSubmitPledge}
+                          disabled={submitting || !pledgerName.trim() || !pledgerEmail.trim()}
+                          className="w-full"
+                          size="lg"
+                        >
+                          {submitting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Preparing...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Continue to Card Details
+                            </>
+                          )}
+                        </Button>
+
+                        <p className="text-xs text-muted-foreground text-center">
+                          Your card will be securely saved and only charged after the ride is complete,
+                          based on actual miles ridden.
+                        </p>
+                      </>
+                    ) : clientSecret && stripePromise ? (
+                      <Elements stripe={stripePromise} options={{ clientSecret }}>
+                        <div className="space-y-4">
+                          <div className="bg-primary/10 rounded-lg p-3 text-center">
+                            <p className="text-sm text-muted-foreground">
+                              {pledgerName} — {centsPerMile}¢/mile — Max ${maxTotal.toFixed(2)}
+                            </p>
+                          </div>
+
+                          <PledgeCardForm
+                            clientSecret={clientSecret}
+                            pledgerName={pledgerName}
+                            maxTotal={maxTotal}
+                            centsPerMile={centsPerMile}
+                            onSuccess={handleCardSuccess}
+                          />
+
+                          <Button
+                            variant="ghost"
+                            className="w-full"
+                            onClick={() => {
+                              setStep("form");
+                              setClientSecret(null);
+                            }}
+                          >
+                            ← Back to pledge details
+                          </Button>
+                        </div>
+                      </Elements>
+                    ) : (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span className="ml-2 text-muted-foreground">Loading payment form...</span>
                       </div>
-                      <div>
-                        <Label htmlFor="pledger-email">Your Email</Label>
-                        <Input
-                          id="pledger-email"
-                          type="email"
-                          value={pledgerEmail}
-                          onChange={e => setPledgerEmail(e.target.value)}
-                          placeholder="john@example.com"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Optional message */}
-                    <div>
-                      <Label htmlFor="pledge-message">Encouragement Message (optional)</Label>
-                      <Textarea
-                        id="pledge-message"
-                        value={message}
-                        onChange={e => setMessage(e.target.value)}
-                        placeholder="You got this! 🚴"
-                        maxLength={500}
-                        rows={2}
-                      />
-                    </div>
-
-                    <Button
-                      onClick={handleSubmitPledge}
-                      disabled={submitting || !pledgerName.trim() || !pledgerEmail.trim()}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>Pledge {centsPerMile}¢/mile (up to ${maxTotal.toFixed(2)})</>
-                      )}
-                    </Button>
-
-                    <p className="text-xs text-muted-foreground text-center">
-                      Your card will be securely saved and only charged after the ride is complete,
-                      based on actual miles ridden.
-                    </p>
+                    )}
                   </CardContent>
                 </Card>
               )}
