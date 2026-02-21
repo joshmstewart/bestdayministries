@@ -162,6 +162,15 @@ export default function BikeRidePledge() {
   const [pledgerEmail, setPledgerEmail] = useState("");
   const [message, setMessage] = useState("");
 
+  // Autofill email from logged-in user
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.email) {
+        setPledgerEmail(user.email);
+      }
+    });
+  }, []);
+
   const [searchParams] = useSearchParams();
   const forceTestMode = searchParams.get("test") === "true";
 
