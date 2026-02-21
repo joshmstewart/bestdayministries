@@ -18,6 +18,26 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Check if force_test_mode is requested
+    let forceTest = false;
+    try {
+      const body = await req.json();
+      forceTest = body?.force_test_mode === true;
+    } catch {
+      // No body or invalid JSON, that's fine
+    }
+
+    // Determine stripe mode
+    let mode = 'test';
+    if (!forceTest) {
+      const { data: modeSetting } = await supabaseAdmin
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'stripe_mode')
+        .single();
+      mode = modeSetting?.setting_value || 'test';
+    }
+
     const url = new URL(req.url);
     const eventId = url.searchParams.get('event_id');
 
@@ -42,11 +62,12 @@ serve(async (req) => {
       );
     }
 
-    // Get pledge stats
+    // Get pledge stats - filtered by stripe_mode
     const { data: pledges } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('pledge_type, cents_per_mile, flat_amount, message, pledger_name, charge_status, stripe_mode')
-      .eq('event_id', event.id);
+      .eq('event_id', event.id)
+      .eq('stripe_mode', mode);
 
     const confirmedPledges = (pledges || []).filter(p => p.charge_status !== 'pending');
     const perMilePledges = confirmedPledges.filter(p => p.pledge_type === 'per_mile');
