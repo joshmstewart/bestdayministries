@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { useAppManifest } from "@/hooks/useAppManifest";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
@@ -335,6 +335,7 @@ const App = () => {
             <Route path="/checkout-success" element={<CheckoutSuccess />} />
             <Route path="/share" element={<ShareRedirect />} />
             <Route path="/bike-ride-pledge" element={<BikeRidePledge />} />
+            <Route path="/bike-ride-pledge-test" element={<Navigate to="/bike-ride-pledge?test=true" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
