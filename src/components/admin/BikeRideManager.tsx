@@ -36,6 +36,7 @@ interface Pledge {
   charge_error: string | null;
   message: string | null;
   created_at: string;
+  stripe_mode: string;
 }
 
 export function BikeRideManager() {
@@ -254,34 +255,39 @@ export function BikeRideManager() {
             <CardContent>
               {pledges.length > 0 ? (
                 <div className="space-y-2">
-                  {pledges.map(pledge => (
-                    <div key={pledge.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-                      <div>
-                        <span className="font-medium">{pledge.pledger_name}</span>
-                        <span className="text-muted-foreground text-sm ml-2">{pledge.pledger_email}</span>
-                        {pledge.message && <p className="text-xs text-muted-foreground italic">"{pledge.message}"</p>}
-                      </div>
-                      <div className="text-right">
-                        {pledge.pledge_type === 'per_mile' ? (
-                          <div>
-                            <span className="font-semibold">{pledge.cents_per_mile}¢/mile</span>
-                            <span className="text-sm text-muted-foreground ml-1">
-                              (up to ${((pledge.cents_per_mile || 0) / 100 * Number(selectedEvent.mile_goal)).toFixed(2)})
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="font-semibold">${pledge.flat_amount?.toFixed(2)}</span>
-                        )}
-                        <span className={`text-xs block ${chargeStatusColor(pledge.charge_status)}`}>
-                          {pledge.charge_status}
-                          {pledge.calculated_total != null && ` · $${pledge.calculated_total.toFixed(2)}`}
-                        </span>
-                        {pledge.charge_error && (
-                          <span className="text-xs text-red-500 block">{pledge.charge_error}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    {pledges.map(pledge => (
+                     <div key={pledge.id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                       <div>
+                         <div className="flex items-center gap-2">
+                           <span className="font-medium">{pledge.pledger_name}</span>
+                           <Badge variant={pledge.stripe_mode === 'live' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                             {pledge.stripe_mode === 'live' ? '🟢 LIVE' : '🟡 TEST'}
+                           </Badge>
+                         </div>
+                         <span className="text-muted-foreground text-sm">{pledge.pledger_email}</span>
+                         {pledge.message && <p className="text-xs text-muted-foreground italic">"{pledge.message}"</p>}
+                       </div>
+                       <div className="text-right">
+                         {pledge.pledge_type === 'per_mile' ? (
+                           <div>
+                             <span className="font-semibold">{pledge.cents_per_mile}¢/mile</span>
+                             <span className="text-sm text-muted-foreground ml-1">
+                               (up to ${((pledge.cents_per_mile || 0) / 100 * Number(selectedEvent.mile_goal)).toFixed(2)})
+                             </span>
+                           </div>
+                         ) : (
+                           <span className="font-semibold">${pledge.flat_amount?.toFixed(2)}</span>
+                         )}
+                         <span className={`text-xs block ${chargeStatusColor(pledge.charge_status)}`}>
+                           {pledge.charge_status}
+                           {pledge.calculated_total != null && ` · $${pledge.calculated_total.toFixed(2)}`}
+                         </span>
+                         {pledge.charge_error && (
+                           <span className="text-xs text-destructive block">{pledge.charge_error}</span>
+                         )}
+                       </div>
+                     </div>
+                   ))}
                 </div>
               ) : (
                 <p className="text-center text-muted-foreground py-4">No pledges yet</p>
@@ -319,30 +325,62 @@ export function BikeRideManager() {
                         Process Charges
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                          Confirm Charge Processing
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will charge all {pledges.filter(p => p.pledge_type === 'per_mile' && p.charge_status === 'pending').length} pending per-mile pledgers
-                          based on {actualMiles} actual miles. Estimated total:{' '}
-                          <strong>
-                            ${pledges
-                              .filter(p => p.pledge_type === 'per_mile' && p.charge_status === 'pending')
-                              .reduce((sum, p) => sum + ((p.cents_per_mile || 0) / 100) * Number(actualMiles || 0), 0)
-                              .toFixed(2)}
-                          </strong>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleProcessCharges}>
-                          Yes, Process Charges
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
+                     <AlertDialogContent>
+                       <AlertDialogHeader>
+                         <AlertDialogTitle className="flex items-center gap-2">
+                           <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                           Confirm Charge Processing
+                         </AlertDialogTitle>
+                         <AlertDialogDescription asChild>
+                           <div className="space-y-3">
+                             <p>
+                               This will charge all confirmed per-mile pledgers based on <strong>{actualMiles}</strong> actual miles.
+                             </p>
+                             {(() => {
+                               const confirmed = pledges.filter(p => p.pledge_type === 'per_mile' && p.charge_status === 'confirmed');
+                               const testPledges = confirmed.filter(p => p.stripe_mode === 'test');
+                               const livePledges = confirmed.filter(p => p.stripe_mode === 'live');
+                               const calcTotal = (list: Pledge[]) => list.reduce((s, p) => s + ((p.cents_per_mile || 0) / 100) * Number(actualMiles || 0), 0);
+                               return (
+                                 <div className="rounded-lg border p-3 space-y-2 text-sm">
+                                   {testPledges.length > 0 && (
+                                     <div className="flex justify-between items-center">
+                                       <span className="flex items-center gap-1.5">
+                                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">🟡 TEST</Badge>
+                                         {testPledges.length} pledge{testPledges.length !== 1 ? 's' : ''}
+                                       </span>
+                                       <span className="font-semibold">${calcTotal(testPledges).toFixed(2)}</span>
+                                     </div>
+                                   )}
+                                   {livePledges.length > 0 && (
+                                     <div className="flex justify-between items-center">
+                                       <span className="flex items-center gap-1.5">
+                                         <Badge variant="default" className="text-[10px] px-1.5 py-0">🟢 LIVE</Badge>
+                                         {livePledges.length} pledge{livePledges.length !== 1 ? 's' : ''}
+                                       </span>
+                                       <span className="font-semibold text-destructive">${calcTotal(livePledges).toFixed(2)} (REAL $)</span>
+                                     </div>
+                                   )}
+                                   {livePledges.length === 0 && testPledges.length > 0 && (
+                                     <p className="text-xs text-muted-foreground italic">✅ No real money will be charged — test mode only.</p>
+                                   )}
+                                   <div className="border-t pt-2 flex justify-between font-semibold">
+                                     <span>Total</span>
+                                     <span>${calcTotal(confirmed).toFixed(2)}</span>
+                                   </div>
+                                 </div>
+                               );
+                             })()}
+                           </div>
+                         </AlertDialogDescription>
+                       </AlertDialogHeader>
+                       <AlertDialogFooter>
+                         <AlertDialogCancel>Cancel</AlertDialogCancel>
+                         <AlertDialogAction onClick={handleProcessCharges}>
+                           Yes, Process Charges
+                         </AlertDialogAction>
+                       </AlertDialogFooter>
+                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
 
