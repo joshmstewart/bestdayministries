@@ -80,6 +80,15 @@ function PledgeCardForm({
           variant: "destructive",
         });
       } else if (setupIntent?.status === "succeeded") {
+        // Update pledge charge_status so message becomes visible
+        try {
+          await supabase
+            .from("bike_ride_pledges")
+            .update({ charge_status: "confirmed" })
+            .eq("stripe_setup_intent_id", setupIntent.id);
+        } catch (updateErr) {
+          console.error("Error updating pledge status:", updateErr);
+        }
         toast({
           title: "Pledge Confirmed! 🎉",
           description: `Your card is saved. You'll be charged up to $${maxTotal.toFixed(2)} after the ride.`,

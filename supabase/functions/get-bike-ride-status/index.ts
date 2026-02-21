@@ -48,14 +48,15 @@ serve(async (req) => {
       .select('pledge_type, cents_per_mile, flat_amount, message, pledger_name, charge_status, stripe_mode')
       .eq('event_id', event.id);
 
-    const perMilePledges = (pledges || []).filter(p => p.pledge_type === 'per_mile');
-    const flatPledges = (pledges || []).filter(p => p.pledge_type === 'flat');
+    const confirmedPledges = (pledges || []).filter(p => p.charge_status !== 'pending');
+    const perMilePledges = confirmedPledges.filter(p => p.pledge_type === 'per_mile');
+    const flatPledges = confirmedPledges.filter(p => p.pledge_type === 'flat');
 
     const estimatedTotalAtGoal = perMilePledges.reduce((sum, p) => {
       return sum + ((p.cents_per_mile || 0) / 100) * Number(event.mile_goal);
     }, 0) + flatPledges.reduce((sum, p) => sum + (p.flat_amount || 0), 0);
 
-    const messages = (pledges || [])
+    const messages = confirmedPledges
       .filter(p => p.message)
       .map(p => ({ name: p.pledger_name, message: p.message }));
 
@@ -63,7 +64,7 @@ serve(async (req) => {
       JSON.stringify({
         event,
         stats: {
-          total_pledgers: (pledges || []).length,
+          total_pledgers: confirmedPledges.length,
           per_mile_pledgers: perMilePledges.length,
           flat_donors: flatPledges.length,
           estimated_total_at_goal: Number(estimatedTotalAtGoal.toFixed(2)),
