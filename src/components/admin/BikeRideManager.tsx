@@ -79,11 +79,15 @@ export function BikeRideManager() {
   };
 
   const fetchPledges = async (eventId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('bike_ride_pledges')
       .select('*')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error fetching pledges:', error);
+    }
+    console.log('Fetched pledges for event', eventId, ':', data?.length, data);
     setPledges((data as any[]) || []);
   };
 
