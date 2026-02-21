@@ -89,23 +89,20 @@ export const useDailyLoginReward = (): StreakRewardResult => {
           showCoinNotification(data.amount, "Welcome back! Daily login bonus");
         }
 
-        // Call streak reward and capture response
-        const { data: streakData, error: streakError } = await supabase.functions.invoke("claim-streak-reward");
-        
-        if (!streakError && streakData?.success) {
-          setCurrentStreak(streakData.current_streak || 0);
-          
-          // Capture bonus card ID if one was created
-          if (streakData.bonus_card_id) {
-            setBonusCardId(streakData.bonus_card_id);
-          }
-          
-          // Check if milestone was awarded
-          if (streakData.milestones_awarded && streakData.milestones_awarded.length > 0) {
-            const milestone = streakData.milestones_awarded[0];
-            setMilestoneAwarded(milestone);
-            setShowCelebration(true);
-          }
+        // Streak data is now included in the same response
+        if (data?.current_streak) {
+          setCurrentStreak(data.current_streak);
+        }
+
+        if (data?.bonus_card_id) {
+          setBonusCardId(data.bonus_card_id);
+        }
+
+        // Check if milestone was awarded
+        if (data?.milestones_awarded && data.milestones_awarded.length > 0) {
+          const milestone = data.milestones_awarded[0];
+          setMilestoneAwarded(milestone);
+          setShowCelebration(true);
         }
       } catch (error) {
         console.error("Error checking daily login reward:", error);
