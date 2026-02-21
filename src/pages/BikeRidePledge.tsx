@@ -207,7 +207,9 @@ export default function BikeRidePledge() {
 
   const fetchEventStatus = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("get-bike-ride-status");
+      const { data, error } = await supabase.functions.invoke("get-bike-ride-status", {
+        body: forceTestMode ? { force_test_mode: true } : undefined,
+      });
       if (error) throw error;
       if (data?.event) {
         setEvent(data.event);
