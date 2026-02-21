@@ -1,57 +1,41 @@
 
-
-# Fix Safari Desktop Infinite Loading
-
 ## Problem
 
-Safari desktop gets stuck in an infinite loading state -- not just after updates, but on regular visits (like this morning with no changes). This means **any user on Safari** can hit this, and most will just give up.
+The live page at `/bike-ride-pledge` is showing test pledge data (the "JJ / Bulbasaur" entry). This happens because the `get-bike-ride-status` edge function fetches ALL confirmed pledges without filtering by `stripe_mode`. The "JJ" pledge has `stripe_mode: test` but `charge_status: confirmed`, so it shows up alongside real live pledges.
 
-The root causes are:
+## Root Cause
 
-1. **The build-version recovery check exists but is never called.** The function `checkAndRecoverFromBuildMismatch()` was built but never wired into `main.tsx`, so stale cached JavaScript is never proactively cleared.
+In `get-bike-ride-status/index.ts` (line 46-48), the pledge query only filters by `event_id` -- it does NOT filter by `stripe_mode`:
 
-2. **Safari's back-forward cache (bfcache) resurrects dead page states.** When Safari restores a page from bfcache, the app can resume in a broken/stuck state with no mechanism to detect and reload.
+```typescript
+const { data: pledges } = await supabaseAdmin
+  .from('bike_ride_pledges')
+  .select('...')
+  .eq('event_id', event.id);
+// Missing: .eq('stripe_mode', currentMode)
+```
 
-3. **The dual-client auth reconciliation can hang on Safari.** IndexedDB operations have individual 1.5-second timeouts, but the overall `reconcileAuthSessions()` chains multiple IDB calls sequentially. If Safari's IndexedDB is sluggish (common after sleep/wake or tab restoration), the total time can exceed the 15-second watchdog -- or worse, the watchdog fires but the reload serves the same stuck page from cache.
+## Solution
 
-4. **Cache-busting reload doesn't actually bust Safari's cache.** The current `forceCacheBustingReload` uses `location.replace()` with a query param, but Safari can still serve the HTML from disk cache.
+**1. Update `get-bike-ride-status` edge function** to accept a `force_test_mode` parameter (consistent with the other bike ride functions) and filter pledges by the appropriate `stripe_mode`:
 
-## Solution (3 parts)
+- Accept `force_test_mode` from the request body (same pattern as `get-stripe-publishable-key`)
+- Determine the current mode (`test` or `live`) from `app_settings` or the override
+- Add `.eq('stripe_mode', mode)` to the pledges query
 
-### Part 1: Activate the Build Version Check
-Call `checkAndRecoverFromBuildMismatch()` in `main.tsx` before rendering. This proactively clears stale caches on the first visit after any deploy, preventing chunk load failures before they happen.
-
-### Part 2: Add bfcache Detection
-Add a `pageshow` event listener in `main.tsx` that detects when Safari restores a page from its back-forward cache (`event.persisted === true`) and forces a fresh reload. This is a standard, well-known fix for Safari.
-
-### Part 3: Improve Cache-Busting Reload
-Update `forceCacheBustingReload` in `cacheManager.ts` to use a more aggressive strategy: attempt `location.reload()` first (which is more likely to bypass Safari's cache than `location.replace()` with a query param), and set a sessionStorage flag to detect bfcache loops.
+**2. Update `BikeRidePledge.tsx`** to pass `force_test_mode` when calling `get-bike-ride-status`, so the test page sees test pledges and the live page sees only live pledges.
 
 ## Technical Details
 
-### File: `src/main.tsx`
-- Import and call `checkAndRecoverFromBuildMismatch()` before `createRoot`
-- Add `pageshow` event listener for bfcache detection:
-```typescript
-window.addEventListener('pageshow', (event) => {
-  if ((event as PageTransitionEvent).persisted) {
-    window.location.reload();
-  }
-});
-```
+### Edge function change (`get-bike-ride-status/index.ts`)
+- Read request body for `force_test_mode` flag (with try/catch for empty body, same pattern as `get-stripe-publishable-key`)
+- Query `app_settings` for `stripe_mode` if not forced
+- Add `.eq('stripe_mode', mode)` to the pledges query on line 48
 
-### File: `src/lib/cacheManager.ts`
-- Update `forceCacheBustingReload` to prefer `window.location.reload()` over `location.replace()` with query params
-- Add a sessionStorage guard to prevent tight reload loops from bfcache restoration
-
-### File: `src/lib/appStartupRecovery.ts`
-- No changes needed -- the exported function already works correctly
+### Frontend change (`BikeRidePledge.tsx`)
+- In `fetchEventStatus`, pass `{ body: forceTestMode ? { force_test_mode: true } : undefined }` to the function invocation (matching the existing pattern used for `get-stripe-publishable-key`)
 
 ## Impact
-
-- **Normal visits (no issues):** Zero impact -- version matches, no reload
-- **First visit after a deploy:** One automatic ~1-2 second reload to load fresh assets
-- **bfcache restoration:** Transparent reload to a fresh state
-- **Auth stays preserved:** Cache clearing already preserves auth tokens
-- **Other browsers:** No effect -- bfcache behavior is Safari-specific, and version checks are harmless everywhere
-
+- Live page: only shows pledges made with live Stripe keys
+- Test page (`?test=true`): only shows pledges made with test Stripe keys
+- No data loss -- existing pledges are unchanged, just filtered by mode
