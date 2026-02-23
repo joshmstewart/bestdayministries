@@ -80,19 +80,33 @@ serve(async (req) => {
           .not("accepted_at", "is", null)
           .single();
 
-        if (!teamMember) {
-          return new Response(
-            JSON.stringify({ 
-              connected: false,
-              vendorNotFound: true,
-              message: "User is not authorized to view this vendor's Stripe status"
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+        if (teamMember) {
+          vendor = vendorData;
+          logStep("User is team member");
+        } else {
+          // Check if user is a site admin or owner
+          const { data: userRole } = await supabaseClient
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id)
+            .in("role", ["admin", "owner"])
+            .limit(1)
+            .single();
 
-        vendor = vendorData;
-        logStep("User is team member");
+          if (userRole) {
+            vendor = vendorData;
+            logStep("User is site admin/owner", { role: userRole.role });
+          } else {
+            return new Response(
+              JSON.stringify({ 
+                connected: false,
+                vendorNotFound: true,
+                message: "User is not authorized to view this vendor's Stripe status"
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
       }
     } else {
       // Get vendor account (check ownership first, then team membership)
