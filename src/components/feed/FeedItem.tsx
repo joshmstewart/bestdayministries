@@ -1123,7 +1123,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto min-h-0">
-              <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} defaultCommentsExpanded />
+              <DailyFortunePopup onClose={() => setFortuneDialogOpen(false)} defaultCommentsExpanded postDate={item.extra_data?.post_date as string | undefined} />
             </div>
           </DialogContent>
         </Dialog>
