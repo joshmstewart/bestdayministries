@@ -66,8 +66,6 @@ export function useCoffeeCart() {
           .from('shopping_cart')
           .update({ 
             quantity: newQuantity,
-            tier_quantity: item.tierQuantity,
-            unit_price: item.pricePerUnit,
             variant_info: variantInfo
           })
           .eq('id', existingItem.id);
@@ -79,9 +77,11 @@ export function useCoffeeCart() {
         const insertData: any = {
           coffee_product_id: item.productId,
           quantity: item.quantity,
-          tier_quantity: item.tierQuantity,
-          unit_price: item.pricePerUnit,
-          variant_info: variantInfo,
+          variant_info: {
+            ...variantInfo,
+            tier_quantity: item.tierQuantity,
+            price_per_unit: item.pricePerUnit,
+          },
         };
 
         if (filter && 'user_id' in filter) {
