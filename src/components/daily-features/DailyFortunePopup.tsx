@@ -31,9 +31,11 @@ interface FortunePost {
 interface DailyFortunePopupProps {
   onClose?: () => void;
   defaultCommentsExpanded?: boolean;
+  /** If provided, load the fortune for this specific date instead of today */
+  postDate?: string;
 }
 
-export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false }: DailyFortunePopupProps) {
+export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false, postDate }: DailyFortunePopupProps) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [fortunePost, setFortunePost] = useState<FortunePost | null>(null);
@@ -59,11 +61,11 @@ export function DailyFortunePopup({ onClose, defaultCommentsExpanded = false }: 
 
   useEffect(() => {
     loadTodaysFortune();
-  }, [user, isAuthenticated, authLoading]);
+  }, [user, isAuthenticated, authLoading, postDate]);
 
   const loadTodaysFortune = async () => {
     try {
-      const today = getMSTDate();
+      const today = postDate || getMSTDate();
       
       const { data: post, error: postError } = await supabase
         .from("daily_fortune_posts")
