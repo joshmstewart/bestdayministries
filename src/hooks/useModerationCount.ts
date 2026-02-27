@@ -20,11 +20,13 @@ export const useModerationCount = () => {
         supabase
           .from("discussion_posts")
           .select("*", { count: "exact", head: true })
-          .eq("is_moderated", false),
+          .eq("is_moderated", false)
+          .neq("approval_status", "approved"),
         supabase
           .from("discussion_comments")
           .select("*", { count: "exact", head: true })
           .eq("is_moderated", false)
+          .neq("approval_status", "approved")
       ]);
 
       const postsCount = postsResult.count || 0;
