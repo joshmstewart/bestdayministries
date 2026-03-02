@@ -175,7 +175,7 @@ serve(async (req) => {
         .select('id, quantity')
         .eq('user_id', card.user_id)
         .eq('sticker_id', selectedSticker.id)
-        .eq('collection_id', card.collection_id)
+        .eq('collection_id', targetCollectionId)
         .single();
 
       if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
@@ -207,7 +207,7 @@ serve(async (req) => {
           .insert({
             user_id: card.user_id,
             sticker_id: selectedSticker.id,
-            collection_id: card.collection_id,
+            collection_id: targetCollectionId,
             obtained_from: obtainedFrom,
             quantity: 1,
             first_obtained_at: now,
