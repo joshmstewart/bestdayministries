@@ -1,41 +1,25 @@
 
-## Problem
 
-The live page at `/bike-ride-pledge` is showing test pledge data (the "JJ / Bulbasaur" entry). This happens because the `get-bike-ride-status` edge function fetches ALL confirmed pledges without filtering by `stripe_mode`. The "JJ" pledge has `stripe_mode: test` but `charge_status: confirmed`, so it shows up alongside real live pledges.
+## Show Collection Pack Image and Description in Sticker Album
 
-## Root Cause
+### Problem
+The hero section code was added but isn't appearing. After thorough investigation, the code is present at lines 715-743 of `StickerAlbum.tsx` and the database has the data (`pack_image_url` and `theme` for Spring 2026). The most likely cause is a build timing issue, but to be safe, the fix will restructure the code to be more robust and also add a `console.log` to confirm data is flowing correctly.
 
-In `get-bike-ride-status/index.ts` (line 46-48), the pledge query only filters by `event_id` -- it does NOT filter by `stripe_mode`:
+### Changes
 
-```typescript
-const { data: pledges } = await supabaseAdmin
-  .from('bike_ride_pledges')
-  .select('...')
-  .eq('event_id', event.id);
-// Missing: .eq('stripe_mode', currentMode)
-```
+**File: `src/components/StickerAlbum.tsx`**
 
-## Solution
+1. Replace the inline IIFE (immediately invoked function) with a cleaner pattern using a `useMemo`-style variable computed from existing state -- this avoids potential rendering quirks with IIFEs inside JSX
+2. Compute `currentCollection` as a derived variable at the top of the render, not buried in an IIFE
+3. Move the hero section to use that variable directly -- cleaner, easier to debug, guaranteed to re-render when `selectedCollection` or `collections` change
 
-**1. Update `get-bike-ride-status` edge function** to accept a `force_test_mode` parameter (consistent with the other bike ride functions) and filter pledges by the appropriate `stripe_mode`:
+### Technical Detail
 
-- Accept `force_test_mode` from the request body (same pattern as `get-stripe-publishable-key`)
-- Determine the current mode (`test` or `live`) from `app_settings` or the override
-- Add `.eq('stripe_mode', mode)` to the pledges query
+Replace the IIFE block (lines 715-743) with:
 
-**2. Update `BikeRidePledge.tsx`** to pass `force_test_mode` when calling `get-bike-ride-status`, so the test page sees test pledges and the live page sees only live pledges.
+- Add a `const currentCollection = collections.find(c => c.id === selectedCollection)` near the top of the component's render body (around line 588, before the JSX return)
+- Replace the IIFE with a straightforward conditional render block using that variable
+- Add a temporary `console.log` so we can verify the data is flowing (will remove after confirming)
 
-## Technical Details
+This is a structural cleanup -- same logic, but avoids the IIFE pattern which can occasionally cause issues with React's reconciliation.
 
-### Edge function change (`get-bike-ride-status/index.ts`)
-- Read request body for `force_test_mode` flag (with try/catch for empty body, same pattern as `get-stripe-publishable-key`)
-- Query `app_settings` for `stripe_mode` if not forced
-- Add `.eq('stripe_mode', mode)` to the pledges query on line 48
-
-### Frontend change (`BikeRidePledge.tsx`)
-- In `fetchEventStatus`, pass `{ body: forceTestMode ? { force_test_mode: true } : undefined }` to the function invocation (matching the existing pattern used for `get-stripe-publishable-key`)
-
-## Impact
-- Live page: only shows pledges made with live Stripe keys
-- Test page (`?test=true`): only shows pledges made with test Stripe keys
-- No data loss -- existing pledges are unchanged, just filtered by mode
