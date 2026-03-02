@@ -2230,7 +2230,7 @@ export const StickerCollectionManager = () => {
           {selectedCollection && (
             <Card>
               <CardHeader>
-                <CardTitle>Stickers in Collection ({stickers.length}/25)</CardTitle>
+                <CardTitle>Stickers in Collection ({stickers.length})</CardTitle>
                 <CardDescription>Drag to reorder stickers</CardDescription>
               </CardHeader>
               <CardContent>
