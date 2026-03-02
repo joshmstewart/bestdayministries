@@ -63,6 +63,7 @@ interface PackImage {
   name: string;
   image_url: string | null;
   display_order: number;
+  is_active: boolean;
 }
 
 interface GenerationError {
@@ -425,6 +426,29 @@ export const MemoryMatchPackManager = () => {
     }
 
     setRegeneratingId(null);
+  };
+
+  const handleToggleImageActive = async (image: PackImage) => {
+    try {
+      const newActive = !image.is_active;
+      const { error } = await supabase
+        .from("memory_match_images")
+        .update({ is_active: newActive } as any)
+        .eq("id", image.id);
+
+      if (error) throw error;
+
+      toast.success(`${image.name} ${newActive ? "enabled" : "disabled"}`);
+      setPackImages((prev) => ({
+        ...prev,
+        [image.pack_id]: (prev[image.pack_id] || []).map((img) =>
+          img.id === image.id ? { ...img, is_active: newActive } : img
+        ),
+      }));
+    } catch (error) {
+      console.error("Failed to toggle image:", error);
+      showErrorToast("Failed to toggle image");
+    }
   };
 
   const handleDeleteImage = async () => {
@@ -1554,6 +1578,22 @@ Respond with ONLY a JSON array of objects with "name" and "description" fields. 
                                     <RefreshCw className="w-3 h-3 mr-1" />
                                     Regen
                                   </>
+                                )}
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleToggleImageActive(image)}
+                                title={image.is_active ? "Disable card" : "Enable card"}
+                                className={image.is_active
+                                  ? "h-7 w-7 bg-green-100 hover:bg-green-200 border-green-300"
+                                  : "h-7 w-7 bg-red-100 hover:bg-red-200 border-red-300"
+                                }
+                              >
+                                {image.is_active ? (
+                                  <Eye className="w-3 h-3 text-green-700" />
+                                ) : (
+                                  <EyeOff className="w-3 h-3 text-red-700" />
                                 )}
                               </Button>
                               <Button

@@ -311,6 +311,7 @@ export const MemoryMatch = forwardRef<MemoryMatchRef, MemoryMatchProps>(({ onBac
             .from('memory_match_images')
             .select('name, image_url')
             .eq('pack_id', pack.id)
+            .eq('is_active', true)
             .order('display_order');
           
           return {
