@@ -733,7 +733,7 @@ export const StickerAlbum = () => {
                   <p className="text-xs text-muted-foreground italic">Theme: {currentCollection.theme}</p>
                 )}
                 {currentCollection.description && (
-                  <p className="text-sm text-muted-foreground">{currentCollection.description}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-line">{currentCollection.description}</p>
                 )}
                 <TextToSpeech text={`${currentCollection.name}. ${currentCollection.description || ''}`} />
               </div>
