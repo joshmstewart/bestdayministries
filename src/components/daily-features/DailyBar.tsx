@@ -107,7 +107,10 @@ export function DailyBar() {
     return mstTime;
   };
 
-  // Load card data when stickers are clicked - matches DailyScratchCard logic
+  // Featured collection ID to pass as override when opening packs
+  const [featuredCollectionId, setFeaturedCollectionId] = useState<string | null>(null);
+
+  // Load card data when stickers are clicked - opens featured collection
   const loadCardData = async () => {
     if (!user) return;
     
@@ -116,8 +119,8 @@ export function DailyBar() {
       const mstDate = getMSTDate();
       const today = mstDate.toISOString().split('T')[0];
 
-      // Fetch daily card and bonus cards
-      const [{ data: existingCard }, { data: existingBonusCards }] = await Promise.all([
+      // Fetch daily card, bonus cards, and featured collection in parallel
+      const [{ data: existingCard }, { data: existingBonusCards }, { data: featuredCollection }] = await Promise.all([
         supabase
           .from('daily_scratch_cards')
           .select('id, is_scratched, collection_id, expires_at')
@@ -132,7 +135,13 @@ export function DailyBar() {
           .eq('date', today)
           .eq('is_bonus_card', true)
           .eq('is_scratched', false)
-          .order('purchase_number', { ascending: true })
+          .order('purchase_number', { ascending: true }),
+        supabase
+          .from('sticker_collections')
+          .select('id')
+          .eq('is_active', true)
+          .eq('is_featured', true)
+          .maybeSingle(),
       ]);
 
       let cardToUse = existingCard;
@@ -154,16 +163,14 @@ export function DailyBar() {
 
       setDailyCard(cardToUse);
       setBonusCard(existingBonusCards?.[0] || null);
+      setFeaturedCollectionId(featuredCollection?.id || null);
 
-      // Determine which dialog to show - matching DailyScratchCard logic exactly
+      // Determine which dialog to show
       if (cardToUse && !cardToUse.is_scratched) {
-        // Daily card available - show pack dialog
         setShowStickerDialog(true);
       } else if (existingBonusCards && existingBonusCards.length > 0) {
-        // Daily scratched but bonus available
         setShowBonusStickerDialog(true);
       } else {
-        // All scratched - navigate to album
         navigate('/sticker-album');
       }
     } catch (error) {
@@ -420,6 +427,7 @@ export function DailyBar() {
           open={showStickerDialog}
           onOpenChange={setShowStickerDialog}
           cardId={dailyCard.id}
+          collectionId={featuredCollectionId || undefined}
           onOpened={handleCardOpened}
           onChangeCollection={() => {
             setShowStickerDialog(false);
@@ -434,6 +442,7 @@ export function DailyBar() {
           open={showBonusStickerDialog}
           onOpenChange={setShowBonusStickerDialog}
           cardId={bonusCard.id}
+          collectionId={featuredCollectionId || undefined}
           onOpened={handleCardOpened}
           onChangeCollection={() => {
             setShowBonusStickerDialog(false);
