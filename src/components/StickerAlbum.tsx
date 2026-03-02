@@ -564,10 +564,12 @@ export const StickerAlbum = () => {
       });
       setUserStickers(userStickerMap);
       
-      // Auto-open the new card after a short delay
+      // Auto-open the new card after a short delay, defaulting to the featured collection
       setTimeout(() => {
         if (data.cardId) {
+          const featuredCollection = collections.find(c => c.is_featured === true);
           setSelectedCardId(data.cardId);
+          setSelectedPackCollectionId(featuredCollection?.id || null);
           setShowScratchDialog(true);
         }
       }, 500);
