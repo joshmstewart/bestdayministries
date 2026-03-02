@@ -712,6 +712,36 @@ export const StickerAlbum = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Collection hero — pack image + description */}
+          {(() => {
+            const currentCollection = collections.find(c => c.id === selectedCollection);
+            if (!currentCollection) return null;
+            const hasImage = !!currentCollection.pack_image_url;
+            const hasDescription = !!currentCollection.description;
+            if (!hasImage && !hasDescription) return null;
+            return (
+              <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b">
+                {hasImage && (
+                  <img
+                    src={currentCollection.pack_image_url}
+                    alt={currentCollection.name}
+                    className="w-28 h-40 sm:w-32 sm:h-44 object-contain flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 text-center sm:text-left space-y-1">
+                  <h3 className="text-lg font-bold">{currentCollection.name}</h3>
+                  {currentCollection.theme && (
+                    <p className="text-xs text-muted-foreground italic">Theme: {currentCollection.theme}</p>
+                  )}
+                  {hasDescription && (
+                    <p className="text-sm text-muted-foreground">{currentCollection.description}</p>
+                  )}
+                  <TextToSpeech text={`${currentCollection.name}. ${currentCollection.description || ''}`} />
+                </div>
+              </div>
+            );
+          })()}
+
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Collection Progress</span>
