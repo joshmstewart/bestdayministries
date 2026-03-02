@@ -1,0 +1,1 @@
+ALTER TABLE public.memory_match_images ADD COLUMN is_active boolean NOT NULL DEFAULT true;

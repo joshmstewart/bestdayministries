@@ -5918,6 +5918,7 @@ export type Database = {
           display_order: number | null
           id: string
           image_url: string | null
+          is_active: boolean
           name: string
           pack_id: string
         }
@@ -5926,6 +5927,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url?: string | null
+          is_active?: boolean
           name: string
           pack_id: string
         }
@@ -5934,6 +5936,7 @@ export type Database = {
           display_order?: number | null
           id?: string
           image_url?: string | null
+          is_active?: boolean
           name?: string
           pack_id?: string
         }
