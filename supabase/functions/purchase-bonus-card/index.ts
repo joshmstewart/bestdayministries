@@ -85,31 +85,31 @@ serve(async (req) => {
     tomorrowMST.setHours(0, 0, 0, 0);
     const tomorrowUTC = new Date(tomorrowMST.getTime() - (mstOffset * 60000));
 
-    console.log('💰 PURCHASE: Querying existing bonus cards...');
+    console.log('💰 PURCHASE: Counting existing bonus cards for today...');
     const { data: existingBonusCards, error: queryError } = await supabaseClient
       .from('daily_scratch_cards')
-      .select('purchase_number')
+      .select('id')
       .eq('user_id', user.id)
       .eq('date', today)
-      .eq('is_bonus_card', true)
-      .order('purchase_number', { ascending: false })
-      .limit(1);
-
-    console.log('💰 PURCHASE: Query result:', {
-      found: existingBonusCards?.length || 0,
-      cards: existingBonusCards,
-      error: queryError
-    });
+      .eq('is_bonus_card', true);
 
     if (queryError) {
       console.error('❌ PURCHASE: Query error:', queryError);
     }
 
-    const purchaseCount = existingBonusCards && existingBonusCards.length > 0 
-      ? existingBonusCards[0].purchase_number 
-      : 0;
+    const purchaseCount = existingBonusCards?.length || 0;
     const nextPurchaseNumber = purchaseCount + 1;
-    const BONUS_CARD_COST = BASE_BONUS_CARD_COST * Math.pow(2, purchaseCount);
+    // Cap exponent at 10 to prevent astronomical costs (max cost = base * 1024)
+    const cappedExponent = Math.min(purchaseCount, 10);
+    const BONUS_CARD_COST = BASE_BONUS_CARD_COST * Math.pow(2, cappedExponent);
+
+    console.log('💰 PURCHASE: Cost calculation:', {
+      purchaseCount,
+      nextPurchaseNumber,
+      cappedExponent,
+      cost: BONUS_CARD_COST,
+      formula: `${BASE_BONUS_CARD_COST} * 2^${cappedExponent}`
+    });
 
     console.log('💰 PURCHASE: Cost calculation:', {
       purchaseCount,
@@ -224,7 +224,8 @@ serve(async (req) => {
       throw cardError;
     }
 
-    const nextCost = BASE_BONUS_CARD_COST * Math.pow(2, nextPurchaseNumber);
+    const nextCappedExponent = Math.min(nextPurchaseNumber, 10);
+    const nextCost = BASE_BONUS_CARD_COST * Math.pow(2, nextCappedExponent);
     console.log('✅ PURCHASE: Success! Next cost will be:', nextCost);
 
     return new Response(
