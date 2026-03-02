@@ -1127,8 +1127,8 @@ export const StickerCollectionManager = () => {
       return;
     }
 
-    if (!stickerImage || !stickerForm.name || !stickerForm.visual_style) {
-      toast({ title: "Error", description: "Image, name, and visual style are required", variant: "destructive" });
+    if (!stickerImage || !stickerForm.name) {
+      toast({ title: "Error", description: "Image and name are required", variant: "destructive" });
       return;
     }
 
