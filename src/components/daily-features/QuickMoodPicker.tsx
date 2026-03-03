@@ -69,7 +69,11 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
 
   // Handle voice input transcript
   const handleVoiceTranscript = useCallback((transcript: string) => {
-    setNote(prev => prev ? `${prev} ${transcript}` : transcript);
+    setNote(prev => {
+      const updated = prev ? `${prev} ${transcript}` : transcript;
+      return updated;
+    });
+    toast.success('Voice text added to your note!', { duration: 2000 });
   }, []);
 
   // Load user's TTS voice preference
@@ -574,7 +578,7 @@ export function QuickMoodPicker({ onComplete, ttsEnabled = false, onSpeakingChan
                 onTranscript={handleVoiceTranscript}
                 placeholder="Tap microphone to add notes by voice..."
                 buttonSize="sm"
-                showTranscript={false}
+                showTranscript={true}
                 autoStop={true}
                 silenceStopSeconds={15}
                 maxDuration={60}
