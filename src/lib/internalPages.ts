@@ -66,6 +66,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/moderation", label: "Moderation Queue" },
   
   // Vendor
+  { value: "/vendor-info", label: "Vendor Information" },
   { value: "/vendor-auth", label: "Vendor Application" },
   { value: "/vendor-dashboard", label: "Vendor Dashboard" },
   
