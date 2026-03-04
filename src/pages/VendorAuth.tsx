@@ -703,7 +703,8 @@ const VendorAuth = () => {
                   Create Account & Apply
                 </h1>
                 <p className="text-muted-foreground text-sm">
-                  Create your account and apply to become a vendor in one easy step
+                  Create your account and apply to become a vendor in one easy step.{' '}
+                  <Link to="/vendor-info" className="text-primary hover:underline">Learn what's involved →</Link>
                 </p>
               </div>
             </div>

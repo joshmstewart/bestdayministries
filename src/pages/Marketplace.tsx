@@ -320,12 +320,21 @@ const Marketplace = () => {
                   Dashboard
                 </Button>
               ) : (
-                <button
-                  onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
-                >
-                  Become a Vendor
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate(isAuthenticated ? '/vendor-dashboard' : '/vendor-auth')}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+                  >
+                    Become a Vendor
+                  </button>
+                  <span className="text-xs text-muted-foreground/50">·</span>
+                  <button
+                    onClick={() => navigate('/vendor-info')}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+                  >
+                    Learn more
+                  </button>
+                </div>
               )}
             </div>
 
