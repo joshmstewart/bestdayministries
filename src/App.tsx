@@ -40,6 +40,7 @@ const AlbumManagement = lazy(() => import("./pages/AlbumManagement"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const EventsPage = lazy(() => import("./pages/EventsPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
+const MeetTheTeam = lazy(() => import("./pages/MeetTheTeam"));
 const AmbassadorPage = lazy(() => import("./pages/AmbassadorPage"));
 const JoyRocksPage = lazy(() => import("./pages/JoyRocksPage"));
 const Partners = lazy(() => import("./pages/Partners"));
@@ -280,6 +281,7 @@ const App = () => {
               <Route path="/admin/albums" element={<AlbumManagement />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/meet-the-team" element={<MeetTheTeam />} />
               <Route path="/ambassador" element={<AmbassadorPage />} />
               <Route path="/joy-rocks" element={<JoyRocksPage />} />
               <Route path="/partners" element={<Partners />} />

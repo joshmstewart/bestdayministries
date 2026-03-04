@@ -47,6 +47,7 @@ import { MessageModerationQueue } from "@/components/admin/MessageModerationQueu
 import { ModerationPolicyManager } from "@/components/admin/ModerationPolicyManager";
 import { SavedLocationsManager } from "@/components/admin/SavedLocationsManager";
 import { PartnersManager } from "@/components/admin/PartnersManager";
+import { TeamMembersManager } from "@/components/admin/TeamMembersManager";
 import EmailAuditLog from "@/components/admin/EmailAuditLog";
 import ContactFormSettings from "@/components/admin/ContactFormSettings";
 import ContactSubmissions from "@/components/admin/ContactSubmissions";
@@ -824,6 +825,7 @@ const Admin = () => {
                     <TabsTrigger value="navigation">Navigation Bar</TabsTrigger>
                     <TabsTrigger value="family-orgs">Family Orgs</TabsTrigger>
                     <TabsTrigger value="partners">Partners</TabsTrigger>
+                    <TabsTrigger value="team">Team</TabsTrigger>
                     <TabsTrigger value="footer">Footer</TabsTrigger>
                     <TabsTrigger value="quick-links">Quick Links</TabsTrigger>
                   </TabsList>
@@ -875,6 +877,10 @@ const Admin = () => {
 
                   <TabsContent value="partners">
                     <PartnersManager />
+                  </TabsContent>
+
+                  <TabsContent value="team">
+                    <TeamMembersManager />
                   </TabsContent>
 
                   <TabsContent value="footer">
