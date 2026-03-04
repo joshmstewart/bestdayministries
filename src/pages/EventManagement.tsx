@@ -332,7 +332,14 @@ export default function EventManagement() {
         title,
         description,
         event_date: combinedDate.toISOString(),
-        location: location?.trim() || null,
+        // DOM fallback: Google Places Autocomplete can desync React state.
+        // Read the actual DOM input value as the source of truth.
+        location: (() => {
+          const domValue = (document.getElementById('location') as HTMLInputElement)?.value?.trim();
+          const stateValue = location?.trim();
+          // Prefer DOM value (what user actually sees), fall back to React state
+          return domValue || stateValue || null;
+        })(),
         expires_after_date: expiresAfterDate,
         is_public: isPublic,
         visible_to_roles: finalVisibleRoles,

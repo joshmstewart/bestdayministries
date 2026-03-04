@@ -115,8 +115,18 @@ export function LocationAutocomplete({
     });
 
     // Listen for place selection - use ref to avoid stale closure
+    // CRITICAL: Only update state if the user actually selected a suggestion.
+    // Google fires place_changed even when the user just clicks away without
+    // selecting anything — in that case getPlace() returns an object WITHOUT
+    // place_id. We must NOT overwrite manual input in that scenario.
     autocompleteInstance.addListener("place_changed", () => {
       const place = autocompleteInstance.getPlace();
+      
+      // place_id is ONLY present when the user clicked a suggestion.
+      // Without it, this is a spurious fire — preserve the current value.
+      if (!place.place_id) {
+        return;
+      }
       
       if (place.formatted_address) {
         onChangeRef.current(place.formatted_address);
