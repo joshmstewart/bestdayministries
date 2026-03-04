@@ -83,6 +83,7 @@ export const UserManagement = () => {
   });
 
   const testAccounts = [
+    { email: "testadmin@example.com", password: "TestAdmin123!", displayName: "Test Admin", role: "admin" },
     { email: "testbestie@example.com", password: "TestBestie123!", displayName: "Test Bestie", role: "bestie" },
     { email: "testguardian@example.com", password: "TestGuardian123!", displayName: "Test Guardian", role: "caregiver" },
     { email: "testsupporter@example.com", password: "TestSupporter123!", displayName: "Test Supporter", role: "supporter" },
@@ -744,7 +745,7 @@ export const UserManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {testAccounts.map((account) => (
               <Card key={account.email} className="bg-muted/50">
                 <CardHeader className="pb-3">

@@ -21,6 +21,13 @@ const PERSISTENT_TEST_ACCOUNTS = [
     avatarNumber: 1
   },
   {
+    email: 'testadmin@example.com',
+    password: 'testpassword123',
+    displayName: '[TEST] Admin Account',
+    role: 'admin',
+    avatarNumber: 5
+  },
+  {
     email: 'testbestie@example.com',
     password: 'testpassword123',
     displayName: '[TEST] Bestie Account',
