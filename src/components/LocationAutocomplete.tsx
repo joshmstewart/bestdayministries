@@ -228,6 +228,35 @@ export function LocationAutocomplete({
             setSelectedLocationId("");
             onChange(e.target.value);
           }}
+          onBlur={(e) => {
+            // On blur, sync whatever is in the actual DOM input to React state
+            // This catches cases where Google Autocomplete modified the input value
+            // without triggering React's onChange
+            const currentInputValue = e.target.value;
+            if (currentInputValue && currentInputValue !== value) {
+              onChange(currentInputValue);
+            }
+          }}
+          onKeyDown={(e) => {
+            // Prevent Google Autocomplete from eating the Enter key
+            // when the user wants to submit the form with a manual address
+            if (e.key === 'Enter') {
+              // If the pac-container (autocomplete dropdown) is NOT visible,
+              // let the form submit normally with the manual value
+              const pacContainer = document.querySelector('.pac-container');
+              const isDropdownVisible = pacContainer && 
+                window.getComputedStyle(pacContainer).display !== 'none' &&
+                pacContainer.querySelectorAll('.pac-item').length > 0;
+              
+              if (!isDropdownVisible) {
+                // Sync the current input value to React state
+                const currentInputValue = inputRef.current?.value;
+                if (currentInputValue && currentInputValue !== value) {
+                  onChange(currentInputValue);
+                }
+              }
+            }
+          }}
           placeholder={placeholder}
           required={required}
           className="pl-9"
