@@ -1,22 +1,49 @@
 
 
-## Plan: Restrict Financial Tabs to Owner-Only Access
+## Problem Analysis
 
-### What Changes
+The location field has a fundamental architectural issue: **Google Places Autocomplete manipulates the DOM input directly**, bypassing React's controlled `value` state. This causes a desync where:
 
-1. **Hide the "Donations" tab trigger** from non-owner admins (line ~286 in Admin.tsx)
-   - Wrap the `<TabsTrigger value="sponsorships">` in an `{isOwner && ...}` conditional
-   - Also wrap the corresponding `<TabsContent value="sponsorships">` (line ~472) in the same conditional
+1. User types a manual address → React state updates correctly via `onChange`
+2. Google Autocomplete attaches to the input and may fire `place_changed` with empty/partial data when the user clicks away (to hit Save), **overwriting** the location state
+3. Even with the `onBlur` fix, there's a race condition: Google's `place_changed` can fire *after* `onBlur`, resetting the value
+4. The save function reads `location` state (line 335: `location: location?.trim() || null`) — if Google cleared it, the save succeeds with empty/wrong data
 
-2. **Hide the StripeModeSwitcher** components from non-owner admins
-   - The `<StripeModeSwitcher />` on the Donations tab is already gated by #1
-   - The `<MarketplaceStripeModeSwitcher />` on the Store tab (line ~785) — wrap it in `{isOwner && ...}` so admins can still manage vendors/products but can't switch Stripe modes
+The toast says "Event updated successfully" because the DB update itself doesn't error — it just saves the wrong (empty or partial) value.
 
-3. **Prevent URL-based access** — if a non-owner admin navigates to `?tab=sponsorships`, the tab content simply won't render (since the `TabsContent` is gated), so they'll see the default tab instead.
+## Root Cause
 
-### Files Modified
-- `src/pages/Admin.tsx` — 3 small conditional wrappers using existing `isOwner` state
+Google Places Autocomplete fires `place_changed` whenever the user interacts with the input and then leaves it — even if they didn't select a suggestion. When no place is selected, `getPlace()` returns an object with only `name` (whatever text is in the input) but sometimes returns an empty object. The current handler at line 118-125 may call `onChange` with an empty/wrong value.
 
-### No database or RLS changes needed
-This is a UI-level restriction. The backend RLS already uses `has_admin_access()` which covers both admin and owner. Since the financial data (transactions, receipts, webhook logs) is only accessible through admin UI and edge functions that require admin access, hiding the UI from non-owner admins is sufficient. The Stripe secret keys are in edge functions, not exposed to the frontend.
+## Plan
+
+### 1. Fix the `place_changed` handler to never clear valid input
+
+In `LocationAutocomplete.tsx`, modify the `place_changed` listener to only update state if the place has meaningful data. If `getPlace()` returns no `formatted_address` and no `name`, preserve the current value instead of clearing it.
+
+### 2. Add a DOM-sync safety net before save
+
+Add a `ref` callback or imperative method so that **at save time**, `EventManagement.tsx` reads the actual DOM input value as a fallback. This can be done by:
+
+- Adding a `ref` prop to `LocationAutocomplete` that exposes `getInputValue()` 
+- OR simpler: making the component sync DOM→state on every input event using a `MutationObserver` or periodic sync
+
+The simpler approach: **use an uncontrolled input pattern** — stop fighting Google by removing `value={value}` (making it uncontrolled) and instead sync from DOM→React on every change. Use `defaultValue` + `ref` to read the actual value.
+
+### 3. Recommended approach (simplest, most reliable)
+
+**Hybrid controlled/uncontrolled**: Keep `value` for display purposes but add a final DOM-read sync right before save:
+
+In `LocationAutocomplete.tsx`:
+- Expose the `inputRef` via `forwardRef` or a callback ref prop
+- Guard `place_changed`: only update if place has real data
+
+In `EventManagement.tsx`:
+- Before building `eventData`, read `document.getElementById('location')?.value` as a final fallback
+- Use whichever is non-empty: React state or DOM value
+
+### Files to modify:
+- `src/components/LocationAutocomplete.tsx` — fix `place_changed` handler, expose ref
+- `src/pages/EventManagement.tsx` — add DOM fallback read at save time
+- `docs/SAVED_LOCATIONS_SYSTEM.md` — update with fix details
 
