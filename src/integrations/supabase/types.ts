@@ -11594,6 +11594,24 @@ export type Database = {
         }
         Relationships: []
       }
+      wordle_valid_words: {
+        Row: {
+          created_at: string
+          id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          word?: string
+        }
+        Relationships: []
+      }
       workout_activities: {
         Row: {
           category: string | null

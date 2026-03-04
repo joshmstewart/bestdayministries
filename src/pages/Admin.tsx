@@ -113,6 +113,7 @@ import { AiUsageManager } from "@/components/admin/AiUsageManager";
 import { CoffeeVendorManager } from "@/components/admin/CoffeeVendorManager";
 import { AvatarEmojisManager } from "@/components/admin/AvatarEmojisManager";
 import { SystemHealthManager } from "@/components/admin/SystemHealthManager";
+import { WordleWordListManager } from "@/components/admin/WordleWordListManager";
 import { useHealthAlertBadge } from "@/hooks/useHealthAlertBadge";
 const Admin = () => {
   const navigate = useNavigate();
@@ -556,6 +557,7 @@ const Admin = () => {
                     <TabsTrigger value="stickers">Stickers</TabsTrigger>
                     <TabsTrigger value="drink">Drinks</TabsTrigger>
                     <TabsTrigger value="coloring">Coloring</TabsTrigger>
+                    <TabsTrigger value="daily-five-words">Daily Five Words</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="earn-coins">
@@ -622,6 +624,10 @@ const Admin = () => {
 
                   <TabsContent value="coloring">
                     <ColoringManager />
+                  </TabsContent>
+
+                  <TabsContent value="daily-five-words">
+                    <WordleWordListManager />
                   </TabsContent>
 
                 </Tabs>
