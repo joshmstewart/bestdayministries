@@ -201,10 +201,7 @@ const VendorInfo = () => {
                   <Store className="h-5 w-5 mr-2" /> Apply to Become a Vendor
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  Questions? Contact us using the form below on our{" "}
-                  <button onClick={() => navigate("/support")} className="text-primary hover:underline">
-                    Contact page
-                  </button>.
+                  Questions? Contact us using the form below.
                 </p>
               </div>
             </div>
