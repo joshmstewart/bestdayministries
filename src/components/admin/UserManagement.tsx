@@ -83,7 +83,7 @@ export const UserManagement = () => {
   });
 
   const testAccounts = [
-    { email: "testadmin@example.com", password: "TestAdmin123!", displayName: "Test Admin", role: "admin" },
+    { email: "testadmin@example.com", password: "testpassword123", displayName: "Test Admin", role: "admin" },
     { email: "testbestie@example.com", password: "TestBestie123!", displayName: "Test Bestie", role: "bestie" },
     { email: "testguardian@example.com", password: "TestGuardian123!", displayName: "Test Guardian", role: "caregiver" },
     { email: "testsupporter@example.com", password: "TestSupporter123!", displayName: "Test Supporter", role: "supporter" },
