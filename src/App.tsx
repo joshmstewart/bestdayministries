@@ -59,6 +59,7 @@ const Marketplace = lazy(() => import("./pages/Marketplace"));
 const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
 const VendorAuth = lazy(() => import("./pages/VendorAuth"));
 const VendorProfile = lazy(() => import("./pages/VendorProfile"));
+const VendorInfo = lazy(() => import("./pages/VendorInfo"));
 const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -298,6 +299,7 @@ const App = () => {
               <Route path="/bestie-messages" element={<BestieMessages />} />
               <Route path="/joyhousestore" element={<Marketplace />} />
               <Route path="/vendors/:id" element={<VendorProfile />} />
+              <Route path="/vendor-info" element={<VendorInfo />} />
               <Route path="/vendor-dashboard" element={<VendorDashboard />} />
               <Route path="/orders" element={<OrderHistory />} />
               <Route path="/donation-history" element={<DonationHistoryPage />} />
