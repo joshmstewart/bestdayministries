@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, Search, Loader2 } from "lucide-react";
+import { Trash2, Plus, Search, Loader2, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const WordleWordListManager = () => {
   const [words, setWords] = useState<{ id: string; word: string }[]>([]);
+  const [usedWords, setUsedWords] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [newWord, setNewWord] = useState("");
@@ -17,15 +19,18 @@ export const WordleWordListManager = () => {
 
   const fetchWords = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("wordle_valid_words")
-      .select("id, word")
-      .order("word", { ascending: true });
-    if (error) {
-      toast({ title: "Error loading words", description: error.message, variant: "destructive" });
+    const [wordsResult, usedResult] = await Promise.all([
+      supabase.from("wordle_valid_words").select("id, word").order("word", { ascending: true }),
+      supabase.from("wordle_daily_words").select("word"),
+    ]);
+
+    if (wordsResult.error) {
+      toast({ title: "Error loading words", description: wordsResult.error.message, variant: "destructive" });
     } else {
-      setWords(data || []);
+      setWords(wordsResult.data || []);
     }
+
+    setUsedWords(new Set((usedResult.data || []).map(w => w.word.toUpperCase())));
     setLoading(false);
   };
 
@@ -85,9 +90,44 @@ export const WordleWordListManager = () => {
     }
   };
 
-  const filtered = search
-    ? words.filter(w => w.word.includes(search.toUpperCase()))
-    : words;
+  const availableWords = words.filter(w => !usedWords.has(w.word));
+  const usedWordsList = words.filter(w => usedWords.has(w.word));
+
+  const filterList = (list: typeof words) =>
+    search ? list.filter(w => w.word.includes(search.toUpperCase())) : list;
+
+  const renderWordList = (list: typeof words, isUsed: boolean) => {
+    const filtered = filterList(list);
+    return (
+      <div className="flex flex-wrap gap-2 max-h-[400px] overflow-y-auto">
+        {filtered.map(w => (
+          <div
+            key={w.id}
+            className={`group flex items-center gap-1 rounded-md px-2 py-1 text-sm font-mono tracking-wider ${
+              isUsed ? "bg-muted/30 text-muted-foreground line-through" : "bg-muted/50"
+            }`}
+          >
+            {isUsed && <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />}
+            {w.word}
+            {!isUsed && (
+              <button
+                onClick={() => removeWord(w.id, w.word)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
+                title={`Remove ${w.word}`}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            {search ? "No words match your search" : isUsed ? "No words used yet" : "No words in the list yet"}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -95,12 +135,17 @@ export const WordleWordListManager = () => {
         <div>
           <h3 className="text-lg font-semibold">Daily Five Word List</h3>
           <p className="text-sm text-muted-foreground">
-            Curated list of valid 5-letter words the game can use. 
+            Curated list of valid 5-letter words the game can use.
           </p>
         </div>
-        <Badge variant="secondary" className="text-sm">
-          {words.length} words
-        </Badge>
+        <div className="flex gap-2">
+          <Badge variant="secondary" className="text-sm">
+            {availableWords.length} available
+          </Badge>
+          <Badge variant="outline" className="text-sm">
+            {usedWordsList.length} used
+          </Badge>
+        </div>
       </div>
 
       {/* Add single word */}
@@ -144,34 +189,28 @@ export const WordleWordListManager = () => {
         />
       </div>
 
-      {/* Word list */}
+      {/* Tabbed word lists */}
       {loading ? (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading...
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2 max-h-[400px] overflow-y-auto">
-          {filtered.map(w => (
-            <div
-              key={w.id}
-              className="group flex items-center gap-1 bg-muted/50 rounded-md px-2 py-1 text-sm font-mono tracking-wider"
-            >
-              {w.word}
-              <button
-                onClick={() => removeWord(w.id, w.word)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80"
-                title={`Remove ${w.word}`}
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              {search ? "No words match your search" : "No words in the list yet"}
-            </p>
-          )}
-        </div>
+        <Tabs defaultValue="available">
+          <TabsList>
+            <TabsTrigger value="available">
+              Available ({filterList(availableWords).length})
+            </TabsTrigger>
+            <TabsTrigger value="used">
+              Used ({filterList(usedWordsList).length})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="available" className="mt-4">
+            {renderWordList(availableWords, false)}
+          </TabsContent>
+          <TabsContent value="used" className="mt-4">
+            {renderWordList(usedWordsList, true)}
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
