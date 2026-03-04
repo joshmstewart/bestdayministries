@@ -283,7 +283,7 @@ const Admin = () => {
             <TabsTrigger value="events" className="text-sm px-2.5 py-1.5">Events</TabsTrigger>
             <TabsTrigger value="albums" className="text-sm px-2.5 py-1.5">Albums</TabsTrigger>
             <TabsTrigger value="featured" className="text-sm px-2.5 py-1.5">Besties</TabsTrigger>
-            <TabsTrigger value="sponsorships" className="text-sm px-2.5 py-1.5">Donations</TabsTrigger>
+            {isOwner && <TabsTrigger value="sponsorships" className="text-sm px-2.5 py-1.5">Donations</TabsTrigger>}
             <TabsTrigger value="games" className="text-sm px-2.5 py-1.5">Games</TabsTrigger>
             <TabsTrigger value="resources" className="relative text-sm px-2.5 py-1.5">
               Resources
@@ -469,7 +469,7 @@ const Admin = () => {
             <FeaturedBestieManager />
           </TabsContent>
 
-          <TabsContent value="sponsorships">
+          {isOwner && <TabsContent value="sponsorships">
             <div className="space-y-6">
               <StripeModeSwitcher />
               <Card>
@@ -535,7 +535,7 @@ const Admin = () => {
               </CardContent>
             </Card>
             </div>
-          </TabsContent>
+          </TabsContent>}
 
 
           <TabsContent value="games">
@@ -782,7 +782,7 @@ const Admin = () => {
                   
                   <TabsContent value="vendors">
                     <div className="space-y-6">
-                      <MarketplaceStripeModeSwitcher />
+                      {isOwner && <MarketplaceStripeModeSwitcher />}
                       <VendorManagement />
                     </div>
                   </TabsContent>
