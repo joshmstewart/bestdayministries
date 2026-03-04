@@ -370,13 +370,14 @@ serve(async (req) => {
       }
       
       if (groupData.isHouseVendor) {
-        // Official merch: 100% goes to platform
+        // Official merch: 100% goes to platform (including shipping)
         groupData.platformFee = groupData.subtotal;
         groupData.vendorPayout = 0;
       } else {
-        // Regular vendor: commission split
+        // Regular vendor: commission split on product subtotal + shipping goes to vendor
         groupData.platformFee = Math.round(groupData.subtotal * (commissionPercentage / 100));
-        groupData.vendorPayout = groupData.subtotal - groupData.platformFee;
+        // Vendor gets their product share PLUS shipping reimbursement (they pay for shipping)
+        groupData.vendorPayout = (groupData.subtotal - groupData.platformFee) + groupData.shippingFee;
       }
     }
 
@@ -483,6 +484,9 @@ serve(async (req) => {
       const itemTotalCents = Math.round(item.products.price * 100) * item.quantity;
       const itemFeeRatio = itemTotalCents / groupData.subtotal;
       
+      // Distribute shipping proportionally across items for this vendor
+      const itemShippingCents = Math.round(groupData.shippingFee * itemFeeRatio);
+      
       return {
         order_id: order.id,
         product_id: item.product_id,
@@ -491,6 +495,7 @@ serve(async (req) => {
         price_at_purchase: item.products.price,
         platform_fee: Math.round(groupData.platformFee * itemFeeRatio) / 100,
         vendor_payout: Math.round(groupData.vendorPayout * itemFeeRatio) / 100,
+        shipping_amount_cents: itemShippingCents,
       };
     });
 

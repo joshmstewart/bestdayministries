@@ -97,6 +97,9 @@ const VendorInfo = () => {
                     <p>
                       <strong>You handle shipping.</strong> When an order is placed, you receive a notification with the customer's shipping address and order details. You pack and ship from your own location.
                     </p>
+                    <p className="text-sm bg-primary/10 border border-primary/20 rounded-lg px-3 py-2">
+                      <strong className="text-foreground">💰 Shipping fees are passed to you.</strong> The shipping amount collected from the customer at checkout is included in your payout — so you're reimbursed for your shipping costs.
+                    </p>
                     <p className="text-sm">
                       Our platform supports multiple shipping options. You choose what works best for your business:
                     </p>
