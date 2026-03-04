@@ -97,16 +97,29 @@ const VendorInfo = () => {
                     <p>
                       <strong>You handle shipping.</strong> When an order is placed, you receive a notification with the customer's shipping address and order details. You pack and ship from your own location.
                     </p>
-                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                      <p className="font-medium text-foreground">Current Shipping Rates (charged to customer):</p>
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                      <p className="font-medium text-foreground">How Shipping Rates Work:</p>
+                      <p className="text-sm">
+                        Shipping costs are <strong>dynamically calculated at checkout</strong> based on the customer's ZIP code, your origin ZIP, and the weight/dimensions of the items. We pull real-time rates from top carriers including:
+                      </p>
                       <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li><strong>$6.99 flat rate</strong> per vendor per order</li>
-                        <li><strong>Free shipping</strong> on orders $35+ (per vendor)</li>
+                        <li><strong>USPS</strong> — Priority Mail, Ground Advantage, and more</li>
+                        <li><strong>UPS</strong> — Ground, 3-Day Select, 2nd Day Air, etc.</li>
+                        <li><strong>FedEx</strong> — Ground, Express, Home Delivery</li>
+                      </ul>
+                      <p className="text-sm">
+                        Customers see the best available rates at checkout and choose the option that works for them. If product weight/dimensions aren't set, a <strong>$6.99 flat rate</strong> is used as a fallback (free shipping on orders $35+ per vendor).
+                      </p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                      <p className="font-medium text-foreground">What You'll Need for Shipping:</p>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        <li>Set your <strong>origin ZIP code</strong> in your vendor dashboard settings</li>
+                        <li>Enter <strong>weight and dimensions</strong> for each product for accurate rate calculation</li>
+                        <li>Use your own shipping accounts and labels to ship orders</li>
+                        <li>Enter <strong>tracking numbers</strong> through your vendor dashboard once an order ships</li>
                       </ul>
                     </div>
-                    <p className="text-sm">
-                      Shipping costs are collected from the customer at checkout. You use your own shipping accounts and labels. Tracking numbers can be entered through your vendor dashboard once an order ships.
-                    </p>
                   </div>
                 </CardContent>
               </Card>
