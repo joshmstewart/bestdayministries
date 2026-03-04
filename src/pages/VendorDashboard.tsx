@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck, Home } from "lucide-react";
+import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck, Home, Info } from "lucide-react";
 import { VendorBestieAssetManager } from "@/components/vendor/VendorBestieAssetManager";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
@@ -426,6 +426,14 @@ const VendorDashboard = () => {
                 <Plus className="h-4 w-4 mr-1" />
                 Add Vendor
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/vendor-info')}
+              >
+                <Info className="h-4 w-4 mr-1" />
+                Vendor Resources
+              </Button>
             </div>
             <Button
               variant={isHomepage ? "secondary" : "outline"}
@@ -442,14 +450,24 @@ const VendorDashboard = () => {
         {/* Single vendor - show add button and homepage toggle */}
         {vendors.length === 1 && (
           <div className="mb-6 flex items-center justify-between">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/vendor-auth?new=true')}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Another Vendor
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => navigate('/vendor-auth?new=true')}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Another Vendor
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/vendor-info')}
+              >
+                <Info className="h-4 w-4 mr-1" />
+                Vendor Resources
+              </Button>
+            </div>
             <Button
               variant={isHomepage ? "secondary" : "outline"}
               size="sm"
