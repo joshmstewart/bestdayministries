@@ -21,6 +21,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   // Public Pages
   { value: "/", label: "Landing Page" },
   { value: "/about", label: "About/Resources" },
+  { value: "/meet-the-team", label: "Meet The Team" },
   { value: "/ambassador", label: "Meet Our Ambassador" },
   { value: "/support", label: "Support Us" },
   { value: "/joy-rocks", label: "Joy Rocks Coffee" },
