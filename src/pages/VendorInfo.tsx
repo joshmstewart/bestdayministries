@@ -127,7 +127,7 @@ const VendorInfo = () => {
                       <p className="font-medium text-foreground">For Either Option You'll Need To:</p>
                       <ul className="list-disc list-inside space-y-1 text-sm">
                         <li>Set your <strong>origin ZIP code</strong> in your vendor dashboard settings</li>
-                        <li>Optionally enter <strong>weight and dimensions</strong> for each product to enable dynamic carrier rates — if not provided, flat rate shipping will be used</li>
+                        <li>Optionally enter <strong>weight</strong> for each product for more accurate carrier rates — if not provided, a default weight of 1 lb is used for rate calculation</li>
                         <li>Use your own shipping accounts and labels to ship orders</li>
                         <li>Enter <strong>tracking numbers</strong> through your vendor dashboard once an order ships</li>
                       </ul>
