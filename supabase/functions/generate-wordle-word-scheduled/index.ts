@@ -8,7 +8,7 @@ const corsHeaders = {
 /**
  * Scheduled function to pre-generate the Wordle word for today.
  * Runs at midnight MST (7 AM UTC) via cron job.
- * This prevents slow initial loads when the first user of the day accesses the game.
+ * Picks from a curated word list managed in Admin → Games → Daily Five Words.
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get today's date in MST (UTC-7) - same logic as generate-wordle-word
+    // Get today's date in MST (UTC-7)
     const now = new Date();
     const mstOffset = -7 * 60;
     const mstDate = new Date(now.getTime() + mstOffset * 60 * 1000);
@@ -64,36 +64,43 @@ Deno.serve(async (req) => {
     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
     console.log(`[Wordle Scheduler] Selected theme: ${randomTheme.name}`);
 
-    // Get ALL previously used words to avoid any repeats until pool is exhausted
+    // Get ALL previously used words to exclude them
     const { data: allUsedWords } = await supabase
       .from("wordle_daily_words")
       .select("word")
       .order("word_date", { ascending: false });
 
-    const usedWordsList = allUsedWords?.map(w => w.word.toUpperCase()).join(", ") || "";
-    const usedWordsCount = allUsedWords?.length || 0;
-    
-    console.log(`[Wordle Scheduler] Total words used so far: ${usedWordsCount}`);
+    const usedWordsSet = new Set(allUsedWords?.map(w => w.word.toUpperCase()) || []);
+    console.log(`[Wordle Scheduler] Total words used so far: ${usedWordsSet.size}`);
 
-    // Generate a word using AI
+    // Get the curated word list
+    const { data: validWords, error: validWordsError } = await supabase
+      .from("wordle_valid_words")
+      .select("word");
+
+    if (validWordsError || !validWords || validWords.length === 0) {
+      throw new Error("No valid words in the curated word list. Add words in Admin → Games → Daily Five Words.");
+    }
+
+    // Filter out already-used words
+    const availableWords = validWords
+      .map(w => w.word)
+      .filter(w => !usedWordsSet.has(w));
+
+    if (availableWords.length === 0) {
+      throw new Error("All curated words have been used! Add more words in Admin → Games → Daily Five Words.");
+    }
+
+    console.log(`[Wordle Scheduler] Available words from curated list: ${availableWords.length}`);
+
+    // Use AI to pick the best word for today's theme
     if (!lovableApiKey) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const prompt = `Generate a single 5-letter English word related to the theme "${randomTheme.name}" (${randomTheme.description}). 
-The word must:
-- Be exactly 5 letters long
-- Be a SIMPLE, EVERYDAY English word that a 10-year-old would know
-- Be a word most people use in daily conversation (e.g., HOUSE, PLANT, SMILE, BREAD)
-- AVOID uncommon, technical, academic, or literary words (e.g., EPOCH, QUALM, KNAVE are TOO HARD)
-- Use standard/formal spelling (e.g., "AUNT" not "AUNTY", "READY" not "REDDY")
-- ABSOLUTELY NOT be a proper noun, name, character name, fictional character, or person's name (e.g., SANTA, JESUS, HOMER, ALICE are ALL BANNED - these are names, not words)
-- NOT be a brand name, place name, or any word that is primarily known as a name
-- NOT be slang, informal variants, or regional spellings
-- NOT be an abbreviation or acronym
-- Be appropriate for all ages (family-friendly)
-- Be related to the theme "${randomTheme.name}"
-- NOT be any of these recently used words: ${usedWordsList || "none yet"}
+    const prompt = `From this list of words, pick the ONE word that best relates to the theme "${randomTheme.name}" (${randomTheme.description}).
+
+Available words: ${availableWords.join(", ")}
 
 Also provide a short hint (1 sentence, max 10 words) that gives a clue about the word without being too obvious.
 
@@ -103,7 +110,7 @@ Respond in JSON format:
   "hint": "A short hint about the word"
 }`;
 
-    console.log(`[Wordle Scheduler] Generating word with AI...`);
+    console.log(`[Wordle Scheduler] Asking AI to pick from ${availableWords.length} words...`);
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -114,7 +121,7 @@ Respond in JSON format:
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are a word game assistant. Generate exactly what is asked, no explanations." },
+          { role: "system", content: "You are a word game assistant. Pick the best word from the provided list. Only use words from the list. No explanations." },
           { role: "user", content: prompt }
         ],
       }),
@@ -123,16 +130,14 @@ Respond in JSON format:
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("[Wordle Scheduler] AI API error:", errorText);
-      throw new Error("Failed to generate word from AI");
+      throw new Error("Failed to get word selection from AI");
     }
 
     const aiData = await aiResponse.json();
     const content = aiData.choices?.[0]?.message?.content;
     
-    // Parse the JSON response
     let wordData;
     try {
-      // Extract JSON from markdown code blocks if present
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, content];
       wordData = JSON.parse(jsonMatch[1] || content);
     } catch (parseError) {
@@ -143,9 +148,15 @@ Respond in JSON format:
     const word = wordData.word?.toUpperCase();
     const hint = wordData.hint;
 
-    if (!word || word.length !== 5 || !/^[A-Z]+$/.test(word)) {
-      console.error("[Wordle Scheduler] Invalid word generated:", word);
-      throw new Error("AI generated an invalid word");
+    // Validate the word is actually from our curated list
+    let finalWord = word;
+    let finalHint = hint;
+
+    if (!word || !availableWords.includes(word)) {
+      console.error("[Wordle Scheduler] AI picked a word not in the curated list:", word);
+      finalWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+      finalHint = `Related to ${randomTheme.name}`;
+      console.log("[Wordle Scheduler] Using random fallback word:", finalWord);
     }
 
     console.log(`[Wordle Scheduler] Generated word for ${today}`);
@@ -154,10 +165,10 @@ Respond in JSON format:
     const { data: newWord, error: insertError } = await supabase
       .from("wordle_daily_words")
       .insert({
-        word: word,
+        word: finalWord,
         theme_id: randomTheme.id,
         word_date: today,
-        hint: hint
+        hint: finalHint
       })
       .select()
       .single();
