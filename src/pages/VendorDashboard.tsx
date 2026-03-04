@@ -366,10 +366,16 @@ const VendorDashboard = () => {
                   You don't have any vendor accounts yet. Apply to become a vendor and sell your products!
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <Button onClick={() => navigate('/vendor-auth')} size="lg" className="w-full">
                   Apply to Become a Vendor
                 </Button>
+                <button
+                  onClick={() => navigate('/vendor-info')}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-2 w-full text-center block"
+                >
+                  Learn more about the vendor program
+                </button>
               </CardContent>
             </Card>
           </div>
