@@ -210,6 +210,19 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
       if (isApproved) {
         toast.success("Comment added!");
       } else {
+        // Create a persistent in-app notification for the poster
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          type: "moderation_needed",
+          title: "Comment Under Review",
+          message: "Your comment is being reviewed before it can be posted.",
+          link: "/notifications",
+          metadata: {
+            item_id: currentDiscussionId,
+            item_type: "discussion_comments",
+            context: "fortune_comment_flagged"
+          },
+        });
         toast.info("Your comment is under review before posting.");
       }
       // Reload comments so the user sees updates right away
