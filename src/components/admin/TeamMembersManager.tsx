@@ -15,6 +15,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragEndEvent,
@@ -57,7 +58,7 @@ const SortableTeamMemberItem = ({ member, onToggleActive, onEdit, onDelete }: So
   return (
     <Card ref={setNodeRef} style={style} className={!member.is_active ? "opacity-50" : ""}>
       <CardContent className="p-3 flex items-center gap-3">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing hover:text-primary transition-colors">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing hover:text-primary transition-colors touch-none">
           <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         </div>
         {member.image_url ? (
@@ -103,7 +104,8 @@ export function TeamMembersManager() {
   const [isActive, setIsActive] = useState(true);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
