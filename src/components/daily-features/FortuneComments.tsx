@@ -175,6 +175,7 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
         author_id: user.id,
         content: newComment.trim(),
         approval_status: "approved", // Fortune comments are auto-approved
+        is_moderated: true, // Mark as moderated to prevent false moderation notifications
       });
 
       if (error) throw error;
