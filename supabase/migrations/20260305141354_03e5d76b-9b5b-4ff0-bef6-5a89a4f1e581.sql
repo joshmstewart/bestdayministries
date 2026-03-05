@@ -1,0 +1,1 @@
+UPDATE wordle_daily_words SET theme_id = 'ebadb945-1488-498a-bee0-2a4de7a40d33', hint = 'Tidy up and make things sparkle' WHERE id = '595ea5b1-f334-48ff-94b8-73d9bcc33c9e';
