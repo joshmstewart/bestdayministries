@@ -1244,6 +1244,19 @@ const Discussions = () => {
             } else if (isApproved) {
               toast({ title: audioUrl ? "Audio comment added!" : "Comment added!" });
             } else {
+              // Create persistent notification for the poster about flagged content
+              await supabase.from("notifications").insert({
+                user_id: user?.id,
+                type: "moderation_needed",
+                title: "Comment Under Review",
+                message: "Your comment is being reviewed before it can be posted.",
+                link: "/notifications",
+                metadata: {
+                  item_id: postId,
+                  item_type: "discussion_comments",
+                  context: "comment_flagged"
+                },
+              });
               toast({ 
                 title: "Comment submitted for review",
                 description: "Your comment will be reviewed by moderators.",
