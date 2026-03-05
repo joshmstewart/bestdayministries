@@ -192,12 +192,12 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
         moderationNotes = isApproved ? null : `${severity} severity: ${reason}`;
       }
 
-      // Insert comment — is_moderated reflects AI result (true = passed, false = flagged for review)
+      // Insert comment — if AI flags it, hold for moderation instead of posting
       const { error } = await supabase.from("discussion_comments").insert({
         post_id: currentDiscussionId,
         author_id: user.id,
         content: commentText,
-        approval_status: "approved",
+        approval_status: isApproved ? "approved" : "pending_approval",
         is_moderated: isApproved,
         moderation_notes: moderationNotes,
       });
@@ -206,8 +206,13 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
 
       setNewComment("");
       setShowVoiceInput(false);
-      toast.success("Comment added!");
-      // Immediately reload comments so the user sees their comment right away
+      
+      if (isApproved) {
+        toast.success("Comment added!");
+      } else {
+        toast.info("Your comment is under review before posting.");
+      }
+      // Reload comments so the user sees updates right away
       await loadComments();
     } catch (error) {
       console.error("Error posting comment:", error);
