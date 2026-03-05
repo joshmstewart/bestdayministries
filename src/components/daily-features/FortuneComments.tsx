@@ -169,13 +169,37 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
         }
       }
 
-      // Insert comment into discussion_comments (not daily_fortune_comments)
+      // Run AI moderation on the comment
+      let isApproved = true;
+      let moderationNotes: string | null = null;
+
+      const commentText = newComment.trim();
+      if (commentText) {
+        const { data: moderationResult, error: moderationError } = await supabase.functions.invoke('moderate-content', {
+          body: { content: commentText, contentType: 'comment' }
+        });
+
+        if (moderationError) {
+          console.error("Moderation error:", moderationError);
+          toast.error("Error checking content. Please try again.");
+          setSubmitting(false);
+          return;
+        }
+
+        isApproved = moderationResult?.approved ?? true;
+        const reason = moderationResult?.reason || "";
+        const severity = moderationResult?.severity || "";
+        moderationNotes = isApproved ? null : `${severity} severity: ${reason}`;
+      }
+
+      // Insert comment — is_moderated reflects AI result (true = passed, false = flagged for review)
       const { error } = await supabase.from("discussion_comments").insert({
         post_id: currentDiscussionId,
         author_id: user.id,
-        content: newComment.trim(),
-        approval_status: "approved", // Fortune comments are auto-approved
-        is_moderated: true, // Mark as moderated to prevent false moderation notifications
+        content: commentText,
+        approval_status: "approved",
+        is_moderated: isApproved,
+        moderation_notes: moderationNotes,
       });
 
       if (error) throw error;
