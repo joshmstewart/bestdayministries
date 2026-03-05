@@ -182,6 +182,8 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
       setNewComment("");
       setShowVoiceInput(false);
       toast.success("Comment added!");
+      // Immediately reload comments so the user sees their comment right away
+      await loadComments();
     } catch (error) {
       console.error("Error posting comment:", error);
       toast.error("Failed to post comment");
