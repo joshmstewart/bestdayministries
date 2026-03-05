@@ -98,11 +98,21 @@ Deno.serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Filter out the theme name itself — the word must NOT be the theme!
+    const themeWord = randomTheme.name.toUpperCase();
+    const wordsExcludingTheme = availableWords.filter(w => w.toUpperCase() !== themeWord);
+    
+    if (wordsExcludingTheme.length === 0) {
+      throw new Error("No available words after excluding the theme name. Add more words.");
+    }
+
     const prompt = `From this list of words, pick the ONE word that best relates to the theme "${randomTheme.name}" (${randomTheme.description}).
 
-Available words: ${availableWords.join(", ")}
+CRITICAL RULE: The word MUST NOT be the same as the theme name "${randomTheme.name}". The theme is shown to the player as a hint, so using it as the answer defeats the purpose.
 
-Also provide a short hint (1 sentence, max 10 words) that gives a clue about the word without being too obvious.
+Available words: ${wordsExcludingTheme.join(", ")}
+
+Also provide a short hint (1 sentence, max 10 words) that gives a clue about the word without being too obvious. The hint must NOT contain the word itself.
 
 Respond in JSON format:
 {
@@ -152,9 +162,9 @@ Respond in JSON format:
     let finalWord = word;
     let finalHint = hint;
 
-    if (!word || !availableWords.includes(word)) {
-      console.error("[Wordle Scheduler] AI picked a word not in the curated list:", word);
-      finalWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+    if (!word || !wordsExcludingTheme.includes(word) || word === themeWord) {
+      console.error("[Wordle Scheduler] AI picked an invalid word:", word);
+      finalWord = wordsExcludingTheme[Math.floor(Math.random() * wordsExcludingTheme.length)];
       finalHint = `Related to ${randomTheme.name}`;
       console.log("[Wordle Scheduler] Using random fallback word:", finalWord);
     }

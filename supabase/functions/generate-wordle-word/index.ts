@@ -89,11 +89,21 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Filter out the theme name itself — the word must NOT be the theme!
+    const themeWord = randomTheme.name.toUpperCase();
+    const wordsExcludingTheme = availableWords.filter(w => w.toUpperCase() !== themeWord);
+    
+    if (wordsExcludingTheme.length === 0) {
+      throw new Error("No available words after excluding the theme name. Add more words.");
+    }
+
     const prompt = `From this list of words, pick the ONE word that best relates to the theme "${randomTheme.name}" (${randomTheme.description}).
 
-Available words: ${availableWords.join(", ")}
+CRITICAL RULE: The word MUST NOT be the same as the theme name "${randomTheme.name}". The theme is shown to the player as a hint, so using it as the answer defeats the purpose.
 
-Also provide a short hint (1 sentence, max 10 words) that gives a clue about the word without being too obvious.
+Available words: ${wordsExcludingTheme.join(", ")}
+
+Also provide a short hint (1 sentence, max 10 words) that gives a clue about the word without being too obvious. The hint must NOT contain the word itself.
 
 Respond in JSON format:
 {
@@ -139,10 +149,10 @@ Respond in JSON format:
     const hint = wordData.hint;
 
     // Validate the word is actually from our curated list
-    if (!word || !availableWords.includes(word)) {
-      console.error("AI picked a word not in the curated list:", word);
-      // Fallback: pick a random word from available list
-      const fallbackWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+    if (!word || !wordsExcludingTheme.includes(word) || word === themeWord) {
+      console.error("AI picked an invalid word:", word);
+      // Fallback: pick a random word from available list (excluding theme)
+      const fallbackWord = wordsExcludingTheme[Math.floor(Math.random() * wordsExcludingTheme.length)];
       console.log("Using random fallback word:", fallbackWord);
       
       const { data: newWord, error: insertError } = await supabase
