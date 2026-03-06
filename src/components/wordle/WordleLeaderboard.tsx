@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Medal, Award, Flame } from "lucide-react";
+import { Trophy, Medal, Award, Flame, ChevronDown, ChevronUp } from "lucide-react";
 import { AvatarDisplay } from "@/components/AvatarDisplay";
+import { Button } from "@/components/ui/button";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -13,11 +14,16 @@ interface LeaderboardEntry {
   avatar_number: number;
 }
 
+const COLLAPSED_COUNT = 5;
+const EXPANDED_COUNT = 20;
+
 export function WordleLeaderboard() {
   const { user } = useAuth();
   const [streakEntries, setStreakEntries] = useState<LeaderboardEntry[]>([]);
   const [winsEntries, setWinsEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [streaksExpanded, setStreaksExpanded] = useState(false);
+  const [winsExpanded, setWinsExpanded] = useState(false);
 
   useEffect(() => {
     loadLeaderboards();
@@ -27,7 +33,6 @@ export function WordleLeaderboard() {
     try {
       const currentMonthYear = new Date().toISOString().slice(0, 7);
       
-      // Fetch all stats for current month
       const { data, error } = await supabase
         .from("wordle_user_stats")
         .select(`
@@ -55,18 +60,16 @@ export function WordleLeaderboard() {
           avatar_number: profileMap.get(d.user_id)?.avatar_number || 1
         }));
 
-        // Top 5 by current streak
         const topStreaks = [...entriesWithProfiles]
           .filter(e => e.current_streak > 0)
           .sort((a, b) => b.current_streak - a.current_streak)
-          .slice(0, 5);
+          .slice(0, EXPANDED_COUNT);
         setStreakEntries(topStreaks);
 
-        // Top 5 by monthly wins
         const topWins = [...entriesWithProfiles]
           .filter(e => e.current_month_wins > 0)
           .sort((a, b) => b.current_month_wins - a.current_month_wins)
-          .slice(0, 5);
+          .slice(0, EXPANDED_COUNT);
         setWinsEntries(topWins);
       }
     } catch (error) {
@@ -129,6 +132,28 @@ export function WordleLeaderboard() {
     </div>
   );
 
+  const renderExpandButton = (
+    entries: LeaderboardEntry[],
+    expanded: boolean,
+    setExpanded: (v: boolean) => void
+  ) => {
+    if (entries.length <= COLLAPSED_COUNT) return null;
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full mt-2 text-xs text-muted-foreground"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? (
+          <>Show Less <ChevronUp className="h-3 w-3 ml-1" /></>
+        ) : (
+          <>Show All ({entries.length}) <ChevronDown className="h-3 w-3 ml-1" /></>
+        )}
+      </Button>
+    );
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -147,9 +172,11 @@ export function WordleLeaderboard() {
     );
   }
 
+  const visibleStreaks = streaksExpanded ? streakEntries : streakEntries.slice(0, COLLAPSED_COUNT);
+  const visibleWins = winsExpanded ? winsEntries : winsEntries.slice(0, COLLAPSED_COUNT);
+
   return (
     <div className="space-y-4">
-      {/* Top Streaks Leaderboard */}
       <Card>
         <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -163,14 +190,16 @@ export function WordleLeaderboard() {
               No active streaks yet. Start one today!
             </div>
           ) : (
-            <div className="space-y-2">
-              {streakEntries.map((entry, index) => renderEntry(entry, index, true))}
-            </div>
+            <>
+              <div className="space-y-2">
+                {visibleStreaks.map((entry, index) => renderEntry(entry, index, true))}
+              </div>
+              {renderExpandButton(streakEntries, streaksExpanded, setStreaksExpanded)}
+            </>
           )}
         </CardContent>
       </Card>
 
-      {/* Monthly Wins Leaderboard */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -184,9 +213,12 @@ export function WordleLeaderboard() {
               No wins yet this month. Be the first!
             </div>
           ) : (
-            <div className="space-y-2">
-              {winsEntries.map((entry, index) => renderEntry(entry, index, false))}
-            </div>
+            <>
+              <div className="space-y-2">
+                {visibleWins.map((entry, index) => renderEntry(entry, index, false))}
+              </div>
+              {renderExpandButton(winsEntries, winsExpanded, setWinsExpanded)}
+            </>
           )}
         </CardContent>
       </Card>
