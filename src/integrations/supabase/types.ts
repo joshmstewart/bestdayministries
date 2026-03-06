@@ -906,9 +906,59 @@ export type Database = {
         }
         Relationships: []
       }
+      beat_pad_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          creation_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          creation_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          creation_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beat_pad_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "beat_pad_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "beat_pad_comments_creation_id_fkey"
+            columns: ["creation_id"]
+            isOneToOne: false
+            referencedRelation: "beat_pad_creations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beat_pad_creations: {
         Row: {
           ai_audio_url: string | null
+          comments_count: number
           created_at: string
           creator_id: string
           id: string
@@ -924,6 +974,7 @@ export type Database = {
         }
         Insert: {
           ai_audio_url?: string | null
+          comments_count?: number
           created_at?: string
           creator_id: string
           id?: string
@@ -939,6 +990,7 @@ export type Database = {
         }
         Update: {
           ai_audio_url?: string | null
+          comments_count?: number
           created_at?: string
           creator_id?: string
           id?: string

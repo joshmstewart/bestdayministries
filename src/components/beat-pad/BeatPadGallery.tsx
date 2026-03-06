@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Play, Square, Loader2, Music, Copy, Info } from 'lucide-react';
+import { Heart, Play, Square, Loader2, Music, Copy, Info, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BeatCommentsSection } from "./BeatCommentsSection";
 
 type SortOption = 'newest' | 'liked' | 'played';
 
@@ -30,6 +31,7 @@ interface BeatCreation {
   tempo: number;
   likes_count: number;
   plays_count: number;
+  comments_count: number;
   creator_id: string;
   created_at: string;
   image_url?: string | null;
@@ -72,6 +74,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
   const [soundsMap, setSoundsMap] = useState<Map<string, SoundInfo>>(new Map());
   const [selectedBeat, setSelectedBeat] = useState<BeatCreation | null>(null);
+  const [commentsBeatId, setCommentsBeatId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCreations();
@@ -104,7 +107,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
     try {
       let query = supabase
         .from('beat_pad_creations')
-        .select('id, name, pattern, tempo, likes_count, plays_count, creator_id, created_at, image_url, instrument_order')
+        .select('id, name, pattern, tempo, likes_count, plays_count, comments_count, creator_id, created_at, image_url, instrument_order')
         .eq('is_public', true);
 
       if (sortBy === 'newest') {
@@ -359,6 +362,14 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                     <Heart className={cn("h-4 w-4 mr-1", userLikes.has(creation.id) && "fill-current")} />
                     {creation.likes_count}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCommentsBeatId(creation.id)}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    {creation.comments_count || 0}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -402,6 +413,23 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
           </div>
           <div className="px-4 py-3 border-t text-xs text-muted-foreground">
             <p>{selectedBeat?.tempo} BPM • {selectedBeat ? countActiveSteps(selectedBeat.pattern) : 0} notes</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comments Dialog */}
+      <Dialog open={!!commentsBeatId} onOpenChange={() => setCommentsBeatId(null)}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Comments
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 [-webkit-overflow-scrolling:touch]">
+            {commentsBeatId && (
+              <BeatCommentsSection creationId={commentsBeatId} />
+            )}
           </div>
         </DialogContent>
       </Dialog>

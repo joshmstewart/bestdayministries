@@ -11,9 +11,16 @@ Beat Pad (`/games/beat-pad`) is a step-sequencer game that lets users create bea
   - User-created beats.
   - `pattern` is stored as a JSON object.
   - `likes_count` is maintained by a trigger that reacts to inserts/deletes in `beat_pad_likes`.
+  - `comments_count` is maintained by a trigger that reacts to inserts/deletes in `beat_pad_comments`.
 - `beat_pad_likes`
   - Community likes for public beats.
   - Inserting a like also triggers an in-app notification for the beat creator (via a trigger function).
+- `beat_pad_comments`
+  - Comments on public beats.
+  - Fields: `id`, `creation_id`, `author_id`, `content`, `created_at`, `updated_at`.
+  - RLS: authenticated users can view comments on public beats, insert own, update own, delete own (admins can delete any).
+  - Realtime enabled for live comment updates.
+  - Component: `BeatCommentsSection` (reusable, used in BeatPadGallery dialog and FeedItemDialog).
 
 ## Pattern Storage (CRITICAL)
 ### Current format (preferred)
