@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useBeatLoopPlayer } from "@/hooks/useBeatLoopPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { BeatCommentsSection } from "@/components/beat-pad/BeatCommentsSection";
 import { FeedItemData } from "./FeedItem";
 import { LikeButtonWithTooltip } from "./LikeButtonWithTooltip";
 import ImageLightbox from "@/components/ImageLightbox";
@@ -494,6 +495,13 @@ export function FeedItemDialog({
                     </ol>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Beat Comments */}
+            {item.item_type === 'beat' && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <BeatCommentsSection creationId={item.id} />
               </div>
             )}
 
