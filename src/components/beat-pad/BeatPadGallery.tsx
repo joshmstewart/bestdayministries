@@ -362,6 +362,14 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
                     <Heart className={cn("h-4 w-4 mr-1", userLikes.has(creation.id) && "fill-current")} />
                     {creation.likes_count}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCommentsBeatId(creation.id)}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    {creation.comments_count || 0}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -405,6 +413,23 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
           </div>
           <div className="px-4 py-3 border-t text-xs text-muted-foreground">
             <p>{selectedBeat?.tempo} BPM • {selectedBeat ? countActiveSteps(selectedBeat.pattern) : 0} notes</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comments Dialog */}
+      <Dialog open={!!commentsBeatId} onOpenChange={() => setCommentsBeatId(null)}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Comments
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 [-webkit-overflow-scrolling:touch]">
+            {commentsBeatId && (
+              <BeatCommentsSection creationId={commentsBeatId} />
+            )}
           </div>
         </DialogContent>
       </Dialog>
