@@ -965,6 +965,22 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 </Button>
               )}
 
+              {/* Comment count for beats */}
+              {item.item_type === 'beat' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 px-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDialogOpen(true);
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="text-sm text-foreground">{item.comments_count || 0}</span>
+                </Button>
+              )}
+
               {/* Remix button for beats */}
               {item.item_type === 'beat' && item.extra_data?.pattern && (
                 <Button
