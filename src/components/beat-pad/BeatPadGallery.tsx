@@ -105,7 +105,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
     try {
       let query = supabase
         .from('beat_pad_creations')
-        .select('id, name, pattern, tempo, likes_count, plays_count, creator_id, created_at, image_url, instrument_order')
+        .select('id, name, pattern, tempo, likes_count, plays_count, comments_count, creator_id, created_at, image_url, instrument_order')
         .eq('is_public', true);
 
       if (sortBy === 'newest') {
