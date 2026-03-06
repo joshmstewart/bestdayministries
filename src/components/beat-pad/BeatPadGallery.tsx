@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BeatCommentsSection } from "./BeatCommentsSection";
 
 type SortOption = 'newest' | 'liked' | 'played';
 
@@ -73,6 +74,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
   const [soundsMap, setSoundsMap] = useState<Map<string, SoundInfo>>(new Map());
   const [selectedBeat, setSelectedBeat] = useState<BeatCreation | null>(null);
+  const [commentsBeatId, setCommentsBeatId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCreations();
