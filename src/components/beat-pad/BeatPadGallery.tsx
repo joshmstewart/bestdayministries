@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Heart, Play, Square, Loader2, Music, Copy, Info } from 'lucide-react';
+import { Heart, Play, Square, Loader2, Music, Copy, Info, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -30,6 +30,7 @@ interface BeatCreation {
   tempo: number;
   likes_count: number;
   plays_count: number;
+  comments_count: number;
   creator_id: string;
   created_at: string;
   image_url?: string | null;
