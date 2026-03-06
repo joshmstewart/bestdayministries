@@ -152,7 +152,7 @@ export function BeatCommentsSection({ creationId, compact = false }: BeatComment
               <AvatarDisplay
                 profileAvatarId={comment.author?.profile_avatar_id}
                 displayName={comment.author?.display_name || "User"}
-                size="xs"
+                size="sm"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
