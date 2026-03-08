@@ -29,6 +29,7 @@ interface Submission {
   created_at: string;
   message_type: string | null;
   image_url: string | null;
+  attachments: Array<{ name: string; url: string; type: string; size?: number }> | null;
   replied_at: string | null;
   reply_message: string | null;
   admin_notes: string | null;
