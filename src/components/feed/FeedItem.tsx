@@ -1127,6 +1127,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
         routeBase={config.routeBase}
         idParam={config.idParam}
         scrollToComments={scrollToComments}
+        onCommentsCountChange={setCommentsCount}
       />
 
       {/* Fortune Dialog - opens DailyFortunePopup directly */}
