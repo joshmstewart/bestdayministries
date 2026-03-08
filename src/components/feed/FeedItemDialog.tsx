@@ -83,7 +83,16 @@ export function FeedItemDialog({
   const [albumDetailOpen, setAlbumDetailOpen] = useState(false);
   const [albumImages, setAlbumImages] = useState<{ image_url?: string | null; video_url?: string | null; video_type?: string | null; youtube_url?: string | null; caption?: string | null }[]>([]);
 
-  // Fetch drink ingredients when a drink item is opened
+  // Auto-scroll to comments when opened via comment button
+  useEffect(() => {
+    if (isOpen && scrollToComments && commentsRef.current) {
+      const timer = setTimeout(() => {
+        commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, scrollToComments]);
+
   useEffect(() => {
     const fetchDrinkIngredients = async () => {
       if (!item || item.item_type !== 'drink' || !isOpen) {
