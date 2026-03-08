@@ -83,6 +83,13 @@ Deno.serve(async (req) => {
       emailText = parseRawEmail(payload.raw);
     }
 
+    // Extract attachments from raw email
+    let extractedAttachments: Array<{ filename: string; contentType: string; data: string }> = [];
+    if (payload.raw) {
+      extractedAttachments = extractAttachmentsFromRaw(payload.raw);
+      console.log('[process-inbound-email] Extracted attachments:', extractedAttachments.length);
+    }
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
