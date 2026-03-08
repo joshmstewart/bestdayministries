@@ -108,6 +108,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const [isLiked, setIsLiked] = useState(isLikedInitial ?? false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [scrollToComments, setScrollToComments] = useState(false);
   const [fortuneDialogOpen, setFortuneDialogOpen] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
