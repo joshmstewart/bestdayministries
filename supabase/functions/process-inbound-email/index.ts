@@ -95,6 +95,13 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Upload extracted attachments to storage
+    let uploadedAttachments: Array<{ name: string; url: string; type: string; size: number }> = [];
+    if (extractedAttachments.length > 0) {
+      uploadedAttachments = await uploadAttachmentsToStorage(supabase, extractedAttachments);
+      console.log('[process-inbound-email] Uploaded attachments:', uploadedAttachments.length, uploadedAttachments.map(a => a.name));
+    }
+
     // Extract sender email - try to get original sender from raw headers first
     let senderEmail: string | null = null;
     let senderNameFromHeaders = '';
