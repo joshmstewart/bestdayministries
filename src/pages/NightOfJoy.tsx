@@ -60,6 +60,8 @@ const NightOfJoy = () => {
     message: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (field: string, value: string) => {
