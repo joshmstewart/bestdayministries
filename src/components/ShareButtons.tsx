@@ -29,6 +29,7 @@ interface ShareButtonsProps {
   compact?: boolean;
   eventId?: string; // For dynamic social media previews
   newsletterId?: string; // For dynamic newsletter social media previews
+  pageId?: string; // For static page social media previews (e.g., "night-of-joy")
 }
 
 export const ShareButtons = ({
