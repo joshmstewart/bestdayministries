@@ -392,12 +392,64 @@ const NightOfJoy = () => {
                   />
                 </div>
 
+                {/* File Attachments */}
+                <div className="space-y-3">
+                  <Label>Attachments (e.g. company logo)</Label>
+                  {attachedFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {attachedFiles.map((af, i) => (
+                        <div key={i} className="relative group border rounded-lg overflow-hidden bg-card">
+                          {af.isImage && af.preview ? (
+                            <img src={af.preview} alt={af.file.name} className="w-20 h-20 object-cover" />
+                          ) : (
+                            <div className="w-20 h-20 flex flex-col items-center justify-center p-2">
+                              <FileText className="w-6 h-6 text-muted-foreground mb-1" />
+                              <span className="text-[10px] text-muted-foreground text-center truncate w-full">
+                                {af.file.name.split('.').pop()?.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeFile(i)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {attachedFiles.length < MAX_FILES && (
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-muted-foreground/50 transition-colors">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={ACCEPTED_EXTENSIONS}
+                        onChange={handleFilesChange}
+                        className="hidden"
+                        id="noj-file-upload"
+                        multiple
+                      />
+                      <label htmlFor="noj-file-upload" className="cursor-pointer">
+                        <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Click to attach files
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          JPG, PNG, SVG, PDF, DOCX — up to 10MB each, {MAX_FILES} max
+                        </p>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
                 <Button type="submit" size="lg" className="w-full" disabled={submitting}>
                   {submitting ? "Submitting..." : "Submit Sponsorship Interest"}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Please submit by May 4th, 2026. Include a .jpeg or .png of your company logo if applicable.
+                  Please submit by May 4th, 2026.
                   <br />
                   Contact: <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">Marla@joyhousestore.com</a>
                 </p>
