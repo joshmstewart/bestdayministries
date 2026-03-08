@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { ShareButtons } from "@/components/ShareButtons";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
@@ -172,7 +173,8 @@ const NightOfJoy = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <SEOHead
         title="A Night of Joy – Best Day Ministries Fundraiser"
-        description="Join us Sunday June 14th, 2026 for A Night of Joy – a fundraiser creating belonging and purpose for adults with special abilities."
+        description="Join us June 14, 2026 for A Night of Joy at Truitt Homestead. Dinner, live entertainment & silent auction for adults with special abilities."
+        image="/images/night-of-joy-og.jpg"
       />
       <UnifiedHeader />
 
@@ -225,7 +227,18 @@ const NightOfJoy = () => {
               </div>
             )}
 
-            <div className="flex justify-center mt-6">
+            {/* Share Buttons */}
+            <div className="mt-6">
+              <ShareButtons
+                title="A Night of Joy – Best Day Ministries Fundraiser"
+                description="Join us June 14, 2026 for dinner, live entertainment & silent auction creating belonging for adults with special abilities."
+                url="https://bestdayministries.org/night-of-joy"
+                pageId="night-of-joy"
+                hashtags={["NightOfJoy", "BestDayMinistries"]}
+              />
+            </div>
+
+            <div className="flex justify-center mt-4">
               <div className="flex items-center gap-1">
                 <span className="h-px w-12 bg-secondary/60" />
                 <Star className="w-4 h-4 text-secondary fill-secondary" />

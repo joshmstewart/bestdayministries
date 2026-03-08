@@ -29,6 +29,7 @@ interface ShareButtonsProps {
   compact?: boolean;
   eventId?: string; // For dynamic social media previews
   newsletterId?: string; // For dynamic newsletter social media previews
+  pageId?: string; // For static page social media previews (e.g., "night-of-joy")
 }
 
 export const ShareButtons = ({
@@ -41,6 +42,7 @@ export const ShareButtons = ({
   compact = false,
   eventId,
   newsletterId,
+  pageId,
 }: ShareButtonsProps) => {
   const [copied, setCopied] = useState(false);
   
@@ -62,6 +64,10 @@ export const ShareButtons = ({
     if (newsletterId) {
       const redirectUrl = encodeURIComponent(shareUrl);
       return `${shareBase}?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
+    }
+    if (pageId) {
+      const redirectUrl = encodeURIComponent(shareUrl);
+      return `${shareBase}?pageId=${pageId}&redirect=${redirectUrl}`;
     }
     return shareUrl;
   };
