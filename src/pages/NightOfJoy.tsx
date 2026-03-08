@@ -52,7 +52,33 @@ const BENEFITS = [
   { label: "Tax deductible donation", tiers: [true, true, true, true, true, true] },
 ];
 
+const EVENT_DATE = new Date("2026-06-14T17:00:00");
+const DEADLINE_DATE = new Date("2026-05-04T23:59:59");
+
+function useCountdown(targetDate: Date) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, passed: false });
+  useEffect(() => {
+    const calc = () => {
+      const diff = targetDate.getTime() - Date.now();
+      if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, passed: true };
+      return {
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+        passed: false,
+      };
+    };
+    setTimeLeft(calc());
+    const id = setInterval(() => setTimeLeft(calc()), 1000);
+    return () => clearInterval(id);
+  }, [targetDate]);
+  return timeLeft;
+}
+
 const NightOfJoy = () => {
+  const eventCountdown = useCountdown(EVENT_DATE);
+  const deadlineCountdown = useCountdown(DEADLINE_DATE);
   const [formData, setFormData] = useState({
     businessName: "",
     contactName: "",
