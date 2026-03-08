@@ -55,6 +55,7 @@ interface FeedItemDialogProps {
   routeBase: string;
   idParam: string;
   scrollToComments?: boolean;
+  onCommentsCountChange?: (count: number) => void;
 }
 
 export function FeedItemDialog({
