@@ -3017,6 +3017,7 @@ export type Database = {
       }
       contact_form_replies: {
         Row: {
+          attachments: Json | null
           cc_emails: string[] | null
           created_at: string
           id: string
@@ -3028,6 +3029,7 @@ export type Database = {
           submission_id: string
         }
         Insert: {
+          attachments?: Json | null
           cc_emails?: string[] | null
           created_at?: string
           id?: string
@@ -3039,6 +3041,7 @@ export type Database = {
           submission_id: string
         }
         Update: {
+          attachments?: Json | null
           cc_emails?: string[] | null
           created_at?: string
           id?: string

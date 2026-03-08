@@ -1,0 +1,1 @@
+ALTER TABLE public.contact_form_replies ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT NULL;
