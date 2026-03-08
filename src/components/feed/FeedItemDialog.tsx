@@ -512,7 +512,7 @@ export function FeedItemDialog({
 
             {/* Beat Comments */}
             {item.item_type === 'beat' && (
-              <div className="mt-4 pt-4 border-t border-border">
+              <div ref={commentsRef} className="mt-4 pt-4 border-t border-border">
                 <BeatCommentsSection creationId={item.id} />
               </div>
             )}
