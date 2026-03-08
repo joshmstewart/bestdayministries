@@ -42,6 +42,7 @@ export const ShareButtons = ({
   compact = false,
   eventId,
   newsletterId,
+  pageId,
 }: ShareButtonsProps) => {
   const [copied, setCopied] = useState(false);
   
