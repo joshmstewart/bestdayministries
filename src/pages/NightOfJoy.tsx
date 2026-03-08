@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText } from "lucide-react";
+import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 
 const ACCEPTED_FILE_TYPES = [
