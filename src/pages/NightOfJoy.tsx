@@ -189,15 +189,42 @@ const NightOfJoy = () => {
             <h1 className="font-script text-5xl md:text-7xl text-primary-foreground mb-4 drop-shadow-lg">
               A Night of Joy
             </h1>
-            <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex items-center justify-center gap-2 mb-2">
               <Calendar className="w-5 h-5 text-secondary" />
               <p className="text-xl md:text-2xl font-bold text-primary-foreground">
                 Sunday, June 14<sup>th</sup>, 2026
               </p>
             </div>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Clock className="w-4 h-4 text-secondary" />
+              <p className="text-primary-foreground/80">5:00 PM – 8:00 PM</p>
+              <span className="text-primary-foreground/40 mx-1">•</span>
+              <MapPin className="w-4 h-4 text-secondary" />
+              <p className="text-primary-foreground/80">Truitt Homestead</p>
+            </div>
             <p className="text-primary-foreground/90 text-lg max-w-2xl mx-auto">
               A Fundraiser that creates belonging, and purpose for adults with special abilities.
             </p>
+
+            {/* Countdown Timer */}
+            {!eventCountdown.passed && (
+              <div className="mt-8 flex justify-center gap-3 sm:gap-4">
+                {[
+                  { value: eventCountdown.days, label: "Days" },
+                  { value: eventCountdown.hours, label: "Hours" },
+                  { value: eventCountdown.minutes, label: "Min" },
+                  { value: eventCountdown.seconds, label: "Sec" },
+                ].map(({ value, label }) => (
+                  <div key={label} className="bg-primary-foreground/15 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 sm:py-3 min-w-[60px]">
+                    <span className="text-2xl sm:text-3xl font-bold text-primary-foreground tabular-nums">
+                      {String(value).padStart(2, "0")}
+                    </span>
+                    <p className="text-[10px] sm:text-xs text-primary-foreground/70 uppercase tracking-wider mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex justify-center mt-6">
               <div className="flex items-center gap-1">
                 <span className="h-px w-12 bg-secondary/60" />
