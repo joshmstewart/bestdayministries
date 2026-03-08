@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText } from "lucide-react";
+import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 
 const ACCEPTED_FILE_TYPES = [
@@ -52,7 +52,33 @@ const BENEFITS = [
   { label: "Tax deductible donation", tiers: [true, true, true, true, true, true] },
 ];
 
+const EVENT_DATE = new Date("2026-06-14T17:00:00");
+const DEADLINE_DATE = new Date("2026-05-04T23:59:59");
+
+function useCountdown(targetDate: Date) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, passed: false });
+  useEffect(() => {
+    const calc = () => {
+      const diff = targetDate.getTime() - Date.now();
+      if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, passed: true };
+      return {
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+        passed: false,
+      };
+    };
+    setTimeLeft(calc());
+    const id = setInterval(() => setTimeLeft(calc()), 1000);
+    return () => clearInterval(id);
+  }, [targetDate]);
+  return timeLeft;
+}
+
 const NightOfJoy = () => {
+  const eventCountdown = useCountdown(EVENT_DATE);
+  const deadlineCountdown = useCountdown(DEADLINE_DATE);
   const [formData, setFormData] = useState({
     businessName: "",
     contactName: "",
@@ -163,15 +189,42 @@ const NightOfJoy = () => {
             <h1 className="font-script text-5xl md:text-7xl text-primary-foreground mb-4 drop-shadow-lg">
               A Night of Joy
             </h1>
-            <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex items-center justify-center gap-2 mb-2">
               <Calendar className="w-5 h-5 text-secondary" />
               <p className="text-xl md:text-2xl font-bold text-primary-foreground">
                 Sunday, June 14<sup>th</sup>, 2026
               </p>
             </div>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Clock className="w-4 h-4 text-secondary" />
+              <p className="text-primary-foreground/80">5:00 PM – 8:00 PM</p>
+              <span className="text-primary-foreground/40 mx-1">•</span>
+              <MapPin className="w-4 h-4 text-secondary" />
+              <p className="text-primary-foreground/80">Truitt Homestead</p>
+            </div>
             <p className="text-primary-foreground/90 text-lg max-w-2xl mx-auto">
               A Fundraiser that creates belonging, and purpose for adults with special abilities.
             </p>
+
+            {/* Countdown Timer */}
+            {!eventCountdown.passed && (
+              <div className="mt-8 flex justify-center gap-3 sm:gap-4">
+                {[
+                  { value: eventCountdown.days, label: "Days" },
+                  { value: eventCountdown.hours, label: "Hours" },
+                  { value: eventCountdown.minutes, label: "Min" },
+                  { value: eventCountdown.seconds, label: "Sec" },
+                ].map(({ value, label }) => (
+                  <div key={label} className="bg-primary-foreground/15 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 sm:py-3 min-w-[60px]">
+                    <span className="text-2xl sm:text-3xl font-bold text-primary-foreground tabular-nums">
+                      {String(value).padStart(2, "0")}
+                    </span>
+                    <p className="text-[10px] sm:text-xs text-primary-foreground/70 uppercase tracking-wider mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex justify-center mt-6">
               <div className="flex items-center gap-1">
                 <span className="h-px w-12 bg-secondary/60" />
@@ -196,6 +249,49 @@ const NightOfJoy = () => {
             <p className="text-muted-foreground italic">
               Thank you for partnering with us to make this impact possible.
             </p>
+          </div>
+        </section>
+
+        {/* Event Details Section */}
+        <section className="py-12 md:py-16 bg-muted/30">
+          <div className="container max-w-4xl mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center text-foreground mb-8">What to Expect</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+              {[
+                { icon: UtensilsCrossed, title: "Dinner & Drinks", desc: "A catered evening of great food and refreshments" },
+                { icon: Music, title: "Live Entertainment", desc: "Enjoy live music and performances throughout the evening" },
+                { icon: ShoppingBag, title: "Silent Auction", desc: "Bid on unique items to support Best Day Ministries" },
+              ].map(({ icon: Icon, title, desc }) => (
+                <Card key={title} className="text-center border-border">
+                  <CardContent className="pt-6 pb-5 space-y-2">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-foreground">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Sponsorship Deadline Countdown */}
+            {!deadlineCountdown.passed && (
+              <div className="text-center bg-card border border-primary/20 rounded-xl p-6">
+                <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">Sponsorship Deadline — May 4, 2026</p>
+                <div className="flex justify-center gap-3">
+                  {[
+                    { value: deadlineCountdown.days, label: "Days" },
+                    { value: deadlineCountdown.hours, label: "Hours" },
+                    { value: deadlineCountdown.minutes, label: "Min" },
+                  ].map(({ value, label }) => (
+                    <div key={label} className="bg-primary/10 rounded-lg px-4 py-2 min-w-[60px]">
+                      <span className="text-2xl font-bold text-primary tabular-nums">{String(value).padStart(2, "0")}</span>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
