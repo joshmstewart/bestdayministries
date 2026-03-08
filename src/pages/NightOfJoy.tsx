@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
@@ -10,7 +10,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2 } from "lucide-react";
+import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
+
+const ACCEPTED_FILE_TYPES = [
+  "image/jpeg", "image/png", "image/webp", "image/svg+xml",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const ACCEPTED_EXTENSIONS = ".jpg,.jpeg,.png,.webp,.svg,.pdf,.docx";
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+interface AttachedFile {
+  file: File;
+  preview?: string;
+  isImage: boolean;
+}
 
 const SPONSORSHIP_TIERS = [
   { name: "Best Day Ever Sponsor", amount: 10000, tickets: 8, socialPosts: "4 posts" },
@@ -44,11 +60,56 @@ const NightOfJoy = () => {
     message: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const uploadFiles = async () => {
+    const uploaded: { name: string; url: string; type: string; size: number }[] = [];
+    for (const { file, isImage } of attachedFiles) {
+      let fileToUpload: File | Blob = file;
+      if (isImage) {
+        try { fileToUpload = await compressImage(file); } catch { fileToUpload = file; }
+      }
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/_+/g, '_');
+      const fileName = `${Date.now()}-${sanitizedName || 'file'}`;
+      const { data: uploadData, error } = await supabase.storage
+        .from("app-assets")
+        .upload(`contact-form/${fileName}`, fileToUpload);
+      if (error) { console.error("Upload error:", error); continue; }
+      const { data: { publicUrl } } = supabase.storage.from("app-assets").getPublicUrl(uploadData.path);
+      uploaded.push({ name: file.name, url: publicUrl, type: file.type, size: file.size });
+    }
+    return uploaded;
+  };
+
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_FILES - attachedFiles.length;
+    if (files.length > remaining) {
+      toast.error(`You can attach up to ${MAX_FILES} files. ${remaining} slot(s) remaining.`);
+    }
+    for (const file of files.slice(0, remaining)) {
+      if (file.size > MAX_FILE_SIZE) { toast.error(`${file.name} exceeds 10MB limit.`); continue; }
+      if (!ACCEPTED_FILE_TYPES.includes(file.type)) { toast.error(`${file.name} is not a supported format.`); continue; }
+      const isImage = file.type.startsWith("image/");
+      const attached: AttachedFile = { file, isImage };
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onloadend = () => { attached.preview = reader.result as string; setAttachedFiles(prev => [...prev, attached]); };
+        reader.readAsDataURL(file);
+      } else {
+        setAttachedFiles(prev => [...prev, attached]);
+      }
+    }
+    e.target.value = "";
+  };
+
+  const removeFile = (index: number) => setAttachedFiles(prev => prev.filter((_, i) => i !== index));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +119,15 @@ const NightOfJoy = () => {
     }
     setSubmitting(true);
     try {
+      const uploadedAttachments = attachedFiles.length > 0 ? await uploadFiles() : [];
       const { error } = await supabase.from("contact_form_submissions").insert({
         name: formData.contactName,
         email: formData.email,
-        subject: `Night of Joy Sponsorship - ${formData.selectedTier}`,
+        subject: `Night of Joy Sponsorship - ${formData.selectedTier || 'General Inquiry'}`,
         message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
         source: "night-of-joy",
-      });
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
+      } as any);
       if (error) throw error;
       setSubmitted(true);
       toast.success("Thank you! We'll be in touch soon.");
@@ -329,12 +392,64 @@ const NightOfJoy = () => {
                   />
                 </div>
 
+                {/* File Attachments */}
+                <div className="space-y-3">
+                  <Label>Attachments (e.g. company logo)</Label>
+                  {attachedFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {attachedFiles.map((af, i) => (
+                        <div key={i} className="relative group border rounded-lg overflow-hidden bg-card">
+                          {af.isImage && af.preview ? (
+                            <img src={af.preview} alt={af.file.name} className="w-20 h-20 object-cover" />
+                          ) : (
+                            <div className="w-20 h-20 flex flex-col items-center justify-center p-2">
+                              <FileText className="w-6 h-6 text-muted-foreground mb-1" />
+                              <span className="text-[10px] text-muted-foreground text-center truncate w-full">
+                                {af.file.name.split('.').pop()?.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeFile(i)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {attachedFiles.length < MAX_FILES && (
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-muted-foreground/50 transition-colors">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={ACCEPTED_EXTENSIONS}
+                        onChange={handleFilesChange}
+                        className="hidden"
+                        id="noj-file-upload"
+                        multiple
+                      />
+                      <label htmlFor="noj-file-upload" className="cursor-pointer">
+                        <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Click to attach files
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          JPG, PNG, SVG, PDF, DOCX — up to 10MB each, {MAX_FILES} max
+                        </p>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
                 <Button type="submit" size="lg" className="w-full" disabled={submitting}>
                   {submitting ? "Submitting..." : "Submit Sponsorship Interest"}
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Please submit by May 4th, 2026. Include a .jpeg or .png of your company logo if applicable.
+                  Please submit by May 4th, 2026.
                   <br />
                   Contact: <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">Marla@joyhousestore.com</a>
                 </p>

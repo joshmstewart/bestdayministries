@@ -3102,6 +3102,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           assigned_to: string | null
+          attachments: Json | null
           cc_emails: string[] | null
           created_at: string
           email: string
@@ -3120,6 +3121,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
           cc_emails?: string[] | null
           created_at?: string
           email: string
@@ -3138,6 +3140,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
           cc_emails?: string[] | null
           created_at?: string
           email?: string
