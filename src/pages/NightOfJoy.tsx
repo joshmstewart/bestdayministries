@@ -52,8 +52,8 @@ const NightOfJoy = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.contactName || !formData.email || !formData.selectedTier) {
-      toast.error("Please fill in your name, email, and select a sponsorship level.");
+    if (!formData.contactName || !formData.email) {
+      toast.error("Please fill in your name and email.");
       return;
     }
     setSubmitting(true);
