@@ -974,6 +974,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   className="gap-1.5 px-2"
                   onClick={(e) => {
                     e.stopPropagation();
+                    setScrollToComments(true);
                     setDialogOpen(true);
                   }}
                 >
