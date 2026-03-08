@@ -24,9 +24,11 @@ interface BeatCommentsSectionProps {
   creationId: string;
   /** Compact mode for inline usage in cards */
   compact?: boolean;
+  /** Callback when comments count changes */
+  onCommentsCountChange?: (count: number) => void;
 }
 
-export function BeatCommentsSection({ creationId, compact = false }: BeatCommentsSectionProps) {
+export function BeatCommentsSection({ creationId, compact = false, onCommentsCountChange }: BeatCommentsSectionProps) {
   const { user, isAdmin } = useAuth();
   const [comments, setComments] = useState<BeatComment[]>([]);
   const [newComment, setNewComment] = useState("");
