@@ -109,6 +109,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [scrollToComments, setScrollToComments] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(item.comments_count || 0);
   const [fortuneDialogOpen, setFortuneDialogOpen] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
@@ -979,7 +980,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   }}
                 >
                   <MessageSquare className="h-4 w-4" />
-                  <span className="text-sm text-foreground">{item.comments_count || 0}</span>
+                  <span className="text-sm text-foreground">{commentsCount}</span>
                 </Button>
               )}
 
@@ -1126,6 +1127,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
         routeBase={config.routeBase}
         idParam={config.idParam}
         scrollToComments={scrollToComments}
+        onCommentsCountChange={setCommentsCount}
       />
 
       {/* Fortune Dialog - opens DailyFortunePopup directly */}

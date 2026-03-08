@@ -24,9 +24,11 @@ interface BeatCommentsSectionProps {
   creationId: string;
   /** Compact mode for inline usage in cards */
   compact?: boolean;
+  /** Callback when comments count changes */
+  onCommentsCountChange?: (count: number) => void;
 }
 
-export function BeatCommentsSection({ creationId, compact = false }: BeatCommentsSectionProps) {
+export function BeatCommentsSection({ creationId, compact = false, onCommentsCountChange }: BeatCommentsSectionProps) {
   const { user, isAdmin } = useAuth();
   const [comments, setComments] = useState<BeatComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -46,15 +48,15 @@ export function BeatCommentsSection({ creationId, compact = false }: BeatComment
       .order("created_at", { ascending: true });
 
     if (!error && data) {
-      setComments(
-        data.map((c: any) => ({
-          ...c,
-          author: Array.isArray(c.author) ? c.author[0] : c.author,
-        }))
-      );
+      const mapped = data.map((c: any) => ({
+        ...c,
+        author: Array.isArray(c.author) ? c.author[0] : c.author,
+      }));
+      setComments(mapped);
+      onCommentsCountChange?.(mapped.length);
     }
     setLoading(false);
-  }, [creationId]);
+  }, [creationId, onCommentsCountChange]);
 
   useEffect(() => {
     loadComments();

@@ -55,6 +55,7 @@ interface FeedItemDialogProps {
   routeBase: string;
   idParam: string;
   scrollToComments?: boolean;
+  onCommentsCountChange?: (count: number) => void;
 }
 
 export function FeedItemDialog({
@@ -69,6 +70,7 @@ export function FeedItemDialog({
   routeBase,
   idParam,
   scrollToComments = false,
+  onCommentsCountChange,
 }: FeedItemDialogProps) {
   const commentsRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -513,7 +515,7 @@ export function FeedItemDialog({
             {/* Beat Comments */}
             {item.item_type === 'beat' && (
               <div ref={commentsRef} className="mt-4 pt-4 border-t border-border">
-                <BeatCommentsSection creationId={item.id} />
+                <BeatCommentsSection creationId={item.id} onCommentsCountChange={onCommentsCountChange} />
               </div>
             )}
 
