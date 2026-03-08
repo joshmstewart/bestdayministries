@@ -857,6 +857,15 @@ export default function ContactSubmissions() {
                           </div>
                         )}
                         <p className="mt-1 whitespace-pre-wrap">{r.message}</p>
+                        {r.attachments && Array.isArray(r.attachments) && r.attachments.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {(r.attachments as any[]).map((att: any, i: number) => (
+                              <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline">
+                                {att.type?.startsWith('image/') ? '🖼️' : att.type?.includes('pdf') ? '📄' : '📎'} {att.name}
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
