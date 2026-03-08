@@ -227,7 +227,18 @@ const NightOfJoy = () => {
               </div>
             )}
 
-            <div className="flex justify-center mt-6">
+            {/* Share Buttons */}
+            <div className="mt-6">
+              <ShareButtons
+                title="A Night of Joy – Best Day Ministries Fundraiser"
+                description="Join us June 14, 2026 for dinner, live entertainment & silent auction creating belonging for adults with special abilities."
+                url="https://bestdayministries.org/night-of-joy"
+                pageId="night-of-joy"
+                hashtags={["NightOfJoy", "BestDayMinistries"]}
+              />
+            </div>
+
+            <div className="flex justify-center mt-4">
               <div className="flex items-center gap-1">
                 <span className="h-px w-12 bg-secondary/60" />
                 <Star className="w-4 h-4 text-secondary fill-secondary" />
