@@ -252,6 +252,49 @@ const NightOfJoy = () => {
           </div>
         </section>
 
+        {/* Event Details Section */}
+        <section className="py-12 md:py-16 bg-muted/30">
+          <div className="container max-w-4xl mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center text-foreground mb-8">What to Expect</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+              {[
+                { icon: UtensilsCrossed, title: "Dinner & Drinks", desc: "A catered evening of great food and refreshments" },
+                { icon: Music, title: "Live Entertainment", desc: "Enjoy live music and performances throughout the evening" },
+                { icon: ShoppingBag, title: "Silent Auction", desc: "Bid on unique items to support Best Day Ministries" },
+              ].map(({ icon: Icon, title, desc }) => (
+                <Card key={title} className="text-center border-border">
+                  <CardContent className="pt-6 pb-5 space-y-2">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-foreground">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Sponsorship Deadline Countdown */}
+            {!deadlineCountdown.passed && (
+              <div className="text-center bg-card border border-primary/20 rounded-xl p-6">
+                <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">Sponsorship Deadline — May 4, 2026</p>
+                <div className="flex justify-center gap-3">
+                  {[
+                    { value: deadlineCountdown.days, label: "Days" },
+                    { value: deadlineCountdown.hours, label: "Hours" },
+                    { value: deadlineCountdown.minutes, label: "Min" },
+                  ].map(({ value, label }) => (
+                    <div key={label} className="bg-primary/10 rounded-lg px-4 py-2 min-w-[60px]">
+                      <span className="text-2xl font-bold text-primary tabular-nums">{String(value).padStart(2, "0")}</span>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Sponsorship Levels & Benefits Table */}
         <section className="py-12 md:py-16 bg-muted/30">
           <div className="container max-w-5xl mx-auto px-4">
