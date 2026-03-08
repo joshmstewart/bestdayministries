@@ -68,6 +68,49 @@ const NightOfJoy = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const uploadFiles = async () => {
+    const uploaded: { name: string; url: string; type: string; size: number }[] = [];
+    for (const { file, isImage } of attachedFiles) {
+      let fileToUpload: File | Blob = file;
+      if (isImage) {
+        try { fileToUpload = await compressImage(file); } catch { fileToUpload = file; }
+      }
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/_+/g, '_');
+      const fileName = `${Date.now()}-${sanitizedName || 'file'}`;
+      const { data: uploadData, error } = await supabase.storage
+        .from("app-assets")
+        .upload(`contact-form/${fileName}`, fileToUpload);
+      if (error) { console.error("Upload error:", error); continue; }
+      const { data: { publicUrl } } = supabase.storage.from("app-assets").getPublicUrl(uploadData.path);
+      uploaded.push({ name: file.name, url: publicUrl, type: file.type, size: file.size });
+    }
+    return uploaded;
+  };
+
+  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_FILES - attachedFiles.length;
+    if (files.length > remaining) {
+      toast.error(`You can attach up to ${MAX_FILES} files. ${remaining} slot(s) remaining.`);
+    }
+    for (const file of files.slice(0, remaining)) {
+      if (file.size > MAX_FILE_SIZE) { toast.error(`${file.name} exceeds 10MB limit.`); continue; }
+      if (!ACCEPTED_FILE_TYPES.includes(file.type)) { toast.error(`${file.name} is not a supported format.`); continue; }
+      const isImage = file.type.startsWith("image/");
+      const attached: AttachedFile = { file, isImage };
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onloadend = () => { attached.preview = reader.result as string; setAttachedFiles(prev => [...prev, attached]); };
+        reader.readAsDataURL(file);
+      } else {
+        setAttachedFiles(prev => [...prev, attached]);
+      }
+    }
+    e.target.value = "";
+  };
+
+  const removeFile = (index: number) => setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.contactName || !formData.email) {
@@ -76,13 +119,15 @@ const NightOfJoy = () => {
     }
     setSubmitting(true);
     try {
+      const uploadedAttachments = attachedFiles.length > 0 ? await uploadFiles() : [];
       const { error } = await supabase.from("contact_form_submissions").insert({
         name: formData.contactName,
         email: formData.email,
-        subject: `Night of Joy Sponsorship - ${formData.selectedTier}`,
+        subject: `Night of Joy Sponsorship - ${formData.selectedTier || 'General Inquiry'}`,
         message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
         source: "night-of-joy",
-      });
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
+      } as any);
       if (error) throw error;
       setSubmitted(true);
       toast.success("Thank you! We'll be in touch soon.");
