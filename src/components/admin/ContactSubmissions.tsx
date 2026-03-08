@@ -806,7 +806,31 @@ export default function ContactSubmissions() {
                   <strong>Message:</strong>
                   <p className="whitespace-pre-wrap mt-2 p-3 bg-background rounded">{selectedSubmission.message}</p>
                 </div>
-                {selectedSubmission.image_url && (
+                {/* Attachments display */}
+                {(selectedSubmission.attachments && selectedSubmission.attachments.length > 0) ? (
+                  <div>
+                    <strong>Attachments ({selectedSubmission.attachments.length}):</strong>
+                    <div className="mt-2 space-y-2">
+                      {selectedSubmission.attachments.map((att, i) => (
+                        <div key={i} className="flex items-center gap-2 p-2 bg-muted rounded">
+                          {att.type?.startsWith('image/') ? (
+                            <img src={att.url} alt={att.name} className="h-16 w-16 object-cover rounded border" />
+                          ) : (
+                            <div className="h-10 w-10 flex items-center justify-center bg-primary/10 rounded text-xs font-bold text-primary">
+                              {att.type?.includes('pdf') ? 'PDF' : att.type?.includes('word') ? 'DOC' : 'FILE'}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate block">
+                              {att.name}
+                            </a>
+                            {att.size && <span className="text-xs text-muted-foreground">{(att.size / 1024).toFixed(1)} KB</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : selectedSubmission.image_url && (
                   <div>
                     <strong>Attachment:</strong>
                     <img src={selectedSubmission.image_url} alt="Attachment" className="max-w-full rounded mt-2 border" />
