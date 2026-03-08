@@ -98,6 +98,7 @@ const MyFortunes = lazy(() => import("./pages/MyFortunes"));
 const CoffeeProductDetail = lazy(() => import("./pages/CoffeeProductDetail"));
 const ShareRedirect = lazy(() => import("./pages/ShareRedirect"));
 const BikeRidePledge = lazy(() => import("./pages/BikeRidePledge"));
+const NightOfJoy = lazy(() => import("./pages/NightOfJoy"));
 
 // Loading fallback component
 const PageLoader = () => (
