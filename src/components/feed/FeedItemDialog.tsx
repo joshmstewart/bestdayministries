@@ -70,6 +70,7 @@ export function FeedItemDialog({
   routeBase,
   idParam,
   scrollToComments = false,
+  onCommentsCountChange,
 }: FeedItemDialogProps) {
   const commentsRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
