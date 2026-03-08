@@ -409,7 +409,9 @@ Deno.serve(async (req) => {
           status: 'new',
           message_type: 'general',
           source: 'email',
-          cc_emails: ccEmails.length > 0 ? ccEmails : []
+          cc_emails: ccEmails.length > 0 ? ccEmails : [],
+          attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
+          image_url: uploadedAttachments.find(a => a.type.startsWith('image/'))?.url || null,
         })
         .select()
         .single();
