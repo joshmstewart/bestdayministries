@@ -708,8 +708,11 @@ function extractCcFromRaw(raw: string): string[] {
  * Attempts to remove quoted replies, signatures, and other noise
  */
 function extractMessageContent(content: string): string {
+  // Remove base64-encoded attachment data blocks (prevents PDF/image data in message body)
+  let text = content.replace(/[A-Za-z0-9+/=]{100,}/g, ' [attachment data removed] ');
+  
   // Remove HTML tags if present
-  let text = content.replace(/<[^>]*>/g, ' ');
+  text = text.replace(/<[^>]*>/g, ' ');
   
   // Decode HTML entities
   text = text
