@@ -788,3 +788,163 @@ function extractMessageContent(content: string): string {
     .join('\n')
     .trim();
 }
+
+/**
+ * Extract attachments from raw MIME email
+ * Returns array of { filename, contentType, data (base64) }
+ */
+function extractAttachmentsFromRaw(raw: string): Array<{ filename: string; contentType: string; data: string }> {
+  const attachments: Array<{ filename: string; contentType: string; data: string }> = [];
+  
+  try {
+    // Find boundary from Content-Type header
+    const boundaryMatch = raw.match(/boundary="?([^"\r\n;]+)"?/i);
+    if (!boundaryMatch) {
+      console.log('[extractAttachments] No MIME boundary found');
+      return attachments;
+    }
+    
+    const boundary = boundaryMatch[1];
+    const parts = raw.split('--' + boundary);
+    
+    for (const part of parts) {
+      // Skip preamble and closing boundary
+      if (!part.trim() || part.trim() === '--') continue;
+      
+      // Check if this part is an attachment
+      const contentDisposition = part.match(/Content-Disposition:\s*(attachment|inline)[^\r\n]*/i);
+      const contentTypeMatch = part.match(/Content-Type:\s*([^\r\n;]+)/i);
+      
+      if (!contentDisposition && !contentTypeMatch) continue;
+      
+      const contentType = contentTypeMatch?.[1]?.trim()?.toLowerCase() || '';
+      
+      // Skip text/plain and text/html parts (body, not attachments)
+      if (contentType === 'text/plain' || contentType === 'text/html') continue;
+      
+      // Must be an actual file type we care about
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+      ];
+      
+      const isAllowed = allowedTypes.some(t => contentType.startsWith(t)) || 
+                        contentType.startsWith('image/');
+      
+      if (!isAllowed && !contentDisposition) continue;
+      
+      // Extract filename
+      let filename = 'attachment';
+      const filenameMatch = part.match(/filename="?([^"\r\n;]+)"?/i);
+      if (filenameMatch) {
+        filename = filenameMatch[1].trim();
+      } else {
+        // Generate name from content type
+        const ext = contentType.split('/')[1]?.replace('jpeg', 'jpg') || 'bin';
+        filename = `attachment.${ext}`;
+      }
+      
+      // Extract base64 data (content after double newline in this part)
+      const dataMatch = part.match(/\r?\n\r?\n([\s\S]+)/);
+      if (!dataMatch) continue;
+      
+      let data = dataMatch[1].trim();
+      
+      // Check transfer encoding
+      const transferEncoding = part.match(/Content-Transfer-Encoding:\s*([^\r\n]+)/i);
+      const encoding = transferEncoding?.[1]?.trim()?.toLowerCase();
+      
+      if (encoding === 'base64') {
+        // Clean up base64 data (remove whitespace/newlines)
+        data = data.replace(/[\r\n\s]/g, '');
+      } else if (encoding === 'quoted-printable') {
+        // Skip quoted-printable attachments for now (rare for binary files)
+        console.log('[extractAttachments] Skipping quoted-printable attachment:', filename);
+        continue;
+      } else {
+        // Try to encode as base64 if raw binary
+        try {
+          data = btoa(data);
+        } catch {
+          console.log('[extractAttachments] Could not encode attachment:', filename);
+          continue;
+        }
+      }
+      
+      // Validate we have actual data (skip tiny/empty attachments)
+      if (data.length < 10) continue;
+      
+      // Size check - skip files over 10MB base64 (~7.5MB actual)
+      if (data.length > 10 * 1024 * 1024 * 1.37) {
+        console.log('[extractAttachments] Skipping oversized attachment:', filename, data.length);
+        continue;
+      }
+      
+      attachments.push({ filename, contentType: contentType || 'application/octet-stream', data });
+      console.log('[extractAttachments] Found attachment:', filename, contentType, `${Math.round(data.length / 1024)}KB base64`);
+    }
+  } catch (error) {
+    console.error('[extractAttachments] Error parsing attachments:', error);
+  }
+  
+  return attachments;
+}
+
+/**
+ * Upload extracted attachments to Supabase storage
+ */
+async function uploadAttachmentsToStorage(
+  supabase: any,
+  attachments: Array<{ filename: string; contentType: string; data: string }>
+): Promise<Array<{ name: string; url: string; type: string; size: number }>> {
+  const uploaded: Array<{ name: string; url: string; type: string; size: number }> = [];
+  
+  for (const attachment of attachments) {
+    try {
+      // Decode base64 to binary
+      const binaryStr = atob(attachment.data);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      
+      // Generate unique path
+      const timestamp = Date.now();
+      const sanitizedName = attachment.filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `contact-form/inbound/${timestamp}_${sanitizedName}`;
+      
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('app-assets')
+        .upload(storagePath, bytes, {
+          contentType: attachment.contentType,
+          upsert: false,
+        });
+      
+      if (uploadError) {
+        console.error('[uploadAttachments] Upload failed for', attachment.filename, uploadError);
+        continue;
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(storagePath);
+      
+      uploaded.push({
+        name: attachment.filename,
+        url: urlData.publicUrl,
+        type: attachment.contentType,
+        size: bytes.length,
+      });
+      
+      console.log('[uploadAttachments] Uploaded:', attachment.filename, urlData.publicUrl);
+    } catch (error) {
+      console.error('[uploadAttachments] Error processing', attachment.filename, error);
+    }
+  }
+  
+  return uploaded;
+}
