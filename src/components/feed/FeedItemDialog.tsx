@@ -54,6 +54,7 @@ interface FeedItemDialogProps {
   onRefresh?: () => void;
   routeBase: string;
   idParam: string;
+  scrollToComments?: boolean;
 }
 
 export function FeedItemDialog({
