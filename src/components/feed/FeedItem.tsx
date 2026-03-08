@@ -1117,7 +1117,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
       <FeedItemDialog
         item={item}
         isOpen={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => { setDialogOpen(false); setScrollToComments(false); }}
         isLiked={isLiked}
         likesCount={likesCount}
         onToggleLike={handleLike}
@@ -1125,6 +1125,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
         onRefresh={onRefresh}
         routeBase={config.routeBase}
         idParam={config.idParam}
+        scrollToComments={scrollToComments}
       />
 
       {/* Fortune Dialog - opens DailyFortunePopup directly */}
