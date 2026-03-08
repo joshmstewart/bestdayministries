@@ -980,7 +980,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   }}
                 >
                   <MessageSquare className="h-4 w-4" />
-                  <span className="text-sm text-foreground">{item.comments_count || 0}</span>
+                  <span className="text-sm text-foreground">{commentsCount}</span>
                 </Button>
               )}
 
