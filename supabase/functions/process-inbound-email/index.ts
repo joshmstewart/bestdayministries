@@ -478,6 +478,7 @@ Deno.serve(async (req) => {
         sender_name: matchedSubmission.name,
         sender_email: senderEmail,
         message: messageContent,
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
       });
 
     if (insertError) {
