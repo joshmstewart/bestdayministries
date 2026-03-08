@@ -52,8 +52,8 @@ const NightOfJoy = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.contactName || !formData.email || !formData.selectedTier) {
-      toast.error("Please fill in your name, email, and select a sponsorship level.");
+    if (!formData.contactName || !formData.email) {
+      toast.error("Please fill in your name and email.");
       return;
     }
     setSubmitting(true);
@@ -205,8 +205,23 @@ const NightOfJoy = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Sponsorship Level Selection */}
                 <div className="space-y-3">
-                  <Label className="text-base font-bold">Select Sponsorship Level *</Label>
+                  <Label className="text-base font-bold">Sponsorship Level</Label>
+                  <p className="text-sm text-muted-foreground">Not sure yet? No problem — select "Just Inquiring" and we'll help you find the right fit.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleChange("selectedTier", "Just Inquiring")}
+                      className={`p-4 rounded-lg border-2 text-left transition-all ${
+                        formData.selectedTier === "Just Inquiring"
+                          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                          : "border-border hover:border-primary/50 bg-card"
+                      }`}
+                    >
+                      <span className="font-bold text-foreground">Just Inquiring</span>
+                      <span className="block text-sm text-muted-foreground">
+                        I'd like to learn more
+                      </span>
+                    </button>
                     {SPONSORSHIP_TIERS.map((tier) => (
                       <button
                         key={tier.amount}
