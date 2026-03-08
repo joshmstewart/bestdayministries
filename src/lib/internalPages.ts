@@ -45,6 +45,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   { value: "/sponsorship-success", label: "Sponsorship Success" },
   { value: "/bike-ride-pledge", label: "Bike Ride Fundraiser" },
   { value: "/bike-ride-pledge-test", label: "Bike Ride Fundraiser (Test)" },
+  { value: "/night-of-joy", label: "A Night of Joy Fundraiser" },
   
   // Marketplace
   { value: "/joyhousestore", label: "Joy House Store" },

@@ -98,6 +98,7 @@ const MyFortunes = lazy(() => import("./pages/MyFortunes"));
 const CoffeeProductDetail = lazy(() => import("./pages/CoffeeProductDetail"));
 const ShareRedirect = lazy(() => import("./pages/ShareRedirect"));
 const BikeRidePledge = lazy(() => import("./pages/BikeRidePledge"));
+const NightOfJoy = lazy(() => import("./pages/NightOfJoy"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -339,6 +340,7 @@ const App = () => {
             <Route path="/checkout-success" element={<CheckoutSuccess />} />
             <Route path="/share" element={<ShareRedirect />} />
             <Route path="/bike-ride-pledge" element={<BikeRidePledge />} />
+            <Route path="/night-of-joy" element={<NightOfJoy />} />
             <Route path="/bike-ride-pledge-test" element={<Navigate to="/bike-ride-pledge?test=true" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
