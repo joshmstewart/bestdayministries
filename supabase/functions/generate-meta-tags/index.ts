@@ -29,6 +29,7 @@ Deno.serve(async (req: Request) => {
     const urlObj = new URL(req.url)
     const eventId = urlObj.searchParams.get('eventId')
     const newsletterId = urlObj.searchParams.get('newsletterId')
+    const pageId = urlObj.searchParams.get('pageId')
     const redirect = urlObj.searchParams.get('redirect')
 
     // Load SEO settings
@@ -50,11 +51,29 @@ Deno.serve(async (req: Request) => {
     let finalDescription = settingsMap.site_description || 'Building a supportive community for adults with special needs'
     let finalImage = settingsMap.og_image_url || 'https://lovable.dev/opengraph-image-p98pqg.png'
     let finalType = 'website'
-    // redirectTarget = where JS sends real users after crawlers read OG tags
     const redirectTarget = redirect || urlObj.searchParams.get('url') || SITE_URL
     let finalRedirect = redirectTarget
-    // ogUrl = the canonical URL shown in social previews (always custom domain)
     let ogUrl = redirectTarget
+
+    // Static page meta — hardcoded for specific pages
+    const PAGE_META: Record<string, { title: string; description: string; image?: string; path: string }> = {
+      'night-of-joy': {
+        title: 'A Night of Joy – Best Day Ministries Fundraiser',
+        description: 'Join us June 14, 2026 for A Night of Joy at Truitt Homestead. An evening of dinner, live entertainment & silent auction creating belonging and purpose for adults with special abilities.',
+        image: `${SITE_URL}/images/night-of-joy-og.jpg`,
+        path: '/night-of-joy',
+      },
+    }
+
+    if (pageId && PAGE_META[pageId]) {
+      const page = PAGE_META[pageId]
+      finalTitle = page.title
+      finalDescription = page.description
+      if (page.image) finalImage = page.image
+      finalType = 'article'
+      finalRedirect = redirect || `${SITE_URL}${page.path}`
+      ogUrl = `${SITE_URL}/share?pageId=${pageId}&redirect=${encodeURIComponent(finalRedirect)}`
+    }
 
     if (eventId) {
       const events = await querySupabase(

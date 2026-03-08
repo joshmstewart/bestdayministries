@@ -65,6 +65,10 @@ export const ShareButtons = ({
       const redirectUrl = encodeURIComponent(shareUrl);
       return `${shareBase}?newsletterId=${newsletterId}&redirect=${redirectUrl}`;
     }
+    if (pageId) {
+      const redirectUrl = encodeURIComponent(shareUrl);
+      return `${shareBase}?pageId=${pageId}&redirect=${redirectUrl}`;
+    }
     return shareUrl;
   };
   
