@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { 
@@ -54,6 +54,7 @@ interface FeedItemDialogProps {
   onRefresh?: () => void;
   routeBase: string;
   idParam: string;
+  scrollToComments?: boolean;
 }
 
 export function FeedItemDialog({
@@ -67,7 +68,9 @@ export function FeedItemDialog({
   onRefresh,
   routeBase,
   idParam,
+  scrollToComments = false,
 }: FeedItemDialogProps) {
+  const commentsRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const [unsharing, setUnsharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -80,7 +83,16 @@ export function FeedItemDialog({
   const [albumDetailOpen, setAlbumDetailOpen] = useState(false);
   const [albumImages, setAlbumImages] = useState<{ image_url?: string | null; video_url?: string | null; video_type?: string | null; youtube_url?: string | null; caption?: string | null }[]>([]);
 
-  // Fetch drink ingredients when a drink item is opened
+  // Auto-scroll to comments when opened via comment button
+  useEffect(() => {
+    if (isOpen && scrollToComments && commentsRef.current) {
+      const timer = setTimeout(() => {
+        commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, scrollToComments]);
+
   useEffect(() => {
     const fetchDrinkIngredients = async () => {
       if (!item || item.item_type !== 'drink' || !isOpen) {
@@ -500,7 +512,7 @@ export function FeedItemDialog({
 
             {/* Beat Comments */}
             {item.item_type === 'beat' && (
-              <div className="mt-4 pt-4 border-t border-border">
+              <div ref={commentsRef} className="mt-4 pt-4 border-t border-border">
                 <BeatCommentsSection creationId={item.id} />
               </div>
             )}

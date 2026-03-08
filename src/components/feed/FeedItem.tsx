@@ -108,6 +108,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
   const [isLiked, setIsLiked] = useState(isLikedInitial ?? false);
   const [likesCount, setLikesCount] = useState(item.likes_count || 0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [scrollToComments, setScrollToComments] = useState(false);
   const [fortuneDialogOpen, setFortuneDialogOpen] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const { playBeat, stopBeat, isPlaying } = useBeatLoopPlayer();
@@ -973,6 +974,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                   className="gap-1.5 px-2"
                   onClick={(e) => {
                     e.stopPropagation();
+                    setScrollToComments(true);
                     setDialogOpen(true);
                   }}
                 >
@@ -1115,7 +1117,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
       <FeedItemDialog
         item={item}
         isOpen={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={() => { setDialogOpen(false); setScrollToComments(false); }}
         isLiked={isLiked}
         likesCount={likesCount}
         onToggleLike={handleLike}
@@ -1123,6 +1125,7 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
         onRefresh={onRefresh}
         routeBase={config.routeBase}
         idParam={config.idParam}
+        scrollToComments={scrollToComments}
       />
 
       {/* Fortune Dialog - opens DailyFortunePopup directly */}
