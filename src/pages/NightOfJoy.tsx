@@ -208,20 +208,6 @@ const NightOfJoy = () => {
                   <Label className="text-base font-bold">Sponsorship Level</Label>
                   <p className="text-sm text-muted-foreground">Not sure yet? No problem — select "Just Inquiring" and we'll help you find the right fit.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleChange("selectedTier", "Just Inquiring")}
-                      className={`p-4 rounded-lg border-2 text-left transition-all ${
-                        formData.selectedTier === "Just Inquiring"
-                          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                          : "border-border hover:border-primary/50 bg-card"
-                      }`}
-                    >
-                      <span className="font-bold text-foreground">Just Inquiring</span>
-                      <span className="block text-sm text-muted-foreground">
-                        I'd like to learn more
-                      </span>
-                    </button>
                     {SPONSORSHIP_TIERS.map((tier) => (
                       <button
                         key={tier.amount}
@@ -239,6 +225,18 @@ const NightOfJoy = () => {
                         </span>
                       </button>
                     ))}
+                    <button
+                      type="button"
+                      onClick={() => handleChange("selectedTier", "Just Inquiring")}
+                      className={`sm:col-span-2 py-2 px-4 rounded-lg border-2 text-center transition-all ${
+                        formData.selectedTier === "Just Inquiring"
+                          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                          : "border-border hover:border-primary/50 bg-card"
+                      }`}
+                    >
+                      <span className="font-bold text-foreground">Just Inquiring</span>
+                      <span className="text-sm text-muted-foreground ml-2">— I'd like to learn more</span>
+                    </button>
                   </div>
                 </div>
 
