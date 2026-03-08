@@ -68,7 +68,9 @@ export function FeedItemDialog({
   onRefresh,
   routeBase,
   idParam,
+  scrollToComments = false,
 }: FeedItemDialogProps) {
+  const commentsRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const [unsharing, setUnsharing] = useState(false);
   const [downloading, setDownloading] = useState(false);
