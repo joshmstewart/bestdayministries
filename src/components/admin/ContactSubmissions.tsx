@@ -50,6 +50,7 @@ interface Reply {
   message: string;
   created_at: string;
   cc_emails?: string[] | null;
+  attachments?: any;
 }
 
 const STATUS_OPTIONS = [
