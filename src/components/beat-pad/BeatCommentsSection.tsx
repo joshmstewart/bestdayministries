@@ -48,15 +48,15 @@ export function BeatCommentsSection({ creationId, compact = false, onCommentsCou
       .order("created_at", { ascending: true });
 
     if (!error && data) {
-      setComments(
-        data.map((c: any) => ({
-          ...c,
-          author: Array.isArray(c.author) ? c.author[0] : c.author,
-        }))
-      );
+      const mapped = data.map((c: any) => ({
+        ...c,
+        author: Array.isArray(c.author) ? c.author[0] : c.author,
+      }));
+      setComments(mapped);
+      onCommentsCountChange?.(mapped.length);
     }
     setLoading(false);
-  }, [creationId]);
+  }, [creationId, onCommentsCountChange]);
 
   useEffect(() => {
     loadComments();
