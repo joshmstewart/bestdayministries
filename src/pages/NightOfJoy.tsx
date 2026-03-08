@@ -10,7 +10,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2 } from "lucide-react";
+import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText } from "lucide-react";
+import { compressImage } from "@/lib/imageUtils";
+
+const ACCEPTED_FILE_TYPES = [
+  "image/jpeg", "image/png", "image/webp", "image/svg+xml",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const ACCEPTED_EXTENSIONS = ".jpg,.jpeg,.png,.webp,.svg,.pdf,.docx";
+const MAX_FILES = 5;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+interface AttachedFile {
+  file: File;
+  preview?: string;
+  isImage: boolean;
+}
 
 const SPONSORSHIP_TIERS = [
   { name: "Best Day Ever Sponsor", amount: 10000, tickets: 8, socialPosts: "4 posts" },
