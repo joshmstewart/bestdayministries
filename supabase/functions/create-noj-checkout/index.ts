@@ -1,0 +1,121 @@
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
+const checkoutSchema = z.object({
+  amount: z.number()
+    .min(100, "Minimum amount is $100")
+    .max(100000, "Maximum amount is $100,000"),
+  tier_name: z.string().max(200).optional(),
+  email: z.string().email().max(255).toLowerCase().trim(),
+  contact_name: z.string().max(255).optional(),
+  business_name: z.string().max(255).optional(),
+});
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const requestBody = await req.json();
+    const validationResult = checkoutSchema.safeParse(requestBody);
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => e.message).join(', ');
+      throw new Error(`Validation failed: ${errors}`);
+    }
+
+    const { amount, tier_name, email, contact_name, business_name } = validationResult.data;
+
+    // Get Stripe mode from app_settings
+    const { data: modeSetting } = await supabaseAdmin
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'stripe_mode')
+      .single();
+    const mode = modeSetting?.setting_value || 'test';
+
+    const stripeKey = mode === 'live'
+      ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
+      : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+
+    if (!stripeKey) {
+      throw new Error(`Stripe ${mode} secret key not configured`);
+    }
+
+    const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
+
+    const amountInCents = Math.round(amount * 100);
+    const tierLabel = tier_name || `$${amount.toLocaleString()} Sponsorship`;
+
+    // Create or get customer
+    const customers = await stripe.customers.list({ email, limit: 1 });
+    let customer;
+    if (customers.data.length > 0) {
+      customer = customers.data[0];
+    } else {
+      customer = await stripe.customers.create({
+        email,
+        name: contact_name || undefined,
+        metadata: { business_name: business_name || '' },
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `A Night of Joy – ${tierLabel}`,
+              description: 'Event sponsorship for A Night of Joy fundraiser by Best Day Ministries',
+            },
+            unit_amount: amountInCents,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${req.headers.get('origin')}/night-of-joy?payment=success`,
+      cancel_url: `${req.headers.get('origin')}/night-of-joy`,
+      metadata: {
+        source: 'night-of-joy',
+        tier_name: tierLabel,
+        amount: amount.toString(),
+        contact_name: contact_name || '',
+        business_name: business_name || '',
+      },
+    });
+
+    console.log('Night of Joy checkout session created:', session.id, { tier: tierLabel, amount });
+
+    return new Response(
+      JSON.stringify({ url: session.url }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
+  } catch (error) {
+    console.error('Error in create-noj-checkout:', error instanceof Error ? error.message : error);
+    const errorMessage = error instanceof Error && error.message.includes('Validation failed')
+      ? error.message
+      : 'Failed to create checkout session. Please try again.';
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+    );
+  }
+});
