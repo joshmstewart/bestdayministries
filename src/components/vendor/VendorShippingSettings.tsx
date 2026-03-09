@@ -36,13 +36,13 @@ export const VendorShippingSettings = ({ vendorId, theme }: VendorShippingSettin
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
-  const [shippingMode, setShippingMode] = useState<ShippingMode | ''>('');
+  const [shippingMode, setShippingMode] = useState<ShippingMode | ''>('calculated');
   const [shipFromZip, setShipFromZip] = useState('');
   const [shipFromCity, setShipFromCity] = useState('');
   const [shipFromState, setShipFromState] = useState('');
   const [flatRateAmount, setFlatRateAmount] = useState('');
   const [freeShippingThreshold, setFreeShippingThreshold] = useState('');
-  const [disableFreeShipping, setDisableFreeShipping] = useState(false);
+  const [disableFreeShipping, setDisableFreeShipping] = useState(true);
   
   // Store original values for comparison
   const [originalData, setOriginalData] = useState<ShippingData | null>(null);
@@ -91,13 +91,13 @@ export const VendorShippingSettings = ({ vendorId, theme }: VendorShippingSettin
       };
 
       setOriginalData(shippingData);
-      setShippingMode(shippingData.shipping_mode || '');
+      setShippingMode(shippingData.shipping_mode || 'calculated');
       setShipFromZip(shippingData.ship_from_zip || '');
       setShipFromCity(shippingData.ship_from_city || '');
       setShipFromState(shippingData.ship_from_state || '');
       setFlatRateAmount(shippingData.flat_rate_amount_cents ? (shippingData.flat_rate_amount_cents / 100).toFixed(2) : '');
       setFreeShippingThreshold(shippingData.free_shipping_threshold?.toString() || '');
-      setDisableFreeShipping(shippingData.disable_free_shipping);
+      setDisableFreeShipping(shippingData.disable_free_shipping ?? true);
     } catch (error) {
       console.error('Error loading shipping settings:', error);
       toast({
