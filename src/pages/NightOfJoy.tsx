@@ -199,7 +199,7 @@ const NightOfJoy = () => {
             </div>
             <div className="flex items-center justify-center gap-2 mb-6">
               <Clock className="w-4 h-4 text-secondary" />
-              <p className="text-primary-foreground/80">5:00 PM – 8:00 PM</p>
+              <p className="text-primary-foreground/80">5:00 PM – 8:00 PM MST</p>
               <span className="text-primary-foreground/40 mx-1">•</span>
               <MapPin className="w-4 h-4 text-secondary" />
               <p className="text-primary-foreground/80">Truitt Homestead</p>
