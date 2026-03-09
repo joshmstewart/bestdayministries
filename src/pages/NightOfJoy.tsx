@@ -558,7 +558,7 @@ const NightOfJoy = () => {
                 <div className="space-y-3">
                   <Label className="text-base font-bold">Payment Preference</Label>
                   <div className="flex flex-wrap gap-3">
-                    {["Credit Card", "Invoice me", "Check"].map((method) => (
+                    {["Card", "Invoice me", "Check"].map((method) => (
                       <button
                         key={method}
                         type="button"
