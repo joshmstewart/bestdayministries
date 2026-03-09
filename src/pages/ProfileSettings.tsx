@@ -328,16 +328,24 @@ const ProfileSettings = () => {
     setSaving(true);
 
     try {
+      const updateData: any = {
+        display_name: validation.data!.displayName.trim(),
+        bio: validation.data!.bio?.trim() || null,
+        avatar_number: selectedAvatar,
+        profile_avatar_id: selectedProfileAvatarId,
+        tts_voice: selectedVoice,
+        tts_enabled: ttsEnabled,
+      };
+
+      // Only update first/last name if they were provided
+      if (hasFirstName && hasLastName) {
+        updateData.first_name = firstName.trim();
+        updateData.last_name = lastName.trim();
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          display_name: validation.data!.displayName.trim(),
-          bio: validation.data!.bio?.trim() || null,
-          avatar_number: selectedAvatar,
-          profile_avatar_id: selectedProfileAvatarId,
-          tts_voice: selectedVoice,
-          tts_enabled: ttsEnabled,
-        })
+        .update(updateData)
         .eq("id", user.id);
 
       // Also update user_fitness_avatars to keep is_selected in sync
