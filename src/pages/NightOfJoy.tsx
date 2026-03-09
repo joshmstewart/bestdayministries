@@ -315,7 +315,7 @@ const NightOfJoy = () => {
               </div>
             )}
 
-            {/* Share Buttons */}
+            {/* Share Buttons hidden until fixed
             <div className="mt-6">
               <ShareButtons
                 title="A Night of Joy – Best Day Ministries Fundraiser"
@@ -325,6 +325,7 @@ const NightOfJoy = () => {
                 hashtags={["NightOfJoy", "BestDayMinistries"]}
               />
             </div>
+            */}
 
             <div className="flex justify-center mt-4">
               <div className="flex items-center gap-1">
