@@ -6,6 +6,7 @@ import { ExternalLink, Pause, Play, ChevronLeft, ChevronRight, Calendar, MapPin,
 import { Link } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { format } from "date-fns";
+import { formatEventTime, formatEventDateFull } from "@/lib/eventTimezone";
 
 interface FeaturedItemData {
   id: string;
@@ -22,6 +23,7 @@ interface FeaturedItemData {
 interface EventDetails {
   event_date: string;
   location: string | null;
+  event_timezone?: string;
 }
 
 interface SavedLocation {
@@ -154,7 +156,7 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
       const eventId = item.link_url.replace("event:", "");
       const { data: eventData } = await supabase
         .from("events")
-        .select("event_date, location")
+        .select("event_date, location, event_timezone")
         .eq("id", eventId)
         .maybeSingle();
       
@@ -226,11 +228,11 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
                 <div className="space-y-2 mb-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
-                    <span>{format(new Date(eventDetails.event_date), "EEEE, MMMM d, yyyy")}</span>
+                    <span>{formatEventDateFull(new Date(eventDetails.event_date), eventDetails.event_timezone || 'America/Denver')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-4 h-4" />
-                    <span>{format(new Date(eventDetails.event_date), "h:mm a")}</span>
+                    <span>{formatEventTime(new Date(eventDetails.event_date), eventDetails.event_timezone || 'America/Denver')}</span>
                   </div>
                   {eventDetails.location && (() => {
                     const matchedLocation = savedLocations.find(
