@@ -360,6 +360,7 @@ export default function EventManagement() {
         status: newStatus,
         link_url: linkUrl?.trim() || null,
         link_label: linkLabel?.trim() || 'Learn More',
+        event_timezone: eventTimezone,
       };
 
       let eventId = editingEvent?.id;
