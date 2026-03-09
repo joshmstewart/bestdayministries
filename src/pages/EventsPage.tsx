@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Clock, MapPin, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { formatEventTime, formatEventDateFull, formatEventDateShort } from "@/lib/eventTimezone";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { cn } from "@/lib/utils";

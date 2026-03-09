@@ -1255,11 +1255,11 @@ export default function EventManagement() {
                           <div className="space-y-1 text-sm">
                             <div className="flex items-center gap-2">
                               <CalendarIcon className="w-4 h-4" />
-                              {format(new Date(event.event_date), "PPP")}
+                              {formatEventDateMedium(new Date(event.event_date), event.event_timezone || 'America/Denver')}
                             </div>
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4" />
-                              {format(new Date(event.event_date), "p")}
+                              {formatEventTime(new Date(event.event_date), event.event_timezone || 'America/Denver')}
                             </div>
                           </div>
                         )}
