@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck, Home, Info } from "lucide-react";
+import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck, Home, BookOpen } from "lucide-react";
 import { VendorBestieAssetManager } from "@/components/vendor/VendorBestieAssetManager";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
@@ -371,7 +371,7 @@ const VendorDashboard = () => {
                   Apply to Become a Vendor
                 </Button>
                 <button
-                  onClick={() => navigate('/vendor-info')}
+                  onClick={() => navigate('/vendor-guide')}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-2 w-full text-center block"
                 >
                   Learn more about the vendor program
@@ -429,10 +429,10 @@ const VendorDashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/vendor-info')}
+                onClick={() => navigate('/vendor-guide')}
               >
-                <Info className="h-4 w-4 mr-1" />
-                Vendor Resources
+                <BookOpen className="h-4 w-4 mr-1" />
+                Vendor Guide
               </Button>
             </div>
             <Button
@@ -462,10 +462,10 @@ const VendorDashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/vendor-info')}
+                onClick={() => navigate('/vendor-guide')}
               >
-                <Info className="h-4 w-4 mr-1" />
-                Vendor Resources
+                <BookOpen className="h-4 w-4 mr-1" />
+                Vendor Guide
               </Button>
             </div>
             <Button
