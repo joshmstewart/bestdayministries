@@ -106,6 +106,9 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil" 
     });
 
+    // Track session metadata for receipt designation
+    const donationDesignations = new Map<string, string>();
+
     // Process each pending donation
     for (const donation of pendingDonations || []) {
       const stripe = donation.stripe_mode === 'live' ? stripeLive : stripeTest;
