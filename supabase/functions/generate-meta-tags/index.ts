@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
     const PAGE_META: Record<string, { title: string; description: string; image?: string; path: string }> = {
       'night-of-joy': {
         title: 'A Night of Joy – Best Day Ministries Fundraiser',
-        description: 'Join us June 14, 2026 for A Night of Joy at Truitt Homestead. An evening of dinner, live entertainment & silent auction creating belonging and purpose for adults with special abilities.',
+        description: 'Join us June 14, 2026 for A Night of Joy at Truitt Homestead (4-7 PM MST). An evening of dinner, live entertainment & silent auction creating belonging and purpose for adults with special abilities.',
         image: 'https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/og-images/night-of-joy-og.jpg',
         path: '/night-of-joy',
       },
