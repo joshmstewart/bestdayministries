@@ -822,9 +822,9 @@ export default function ContactSubmissions() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate block">
+                            <button onClick={() => openOrDownloadAttachment(att.url, att.name, att.type)} className="text-sm font-medium text-primary hover:underline truncate block text-left">
                               {att.name}
-                            </a>
+                            </button>
                             {att.size && <span className="text-xs text-muted-foreground">{(att.size / 1024).toFixed(1)} KB</span>}
                           </div>
                         </div>
