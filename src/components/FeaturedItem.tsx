@@ -156,7 +156,7 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
       const eventId = item.link_url.replace("event:", "");
       const { data: eventData } = await supabase
         .from("events")
-        .select("event_date, location")
+        .select("event_date, location, event_timezone")
         .eq("id", eventId)
         .maybeSingle();
       
