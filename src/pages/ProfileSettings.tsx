@@ -53,6 +53,8 @@ const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [bio, setBio] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [selectedProfileAvatarId, setSelectedProfileAvatarId] = useState<string | null>(null);
