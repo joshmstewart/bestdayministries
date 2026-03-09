@@ -38,6 +38,7 @@ interface Event {
   created_at: string;
   updated_at: string;
   event_dates?: EventDate[];
+  event_timezone?: string;
 }
 
 export function PublicEvents() {
