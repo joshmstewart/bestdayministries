@@ -44,7 +44,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
