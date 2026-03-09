@@ -861,9 +861,9 @@ export default function ContactSubmissions() {
                         {r.attachments && Array.isArray(r.attachments) && r.attachments.length > 0 && (
                           <div className="mt-2 space-y-1">
                             {(r.attachments as any[]).map((att: any, i: number) => (
-                              <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline">
+                              <button key={i} onClick={() => openOrDownloadAttachment(att.url, att.name, att.type)} className="flex items-center gap-2 text-xs text-primary hover:underline">
                                 {att.type?.startsWith('image/') ? '🖼️' : att.type?.includes('pdf') ? '📄' : '📎'} {att.name}
-                              </a>
+                              </button>
                             ))}
                           </div>
                         )}
