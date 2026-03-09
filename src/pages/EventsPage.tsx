@@ -339,7 +339,7 @@ export default function EventsPage() {
                                         )}
                                       >
                                         <CalendarIcon className="w-3 h-3" />
-                                        {format(date, "MMM d, yyyy")} at {format(date, "p")}
+                                        {formatEventDateShort(date, event.event_timezone || 'America/Denver')} at {formatEventTime(date, event.event_timezone || 'America/Denver')}
                                       </div>
                                     );
                                   })}
