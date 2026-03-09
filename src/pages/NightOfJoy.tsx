@@ -150,7 +150,17 @@ const NightOfJoy = () => {
     }
     setSubmitting(true);
     try {
-      const uploadedAttachments = attachedFiles.length > 0 ? await uploadFiles() : [];
+      let uploadedAttachments: { name: string; url: string; type: string; size: number }[] = [];
+      if (attachedFiles.length > 0) {
+        try {
+          uploadedAttachments = await uploadFiles();
+          console.log("Uploaded attachments:", uploadedAttachments.length, "of", attachedFiles.length);
+        } catch (uploadErr: any) {
+          console.error("File upload failed:", uploadErr);
+          toast.error(`File upload failed: ${uploadErr.message}. Submitting without attachments.`);
+          // Continue without attachments rather than failing entirely
+        }
+      }
       const { error } = await supabase.from("contact_form_submissions").insert({
         name: formData.contactName,
         email: formData.email,
@@ -159,10 +169,14 @@ const NightOfJoy = () => {
         source: "night-of-joy",
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
       } as any);
-      if (error) throw error;
+      if (error) {
+        console.error("Contact form insert error:", error);
+        throw error;
+      }
       setSubmitted(true);
       toast.success("Thank you! We'll be in touch soon.");
-    } catch {
+    } catch (err: any) {
+      console.error("Night of Joy form submission error:", err);
       toast.error("Something went wrong. Please try again or email Marla@joyhousestore.com");
     } finally {
       setSubmitting(false);
