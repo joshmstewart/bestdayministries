@@ -30,6 +30,8 @@ import { useCodeImageDownload } from "@/hooks/useCodeImageDownload";
 interface Profile {
   id: string;
   display_name: string;
+  first_name?: string | null;
+  last_name?: string | null;
   bio?: string;
   avatar_url?: string;
   avatar_number?: number;
