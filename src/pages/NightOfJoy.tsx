@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "react-router-dom";
 import { ShareButtons } from "@/components/ShareButtons";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -12,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 
 const ACCEPTED_FILE_TYPES = [
@@ -54,7 +55,7 @@ const BENEFITS = [
   { label: "Tax deductible donation", tiers: [true, true, true, true, true, true] },
 ];
 
-const EVENT_DATE = new Date("2026-06-14T17:00:00");
+const EVENT_DATE = new Date("2026-06-14T16:00:00");
 const DEADLINE_DATE = new Date("2026-05-04T23:59:59");
 
 function useCountdown(targetDate: Date) {
@@ -78,10 +79,18 @@ function useCountdown(targetDate: Date) {
   return timeLeft;
 }
 
+type FormMode = "inquire" | "pay";
+
 const NightOfJoy = () => {
   const { profile, user } = useAuth();
+  const [searchParams] = useSearchParams();
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
+
+  // Check for payment success
+  const paymentSuccess = searchParams.get("payment") === "success";
+
+  const [formMode, setFormMode] = useState<FormMode>("inquire");
   const [formData, setFormData] = useState({
     businessName: "",
     contactName: "",
@@ -91,6 +100,7 @@ const NightOfJoy = () => {
     paymentMethod: "",
     message: "",
   });
+  const [customAmount, setCustomAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -154,7 +164,7 @@ const NightOfJoy = () => {
 
   const removeFile = (index: number) => setAttachedFiles(prev => prev.filter((_, i) => i !== index));
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.contactName || !formData.email) {
       toast.error("Please fill in your name and email.");
@@ -166,11 +176,9 @@ const NightOfJoy = () => {
       if (attachedFiles.length > 0) {
         try {
           uploadedAttachments = await uploadFiles();
-          console.log("Uploaded attachments:", uploadedAttachments.length, "of", attachedFiles.length);
         } catch (uploadErr: any) {
           console.error("File upload failed:", uploadErr);
           toast.error(`File upload failed: ${uploadErr.message}. Submitting without attachments.`);
-          // Continue without attachments rather than failing entirely
         }
       }
       const { error } = await supabase.from("contact_form_submissions").insert({
@@ -181,15 +189,69 @@ const NightOfJoy = () => {
         source: "night-of-joy",
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
       } as any);
-      if (error) {
-        console.error("Contact form insert error:", error);
-        throw error;
-      }
+      if (error) throw error;
       setSubmitted(true);
       toast.success("Thank you! We'll be in touch soon.");
     } catch (err: any) {
       console.error("Night of Joy form submission error:", err);
       toast.error("Something went wrong. Please try again or email Marla@joyhousestore.com");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getPaymentAmount = (): number | null => {
+    // Check if a tier is selected
+    const selectedTierObj = SPONSORSHIP_TIERS.find(
+      t => formData.selectedTier === `${t.name} - $${t.amount.toLocaleString()}`
+    );
+    if (selectedTierObj) return selectedTierObj.amount;
+
+    // Check custom amount
+    const custom = parseFloat(customAmount);
+    if (!isNaN(custom) && custom >= 100) return custom;
+
+    return null;
+  };
+
+  const handlePaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+
+    const amount = getPaymentAmount();
+    if (!amount) {
+      toast.error("Please select a sponsorship level or enter a custom amount (minimum $100).");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const selectedTierObj = SPONSORSHIP_TIERS.find(
+        t => formData.selectedTier === `${t.name} - $${t.amount.toLocaleString()}`
+      );
+
+      const { data, error } = await supabase.functions.invoke("create-noj-checkout", {
+        body: {
+          amount,
+          tier_name: selectedTierObj ? `${selectedTierObj.name} - $${selectedTierObj.amount.toLocaleString()}` : undefined,
+          email: formData.email,
+          contact_name: formData.contactName || undefined,
+          business_name: formData.businessName || undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      console.error("Payment error:", err);
+      toast.error(err.message || "Failed to start payment. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -225,7 +287,7 @@ const NightOfJoy = () => {
             </div>
             <div className="flex items-center justify-center gap-2 mb-6">
               <Clock className="w-4 h-4 text-secondary" />
-              <p className="text-primary-foreground/80">5:00 PM – 8:00 PM MST</p>
+              <p className="text-primary-foreground/80">4:00 PM – 7:00 PM MST</p>
               <span className="text-primary-foreground/40 mx-1">•</span>
               <MapPin className="w-4 h-4 text-secondary" />
               <p className="text-primary-foreground/80">Truitt Homestead</p>
@@ -379,18 +441,67 @@ const NightOfJoy = () => {
           </div>
         </section>
 
-        {/* Sponsorship Form */}
+        {/* Payment Success Banner */}
+        {paymentSuccess && (
+          <section className="py-8 bg-primary/5">
+            <div className="container max-w-2xl mx-auto px-4">
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-8 text-center space-y-4">
+                  <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
+                  <h3 className="text-2xl font-bold text-foreground">Payment Received!</h3>
+                  <p className="text-muted-foreground">
+                    Thank you for your generous sponsorship of A Night of Joy! You'll receive a confirmation email shortly.
+                    If you have any questions, reach out to{" "}
+                    <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">
+                      Marla@joyhousestore.com
+                    </a>
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+        )}
+
+        {/* Sponsorship Form / Payment Section */}
         <section className="py-12 md:py-16 bg-card">
           <div className="container max-w-2xl mx-auto px-4">
             <div className="text-center mb-8">
               <Heart className="w-8 h-8 text-primary mx-auto mb-3" />
               <h2 className="text-3xl font-bold text-foreground mb-2">Become a Sponsor</h2>
               <p className="text-muted-foreground">
-                Complete the form below and we'll be in touch to finalize your sponsorship.
+                Interested in sponsoring? Reach out to learn more, or pay directly if you're ready.
               </p>
             </div>
 
-            {submitted ? (
+            {/* Mode Toggle */}
+            <div className="flex rounded-xl border-2 border-border overflow-hidden mb-8">
+              <button
+                type="button"
+                onClick={() => setFormMode("inquire")}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
+                  formMode === "inquire"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                I'd Like to Inquire
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormMode("pay")}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
+                  formMode === "pay"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                <CreditCard className="w-4 h-4" />
+                Ready to Pay
+              </button>
+            </div>
+
+            {submitted && formMode === "inquire" ? (
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="p-8 text-center space-y-4">
                   <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
@@ -403,8 +514,9 @@ const NightOfJoy = () => {
                   </p>
                 </CardContent>
               </Card>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+            ) : formMode === "inquire" ? (
+              /* ===== INQUIRY FORM ===== */
+              <form onSubmit={handleInquirySubmit} className="space-y-6">
                 {/* Sponsorship Level Selection */}
                 <div className="space-y-3">
                   <Label className="text-base font-bold">Sponsorship Level</Label>
@@ -467,50 +579,41 @@ const NightOfJoy = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="contactName">Contact Name *</Label>
-                    <div className="relative">
-                      <Input
-                        id="contactName"
-                        value={formData.contactName}
-                        onChange={(e) => handleChange("contactName", e.target.value)}
-                        required
-                      />
-                    </div>
+                    <Input
+                      id="contactName"
+                      value={formData.contactName}
+                      onChange={(e) => handleChange("contactName", e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="businessName">Business / Organization</Label>
-                    <div className="relative">
-                      <Input
-                        id="businessName"
-                        value={formData.businessName}
-                        onChange={(e) => handleChange("businessName", e.target.value)}
-                      />
-                    </div>
+                    <Input
+                      id="businessName"
+                      value={formData.businessName}
+                      onChange={(e) => handleChange("businessName", e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email *</Label>
-                    <div className="relative">
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        required
-                      />
-                    </div>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
-                    <div className="relative">
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => handleChange("phone", e.target.value)}
-                      />
-                    </div>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleChange("phone", e.target.value)}
+                    />
                   </div>
                 </div>
-
 
                 <div className="space-y-2">
                   <Label htmlFor="message">Additional Notes</Label>
@@ -564,9 +667,7 @@ const NightOfJoy = () => {
                       />
                       <label htmlFor="noj-file-upload" className="cursor-pointer">
                         <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Click to attach files
-                        </p>
+                        <p className="text-sm text-muted-foreground">Click to attach files</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           JPG, PNG, SVG, PDF, DOCX — up to 10MB each, {MAX_FILES} max
                         </p>
@@ -583,6 +684,121 @@ const NightOfJoy = () => {
                   Please submit by May 4th, 2026.
                   <br />
                   Contact: <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">Marla@joyhousestore.com</a>
+                </p>
+              </form>
+            ) : (
+              /* ===== PAYMENT FORM ===== */
+              <form onSubmit={handlePaySubmit} className="space-y-6">
+                {/* Tier Selection for Payment */}
+                <div className="space-y-3">
+                  <Label className="text-base font-bold">Select Sponsorship Level</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {SPONSORSHIP_TIERS.map((tier) => (
+                      <button
+                        key={tier.amount}
+                        type="button"
+                        onClick={() => {
+                          handleChange("selectedTier", `${tier.name} - $${tier.amount.toLocaleString()}`);
+                          setCustomAmount("");
+                        }}
+                        className={`p-4 rounded-lg border-2 text-left transition-all ${
+                          formData.selectedTier === `${tier.name} - $${tier.amount.toLocaleString()}` && !customAmount
+                            ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                            : "border-border hover:border-primary/50 bg-card"
+                        }`}
+                      >
+                        <span className="font-bold text-foreground">{tier.name}</span>
+                        <span className="block text-lg font-bold text-primary">
+                          ${tier.amount.toLocaleString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom Amount */}
+                  <div className="relative mt-4">
+                    <Label className="text-sm font-semibold mb-2 block">Or enter a custom amount</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        min={100}
+                        step={1}
+                        placeholder="Custom amount (min $100)"
+                        value={customAmount}
+                        onChange={(e) => {
+                          setCustomAmount(e.target.value);
+                          if (e.target.value) handleChange("selectedTier", "");
+                        }}
+                        className="pl-8"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Info for Payment */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pay-email">Email *</Label>
+                    <Input
+                      id="pay-email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      required
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pay-name">Name</Label>
+                    <Input
+                      id="pay-name"
+                      value={formData.contactName}
+                      onChange={(e) => handleChange("contactName", e.target.value)}
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="pay-business">Business / Organization</Label>
+                    <Input
+                      id="pay-business"
+                      value={formData.businessName}
+                      onChange={(e) => handleChange("businessName", e.target.value)}
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Summary */}
+                {getPaymentAmount() && (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <span className="text-foreground font-medium">Sponsorship Total</span>
+                      <span className="text-2xl font-bold text-primary">
+                        ${getPaymentAmount()!.toLocaleString()}
+                      </span>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Redirecting to Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pay with Card
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  You'll be redirected to a secure Stripe checkout page. Your sponsorship is tax deductible.
+                  <br />
+                  Questions? <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">Marla@joyhousestore.com</a>
                 </p>
               </form>
             )}
