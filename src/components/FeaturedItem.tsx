@@ -23,6 +23,7 @@ interface FeaturedItemData {
 interface EventDetails {
   event_date: string;
   location: string | null;
+  event_timezone?: string;
 }
 
 interface SavedLocation {
