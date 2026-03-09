@@ -245,6 +245,7 @@ export default function EventManagement() {
     setEventStatus('draft');
     setLinkUrl("");
     setLinkLabel("Learn More");
+    setEventTimezone("America/Denver");
     setEditingEvent(null);
     setShowForm(false);
   };
