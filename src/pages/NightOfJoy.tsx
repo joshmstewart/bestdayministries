@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { ShareButtons } from "@/components/ShareButtons";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -78,6 +79,7 @@ function useCountdown(targetDate: Date) {
 }
 
 const NightOfJoy = () => {
+  const { profile, user } = useAuth();
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
   const [formData, setFormData] = useState({
@@ -85,7 +87,6 @@ const NightOfJoy = () => {
     contactName: "",
     phone: "",
     email: "",
-    address: "",
     selectedTier: "",
     paymentMethod: "",
     message: "",
@@ -94,6 +95,17 @@ const NightOfJoy = () => {
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  // Auto-fill name and email from logged-in user
+  useEffect(() => {
+    if (profile || user) {
+      setFormData(prev => ({
+        ...prev,
+        contactName: prev.contactName || profile?.display_name || '',
+        email: prev.email || user?.email || '',
+      }));
+    }
+  }, [profile, user]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -165,7 +177,7 @@ const NightOfJoy = () => {
         name: formData.contactName,
         email: formData.email,
         subject: `Night of Joy Sponsorship - ${formData.selectedTier || 'General Inquiry'}`,
-        message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
+        message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
         source: "night-of-joy",
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
       } as any);
@@ -499,14 +511,6 @@ const NightOfJoy = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => handleChange("address", e.target.value)}
-                  />
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="message">Additional Notes</Label>
