@@ -228,11 +228,11 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
                 <div className="space-y-2 mb-4 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="w-4 h-4" />
-                    <span>{format(new Date(eventDetails.event_date), "EEEE, MMMM d, yyyy")}</span>
+                    <span>{formatEventDateFull(new Date(eventDetails.event_date), eventDetails.event_timezone || 'America/Denver')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-4 h-4" />
-                    <span>{format(new Date(eventDetails.event_date), "h:mm a")}</span>
+                    <span>{formatEventTime(new Date(eventDetails.event_date), eventDetails.event_timezone || 'America/Denver')}</span>
                   </div>
                   {eventDetails.location && (() => {
                     const matchedLocation = savedLocations.find(

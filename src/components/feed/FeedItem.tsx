@@ -901,11 +901,11 @@ export function FeedItem({ item, onLike, onSave, onRefresh, isLikedInitial, onLi
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="h-3 w-3" />
-                    <span>{format(new Date(item.extra_data.event_date), "EEEE, MMMM d, yyyy")}</span>
+                    <span>{formatEventDateFull(new Date(item.extra_data.event_date), item.extra_data?.event_timezone || 'America/Denver')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-3 w-3" />
-                    <span>{format(new Date(item.extra_data.event_date), "h:mm a")}</span>
+                    <span>{formatEventTime(new Date(item.extra_data.event_date), item.extra_data?.event_timezone || 'America/Denver')}</span>
                   </div>
                   {item.extra_data.location && (
                     <div className="flex items-center gap-1.5">
