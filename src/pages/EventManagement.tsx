@@ -102,6 +102,7 @@ export default function EventManagement() {
   const [eventStatus, setEventStatus] = useState<'draft' | 'published'>('draft');
   const [linkUrl, setLinkUrl] = useState("");
   const [linkLabel, setLinkLabel] = useState("Learn More");
+  const [eventTimezone, setEventTimezone] = useState("America/Denver");
 
   useEffect(() => {
     checkAdminAccess();
