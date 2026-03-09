@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
+import { formatEventTime, formatEventDateFull } from "@/lib/eventTimezone";
 import { 
   Heart, Music, Palette, Image, MessageSquare, 
   FolderOpen, Trophy, Play, Square, ArrowRight,
