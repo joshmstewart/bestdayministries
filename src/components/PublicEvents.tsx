@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
+import { formatEventTime, formatEventDateFull } from "@/lib/eventTimezone";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { EventDetailDialog } from "@/components/EventDetailDialog";
