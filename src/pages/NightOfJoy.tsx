@@ -79,6 +79,7 @@ function useCountdown(targetDate: Date) {
 }
 
 const NightOfJoy = () => {
+  const { profile, user } = useAuth();
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
   const [formData, setFormData] = useState({
@@ -86,7 +87,6 @@ const NightOfJoy = () => {
     contactName: "",
     phone: "",
     email: "",
-    address: "",
     selectedTier: "",
     paymentMethod: "",
     message: "",
@@ -95,6 +95,17 @@ const NightOfJoy = () => {
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  // Auto-fill name and email from logged-in user
+  useEffect(() => {
+    if (profile || user) {
+      setFormData(prev => ({
+        ...prev,
+        contactName: prev.contactName || profile?.display_name || '',
+        email: prev.email || user?.email || profile?.email || '',
+      }));
+    }
+  }, [profile, user]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
