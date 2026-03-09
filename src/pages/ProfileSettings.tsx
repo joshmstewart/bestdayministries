@@ -290,9 +290,28 @@ const ProfileSettings = () => {
   const handleSave = async () => {
     if (!user || !profile) return;
 
+    // If first/last name fields have been touched, both are required
+    const hasFirstName = firstName.trim().length > 0;
+    const hasLastName = lastName.trim().length > 0;
+    if (hasFirstName || hasLastName) {
+      if (!hasFirstName || !hasLastName) {
+        toast({
+          title: "Validation error",
+          description: "Both First Name and Last Name are required when editing your name.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Build display name from first/last if provided
+    const effectiveDisplayName = (hasFirstName && hasLastName)
+      ? `${firstName.trim()} ${lastName.trim().charAt(0)}`
+      : displayName;
+
     // Validate input
     const validation = validateInput(profileSchema, {
-      displayName: displayName,
+      displayName: effectiveDisplayName,
       bio: bio,
       avatarNumber: selectedAvatar,
     });
