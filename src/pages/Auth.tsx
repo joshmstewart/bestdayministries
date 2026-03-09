@@ -44,7 +44,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<"bestie" | "caregiver" | "supporter">("supporter");
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -243,7 +244,9 @@ const Auth = () => {
           password,
           options: {
             data: {
-              display_name: displayName,
+              display_name: `${firstName.trim()} ${lastName.trim().charAt(0)}`,
+              first_name: firstName.trim(),
+              last_name: lastName.trim(),
               role: role,
               profile_avatar_id: selectedAvatarId || null,
             },
@@ -675,15 +678,27 @@ const Auth = () => {
             <form onSubmit={handleAuth} className="space-y-4">
             {isSignUp && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    placeholder="Your name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    required
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="First name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="Last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <ProfileAvatarPicker 

@@ -8108,9 +8108,11 @@ export type Database = {
           display_name: string
           email: string | null
           feed_last_seen_at: string | null
+          first_name: string | null
           friend_code: string | null
           id: string
           last_daily_login_reward_at: string | null
+          last_name: string | null
           profile_avatar_id: string | null
           show_feed_badge: boolean | null
           tts_enabled: boolean
@@ -8133,9 +8135,11 @@ export type Database = {
           display_name: string
           email?: string | null
           feed_last_seen_at?: string | null
+          first_name?: string | null
           friend_code?: string | null
           id: string
           last_daily_login_reward_at?: string | null
+          last_name?: string | null
           profile_avatar_id?: string | null
           show_feed_badge?: boolean | null
           tts_enabled?: boolean
@@ -8158,9 +8162,11 @@ export type Database = {
           display_name?: string
           email?: string | null
           feed_last_seen_at?: string | null
+          first_name?: string | null
           friend_code?: string | null
           id?: string
           last_daily_login_reward_at?: string | null
+          last_name?: string | null
           profile_avatar_id?: string | null
           show_feed_badge?: boolean | null
           tts_enabled?: boolean

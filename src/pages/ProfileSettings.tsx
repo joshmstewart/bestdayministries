@@ -30,6 +30,8 @@ import { useCodeImageDownload } from "@/hooks/useCodeImageDownload";
 interface Profile {
   id: string;
   display_name: string;
+  first_name?: string | null;
+  last_name?: string | null;
   bio?: string;
   avatar_url?: string;
   avatar_number?: number;
@@ -51,6 +53,8 @@ const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [bio, setBio] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [selectedProfileAvatarId, setSelectedProfileAvatarId] = useState<string | null>(null);
@@ -231,6 +235,8 @@ const ProfileSettings = () => {
 
     setProfile(profile);
     setDisplayName(profile.display_name || "");
+    setFirstName((profileData as any).first_name || "");
+    setLastName((profileData as any).last_name || "");
     setBio(profile.bio || "");
     setSelectedVoice(profile.tts_voice || "Aria");
     setTtsEnabled(profile.tts_enabled ?? true);
@@ -284,9 +290,28 @@ const ProfileSettings = () => {
   const handleSave = async () => {
     if (!user || !profile) return;
 
+    // If first/last name fields have been touched, both are required
+    const hasFirstName = firstName.trim().length > 0;
+    const hasLastName = lastName.trim().length > 0;
+    if (hasFirstName || hasLastName) {
+      if (!hasFirstName || !hasLastName) {
+        toast({
+          title: "Validation error",
+          description: "Both First Name and Last Name are required when editing your name.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Build display name from first/last if provided
+    const effectiveDisplayName = (hasFirstName && hasLastName)
+      ? `${firstName.trim()} ${lastName.trim().charAt(0)}`
+      : displayName;
+
     // Validate input
     const validation = validateInput(profileSchema, {
-      displayName: displayName,
+      displayName: effectiveDisplayName,
       bio: bio,
       avatarNumber: selectedAvatar,
     });
@@ -303,16 +328,24 @@ const ProfileSettings = () => {
     setSaving(true);
 
     try {
+      const updateData: any = {
+        display_name: validation.data!.displayName.trim(),
+        bio: validation.data!.bio?.trim() || null,
+        avatar_number: selectedAvatar,
+        profile_avatar_id: selectedProfileAvatarId,
+        tts_voice: selectedVoice,
+        tts_enabled: ttsEnabled,
+      };
+
+      // Only update first/last name if they were provided
+      if (hasFirstName && hasLastName) {
+        updateData.first_name = firstName.trim();
+        updateData.last_name = lastName.trim();
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          display_name: validation.data!.displayName.trim(),
-          bio: validation.data!.bio?.trim() || null,
-          avatar_number: selectedAvatar,
-          profile_avatar_id: selectedProfileAvatarId,
-          tts_voice: selectedVoice,
-          tts_enabled: ttsEnabled,
-        })
+        .update(updateData)
         .eq("id", user.id);
 
       // Also update user_fitness_avatars to keep is_selected in sync
@@ -680,18 +713,34 @@ const ProfileSettings = () => {
                 </p>
               </div>
 
-              {/* Display Name */}
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name *</Label>
-                <Input
-                  id="displayName"
-                  name="display_name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Display Name"
-                  maxLength={50}
-                />
+              {/* First Name & Last Name */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    name="first_name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="First name"
+                    maxLength={50}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    name="last_name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Last name"
+                    maxLength={50}
+                  />
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground -mt-4">
+                Your display name will be generated as "First L" (e.g. "Joshie S"). Both fields are required if editing.
+              </p>
 
               {/* Bio */}
               <div className="space-y-2">
