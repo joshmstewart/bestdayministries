@@ -235,6 +235,8 @@ const ProfileSettings = () => {
 
     setProfile(profile);
     setDisplayName(profile.display_name || "");
+    setFirstName((profileData as any).first_name || "");
+    setLastName((profileData as any).last_name || "");
     setBio(profile.bio || "");
     setSelectedVoice(profile.tts_voice || "Aria");
     setTtsEnabled(profile.tts_enabled ?? true);
