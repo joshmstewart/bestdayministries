@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
+import { openOrDownloadAttachment } from "@/lib/downloadFile";
 
 interface AdminUser {
   id: string;
@@ -822,9 +823,9 @@ export default function ContactSubmissions() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline truncate block">
+                            <button onClick={() => openOrDownloadAttachment(att.url, att.name, att.type)} className="text-sm font-medium text-primary hover:underline truncate block text-left">
                               {att.name}
-                            </a>
+                            </button>
                             {att.size && <span className="text-xs text-muted-foreground">{(att.size / 1024).toFixed(1)} KB</span>}
                           </div>
                         </div>
@@ -861,9 +862,9 @@ export default function ContactSubmissions() {
                         {r.attachments && Array.isArray(r.attachments) && r.attachments.length > 0 && (
                           <div className="mt-2 space-y-1">
                             {(r.attachments as any[]).map((att: any, i: number) => (
-                              <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-primary hover:underline">
+                              <button key={i} onClick={() => openOrDownloadAttachment(att.url, att.name, att.type)} className="flex items-center gap-2 text-xs text-primary hover:underline">
                                 {att.type?.startsWith('image/') ? '🖼️' : att.type?.includes('pdf') ? '📄' : '📎'} {att.name}
-                              </a>
+                              </button>
                             ))}
                           </div>
                         )}

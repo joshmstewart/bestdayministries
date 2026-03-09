@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, ExternalLink, FileText, Download, Calendar } from "lucide-react";
 import DOMPurify from "dompurify";
 import { format } from "date-fns";
+import { openOrDownloadAttachment } from "@/lib/downloadFile";
 
 const resourceTypeColors: Record<string, string> = {
   form: "bg-blue-500/10 text-blue-600 border-blue-500/20",
@@ -209,7 +210,7 @@ export default function GuardianResourceDetail() {
                       key={index}
                       variant="outline"
                       className="w-full justify-start"
-                      onClick={() => window.open(attachment.url, "_blank")}
+                      onClick={() => openOrDownloadAttachment(attachment.url, attachment.name)}
                     >
                       <Download className="h-4 w-4 mr-2" />
                       {attachment.name}
