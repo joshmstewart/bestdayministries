@@ -1232,7 +1232,7 @@ export default function EventManagement() {
                             )}>
                               <CalendarIcon className="w-3 h-3" />
                               <span className={new Date(event.event_date) < new Date() ? "line-through" : ""}>
-                                {format(new Date(event.event_date), "PPP")} at {format(new Date(event.event_date), "p")}
+                                {formatEventDateMedium(new Date(event.event_date), event.event_timezone || 'America/Denver')} at {formatEventTime(new Date(event.event_date), event.event_timezone || 'America/Denver')}
                               </span>
                             </div>
                             {/* Additional dates */}
