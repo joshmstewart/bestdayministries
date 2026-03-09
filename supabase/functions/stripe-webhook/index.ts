@@ -519,6 +519,7 @@ async function processDonationCheckout(
     const emailForReceipt = donorEmail || (user ? user.email : customerEmail);
     const donationTxId = `donation_${donation.id}`;
     const donationTxDate = (donation.started_at || donation.created_at || new Date().toISOString()) as string;
+    const oneTimeDonationDesignation = getDonationDesignation(session.metadata);
     await generateDonationReceipt(
       donation,
       emailForReceipt,
@@ -528,7 +529,8 @@ async function processDonationCheckout(
       stripeMode,
       supabaseAdmin,
       logStep,
-      amountCharged
+      amountCharged,
+      oneTimeDonationDesignation
     );
 
     // Send receipt email
