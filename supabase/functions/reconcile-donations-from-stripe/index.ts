@@ -150,6 +150,12 @@ serve(async (req) => {
             result.stripeObjectId = session.id;
             result.stripeStatus = session.status;
 
+            // Capture designation from session metadata for receipt
+            if (session.metadata?.donation_type === 'night-of-joy') {
+              const tierName = session.metadata.tier_name;
+              donationDesignations.set(donation.id, tierName ? `A Night of Joy – ${tierName}` : 'A Night of Joy Sponsorship');
+            }
+
             if (session.mode === 'subscription' && session.subscription) {
               const subscription = session.subscription as Stripe.Subscription;
               
