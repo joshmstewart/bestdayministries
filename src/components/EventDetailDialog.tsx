@@ -152,10 +152,10 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
                         <CalendarIcon className="w-4 h-4 flex-shrink-0" />
                         <div>
                           <div className={cn("font-medium", isPast && "line-through")}>
-                            {format(date, "EEEE, MMMM d, yyyy")}
+                            {formatEventDateWeekday(date, event.event_timezone || 'America/Denver')}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {format(date, "p")}
+                            {formatEventTime(date, event.event_timezone || 'America/Denver')}
                           </div>
                         </div>
                       </div>
