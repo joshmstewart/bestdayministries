@@ -442,7 +442,7 @@ async function processDonationCheckout(
         body: JSON.stringify({
           sponsorEmail: donorEmail,
           sponsorName: donorEmail.split('@')[0],
-          bestieName: 'General Support',
+          bestieName: donationDesignation,
           amount: amountCharged,
             frequency: donationFrequency,
             transactionId: donationTxId,
