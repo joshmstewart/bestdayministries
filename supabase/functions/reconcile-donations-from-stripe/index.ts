@@ -456,7 +456,7 @@ serve(async (req) => {
             body: {
               sponsorEmail: resolvedEmail,
               sponsorName: sponsorName,
-              bestieName: 'General Support',
+              bestieName: donationDesignations.get(donationId) || 'General Support',
               amount: donation.amount_charged || donation.amount,
               frequency: donation.frequency,
               transactionId: `donation_${donation.id}`,
