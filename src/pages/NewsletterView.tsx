@@ -102,12 +102,14 @@ const NewsletterView = () => {
               )}
             </div>
 
+            {/* ShareButtons hidden until fixed
             <ShareButtons
               title={displayTitle}
               description={newsletter.preview_text || ""}
               url={pageUrl}
               newsletterId={id}
             />
+            */}
           </div>
 
           {/* Newsletter Content */}
