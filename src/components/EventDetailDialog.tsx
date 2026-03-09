@@ -121,11 +121,11 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
               </div>
               <div className="flex items-center gap-3 text-lg font-semibold">
                 <CalendarIcon className="w-5 h-5 text-primary" />
-                {format(displayDate, "PPPP")}
+                {formatEventDateFull(displayDate, event.event_timezone || 'America/Denver')}
               </div>
               <div className="flex items-center gap-3 text-base mt-2">
                 <Clock className="w-4 h-4 text-primary" />
-                {format(displayDate, "p")}
+                {formatEventTime(displayDate, event.event_timezone || 'America/Denver')}
               </div>
             </div>
           )}
