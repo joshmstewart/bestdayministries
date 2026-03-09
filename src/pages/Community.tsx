@@ -654,7 +654,7 @@ const Community = () => {
                         <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          <span>{new Date(event.event_date).toLocaleDateString()}</span>
+                          <span>{formatEventDateShort(new Date(event.event_date), event.event_timezone || 'America/Denver')} at {formatEventTime(new Date(event.event_date), event.event_timezone || 'America/Denver')}</span>
                           {event.location && (
                             <>
                               <span>•</span>
