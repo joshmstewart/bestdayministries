@@ -36,13 +36,13 @@ export const VendorShippingSettings = ({ vendorId, theme }: VendorShippingSettin
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   
-  const [shippingMode, setShippingMode] = useState<ShippingMode | ''>('');
+  const [shippingMode, setShippingMode] = useState<ShippingMode | ''>('calculated');
   const [shipFromZip, setShipFromZip] = useState('');
   const [shipFromCity, setShipFromCity] = useState('');
   const [shipFromState, setShipFromState] = useState('');
   const [flatRateAmount, setFlatRateAmount] = useState('');
   const [freeShippingThreshold, setFreeShippingThreshold] = useState('');
-  const [disableFreeShipping, setDisableFreeShipping] = useState(false);
+  const [disableFreeShipping, setDisableFreeShipping] = useState(true);
   
   // Store original values for comparison
   const [originalData, setOriginalData] = useState<ShippingData | null>(null);
