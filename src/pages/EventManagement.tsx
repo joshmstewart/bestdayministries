@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff } from "lucide-react";
@@ -24,6 +25,7 @@ import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { LocationLink } from "@/components/LocationLink";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { TIMEZONE_OPTIONS, formatEventTime, formatEventDateMedium } from "@/lib/eventTimezone";
 
 interface EventDate {
   id: string;
