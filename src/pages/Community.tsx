@@ -12,6 +12,7 @@ import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { formatEventTime, formatEventDateShort } from "@/lib/eventTimezone";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
