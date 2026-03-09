@@ -963,6 +963,15 @@ async function generateSponsorshipReceipt(
   await logStep("receipt_generated", "success", { receipt_id: receipt.id });
 }
 
+// Helper to determine donation designation from session metadata
+function getDonationDesignation(metadata: Record<string, string> | null): string {
+  if (metadata?.donation_type === 'night-of-joy') {
+    const tierName = metadata.tier_name;
+    return tierName ? `A Night of Joy – ${tierName}` : 'A Night of Joy Sponsorship';
+  }
+  return 'General Support';
+}
+
 async function generateDonationReceipt(
   donation: any,
   customerEmail: string,
@@ -972,11 +981,13 @@ async function generateDonationReceipt(
   stripeMode: string,
   supabaseAdmin: any,
   logStep: Function,
-  amount: number
+  amount: number,
+  designation: string = 'General Support'
 ) {
   await logStep("generating_donation_receipt", "info", {
     donation_id: donation.id,
     email: customerEmail,
+    designation,
   });
 
   // Get org info for receipt
@@ -994,7 +1005,7 @@ async function generateDonationReceipt(
       sponsor_email: customerEmail,
       sponsor_name: customerEmail.split("@")[0],
       user_id: donation.donor_id || null,
-      bestie_name: "General Support",
+      bestie_name: designation,
       amount: amount,
       frequency,
       transaction_id: transactionId,
