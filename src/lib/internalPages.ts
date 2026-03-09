@@ -69,6 +69,7 @@ export const INTERNAL_PAGES: InternalPage[] = [
   
   // Vendor
   { value: "/vendor-info", label: "Vendor Information" },
+  { value: "/vendor-guide", label: "Vendor Guide" },
   { value: "/vendor-auth", label: "Vendor Application" },
   { value: "/vendor-dashboard", label: "Vendor Dashboard" },
   

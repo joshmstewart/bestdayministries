@@ -304,6 +304,7 @@ const App = () => {
               <Route path="/joyhousestore" element={<Marketplace />} />
               <Route path="/vendors/:id" element={<VendorProfile />} />
               <Route path="/vendor-info" element={<VendorInfo />} />
+              <Route path="/vendor-guide" element={<VendorGuide />} />
               <Route path="/vendor-dashboard" element={<VendorDashboard />} />
               <Route path="/orders" element={<OrderHistory />} />
               <Route path="/donation-history" element={<DonationHistoryPage />} />

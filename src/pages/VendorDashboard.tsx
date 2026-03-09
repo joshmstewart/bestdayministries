@@ -462,10 +462,10 @@ const VendorDashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/vendor-info')}
+                onClick={() => navigate('/vendor-guide')}
               >
-                <Info className="h-4 w-4 mr-1" />
-                Vendor Resources
+                <BookOpen className="h-4 w-4 mr-1" />
+                Vendor Guide
               </Button>
             </div>
             <Button
