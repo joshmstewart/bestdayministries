@@ -177,7 +177,7 @@ const NightOfJoy = () => {
         name: formData.contactName,
         email: formData.email,
         subject: `Night of Joy Sponsorship - ${formData.selectedTier || 'General Inquiry'}`,
-        message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nAddress: ${formData.address}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
+        message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
         source: "night-of-joy",
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
       } as any);
