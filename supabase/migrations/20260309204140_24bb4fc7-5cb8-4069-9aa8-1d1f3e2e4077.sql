@@ -1,0 +1,2 @@
+ALTER TABLE public.contact_form_submissions DROP CONSTRAINT contact_form_submissions_source_check;
+ALTER TABLE public.contact_form_submissions ADD CONSTRAINT contact_form_submissions_source_check CHECK (source = ANY (ARRAY['form'::text, 'email'::text, 'night-of-joy'::text]));
