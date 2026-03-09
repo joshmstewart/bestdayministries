@@ -94,15 +94,49 @@ serve(async (req) => {
       success_url: `${req.headers.get('origin')}/night-of-joy?payment=success`,
       cancel_url: `${req.headers.get('origin')}/night-of-joy`,
       metadata: {
+        type: 'donation',
+        donation_type: 'night-of-joy',
+        frequency: 'one-time',
+        amount: amount.toString(),
         source: 'night-of-joy',
         tier_name: tierLabel,
-        amount: amount.toString(),
         contact_name: contact_name || '',
         business_name: business_name || '',
       },
     });
 
     console.log('Night of Joy checkout session created:', session.id, { tier: tierLabel, amount });
+
+    // Create pending donation record (will be updated by webhook/reconciliation)
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email")
+      .eq("email", email)
+      .maybeSingle();
+
+    // RESPECT donor_identifier_check CONSTRAINT
+    const donorId = profile?.id ?? null;
+    const donorEmail = profile ? null : email;
+
+    const { error: insertError } = await supabaseAdmin.from("donations").insert({
+      donor_id: donorId,
+      donor_email: donorEmail,
+      amount: amount,
+      amount_charged: amount,
+      frequency: 'one-time',
+      status: 'pending',
+      started_at: new Date().toISOString(),
+      stripe_mode: mode,
+      stripe_customer_id: customer.id,
+      stripe_checkout_session_id: session.id,
+    });
+
+    if (insertError) {
+      console.error('Failed to create donation record:', insertError);
+      // Don't fail the checkout - the webhook/reconciliation will handle it
+    } else {
+      console.log('Pending donation record created for NOJ payment');
+    }
 
     return new Response(
       JSON.stringify({ url: session.url }),

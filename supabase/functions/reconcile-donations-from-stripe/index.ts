@@ -106,6 +106,9 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil" 
     });
 
+    // Track session metadata for receipt designation
+    const donationDesignations = new Map<string, string>();
+
     // Process each pending donation
     for (const donation of pendingDonations || []) {
       const stripe = donation.stripe_mode === 'live' ? stripeLive : stripeTest;
@@ -146,6 +149,12 @@ serve(async (req) => {
 
             result.stripeObjectId = session.id;
             result.stripeStatus = session.status;
+
+            // Capture designation from session metadata for receipt
+            if (session.metadata?.donation_type === 'night-of-joy') {
+              const tierName = session.metadata.tier_name;
+              donationDesignations.set(donation.id, tierName ? `A Night of Joy – ${tierName}` : 'A Night of Joy Sponsorship');
+            }
 
             if (session.mode === 'subscription' && session.subscription) {
               const subscription = session.subscription as Stripe.Subscription;
@@ -453,7 +462,7 @@ serve(async (req) => {
             body: {
               sponsorEmail: resolvedEmail,
               sponsorName: sponsorName,
-              bestieName: 'General Support',
+              bestieName: donationDesignations.get(donationId) || 'General Support',
               amount: donation.amount_charged || donation.amount,
               frequency: donation.frequency,
               transactionId: `donation_${donation.id}`,

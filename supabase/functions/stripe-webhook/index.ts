@@ -413,6 +413,9 @@ async function processDonationCheckout(
     const donationTxId = `donation_${existingDonation.id}`;
     const donationFrequency: 'monthly' | 'one-time' = session.mode === 'payment' ? 'one-time' : 'monthly';
     const donationTxDate = (existingDonation.started_at || existingDonation.created_at || new Date().toISOString()) as string;
+    
+    // Determine designation from session metadata
+    const donationDesignation = getDonationDesignation(session.metadata);
 
     // Generate receipt for initial payment
     await generateDonationReceipt(
@@ -424,7 +427,8 @@ async function processDonationCheckout(
       stripeMode,
       supabaseAdmin,
       logStep,
-      amountCharged
+      amountCharged,
+      donationDesignation
     );
 
     // Send receipt email
@@ -438,7 +442,7 @@ async function processDonationCheckout(
         body: JSON.stringify({
           sponsorEmail: donorEmail,
           sponsorName: donorEmail.split('@')[0],
-          bestieName: 'General Support',
+          bestieName: donationDesignation,
           amount: amountCharged,
             frequency: donationFrequency,
             transactionId: donationTxId,
@@ -515,6 +519,7 @@ async function processDonationCheckout(
     const emailForReceipt = donorEmail || (user ? user.email : customerEmail);
     const donationTxId = `donation_${donation.id}`;
     const donationTxDate = (donation.started_at || donation.created_at || new Date().toISOString()) as string;
+    const oneTimeDonationDesignation = getDonationDesignation(session.metadata);
     await generateDonationReceipt(
       donation,
       emailForReceipt,
@@ -524,7 +529,8 @@ async function processDonationCheckout(
       stripeMode,
       supabaseAdmin,
       logStep,
-      amountCharged
+      amountCharged,
+      oneTimeDonationDesignation
     );
 
     // Send receipt email
@@ -538,7 +544,7 @@ async function processDonationCheckout(
         body: JSON.stringify({
           sponsorEmail: emailForReceipt,
           sponsorName: emailForReceipt.split('@')[0],
-          bestieName: 'General Support',
+          bestieName: oneTimeDonationDesignation,
           amount: amountCharged,
           frequency: 'one-time',
           transactionId: donationTxId,
@@ -601,6 +607,7 @@ async function processDonationCheckout(
     const emailForReceipt = donorEmail || (user ? user.email : customerEmail);
     const donationTxId = `donation_${donation.id}`;
     const donationTxDate = (donation.started_at || donation.created_at || new Date().toISOString()) as string;
+    const monthlyDonationDesignation = getDonationDesignation(session.metadata);
     await generateDonationReceipt(
       donation,
       emailForReceipt,
@@ -610,7 +617,8 @@ async function processDonationCheckout(
       stripeMode,
       supabaseAdmin,
       logStep,
-      amountCharged
+      amountCharged,
+      monthlyDonationDesignation
     );
 
     // Send receipt email
@@ -624,7 +632,7 @@ async function processDonationCheckout(
         body: JSON.stringify({
           sponsorEmail: emailForReceipt,
           sponsorName: emailForReceipt.split('@')[0],
-          bestieName: 'General Support',
+          bestieName: monthlyDonationDesignation,
           amount: amountCharged,
           frequency: 'monthly',
           transactionId: donationTxId,
@@ -955,6 +963,15 @@ async function generateSponsorshipReceipt(
   await logStep("receipt_generated", "success", { receipt_id: receipt.id });
 }
 
+// Helper to determine donation designation from session metadata
+function getDonationDesignation(metadata: Record<string, string> | null): string {
+  if (metadata?.donation_type === 'night-of-joy') {
+    const tierName = metadata.tier_name;
+    return tierName ? `A Night of Joy – ${tierName}` : 'A Night of Joy Sponsorship';
+  }
+  return 'General Support';
+}
+
 async function generateDonationReceipt(
   donation: any,
   customerEmail: string,
@@ -964,11 +981,13 @@ async function generateDonationReceipt(
   stripeMode: string,
   supabaseAdmin: any,
   logStep: Function,
-  amount: number
+  amount: number,
+  designation: string = 'General Support'
 ) {
   await logStep("generating_donation_receipt", "info", {
     donation_id: donation.id,
     email: customerEmail,
+    designation,
   });
 
   // Get org info for receipt
@@ -986,7 +1005,7 @@ async function generateDonationReceipt(
       sponsor_email: customerEmail,
       sponsor_name: customerEmail.split("@")[0],
       user_id: donation.donor_id || null,
-      bestie_name: "General Support",
+      bestie_name: designation,
       amount: amount,
       frequency,
       transaction_id: transactionId,
