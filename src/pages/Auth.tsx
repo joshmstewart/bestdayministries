@@ -244,7 +244,9 @@ const Auth = () => {
           password,
           options: {
             data: {
-              display_name: displayName,
+              display_name: `${firstName.trim()} ${lastName.trim().charAt(0)}`,
+              first_name: firstName.trim(),
+              last_name: lastName.trim(),
               role: role,
               profile_avatar_id: selectedAvatarId || null,
             },
