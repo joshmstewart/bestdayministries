@@ -4,7 +4,7 @@ EVENTS SYSTEM - CONCISE
 Community calendar (`/events`) with recurring events, multiple dates, role-based visibility, AI image moderation.
 
 ## Database
-**events:** `title`, `description`, `image_url`, `audio_url`, `location`, `event_date`, `aspect_ratio` (default: '9:16'), `is_recurring`, `recurrence_type`, `expires_after_date`, `visible_to_roles[]`, `is_active`
+**events:** `title`, `description`, `image_url`, `audio_url`, `location`, `event_date`, `aspect_ratio` (default: '9:16'), `event_timezone` (default: 'America/Denver'), `is_recurring`, `recurrence_type`, `expires_after_date`, `visible_to_roles[]`, `is_active`
 
 **event_dates:** `event_id`, `event_date` (additional dates for recurring events)
 
