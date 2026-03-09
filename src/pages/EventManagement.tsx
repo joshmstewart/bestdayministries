@@ -471,6 +471,7 @@ export default function EventManagement() {
     setEventStatus((event as any).status || 'published');
     setLinkUrl((event as any).link_url || "");
     setLinkLabel((event as any).link_label || "Learn More");
+    setEventTimezone(event.event_timezone || 'America/Denver');
     setImagePreview(event.image_url);
     setSelectedImage(null);
     setRawImageUrl(null);
