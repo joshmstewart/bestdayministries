@@ -371,7 +371,7 @@ const VendorDashboard = () => {
                   Apply to Become a Vendor
                 </Button>
                 <button
-                  onClick={() => navigate('/vendor-info')}
+                  onClick={() => navigate('/vendor-guide')}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-2 w-full text-center block"
                 >
                   Learn more about the vendor program
