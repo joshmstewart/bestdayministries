@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS event_timezone TEXT NOT NULL DEFAULT 'America/Denver';

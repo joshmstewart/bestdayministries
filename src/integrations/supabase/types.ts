@@ -4729,6 +4729,7 @@ export type Database = {
           created_by: string
           description: string
           event_date: string
+          event_timezone: string
           expires_after_date: boolean
           id: string
           image_url: string | null
@@ -4762,6 +4763,7 @@ export type Database = {
           created_by: string
           description: string
           event_date: string
+          event_timezone?: string
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
@@ -4795,6 +4797,7 @@ export type Database = {
           created_by?: string
           description?: string
           event_date?: string
+          event_timezone?: string
           expires_after_date?: boolean
           id?: string
           image_url?: string | null
