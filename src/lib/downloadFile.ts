@@ -22,13 +22,8 @@ export const downloadFile = async (url: string, filename: string) => {
 };
 
 /**
- * For PDF URLs, download via blob. For other files, open normally.
+ * Downloads all attachments via fetch + blob to bypass ad blockers.
  */
-export const openOrDownloadAttachment = (url: string, name: string, type?: string) => {
-  const isPdf = type?.includes("pdf") || name?.toLowerCase().endsWith(".pdf") || url?.toLowerCase().includes(".pdf");
-  if (isPdf) {
-    downloadFile(url, name);
-  } else {
-    window.open(url, "_blank");
-  }
+export const openOrDownloadAttachment = (url: string, name: string, _type?: string) => {
+  downloadFile(url, name);
 };
