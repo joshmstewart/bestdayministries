@@ -660,6 +660,25 @@ export default function EventManagement() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Event Timezone</Label>
+                  <Select value={eventTimezone} onValueChange={setEventTimezone}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONE_OPTIONS.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Times will display in this timezone regardless of the viewer's location
+                  </p>
+                </div>
+
                 <LocationAutocomplete
                   value={location}
                   onChange={setLocation}
