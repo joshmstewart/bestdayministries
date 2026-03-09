@@ -612,11 +612,12 @@ const Community = () => {
                       
                       return eventsToShow.map((event) => {
                       // Prepare clean text string for TTS
-                      const eventDate = new Date(event.event_date).toLocaleDateString();
+                      const tz = event.event_timezone || 'America/Denver';
+                      const eventDateDisplay = `${formatEventDateShort(new Date(event.event_date), tz)} at ${formatEventTime(new Date(event.event_date), tz)}`;
                       const ttsText = [
                         event.title,
                         event.description,
-                        `Scheduled for ${eventDate}`,
+                        `Scheduled for ${eventDateDisplay}`,
                         event.location ? `At ${event.location}` : ''
                       ].filter(Boolean).join('. ');
                       
