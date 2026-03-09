@@ -544,7 +544,7 @@ async function processDonationCheckout(
         body: JSON.stringify({
           sponsorEmail: emailForReceipt,
           sponsorName: emailForReceipt.split('@')[0],
-          bestieName: 'General Support',
+          bestieName: oneTimeDonationDesignation,
           amount: amountCharged,
           frequency: 'one-time',
           transactionId: donationTxId,
