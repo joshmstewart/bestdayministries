@@ -91,7 +91,7 @@ export const VendorShippingSettings = ({ vendorId, theme }: VendorShippingSettin
       };
 
       setOriginalData(shippingData);
-      setShippingMode(shippingData.shipping_mode || '');
+      setShippingMode(shippingData.shipping_mode || 'calculated');
       setShipFromZip(shippingData.ship_from_zip || '');
       setShipFromCity(shippingData.ship_from_city || '');
       setShipFromState(shippingData.ship_from_state || '');
