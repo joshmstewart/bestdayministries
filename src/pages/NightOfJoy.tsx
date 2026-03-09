@@ -511,14 +511,6 @@ const NightOfJoy = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => handleChange("address", e.target.value)}
-                  />
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="message">Additional Notes</Label>
