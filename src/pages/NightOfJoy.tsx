@@ -102,7 +102,7 @@ const NightOfJoy = () => {
       setFormData(prev => ({
         ...prev,
         contactName: prev.contactName || profile?.display_name || '',
-        email: prev.email || user?.email || profile?.email || '',
+        email: prev.email || user?.email || '',
       }));
     }
   }, [profile, user]);
