@@ -6,6 +6,7 @@ import { ExternalLink, Pause, Play, ChevronLeft, ChevronRight, Calendar, MapPin,
 import { Link } from "react-router-dom";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { format } from "date-fns";
+import { formatEventTime, formatEventDateFull } from "@/lib/eventTimezone";
 
 interface FeaturedItemData {
   id: string;
