@@ -61,6 +61,7 @@ const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
 const VendorAuth = lazy(() => import("./pages/VendorAuth"));
 const VendorProfile = lazy(() => import("./pages/VendorProfile"));
 const VendorInfo = lazy(() => import("./pages/VendorInfo"));
+const VendorGuide = lazy(() => import("./pages/VendorGuide"));
 const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
