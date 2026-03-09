@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck, Home, Info } from "lucide-react";
+import { Store, Package, DollarSign, Clock, XCircle, CheckCircle, ArrowLeft, Plus, Heart, Star, Truck, Home, BookOpen } from "lucide-react";
 import { VendorBestieAssetManager } from "@/components/vendor/VendorBestieAssetManager";
 import { ProductForm } from "@/components/vendor/ProductForm";
 import { ProductList } from "@/components/vendor/ProductList";
