@@ -413,6 +413,9 @@ async function processDonationCheckout(
     const donationTxId = `donation_${existingDonation.id}`;
     const donationFrequency: 'monthly' | 'one-time' = session.mode === 'payment' ? 'one-time' : 'monthly';
     const donationTxDate = (existingDonation.started_at || existingDonation.created_at || new Date().toISOString()) as string;
+    
+    // Determine designation from session metadata
+    const donationDesignation = getDonationDesignation(session.metadata);
 
     // Generate receipt for initial payment
     await generateDonationReceipt(
@@ -424,7 +427,8 @@ async function processDonationCheckout(
       stripeMode,
       supabaseAdmin,
       logStep,
-      amountCharged
+      amountCharged,
+      donationDesignation
     );
 
     // Send receipt email
