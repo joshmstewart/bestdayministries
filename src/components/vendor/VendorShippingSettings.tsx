@@ -97,7 +97,7 @@ export const VendorShippingSettings = ({ vendorId, theme }: VendorShippingSettin
       setShipFromState(shippingData.ship_from_state || '');
       setFlatRateAmount(shippingData.flat_rate_amount_cents ? (shippingData.flat_rate_amount_cents / 100).toFixed(2) : '');
       setFreeShippingThreshold(shippingData.free_shipping_threshold?.toString() || '');
-      setDisableFreeShipping(shippingData.disable_free_shipping);
+      setDisableFreeShipping(shippingData.disable_free_shipping ?? true);
     } catch (error) {
       console.error('Error loading shipping settings:', error);
       toast({

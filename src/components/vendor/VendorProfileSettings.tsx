@@ -79,7 +79,7 @@ export const VendorProfileSettings = ({ vendorId, theme, onThemeSaved }: VendorP
           free_shipping_threshold: data.free_shipping_threshold ?? 35,
           estimated_processing_days: data.estimated_processing_days ?? 3,
           contact_email: data.contact_email || '',
-          disable_free_shipping: data.disable_free_shipping ?? false,
+          disable_free_shipping: data.disable_free_shipping ?? true,
           theme_color: themeColor,
         });
         setSavedTheme(themeColor);
