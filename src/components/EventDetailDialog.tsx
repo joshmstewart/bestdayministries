@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ShareButtons } from "@/components/ShareButtons";
 import { LinkifiedText } from "@/lib/linkifyText";
+import { formatEventTime, formatEventDateFull, formatEventDateWeekday } from "@/lib/eventTimezone";
 
 interface EventDate {
   id: string;
@@ -31,6 +32,7 @@ interface Event {
   event_dates?: EventDate[];
   link_url?: string | null;
   link_label?: string | null;
+  event_timezone?: string;
 }
 
 interface EventDetailDialogProps {
@@ -119,11 +121,11 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
               </div>
               <div className="flex items-center gap-3 text-lg font-semibold">
                 <CalendarIcon className="w-5 h-5 text-primary" />
-                {format(displayDate, "PPPP")}
+                {formatEventDateFull(displayDate, event.event_timezone || 'America/Denver')}
               </div>
               <div className="flex items-center gap-3 text-base mt-2">
                 <Clock className="w-4 h-4 text-primary" />
-                {format(displayDate, "p")}
+                {formatEventTime(displayDate, event.event_timezone || 'America/Denver')}
               </div>
             </div>
           )}
@@ -150,10 +152,10 @@ export function EventDetailDialog({ event, open, onOpenChange, allDates = [], di
                         <CalendarIcon className="w-4 h-4 flex-shrink-0" />
                         <div>
                           <div className={cn("font-medium", isPast && "line-through")}>
-                            {format(date, "EEEE, MMMM d, yyyy")}
+                            {formatEventDateWeekday(date, event.event_timezone || 'America/Denver')}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {format(date, "p")}
+                            {formatEventTime(date, event.event_timezone || 'America/Denver')}
                           </div>
                         </div>
                       </div>

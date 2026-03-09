@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
 import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff } from "lucide-react";
@@ -24,6 +25,7 @@ import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import { LocationLink } from "@/components/LocationLink";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { TIMEZONE_OPTIONS, formatEventTime, formatEventDateMedium } from "@/lib/eventTimezone";
 
 interface EventDate {
   id: string;
@@ -53,6 +55,7 @@ interface Event {
   event_dates?: EventDate[];
   link_url?: string | null;
   link_label?: string | null;
+  event_timezone?: string;
 }
 
 interface SavedLocation {
@@ -99,6 +102,7 @@ export default function EventManagement() {
   const [eventStatus, setEventStatus] = useState<'draft' | 'published'>('draft');
   const [linkUrl, setLinkUrl] = useState("");
   const [linkLabel, setLinkLabel] = useState("Learn More");
+  const [eventTimezone, setEventTimezone] = useState("America/Denver");
 
   useEffect(() => {
     checkAdminAccess();
@@ -241,6 +245,7 @@ export default function EventManagement() {
     setEventStatus('draft');
     setLinkUrl("");
     setLinkLabel("Learn More");
+    setEventTimezone("America/Denver");
     setEditingEvent(null);
     setShowForm(false);
   };
@@ -355,6 +360,7 @@ export default function EventManagement() {
         status: newStatus,
         link_url: linkUrl?.trim() || null,
         link_label: linkLabel?.trim() || 'Learn More',
+        event_timezone: eventTimezone,
       };
 
       let eventId = editingEvent?.id;
@@ -465,6 +471,7 @@ export default function EventManagement() {
     setEventStatus((event as any).status || 'published');
     setLinkUrl((event as any).link_url || "");
     setLinkLabel((event as any).link_label || "Learn More");
+    setEventTimezone(event.event_timezone || 'America/Denver');
     setImagePreview(event.image_url);
     setSelectedImage(null);
     setRawImageUrl(null);
@@ -651,6 +658,25 @@ export default function EventManagement() {
                       onChange={(e) => setEventTime(e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timezone">Event Timezone</Label>
+                  <Select value={eventTimezone} onValueChange={setEventTimezone}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONE_OPTIONS.map((tz) => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Times will display in this timezone regardless of the viewer's location
+                  </p>
                 </div>
 
                 <LocationAutocomplete
@@ -1206,7 +1232,7 @@ export default function EventManagement() {
                             )}>
                               <CalendarIcon className="w-3 h-3" />
                               <span className={new Date(event.event_date) < new Date() ? "line-through" : ""}>
-                                {format(new Date(event.event_date), "PPP")} at {format(new Date(event.event_date), "p")}
+                                {formatEventDateMedium(new Date(event.event_date), event.event_timezone || 'America/Denver')} at {formatEventTime(new Date(event.event_date), event.event_timezone || 'America/Denver')}
                               </span>
                             </div>
                             {/* Additional dates */}
@@ -1219,7 +1245,7 @@ export default function EventManagement() {
                                 )}>
                                   <CalendarIcon className="w-3 h-3" />
                                   <span className={isPast ? "line-through" : ""}>
-                                    {format(new Date(ed.event_date), "PPP")} at {format(new Date(ed.event_date), "p")}
+                                    {formatEventDateMedium(new Date(ed.event_date), event.event_timezone || 'America/Denver')} at {formatEventTime(new Date(ed.event_date), event.event_timezone || 'America/Denver')}
                                   </span>
                                 </div>
                               );
@@ -1229,11 +1255,11 @@ export default function EventManagement() {
                           <div className="space-y-1 text-sm">
                             <div className="flex items-center gap-2">
                               <CalendarIcon className="w-4 h-4" />
-                              {format(new Date(event.event_date), "PPP")}
+                              {formatEventDateMedium(new Date(event.event_date), event.event_timezone || 'America/Denver')}
                             </div>
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4" />
-                              {format(new Date(event.event_date), "p")}
+                              {formatEventTime(new Date(event.event_date), event.event_timezone || 'America/Denver')}
                             </div>
                           </div>
                         )}

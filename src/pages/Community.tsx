@@ -12,6 +12,7 @@ import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
 import LatestAlbum from "@/components/LatestAlbum";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
+import { formatEventTime, formatEventDateShort } from "@/lib/eventTimezone";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { useRoleImpersonation, UserRole } from "@/hooks/useRoleImpersonation";
@@ -611,11 +612,12 @@ const Community = () => {
                       
                       return eventsToShow.map((event) => {
                       // Prepare clean text string for TTS
-                      const eventDate = new Date(event.event_date).toLocaleDateString();
+                      const tz = event.event_timezone || 'America/Denver';
+                      const eventDateDisplay = `${formatEventDateShort(new Date(event.event_date), tz)} at ${formatEventTime(new Date(event.event_date), tz)}`;
                       const ttsText = [
                         event.title,
                         event.description,
-                        `Scheduled for ${eventDate}`,
+                        `Scheduled for ${eventDateDisplay}`,
                         event.location ? `At ${event.location}` : ''
                       ].filter(Boolean).join('. ');
                       
@@ -652,7 +654,7 @@ const Community = () => {
                         <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
-                          <span>{new Date(event.event_date).toLocaleDateString()}</span>
+                          <span>{formatEventDateShort(new Date(event.event_date), event.event_timezone || 'America/Denver')} at {formatEventTime(new Date(event.event_date), event.event_timezone || 'America/Denver')}</span>
                           {event.location && (
                             <>
                               <span>•</span>

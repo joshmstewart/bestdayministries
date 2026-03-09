@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Clock, MapPin, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import { formatEventTime, formatEventDateFull, formatEventDateShort } from "@/lib/eventTimezone";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ interface Event {
   event_dates?: EventDate[];
   link_url?: string | null;
   link_label?: string | null;
+  event_timezone?: string;
 }
 
 export default function EventsPage() {
@@ -289,11 +291,11 @@ export default function EventsPage() {
                             <div className="bg-primary/10 p-3 rounded-lg">
                               <div className="flex items-center gap-2 text-foreground font-semibold">
                                 <CalendarIcon className="w-5 h-5 text-primary" />
-                                {format(displayDate, "PPPP")}
+                                {formatEventDateFull(displayDate, event.event_timezone || 'America/Denver')}
                               </div>
                               <div className="flex items-center gap-2 text-foreground mt-1">
                                 <Clock className="w-4 h-4 text-primary" />
-                                {format(displayDate, "p")}
+                                {formatEventTime(displayDate, event.event_timezone || 'America/Denver')}
                               </div>
                             </div>
 
@@ -337,7 +339,7 @@ export default function EventsPage() {
                                         )}
                                       >
                                         <CalendarIcon className="w-3 h-3" />
-                                        {format(date, "MMM d, yyyy")} at {format(date, "p")}
+                                        {formatEventDateShort(date, event.event_timezone || 'America/Denver')} at {formatEventTime(date, event.event_timezone || 'America/Denver')}
                                       </div>
                                     );
                                   })}

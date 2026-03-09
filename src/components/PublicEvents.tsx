@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar as CalendarIcon, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
+import { formatEventTime, formatEventDateFull } from "@/lib/eventTimezone";
 import AudioPlayer from "@/components/AudioPlayer";
 import { TextToSpeech } from "@/components/TextToSpeech";
 import { EventDetailDialog } from "@/components/EventDetailDialog";
@@ -37,6 +38,7 @@ interface Event {
   created_at: string;
   updated_at: string;
   event_dates?: EventDate[];
+  event_timezone?: string;
 }
 
 export function PublicEvents() {
@@ -234,17 +236,17 @@ export function PublicEvents() {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xl font-bold flex-1">{event.title}</h3>
-                      <TextToSpeech text={`${event.title}. ${event.description}. Date: ${format(displayDate, "PPPP")} at ${format(displayDate, "p")}${event.location ? `. Location: ${event.location}` : ''}`} />
+                      <TextToSpeech text={`${event.title}. ${event.description}. Date: ${formatEventDateFull(displayDate, event.event_timezone || 'America/Denver')} at ${formatEventTime(displayDate, event.event_timezone || 'America/Denver')}${event.location ? `. Location: ${event.location}` : ''}`} />
                     </div>
                     
                     <div className="bg-primary/10 p-3 rounded-lg">
                       <div className="flex items-center gap-2 text-foreground font-semibold">
                         <CalendarIcon className="w-5 h-5 text-primary" />
-                        {format(displayDate, "PPPP")}
+                        {formatEventDateFull(displayDate, event.event_timezone || 'America/Denver')}
                       </div>
                       <div className="flex items-center gap-2 text-foreground mt-1">
                         <Clock className="w-4 h-4 text-primary" />
-                        {format(displayDate, "p")}
+                        {formatEventTime(displayDate, event.event_timezone || 'America/Denver')}
                       </div>
                     </div>
 
