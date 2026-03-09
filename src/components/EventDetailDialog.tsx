@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ShareButtons } from "@/components/ShareButtons";
 import { LinkifiedText } from "@/lib/linkifyText";
+import { formatEventTime, formatEventDateFull, formatEventDateWeekday } from "@/lib/eventTimezone";
 
 interface EventDate {
   id: string;
