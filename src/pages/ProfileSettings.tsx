@@ -713,18 +713,34 @@ const ProfileSettings = () => {
                 </p>
               </div>
 
-              {/* Display Name */}
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Display Name *</Label>
-                <Input
-                  id="displayName"
-                  name="display_name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Display Name"
-                  maxLength={50}
-                />
+              {/* First Name & Last Name */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    name="first_name"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="First name"
+                    maxLength={50}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    name="last_name"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Last name"
+                    maxLength={50}
+                  />
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground -mt-4">
+                Your display name will be generated as "First L" (e.g. "Joshie S"). Both fields are required if editing.
+              </p>
 
               {/* Bio */}
               <div className="space-y-2">
