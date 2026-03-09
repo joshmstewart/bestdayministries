@@ -55,6 +55,7 @@ interface Event {
   event_dates?: EventDate[];
   link_url?: string | null;
   link_label?: string | null;
+  event_timezone?: string;
 }
 
 interface SavedLocation {
