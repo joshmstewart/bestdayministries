@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { getCTASizing } from './ctaButtonStyles';
 
 export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
-  const { node, selected, deleteNode, editor, getPos, updateAttributes } = props;
+  const { node: rawNode, selected, deleteNode, editor, getPos, updateAttributes } = props;
+  const node = rawNode as any;
   const { text, url, color } = node.attrs;
   
   const [isEditOpen, setIsEditOpen] = useState(false);
