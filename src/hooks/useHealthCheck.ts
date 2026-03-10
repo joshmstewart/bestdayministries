@@ -36,7 +36,7 @@ export function useHealthCheck() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('health-check', {
-        body: { functionNames, timeoutMs: 5000 },
+        body: { functionNames, timeoutMs: 10000 },
       });
 
       if (fnError) throw fnError;
