@@ -43,11 +43,15 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
       const pos = getPos();
       if (typeof pos === 'number' && !isNaN(pos) && pos >= 0) {
         try {
-          const { NodeSelection } = await import('prosemirror-state');
-          const ns = NodeSelection.create(editor.state.doc, pos);
-          const tr = editor.state.tr.setSelection(ns);
-          editor.view.dispatch(tr);
-          editor.commands.deleteSelection();
+          // Select the node via transaction and delete
+          const resolvedPos = editor.state.doc.resolve(pos);
+          const tr = editor.state.tr.setSelection(
+            editor.state.selection.constructor === Object
+              ? editor.state.selection
+              : editor.state.tr.selection
+          );
+          // Use deleteRange as fallback
+          editor.view.dispatch(editor.state.tr.delete(pos, pos + node.nodeSize));
           editor.view.focus();
           return;
         } catch (err) {
