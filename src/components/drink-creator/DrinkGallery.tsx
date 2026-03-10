@@ -112,7 +112,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
     setLoading(true);
     const query = supabase
       .from("custom_drinks")
-      .select("id, creator_id, name, description, generated_image_url, ingredients, is_public, likes_count, created_at")
+      .select("*")
       .eq("is_public", true)
       .limit(50);
 
