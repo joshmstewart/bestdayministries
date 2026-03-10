@@ -20,12 +20,12 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     
     let functionNames: string[] = [];
-    let timeoutMs = 5000;
+    let timeoutMs = 10000;
 
     if (req.method === "POST") {
       const body = await req.json();
       functionNames = body.functionNames || [];
-      timeoutMs = body.timeoutMs || 5000;
+      timeoutMs = body.timeoutMs || 10000;
     }
 
     if (functionNames.length === 0) {
