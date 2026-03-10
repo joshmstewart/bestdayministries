@@ -37,7 +37,8 @@ const BACKGROUND_OPTIONS = [
 
 const CTA_COLOR_PRESETS = ['#f97316', '#3b82f6', '#22c55e', '#8b5cf6', '#ef4444', '#1f2937'];
 
-export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode, editor, getPos }: NodeViewProps) => {
+export const TwoColumnNodeView = ({ node: rawNode, updateAttributes, deleteNode, editor, getPos }: NodeViewProps) => {
+  const node = rawNode as any;
   const { layout, leftContent, rightContent, imageUrl, backgroundColor, backgroundScope } = node.attrs;
   const [uploading, setUploading] = useState(false);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
@@ -89,7 +90,7 @@ export const TwoColumnNodeView = ({ node, updateAttributes, deleteNode, editor, 
 
   // Insert a paragraph after this node so user can add space between magazine boxes
   const insertSpaceAfter = () => {
-    const pos = getPos();
+    const pos = (getPos as any)();
     if (typeof pos === 'number' && !isNaN(pos) && editor) {
       const endPos = pos + node.nodeSize;
       const tr = editor.state.tr.insert(endPos, editor.state.schema.nodes.paragraph.create());

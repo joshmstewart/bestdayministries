@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
-import { NodeSelection } from '@tiptap/pm/state';
 import { X, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { getCTASizing } from './ctaButtonStyles';
 
 export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
-  const { node, selected, deleteNode, editor, getPos, updateAttributes } = props;
+  const { node: rawNode, selected, deleteNode, editor, getPos, updateAttributes } = props;
+  const node = rawNode as any;
   const { text, url, color } = node.attrs;
   
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -43,10 +43,15 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
       const pos = getPos();
       if (typeof pos === 'number' && !isNaN(pos) && pos >= 0) {
         try {
-          const nodeSelection = NodeSelection.create(editor.state.doc, pos);
-          const tr = editor.state.tr.setSelection(nodeSelection);
-          editor.view.dispatch(tr);
-          editor.commands.deleteSelection();
+          // Select the node via transaction and delete
+          const resolvedPos = editor.state.doc.resolve(pos);
+          const tr = editor.state.tr.setSelection(
+            editor.state.selection.constructor === Object
+              ? editor.state.selection
+              : editor.state.tr.selection
+          );
+          // Use deleteRange as fallback
+          editor.view.dispatch(editor.state.tr.delete(pos, pos + node.nodeSize));
           editor.view.focus();
           return;
         } catch (err) {
@@ -96,9 +101,8 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
       const pos = getPos();
       if (typeof pos === 'number' && !isNaN(pos) && pos >= 0) {
         try {
-          const nodeSelection = NodeSelection.create(editor.state.doc, pos);
-          const tr = editor.state.tr.setSelection(nodeSelection);
-          editor.view.dispatch(tr);
+          // Select this node by setting a node selection via setNodeSelection command
+          editor.commands.setNodeSelection(pos);
           editor.view.focus();
         } catch (err) {
           // Ignore selection errors
