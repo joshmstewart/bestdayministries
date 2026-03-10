@@ -11,7 +11,7 @@ import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
-import { DOMSerializer } from "@tiptap/pm/model";
+import type { Schema } from '@tiptap/pm/model';
 import { StyledBox, STYLED_BOX_STYLES, StyledBoxStyle, StyledBoxWidth } from "./StyledBoxExtension";
 import { CTAButton } from "./CTAButtonExtension";
 import { StatsBlock, StatItem } from "./StatsBlockExtension";

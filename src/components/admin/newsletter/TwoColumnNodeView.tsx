@@ -90,7 +90,7 @@ export const TwoColumnNodeView = ({ node: rawNode, updateAttributes, deleteNode,
 
   // Insert a paragraph after this node so user can add space between magazine boxes
   const insertSpaceAfter = () => {
-    const pos = getPos();
+    const pos = (getPos as any)();
     if (typeof pos === 'number' && !isNaN(pos) && editor) {
       const endPos = pos + node.nodeSize;
       const tr = editor.state.tr.insert(endPos, editor.state.schema.nodes.paragraph.create());
