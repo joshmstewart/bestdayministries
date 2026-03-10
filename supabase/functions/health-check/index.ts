@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     }
 
     // Check functions in parallel with concurrency limit
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 5;
     const results: HealthResult[] = [];
 
     for (let i = 0; i < functionNames.length; i += BATCH_SIZE) {
@@ -44,46 +44,58 @@ Deno.serve(async (req) => {
       const batchResults = await Promise.all(
         batch.map(async (name): Promise<HealthResult> => {
           const url = `${supabaseUrl}/functions/v1/${name}`;
-          const start = Date.now();
 
-          try {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), timeoutMs);
+          const checkOnce = async (): Promise<HealthResult> => {
+            const start = Date.now();
+            try {
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-            const response = await fetch(url, {
-              method: "OPTIONS",
-              signal: controller.signal,
-            });
+              const response = await fetch(url, {
+                method: "OPTIONS",
+                signal: controller.signal,
+              });
 
-            clearTimeout(timer);
-            const elapsed = Date.now() - start;
+              clearTimeout(timer);
+              const elapsed = Date.now() - start;
 
-            if (response.status === 200 || response.status === 204) {
-              return {
-                name,
-                status: elapsed > 2000 ? 'slow' : 'alive',
-                responseTimeMs: elapsed,
-                httpStatus: response.status,
-              };
-            } else {
+              if (response.status === 200 || response.status === 204) {
+                return {
+                  name,
+                  status: elapsed > 2000 ? 'slow' : 'alive',
+                  responseTimeMs: elapsed,
+                  httpStatus: response.status,
+                };
+              } else {
+                return {
+                  name,
+                  status: 'dead',
+                  responseTimeMs: elapsed,
+                  httpStatus: response.status,
+                  error: `HTTP ${response.status}`,
+                };
+              }
+            } catch (err) {
+              const elapsed = Date.now() - start;
+              const errorMsg = err instanceof Error ? err.message : String(err);
               return {
                 name,
                 status: 'dead',
                 responseTimeMs: elapsed,
-                httpStatus: response.status,
-                error: `HTTP ${response.status}`,
+                error: errorMsg.includes('abort') ? 'Timeout' : errorMsg,
               };
             }
-          } catch (err) {
-            const elapsed = Date.now() - start;
-            const errorMsg = err instanceof Error ? err.message : String(err);
-            return {
-              name,
-              status: 'dead',
-              responseTimeMs: elapsed,
-              error: errorMsg.includes('abort') ? 'Timeout' : errorMsg,
-            };
+          };
+
+          // First attempt
+          const first = await checkOnce();
+          
+          // If timed out, retry once (cold start likely completed)
+          if (first.error === 'Timeout') {
+            return await checkOnce();
           }
+          
+          return first;
         })
       );
       results.push(...batchResults);
