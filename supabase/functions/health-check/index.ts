@@ -36,7 +36,8 @@ Deno.serve(async (req) => {
     }
 
     // Check functions in parallel with concurrency limit
-    const BATCH_SIZE = 5;
+    // Keep batch size moderate - too small = too many sequential batches = edge function wall-clock timeout
+    const BATCH_SIZE = 15;
     const results: HealthResult[] = [];
 
     for (let i = 0; i < functionNames.length; i += BATCH_SIZE) {

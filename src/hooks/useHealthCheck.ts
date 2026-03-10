@@ -35,21 +35,33 @@ export function useHealthCheck() {
       .map(f => f.name);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('health-check', {
-        body: { functionNames, timeoutMs: 10000 },
-      });
+      // Split into chunks to avoid the health-check edge function hitting its ~60s wall-clock limit
+      const CHUNK_SIZE = 30;
+      const allResults: any[] = [];
+      
+      for (let i = 0; i < functionNames.length; i += CHUNK_SIZE) {
+        const chunk = functionNames.slice(i, i + CHUNK_SIZE);
+        const { data, error: fnError } = await supabase.functions.invoke('health-check', {
+          body: { functionNames: chunk, timeoutMs: 10000 },
+        });
 
-      if (fnError) throw fnError;
+        if (fnError) throw fnError;
+        allResults.push(...(data.results || []));
+      }
 
       // Enrich results with tier info
-      const enriched: HealthResult[] = (data.results || []).map((r: any) => {
+      const enriched: HealthResult[] = allResults.map((r: any) => {
         const entry = FUNCTION_REGISTRY.find(f => f.name === r.name);
         return { ...r, tier: entry?.tier ?? 'utility' };
       });
 
+      const alive = enriched.filter(r => r.status === 'alive').length;
+      const slow = enriched.filter(r => r.status === 'slow').length;
+      const dead = enriched.filter(r => r.status === 'dead').length;
+
       const newReport: HealthCheckReport = {
-        checkedAt: data.checkedAt,
-        summary: data.summary,
+        checkedAt: new Date().toISOString(),
+        summary: { total: enriched.length, alive, slow, dead },
         results: enriched,
       };
 
@@ -63,9 +75,9 @@ export function useHealthCheck() {
       const { error: insertErr } = await supabase.from('health_check_results').insert({
         scope,
         total_checked: enriched.length,
-        alive_count: data.summary.alive,
-        dead_count: data.summary.dead,
-        slow_count: data.summary.slow,
+        alive_count: alive,
+        dead_count: dead,
+        slow_count: slow,
         dead_critical_count: deadCritical,
         dead_functions: deadFunctions as unknown as Record<string, unknown>[],
         all_results: enriched as unknown as Record<string, unknown>[],
