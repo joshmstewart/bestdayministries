@@ -101,10 +101,8 @@ export const CTAButtonNodeView: React.FC<NodeViewProps> = (props) => {
       const pos = getPos();
       if (typeof pos === 'number' && !isNaN(pos) && pos >= 0) {
         try {
-          const { NodeSelection } = await import('prosemirror-state');
-          const ns = NodeSelection.create(editor.state.doc, pos);
-          const tr = editor.state.tr.setSelection(ns);
-          editor.view.dispatch(tr);
+          // Select this node by setting a node selection via setNodeSelection command
+          editor.commands.setNodeSelection(pos);
           editor.view.focus();
         } catch (err) {
           // Ignore selection errors
