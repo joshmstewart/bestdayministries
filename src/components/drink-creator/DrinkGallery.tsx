@@ -125,11 +125,13 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
     const { data, error } = await query;
 
     if (error) {
+      console.error("Error loading drinks:", error);
       toast({
         title: "Error loading drinks",
         description: error.message,
         variant: "destructive",
       });
+      setLoading(false);
       return;
     }
 
