@@ -108,11 +108,11 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
     loadUserLikes();
   }, [userId, sortBy]);
 
-  const loadDrinks = async () => {
+  const loadDrinks = async (retryCount = 0) => {
     setLoading(true);
     const query = supabase
       .from("custom_drinks")
-      .select("*")
+      .select("id, creator_id, name, description, image_url, ingredients, is_public, likes_count, created_at")
       .eq("is_public", true)
       .limit(50);
 
@@ -126,6 +126,12 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
 
     if (error) {
       console.error("Error loading drinks:", error);
+      // Retry up to 2 times on timeout
+      if (error.code === "57014" && retryCount < 2) {
+        console.log(`Retrying loadDrinks (attempt ${retryCount + 2})...`);
+        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+        return loadDrinks(retryCount + 1);
+      }
       toast({
         title: "Error loading drinks",
         description: error.message,
