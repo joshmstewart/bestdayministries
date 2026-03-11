@@ -144,8 +144,9 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // Check all functions in batches of 20
-    const BATCH_SIZE = 20;
+    // Check all functions in batches of 15 with 10s timeout + retry
+    const BATCH_SIZE = 15;
+    const TIMEOUT_MS = 10000;
     const results: HealthResult[] = [];
 
     for (let i = 0; i < ALL_FUNCTIONS.length; i += BATCH_SIZE) {
@@ -153,23 +154,36 @@ Deno.serve(async (req) => {
       const batchResults = await Promise.all(
         batch.map(async (fn): Promise<HealthResult> => {
           const url = `${supabaseUrl}/functions/v1/${fn.name}`;
-          const start = Date.now();
-          try {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 5000);
-            const response = await fetch(url, { method: "OPTIONS", signal: controller.signal });
-            clearTimeout(timer);
-            const elapsed = Date.now() - start;
 
-            if (response.status === 200 || response.status === 204) {
-              return { name: fn.name, tier: fn.tier, status: elapsed > 2000 ? 'slow' : 'alive', responseTimeMs: elapsed, httpStatus: response.status };
+          const checkOnce = async (): Promise<HealthResult> => {
+            const start = Date.now();
+            try {
+              const controller = new AbortController();
+              const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+              const response = await fetch(url, { method: "OPTIONS", signal: controller.signal });
+              clearTimeout(timer);
+              const elapsed = Date.now() - start;
+
+              if (response.status === 200 || response.status === 204) {
+                return { name: fn.name, tier: fn.tier, status: elapsed > 2000 ? 'slow' : 'alive', responseTimeMs: elapsed, httpStatus: response.status };
+              }
+              return { name: fn.name, tier: fn.tier, status: 'dead', responseTimeMs: elapsed, httpStatus: response.status, error: `HTTP ${response.status}` };
+            } catch (err) {
+              const elapsed = Date.now() - start;
+              const msg = err instanceof Error ? err.message : String(err);
+              return { name: fn.name, tier: fn.tier, status: 'dead', responseTimeMs: elapsed, error: msg.includes('abort') ? 'Timeout' : msg };
             }
-            return { name: fn.name, tier: fn.tier, status: 'dead', responseTimeMs: elapsed, httpStatus: response.status, error: `HTTP ${response.status}` };
-          } catch (err) {
-            const elapsed = Date.now() - start;
-            const msg = err instanceof Error ? err.message : String(err);
-            return { name: fn.name, tier: fn.tier, status: 'dead', responseTimeMs: elapsed, error: msg.includes('abort') ? 'Timeout' : msg };
+          };
+
+          // First attempt
+          const first = await checkOnce();
+
+          // If timed out, retry once (cold start likely completed)
+          if (first.error === 'Timeout') {
+            return await checkOnce();
           }
+
+          return first;
         })
       );
       results.push(...batchResults);
