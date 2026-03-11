@@ -338,7 +338,7 @@ verify_jwt = false
 
 [functions.run-health-check]
 verify_jwt = false
-schedule = "0 */4 * * *"
+schedule = "0 8 * * *"
 
 [functions.create-bike-pledge]
 verify_jwt = false
