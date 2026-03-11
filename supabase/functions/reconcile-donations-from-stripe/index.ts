@@ -370,13 +370,14 @@ serve(async (req) => {
           }
         }
 
-        // Auto-cancel stale pending donations with no Stripe record after 2 hours
+        // Auto-cancel stale pending donations with no Stripe record after 5 hours
+        // (must be longer than the 4-hour cron interval to avoid premature cancellation)
         if (result.action === 'skipped') {
           const donationAge = Date.now() - new Date(donation.created_at).getTime();
-          const twoHours = 2 * 60 * 60 * 1000;
+          const fiveHours = 5 * 60 * 60 * 1000;
           
-          if (donationAge > twoHours) {
-            // No Stripe record found after 2 hours = abandoned checkout
+          if (donationAge > fiveHours) {
+            // No Stripe record found after 5 hours = abandoned checkout
             const { error: cancelError } = await supabaseClient
               .from('donations')
               .update({ 
@@ -388,7 +389,7 @@ serve(async (req) => {
             if (!cancelError) {
               result.newStatus = 'cancelled';
               result.action = 'auto_cancelled';
-              logStep(`🗑️ Auto-cancelled donation ${donation.id} - no Stripe record after 2h (abandoned checkout)`);
+              logStep(`🗑️ Auto-cancelled donation ${donation.id} - no Stripe record after 5h (abandoned checkout)`);
             } else {
               logStep(`Failed to auto-cancel donation ${donation.id}`, { error: cancelError.message });
             }

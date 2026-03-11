@@ -1,36 +1,49 @@
 
 
-# Cloud Cost Optimization Plan
+## Problem Analysis
 
-## Summary of Changes
+The location field has a fundamental architectural issue: **Google Places Autocomplete manipulates the DOM input directly**, bypassing React's controlled `value` state. This causes a desync where:
 
-Three changes across two files:
+1. User types a manual address → React state updates correctly via `onChange`
+2. Google Autocomplete attaches to the input and may fire `place_changed` with empty/partial data when the user clicks away (to hit Save), **overwriting** the location state
+3. Even with the `onBlur` fix, there's a race condition: Google's `place_changed` can fire *after* `onBlur`, resetting the value
+4. The save function reads `location` state (line 335: `location: location?.trim() || null`) — if Google cleared it, the save succeeds with empty/wrong data
 
-### 1. Reduce health check cron to daily (`config.toml`)
-Change `run-health-check` schedule from `0 */4 * * *` (6×/day) to `0 8 * * *` (once daily at 8 AM UTC / 1 AM MST). Saves ~5 invocations/day × 30 = ~150 invocations/month, plus each invocation pings 107 functions.
+The toast says "Event updated successfully" because the DB update itself doesn't error — it just saves the wrong (empty or partial) value.
 
-### 2. Fix `run-health-check` batching bug (root cause of 47 false-dead)
-The scheduled `run-health-check/index.ts` still uses:
-- Batch size of **20** (too many concurrent)
-- Timeout of **5 seconds** (too short for cold starts)
-- **No retry** for timeouts
+## Root Cause
 
-Apply the same fixes already made to the client-side `health-check` function:
-- Reduce batch size to **15**
-- Increase timeout to **10 seconds**
-- Add single retry for timeout failures
+Google Places Autocomplete fires `place_changed` whenever the user interacts with the input and then leaves it — even if they didn't select a suggestion. When no place is selected, `getPlace()` returns an object with only `name` (whatever text is in the input) but sometimes returns an empty object. The current handler at line 118-125 may call `onChange` with an empty/wrong value.
 
-### 3. Bump donation auto-cancel from 2h to 5h (`reconcile-donations-from-stripe`)
-Already discussed — ensures the 4-hour cron interval doesn't cause premature cancellations.
+## Plan
 
-### 4. Change `sync-donation-history` to every 4 hours (`config.toml`)
-From `0 * * * *` to `0 */4 * * *`.
+### 1. Fix the `place_changed` handler to never clear valid input
 
-## Files Changed
+In `LocationAutocomplete.tsx`, modify the `place_changed` listener to only update state if the place has meaningful data. If `getPlace()` returns no `formatted_address` and no `name`, preserve the current value instead of clearing it.
 
-| File | Change |
-|------|--------|
-| `supabase/config.toml` | `run-health-check` → `0 8 * * *`, `sync-donation-history` → `0 */4 * * *` |
-| `supabase/functions/run-health-check/index.ts` | Batch 20→15, timeout 5s→10s, add retry on timeout |
-| `supabase/functions/reconcile-donations-from-stripe/index.ts` | Auto-cancel 2h→5h |
+### 2. Add a DOM-sync safety net before save
+
+Add a `ref` callback or imperative method so that **at save time**, `EventManagement.tsx` reads the actual DOM input value as a fallback. This can be done by:
+
+- Adding a `ref` prop to `LocationAutocomplete` that exposes `getInputValue()` 
+- OR simpler: making the component sync DOM→state on every input event using a `MutationObserver` or periodic sync
+
+The simpler approach: **use an uncontrolled input pattern** — stop fighting Google by removing `value={value}` (making it uncontrolled) and instead sync from DOM→React on every change. Use `defaultValue` + `ref` to read the actual value.
+
+### 3. Recommended approach (simplest, most reliable)
+
+**Hybrid controlled/uncontrolled**: Keep `value` for display purposes but add a final DOM-read sync right before save:
+
+In `LocationAutocomplete.tsx`:
+- Expose the `inputRef` via `forwardRef` or a callback ref prop
+- Guard `place_changed`: only update if place has real data
+
+In `EventManagement.tsx`:
+- Before building `eventData`, read `document.getElementById('location')?.value` as a final fallback
+- Use whichever is non-empty: React state or DOM value
+
+### Files to modify:
+- `src/components/LocationAutocomplete.tsx` — fix `place_changed` handler, expose ref
+- `src/pages/EventManagement.tsx` — add DOM fallback read at save time
+- `docs/SAVED_LOCATIONS_SYSTEM.md` — update with fix details
 

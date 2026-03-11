@@ -220,7 +220,7 @@ verify_jwt = true
 
 [functions.sync-donation-history]
 verify_jwt = false
-schedule = "0 * * * *"
+schedule = "0 */4 * * *"
 
 [functions.create-donation-from-stripe]
 verify_jwt = true
@@ -338,7 +338,7 @@ verify_jwt = false
 
 [functions.run-health-check]
 verify_jwt = false
-schedule = "0 */4 * * *"
+schedule = "0 8 * * *"
 
 [functions.create-bike-pledge]
 verify_jwt = false
