@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
-import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff } from "lucide-react";
+import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
@@ -1314,10 +1314,16 @@ export default function EventManagement() {
 
           {/* Night of Joy Guest List */}
           <Card className="mt-8">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 🎉 A Night of Joy – Guest List
               </CardTitle>
+              <a href="/night-of-joy" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ExternalLink className="h-4 w-4" />
+                  View Page
+                </Button>
+              </a>
             </CardHeader>
             <CardContent>
               <NojGuestList />
