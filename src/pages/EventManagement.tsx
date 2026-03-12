@@ -1314,10 +1314,16 @@ export default function EventManagement() {
 
           {/* Night of Joy Guest List */}
           <Card className="mt-8">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 🎉 A Night of Joy – Guest List
               </CardTitle>
+              <a href="/night-of-joy" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <ExternalLink className="h-4 w-4" />
+                  View Page
+                </Button>
+              </a>
             </CardHeader>
             <CardContent>
               <NojGuestList />
