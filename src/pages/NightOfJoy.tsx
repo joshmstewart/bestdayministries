@@ -554,10 +554,36 @@ const NightOfJoy = () => {
                 <div className="text-center mb-8">
                   <Ticket className="w-10 h-10 text-amber-400 mx-auto mb-3" />
                   <h2 className="text-3xl font-bold text-amber-100 mb-2">Buy Tickets</h2>
-                  <p className="text-amber-200/60">${TICKET_PRICE} per person • Select quantity below</p>
+                  <p className="text-amber-200/60">Select your ticket type and quantity below</p>
                 </div>
 
                 <div className="space-y-6">
+                  {/* Tier Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-amber-200/80">Ticket Type</Label>
+                    <div className="grid grid-cols-1 gap-2">
+                      {TICKET_TIERS.map(tier => (
+                        <button
+                          key={tier.id}
+                          type="button"
+                          onClick={() => setTicketTier(tier.id)}
+                          className={`flex items-center justify-between p-4 rounded-xl border-2 text-left transition-all ${
+                            ticketTier === tier.id
+                              ? "border-amber-500 bg-amber-600/15"
+                              : "border-amber-800/30 bg-[#231811] hover:border-amber-700/50"
+                          }`}
+                        >
+                          <span className={`font-medium ${ticketTier === tier.id ? "text-amber-100" : "text-amber-200/80"}`}>
+                            {tier.label}
+                          </span>
+                          <span className={`font-bold text-lg ${ticketTier === tier.id ? "text-amber-300" : "text-amber-400/60"}`}>
+                            {tier.price === 0 ? "Free" : `$${tier.price}`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Quantity Selector */}
                   <div className="flex items-center justify-center gap-4 py-4">
                     <button
@@ -589,7 +615,7 @@ const NightOfJoy = () => {
                     <CardContent className="p-4 flex items-center justify-between">
                       <span className="text-amber-100 font-medium">Total</span>
                       <span className="text-2xl font-bold text-amber-300">
-                        ${(TICKET_PRICE * ticketQty).toLocaleString()}
+                        {isFreeTicket ? "Free" : `$${ticketTotal.toLocaleString()}`}
                       </span>
                     </CardContent>
                   </Card>
@@ -629,18 +655,24 @@ const NightOfJoy = () => {
                     {submitting ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Redirecting to Checkout...
+                        {isFreeTicket ? "Registering..." : "Redirecting to Checkout..."}
                       </>
                     ) : (
                       <>
                         <Ticket className="w-4 h-4 mr-2" />
-                        Purchase {ticketQty} {ticketQty === 1 ? "Ticket" : "Tickets"} — ${(TICKET_PRICE * ticketQty).toLocaleString()}
+                        {isFreeTicket
+                          ? `Register ${ticketQty} Free ${ticketQty === 1 ? "Ticket" : "Tickets"}`
+                          : `Purchase ${ticketQty} ${ticketQty === 1 ? "Ticket" : "Tickets"} — $${ticketTotal.toLocaleString()}`
+                        }
                       </>
                     )}
                   </Button>
 
                   <p className="text-xs text-amber-200/40 text-center">
-                    You'll be redirected to a secure Stripe checkout page.
+                    {isFreeTicket
+                      ? "Your free tickets will be registered immediately."
+                      : "You'll be redirected to a secure Stripe checkout page."
+                    }
                     <br />
                     Questions? <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
                   </p>
