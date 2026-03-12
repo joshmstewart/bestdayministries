@@ -151,7 +151,7 @@ export function NojGuestList() {
           list.map(g => (
             <TableRow key={g.id}>
               <TableCell className="font-medium">
-                {g.profile_name || g.donor_email || "Unknown"}
+                {g.profile_name || g.contact_name || g.donor_email || "Unknown"}
               </TableCell>
               <TableCell>
                 <span className="text-sm text-muted-foreground">
