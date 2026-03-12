@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
-import { ShareButtons } from "@/components/ShareButtons";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { SEOHead } from "@/components/SEOHead";
@@ -13,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign, Sparkles } from "lucide-react";
+import { Star, Heart, Calendar, MapPin, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign, Sparkles, Ticket, ArrowLeft, Minus, Plus } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import farmTableBg from "@/assets/background_farmtable.png";
 
@@ -58,6 +57,7 @@ const BENEFITS = [
 
 const EVENT_DATE = new Date("2026-06-14T16:00:00");
 const DEADLINE_DATE = new Date("2026-05-04T23:59:59");
+const TICKET_PRICE = 50;
 
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, passed: false });
@@ -80,6 +80,7 @@ function useCountdown(targetDate: Date) {
   return timeLeft;
 }
 
+type PageView = "choose" | "tickets" | "sponsor";
 type FormMode = "inquire" | "pay";
 
 const NightOfJoy = () => {
@@ -89,7 +90,9 @@ const NightOfJoy = () => {
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
 
   const paymentSuccess = searchParams.get("payment") === "success";
+  const paymentType = searchParams.get("type");
 
+  const [pageView, setPageView] = useState<PageView>(paymentSuccess ? (paymentType === "ticket" ? "tickets" : "sponsor") : "choose");
   const [formMode, setFormMode] = useState<FormMode>("inquire");
   const [formData, setFormData] = useState({
     businessName: "",
@@ -101,6 +104,9 @@ const NightOfJoy = () => {
     message: "",
   });
   const [customAmount, setCustomAmount] = useState("");
+  const [ticketQty, setTicketQty] = useState(1);
+  const [ticketEmail, setTicketEmail] = useState("");
+  const [ticketName, setTicketName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +119,8 @@ const NightOfJoy = () => {
         contactName: prev.contactName || profile?.display_name || '',
         email: prev.email || user?.email || '',
       }));
+      setTicketEmail(prev => prev || user?.email || '');
+      setTicketName(prev => prev || profile?.display_name || '');
     }
   }, [profile, user]);
 
@@ -173,9 +181,7 @@ const NightOfJoy = () => {
     try {
       let uploadedAttachments: { name: string; url: string; type: string; size: number }[] = [];
       if (attachedFiles.length > 0) {
-        try {
-          uploadedAttachments = await uploadFiles();
-        } catch (uploadErr: any) {
+        try { uploadedAttachments = await uploadFiles(); } catch (uploadErr: any) {
           console.error("File upload failed:", uploadErr);
           toast.error(`File upload failed: ${uploadErr.message}. Submitting without attachments.`);
         }
@@ -236,9 +242,7 @@ const NightOfJoy = () => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       console.error("Payment error:", err);
       toast.error(err.message || "Failed to start payment. Please try again.");
@@ -246,6 +250,38 @@ const NightOfJoy = () => {
       setSubmitting(false);
     }
   };
+
+  const handleTicketPurchase = async () => {
+    if (!ticketEmail) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-noj-ticket-checkout", {
+        body: {
+          quantity: ticketQty,
+          email: ticketEmail,
+          contact_name: ticketName || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      console.error("Ticket purchase error:", err);
+      toast.error(err.message || "Failed to start checkout. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const scrollToContent = () => {
+    document.getElementById("action-section")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Shared input classes
+  const inputClasses = "bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#1a120b]">
@@ -257,32 +293,27 @@ const NightOfJoy = () => {
       <UnifiedHeader />
 
       <main className="flex-1 pt-14">
-        {/* Hero — Full-bleed image with overlay text */}
+        {/* ============ HERO ============ */}
         <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-          {/* Background Image */}
           <img
             src={farmTableBg}
             alt="Rustic farm table set for dinner at sunset with candles, sunflowers, and string lights"
             className="absolute inset-0 w-full h-full object-cover"
           />
-          {/* Dark gradient overlay for text legibility */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
 
           <div className="relative z-10 text-center px-4 max-w-3xl mx-auto">
             <p className="text-amber-200/80 text-xs sm:text-sm uppercase tracking-[0.3em] mb-3 font-medium">
               Best Day Ministries presents
             </p>
-
             <h1 className="font-script text-6xl sm:text-7xl md:text-8xl text-white mb-4 drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
               A Night of Joy
             </h1>
-
             <div className="flex items-center justify-center gap-1 mb-1">
               <span className="h-px w-10 bg-amber-400/50" />
               <Sparkles className="w-4 h-4 text-amber-300" />
               <span className="h-px w-10 bg-amber-400/50" />
             </div>
-
             <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4 mt-4 text-white/90">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-amber-300" />
@@ -294,13 +325,11 @@ const NightOfJoy = () => {
                 <span className="text-sm">4:00 PM – 7:00 PM MST</span>
               </div>
             </div>
-
             <div className="flex items-center justify-center gap-1.5 mt-2 text-white/80">
               <MapPin className="w-4 h-4 text-amber-300" />
               <span className="text-sm">Truitt Homestead</span>
             </div>
 
-            {/* Countdown */}
             {!eventCountdown.passed && (
               <div className="mt-8 flex justify-center gap-3">
                 {[
@@ -326,18 +355,15 @@ const NightOfJoy = () => {
             <Button
               size="lg"
               className="mt-6 bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-900/30 border border-amber-500/30"
-              onClick={() => document.getElementById("sponsor-section")?.scrollIntoView({ behavior: "smooth" })}
+              onClick={scrollToContent}
             >
-              <Heart className="w-4 h-4 mr-2" />
-              Become a Sponsor
+              Get Involved
             </Button>
           </div>
-
-          {/* Bottom fade into dark bg */}
           <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#1a120b] to-transparent" />
         </section>
 
-        {/* Mission Section — warm dark */}
+        {/* ============ MISSION ============ */}
         <section className="py-16 md:py-20 bg-[#1a120b]">
           <div className="container max-w-3xl mx-auto px-4 text-center space-y-6">
             <div className="flex justify-center gap-1 mb-2">
@@ -359,7 +385,7 @@ const NightOfJoy = () => {
           </div>
         </section>
 
-        {/* What to Expect — with subtle texture */}
+        {/* ============ WHAT TO EXPECT ============ */}
         <section className="py-16 md:py-20 bg-[#231811] border-t border-amber-900/30">
           <div className="container max-w-4xl mx-auto px-4">
             <h2 className="text-3xl font-bold text-center text-amber-100 mb-10">What to Expect</h2>
@@ -381,7 +407,6 @@ const NightOfJoy = () => {
               ))}
             </div>
 
-            {/* Sponsorship Deadline Countdown */}
             {!deadlineCountdown.passed && (
               <div className="text-center bg-[#2a1e14] border border-amber-700/30 rounded-xl p-6">
                 <p className="text-sm font-medium text-amber-400 uppercase tracking-wider mb-3">Sponsorship Deadline — May 4, 2026</p>
@@ -402,62 +427,21 @@ const NightOfJoy = () => {
           </div>
         </section>
 
-        {/* Sponsorship Levels & Benefits Table */}
-        <section className="py-16 md:py-20 bg-[#1a120b] border-t border-amber-900/30">
-          <div className="container max-w-5xl mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-amber-100 mb-8">
-              Sponsorship Levels & Benefits
-            </h2>
-            <Card className="overflow-hidden border-amber-800/30 bg-[#231811]">
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-amber-600/10 border-b border-amber-800/30">
-                        <TableHead className="min-w-[200px] font-bold text-amber-200">Benefit</TableHead>
-                        {SPONSORSHIP_TIERS.map((tier) => (
-                          <TableHead key={tier.amount} className="text-center min-w-[80px]">
-                            <span className="font-bold text-amber-300">${tier.amount.toLocaleString()}</span>
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {BENEFITS.map((benefit, i) => (
-                        <TableRow key={i} className={`border-b border-amber-900/20 ${i % 2 === 0 ? "bg-[#231811]" : "bg-[#2a1e14]/50"}`}>
-                          <TableCell className="font-medium text-amber-100/90">{benefit.label}</TableCell>
-                          {benefit.tiers.map((val, j) => (
-                            <TableCell key={j} className="text-center">
-                              {val === true ? (
-                                <CheckCircle2 className="w-5 h-5 text-amber-400 mx-auto" />
-                              ) : val === false ? (
-                                <span className="text-amber-700/50">—</span>
-                              ) : (
-                                <span className="text-amber-200/80 font-medium">{val}</span>
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Payment Success Banner */}
+        {/* ============ PAYMENT SUCCESS ============ */}
         {paymentSuccess && (
           <section className="py-8 bg-amber-600/10 border-t border-amber-800/30">
             <div className="container max-w-2xl mx-auto px-4">
               <Card className="border-amber-600/30 bg-[#2a1e14]">
                 <CardContent className="p-8 text-center space-y-4">
                   <CheckCircle2 className="w-12 h-12 text-amber-400 mx-auto" />
-                  <h3 className="text-2xl font-bold text-amber-100">Payment Received!</h3>
+                  <h3 className="text-2xl font-bold text-amber-100">
+                    {paymentType === "ticket" ? "Tickets Purchased!" : "Payment Received!"}
+                  </h3>
                   <p className="text-amber-200/70">
-                    Thank you for your generous sponsorship of A Night of Joy! You'll receive a confirmation email shortly.
-                    If you have any questions, reach out to{" "}
+                    {paymentType === "ticket"
+                      ? "Thank you for purchasing tickets to A Night of Joy! You'll receive a confirmation email shortly."
+                      : "Thank you for your generous sponsorship of A Night of Joy! You'll receive a confirmation email shortly."}
+                    {" "}If you have any questions, reach out to{" "}
                     <a href="mailto:Marla@joyhousestore.com" className="text-amber-400 hover:underline">
                       Marla@joyhousestore.com
                     </a>
@@ -468,353 +452,474 @@ const NightOfJoy = () => {
           </section>
         )}
 
-        {/* Sponsorship Form / Payment Section */}
-        <section id="sponsor-section" className="py-16 md:py-20 bg-[#231811] border-t border-amber-900/30">
-          <div className="container max-w-2xl mx-auto px-4">
-            <div className="text-center mb-8">
-              <Heart className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-              <h2 className="text-3xl font-bold text-amber-100 mb-2">Become a Sponsor</h2>
-              <p className="text-amber-200/60">
-                Interested in sponsoring? Reach out to learn more, or pay directly if you're ready.
-              </p>
-            </div>
+        {/* ============ ACTION FORK — Choose Your Path ============ */}
+        <section id="action-section" className="py-16 md:py-20 bg-[#1a120b] border-t border-amber-900/30">
+          <div className="container max-w-4xl mx-auto px-4">
 
-            {/* Mode Toggle */}
-            <div className="flex rounded-xl border-2 border-amber-800/40 overflow-hidden mb-8">
-              <button
-                type="button"
-                onClick={() => setFormMode("inquire")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
-                  formMode === "inquire"
-                    ? "bg-amber-600 text-white"
-                    : "bg-[#2a1e14] text-amber-200/60 hover:bg-amber-900/30"
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                I'd Like to Inquire
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormMode("pay")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
-                  formMode === "pay"
-                    ? "bg-amber-600 text-white"
-                    : "bg-[#2a1e14] text-amber-200/60 hover:bg-amber-900/30"
-                }`}
-              >
-                <CreditCard className="w-4 h-4" />
-                Ready to Pay
-              </button>
-            </div>
-
-            {submitted && formMode === "inquire" ? (
-              <Card className="border-amber-600/30 bg-amber-600/10">
-                <CardContent className="p-8 text-center space-y-4">
-                  <CheckCircle2 className="w-12 h-12 text-amber-400 mx-auto" />
-                  <h3 className="text-2xl font-bold text-amber-100">Thank You!</h3>
-                  <p className="text-amber-200/70">
-                    We've received your sponsorship interest and will be in touch soon. You can also reach us directly at{" "}
-                    <a href="mailto:Marla@joyhousestore.com" className="text-amber-400 hover:underline">
-                      Marla@joyhousestore.com
-                    </a>
+            {pageView === "choose" && (
+              <div className="text-center space-y-10">
+                <div>
+                  <h2 className="text-3xl md:text-4xl font-bold text-amber-100 mb-3">How Would You Like to Join Us?</h2>
+                  <p className="text-amber-200/60 max-w-lg mx-auto">
+                    Choose your path to be part of this special evening.
                   </p>
-                </CardContent>
-              </Card>
-            ) : formMode === "inquire" ? (
-              /* ===== INQUIRY FORM ===== */
-              <form onSubmit={handleInquirySubmit} className="space-y-6">
-                {/* Sponsorship Level Selection */}
-                <div className="space-y-3">
-                  <Label className="text-base font-bold text-amber-100">Sponsorship Level</Label>
-                  <p className="text-sm text-amber-200/50">Not sure yet? No problem — select "Just Inquiring" and we'll help you find the right fit.</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {SPONSORSHIP_TIERS.map((tier) => (
-                      <button
-                        key={tier.amount}
-                        type="button"
-                        onClick={() => handleChange("selectedTier", `${tier.name} - $${tier.amount.toLocaleString()}`)}
-                        className={`p-4 rounded-lg border-2 text-left transition-all ${
-                          formData.selectedTier === `${tier.name} - $${tier.amount.toLocaleString()}`
-                            ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
-                            : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
-                        }`}
-                      >
-                        <span className="font-bold text-amber-100">{tier.name}</span>
-                        <span className="block text-lg font-bold text-amber-400">
-                          ${tier.amount.toLocaleString()}
-                        </span>
-                      </button>
-                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                  {/* TICKET CARD */}
+                  <button
+                    onClick={() => { setPageView("tickets"); scrollToContent(); }}
+                    className="group relative bg-[#231811] border-2 border-amber-800/30 hover:border-amber-500/60 rounded-2xl p-8 text-left transition-all hover:shadow-xl hover:shadow-amber-900/20 hover:scale-[1.02]"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-amber-600/15 border border-amber-600/25 flex items-center justify-center mb-5 group-hover:bg-amber-600/25 transition-colors">
+                      <Ticket className="w-8 h-8 text-amber-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-amber-100 mb-2">Buy Tickets</h3>
+                    <p className="text-amber-200/60 mb-4">
+                      Reserve your seat at the table for an evening of dinner, entertainment, and community.
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-amber-300">${TICKET_PRICE}</span>
+                      <span className="text-amber-400/60 text-sm">per person</span>
+                    </div>
+                    <div className="absolute top-4 right-4 text-amber-500/40 group-hover:text-amber-400 transition-colors text-xl">→</div>
+                  </button>
+
+                  {/* SPONSOR CARD */}
+                  <button
+                    onClick={() => { setPageView("sponsor"); scrollToContent(); }}
+                    className="group relative bg-[#231811] border-2 border-amber-800/30 hover:border-amber-500/60 rounded-2xl p-8 text-left transition-all hover:shadow-xl hover:shadow-amber-900/20 hover:scale-[1.02]"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-amber-600/15 border border-amber-600/25 flex items-center justify-center mb-5 group-hover:bg-amber-600/25 transition-colors">
+                      <Heart className="w-8 h-8 text-amber-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-amber-100 mb-2">Become a Sponsor</h3>
+                    <p className="text-amber-200/60 mb-4">
+                      Make a bigger impact with sponsorship benefits, recognition, and included tickets.
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-amber-300">$250</span>
+                      <span className="text-amber-400/60 text-sm">– $10,000</span>
+                    </div>
+                    <div className="absolute top-4 right-4 text-amber-500/40 group-hover:text-amber-400 transition-colors text-xl">→</div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ============ TICKET PURCHASE VIEW ============ */}
+            {pageView === "tickets" && (
+              <div className="max-w-lg mx-auto">
+                <button
+                  onClick={() => setPageView("choose")}
+                  className="flex items-center gap-2 text-amber-400/70 hover:text-amber-300 text-sm mb-8 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to options
+                </button>
+
+                <div className="text-center mb-8">
+                  <Ticket className="w-10 h-10 text-amber-400 mx-auto mb-3" />
+                  <h2 className="text-3xl font-bold text-amber-100 mb-2">Buy Tickets</h2>
+                  <p className="text-amber-200/60">${TICKET_PRICE} per person • Select quantity below</p>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Quantity Selector */}
+                  <div className="flex items-center justify-center gap-4 py-4">
                     <button
                       type="button"
-                      onClick={() => handleChange("selectedTier", "Just Inquiring")}
-                      className={`sm:col-span-2 py-2 px-4 rounded-lg border-2 text-center transition-all ${
-                        formData.selectedTier === "Just Inquiring"
-                          ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
-                          : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
-                      }`}
+                      onClick={() => setTicketQty(q => Math.max(1, q - 1))}
+                      disabled={ticketQty <= 1}
+                      className="w-12 h-12 rounded-full border-2 border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      <span className="font-bold text-amber-100">Just Inquiring</span>
-                      <span className="text-sm text-amber-200/50 ml-2">— I'd like to learn more</span>
+                      <Minus className="w-5 h-5" />
+                    </button>
+                    <div className="text-center min-w-[100px]">
+                      <span className="text-5xl font-bold text-amber-100 tabular-nums">{ticketQty}</span>
+                      <p className="text-xs text-amber-400/60 uppercase tracking-wider mt-1">
+                        {ticketQty === 1 ? "ticket" : "tickets"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTicketQty(q => Math.min(10, q + 1))}
+                      disabled={ticketQty >= 10}
+                      className="w-12 h-12 rounded-full border-2 border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Plus className="w-5 h-5" />
                     </button>
                   </div>
-                </div>
 
-                {/* Payment Method */}
-                <div className="space-y-3">
-                  <Label className="text-base font-bold text-amber-100">Payment Preference</Label>
-                  <div className="flex flex-wrap gap-3">
-                    {["Card", "Invoice me", "Check"].map((method) => (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => handleChange("paymentMethod", method)}
-                        className={`px-4 py-2 rounded-full border-2 text-sm font-medium transition-all ${
-                          formData.paymentMethod === method
-                            ? "border-amber-500 bg-amber-600 text-white"
-                            : "border-amber-800/40 text-amber-200/80 hover:border-amber-600/50"
-                        }`}
-                      >
-                        {method}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Contact Info */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="contactName" className="text-amber-200/80">Contact Name *</Label>
-                    <Input
-                      id="contactName"
-                      value={formData.contactName}
-                      onChange={(e) => handleChange("contactName", e.target.value)}
-                      required
-                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="businessName" className="text-amber-200/80">Business / Organization</Label>
-                    <Input
-                      id="businessName"
-                      value={formData.businessName}
-                      onChange={(e) => handleChange("businessName", e.target.value)}
-                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-amber-200/80">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      required
-                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-amber-200/80">Phone</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="message" className="text-amber-200/80">Additional Notes</Label>
-                  <Textarea
-                    id="message"
-                    value={formData.message}
-                    onChange={(e) => handleChange("message", e.target.value)}
-                    rows={3}
-                    placeholder="Anything else you'd like us to know?"
-                    className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                  />
-                </div>
-
-                {/* File Attachments */}
-                <div className="space-y-3">
-                  <Label className="text-amber-200/80">Attachments (e.g. company logo)</Label>
-                  {attachedFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-3">
-                      {attachedFiles.map((af, i) => (
-                        <div key={i} className="relative group border border-amber-800/30 rounded-lg overflow-hidden bg-[#2a1e14]">
-                          {af.isImage && af.preview ? (
-                            <img src={af.preview} alt={af.file.name} className="w-20 h-20 object-cover" />
-                          ) : (
-                            <div className="w-20 h-20 flex flex-col items-center justify-center p-2">
-                              <FileText className="w-6 h-6 text-amber-200/50 mb-1" />
-                              <span className="text-[10px] text-amber-200/40 text-center truncate w-full">
-                                {af.file.name.split('.').pop()?.toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeFile(i)}
-                            className="absolute top-1 right-1 bg-red-900/80 text-red-200 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {attachedFiles.length < MAX_FILES && (
-                    <div className="border-2 border-dashed border-amber-800/30 rounded-lg p-4 text-center hover:border-amber-600/40 transition-colors">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept={ACCEPTED_EXTENSIONS}
-                        onChange={handleFilesChange}
-                        className="hidden"
-                        id="noj-file-upload"
-                        multiple
-                      />
-                      <label htmlFor="noj-file-upload" className="cursor-pointer">
-                        <Upload className="h-5 w-5 mx-auto mb-1 text-amber-400/50" />
-                        <p className="text-sm text-amber-200/50">Click to attach files</p>
-                        <p className="text-xs text-amber-200/30 mt-1">
-                          JPG, PNG, SVG, PDF, DOCX — up to 10MB each, {MAX_FILES} max
-                        </p>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
-                  {submitting ? "Submitting..." : "Submit Sponsorship Interest"}
-                </Button>
-
-                <p className="text-xs text-amber-200/40 text-center">
-                  Please submit by May 4th, 2026.
-                  <br />
-                  Contact: <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
-                </p>
-              </form>
-            ) : (
-              /* ===== PAYMENT FORM ===== */
-              <form onSubmit={handlePaySubmit} className="space-y-6">
-                {/* Tier Selection for Payment */}
-                <div className="space-y-3">
-                  <Label className="text-base font-bold text-amber-100">Select Sponsorship Level</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {SPONSORSHIP_TIERS.map((tier) => (
-                      <button
-                        key={tier.amount}
-                        type="button"
-                        onClick={() => {
-                          handleChange("selectedTier", `${tier.name} - $${tier.amount.toLocaleString()}`);
-                          setCustomAmount("");
-                        }}
-                        className={`p-4 rounded-lg border-2 text-left transition-all ${
-                          formData.selectedTier === `${tier.name} - $${tier.amount.toLocaleString()}` && !customAmount
-                            ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
-                            : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
-                        }`}
-                      >
-                        <span className="font-bold text-amber-100">{tier.name}</span>
-                        <span className="block text-lg font-bold text-amber-400">
-                          ${tier.amount.toLocaleString()}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Custom Amount */}
-                  <div className="relative mt-4">
-                    <Label className="text-sm font-semibold mb-2 block text-amber-200/80">Or enter a custom amount</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/50" />
-                      <Input
-                        type="number"
-                        min={100}
-                        step={1}
-                        placeholder="Custom amount (min $100)"
-                        value={customAmount}
-                        onChange={(e) => {
-                          setCustomAmount(e.target.value);
-                          if (e.target.value) handleChange("selectedTier", "");
-                        }}
-                        className="pl-8 bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact Info for Payment */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="pay-email" className="text-amber-200/80">Email *</Label>
-                    <Input
-                      id="pay-email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      required
-                      placeholder="your@email.com"
-                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pay-name" className="text-amber-200/80">Name</Label>
-                    <Input
-                      id="pay-name"
-                      value={formData.contactName}
-                      onChange={(e) => handleChange("contactName", e.target.value)}
-                      placeholder="Your name"
-                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="pay-business" className="text-amber-200/80">Business / Organization</Label>
-                    <Input
-                      id="pay-business"
-                      value={formData.businessName}
-                      onChange={(e) => handleChange("businessName", e.target.value)}
-                      placeholder="Optional"
-                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Payment Summary */}
-                {getPaymentAmount() && (
+                  {/* Total */}
                   <Card className="border-amber-600/30 bg-amber-600/10">
                     <CardContent className="p-4 flex items-center justify-between">
-                      <span className="text-amber-100 font-medium">Sponsorship Total</span>
+                      <span className="text-amber-100 font-medium">Total</span>
                       <span className="text-2xl font-bold text-amber-300">
-                        ${getPaymentAmount()!.toLocaleString()}
+                        ${(TICKET_PRICE * ticketQty).toLocaleString()}
                       </span>
                     </CardContent>
                   </Card>
-                )}
 
-                <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Redirecting to Payment...
-                    </>
+                  {/* Contact for tickets */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ticket-email" className="text-amber-200/80">Email *</Label>
+                      <Input
+                        id="ticket-email"
+                        type="email"
+                        value={ticketEmail}
+                        onChange={(e) => setTicketEmail(e.target.value)}
+                        required
+                        placeholder="your@email.com"
+                        className={inputClasses}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ticket-name" className="text-amber-200/80">Name</Label>
+                      <Input
+                        id="ticket-name"
+                        value={ticketName}
+                        onChange={(e) => setTicketName(e.target.value)}
+                        placeholder="Your name"
+                        className={inputClasses}
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    size="lg"
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30"
+                    disabled={submitting || !ticketEmail}
+                    onClick={handleTicketPurchase}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Redirecting to Checkout...
+                      </>
+                    ) : (
+                      <>
+                        <Ticket className="w-4 h-4 mr-2" />
+                        Purchase {ticketQty} {ticketQty === 1 ? "Ticket" : "Tickets"} — ${(TICKET_PRICE * ticketQty).toLocaleString()}
+                      </>
+                    )}
+                  </Button>
+
+                  <p className="text-xs text-amber-200/40 text-center">
+                    You'll be redirected to a secure Stripe checkout page.
+                    <br />
+                    Questions? <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ============ SPONSOR VIEW ============ */}
+            {pageView === "sponsor" && (
+              <div>
+                <div className="max-w-2xl mx-auto">
+                  <button
+                    onClick={() => setPageView("choose")}
+                    className="flex items-center gap-2 text-amber-400/70 hover:text-amber-300 text-sm mb-8 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to options
+                  </button>
+                </div>
+
+                {/* Benefits Table */}
+                <div className="max-w-5xl mx-auto mb-12">
+                  <h2 className="text-3xl font-bold text-center text-amber-100 mb-8">
+                    Sponsorship Levels & Benefits
+                  </h2>
+                  <Card className="overflow-hidden border-amber-800/30 bg-[#231811]">
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-amber-600/10 border-b border-amber-800/30">
+                              <TableHead className="min-w-[200px] font-bold text-amber-200">Benefit</TableHead>
+                              {SPONSORSHIP_TIERS.map((tier) => (
+                                <TableHead key={tier.amount} className="text-center min-w-[80px]">
+                                  <span className="font-bold text-amber-300">${tier.amount.toLocaleString()}</span>
+                                </TableHead>
+                              ))}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {BENEFITS.map((benefit, i) => (
+                              <TableRow key={i} className={`border-b border-amber-900/20 ${i % 2 === 0 ? "bg-[#231811]" : "bg-[#2a1e14]/50"}`}>
+                                <TableCell className="font-medium text-amber-100/90">{benefit.label}</TableCell>
+                                {benefit.tiers.map((val, j) => (
+                                  <TableCell key={j} className="text-center">
+                                    {val === true ? (
+                                      <CheckCircle2 className="w-5 h-5 text-amber-400 mx-auto" />
+                                    ) : val === false ? (
+                                      <span className="text-amber-700/50">—</span>
+                                    ) : (
+                                      <span className="text-amber-200/80 font-medium">{val}</span>
+                                    )}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Sponsor Form */}
+                <div className="max-w-2xl mx-auto">
+                  <div className="text-center mb-8">
+                    <Heart className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+                    <h2 className="text-3xl font-bold text-amber-100 mb-2">Become a Sponsor</h2>
+                    <p className="text-amber-200/60">
+                      Interested in sponsoring? Reach out to learn more, or pay directly if you're ready.
+                    </p>
+                  </div>
+
+                  {/* Mode Toggle */}
+                  <div className="flex rounded-xl border-2 border-amber-800/40 overflow-hidden mb-8">
+                    <button
+                      type="button"
+                      onClick={() => setFormMode("inquire")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
+                        formMode === "inquire"
+                          ? "bg-amber-600 text-white"
+                          : "bg-[#2a1e14] text-amber-200/60 hover:bg-amber-900/30"
+                      }`}
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      I'd Like to Inquire
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormMode("pay")}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
+                        formMode === "pay"
+                          ? "bg-amber-600 text-white"
+                          : "bg-[#2a1e14] text-amber-200/60 hover:bg-amber-900/30"
+                      }`}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Ready to Pay
+                    </button>
+                  </div>
+
+                  {submitted && formMode === "inquire" ? (
+                    <Card className="border-amber-600/30 bg-amber-600/10">
+                      <CardContent className="p-8 text-center space-y-4">
+                        <CheckCircle2 className="w-12 h-12 text-amber-400 mx-auto" />
+                        <h3 className="text-2xl font-bold text-amber-100">Thank You!</h3>
+                        <p className="text-amber-200/70">
+                          We've received your sponsorship interest and will be in touch soon. You can also reach us directly at{" "}
+                          <a href="mailto:Marla@joyhousestore.com" className="text-amber-400 hover:underline">
+                            Marla@joyhousestore.com
+                          </a>
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : formMode === "inquire" ? (
+                    <form onSubmit={handleInquirySubmit} className="space-y-6">
+                      <div className="space-y-3">
+                        <Label className="text-base font-bold text-amber-100">Sponsorship Level</Label>
+                        <p className="text-sm text-amber-200/50">Not sure yet? No problem — select "Just Inquiring" and we'll help you find the right fit.</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {SPONSORSHIP_TIERS.map((tier) => (
+                            <button
+                              key={tier.amount}
+                              type="button"
+                              onClick={() => handleChange("selectedTier", `${tier.name} - $${tier.amount.toLocaleString()}`)}
+                              className={`p-4 rounded-lg border-2 text-left transition-all ${
+                                formData.selectedTier === `${tier.name} - $${tier.amount.toLocaleString()}`
+                                  ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
+                                  : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
+                              }`}
+                            >
+                              <span className="font-bold text-amber-100">{tier.name}</span>
+                              <span className="block text-lg font-bold text-amber-400">${tier.amount.toLocaleString()}</span>
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => handleChange("selectedTier", "Just Inquiring")}
+                            className={`sm:col-span-2 py-2 px-4 rounded-lg border-2 text-center transition-all ${
+                              formData.selectedTier === "Just Inquiring"
+                                ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
+                                : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
+                            }`}
+                          >
+                            <span className="font-bold text-amber-100">Just Inquiring</span>
+                            <span className="text-sm text-amber-200/50 ml-2">— I'd like to learn more</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label className="text-base font-bold text-amber-100">Payment Preference</Label>
+                        <div className="flex flex-wrap gap-3">
+                          {["Card", "Invoice me", "Check"].map((method) => (
+                            <button
+                              key={method}
+                              type="button"
+                              onClick={() => handleChange("paymentMethod", method)}
+                              className={`px-4 py-2 rounded-full border-2 text-sm font-medium transition-all ${
+                                formData.paymentMethod === method
+                                  ? "border-amber-500 bg-amber-600 text-white"
+                                  : "border-amber-800/40 text-amber-200/80 hover:border-amber-600/50"
+                              }`}
+                            >
+                              {method}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="contactName" className="text-amber-200/80">Contact Name *</Label>
+                          <Input id="contactName" value={formData.contactName} onChange={(e) => handleChange("contactName", e.target.value)} required className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="businessName" className="text-amber-200/80">Business / Organization</Label>
+                          <Input id="businessName" value={formData.businessName} onChange={(e) => handleChange("businessName", e.target.value)} className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email" className="text-amber-200/80">Email *</Label>
+                          <Input id="email" type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} required className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone" className="text-amber-200/80">Phone</Label>
+                          <Input id="phone" type="tel" value={formData.phone} onChange={(e) => handleChange("phone", e.target.value)} className={inputClasses} />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="message" className="text-amber-200/80">Additional Notes</Label>
+                        <Textarea id="message" value={formData.message} onChange={(e) => handleChange("message", e.target.value)} rows={3} placeholder="Anything else you'd like us to know?" className={inputClasses} />
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label className="text-amber-200/80">Attachments (e.g. company logo)</Label>
+                        {attachedFiles.length > 0 && (
+                          <div className="flex flex-wrap gap-3">
+                            {attachedFiles.map((af, i) => (
+                              <div key={i} className="relative group border border-amber-800/30 rounded-lg overflow-hidden bg-[#2a1e14]">
+                                {af.isImage && af.preview ? (
+                                  <img src={af.preview} alt={af.file.name} className="w-20 h-20 object-cover" />
+                                ) : (
+                                  <div className="w-20 h-20 flex flex-col items-center justify-center p-2">
+                                    <FileText className="w-6 h-6 text-amber-200/50 mb-1" />
+                                    <span className="text-[10px] text-amber-200/40 text-center truncate w-full">{af.file.name.split('.').pop()?.toUpperCase()}</span>
+                                  </div>
+                                )}
+                                <button type="button" onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-red-900/80 text-red-200 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {attachedFiles.length < MAX_FILES && (
+                          <div className="border-2 border-dashed border-amber-800/30 rounded-lg p-4 text-center hover:border-amber-600/40 transition-colors">
+                            <input ref={fileInputRef} type="file" accept={ACCEPTED_EXTENSIONS} onChange={handleFilesChange} className="hidden" id="noj-file-upload" multiple />
+                            <label htmlFor="noj-file-upload" className="cursor-pointer">
+                              <Upload className="h-5 w-5 mx-auto mb-1 text-amber-400/50" />
+                              <p className="text-sm text-amber-200/50">Click to attach files</p>
+                              <p className="text-xs text-amber-200/30 mt-1">JPG, PNG, SVG, PDF, DOCX — up to 10MB each, {MAX_FILES} max</p>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
+                        {submitting ? "Submitting..." : "Submit Sponsorship Interest"}
+                      </Button>
+
+                      <p className="text-xs text-amber-200/40 text-center">
+                        Please submit by May 4th, 2026.
+                        <br />
+                        Contact: <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
+                      </p>
+                    </form>
                   ) : (
-                    <>
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Pay with Card
-                    </>
-                  )}
-                </Button>
+                    <form onSubmit={handlePaySubmit} className="space-y-6">
+                      <div className="space-y-3">
+                        <Label className="text-base font-bold text-amber-100">Select Sponsorship Level</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {SPONSORSHIP_TIERS.map((tier) => (
+                            <button
+                              key={tier.amount}
+                              type="button"
+                              onClick={() => { handleChange("selectedTier", `${tier.name} - $${tier.amount.toLocaleString()}`); setCustomAmount(""); }}
+                              className={`p-4 rounded-lg border-2 text-left transition-all ${
+                                formData.selectedTier === `${tier.name} - $${tier.amount.toLocaleString()}` && !customAmount
+                                  ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
+                                  : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
+                              }`}
+                            >
+                              <span className="font-bold text-amber-100">{tier.name}</span>
+                              <span className="block text-lg font-bold text-amber-400">${tier.amount.toLocaleString()}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="relative mt-4">
+                          <Label className="text-sm font-semibold mb-2 block text-amber-200/80">Or enter a custom amount</Label>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/50" />
+                            <Input
+                              type="number" min={100} step={1} placeholder="Custom amount (min $100)" value={customAmount}
+                              onChange={(e) => { setCustomAmount(e.target.value); if (e.target.value) handleChange("selectedTier", ""); }}
+                              className={`pl-8 ${inputClasses}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
 
-                <p className="text-xs text-amber-200/40 text-center">
-                  You'll be redirected to a secure Stripe checkout page. Your sponsorship is tax deductible.
-                  <br />
-                  Questions? <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
-                </p>
-              </form>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="pay-email" className="text-amber-200/80">Email *</Label>
+                          <Input id="pay-email" type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} required placeholder="your@email.com" className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="pay-name" className="text-amber-200/80">Name</Label>
+                          <Input id="pay-name" value={formData.contactName} onChange={(e) => handleChange("contactName", e.target.value)} placeholder="Your name" className={inputClasses} />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label htmlFor="pay-business" className="text-amber-200/80">Business / Organization</Label>
+                          <Input id="pay-business" value={formData.businessName} onChange={(e) => handleChange("businessName", e.target.value)} placeholder="Optional" className={inputClasses} />
+                        </div>
+                      </div>
+
+                      {getPaymentAmount() && (
+                        <Card className="border-amber-600/30 bg-amber-600/10">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <span className="text-amber-100 font-medium">Sponsorship Total</span>
+                            <span className="text-2xl font-bold text-amber-300">${getPaymentAmount()!.toLocaleString()}</span>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
+                        {submitting ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redirecting to Payment...</>
+                        ) : (
+                          <><CreditCard className="w-4 h-4 mr-2" />Pay with Card</>
+                        )}
+                      </Button>
+
+                      <p className="text-xs text-amber-200/40 text-center">
+                        You'll be redirected to a secure Stripe checkout page. Your sponsorship is tax deductible.
+                        <br />
+                        Questions? <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
+                      </p>
+                    </form>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </section>

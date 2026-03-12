@@ -348,3 +348,9 @@ verify_jwt = false
 
 [functions.process-bike-ride-charges]
 verify_jwt = false
+
+[functions.create-noj-checkout]
+verify_jwt = false
+
+[functions.create-noj-ticket-checkout]
+verify_jwt = false
