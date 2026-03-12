@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone, Activity, Bike } from "lucide-react";
+import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone, Activity, Bike, ExternalLink } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
