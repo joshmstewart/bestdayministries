@@ -325,9 +325,12 @@ const NightOfJoy = () => {
                 <span className="text-sm">4:00 PM – 7:00 PM MST</span>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-1.5 mt-2 text-white/80">
-              <MapPin className="w-4 h-4 text-amber-300" />
-              <span className="text-sm">Truitt Homestead</span>
+            <div className="flex flex-col items-center mt-2 text-white/80">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-amber-300" />
+                <span className="text-sm">Truitt Homestead</span>
+              </div>
+              <span className="text-xs text-white/60">10652 County Rd 15, Firestone, CO 80504</span>
             </div>
 
             {!eventCountdown.passed && (
