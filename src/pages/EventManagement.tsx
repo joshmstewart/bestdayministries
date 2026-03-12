@@ -1310,6 +1310,18 @@ export default function EventManagement() {
               })}
             </div>
           )}
+
+          {/* Night of Joy Guest List */}
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                🎉 A Night of Joy – Guest List
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <NojGuestList />
+            </CardContent>
+          </Card>
         </div>
       </main>
       <Footer />
