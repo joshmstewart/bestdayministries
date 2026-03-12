@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { showErrorToastWithCopy, showErrorToast } from "@/lib/errorToast";
-import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff } from "lucide-react";
+import { Calendar as CalendarIcon, Upload, X, Trash2, Edit, MapPin, Clock, ArrowLeft, Mic, Info, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/imageUtils";
