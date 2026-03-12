@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone, Activity, Bike } from "lucide-react";
+import { Shield, Users, Calendar, MessageSquare, Heart, ArrowLeft, HelpCircle, Bell, Megaphone, Activity, Bike, ExternalLink } from "lucide-react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { FeaturedBestieManager } from "@/components/admin/FeaturedBestieManager";
@@ -70,6 +70,7 @@ import { BeatPadSoundsManager } from "@/components/admin/BeatPadSoundsManager";
 
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { BikeRideManager } from "@/components/admin/BikeRideManager";
+import { NojGuestList } from "@/components/admin/NojGuestList";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
 
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
@@ -402,23 +403,42 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="events">
-            <Card>
-              <CardHeader>
-                <CardTitle>Event Management</CardTitle>
-                <CardDescription>Create and manage community events</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Create and manage events with images, audio, dates, times, and locations.
-                  </p>
-                  <Button onClick={() => navigate("/admin/events")} className="gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Manage Events
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Event Management</CardTitle>
+                  <CardDescription>Create and manage community events</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      Create and manage events with images, audio, dates, times, and locations.
+                    </p>
+                    <Button onClick={() => navigate("/admin/events")} className="gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Manage Events
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    🎉 A Night of Joy – Guest List
+                  </CardTitle>
+                  <a href="/night-of-joy" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <ExternalLink className="h-4 w-4" />
+                      View Page
+                    </Button>
+                  </a>
+                </CardHeader>
+                <CardContent>
+                  <NojGuestList />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="albums">
