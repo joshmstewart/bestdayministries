@@ -513,8 +513,7 @@ const NightOfJoy = () => {
                       Reserve your seat at the table for an evening of dinner, entertainment, and community.
                     </p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-amber-300">${TICKET_PRICE}</span>
-                      <span className="text-amber-400/60 text-sm">per person</span>
+                      <span className="text-3xl font-bold text-amber-300">Free – $60</span>
                     </div>
                     <div className="absolute top-4 right-4 text-amber-500/40 group-hover:text-amber-400 transition-colors text-xl">→</div>
                   </button>
