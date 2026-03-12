@@ -13,6 +13,7 @@ interface NojGuest {
   id: string;
   donor_email: string | null;
   donor_id: string | null;
+  contact_name: string | null;
   amount: number;
   status: string;
   designation: string | null;
@@ -35,7 +36,7 @@ export function NojGuestList() {
     try {
       const { data, error } = await supabase
         .from("donations")
-        .select("id, donor_email, donor_id, amount, status, designation, created_at, stripe_mode")
+        .select("id, donor_email, donor_id, contact_name, amount, status, designation, created_at, stripe_mode")
         .like("designation", "A Night of Joy%")
         .order("created_at", { ascending: false });
 
@@ -110,7 +111,7 @@ export function NojGuestList() {
   const exportCsv = (list: NojGuest[], filename: string) => {
     const headers = ["Name/Email", "Amount", "Type", "Status", "Date", "Mode"];
     const rows = list.map(g => [
-      g.profile_name || g.donor_email || "Unknown",
+      g.profile_name || g.contact_name || g.donor_email || "Unknown",
       `$${g.amount.toFixed(2)}`,
       g.designation || "",
       g.status,
@@ -150,7 +151,7 @@ export function NojGuestList() {
           list.map(g => (
             <TableRow key={g.id}>
               <TableCell className="font-medium">
-                {g.profile_name || g.donor_email || "Unknown"}
+                {g.profile_name || g.contact_name || g.donor_email || "Unknown"}
               </TableCell>
               <TableCell>
                 <span className="text-sm text-muted-foreground">

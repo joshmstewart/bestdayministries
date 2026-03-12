@@ -4166,6 +4166,7 @@ export type Database = {
         Row: {
           amount: number
           amount_charged: number | null
+          contact_name: string | null
           created_at: string
           designation: string | null
           donor_email: string | null
@@ -4185,6 +4186,7 @@ export type Database = {
         Insert: {
           amount: number
           amount_charged?: number | null
+          contact_name?: string | null
           created_at?: string
           designation?: string | null
           donor_email?: string | null
@@ -4204,6 +4206,7 @@ export type Database = {
         Update: {
           amount?: number
           amount_charged?: number | null
+          contact_name?: string | null
           created_at?: string
           designation?: string | null
           donor_email?: string | null
