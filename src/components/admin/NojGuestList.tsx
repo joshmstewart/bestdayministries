@@ -13,6 +13,7 @@ interface NojGuest {
   id: string;
   donor_email: string | null;
   donor_id: string | null;
+  contact_name: string | null;
   amount: number;
   status: string;
   designation: string | null;
