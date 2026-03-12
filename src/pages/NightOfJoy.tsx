@@ -111,14 +111,23 @@ const NightOfJoy = () => {
     message: "",
   });
   const [customAmount, setCustomAmount] = useState("");
-  const [ticketTier, setTicketTier] = useState<TicketTierId>("general");
-  const [ticketQty, setTicketQty] = useState(1);
+  const [ticketCounts, setTicketCounts] = useState<Record<TicketTierId, number>>({
+    general: 0, kids: 0, bestie: 0, "little-ones": 0,
+  });
   const [ticketEmail, setTicketEmail] = useState("");
   const [ticketName, setTicketName] = useState("");
 
-  const selectedTier = TICKET_TIERS.find(t => t.id === ticketTier)!;
-  const ticketTotal = selectedTier.price * ticketQty;
-  const isFreeTicket = selectedTier.price === 0;
+  const updateTierCount = (tierId: TicketTierId, delta: number) => {
+    setTicketCounts(prev => ({
+      ...prev,
+      [tierId]: Math.max(0, Math.min(10, prev[tierId] + delta)),
+    }));
+  };
+
+  const totalTickets = Object.values(ticketCounts).reduce((s, c) => s + c, 0);
+  const paidTotal = TICKET_TIERS.reduce((s, t) => s + t.price * ticketCounts[t.id], 0);
+  const hasFreeOnly = paidTotal === 0 && totalTickets > 0;
+  const hasAnyPaid = paidTotal > 0;
   const [submitting, setSubmitting] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
