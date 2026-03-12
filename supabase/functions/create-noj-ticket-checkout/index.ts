@@ -8,10 +8,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const VALID_TIERS = ['general', 'kids', 'bestie', 'little-ones'] as const;
+
+const TIER_LABELS: Record<string, string> = {
+  'general': 'General Admission (13+)',
+  'kids': 'Kids (6–12)',
+  'bestie': 'Besties',
+  'little-ones': 'Little Ones (5 & under)',
+};
+
 const ticketSchema = z.object({
   quantity: z.number().int().min(1).max(10),
   email: z.string().email().max(255).toLowerCase().trim(),
   contact_name: z.string().max(255).optional(),
+  ticket_tier: z.enum(VALID_TIERS),
+  unit_price: z.number().min(0).max(100),
 });
 
 serve(async (req) => {
@@ -34,9 +45,47 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { quantity, email, contact_name } = validationResult.data;
+    const { quantity, email, contact_name, ticket_tier, unit_price } = validationResult.data;
+    const tierLabel = TIER_LABELS[ticket_tier] || ticket_tier;
+    const totalAmount = unit_price * quantity;
+    const isFree = unit_price === 0;
 
-    // Get Stripe mode from app_settings
+    // For free tickets, just record directly — no Stripe needed
+    if (isFree) {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email")
+        .eq("email", email)
+        .maybeSingle();
+
+      const donorId = profile?.id ?? null;
+      const donorEmail = profile ? null : email;
+
+      const { error: insertError } = await supabaseAdmin.from("donations").insert({
+        donor_id: donorId,
+        donor_email: donorEmail,
+        amount: 0,
+        amount_charged: 0,
+        frequency: 'one-time',
+        status: 'completed',
+        started_at: new Date().toISOString(),
+        stripe_mode: 'live',
+        designation: `A Night of Joy – ${tierLabel}${quantity > 1 ? ` (×${quantity})` : ''}`,
+      });
+
+      if (insertError) {
+        console.error('Failed to create free ticket record:', insertError);
+      } else {
+        console.log('Free ticket registered:', { tier: tierLabel, quantity, email });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, free: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // Paid tickets — use Stripe checkout
     const { data: modeSetting } = await supabaseAdmin
       .from('app_settings')
       .select('setting_value')
@@ -66,14 +115,21 @@ serve(async (req) => {
       });
     }
 
-    const totalAmount = 50 * quantity;
+    const amountInCents = Math.round(unit_price * 100);
 
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ['card'],
       line_items: [
         {
-          price: 'price_1TAAAv3s4yIkp83qLmqN5y7C',
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `A Night of Joy – ${tierLabel}`,
+              description: `Event ticket for A Night of Joy fundraiser by Best Day Ministries`,
+            },
+            unit_amount: amountInCents,
+          },
           quantity,
         },
       ],
@@ -86,13 +142,14 @@ serve(async (req) => {
         frequency: 'one-time',
         amount: totalAmount.toString(),
         source: 'night-of-joy',
-        tier_name: `A Night of Joy – Event Ticket${quantity > 1 ? ` (×${quantity})` : ''}`,
+        tier_name: `A Night of Joy – ${tierLabel}${quantity > 1 ? ` (×${quantity})` : ''}`,
+        ticket_tier,
         contact_name: contact_name || '',
         quantity: quantity.toString(),
       },
     });
 
-    console.log('Night of Joy ticket checkout created:', session.id, { quantity, totalAmount });
+    console.log('Night of Joy ticket checkout created:', session.id, { tier: tierLabel, quantity, totalAmount });
 
     // Create pending donation record
     const { data: profile } = await supabaseAdmin
@@ -115,7 +172,7 @@ serve(async (req) => {
       stripe_mode: mode,
       stripe_customer_id: customer.id,
       stripe_checkout_session_id: session.id,
-      designation: `A Night of Joy – Event Ticket${quantity > 1 ? ` (×${quantity})` : ''}`,
+      designation: `A Night of Joy – ${tierLabel}${quantity > 1 ? ` (×${quantity})` : ''}`,
     });
 
     if (insertError) {
