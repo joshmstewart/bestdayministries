@@ -129,6 +129,7 @@ serve(async (req) => {
       stripe_mode: mode,
       stripe_customer_id: customer.id,
       stripe_checkout_session_id: session.id,
+      designation: `A Night of Joy – ${tierLabel}`,
     });
 
     if (insertError) {
