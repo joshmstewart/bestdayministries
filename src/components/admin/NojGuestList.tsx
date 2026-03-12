@@ -88,8 +88,8 @@ export function NojGuestList() {
       );
     });
 
-  const confirmedTickets = tickets.filter(t => t.status === "completed" || t.status === "active");
-  const confirmedSponsors = sponsors.filter(s => s.status === "completed" || s.status === "active");
+  const confirmedTickets = tickets.filter(t => (t.status === "completed" || t.status === "active") && t.stripe_mode !== "test");
+  const confirmedSponsors = sponsors.filter(s => (s.status === "completed" || s.status === "active") && s.stripe_mode !== "test");
   const totalRevenue = [...confirmedTickets, ...confirmedSponsors].reduce((sum, g) => sum + g.amount, 0);
 
   // Parse ticket quantity from designations:
