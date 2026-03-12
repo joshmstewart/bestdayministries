@@ -1080,10 +1080,6 @@ const Admin = () => {
             <SystemHealthManager />
           </TabsContent>
 
-          <TabsContent value="bike-ride">
-            <BikeRideManager />
-          </TabsContent>
-
           <TabsContent value="settings">
             <Card>
               <CardHeader>
