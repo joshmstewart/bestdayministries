@@ -277,36 +277,32 @@ const NightOfJoy = () => {
       toast.error("Please enter your email address.");
       return;
     }
+    if (totalTickets === 0) {
+      toast.error("Please select at least one ticket.");
+      return;
+    }
+
+    // Build ticket items array from counts
+    const ticketItems = TICKET_TIERS
+      .filter(t => ticketCounts[t.id] > 0)
+      .map(t => ({ tier: t.id, quantity: ticketCounts[t.id], unit_price: t.price }));
+
     setSubmitting(true);
     try {
-      if (isFreeTicket) {
-        // Free tickets — record directly via edge function with amount 0
-        const { data, error } = await supabase.functions.invoke("create-noj-ticket-checkout", {
-          body: {
-            quantity: ticketQty,
-            email: ticketEmail,
-            contact_name: ticketName || undefined,
-            ticket_tier: ticketTier,
-            unit_price: 0,
-          },
-        });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        toast.success(`${ticketQty} free ticket${ticketQty > 1 ? "s" : ""} registered! You'll receive a confirmation email.`);
+      const { data, error } = await supabase.functions.invoke("create-noj-ticket-checkout", {
+        body: {
+          ticket_items: ticketItems,
+          email: ticketEmail,
+          contact_name: ticketName || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.free) {
+        toast.success(`${totalTickets} free ticket${totalTickets > 1 ? "s" : ""} registered!`);
         setPageView("choose");
-      } else {
-        const { data, error } = await supabase.functions.invoke("create-noj-ticket-checkout", {
-          body: {
-            quantity: ticketQty,
-            email: ticketEmail,
-            contact_name: ticketName || undefined,
-            ticket_tier: ticketTier,
-            unit_price: selectedTier.price,
-          },
-        });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        if (data?.url) window.location.href = data.url;
+      } else if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err: any) {
       console.error("Ticket purchase error:", err);
