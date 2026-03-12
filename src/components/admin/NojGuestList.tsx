@@ -69,7 +69,9 @@ export function NojGuestList() {
     }
   };
 
-  const isTicket = (g: NojGuest) => g.designation?.includes("Event Ticket");
+  // Tickets include "Event Tickets" (paid combos) or individual tier names (free registrations)
+  const TIER_KEYWORDS = ['Event Tickets', 'General Admission', 'Kids', 'Besties', 'Little Ones'];
+  const isTicket = (g: NojGuest) => TIER_KEYWORDS.some(kw => g.designation?.includes(kw));
   const isSponsor = (g: NojGuest) => !isTicket(g);
 
   const tickets = guests.filter(isTicket);
@@ -90,10 +92,18 @@ export function NojGuestList() {
   const confirmedSponsors = sponsors.filter(s => s.status === "completed" || s.status === "active");
   const totalRevenue = [...confirmedTickets, ...confirmedSponsors].reduce((sum, g) => sum + g.amount, 0);
 
-  // Parse ticket quantity from designation like "A Night of Joy – Event Ticket (×3)"
+  // Parse ticket quantity from designations:
+  //   Free: "A Night of Joy – Little Ones (5 & under) (×2)" → captures ×2
+  //   Paid: "A Night of Joy – Event Tickets (2× General, 1× Kids)" → sums all N× patterns
   const getTicketQty = (designation: string | null) => {
-    const match = designation?.match(/×(\d+)/);
-    return match ? parseInt(match[1]) : 1;
+    if (!designation) return 1;
+    // Check for "N× Tier" pattern (paid combo): sum all quantities
+    const paidMatches = designation.matchAll(/(\d+)×/g);
+    const paidTotal = [...paidMatches].reduce((sum, m) => sum + parseInt(m[1]), 0);
+    if (paidTotal > 0) return paidTotal;
+    // Check for "(×N)" pattern (free single-tier)
+    const freeMatch = designation.match(/×(\d+)/);
+    return freeMatch ? parseInt(freeMatch[1]) : 1;
   };
   const totalTicketCount = confirmedTickets.reduce((sum, t) => sum + getTicketQty(t.designation), 0);
 
