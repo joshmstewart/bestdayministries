@@ -270,19 +270,38 @@ const NightOfJoy = () => {
     }
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-noj-ticket-checkout", {
-        body: {
-          quantity: ticketQty,
-          email: ticketEmail,
-          contact_name: ticketName || undefined,
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.url) window.location.href = data.url;
+      if (isFreeTicket) {
+        // Free tickets — record directly via edge function with amount 0
+        const { data, error } = await supabase.functions.invoke("create-noj-ticket-checkout", {
+          body: {
+            quantity: ticketQty,
+            email: ticketEmail,
+            contact_name: ticketName || undefined,
+            ticket_tier: ticketTier,
+            unit_price: 0,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        toast.success(`${ticketQty} free ticket${ticketQty > 1 ? "s" : ""} registered! You'll receive a confirmation email.`);
+        setPageView("choose");
+      } else {
+        const { data, error } = await supabase.functions.invoke("create-noj-ticket-checkout", {
+          body: {
+            quantity: ticketQty,
+            email: ticketEmail,
+            contact_name: ticketName || undefined,
+            ticket_tier: ticketTier,
+            unit_price: selectedTier.price,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        if (data?.url) window.location.href = data.url;
+      }
     } catch (err: any) {
       console.error("Ticket purchase error:", err);
-      toast.error(err.message || "Failed to start checkout. Please try again.");
+      toast.error(err.message || "Failed to process tickets. Please try again.");
     } finally {
       setSubmitting(false);
     }
