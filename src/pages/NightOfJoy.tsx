@@ -111,9 +111,14 @@ const NightOfJoy = () => {
     message: "",
   });
   const [customAmount, setCustomAmount] = useState("");
+  const [ticketTier, setTicketTier] = useState<TicketTierId>("general");
   const [ticketQty, setTicketQty] = useState(1);
   const [ticketEmail, setTicketEmail] = useState("");
   const [ticketName, setTicketName] = useState("");
+
+  const selectedTier = TICKET_TIERS.find(t => t.id === ticketTier)!;
+  const ticketTotal = selectedTier.price * ticketQty;
+  const isFreeTicket = selectedTier.price === 0;
   const [submitting, setSubmitting] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
