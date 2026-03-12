@@ -36,7 +36,7 @@ export function NojGuestList() {
     try {
       const { data, error } = await supabase
         .from("donations")
-        .select("id, donor_email, donor_id, amount, status, designation, created_at, stripe_mode")
+        .select("id, donor_email, donor_id, contact_name, amount, status, designation, created_at, stripe_mode")
         .like("designation", "A Night of Joy%")
         .order("created_at", { ascending: false });
 
