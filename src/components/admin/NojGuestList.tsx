@@ -111,7 +111,7 @@ export function NojGuestList() {
   const exportCsv = (list: NojGuest[], filename: string) => {
     const headers = ["Name/Email", "Amount", "Type", "Status", "Date", "Mode"];
     const rows = list.map(g => [
-      g.profile_name || g.donor_email || "Unknown",
+      g.profile_name || g.contact_name || g.donor_email || "Unknown",
       `$${g.amount.toFixed(2)}`,
       g.designation || "",
       g.status,

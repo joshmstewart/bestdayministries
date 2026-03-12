@@ -169,6 +169,7 @@ serve(async (req) => {
     const { error: insertError } = await supabaseAdmin.from("donations").insert({
       donor_id: donorId,
       donor_email: donorEmail,
+      contact_name: contact_name || null,
       amount: totalPaidAmount,
       amount_charged: totalPaidAmount,
       frequency: 'one-time',
