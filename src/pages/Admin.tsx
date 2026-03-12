@@ -357,10 +357,6 @@ const Admin = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="settings" className="text-sm px-2.5 py-1.5">Settings</TabsTrigger>
-            <TabsTrigger value="bike-ride" className="gap-1.5 text-sm px-2.5 py-1.5">
-              <Bike className="w-3 h-3" />
-              Bike Ride
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics">
