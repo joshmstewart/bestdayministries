@@ -357,10 +357,6 @@ const Admin = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="settings" className="text-sm px-2.5 py-1.5">Settings</TabsTrigger>
-            <TabsTrigger value="bike-ride" className="gap-1.5 text-sm px-2.5 py-1.5">
-              <Bike className="w-3 h-3" />
-              Bike Ride
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics">
@@ -422,22 +418,38 @@ const Admin = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    🎉 A Night of Joy – Guest List
-                  </CardTitle>
-                  <a href="/night-of-joy" target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm" className="gap-1.5">
-                      <ExternalLink className="h-4 w-4" />
-                      View Page
-                    </Button>
-                  </a>
-                </CardHeader>
-                <CardContent>
-                  <NojGuestList />
-                </CardContent>
-              </Card>
+              <Tabs defaultValue="noj" className="w-full">
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="noj" className="gap-1.5">
+                    🎉 Night of Joy
+                  </TabsTrigger>
+                  <TabsTrigger value="bike-ride" className="gap-1.5">
+                    <Bike className="w-3.5 h-3.5" />
+                    Bike Ride
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="noj">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        A Night of Joy – Guest List
+                      </CardTitle>
+                      <a href="/night-of-joy" target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm" className="gap-1.5">
+                          <ExternalLink className="h-4 w-4" />
+                          View Page
+                        </Button>
+                      </a>
+                    </CardHeader>
+                    <CardContent>
+                      <NojGuestList />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="bike-ride">
+                  <BikeRideManager />
+                </TabsContent>
+              </Tabs>
             </div>
           </TabsContent>
 
@@ -1066,10 +1078,6 @@ const Admin = () => {
 
           <TabsContent value="system-health">
             <SystemHealthManager />
-          </TabsContent>
-
-          <TabsContent value="bike-ride">
-            <BikeRideManager />
           </TabsContent>
 
           <TabsContent value="settings">
