@@ -563,67 +563,72 @@ const NightOfJoy = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Tier Selector */}
-                  <div className="space-y-2">
-                    <Label className="text-amber-200/80">Ticket Type</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {TICKET_TIERS.map(tier => (
-                        <button
+                  {/* Per-tier quantity selectors */}
+                  <div className="space-y-3">
+                    {TICKET_TIERS.map(tier => {
+                      const count = ticketCounts[tier.id];
+                      return (
+                        <div
                           key={tier.id}
-                          type="button"
-                          onClick={() => setTicketTier(tier.id)}
-                          className={`flex items-center justify-between p-4 rounded-xl border-2 text-left transition-all ${
-                            ticketTier === tier.id
+                          className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                            count > 0
                               ? "border-amber-500 bg-amber-600/15"
-                              : "border-amber-800/30 bg-[#231811] hover:border-amber-700/50"
+                              : "border-amber-800/30 bg-[#231811]"
                           }`}
                         >
-                          <span className={`font-medium ${ticketTier === tier.id ? "text-amber-100" : "text-amber-200/80"}`}>
-                            {tier.label}
-                          </span>
-                          <span className={`font-bold text-lg ${ticketTier === tier.id ? "text-amber-300" : "text-amber-400/60"}`}>
-                            {tier.price === 0 ? "Free" : `$${tier.price}`}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                          <div className="flex-1 min-w-0 mr-4">
+                            <span className={`font-medium block ${count > 0 ? "text-amber-100" : "text-amber-200/80"}`}>
+                              {tier.label}
+                            </span>
+                            <span className={`text-sm ${count > 0 ? "text-amber-300" : "text-amber-400/60"}`}>
+                              {tier.price === 0 ? "Free" : `$${tier.price} each`}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => updateTierCount(tier.id, -1)}
+                              disabled={count <= 0}
+                              className="w-9 h-9 rounded-full border border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="text-xl font-bold text-amber-100 tabular-nums w-8 text-center">
+                              {count}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateTierCount(tier.id, 1)}
+                              disabled={count >= 10}
+                              className="w-9 h-9 rounded-full border border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* Quantity Selector */}
-                  <div className="flex items-center justify-center gap-4 py-4">
-                    <button
-                      type="button"
-                      onClick={() => setTicketQty(q => Math.max(1, q - 1))}
-                      disabled={ticketQty <= 1}
-                      className="w-12 h-12 rounded-full border-2 border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <Minus className="w-5 h-5" />
-                    </button>
-                    <div className="text-center min-w-[100px]">
-                      <span className="text-5xl font-bold text-amber-100 tabular-nums">{ticketQty}</span>
-                      <p className="text-xs text-amber-400/60 uppercase tracking-wider mt-1">
-                        {ticketQty === 1 ? "ticket" : "tickets"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setTicketQty(q => Math.min(10, q + 1))}
-                      disabled={ticketQty >= 10}
-                      className="w-12 h-12 rounded-full border-2 border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Total */}
-                  <Card className="border-amber-600/30 bg-amber-600/10">
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <span className="text-amber-100 font-medium">Total</span>
-                      <span className="text-2xl font-bold text-amber-300">
-                        {isFreeTicket ? "Free" : `$${ticketTotal.toLocaleString()}`}
-                      </span>
-                    </CardContent>
-                  </Card>
+                  {/* Summary */}
+                  {totalTickets > 0 && (
+                    <Card className="border-amber-600/30 bg-amber-600/10">
+                      <CardContent className="p-4 space-y-2">
+                        {TICKET_TIERS.filter(t => ticketCounts[t.id] > 0).map(t => (
+                          <div key={t.id} className="flex justify-between text-sm text-amber-200/80">
+                            <span>{ticketCounts[t.id]}× {t.label}</span>
+                            <span>{t.price === 0 ? "Free" : `$${(t.price * ticketCounts[t.id]).toLocaleString()}`}</span>
+                          </div>
+                        ))}
+                        <div className="border-t border-amber-700/30 pt-2 flex justify-between">
+                          <span className="text-amber-100 font-medium">{totalTickets} ticket{totalTickets !== 1 ? "s" : ""}</span>
+                          <span className="text-2xl font-bold text-amber-300">
+                            {paidTotal === 0 ? "Free" : `$${paidTotal.toLocaleString()}`}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Contact for tickets */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -654,27 +659,29 @@ const NightOfJoy = () => {
                   <Button
                     size="lg"
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30"
-                    disabled={submitting || !ticketEmail}
+                    disabled={submitting || !ticketEmail || totalTickets === 0}
                     onClick={handleTicketPurchase}
                   >
                     {submitting ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        {isFreeTicket ? "Registering..." : "Redirecting to Checkout..."}
+                        {hasFreeOnly ? "Registering..." : "Redirecting to Checkout..."}
                       </>
                     ) : (
                       <>
                         <Ticket className="w-4 h-4 mr-2" />
-                        {isFreeTicket
-                          ? `Register ${ticketQty} Free ${ticketQty === 1 ? "Ticket" : "Tickets"}`
-                          : `Purchase ${ticketQty} ${ticketQty === 1 ? "Ticket" : "Tickets"} — $${ticketTotal.toLocaleString()}`
+                        {totalTickets === 0
+                          ? "Select Tickets"
+                          : hasFreeOnly
+                            ? `Register ${totalTickets} Free Ticket${totalTickets !== 1 ? "s" : ""}`
+                            : `Purchase ${totalTickets} Ticket${totalTickets !== 1 ? "s" : ""} — $${paidTotal.toLocaleString()}`
                         }
                       </>
                     )}
                   </Button>
 
                   <p className="text-xs text-amber-200/40 text-center">
-                    {isFreeTicket
+                    {hasFreeOnly
                       ? "Your free tickets will be registered immediately."
                       : "You'll be redirected to a secure Stripe checkout page."
                     }
