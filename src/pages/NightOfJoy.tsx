@@ -13,8 +13,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign } from "lucide-react";
+import { Star, Heart, Calendar, MapPin, Mail, Phone, Building2, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign, Sparkles } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import farmTableBg from "@/assets/background_farmtable.png";
 
 const ACCEPTED_FILE_TYPES = [
   "image/jpeg", "image/png", "image/webp", "image/svg+xml",
@@ -87,7 +88,6 @@ const NightOfJoy = () => {
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
 
-  // Check for payment success
   const paymentSuccess = searchParams.get("payment") === "success";
 
   const [formMode, setFormMode] = useState<FormMode>("inquire");
@@ -106,7 +106,6 @@ const NightOfJoy = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  // Auto-fill name and email from logged-in user
   useEffect(() => {
     if (profile || user) {
       setFormData(prev => ({
@@ -201,39 +200,31 @@ const NightOfJoy = () => {
   };
 
   const getPaymentAmount = (): number | null => {
-    // Check if a tier is selected
     const selectedTierObj = SPONSORSHIP_TIERS.find(
       t => formData.selectedTier === `${t.name} - $${t.amount.toLocaleString()}`
     );
     if (selectedTierObj) return selectedTierObj.amount;
-
-    // Check custom amount
     const custom = parseFloat(customAmount);
     if (!isNaN(custom) && custom >= 100) return custom;
-
     return null;
   };
 
   const handlePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.email) {
       toast.error("Please enter your email address.");
       return;
     }
-
     const amount = getPaymentAmount();
     if (!amount) {
       toast.error("Please select a sponsorship level or enter a custom amount (minimum $100).");
       return;
     }
-
     setSubmitting(true);
     try {
       const selectedTierObj = SPONSORSHIP_TIERS.find(
         t => formData.selectedTier === `${t.name} - $${t.amount.toLocaleString()}`
       );
-
       const { data, error } = await supabase.functions.invoke("create-noj-checkout", {
         body: {
           amount,
@@ -243,7 +234,6 @@ const NightOfJoy = () => {
           business_name: formData.businessName || undefined,
         },
       });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       if (data?.url) {
@@ -258,7 +248,7 @@ const NightOfJoy = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-[#1a120b]">
       <SEOHead
         title="A Night of Joy – Best Day Ministries Fundraiser"
         description="Join us June 14, 2026 for A Night of Joy at Truitt Homestead. Dinner, live entertainment & silent auction for adults with special abilities."
@@ -267,110 +257,125 @@ const NightOfJoy = () => {
       <UnifiedHeader />
 
       <main className="flex-1 pt-14">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden py-16 md:py-24 text-center" style={{ background: "var(--gradient-hero)" }}>
-          <div className="container max-w-4xl mx-auto px-4 relative z-10">
-            <p className="text-primary-foreground/80 text-sm uppercase tracking-widest mb-2">
-              Hosted by Best Day Ministries
-            </p>
-            <p className="text-primary-foreground/70 text-sm mb-6">
-              Home of Joy House & Best Day Ever Coffee & Crepes
-            </p>
-            <h1 className="font-script text-5xl md:text-7xl text-primary-foreground mb-4 drop-shadow-lg">
-              A Night of Joy
-            </h1>
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Calendar className="w-5 h-5 text-secondary" />
-              <p className="text-xl md:text-2xl font-bold text-primary-foreground">
-                Sunday, June 14<sup>th</sup>, 2026
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-2 mb-6">
-              <Clock className="w-4 h-4 text-secondary" />
-              <p className="text-primary-foreground/80">4:00 PM – 7:00 PM MST</p>
-              <span className="text-primary-foreground/40 mx-1">•</span>
-              <MapPin className="w-4 h-4 text-secondary" />
-              <p className="text-primary-foreground/80">Truitt Homestead</p>
-            </div>
-            <p className="text-primary-foreground/90 text-lg max-w-2xl mx-auto">
-              A Fundraiser that creates belonging, and purpose for adults with special abilities.
+        {/* Hero — Full-bleed image with overlay text */}
+        <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
+          {/* Background Image */}
+          <img
+            src={farmTableBg}
+            alt="Rustic farm table set for dinner at sunset with candles, sunflowers, and string lights"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* Dark gradient overlay for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+
+          <div className="relative z-10 text-center px-4 max-w-3xl mx-auto">
+            <p className="text-amber-200/80 text-xs sm:text-sm uppercase tracking-[0.3em] mb-3 font-medium">
+              Best Day Ministries presents
             </p>
 
-            {/* Countdown Timer */}
+            <h1 className="font-script text-6xl sm:text-7xl md:text-8xl text-white mb-4 drop-shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+              A Night of Joy
+            </h1>
+
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <span className="h-px w-10 bg-amber-400/50" />
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span className="h-px w-10 bg-amber-400/50" />
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-4 mt-4 text-white/90">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-amber-300" />
+                <span className="text-lg font-semibold">Sunday, June 14<sup>th</sup>, 2026</span>
+              </div>
+              <span className="hidden sm:inline text-amber-400/50">•</span>
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-amber-300" />
+                <span className="text-sm">4:00 PM – 7:00 PM MST</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-1.5 mt-2 text-white/80">
+              <MapPin className="w-4 h-4 text-amber-300" />
+              <span className="text-sm">Truitt Homestead</span>
+            </div>
+
+            {/* Countdown */}
             {!eventCountdown.passed && (
-              <div className="mt-8 flex justify-center gap-3 sm:gap-4">
+              <div className="mt-8 flex justify-center gap-3">
                 {[
                   { value: eventCountdown.days, label: "Days" },
                   { value: eventCountdown.hours, label: "Hours" },
                   { value: eventCountdown.minutes, label: "Min" },
                   { value: eventCountdown.seconds, label: "Sec" },
                 ].map(({ value, label }) => (
-                  <div key={label} className="bg-primary-foreground/15 backdrop-blur-sm rounded-lg px-3 py-2 sm:px-4 sm:py-3 min-w-[60px]">
-                    <span className="text-2xl sm:text-3xl font-bold text-primary-foreground tabular-nums">
+                  <div key={label} className="bg-black/40 backdrop-blur-md border border-amber-400/20 rounded-lg px-3 py-2 sm:px-4 sm:py-3 min-w-[60px]">
+                    <span className="text-2xl sm:text-3xl font-bold text-amber-100 tabular-nums">
                       {String(value).padStart(2, "0")}
                     </span>
-                    <p className="text-[10px] sm:text-xs text-primary-foreground/70 uppercase tracking-wider mt-0.5">{label}</p>
+                    <p className="text-[10px] text-amber-300/70 uppercase tracking-wider mt-0.5">{label}</p>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Share Buttons hidden until fixed
-            <div className="mt-6">
-              <ShareButtons
-                title="A Night of Joy – Best Day Ministries Fundraiser"
-                description="Join us June 14, 2026 for dinner, live entertainment & silent auction creating belonging for adults with special abilities."
-                url="https://bestdayministries.org/night-of-joy"
-                pageId="night-of-joy"
-                hashtags={["NightOfJoy", "BestDayMinistries"]}
-              />
-            </div>
-            */}
+            <p className="mt-8 text-amber-100/80 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+              A fundraiser creating belonging and purpose for adults with special abilities.
+            </p>
 
-            <div className="flex justify-center mt-4">
-              <div className="flex items-center gap-1">
-                <span className="h-px w-12 bg-secondary/60" />
-                <Star className="w-4 h-4 text-secondary fill-secondary" />
-                <Star className="w-5 h-5 text-secondary fill-secondary" />
-                <Star className="w-4 h-4 text-secondary fill-secondary" />
-                <span className="h-px w-12 bg-secondary/60" />
-              </div>
-            </div>
+            <Button
+              size="lg"
+              className="mt-6 bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-900/30 border border-amber-500/30"
+              onClick={() => document.getElementById("sponsor-section")?.scrollIntoView({ behavior: "smooth" })}
+            >
+              <Heart className="w-4 h-4 mr-2" />
+              Become a Sponsor
+            </Button>
           </div>
+
+          {/* Bottom fade into dark bg */}
+          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#1a120b] to-transparent" />
         </section>
 
-        {/* Mission Section */}
-        <section className="py-12 md:py-16 bg-card">
+        {/* Mission Section — warm dark */}
+        <section className="py-16 md:py-20 bg-[#1a120b]">
           <div className="container max-w-3xl mx-auto px-4 text-center space-y-6">
-            <p className="text-foreground leading-relaxed">
+            <div className="flex justify-center gap-1 mb-2">
+              <span className="h-px w-12 bg-amber-700/50 self-center" />
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <span className="h-px w-12 bg-amber-700/50 self-center" />
+            </div>
+            <p className="text-amber-100/90 leading-relaxed text-lg">
               Without the generosity of donors like you, our organization and programs for adults with special abilities and their families would not be possible. Your tax-deductible support helps create meaningful employment, community connection, and life-giving opportunities that foster confidence and belonging.
             </p>
-            <p className="text-foreground leading-relaxed">
+            <p className="text-amber-100/90 leading-relaxed text-lg">
               Together, we can continue building a community where every person is seen, valued, and celebrated.
             </p>
-            <p className="text-muted-foreground italic">
+            <p className="text-amber-400/70 italic text-base">
               Thank you for partnering with us to make this impact possible.
             </p>
           </div>
         </section>
 
-        {/* Event Details Section */}
-        <section className="py-12 md:py-16 bg-muted/30">
+        {/* What to Expect — with subtle texture */}
+        <section className="py-16 md:py-20 bg-[#231811] border-t border-amber-900/30">
           <div className="container max-w-4xl mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-foreground mb-8">What to Expect</h2>
+            <h2 className="text-3xl font-bold text-center text-amber-100 mb-10">What to Expect</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
               {[
                 { icon: UtensilsCrossed, title: "Dinner & Drinks", desc: "A catered evening of great food and refreshments" },
                 { icon: Music, title: "Live Entertainment", desc: "Enjoy live music and performances throughout the evening" },
                 { icon: ShoppingBag, title: "Silent Auction", desc: "Bid on unique items to support Best Day Ministries" },
               ].map(({ icon: Icon, title, desc }) => (
-                <Card key={title} className="text-center border-border">
-                  <CardContent className="pt-6 pb-5 space-y-2">
-                    <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-primary" />
+                <Card key={title} className="text-center bg-[#2a1e14] border-amber-800/30 shadow-lg">
+                  <CardContent className="pt-6 pb-5 space-y-3">
+                    <div className="w-14 h-14 mx-auto rounded-full bg-amber-600/15 border border-amber-600/20 flex items-center justify-center">
+                      <Icon className="w-7 h-7 text-amber-400" />
                     </div>
-                    <h3 className="font-bold text-foreground">{title}</h3>
-                    <p className="text-sm text-muted-foreground">{desc}</p>
+                    <h3 className="font-bold text-amber-100 text-lg">{title}</h3>
+                    <p className="text-sm text-amber-200/60">{desc}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -378,17 +383,17 @@ const NightOfJoy = () => {
 
             {/* Sponsorship Deadline Countdown */}
             {!deadlineCountdown.passed && (
-              <div className="text-center bg-card border border-primary/20 rounded-xl p-6">
-                <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">Sponsorship Deadline — May 4, 2026</p>
+              <div className="text-center bg-[#2a1e14] border border-amber-700/30 rounded-xl p-6">
+                <p className="text-sm font-medium text-amber-400 uppercase tracking-wider mb-3">Sponsorship Deadline — May 4, 2026</p>
                 <div className="flex justify-center gap-3">
                   {[
                     { value: deadlineCountdown.days, label: "Days" },
                     { value: deadlineCountdown.hours, label: "Hours" },
                     { value: deadlineCountdown.minutes, label: "Min" },
                   ].map(({ value, label }) => (
-                    <div key={label} className="bg-primary/10 rounded-lg px-4 py-2 min-w-[60px]">
-                      <span className="text-2xl font-bold text-primary tabular-nums">{String(value).padStart(2, "0")}</span>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</p>
+                    <div key={label} className="bg-amber-600/10 border border-amber-600/20 rounded-lg px-4 py-2 min-w-[60px]">
+                      <span className="text-2xl font-bold text-amber-300 tabular-nums">{String(value).padStart(2, "0")}</span>
+                      <p className="text-[10px] text-amber-400/60 uppercase tracking-wider mt-0.5">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -398,37 +403,37 @@ const NightOfJoy = () => {
         </section>
 
         {/* Sponsorship Levels & Benefits Table */}
-        <section className="py-12 md:py-16 bg-muted/30">
+        <section className="py-16 md:py-20 bg-[#1a120b] border-t border-amber-900/30">
           <div className="container max-w-5xl mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center text-foreground mb-8">
+            <h2 className="text-3xl font-bold text-center text-amber-100 mb-8">
               Sponsorship Levels & Benefits
             </h2>
-            <Card className="overflow-hidden border-border">
+            <Card className="overflow-hidden border-amber-800/30 bg-[#231811]">
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-primary/10">
-                        <TableHead className="min-w-[200px] font-bold text-foreground">Benefit</TableHead>
+                      <TableRow className="bg-amber-600/10 border-b border-amber-800/30">
+                        <TableHead className="min-w-[200px] font-bold text-amber-200">Benefit</TableHead>
                         {SPONSORSHIP_TIERS.map((tier) => (
                           <TableHead key={tier.amount} className="text-center min-w-[80px]">
-                            <span className="font-bold text-foreground">${tier.amount.toLocaleString()}</span>
+                            <span className="font-bold text-amber-300">${tier.amount.toLocaleString()}</span>
                           </TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {BENEFITS.map((benefit, i) => (
-                        <TableRow key={i} className={i % 2 === 0 ? "bg-card" : "bg-muted/20"}>
-                          <TableCell className="font-medium text-foreground">{benefit.label}</TableCell>
+                        <TableRow key={i} className={`border-b border-amber-900/20 ${i % 2 === 0 ? "bg-[#231811]" : "bg-[#2a1e14]/50"}`}>
+                          <TableCell className="font-medium text-amber-100/90">{benefit.label}</TableCell>
                           {benefit.tiers.map((val, j) => (
                             <TableCell key={j} className="text-center">
                               {val === true ? (
-                                <CheckCircle2 className="w-5 h-5 text-primary mx-auto" />
+                                <CheckCircle2 className="w-5 h-5 text-amber-400 mx-auto" />
                               ) : val === false ? (
-                                <span className="text-muted-foreground">—</span>
+                                <span className="text-amber-700/50">—</span>
                               ) : (
-                                <span className="text-foreground font-medium">{val}</span>
+                                <span className="text-amber-200/80 font-medium">{val}</span>
                               )}
                             </TableCell>
                           ))}
@@ -444,16 +449,16 @@ const NightOfJoy = () => {
 
         {/* Payment Success Banner */}
         {paymentSuccess && (
-          <section className="py-8 bg-primary/5">
+          <section className="py-8 bg-amber-600/10 border-t border-amber-800/30">
             <div className="container max-w-2xl mx-auto px-4">
-              <Card className="border-primary/30 bg-primary/5">
+              <Card className="border-amber-600/30 bg-[#2a1e14]">
                 <CardContent className="p-8 text-center space-y-4">
-                  <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
-                  <h3 className="text-2xl font-bold text-foreground">Payment Received!</h3>
-                  <p className="text-muted-foreground">
+                  <CheckCircle2 className="w-12 h-12 text-amber-400 mx-auto" />
+                  <h3 className="text-2xl font-bold text-amber-100">Payment Received!</h3>
+                  <p className="text-amber-200/70">
                     Thank you for your generous sponsorship of A Night of Joy! You'll receive a confirmation email shortly.
                     If you have any questions, reach out to{" "}
-                    <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">
+                    <a href="mailto:Marla@joyhousestore.com" className="text-amber-400 hover:underline">
                       Marla@joyhousestore.com
                     </a>
                   </p>
@@ -464,25 +469,25 @@ const NightOfJoy = () => {
         )}
 
         {/* Sponsorship Form / Payment Section */}
-        <section className="py-12 md:py-16 bg-card">
+        <section id="sponsor-section" className="py-16 md:py-20 bg-[#231811] border-t border-amber-900/30">
           <div className="container max-w-2xl mx-auto px-4">
             <div className="text-center mb-8">
-              <Heart className="w-8 h-8 text-primary mx-auto mb-3" />
-              <h2 className="text-3xl font-bold text-foreground mb-2">Become a Sponsor</h2>
-              <p className="text-muted-foreground">
+              <Heart className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+              <h2 className="text-3xl font-bold text-amber-100 mb-2">Become a Sponsor</h2>
+              <p className="text-amber-200/60">
                 Interested in sponsoring? Reach out to learn more, or pay directly if you're ready.
               </p>
             </div>
 
             {/* Mode Toggle */}
-            <div className="flex rounded-xl border-2 border-border overflow-hidden mb-8">
+            <div className="flex rounded-xl border-2 border-amber-800/40 overflow-hidden mb-8">
               <button
                 type="button"
                 onClick={() => setFormMode("inquire")}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
                   formMode === "inquire"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground hover:bg-muted/50"
+                    ? "bg-amber-600 text-white"
+                    : "bg-[#2a1e14] text-amber-200/60 hover:bg-amber-900/30"
                 }`}
               >
                 <MessageSquare className="w-4 h-4" />
@@ -493,8 +498,8 @@ const NightOfJoy = () => {
                 onClick={() => setFormMode("pay")}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-semibold transition-all ${
                   formMode === "pay"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground hover:bg-muted/50"
+                    ? "bg-amber-600 text-white"
+                    : "bg-[#2a1e14] text-amber-200/60 hover:bg-amber-900/30"
                 }`}
               >
                 <CreditCard className="w-4 h-4" />
@@ -503,13 +508,13 @@ const NightOfJoy = () => {
             </div>
 
             {submitted && formMode === "inquire" ? (
-              <Card className="border-primary/30 bg-primary/5">
+              <Card className="border-amber-600/30 bg-amber-600/10">
                 <CardContent className="p-8 text-center space-y-4">
-                  <CheckCircle2 className="w-12 h-12 text-primary mx-auto" />
-                  <h3 className="text-2xl font-bold text-foreground">Thank You!</h3>
-                  <p className="text-muted-foreground">
+                  <CheckCircle2 className="w-12 h-12 text-amber-400 mx-auto" />
+                  <h3 className="text-2xl font-bold text-amber-100">Thank You!</h3>
+                  <p className="text-amber-200/70">
                     We've received your sponsorship interest and will be in touch soon. You can also reach us directly at{" "}
-                    <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">
+                    <a href="mailto:Marla@joyhousestore.com" className="text-amber-400 hover:underline">
                       Marla@joyhousestore.com
                     </a>
                   </p>
@@ -520,8 +525,8 @@ const NightOfJoy = () => {
               <form onSubmit={handleInquirySubmit} className="space-y-6">
                 {/* Sponsorship Level Selection */}
                 <div className="space-y-3">
-                  <Label className="text-base font-bold">Sponsorship Level</Label>
-                  <p className="text-sm text-muted-foreground">Not sure yet? No problem — select "Just Inquiring" and we'll help you find the right fit.</p>
+                  <Label className="text-base font-bold text-amber-100">Sponsorship Level</Label>
+                  <p className="text-sm text-amber-200/50">Not sure yet? No problem — select "Just Inquiring" and we'll help you find the right fit.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {SPONSORSHIP_TIERS.map((tier) => (
                       <button
@@ -530,12 +535,12 @@ const NightOfJoy = () => {
                         onClick={() => handleChange("selectedTier", `${tier.name} - $${tier.amount.toLocaleString()}`)}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${
                           formData.selectedTier === `${tier.name} - $${tier.amount.toLocaleString()}`
-                            ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                            : "border-border hover:border-primary/50 bg-card"
+                            ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
+                            : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
                         }`}
                       >
-                        <span className="font-bold text-foreground">{tier.name}</span>
-                        <span className="block text-lg font-bold text-primary">
+                        <span className="font-bold text-amber-100">{tier.name}</span>
+                        <span className="block text-lg font-bold text-amber-400">
                           ${tier.amount.toLocaleString()}
                         </span>
                       </button>
@@ -545,19 +550,19 @@ const NightOfJoy = () => {
                       onClick={() => handleChange("selectedTier", "Just Inquiring")}
                       className={`sm:col-span-2 py-2 px-4 rounded-lg border-2 text-center transition-all ${
                         formData.selectedTier === "Just Inquiring"
-                          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                          : "border-border hover:border-primary/50 bg-card"
+                          ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
+                          : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
                       }`}
                     >
-                      <span className="font-bold text-foreground">Just Inquiring</span>
-                      <span className="text-sm text-muted-foreground ml-2">— I'd like to learn more</span>
+                      <span className="font-bold text-amber-100">Just Inquiring</span>
+                      <span className="text-sm text-amber-200/50 ml-2">— I'd like to learn more</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Payment Method */}
                 <div className="space-y-3">
-                  <Label className="text-base font-bold">Payment Preference</Label>
+                  <Label className="text-base font-bold text-amber-100">Payment Preference</Label>
                   <div className="flex flex-wrap gap-3">
                     {["Card", "Invoice me", "Check"].map((method) => (
                       <button
@@ -566,8 +571,8 @@ const NightOfJoy = () => {
                         onClick={() => handleChange("paymentMethod", method)}
                         className={`px-4 py-2 rounded-full border-2 text-sm font-medium transition-all ${
                           formData.paymentMethod === method
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border text-foreground hover:border-primary/50"
+                            ? "border-amber-500 bg-amber-600 text-white"
+                            : "border-amber-800/40 text-amber-200/80 hover:border-amber-600/50"
                         }`}
                       >
                         {method}
@@ -579,67 +584,72 @@ const NightOfJoy = () => {
                 {/* Contact Info */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="contactName">Contact Name *</Label>
+                    <Label htmlFor="contactName" className="text-amber-200/80">Contact Name *</Label>
                     <Input
                       id="contactName"
                       value={formData.contactName}
                       onChange={(e) => handleChange("contactName", e.target.value)}
                       required
+                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="businessName">Business / Organization</Label>
+                    <Label htmlFor="businessName" className="text-amber-200/80">Business / Organization</Label>
                     <Input
                       id="businessName"
                       value={formData.businessName}
                       onChange={(e) => handleChange("businessName", e.target.value)}
+                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email" className="text-amber-200/80">Email *</Label>
                     <Input
                       id="email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => handleChange("email", e.target.value)}
                       required
+                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label htmlFor="phone" className="text-amber-200/80">Phone</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => handleChange("phone", e.target.value)}
+                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="message">Additional Notes</Label>
+                  <Label htmlFor="message" className="text-amber-200/80">Additional Notes</Label>
                   <Textarea
                     id="message"
                     value={formData.message}
                     onChange={(e) => handleChange("message", e.target.value)}
                     rows={3}
                     placeholder="Anything else you'd like us to know?"
+                    className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                   />
                 </div>
 
                 {/* File Attachments */}
                 <div className="space-y-3">
-                  <Label>Attachments (e.g. company logo)</Label>
+                  <Label className="text-amber-200/80">Attachments (e.g. company logo)</Label>
                   {attachedFiles.length > 0 && (
                     <div className="flex flex-wrap gap-3">
                       {attachedFiles.map((af, i) => (
-                        <div key={i} className="relative group border rounded-lg overflow-hidden bg-card">
+                        <div key={i} className="relative group border border-amber-800/30 rounded-lg overflow-hidden bg-[#2a1e14]">
                           {af.isImage && af.preview ? (
                             <img src={af.preview} alt={af.file.name} className="w-20 h-20 object-cover" />
                           ) : (
                             <div className="w-20 h-20 flex flex-col items-center justify-center p-2">
-                              <FileText className="w-6 h-6 text-muted-foreground mb-1" />
-                              <span className="text-[10px] text-muted-foreground text-center truncate w-full">
+                              <FileText className="w-6 h-6 text-amber-200/50 mb-1" />
+                              <span className="text-[10px] text-amber-200/40 text-center truncate w-full">
                                 {af.file.name.split('.').pop()?.toUpperCase()}
                               </span>
                             </div>
@@ -647,7 +657,7 @@ const NightOfJoy = () => {
                           <button
                             type="button"
                             onClick={() => removeFile(i)}
-                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-1 right-1 bg-red-900/80 text-red-200 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -656,7 +666,7 @@ const NightOfJoy = () => {
                     </div>
                   )}
                   {attachedFiles.length < MAX_FILES && (
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-muted-foreground/50 transition-colors">
+                    <div className="border-2 border-dashed border-amber-800/30 rounded-lg p-4 text-center hover:border-amber-600/40 transition-colors">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -667,9 +677,9 @@ const NightOfJoy = () => {
                         multiple
                       />
                       <label htmlFor="noj-file-upload" className="cursor-pointer">
-                        <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">Click to attach files</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <Upload className="h-5 w-5 mx-auto mb-1 text-amber-400/50" />
+                        <p className="text-sm text-amber-200/50">Click to attach files</p>
+                        <p className="text-xs text-amber-200/30 mt-1">
                           JPG, PNG, SVG, PDF, DOCX — up to 10MB each, {MAX_FILES} max
                         </p>
                       </label>
@@ -677,14 +687,14 @@ const NightOfJoy = () => {
                   )}
                 </div>
 
-                <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
                   {submitting ? "Submitting..." : "Submit Sponsorship Interest"}
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-xs text-amber-200/40 text-center">
                   Please submit by May 4th, 2026.
                   <br />
-                  Contact: <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">Marla@joyhousestore.com</a>
+                  Contact: <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
                 </p>
               </form>
             ) : (
@@ -692,7 +702,7 @@ const NightOfJoy = () => {
               <form onSubmit={handlePaySubmit} className="space-y-6">
                 {/* Tier Selection for Payment */}
                 <div className="space-y-3">
-                  <Label className="text-base font-bold">Select Sponsorship Level</Label>
+                  <Label className="text-base font-bold text-amber-100">Select Sponsorship Level</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {SPONSORSHIP_TIERS.map((tier) => (
                       <button
@@ -704,12 +714,12 @@ const NightOfJoy = () => {
                         }}
                         className={`p-4 rounded-lg border-2 text-left transition-all ${
                           formData.selectedTier === `${tier.name} - $${tier.amount.toLocaleString()}` && !customAmount
-                            ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                            : "border-border hover:border-primary/50 bg-card"
+                            ? "border-amber-500 bg-amber-600/15 ring-2 ring-amber-500/30"
+                            : "border-amber-800/30 hover:border-amber-600/50 bg-[#2a1e14]"
                         }`}
                       >
-                        <span className="font-bold text-foreground">{tier.name}</span>
-                        <span className="block text-lg font-bold text-primary">
+                        <span className="font-bold text-amber-100">{tier.name}</span>
+                        <span className="block text-lg font-bold text-amber-400">
                           ${tier.amount.toLocaleString()}
                         </span>
                       </button>
@@ -718,9 +728,9 @@ const NightOfJoy = () => {
 
                   {/* Custom Amount */}
                   <div className="relative mt-4">
-                    <Label className="text-sm font-semibold mb-2 block">Or enter a custom amount</Label>
+                    <Label className="text-sm font-semibold mb-2 block text-amber-200/80">Or enter a custom amount</Label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/50" />
                       <Input
                         type="number"
                         min={100}
@@ -731,7 +741,7 @@ const NightOfJoy = () => {
                           setCustomAmount(e.target.value);
                           if (e.target.value) handleChange("selectedTier", "");
                         }}
-                        className="pl-8"
+                        className="pl-8 bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -740,7 +750,7 @@ const NightOfJoy = () => {
                 {/* Contact Info for Payment */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="pay-email">Email *</Label>
+                    <Label htmlFor="pay-email" className="text-amber-200/80">Email *</Label>
                     <Input
                       id="pay-email"
                       type="email"
@@ -748,41 +758,44 @@ const NightOfJoy = () => {
                       onChange={(e) => handleChange("email", e.target.value)}
                       required
                       placeholder="your@email.com"
+                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pay-name">Name</Label>
+                    <Label htmlFor="pay-name" className="text-amber-200/80">Name</Label>
                     <Input
                       id="pay-name"
                       value={formData.contactName}
                       onChange={(e) => handleChange("contactName", e.target.value)}
                       placeholder="Your name"
+                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                     />
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="pay-business">Business / Organization</Label>
+                    <Label htmlFor="pay-business" className="text-amber-200/80">Business / Organization</Label>
                     <Input
                       id="pay-business"
                       value={formData.businessName}
                       onChange={(e) => handleChange("businessName", e.target.value)}
                       placeholder="Optional"
+                      className="bg-[#2a1e14] border-amber-800/40 text-amber-100 placeholder:text-amber-200/30 focus-visible:ring-amber-500"
                     />
                   </div>
                 </div>
 
                 {/* Payment Summary */}
                 {getPaymentAmount() && (
-                  <Card className="border-primary/20 bg-primary/5">
+                  <Card className="border-amber-600/30 bg-amber-600/10">
                     <CardContent className="p-4 flex items-center justify-between">
-                      <span className="text-foreground font-medium">Sponsorship Total</span>
-                      <span className="text-2xl font-bold text-primary">
+                      <span className="text-amber-100 font-medium">Sponsorship Total</span>
+                      <span className="text-2xl font-bold text-amber-300">
                         ${getPaymentAmount()!.toLocaleString()}
                       </span>
                     </CardContent>
                   </Card>
                 )}
 
-                <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+                <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -796,10 +809,10 @@ const NightOfJoy = () => {
                   )}
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-xs text-amber-200/40 text-center">
                   You'll be redirected to a secure Stripe checkout page. Your sponsorship is tax deductible.
                   <br />
-                  Questions? <a href="mailto:Marla@joyhousestore.com" className="text-primary hover:underline">Marla@joyhousestore.com</a>
+                  Questions? <a href="mailto:Marla@joyhousestore.com" className="text-amber-400/70 hover:underline">Marla@joyhousestore.com</a>
                 </p>
               </form>
             )}
