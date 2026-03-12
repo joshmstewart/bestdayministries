@@ -403,23 +403,42 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="events">
-            <Card>
-              <CardHeader>
-                <CardTitle>Event Management</CardTitle>
-                <CardDescription>Create and manage community events</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-muted-foreground">
-                    Create and manage events with images, audio, dates, times, and locations.
-                  </p>
-                  <Button onClick={() => navigate("/admin/events")} className="gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Manage Events
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Event Management</CardTitle>
+                  <CardDescription>Create and manage community events</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground">
+                      Create and manage events with images, audio, dates, times, and locations.
+                    </p>
+                    <Button onClick={() => navigate("/admin/events")} className="gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Manage Events
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    🎉 A Night of Joy – Guest List
+                  </CardTitle>
+                  <a href="/night-of-joy" target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <ExternalLink className="h-4 w-4" />
+                      View Page
+                    </Button>
+                  </a>
+                </CardHeader>
+                <CardContent>
+                  <NojGuestList />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="albums">
