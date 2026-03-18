@@ -75,6 +75,9 @@ export function BikeRideManager() {
   const [scenicPhotoPreview, setScenicPhotoPreview] = useState<string | null>(null);
   const [scenicPhotoFile, setScenicPhotoFile] = useState<File | null>(null);
   const [formSaving, setFormSaving] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importingRace, setImportingRace] = useState(false);
+  const [importedImages, setImportedImages] = useState<string[]>([]);
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
