@@ -163,6 +163,8 @@ export function BikeRideManager() {
       setFormFinishDescription(event.finish_description || "");
       setFormRouteDescription(event.route_description || "");
       setFormAidStations(event.aid_stations || []);
+      setFormRiderBio(event.rider_bio || "");
+      setFormRiderImageUrl(event.rider_image_url || "");
       fetchScenicPhotos(event.id);
     } else {
       setEditingEvent(null);
