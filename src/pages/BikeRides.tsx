@@ -157,18 +157,19 @@ export default function BikeRides() {
   );
 }
 
-function BikeRideCard({ event, isPast }: { event: BikeEvent; isPast?: boolean }) {
+function BikeRideCard({ event, isPast, fallbackImage }: { event: BikeEvent; isPast?: boolean; fallbackImage?: string }) {
   const rideDate = new Date(event.ride_date + "T00:00:00");
   const isCompleted = event.status === "completed" || event.status === "charges_processed";
+  const cardImage = event.cover_image_url || fallbackImage;
 
   return (
     <Link to={`/bike-rides/${event.id}`} className="group">
       <Card className="overflow-hidden transition-all hover:shadow-lg hover:border-primary/30 h-full">
         {/* Cover Image */}
         <div className="relative h-48 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden">
-          {event.cover_image_url ? (
+          {cardImage ? (
             <img
-              src={event.cover_image_url}
+              src={cardImage}
               alt={event.title}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
             />
