@@ -1,0 +1,1 @@
+ALTER TABLE public.bike_ride_pledges ADD COLUMN IF NOT EXISTS cover_stripe_fee boolean NOT NULL DEFAULT false;

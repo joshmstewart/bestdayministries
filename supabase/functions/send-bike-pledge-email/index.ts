@@ -56,9 +56,9 @@ serve(async (req) => {
     if (type === 'confirmation') {
       const baseMaxTotal = (pledge.cents_per_mile / 100) * Number(event.mile_goal);
       
-      // Check if pledge has fee coverage from setup intent metadata
-      let coverFee = false;
-      if (pledge.stripe_setup_intent_id) {
+      // Check if pledge has fee coverage — prefer DB column, fall back to setup intent metadata
+      let coverFee = pledge.cover_stripe_fee === true;
+      if (!coverFee && pledge.stripe_setup_intent_id) {
         try {
           const stripeKey = pledge.stripe_mode === 'live'
             ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
