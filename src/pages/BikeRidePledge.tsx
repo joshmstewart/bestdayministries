@@ -674,6 +674,8 @@ export default function BikeRidePledge() {
                         style={{ border: 0 }}
                         loading="lazy"
                         allowFullScreen
+                        allow="geolocation; fullscreen"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                         title="RideWithGPS Route Map"
                       />
                     </div>
