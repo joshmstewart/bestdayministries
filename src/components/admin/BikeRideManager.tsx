@@ -233,6 +233,7 @@ export function BikeRideManager() {
         aid_stations: formAidStations.length > 0 ? formAidStations : null,
         rider_bio: formRiderBio || null,
         rider_image_url: formRiderImageUrl || null,
+        race_logo_url: formRaceLogoUrl || null,
       };
 
       if (editingEvent) {
