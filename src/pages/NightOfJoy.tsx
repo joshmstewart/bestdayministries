@@ -990,11 +990,16 @@ const NightOfJoy = () => {
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400/50" />
                             <Input
-                              type="number" min={100} step={1} placeholder="Custom amount (min $100)" value={customAmount}
+                              type="number" min={1} step={1} placeholder="Enter any amount" value={customAmount}
                               onChange={(e) => { setCustomAmount(e.target.value); if (e.target.value) handleChange("selectedTier", ""); }}
                               className={`pl-8 ${inputClasses}`}
                             />
                           </div>
+                          {isCustomDonation() && (
+                            <p className="mt-2 text-sm text-amber-300/80 bg-amber-900/30 border border-amber-700/40 rounded-lg px-3 py-2">
+                              💛 Amounts under $250 will be processed as a <strong>donation</strong> to A Night of Joy rather than a sponsorship. Thank you for your generosity!
+                            </p>
+                          )}
                         </div>
                       </div>
 
