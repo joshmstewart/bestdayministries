@@ -691,12 +691,24 @@ const NightOfJoy = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="ticket-name" className="text-amber-200/80">Name</Label>
+                      <Label htmlFor="ticket-first-name" className="text-amber-200/80">First Name *</Label>
                       <Input
-                        id="ticket-name"
-                        value={ticketName}
-                        onChange={(e) => setTicketName(e.target.value)}
-                        placeholder="Your name"
+                        id="ticket-first-name"
+                        value={ticketFirstName}
+                        onChange={(e) => setTicketFirstName(e.target.value)}
+                        required
+                        placeholder="First name"
+                        className={inputClasses}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ticket-last-name" className="text-amber-200/80">Last Name *</Label>
+                      <Input
+                        id="ticket-last-name"
+                        value={ticketLastName}
+                        onChange={(e) => setTicketLastName(e.target.value)}
+                        required
+                        placeholder="Last name"
                         className={inputClasses}
                       />
                     </div>
