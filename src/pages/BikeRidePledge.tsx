@@ -367,6 +367,71 @@ export default function BikeRidePledge() {
           </section>
         )}
 
+        {/* Route Map Section */}
+        {(event.start_location || event.end_location || event.route_map_image_url) && (
+          <section className="py-8 border-b">
+            <div className="container max-w-4xl mx-auto px-4">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                The Route
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Google Map with Start/End */}
+                {(event.start_location || event.end_location) && (
+                  <div className="space-y-3">
+                    {event.start_location && (
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Navigation className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground">START</p>
+                          <p className="text-sm font-medium">{event.start_location}</p>
+                        </div>
+                      </div>
+                    )}
+                    {event.end_location && (
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <MapPin className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground">FINISH</p>
+                          <p className="text-sm font-medium">{event.end_location}</p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Embedded Google Map */}
+                    <div className="rounded-lg overflow-hidden border mt-2">
+                      <iframe
+                        width="100%"
+                        height="300"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}&origin=${encodeURIComponent(event.start_location || '')}&destination=${encodeURIComponent(event.end_location || event.start_location || '')}&mode=bicycling`}
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Route Map Image */}
+                {event.route_map_image_url && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Planned Route</p>
+                    <img
+                      src={event.route_map_image_url}
+                      alt="Bike ride route map"
+                      className="rounded-lg border w-full object-contain max-h-[400px]"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="container max-w-4xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8">
           {/* Pledge Form */}
           {!isCompleted && (
