@@ -374,6 +374,33 @@ export function BikeRideManager() {
     }
   };
 
+  const handleCheckCards = async (dryRun = true) => {
+    setCheckingCards(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-bike-pledge-cards', {
+        body: { dry_run: dryRun, days_ahead: 14 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const s = data.summary;
+      const expiredList = (data.results || []).filter((r: any) => r.is_expired || r.expires_before_event);
+      if (s.expired_or_expiring === 0) {
+        toast({ title: "All cards look good! ✅", description: `Checked ${s.pledges_checked} pledge(s) across ${s.events_checked} event(s).` });
+      } else {
+        toast({
+          title: `${s.expired_or_expiring} card(s) expiring ⚠️`,
+          description: dryRun
+            ? `Dry run — ${expiredList.map((r: any) => `${r.pledger_name} (${r.card_brand} ****${r.card_last4}, exp ${r.card_exp_month}/${r.card_exp_year})`).join('; ')}. Run again with "Send Emails" to notify them.`
+            : `Sent ${s.emails_sent} warning email(s).`,
+        });
+      }
+    } catch (err) {
+      showErrorToastWithCopy("Checking pledge cards", err);
+    } finally {
+      setCheckingCards(false);
+    }
+  };
+
   const handleRouteMapUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
