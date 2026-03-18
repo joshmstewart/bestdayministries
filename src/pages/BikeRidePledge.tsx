@@ -706,7 +706,7 @@ export default function BikeRidePledge() {
           </section>
         )}
 
-        <div className="container max-w-4xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8">
+        <div id="pledge-section" className="container max-w-4xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8 scroll-mt-24">
           {/* Pledge Form */}
           {!isCompleted && (
             <div>
