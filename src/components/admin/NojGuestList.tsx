@@ -304,11 +304,18 @@ export function NojGuestList() {
                   <TableCell className="text-muted-foreground text-sm">
                     {format(new Date(g.created_at), "M/d/yy h:mm a")}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {g.stripe_mode}
-                    </Badge>
-                  </TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    g.stripe_mode === "live"
+                      ? "border-green-500 bg-green-500/10 text-green-700 dark:text-green-400"
+                      : "border-yellow-500 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
+                  }`}
+                >
+                  {g.stripe_mode === "live" ? "LIVE" : "TEST"}
+                </Badge>
+              </TableCell>
                   <TableCell>
                     <Button
                       size="icon"
