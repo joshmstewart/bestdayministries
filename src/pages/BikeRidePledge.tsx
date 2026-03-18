@@ -451,7 +451,7 @@ export default function BikeRidePledge() {
         {stats && (
           <section className="py-8 border-b">
             <div className="container max-w-4xl mx-auto px-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <Card>
                   <CardContent className="pt-6 text-center">
                     <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
@@ -466,13 +466,6 @@ export default function BikeRidePledge() {
                     <p className="text-sm text-muted-foreground">
                       {isCompleted ? "Total Raised" : "Estimated at Goal"}
                     </p>
-                  </CardContent>
-                </Card>
-                <Card className="col-span-2 md:col-span-1">
-                  <CardContent className="pt-6 text-center">
-                    <Heart className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-2xl font-bold">{stats.per_mile_pledgers}</div>
-                    <p className="text-sm text-muted-foreground">Per-Mile Pledgers</p>
                   </CardContent>
                 </Card>
               </div>
