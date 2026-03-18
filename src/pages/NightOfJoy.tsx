@@ -159,15 +159,19 @@ const NightOfJoy = () => {
 
   useEffect(() => {
     if (profile || user) {
+      const displayName = profile?.display_name || '';
+      const nameParts = displayName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       setFormData(prev => ({
         ...prev,
-        contactFirstName: prev.contactFirstName || profile?.first_name || '',
-        contactLastName: prev.contactLastName || profile?.last_name || '',
+        contactFirstName: prev.contactFirstName || firstName,
+        contactLastName: prev.contactLastName || lastName,
         email: prev.email || user?.email || '',
       }));
       setTicketEmail(prev => prev || user?.email || '');
-      setTicketFirstName(prev => prev || profile?.first_name || '');
-      setTicketLastName(prev => prev || profile?.last_name || '');
+      setTicketFirstName(prev => prev || firstName);
+      setTicketLastName(prev => prev || lastName);
     }
   }, [profile, user]);
 
