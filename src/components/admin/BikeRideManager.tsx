@@ -117,6 +117,17 @@ export function BikeRideManager() {
   const [actualMiles, setActualMiles] = useState("");
   const [chargeResults, setChargeResults] = useState<any>(null);
 
+  const generateSlug = (title: string, rideDate: string) => {
+    const year = rideDate ? new Date(rideDate + "T00:00:00").getFullYear() : new Date().getFullYear();
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      + `-${year}`;
+  };
+
   const { toast } = useToast();
 
   useEffect(() => {
