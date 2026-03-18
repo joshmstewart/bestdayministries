@@ -25,6 +25,7 @@ interface BikeEvent {
   difficulty_rating: string | null;
   is_active: boolean;
   race_logo_url: string | null;
+  slug: string | null;
 }
 
 const difficultyColor = (rating: string) => {
@@ -46,7 +47,7 @@ export default function BikeRides() {
     const fetchEvents = async () => {
       const { data, error } = await supabase
         .from("bike_ride_events")
-        .select("id, title, description, rider_name, ride_date, mile_goal, actual_miles, status, cover_image_url, start_location, end_location, elevation_gain_ft, difficulty_rating, is_active, race_logo_url")
+        .select("id, title, description, rider_name, ride_date, mile_goal, actual_miles, status, cover_image_url, start_location, end_location, elevation_gain_ft, difficulty_rating, is_active, race_logo_url, slug")
         .eq("is_active", true)
         .order("ride_date", { ascending: false });
 
@@ -181,7 +182,7 @@ function BikeRideCard({ event, isPast, fallbackImage }: { event: BikeEvent; isPa
   const cardImage = event.cover_image_url || fallbackImage;
 
   return (
-    <Link to={`/bike-rides/${event.id}`} className="group">
+    <Link to={`/bike-rides/${event.slug || event.id}`} className="group">
       <Card className="overflow-hidden transition-all hover:shadow-lg hover:border-primary/30 h-full">
         {/* Cover Image */}
         <div className="relative h-48 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden">
