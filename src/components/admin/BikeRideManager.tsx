@@ -143,6 +143,8 @@ export function BikeRideManager() {
       setFormRouteWaypoints(null);
       setScenicPhotos([]);
     }
+    setImportUrl("");
+    setImportedImages([]);
     setShowCreateDialog(true);
   };
 
