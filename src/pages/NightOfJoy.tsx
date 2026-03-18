@@ -706,7 +706,7 @@ const NightOfJoy = () => {
                           ? "Select Tickets"
                           : hasFreeOnly
                             ? `Register ${totalTickets} Free Ticket${totalTickets !== 1 ? "s" : ""}`
-                            : `Purchase ${totalTickets} Ticket${totalTickets !== 1 ? "s" : ""} — $${paidTotal.toLocaleString()}`
+                            : `Purchase ${totalTickets} Ticket${totalTickets !== 1 ? "s" : ""} — $${ticketTotalWithFee.toFixed(2)}`
                         }
                       </>
                     )}
