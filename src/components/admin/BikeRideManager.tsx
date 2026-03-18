@@ -34,6 +34,7 @@ interface BikeEvent {
   elevation_gain_ft: number | null;
   difficulty_rating: string | null;
   ridewithgps_url: string | null;
+  ridewithgps_embed_mode: string;
   aid_stations: any[] | null;
   key_climbs: string[] | null;
   start_time: string | null;
