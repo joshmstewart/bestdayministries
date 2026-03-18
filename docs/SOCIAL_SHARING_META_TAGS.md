@@ -115,6 +115,8 @@ This avoids fighting Cloudflare's pipeline (Workers execute before Redirect Rule
 |-------|-------------|
 | `eventId` | Fetches event title/description/image from `events` table |
 | `newsletterId` | Fetches newsletter title/preview/image from `newsletter_campaigns` (sent only) |
+| `bikeRideId` | Fetches bike ride title/description/cover image from `bike_ride_events` (active only) |
+| `pageId` | Static page meta (e.g., `night-of-joy`, `bike-rides`) |
 | `redirect` | URL to redirect browsers to after crawlers read OG tags |
 
 **Share URL format:**
