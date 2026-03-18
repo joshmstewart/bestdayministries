@@ -44,6 +44,7 @@ interface BikeEvent {
   route_description: string | null;
   rider_bio: string | null;
   rider_image_url: string | null;
+  race_logo_url: string | null;
 }
 
 interface ScenicPhoto {
@@ -387,6 +388,15 @@ export default function BikeRidePledge() {
                 </div>
               )}
               <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
+                {(event as any).race_logo_url && (
+                  <div className="mb-5">
+                    <img
+                      src={(event as any).race_logo_url}
+                      alt={`${event.title} logo`}
+                      className="h-20 md:h-28 max-w-[280px] md:max-w-[360px] mx-auto object-contain drop-shadow-lg"
+                    />
+                  </div>
+                )}
                 <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4 backdrop-blur-sm">
                   <Bike className="h-4 w-4" />
                   {isCompleted ? "Ride Complete!" : "Pledge Your Support"}

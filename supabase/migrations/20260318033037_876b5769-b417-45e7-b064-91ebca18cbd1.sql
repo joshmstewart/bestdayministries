@@ -1,0 +1,1 @@
+ALTER TABLE public.bike_ride_events ADD COLUMN race_logo_url text;

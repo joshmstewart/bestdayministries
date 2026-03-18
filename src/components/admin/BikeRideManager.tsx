@@ -41,6 +41,7 @@ interface BikeEvent {
   route_description: string | null;
   rider_bio: string | null;
   rider_image_url: string | null;
+  race_logo_url: string | null;
 }
 
 interface Pledge {
@@ -104,6 +105,9 @@ export function BikeRideManager() {
   const [formRiderBio, setFormRiderBio] = useState("");
   const [formRiderImageUrl, setFormRiderImageUrl] = useState("");
   const [uploadingRiderImage, setUploadingRiderImage] = useState(false);
+  const [formRaceLogoUrl, setFormRaceLogoUrl] = useState("");
+  const [fetchingLogos, setFetchingLogos] = useState(false);
+  const [logoCandidates, setLogoCandidates] = useState<{url: string; source: string; confidence: number}[]>([]);
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
@@ -165,6 +169,8 @@ export function BikeRideManager() {
       setFormAidStations(event.aid_stations || []);
       setFormRiderBio(event.rider_bio || "");
       setFormRiderImageUrl(event.rider_image_url || "");
+      setFormRaceLogoUrl((event as any).race_logo_url || "");
+      setLogoCandidates([]);
       fetchScenicPhotos(event.id);
     } else {
       setEditingEvent(null);
@@ -189,6 +195,8 @@ export function BikeRideManager() {
       setFormAidStations([]);
       setFormRiderBio("");
       setFormRiderImageUrl("");
+      setFormRaceLogoUrl("");
+      setLogoCandidates([]);
       setScenicPhotos([]);
     }
     setImportUrl("");
@@ -225,6 +233,7 @@ export function BikeRideManager() {
         aid_stations: formAidStations.length > 0 ? formAidStations : null,
         rider_bio: formRiderBio || null,
         rider_image_url: formRiderImageUrl || null,
+        race_logo_url: formRaceLogoUrl || null,
       };
 
       if (editingEvent) {
@@ -451,6 +460,49 @@ export function BikeRideManager() {
       toast({ title: "Upload failed", variant: "destructive" });
     } finally {
       setUploadingRiderImage(false);
+    }
+  };
+
+  const handleFetchLogos = async () => {
+    const urlToFetch = formRaceUrl || importUrl;
+    if (!urlToFetch) {
+      toast({ title: "Enter a Race/Event Link first", variant: "destructive" });
+      return;
+    }
+    setFetchingLogos(true);
+    setLogoCandidates([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-race-logos", {
+        body: { url: urlToFetch },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to fetch logos");
+      setLogoCandidates(data.logos || []);
+      if (!data.logos?.length) {
+        toast({ title: "No logos found on that page", variant: "destructive" });
+      } else {
+        toast({ title: `Found ${data.logos.length} potential logos` });
+      }
+    } catch (err) {
+      showErrorToastWithCopy("Fetching logos", err);
+    } finally {
+      setFetchingLogos(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const filePath = `bike-ride-logos/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('app-assets').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('app-assets').getPublicUrl(filePath);
+      setFormRaceLogoUrl(publicUrl);
+      toast({ title: "Logo uploaded" });
+    } catch (err) {
+      toast({ title: "Upload failed", variant: "destructive" });
     }
   };
 
@@ -895,7 +947,66 @@ export function BikeRideManager() {
               </div>
             )}
 
-            {/* Elevation & Difficulty */}
+            {/* Race Logo */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4" /> Race Logo
+              </p>
+              {formRaceLogoUrl ? (
+                <div className="flex items-center gap-3 mb-3">
+                  <img src={formRaceLogoUrl} alt="Race logo" className="h-16 max-w-[200px] object-contain rounded border bg-background p-1" />
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setFormRaceLogoUrl("")}>
+                    <X className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mb-2">No logo set</p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleFetchLogos}
+                  disabled={fetchingLogos || (!formRaceUrl && !importUrl)}
+                >
+                  {fetchingLogos ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Globe className="h-4 w-4 mr-1" />}
+                  {fetchingLogos ? "Searching..." : "Fetch Logo from Website"}
+                </Button>
+                <label>
+                  <Button type="button" size="sm" variant="outline" asChild>
+                    <span><Upload className="h-4 w-4 mr-1" /> Upload Logo</span>
+                  </Button>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                </label>
+              </div>
+              {logoCandidates.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Found {logoCandidates.length} candidates — click to select:
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {logoCandidates.map((logo, i) => (
+                      <div
+                        key={i}
+                        className={`relative group cursor-pointer rounded-lg border-2 p-2 bg-background transition-all hover:border-primary ${formRaceLogoUrl === logo.url ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}
+                        onClick={() => { setFormRaceLogoUrl(logo.url); toast({ title: "Logo selected" }); }}
+                        title={`${logo.source} (${logo.confidence}% confidence)`}
+                      >
+                        <img
+                          src={logo.url}
+                          alt={`Logo candidate ${i + 1}`}
+                          className="h-12 w-full object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        <span className="text-[9px] text-muted-foreground block mt-1 truncate text-center">{logo.source}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="border-t pt-4 mt-2">
               <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
                 <Mountain className="h-4 w-4" /> Elevation & Difficulty

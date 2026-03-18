@@ -24,6 +24,7 @@ interface BikeEvent {
   elevation_gain_ft: number | null;
   difficulty_rating: string | null;
   is_active: boolean;
+  race_logo_url: string | null;
 }
 
 const difficultyColor = (rating: string) => {
@@ -45,7 +46,7 @@ export default function BikeRides() {
     const fetchEvents = async () => {
       const { data, error } = await supabase
         .from("bike_ride_events")
-        .select("id, title, description, rider_name, ride_date, mile_goal, actual_miles, status, cover_image_url, start_location, end_location, elevation_gain_ft, difficulty_rating, is_active")
+        .select("id, title, description, rider_name, ride_date, mile_goal, actual_miles, status, cover_image_url, start_location, end_location, elevation_gain_ft, difficulty_rating, is_active, race_logo_url")
         .eq("is_active", true)
         .order("ride_date", { ascending: false });
 
@@ -215,6 +216,12 @@ function BikeRideCard({ event, isPast, fallbackImage }: { event: BikeEvent; isPa
                 <Mountain className="h-3 w-3 mr-1" />
                 {event.difficulty_rating}
               </Badge>
+            </div>
+          )}
+          {/* Race logo */}
+          {event.race_logo_url && (
+            <div className="absolute bottom-2 left-3">
+              <img src={event.race_logo_url} alt="" className="h-10 max-w-[100px] object-contain drop-shadow-md bg-background/80 rounded px-1.5 py-0.5" />
             </div>
           )}
         </div>
