@@ -717,8 +717,7 @@ export default function BikeRidePledge() {
                     </a>
                   </div>
                 );
-              })()
-              ) : googleMapsKey ? (
+              })() : googleMapsKey ? (
                 /* Fallback: Google Map with waypoints */
                 <div className="rounded-lg overflow-hidden border">
                   {event.route_waypoints?.length ? (
