@@ -913,25 +913,49 @@ export function BikeRideManager() {
                   </AlertDialog>
                 </div>
 
-                {chargeResults && (
-                  <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2">
-                    <h4 className="font-semibold">Results</h4>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-600">{chargeResults.summary.charged}</div>
-                        <div className="text-muted-foreground">Charged</div>
+                {chargeResults && (() => {
+                  const totalCollected = chargeResults.summary.total_collected || 0;
+                  // Stripe fee: 2.9% + $0.30 per transaction
+                  const chargedCount = chargeResults.summary.charged || 0;
+                  const stripeFees = chargedCount > 0
+                    ? totalCollected - (chargedCount * 0.30) - (totalCollected * 0.029) > 0
+                      ? Number((totalCollected * 0.029 + chargedCount * 0.30).toFixed(2))
+                      : 0
+                    : 0;
+                  const netAmount = Number((totalCollected - stripeFees).toFixed(2));
+
+                  return (
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
+                      <h4 className="font-semibold">Results</h4>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-green-600">{chargeResults.summary.charged}</div>
+                          <div className="text-muted-foreground">Charged</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-red-600">{chargeResults.summary.failed}</div>
+                          <div className="text-muted-foreground">Failed</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-primary">${totalCollected.toFixed(2)}</div>
+                          <div className="text-muted-foreground">Total Charged</div>
+                        </div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-red-600">{chargeResults.summary.failed}</div>
-                        <div className="text-muted-foreground">Failed</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-primary">${chargeResults.summary.total_collected.toFixed(2)}</div>
-                        <div className="text-muted-foreground">Collected</div>
-                      </div>
+                      {chargedCount > 0 && (
+                        <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t border-border">
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-green-700">${netAmount.toFixed(2)}</div>
+                            <div className="text-muted-foreground text-xs">Est. Net (you keep)</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-muted-foreground">${stripeFees.toFixed(2)}</div>
+                            <div className="text-muted-foreground text-xs">Est. Stripe Fees</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </CardContent>
             </Card>
           )}
