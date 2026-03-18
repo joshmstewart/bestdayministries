@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 
 interface BikeEvent {
@@ -223,7 +224,22 @@ export function BikeRideManager() {
         </Button>
       </div>
 
-      {/* Events List */}
+      {/* Quick Links */}
+      <div className="flex gap-3 flex-wrap">
+        <Link to="/bike-ride-pledge" target="_blank">
+          <Button variant="outline" size="sm">
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            Live Pledge Page
+          </Button>
+        </Link>
+        <Link to="/bike-ride-pledge?test=true" target="_blank">
+          <Button variant="outline" size="sm">
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            Test Pledge Page
+          </Button>
+        </Link>
+      </div>
+
       <div className="grid gap-3">
         {events.map(event => (
           <Card
