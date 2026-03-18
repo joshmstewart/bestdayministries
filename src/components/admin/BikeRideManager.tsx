@@ -164,7 +164,7 @@ export function BikeRideManager() {
     setPledges((data as any[]) || []);
   };
 
-  const openCreateDialog = (event?: BikeEvent) => {
+  const openCreateDialog = async (event?: BikeEvent) => {
     if (event) {
       setEditingEvent(event);
       setFormTitle(event.title);
@@ -195,8 +195,18 @@ export function BikeRideManager() {
       setFormSlug(event.slug || "");
       setSlugSuggestion(event.slug ? "" : generateSlug(event.title, event.ride_date));
       fetchScenicPhotos(event.id);
+
+      // Check if there are any LIVE confirmed pledges — locks mile_goal editing
+      const { count } = await supabase
+        .from('bike_ride_pledges')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+        .eq('stripe_mode', 'live')
+        .in('charge_status', ['confirmed', 'charged']);
+      setHasLivePledges((count || 0) > 0);
     } else {
       setEditingEvent(null);
+      setHasLivePledges(false);
       setFormTitle("");
       setFormDescription("");
       setFormRiderName("");
