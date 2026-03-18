@@ -101,6 +101,9 @@ export function BikeRideManager() {
   const [formFinishDescription, setFormFinishDescription] = useState("");
   const [formRouteDescription, setFormRouteDescription] = useState("");
   const [formAidStations, setFormAidStations] = useState<any[]>([]);
+  const [formRiderBio, setFormRiderBio] = useState("");
+  const [formRiderImageUrl, setFormRiderImageUrl] = useState("");
+  const [uploadingRiderImage, setUploadingRiderImage] = useState(false);
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
