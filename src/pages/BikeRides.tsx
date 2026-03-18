@@ -25,6 +25,7 @@ interface BikeEvent {
   difficulty_rating: string | null;
   is_active: boolean;
   race_logo_url: string | null;
+  slug: string | null;
 }
 
 const difficultyColor = (rating: string) => {
