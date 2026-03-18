@@ -1003,14 +1003,30 @@ const NightOfJoy = () => {
                         </div>
                       </div>
 
-                      {getPaymentAmount() && (
-                        <Card className="border-amber-600/30 bg-amber-600/10">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <span className="text-amber-100 font-medium">Sponsorship Total</span>
-                            <span className="text-2xl font-bold text-amber-300">${getPaymentAmount()!.toLocaleString()}</span>
-                          </CardContent>
-                        </Card>
-                      )}
+                      {getPaymentAmount() && (() => {
+                        const base = getPaymentAmount()!;
+                        const totalWithFee = calculateFeeTotal(base);
+                        const fee = +(totalWithFee - base).toFixed(2);
+                        return (
+                          <Card className="border-amber-600/30 bg-amber-600/10">
+                            <CardContent className="p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-amber-200/80 text-sm">Sponsorship</span>
+                                <span className="text-amber-200/80">${base.toLocaleString()}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm text-amber-200/60">
+                                <span>Processing fee</span>
+                                <span>+${fee.toFixed(2)}</span>
+                              </div>
+                              <div className="border-t border-amber-700/30 pt-2 flex items-center justify-between">
+                                <span className="text-amber-100 font-medium">Total</span>
+                                <span className="text-2xl font-bold text-amber-300">${totalWithFee.toFixed(2)}</span>
+                              </div>
+                              <p className="text-[11px] text-amber-200/40">Includes processing fee so 100% of your sponsorship supports Best Day Ministries</p>
+                            </CardContent>
+                          </Card>
+                        );
+                      })()}
 
                       <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
                         {submitting ? (
