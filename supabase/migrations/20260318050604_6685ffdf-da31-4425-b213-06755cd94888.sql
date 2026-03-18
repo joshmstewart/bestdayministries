@@ -1,0 +1,1 @@
+UPDATE bike_ride_pledges SET cover_stripe_fee = true WHERE stripe_setup_intent_id IS NOT NULL;
