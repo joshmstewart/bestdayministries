@@ -316,6 +316,7 @@ const NightOfJoy = () => {
           ticket_items: ticketItems,
           email: ticketEmail,
           contact_name: ticketName || undefined,
+          cover_stripe_fee: true,
         },
       });
       if (error) throw error;
