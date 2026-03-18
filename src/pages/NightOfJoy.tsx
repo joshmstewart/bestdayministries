@@ -100,6 +100,18 @@ const NightOfJoy = () => {
   const [searchParams] = useSearchParams();
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
+  const [ticketPrices, setTicketPrices] = useState<Record<string, number>>(DEFAULT_TICKET_PRICES);
+
+  useEffect(() => {
+    supabase.from("app_settings").select("setting_value").eq("setting_key", "noj_ticket_prices").maybeSingle()
+      .then(({ data }) => {
+        if (data?.setting_value && typeof data.setting_value === "object") {
+          setTicketPrices(prev => ({ ...prev, ...(data.setting_value as Record<string, number>) }));
+        }
+      });
+  }, []);
+
+  const TICKET_TIERS = TICKET_TIER_LABELS.map(t => ({ ...t, price: ticketPrices[t.id] ?? 0 }));
 
   const paymentSuccess = searchParams.get("payment") === "success";
   const paymentType = searchParams.get("type");
