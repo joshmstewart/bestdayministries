@@ -254,8 +254,17 @@ const NightOfJoy = () => {
     );
     if (selectedTierObj) return selectedTierObj.amount;
     const custom = parseFloat(customAmount);
-    if (!isNaN(custom) && custom >= 100) return custom;
+    if (!isNaN(custom) && custom >= 1) return custom;
     return null;
+  };
+
+  const isCustomDonation = (): boolean => {
+    const amount = getPaymentAmount();
+    if (!amount) return false;
+    const isCustom = !SPONSORSHIP_TIERS.find(
+      t => formData.selectedTier === `${t.name} - $${t.amount.toLocaleString()}`
+    );
+    return isCustom && amount < 250;
   };
 
   const handlePaySubmit = async (e: React.FormEvent) => {
