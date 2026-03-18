@@ -189,7 +189,7 @@ const difficultyColor = (rating: string) => {
 };
 
 export default function BikeRidePledge() {
-  const { eventId: routeEventId } = useParams<{ eventId: string }>();
+  const { eventSlug: routeEventSlug } = useParams<{ eventSlug: string }>();
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
   const [scenicPhotos, setScenicPhotos] = useState<ScenicPhoto[]>([]);
