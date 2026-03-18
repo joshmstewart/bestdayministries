@@ -515,19 +515,19 @@ export default function BikeRidePledge() {
               </div>
             </div>
           </section>
+        )}
 
-          {/* Inline CTA after rider bio */}
-          {!isCompleted && (
-            <div className="container max-w-4xl mx-auto px-4 py-3 text-center">
-              <button
-                onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
-              >
-                <Heart className="h-3.5 w-3.5" />
-                Ready to pledge? Jump to the form
-              </button>
-            </div>
-          )}
+        {/* Inline CTA after rider bio */}
+        {!isCompleted && (
+          <div className="container max-w-4xl mx-auto px-4 py-3 text-center">
+            <button
+              onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
+            >
+              <Heart className="h-3.5 w-3.5" />
+              Ready to pledge? Jump to the form
+            </button>
+          </div>
         )}
 
         {/* Race Link */}
