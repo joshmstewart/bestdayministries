@@ -53,6 +53,7 @@ const important: FunctionRegistryEntry[] = [
   { name: 'send-contact-email', tier: 'important', description: 'Contact form emails' },
   { name: 'send-contact-reply', tier: 'important', description: 'Contact reply emails' },
   { name: 'notify-admin-new-contact', tier: 'important', description: 'Admin contact alerts' },
+  { name: 'notify-admin-noj-activity', tier: 'important', description: 'NOJ ticket/sponsorship admin alerts' },
   { name: 'send-approval-notification', tier: 'important', description: 'Approval notifications' },
   { name: 'send-message-notification', tier: 'important', description: 'Message notifications' },
   { name: 'record-terms-acceptance', tier: 'important', description: 'Terms of service' },

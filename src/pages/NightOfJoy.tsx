@@ -246,6 +246,19 @@ const NightOfJoy = () => {
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
       } as any);
       if (error) throw error;
+      
+      // Notify admins of sponsorship inquiry (fire-and-forget)
+      supabase.functions.invoke("notify-admin-noj-activity", {
+        body: {
+          type: 'sponsorship_inquiry',
+          email: formData.email,
+          contact_name: `${formData.contactFirstName} ${formData.contactLastName}`.trim(),
+          business_name: formData.businessName,
+          selected_tier: formData.selectedTier || 'General Inquiry',
+          phone: formData.phone,
+        },
+      }).catch(err => console.error("Failed to notify admins:", err));
+
       setSubmitted(true);
       toast.success("Thank you! We'll be in touch soon.");
     } catch (err: any) {

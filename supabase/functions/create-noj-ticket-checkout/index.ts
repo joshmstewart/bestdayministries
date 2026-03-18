@@ -85,6 +85,34 @@ serve(async (req) => {
       }
     }
 
+    // Build tier summary for notifications
+    const allTierSummary = ticket_items
+      .map(i => `${i.quantity}× ${TIER_LABELS[i.tier] || i.tier}`)
+      .join(', ');
+    const totalAmount = ticket_items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
+
+    // Notify admins of ticket purchase (fire-and-forget)
+    try {
+      const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-admin-noj-activity`;
+      fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          type: 'ticket_purchase',
+          email,
+          contact_name: contact_name || undefined,
+          tier_summary: allTierSummary,
+          total_amount: totalAmount,
+          is_free: paidItems.length === 0,
+        }),
+      }).catch(err => console.error('Failed to notify admins:', err));
+    } catch (e) {
+      console.error('Error triggering admin notification:', e);
+    }
+
     // If only free tickets, return success immediately
     if (paidItems.length === 0) {
       return new Response(
