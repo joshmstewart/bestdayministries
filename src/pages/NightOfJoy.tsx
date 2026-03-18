@@ -234,7 +234,7 @@ const NightOfJoy = () => {
         }
       }
       const { error } = await supabase.from("contact_form_submissions").insert({
-        name: formData.contactName,
+        name: `${formData.contactFirstName} ${formData.contactLastName}`.trim(),
         email: formData.email,
         subject: `Night of Joy Sponsorship - ${formData.selectedTier || 'General Inquiry'}`,
         message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
