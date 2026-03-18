@@ -89,7 +89,11 @@ serve(async (req) => {
     const allTierSummary = ticket_items
       .map(i => `${i.quantity}× ${TIER_LABELS[i.tier] || i.tier}`)
       .join(', ');
-    const totalAmount = ticket_items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
+    const totalBaseAmount = ticket_items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
+    // For admin notification, show what will actually be charged (including fee if applicable)
+    const totalAmount = cover_stripe_fee && totalBaseAmount > 0
+      ? Math.round(((totalBaseAmount + 0.30) / 0.971) * 100) / 100
+      : totalBaseAmount;
 
     // Notify admins of ticket purchase (fire-and-forget)
     try {

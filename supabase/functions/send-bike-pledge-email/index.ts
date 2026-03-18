@@ -54,7 +54,30 @@ serve(async (req) => {
     let htmlContent: string;
 
     if (type === 'confirmation') {
-      const maxTotal = (pledge.cents_per_mile / 100) * Number(event.mile_goal);
+      const baseMaxTotal = (pledge.cents_per_mile / 100) * Number(event.mile_goal);
+      
+      // Check if pledge has fee coverage from setup intent metadata
+      let coverFee = false;
+      if (pledge.stripe_setup_intent_id) {
+        try {
+          const stripeKey = pledge.stripe_mode === 'live'
+            ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
+            : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+          if (stripeKey) {
+            const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
+            const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
+            const setupIntent = await stripe.setupIntents.retrieve(pledge.stripe_setup_intent_id);
+            coverFee = setupIntent.metadata?.cover_stripe_fee === 'true';
+          }
+        } catch (e) {
+          console.error('Failed to check fee coverage:', e);
+        }
+      }
+      
+      const maxTotal = coverFee && baseMaxTotal > 0
+        ? Math.round(((baseMaxTotal + 0.30) / 0.971) * 100) / 100
+        : baseMaxTotal;
+      
       subject = `Your pledge for "${event.title}" is confirmed! 🚴`;
       htmlContent = buildConfirmationEmail({
         pledgerName: pledge.pledger_name,
@@ -64,6 +87,7 @@ serve(async (req) => {
         centsPerMile: pledge.cents_per_mile,
         mileGoal: Number(event.mile_goal),
         maxTotal,
+        coverFee,
         message: pledge.message,
       });
     } else {
