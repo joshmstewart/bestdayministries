@@ -1245,6 +1245,7 @@ export type Database = {
           cents_per_mile: number | null
           charge_error: string | null
           charge_status: string
+          cover_stripe_fee: boolean
           created_at: string
           event_id: string
           flat_amount: number | null
@@ -1265,6 +1266,7 @@ export type Database = {
           cents_per_mile?: number | null
           charge_error?: string | null
           charge_status?: string
+          cover_stripe_fee?: boolean
           created_at?: string
           event_id: string
           flat_amount?: number | null
@@ -1285,6 +1287,7 @@ export type Database = {
           cents_per_mile?: number | null
           charge_error?: string | null
           charge_status?: string
+          cover_stripe_fee?: boolean
           created_at?: string
           event_id?: string
           flat_amount?: number | null
