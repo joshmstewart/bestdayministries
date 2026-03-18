@@ -231,6 +231,7 @@ export function BikeRideManager() {
     }
   };
 
+  const statusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'secondary';
       case 'active': return 'default';
