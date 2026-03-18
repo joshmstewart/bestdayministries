@@ -717,7 +717,7 @@ const NightOfJoy = () => {
                   <Button
                     size="lg"
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30"
-                    disabled={submitting || !ticketEmail || totalTickets === 0}
+                    disabled={submitting || !ticketEmail || !ticketFirstName || !ticketLastName || totalTickets === 0}
                     onClick={handleTicketPurchase}
                   >
                     {submitting ? (
