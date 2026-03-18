@@ -25,6 +25,7 @@ const requestSchema = z.object({
   ticket_items: z.array(ticketItemSchema).min(1).max(4),
   email: z.string().email().max(255).toLowerCase().trim(),
   contact_name: z.string().max(255).optional(),
+  cover_stripe_fee: z.boolean().optional().default(false),
 });
 
 serve(async (req) => {
@@ -47,7 +48,7 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { ticket_items, email, contact_name } = validationResult.data;
+    const { ticket_items, email, contact_name, cover_stripe_fee } = validationResult.data;
 
     // Separate free and paid items
     const freeItems = ticket_items.filter(i => i.unit_price === 0);
@@ -136,6 +137,29 @@ serve(async (req) => {
     }));
 
     const totalPaidAmount = paidItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
+
+    // Calculate fee-covered total
+    const finalChargeAmount = cover_stripe_fee
+      ? Math.round(((totalPaidAmount + 0.30) / 0.971) * 100) / 100
+      : totalPaidAmount;
+    const feeAmount = +(finalChargeAmount - totalPaidAmount).toFixed(2);
+
+    // Add processing fee as a separate line item if covering fees
+    if (cover_stripe_fee && feeAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Processing Fee',
+            description: 'Covers Stripe processing so 100% of your ticket price supports Best Day Ministries',
+          },
+          unit_amount: Math.round(feeAmount * 100),
+        },
+        quantity: 1,
+      });
+    }
+
+    const totalAllQty = ticket_items.reduce((sum, i) => sum + i.quantity, 0);
     const totalAllQty = ticket_items.reduce((sum, i) => sum + i.quantity, 0);
 
     // Build a human-readable designation
@@ -171,7 +195,7 @@ serve(async (req) => {
       donor_email: donorEmail,
       contact_name: contact_name || null,
       amount: totalPaidAmount,
-      amount_charged: totalPaidAmount,
+      amount_charged: finalChargeAmount,
       frequency: 'one-time',
       status: 'pending',
       started_at: new Date().toISOString(),

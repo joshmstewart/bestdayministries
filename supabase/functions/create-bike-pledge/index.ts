@@ -16,6 +16,7 @@ const pledgeSchema = z.object({
   cents_per_mile: z.number().min(5).max(500).optional(),
   message: z.string().max(500).optional(),
   force_test_mode: z.boolean().optional().default(false),
+  cover_stripe_fee: z.boolean().optional().default(false),
 });
 
 serve(async (req) => {
@@ -37,7 +38,7 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { event_id, pledger_name, pledger_email, pledge_type, cents_per_mile, message, force_test_mode } = validation.data;
+    const { event_id, pledger_name, pledger_email, pledge_type, cents_per_mile, message, force_test_mode, cover_stripe_fee } = validation.data;
 
     if (pledge_type === 'per_mile' && !cents_per_mile) {
       throw new Error('cents_per_mile is required for per_mile pledges');
@@ -101,6 +102,7 @@ serve(async (req) => {
         max_total: String(maxTotal.toFixed(2)),
         pledger_name,
         pledger_email,
+        cover_stripe_fee: cover_stripe_fee ? 'true' : 'false',
       },
     });
 

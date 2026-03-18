@@ -145,6 +145,11 @@ const NightOfJoy = () => {
   const paidTotal = TICKET_TIERS.reduce((s, t) => s + t.price * ticketCounts[t.id], 0);
   const hasFreeOnly = paidTotal === 0 && totalTickets > 0;
   const hasAnyPaid = paidTotal > 0;
+
+  // Stripe fee calculation: (amount + 0.30) / 0.971
+  const calculateFeeTotal = (amount: number) => Math.round(((amount + 0.30) / 0.971) * 100) / 100;
+  const ticketFee = paidTotal > 0 ? +(calculateFeeTotal(paidTotal) - paidTotal).toFixed(2) : 0;
+  const ticketTotalWithFee = paidTotal > 0 ? calculateFeeTotal(paidTotal) : 0;
   const [submitting, setSubmitting] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -276,6 +281,7 @@ const NightOfJoy = () => {
           email: formData.email,
           contact_name: formData.contactName || undefined,
           business_name: formData.businessName || undefined,
+          cover_stripe_fee: true,
         },
       });
       if (error) throw error;
@@ -311,6 +317,7 @@ const NightOfJoy = () => {
           ticket_items: ticketItems,
           email: ticketEmail,
           contact_name: ticketName || undefined,
+          cover_stripe_fee: true,
         },
       });
       if (error) throw error;
@@ -637,12 +644,21 @@ const NightOfJoy = () => {
                             <span>{t.price === 0 ? "Free" : `$${(t.price * ticketCounts[t.id]).toLocaleString()}`}</span>
                           </div>
                         ))}
+                        {paidTotal > 0 && (
+                          <div className="flex justify-between text-sm text-amber-200/60">
+                            <span>Processing fee</span>
+                            <span>+${ticketFee.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="border-t border-amber-700/30 pt-2 flex justify-between">
                           <span className="text-amber-100 font-medium">{totalTickets} ticket{totalTickets !== 1 ? "s" : ""}</span>
                           <span className="text-2xl font-bold text-amber-300">
-                            {paidTotal === 0 ? "Free" : `$${paidTotal.toLocaleString()}`}
+                            {paidTotal === 0 ? "Free" : `$${ticketTotalWithFee.toFixed(2)}`}
                           </span>
                         </div>
+                        {paidTotal > 0 && (
+                          <p className="text-[11px] text-amber-200/40 mt-1">Includes Stripe processing fee so 100% of your ticket price supports Best Day Ministries</p>
+                        )}
                       </CardContent>
                     </Card>
                   )}
@@ -691,7 +707,7 @@ const NightOfJoy = () => {
                           ? "Select Tickets"
                           : hasFreeOnly
                             ? `Register ${totalTickets} Free Ticket${totalTickets !== 1 ? "s" : ""}`
-                            : `Purchase ${totalTickets} Ticket${totalTickets !== 1 ? "s" : ""} — $${paidTotal.toLocaleString()}`
+                            : `Purchase ${totalTickets} Ticket${totalTickets !== 1 ? "s" : ""} — $${ticketTotalWithFee.toFixed(2)}`
                         }
                       </>
                     )}
@@ -988,14 +1004,30 @@ const NightOfJoy = () => {
                         </div>
                       </div>
 
-                      {getPaymentAmount() && (
-                        <Card className="border-amber-600/30 bg-amber-600/10">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <span className="text-amber-100 font-medium">Sponsorship Total</span>
-                            <span className="text-2xl font-bold text-amber-300">${getPaymentAmount()!.toLocaleString()}</span>
-                          </CardContent>
-                        </Card>
-                      )}
+                      {getPaymentAmount() && (() => {
+                        const base = getPaymentAmount()!;
+                        const totalWithFee = calculateFeeTotal(base);
+                        const fee = +(totalWithFee - base).toFixed(2);
+                        return (
+                          <Card className="border-amber-600/30 bg-amber-600/10">
+                            <CardContent className="p-4 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-amber-200/80 text-sm">Sponsorship</span>
+                                <span className="text-amber-200/80">${base.toLocaleString()}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm text-amber-200/60">
+                                <span>Processing fee</span>
+                                <span>+${fee.toFixed(2)}</span>
+                              </div>
+                              <div className="border-t border-amber-700/30 pt-2 flex items-center justify-between">
+                                <span className="text-amber-100 font-medium">Total</span>
+                                <span className="text-2xl font-bold text-amber-300">${totalWithFee.toFixed(2)}</span>
+                              </div>
+                              <p className="text-[11px] text-amber-200/40">Includes processing fee so 100% of your sponsorship supports Best Day Ministries</p>
+                            </CardContent>
+                          </Card>
+                        );
+                      })()}
 
                       <Button type="submit" size="lg" className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30" disabled={submitting}>
                         {submitting ? (

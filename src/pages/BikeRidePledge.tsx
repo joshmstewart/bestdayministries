@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy } from "lucide-react";
 import { BikeRouteMap } from "@/components/BikeRouteMap";
@@ -204,6 +205,7 @@ export default function BikeRidePledge() {
   const [pledgerName, setPledgerName] = useState("");
   const [pledgerEmail, setPledgerEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [coverFees, setCoverFees] = useState(true);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -218,7 +220,10 @@ export default function BikeRidePledge() {
 
   const { toast } = useToast();
 
-  const maxTotal = event ? (centsPerMile / 100) * event.mile_goal : 0;
+  const maxTotalBase = event ? (centsPerMile / 100) * event.mile_goal : 0;
+  const calculateFeeTotal = (amount: number) => Math.round(((amount + 0.30) / 0.971) * 100) / 100;
+  const maxTotal = coverFees && maxTotalBase > 0 ? calculateFeeTotal(maxTotalBase) : maxTotalBase;
+  const feeDiff = coverFees && maxTotalBase > 0 ? +(maxTotal - maxTotalBase).toFixed(2) : 0;
 
   useEffect(() => {
     fetchEventStatus();
@@ -293,6 +298,7 @@ export default function BikeRidePledge() {
           cents_per_mile: centsPerMile,
           message: message.trim() || undefined,
           force_test_mode: forceTestMode,
+          cover_stripe_fee: coverFees,
         },
       });
 
@@ -723,6 +729,19 @@ export default function BikeRidePledge() {
                           <div className="bg-primary/10 rounded-lg p-4 text-center">
                             <p className="text-sm text-muted-foreground">Maximum charge at {event.mile_goal} miles:</p>
                             <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
+                            {coverFees && feeDiff > 0 && (
+                              <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
+                            )}
+                          </div>
+                          <div className="flex items-start space-x-2 mt-3">
+                            <Checkbox
+                              id="cover-fees"
+                              checked={coverFees}
+                              onCheckedChange={(checked) => setCoverFees(checked === true)}
+                            />
+                            <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                              Cover processing fees so 100% of my pledge goes to Best Day Ministries
+                            </label>
                           </div>
                         </div>
 

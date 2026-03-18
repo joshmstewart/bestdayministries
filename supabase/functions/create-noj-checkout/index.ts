@@ -16,6 +16,7 @@ const checkoutSchema = z.object({
   email: z.string().email().max(255).toLowerCase().trim(),
   contact_name: z.string().max(255).optional(),
   business_name: z.string().max(255).optional(),
+  cover_stripe_fee: z.boolean().optional().default(false),
 });
 
 serve(async (req) => {
@@ -38,7 +39,12 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { amount, tier_name, email, contact_name, business_name } = validationResult.data;
+    const { amount, tier_name, email, contact_name, business_name, cover_stripe_fee } = validationResult.data;
+
+    // Calculate fee-covered amount if requested
+    const finalAmount = cover_stripe_fee
+      ? Math.round(((amount + 0.30) / 0.971) * 100) / 100
+      : amount;
 
     // Get Stripe mode from app_settings
     const { data: modeSetting } = await supabaseAdmin
@@ -58,7 +64,7 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
 
-    const amountInCents = Math.round(amount * 100);
+    const amountInCents = Math.round(finalAmount * 100);
     const tierLabel = tier_name || `$${amount.toLocaleString()} Sponsorship`;
 
     // Create or get customer
@@ -122,7 +128,7 @@ serve(async (req) => {
       donor_id: donorId,
       donor_email: donorEmail,
       amount: amount,
-      amount_charged: amount,
+      amount_charged: finalAmount,
       frequency: 'one-time',
       status: 'pending',
       started_at: new Date().toISOString(),

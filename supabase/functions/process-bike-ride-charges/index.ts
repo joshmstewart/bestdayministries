@@ -93,7 +93,20 @@ serve(async (req) => {
     for (const pledge of pledges) {
       try {
         // Calculate charge amount
-        const totalDollars = (pledge.cents_per_mile / 100) * miles;
+        const baseDollars = (pledge.cents_per_mile / 100) * miles;
+        
+        // Check if pledge has fee coverage from setup intent metadata
+        let coverFee = false;
+        if (pledge.stripe_setup_intent_id) {
+          try {
+            const setupIntent = await stripe.setupIntents.retrieve(pledge.stripe_setup_intent_id);
+            coverFee = setupIntent.metadata?.cover_stripe_fee === 'true';
+          } catch { /* ignore */ }
+        }
+        
+        const totalDollars = coverFee && baseDollars > 0
+          ? Math.round(((baseDollars + 0.30) / 0.971) * 100) / 100
+          : baseDollars;
         const totalCents = Math.round(totalDollars * 100);
 
         if (totalCents < 50) {
