@@ -178,6 +178,7 @@ export function BikeRideManager() {
       setFormElevationGain(event.elevation_gain_ft ? String(event.elevation_gain_ft) : "");
       setFormDifficulty(event.difficulty_rating || "");
       setFormRideWithGpsUrl(event.ridewithgps_url || "");
+      setFormRwgpsEmbedMode(event.ridewithgps_embed_mode || "embed");
       setFormKeyClimbs(event.key_climbs?.join(", ") || "");
       setFormStartTime(event.start_time || "");
       setFormRegistrationUrl(event.registration_url || "");
