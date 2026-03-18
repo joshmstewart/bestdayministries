@@ -113,6 +113,7 @@ export function BikeRideManager() {
   const [logoCandidates, setLogoCandidates] = useState<{url: string; source: string; confidence: number}[]>([]);
   const [formSlug, setFormSlug] = useState("");
   const [slugSuggestion, setSlugSuggestion] = useState("");
+  const [formRwgpsEmbedMode, setFormRwgpsEmbedMode] = useState("embed");
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
