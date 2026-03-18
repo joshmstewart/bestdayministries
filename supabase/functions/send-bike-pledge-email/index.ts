@@ -289,3 +289,80 @@ function buildReceiptEmail(d: ReceiptData): string {
 </body>
 </html>`;
 }
+
+// ─── Card Expiry Warning Email ───
+
+interface CardExpiryWarningData {
+  pledgerName: string;
+  eventTitle: string;
+  riderName: string;
+  rideDate: string;
+  cardBrand: string;
+  cardLast4: string;
+  cardExpMonth: number;
+  cardExpYear: number;
+  centsPerMile: number;
+  mileGoal: number;
+}
+
+function buildCardExpiryWarningEmail(d: CardExpiryWarningData): string {
+  const maxTotal = (d.centsPerMile / 100) * d.mileGoal;
+  const brandDisplay = d.cardBrand.charAt(0).toUpperCase() + d.cardBrand.slice(1);
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f1eb;font-family:Georgia,serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1eb;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#d97706,#f59e0b);padding:32px;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;">💳 Card Update Needed</h1>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:32px;">
+          <p style="color:#44403c;font-size:16px;line-height:1.6;margin:0 0 16px;">
+            Hi <strong>${d.pledgerName}</strong>,
+          </p>
+          <p style="color:#44403c;font-size:16px;line-height:1.6;margin:0 0 24px;">
+            We're reaching out because <strong>${d.riderName}</strong>'s bike ride is coming up soon, and the card on file for your pledge may not work when it's time to charge.
+          </p>
+          <!-- Warning Card -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:20px;margin:0 0 24px;">
+            <tr><td>
+              <p style="margin:0 0 8px;color:#92400e;font-weight:bold;font-size:14px;">⚠️ CARD EXPIRATION NOTICE</p>
+              <p style="margin:4px 0;color:#78350f;font-size:15px;">💳 <strong>Card:</strong> ${brandDisplay} ending in ${d.cardLast4}</p>
+              <p style="margin:4px 0;color:#78350f;font-size:15px;">📅 <strong>Expires:</strong> ${String(d.cardExpMonth).padStart(2, '0')}/${d.cardExpYear}</p>
+              <p style="margin:4px 0;color:#78350f;font-size:15px;">🚴 <strong>Ride Date:</strong> ${d.rideDate}</p>
+            </td></tr>
+          </table>
+          <!-- Pledge Details -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f4;border-radius:8px;padding:20px;margin:0 0 24px;">
+            <tr><td>
+              <p style="margin:0 0 8px;color:#57534e;font-weight:bold;font-size:14px;">YOUR PLEDGE</p>
+              <p style="margin:4px 0;color:#44403c;font-size:15px;">📋 <strong>Event:</strong> ${d.eventTitle}</p>
+              <p style="margin:4px 0;color:#44403c;font-size:15px;">💰 <strong>Rate:</strong> ${d.centsPerMile}¢ per mile</p>
+              <p style="margin:4px 0;color:#44403c;font-size:15px;">🎯 <strong>Max Charge:</strong> $${maxTotal.toFixed(2)}</p>
+            </td></tr>
+          </table>
+          <p style="color:#44403c;font-size:15px;line-height:1.6;margin:0 0 16px;">
+            <strong>No action is needed right now if your bank has already issued a replacement card</strong> — Stripe's card updater service often handles this automatically. However, if you've cancelled this card or switched banks, your pledge charge may fail.
+          </p>
+          <p style="color:#44403c;font-size:15px;line-height:1.6;margin:0 0 24px;">
+            To update your payment method, please reply to this email or contact us and we'll help you get it sorted out. Your support means a lot!
+          </p>
+          <p style="color:#78716c;font-size:13px;line-height:1.5;margin:0;">
+            Questions? Reach out at <a href="mailto:contact@bestdayministries.org" style="color:#ea580c;">contact@bestdayministries.org</a>.
+          </p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:24px;background:#fafaf9;text-align:center;border-top:1px solid #e7e5e4;">
+          <p style="margin:0;color:#a8a29e;font-size:12px;">${ORGANIZATION_NAME} · <a href="${SITE_URL}" style="color:#ea580c;">${SITE_URL.replace('https://', '')}</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}

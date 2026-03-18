@@ -357,3 +357,7 @@ verify_jwt = false
 
 [functions.fetch-race-logos]
 verify_jwt = false
+
+[functions.check-bike-pledge-cards]
+verify_jwt = false
+schedule = "0 12 * * *"
