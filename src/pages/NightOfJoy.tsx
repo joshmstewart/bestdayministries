@@ -317,6 +317,10 @@ const NightOfJoy = () => {
   };
 
   const handleTicketPurchase = async () => {
+    if (!ticketFirstName || !ticketLastName) {
+      toast.error("Please enter your first and last name.");
+      return;
+    }
     if (!ticketEmail) {
       toast.error("Please enter your email address.");
       return;
