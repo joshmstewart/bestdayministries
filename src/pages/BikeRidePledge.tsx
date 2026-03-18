@@ -338,34 +338,47 @@ export default function BikeRidePledge() {
       <UnifiedHeader />
       <main className="pt-24 pb-12">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary/10 via-accent/5 to-background py-12 md:py-16">
-          <div className="container max-w-4xl mx-auto px-4 text-center">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4">
-              <Bike className="h-4 w-4" />
-              {isCompleted ? "Ride Complete!" : "Pledge Your Support"}
-            </div>
-            <h1 className="text-3xl md:text-5xl font-bold mb-3">{event.title}</h1>
-            <p className="text-lg text-muted-foreground mb-2">
-              <span className="font-semibold text-foreground">{event.rider_name}</span> is riding{" "}
-              <span className="font-semibold text-primary">{event.mile_goal} miles</span>
-            </p>
-            <p className="text-muted-foreground">
-              {rideDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-            </p>
-            {event.description && (
-              <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">{event.description}</p>
-            )}
+        {(() => {
+          const heroPhoto = scenicPhotos.find(p => p.is_default);
+          return (
+            <section className="relative bg-gradient-to-br from-primary/10 via-accent/5 to-background py-12 md:py-16 overflow-hidden">
+              {heroPhoto && (
+                <>
+                  <div className="absolute inset-0">
+                    <img src={heroPhoto.image_url} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/70 to-background/90" />
+                  </div>
+                </>
+              )}
+              <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
+                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4 backdrop-blur-sm">
+                  <Bike className="h-4 w-4" />
+                  {isCompleted ? "Ride Complete!" : "Pledge Your Support"}
+                </div>
+                <h1 className="text-3xl md:text-5xl font-bold mb-3">{event.title}</h1>
+                <p className="text-lg text-muted-foreground mb-2">
+                  <span className="font-semibold text-foreground">{event.rider_name}</span> is riding{" "}
+                  <span className="font-semibold text-primary">{event.mile_goal} miles</span>
+                </p>
+                <p className="text-muted-foreground">
+                  {rideDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                </p>
+                {event.description && (
+                  <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">{event.description}</p>
+                )}
 
-            {isCompleted && event.actual_miles && (
-              <div className="mt-6 bg-card rounded-xl p-6 max-w-md mx-auto border">
-                <p className="text-sm text-muted-foreground mb-1">Actual Miles Ridden</p>
-                <p className="text-4xl font-bold text-primary">{event.actual_miles}</p>
-                <p className="text-sm text-muted-foreground mt-1">out of {event.mile_goal} mile goal</p>
-                <Progress value={(Number(event.actual_miles) / Number(event.mile_goal)) * 100} className="mt-3" />
+                {isCompleted && event.actual_miles && (
+                  <div className="mt-6 bg-card/80 backdrop-blur-sm rounded-xl p-6 max-w-md mx-auto border">
+                    <p className="text-sm text-muted-foreground mb-1">Actual Miles Ridden</p>
+                    <p className="text-4xl font-bold text-primary">{event.actual_miles}</p>
+                    <p className="text-sm text-muted-foreground mt-1">out of {event.mile_goal} mile goal</p>
+                    <Progress value={(Number(event.actual_miles) / Number(event.mile_goal)) * 100} className="mt-3" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </section>
+            </section>
+          );
+        })()}
 
         {/* Stats */}
         {stats && (
