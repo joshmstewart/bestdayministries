@@ -1154,6 +1154,7 @@ export type Database = {
           rider_bio: string | null
           rider_image_url: string | null
           rider_name: string
+          ridewithgps_embed_mode: string
           ridewithgps_url: string | null
           route_description: string | null
           route_map_image_url: string | null
@@ -1187,6 +1188,7 @@ export type Database = {
           rider_bio?: string | null
           rider_image_url?: string | null
           rider_name: string
+          ridewithgps_embed_mode?: string
           ridewithgps_url?: string | null
           route_description?: string | null
           route_map_image_url?: string | null
@@ -1220,6 +1222,7 @@ export type Database = {
           rider_bio?: string | null
           rider_image_url?: string | null
           rider_name?: string
+          ridewithgps_embed_mode?: string
           ridewithgps_url?: string | null
           route_description?: string | null
           route_map_image_url?: string | null

@@ -34,6 +34,7 @@ interface BikeEvent {
   elevation_gain_ft: number | null;
   difficulty_rating: string | null;
   ridewithgps_url: string | null;
+  ridewithgps_embed_mode: string;
   aid_stations: any[] | null;
   key_climbs: string[] | null;
   start_time: string | null;
@@ -112,6 +113,7 @@ export function BikeRideManager() {
   const [logoCandidates, setLogoCandidates] = useState<{url: string; source: string; confidence: number}[]>([]);
   const [formSlug, setFormSlug] = useState("");
   const [slugSuggestion, setSlugSuggestion] = useState("");
+  const [formRwgpsEmbedMode, setFormRwgpsEmbedMode] = useState("embed");
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
@@ -176,6 +178,7 @@ export function BikeRideManager() {
       setFormElevationGain(event.elevation_gain_ft ? String(event.elevation_gain_ft) : "");
       setFormDifficulty(event.difficulty_rating || "");
       setFormRideWithGpsUrl(event.ridewithgps_url || "");
+      setFormRwgpsEmbedMode(event.ridewithgps_embed_mode || "embed");
       setFormKeyClimbs(event.key_climbs?.join(", ") || "");
       setFormStartTime(event.start_time || "");
       setFormRegistrationUrl(event.registration_url || "");
@@ -204,6 +207,7 @@ export function BikeRideManager() {
       setFormElevationGain("");
       setFormDifficulty("");
       setFormRideWithGpsUrl("");
+      setFormRwgpsEmbedMode("embed");
       setFormKeyClimbs("");
       setFormStartTime("");
       setFormRegistrationUrl("");
@@ -244,6 +248,7 @@ export function BikeRideManager() {
         elevation_gain_ft: formElevationGain ? Number(formElevationGain) : null,
         difficulty_rating: formDifficulty || null,
         ridewithgps_url: formRideWithGpsUrl || null,
+        ridewithgps_embed_mode: formRwgpsEmbedMode,
         key_climbs: formKeyClimbs ? formKeyClimbs.split(",").map(s => s.trim()).filter(Boolean) : null,
         start_time: formStartTime || null,
         registration_url: formRegistrationUrl || null,
@@ -1218,6 +1223,34 @@ export function BikeRideManager() {
                   <Label>Ride With GPS / Interactive Map URL</Label>
                   <Input value={formRideWithGpsUrl} onChange={e => setFormRideWithGpsUrl(e.target.value)} placeholder="https://ridewithgps.com/routes/..." />
                 </div>
+                {formRideWithGpsUrl && (
+                  <div>
+                    <Label>RideWithGPS Display Mode</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={formRwgpsEmbedMode === 'embed' ? 'default' : 'outline'}
+                        onClick={() => setFormRwgpsEmbedMode('embed')}
+                      >
+                        Embed Map
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={formRwgpsEmbedMode === 'link' ? 'default' : 'outline'}
+                        onClick={() => setFormRwgpsEmbedMode('link')}
+                      >
+                        Link Only
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formRwgpsEmbedMode === 'embed'
+                        ? "Shows the interactive map inline (requires the route to be public on RideWithGPS)"
+                        : "Shows a link card — use this if the route is private"}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <Label>Route Map Image</Label>
                   {formRouteMapUrl ? (

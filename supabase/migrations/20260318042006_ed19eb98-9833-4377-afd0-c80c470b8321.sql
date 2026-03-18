@@ -1,0 +1,1 @@
+ALTER TABLE public.bike_ride_events ADD COLUMN ridewithgps_embed_mode TEXT NOT NULL DEFAULT 'embed';
