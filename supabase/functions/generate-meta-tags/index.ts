@@ -67,7 +67,6 @@ Deno.serve(async (req: Request) => {
       'bike-rides': {
         title: 'Bike Ride Fundraisers – Best Day Ministries',
         description: 'Support adults with special abilities by pledging per mile on epic bike rides. Every mile ridden raises funds for joy, purpose, and community.',
-        image: 'https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/og-images/bike-rides-og.jpg',
         path: '/bike-rides',
       },
     }
@@ -80,6 +79,17 @@ Deno.serve(async (req: Request) => {
       finalType = 'article'
       finalRedirect = redirect || `${SITE_URL}${page.path}`
       ogUrl = `${SITE_URL}/share?pageId=${pageId}&redirect=${encodeURIComponent(finalRedirect)}`
+
+      // For bike-rides listing, pull cover image from soonest upcoming ride
+      if (pageId === 'bike-rides' && !page.image) {
+        const soonestRides = await querySupabase(
+          'bike_ride_events',
+          `select=cover_image_url&is_active=eq.true&ride_date=gte.${new Date().toISOString().split('T')[0]}&order=ride_date.asc&limit=1`
+        )
+        if (soonestRides[0]?.cover_image_url) {
+          finalImage = soonestRides[0].cover_image_url
+        }
+      }
     }
 
     if (eventId) {
