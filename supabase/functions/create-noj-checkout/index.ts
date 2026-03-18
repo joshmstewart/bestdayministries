@@ -64,7 +64,7 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
 
-    const amountInCents = Math.round(amount * 100);
+    const amountInCents = Math.round(finalAmount * 100);
     const tierLabel = tier_name || `$${amount.toLocaleString()} Sponsorship`;
 
     // Create or get customer
