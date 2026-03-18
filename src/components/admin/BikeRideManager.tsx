@@ -307,6 +307,17 @@ export function BikeRideManager() {
     setScenicPhotos(prev => prev.filter(p => p.id !== photoId));
   };
 
+  const toggleDefaultPhoto = async (photoId: string) => {
+    if (!editingEvent) return;
+    const isCurrentlyDefault = scenicPhotos.find(p => p.id === photoId)?.is_default;
+    // Clear all defaults for this event first
+    await supabase.from("bike_ride_scenic_photos").update({ is_default: false }).eq("event_id", editingEvent.id);
+    if (!isCurrentlyDefault) {
+      await supabase.from("bike_ride_scenic_photos").update({ is_default: true }).eq("id", photoId);
+    }
+    fetchScenicPhotos(editingEvent.id);
+  };
+
   const statusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'secondary';
