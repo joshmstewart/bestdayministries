@@ -195,7 +195,7 @@ serve(async (req) => {
       donor_email: donorEmail,
       contact_name: contact_name || null,
       amount: totalPaidAmount,
-      amount_charged: totalPaidAmount,
+      amount_charged: finalChargeAmount,
       frequency: 'one-time',
       status: 'pending',
       started_at: new Date().toISOString(),
