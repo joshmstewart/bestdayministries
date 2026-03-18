@@ -677,7 +677,7 @@ export default function BikeRidePledge() {
                   <div key={photo.id} className="relative group">
                     <img
                       src={photo.image_url}
-                      alt={photo.caption || "Scenic view along the route"}
+                      alt={photo.caption || "Event photo"}
                       className="rounded-lg border w-full h-40 object-cover"
                     />
                     {photo.caption && (
