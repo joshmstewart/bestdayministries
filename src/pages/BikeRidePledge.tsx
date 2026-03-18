@@ -264,7 +264,7 @@ export default function BikeRidePledge() {
     try {
       const body: any = {};
       if (forceTestMode) body.force_test_mode = true;
-      if (routeEventId) body.event_id = routeEventId;
+      if (routeEventSlug) body.event_slug = routeEventSlug;
       
       const { data, error } = await supabase.functions.invoke("get-bike-ride-status", {
         body: Object.keys(body).length > 0 ? body : undefined,

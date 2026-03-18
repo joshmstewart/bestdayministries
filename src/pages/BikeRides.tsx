@@ -182,7 +182,7 @@ function BikeRideCard({ event, isPast, fallbackImage }: { event: BikeEvent; isPa
   const cardImage = event.cover_image_url || fallbackImage;
 
   return (
-    <Link to={`/bike-rides/${event.id}`} className="group">
+    <Link to={`/bike-rides/${event.slug || event.id}`} className="group">
       <Card className="overflow-hidden transition-all hover:shadow-lg hover:border-primary/30 h-full">
         {/* Cover Image */}
         <div className="relative h-48 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden">
