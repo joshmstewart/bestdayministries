@@ -292,7 +292,7 @@ const NightOfJoy = () => {
           amount,
           tier_name: selectedTierObj ? `${selectedTierObj.name} - $${selectedTierObj.amount.toLocaleString()}` : undefined,
           email: formData.email,
-          contact_name: formData.contactName || undefined,
+          contact_name: `${formData.contactFirstName} ${formData.contactLastName}`.trim() || undefined,
           business_name: formData.businessName || undefined,
           cover_stripe_fee: true,
         },
