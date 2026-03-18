@@ -25,6 +25,9 @@ interface BikeEvent {
   actual_miles: number | null;
   status: string;
   cover_image_url: string | null;
+  start_location: string | null;
+  end_location: string | null;
+  route_map_image_url: string | null;
 }
 
 interface EventStats {
