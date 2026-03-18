@@ -133,6 +133,9 @@ export function BikeRideManager() {
       setFormStartLocation("");
       setFormEndLocation("");
       setFormRouteMapUrl("");
+      setFormRaceUrl("");
+      setFormRouteWaypoints(null);
+      setScenicPhotos([]);
     }
     setShowCreateDialog(true);
   };
