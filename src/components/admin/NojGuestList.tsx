@@ -259,6 +259,44 @@ export function NojGuestList() {
         </Card>
       </div>
 
+      {/* Ticket Pricing */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Settings className="h-4 w-4" /> Ticket Pricing
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { id: "general", label: "General (13+)" },
+              { id: "kids", label: "Kids (6–12)" },
+              { id: "bestie", label: "Besties" },
+              { id: "little-ones", label: "Little Ones (5 & under)" },
+            ].map(tier => (
+              <div key={tier.id}>
+                <Label className="text-xs">{tier.label}</Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={ticketPrices[tier.id] ?? 0}
+                    onChange={e => setTicketPrices(prev => ({ ...prev, [tier.id]: Number(e.target.value) }))}
+                    className="pl-6 h-9"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button size="sm" onClick={savePrices} disabled={savingPrices} className="mt-3">
+            {savingPrices ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+            Save Prices
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Search & Export */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
