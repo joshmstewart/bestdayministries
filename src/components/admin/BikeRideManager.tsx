@@ -850,6 +850,40 @@ export function BikeRideManager() {
               <Label>Description</Label>
               <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Tell supporters about the ride..." rows={3} />
             </div>
+
+            {/* Rider Bio (optional) */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                <Users className="h-4 w-4" /> Rider Bio (optional)
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <Label>Rider Photo</Label>
+                  {formRiderImageUrl ? (
+                    <div className="relative inline-block mt-1">
+                      <img src={formRiderImageUrl} alt="Rider" className="h-24 w-24 rounded-full object-cover border" />
+                      <Button type="button" size="icon" variant="ghost" className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-background border" onClick={() => setFormRiderImageUrl("")}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center p-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors mt-1">
+                      {uploadingRiderImage ? (
+                        <><Loader2 className="h-5 w-5 animate-spin mr-2 text-muted-foreground" /><span className="text-sm text-muted-foreground">Uploading...</span></>
+                      ) : (
+                        <><Upload className="h-5 w-5 mr-2 text-muted-foreground" /><span className="text-sm text-muted-foreground">Upload rider photo</span></>
+                      )}
+                      <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadRiderImage(e.target.files[0]); }} />
+                    </label>
+                  )}
+                </div>
+                <div>
+                  <Label>Bio</Label>
+                  <Textarea value={formRiderBio} onChange={e => setFormRiderBio(e.target.value)} placeholder="Tell supporters about the rider..." rows={3} />
+                </div>
+              </div>
+            </div>
+
             <div>
               <Label className="flex items-center gap-1.5"><Link2 className="h-4 w-4" /> Race/Event Link</Label>
               <Input value={formRaceUrl} onChange={e => setFormRaceUrl(e.target.value)} placeholder="https://race-website.com/event" />
