@@ -20,11 +20,11 @@ serve(async (req) => {
     }
     const resend = new Resend(resendApiKey);
 
-    const { type, pledge_id } = await req.json();
+    const { type, pledge_id, card_info } = await req.json();
 
     if (!pledge_id) throw new Error('pledge_id is required');
-    if (!type || !['confirmation', 'receipt'].includes(type)) {
-      throw new Error('type must be "confirmation" or "receipt"');
+    if (!type || !['confirmation', 'receipt', 'card_expiry_warning'].includes(type)) {
+      throw new Error('type must be "confirmation", "receipt", or "card_expiry_warning"');
     }
 
     const supabaseAdmin = createClient(
