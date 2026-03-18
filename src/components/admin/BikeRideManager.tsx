@@ -756,16 +756,21 @@ export function BikeRideManager() {
                     </div>
                   ))}
                 </div>
-                <label className="cursor-pointer">
-                  <div className="border-2 border-dashed rounded-lg p-3 text-center hover:border-primary/50 transition-colors">
-                    {uploadingScenicPhoto ? (
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">+ Add scenic photo</p>
-                    )}
+                {uploadingScenicPhoto ? (
+                  <div className="flex items-center justify-center p-3 border-2 border-dashed rounded-lg">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Uploading...</span>
                   </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleScenicPhotoUpload} disabled={uploadingScenicPhoto} />
-                </label>
+                ) : (
+                  <ImageUploadWithCrop
+                    label="Add Scenic Photo"
+                    imagePreview={scenicPhotoPreview}
+                    onImageChange={handleScenicPhotoSelected}
+                    aspectRatio="16:9"
+                    allowAspectRatioChange={true}
+                    maxSizeMB={20}
+                  />
+                )}
               </div>
             )}
           </div>
