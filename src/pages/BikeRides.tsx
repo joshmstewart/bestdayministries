@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -31,12 +31,51 @@ interface BikeEvent {
 const difficultyColor = (rating: string) => {
   switch (rating) {
     case "Easy": return "bg-green-500/10 text-green-700 border-green-500/30";
-    case "Moderate": return "bg-yellow-500/10 text-yellow-700 border-yellow-500/30";
-    case "Challenging": return "bg-orange-500/10 text-orange-700 border-orange-500/30";
-    case "Epic": return "bg-red-500/10 text-red-700 border-red-500/30";
+    case "Moderate": return "bg-yellow-500/90 text-white border-yellow-600/50";
+    case "Challenging": return "bg-orange-500/90 text-white border-orange-600/50";
+    case "Epic": return "bg-red-600/90 text-white border-red-700/50";
     default: return "bg-muted text-muted-foreground";
   }
 };
+
+/** Detects if logo has transparency and applies dark bg for white/light logos */
+function RaceLogoOnCard({ src }: { src: string }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [hasTransparency, setHasTransparency] = useState(false);
+
+  const checkTransparency = useCallback(() => {
+    const img = imgRef.current;
+    if (!img || !img.naturalWidth) return;
+    try {
+      const canvas = document.createElement("canvas");
+      const size = 64;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+      for (let i = 3; i < data.length; i += 16) {
+        if (data[i] < 240) { setHasTransparency(true); return; }
+      }
+    } catch { /* CORS — fall back to default */ }
+  }, []);
+
+  return (
+    <div className="absolute bottom-2 left-3">
+      <img
+        ref={imgRef}
+        src={src}
+        alt=""
+        crossOrigin="anonymous"
+        onLoad={checkTransparency}
+        className={`h-10 max-w-[100px] object-contain drop-shadow-lg rounded px-1.5 py-0.5 ${
+          hasTransparency ? "bg-gray-900/80" : "bg-background/80"
+        }`}
+      />
+    </div>
+  );
+}
 
 export default function BikeRides() {
   const [events, setEvents] = useState<BikeEvent[]>([]);
@@ -221,9 +260,7 @@ function BikeRideCard({ event, isPast, fallbackImage }: { event: BikeEvent; isPa
           )}
           {/* Race logo */}
           {event.race_logo_url && (
-            <div className="absolute bottom-2 left-3">
-              <img src={event.race_logo_url} alt="" className="h-10 max-w-[100px] object-contain drop-shadow-md bg-background/80 rounded px-1.5 py-0.5" />
-            </div>
+            <RaceLogoOnCard src={event.race_logo_url} />
           )}
         </div>
 
