@@ -245,7 +245,7 @@ export default function BikeRidePledge() {
         if (data.event.id) {
           const { data: photos } = await supabase
             .from("bike_ride_scenic_photos")
-            .select("id, image_url, caption")
+            .select("id, image_url, caption, is_default")
             .eq("event_id", data.event.id)
             .order("display_order");
           setScenicPhotos(photos || []);
