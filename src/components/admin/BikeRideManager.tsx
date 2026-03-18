@@ -273,6 +273,54 @@ export function BikeRideManager() {
     }
   };
 
+  const handleImportFromUrl = async () => {
+    if (!importUrl) return;
+    setImportingRace(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-race-info", {
+        body: { url: importUrl },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Extraction failed");
+
+      const info = data.data;
+      if (info.title && !formTitle) setFormTitle(info.title);
+      if (info.description) setFormDescription(prev => prev || info.description);
+      if (info.ride_date && !formRideDate) setFormRideDate(info.ride_date);
+      if (info.mile_goal && formMileGoal === "118") setFormMileGoal(String(Math.round(info.mile_goal)));
+      if (info.start_location && !formStartLocation) setFormStartLocation(info.start_location);
+      if (info.end_location && !formEndLocation) setFormEndLocation(info.end_location);
+      if (!formRaceUrl) setFormRaceUrl(importUrl);
+      if (info.images?.length) setImportedImages(info.images);
+
+      toast({ title: "Race info extracted!", description: `Found: ${info.title || "event details"}` });
+    } catch (err) {
+      showErrorToastWithCopy("Extracting race info", err);
+    } finally {
+      setImportingRace(false);
+    }
+  };
+
+  const addImportedImageAsScenic = async (imageUrl: string) => {
+    if (!editingEvent) {
+      toast({ title: "Save the event first, then add scenic photos", variant: "destructive" });
+      return;
+    }
+    try {
+      const { error } = await supabase.from("bike_ride_scenic_photos").insert({
+        event_id: editingEvent.id,
+        image_url: imageUrl,
+        display_order: scenicPhotos.length,
+      });
+      if (error) throw error;
+      fetchScenicPhotos(editingEvent.id);
+      setImportedImages(prev => prev.filter(u => u !== imageUrl));
+      toast({ title: "Image added as scenic photo" });
+    } catch (err) {
+      toast({ title: "Failed to add image", variant: "destructive" });
+    }
+  };
+
   const fetchScenicPhotos = async (eventId: string) => {
     const { data } = await supabase
       .from("bike_ride_scenic_photos")
