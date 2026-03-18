@@ -39,7 +39,12 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { amount, tier_name, email, contact_name, business_name } = validationResult.data;
+    const { amount, tier_name, email, contact_name, business_name, cover_stripe_fee } = validationResult.data;
+
+    // Calculate fee-covered amount if requested
+    const finalAmount = cover_stripe_fee
+      ? Math.round(((amount + 0.30) / 0.971) * 100) / 100
+      : amount;
 
     // Get Stripe mode from app_settings
     const { data: modeSetting } = await supabaseAdmin
