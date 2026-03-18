@@ -6,10 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Award, Search, Download, Users, DollarSign, Loader2, Settings, Save } from "lucide-react";
+import { Ticket, Award, Search, Download, Users, DollarSign, Loader2, Settings, Save, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface NojGuest {
   id: string;
@@ -30,6 +41,10 @@ export function NojGuestList() {
   const [search, setSearch] = useState("");
   const [ticketPrices, setTicketPrices] = useState<Record<string, number>>({ general: 60, kids: 40, bestie: 40, "little-ones": 0 });
   const [savingPrices, setSavingPrices] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [archiving, setArchiving] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; action: "archive" | "unarchive"; ids: string[] }>({ open: false, action: "archive", ids: [] });
 
   useEffect(() => {
     loadGuests();
@@ -62,7 +77,6 @@ export function NojGuestList() {
 
       if (error) throw error;
 
-      // Fetch profile names for guests with donor_id
       const donorIds = (data || []).filter(g => g.donor_id).map(g => g.donor_id!);
       let profileMap: Record<string, string> = {};
       
@@ -90,13 +104,64 @@ export function NojGuestList() {
     }
   };
 
+  const handleArchive = async (ids: string[], action: "archive" | "unarchive") => {
+    setArchiving(true);
+    const newStatus = action === "archive" ? "archived" : "completed";
+    
+    const { error } = await supabase
+      .from("donations")
+      .update({ status: newStatus })
+      .in("id", ids);
+
+    setArchiving(false);
+    setConfirmDialog({ open: false, action: "archive", ids: [] });
+    
+    if (error) {
+      toast.error(`Failed to ${action} tickets`);
+      return;
+    }
+    
+    toast.success(`${ids.length} ticket${ids.length > 1 ? "s" : ""} ${action}d`);
+    setSelectedIds(new Set());
+    loadGuests();
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (list: NojGuest[]) => {
+    const allSelected = list.every(g => selectedIds.has(g.id));
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        list.forEach(g => next.delete(g.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        list.forEach(g => next.add(g.id));
+        return next;
+      });
+    }
+  };
+
   // Tickets include "Event Tickets" (paid combos) or individual tier names (free registrations)
   const TIER_KEYWORDS = ['Event Tickets', 'General Admission', 'Kids', 'Besties', 'Little Ones'];
   const isTicket = (g: NojGuest) => TIER_KEYWORDS.some(kw => g.designation?.includes(kw));
   const isSponsor = (g: NojGuest) => !isTicket(g);
 
-  const tickets = guests.filter(isTicket);
-  const sponsors = guests.filter(isSponsor);
+  // Filter archived unless toggled
+  const visibleGuests = showArchived ? guests : guests.filter(g => g.status !== "archived");
+  const archivedCount = guests.filter(g => g.status === "archived").length;
+
+  const tickets = visibleGuests.filter(isTicket);
+  const sponsors = visibleGuests.filter(isSponsor);
 
   const filteredGuests = (list: NojGuest[]) =>
     list.filter(g => {
@@ -109,20 +174,16 @@ export function NojGuestList() {
       );
     });
 
-  const confirmedTickets = tickets.filter(t => (t.status === "completed" || t.status === "active") && t.stripe_mode !== "test");
-  const confirmedSponsors = sponsors.filter(s => (s.status === "completed" || s.status === "active") && s.stripe_mode !== "test");
+  // Stats exclude archived and test
+  const confirmedTickets = guests.filter(t => isTicket(t) && (t.status === "completed" || t.status === "active") && t.stripe_mode !== "test");
+  const confirmedSponsors = guests.filter(s => isSponsor(s) && (s.status === "completed" || s.status === "active") && s.stripe_mode !== "test");
   const totalRevenue = [...confirmedTickets, ...confirmedSponsors].reduce((sum, g) => sum + g.amount, 0);
 
-  // Parse ticket quantity from designations:
-  //   Free: "A Night of Joy – Little Ones (5 & under) (×2)" → captures ×2
-  //   Paid: "A Night of Joy – Event Tickets (2× General, 1× Kids)" → sums all N× patterns
   const getTicketQty = (designation: string | null) => {
     if (!designation) return 1;
-    // Check for "N× Tier" pattern (paid combo): sum all quantities
     const paidMatches = designation.matchAll(/(\d+)×/g);
     const paidTotal = [...paidMatches].reduce((sum, m) => sum + parseInt(m[1]), 0);
     if (paidTotal > 0) return paidTotal;
-    // Check for "(×N)" pattern (free single-tier)
     const freeMatch = designation.match(/×(\d+)/);
     return freeMatch ? parseInt(freeMatch[1]) : 1;
   };
@@ -148,65 +209,132 @@ export function NojGuestList() {
     URL.revokeObjectURL(url);
   };
 
-  const GuestTable = ({ list }: { list: NojGuest[] }) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name / Email</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead>Mode</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {list.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-              No guests found
-            </TableCell>
-          </TableRow>
-        ) : (
-          list.map(g => (
-            <TableRow key={g.id}>
-              <TableCell className="font-medium">
-                {g.profile_name || g.contact_name || g.donor_email || "Unknown"}
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {g.designation?.replace("A Night of Joy – ", "") || "—"}
-                </span>
-              </TableCell>
-              <TableCell>${g.amount.toFixed(2)}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    g.status === "completed" || g.status === "active"
-                      ? "default"
-                      : g.status === "pending"
-                      ? "secondary"
-                      : "destructive"
-                  }
-                  className="capitalize"
-                >
-                  {g.status}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground text-sm">
-                {format(new Date(g.created_at), "M/d/yy h:mm a")}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className="text-xs">
-                  {g.stripe_mode}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))
+  const selectedInCurrentView = (list: NojGuest[]) => list.filter(g => selectedIds.has(g.id));
+
+  const GuestTable = ({ list }: { list: NojGuest[] }) => {
+    const filtered = filteredGuests(list);
+    const allSelected = filtered.length > 0 && filtered.every(g => selectedIds.has(g.id));
+    
+    return (
+      <>
+        {selectedIds.size > 0 && (
+          <div className="flex items-center gap-2 mb-3 p-2 bg-muted rounded-md">
+            <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const selected = [...selectedIds];
+                const hasArchived = selected.some(id => guests.find(g => g.id === id)?.status === "archived");
+                setConfirmDialog({
+                  open: true,
+                  action: hasArchived ? "unarchive" : "archive",
+                  ids: selected,
+                });
+              }}
+              disabled={archiving}
+            >
+              {archiving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Archive className="h-3.5 w-3.5 mr-1" />}
+              {[...selectedIds].some(id => guests.find(g => g.id === id)?.status === "archived") ? "Unarchive" : "Archive"} Selected
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+              Clear
+            </Button>
+          </div>
         )}
-      </TableBody>
-    </Table>
-  );
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={() => toggleSelectAll(filtered)}
+                />
+              </TableHead>
+              <TableHead>Name / Email</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Mode</TableHead>
+              <TableHead className="w-10"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  No guests found
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map(g => (
+                <TableRow key={g.id} className={g.status === "archived" ? "opacity-50" : ""}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(g.id)}
+                      onCheckedChange={() => toggleSelect(g.id)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {g.profile_name || g.contact_name || g.donor_email || "Unknown"}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {g.designation?.replace("A Night of Joy – ", "") || "—"}
+                    </span>
+                  </TableCell>
+                  <TableCell>${g.amount.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        g.status === "archived"
+                          ? "outline"
+                          : g.status === "completed" || g.status === "active"
+                          ? "default"
+                          : g.status === "pending"
+                          ? "secondary"
+                          : "destructive"
+                      }
+                      className="capitalize"
+                    >
+                      {g.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {format(new Date(g.created_at), "M/d/yy h:mm a")}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {g.stripe_mode}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title={g.status === "archived" ? "Unarchive" : "Archive"}
+                      onClick={() => setConfirmDialog({
+                        open: true,
+                        action: g.status === "archived" ? "unarchive" : "archive",
+                        ids: [g.id],
+                      })}
+                    >
+                      {g.status === "archived" ? (
+                        <ArchiveRestore className="h-4 w-4" />
+                      ) : (
+                        <Archive className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </>
+    );
+  };
 
   if (loading) {
     return (
@@ -297,7 +425,7 @@ export function NojGuestList() {
         </CardContent>
       </Card>
 
-      {/* Search & Export */}
+      {/* Search & Export & Archive Toggle */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -309,12 +437,20 @@ export function NojGuestList() {
           />
         </div>
         <Button
+          variant={showArchived ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setShowArchived(!showArchived)}
+        >
+          {showArchived ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+          {showArchived ? "Hide" : "Show"} Archived{archivedCount > 0 ? ` (${archivedCount})` : ""}
+        </Button>
+        <Button
           variant="outline"
           size="sm"
-          onClick={() => exportCsv(guests, "noj-guest-list.csv")}
+          onClick={() => exportCsv(visibleGuests, "noj-guest-list.csv")}
         >
           <Download className="h-4 w-4 mr-2" />
-          Export All
+          Export
         </Button>
       </div>
 
@@ -322,7 +458,7 @@ export function NojGuestList() {
       <Tabs defaultValue="all">
         <TabsList>
           <TabsTrigger value="all">
-            All ({guests.length})
+            All ({visibleGuests.length})
           </TabsTrigger>
           <TabsTrigger value="tickets">
             <Ticket className="h-3.5 w-3.5 mr-1.5" />
@@ -334,15 +470,41 @@ export function NojGuestList() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="all">
-          <GuestTable list={filteredGuests(guests)} />
+          <GuestTable list={visibleGuests} />
         </TabsContent>
         <TabsContent value="tickets">
-          <GuestTable list={filteredGuests(tickets)} />
+          <GuestTable list={tickets} />
         </TabsContent>
         <TabsContent value="sponsors">
-          <GuestTable list={filteredGuests(sponsors)} />
+          <GuestTable list={sponsors} />
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(prev => ({ ...prev, open: false }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmDialog.action === "archive" ? "Archive" : "Unarchive"} {confirmDialog.ids.length} ticket{confirmDialog.ids.length > 1 ? "s" : ""}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDialog.action === "archive"
+                ? "Archived tickets will be hidden from the main view but can be shown again with the toggle."
+                : "This will restore the ticket(s) to completed status."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={archiving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleArchive(confirmDialog.ids, confirmDialog.action)}
+              disabled={archiving}
+            >
+              {archiving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              {confirmDialog.action === "archive" ? "Archive" : "Unarchive"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
