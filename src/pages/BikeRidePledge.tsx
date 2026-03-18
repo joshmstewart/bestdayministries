@@ -366,6 +366,13 @@ export default function BikeRidePledge() {
     <div className="min-h-screen bg-background">
       <UnifiedHeader />
       <main className="pt-24 pb-12">
+        {/* Back link */}
+        <div className="container max-w-4xl mx-auto px-4 mb-4">
+          <Link to="/bike-rides" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            All Bike Rides
+          </Link>
+        </div>
         {/* Hero Section */}
         {(() => {
           const heroPhoto = scenicPhotos.find(p => p.is_default);
