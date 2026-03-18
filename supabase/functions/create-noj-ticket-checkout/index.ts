@@ -160,7 +160,6 @@ serve(async (req) => {
     }
 
     const totalAllQty = ticket_items.reduce((sum, i) => sum + i.quantity, 0);
-    const totalAllQty = ticket_items.reduce((sum, i) => sum + i.quantity, 0);
 
     // Build a human-readable designation
     const tierSummary = ticket_items
