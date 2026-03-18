@@ -145,6 +145,11 @@ const NightOfJoy = () => {
   const paidTotal = TICKET_TIERS.reduce((s, t) => s + t.price * ticketCounts[t.id], 0);
   const hasFreeOnly = paidTotal === 0 && totalTickets > 0;
   const hasAnyPaid = paidTotal > 0;
+
+  // Stripe fee calculation: (amount + 0.30) / 0.971
+  const calculateFeeTotal = (amount: number) => Math.round(((amount + 0.30) / 0.971) * 100) / 100;
+  const ticketFee = paidTotal > 0 ? +(calculateFeeTotal(paidTotal) - paidTotal).toFixed(2) : 0;
+  const ticketTotalWithFee = paidTotal > 0 ? calculateFeeTotal(paidTotal) : 0;
   const [submitting, setSubmitting] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
