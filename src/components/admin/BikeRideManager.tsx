@@ -203,7 +203,34 @@ export function BikeRideManager() {
     }
   };
 
-  const statusColor = (status: string) => {
+  const handleRouteMapUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingRouteMap(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const filePath = `bike-ride-routes/${Date.now()}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('app-assets')
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(filePath);
+      
+      setFormRouteMapUrl(publicUrl);
+      toast({ title: "Route map uploaded" });
+    } catch (err) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploadingRouteMap(false);
+    }
+  };
+
     switch (status) {
       case 'draft': return 'secondary';
       case 'active': return 'default';
