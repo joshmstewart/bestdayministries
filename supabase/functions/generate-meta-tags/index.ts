@@ -30,6 +30,7 @@ Deno.serve(async (req: Request) => {
     const eventId = urlObj.searchParams.get('eventId')
     const newsletterId = urlObj.searchParams.get('newsletterId')
     const pageId = urlObj.searchParams.get('pageId')
+    const bikeRideId = urlObj.searchParams.get('bikeRideId')
     const redirect = urlObj.searchParams.get('redirect')
 
     // Load SEO settings
@@ -62,6 +63,12 @@ Deno.serve(async (req: Request) => {
         description: 'Join us June 14, 2026 for A Night of Joy at Truitt Homestead (4-7 PM MST). An evening of dinner, live entertainment & silent auction creating belonging and purpose for adults with special abilities.',
         image: 'https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/og-images/night-of-joy-og.jpg',
         path: '/night-of-joy',
+      },
+      'bike-rides': {
+        title: 'Bike Ride Fundraisers – Best Day Ministries',
+        description: 'Support adults with special abilities by pledging per mile on epic bike rides. Every mile ridden raises funds for joy, purpose, and community.',
+        image: 'https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/og-images/bike-rides-og.jpg',
+        path: '/bike-rides',
       },
     }
 
@@ -107,7 +114,25 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const twitterHandle = settingsMap.twitter_handle || ''
+    if (bikeRideId) {
+      const rides = await querySupabase(
+        'bike_ride_events',
+        `select=id,title,description,cover_image_url,rider_name,mile_goal,slug&id=eq.${bikeRideId}&is_active=eq.true&limit=1`
+      )
+      const ride = rides[0]
+      if (ride) {
+        finalTitle = `${ride.title} – Best Day Ministries`
+        finalDescription = ride.description
+          ? ride.description.substring(0, 155) + (ride.description.length > 155 ? '…' : '')
+          : `Pledge per mile for ${ride.rider_name}'s ${ride.mile_goal}-mile ride to support adults with special abilities!`
+        if (ride.cover_image_url) finalImage = ride.cover_image_url
+        finalType = 'article'
+        const ridePath = ride.slug ? `/bike-rides/${ride.slug}` : `/bike-rides/${ride.id}`
+        finalRedirect = redirect || `${SITE_URL}${ridePath}`
+        ogUrl = `${SITE_URL}/share?bikeRideId=${ride.id}&redirect=${encodeURIComponent(finalRedirect)}`
+      }
+    }
+
 
     const html = `<!DOCTYPE html>
 <html lang="en">
