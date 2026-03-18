@@ -166,6 +166,8 @@ function PledgeCardForm({
 export default function BikeRidePledge() {
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
+  const [scenicPhotos, setScenicPhotos] = useState<ScenicPhoto[]>([]);
+  const [mapRef, setMapRef] = useState<HTMLDivElement | null>(null);
   const [stats, setStats] = useState<EventStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
