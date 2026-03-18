@@ -999,7 +999,12 @@ export function BikeRideManager() {
               </div>
               <div>
                 <Label>Ride Date *</Label>
-                <Input type="date" value={formRideDate} onChange={e => setFormRideDate(e.target.value)} />
+                <Input type="date" value={formRideDate} onChange={e => {
+                  setFormRideDate(e.target.value);
+                  if (!formSlug && formTitle) {
+                    setSlugSuggestion(generateSlug(formTitle, e.target.value));
+                  }
+                }} />
               </div>
               <div>
                 <Label>Mile Goal *</Label>
