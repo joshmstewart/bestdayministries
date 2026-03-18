@@ -13,7 +13,7 @@ const pledgeSchema = z.object({
   pledger_name: z.string().min(1).max(200),
   pledger_email: z.string().email().max(255).toLowerCase().trim(),
   pledge_type: z.enum(['per_mile']),
-  cents_per_mile: z.number().min(5).max(500).optional(),
+  cents_per_mile: z.number().min(1).max(500).optional(),
   message: z.string().max(500).optional(),
   force_test_mode: z.boolean().optional().default(false),
   cover_stripe_fee: z.boolean().optional().default(false),
