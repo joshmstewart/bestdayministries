@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
+import { ImageUploadWithCrop } from "@/components/common/ImageUploadWithCrop";
 
 interface BikeEvent {
   id: string;
