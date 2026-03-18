@@ -177,7 +177,7 @@ function buildConfirmationEmail(d: ConfirmationData): string {
               <p style="margin:4px 0;color:#78350f;font-size:15px;">📅 <strong>Ride Date:</strong> ${d.rideDate}</p>
               <p style="margin:4px 0;color:#78350f;font-size:15px;">💰 <strong>Your Pledge:</strong> ${d.centsPerMile}¢ per mile</p>
               <p style="margin:4px 0;color:#78350f;font-size:15px;">🎯 <strong>Mile Goal:</strong> ${d.mileGoal} miles</p>
-              <p style="margin:4px 0;color:#78350f;font-size:15px;">📊 <strong>Maximum Charge:</strong> $${d.maxTotal.toFixed(2)}</p>
+              <p style="margin:4px 0;color:#78350f;font-size:15px;">📊 <strong>Maximum Charge:</strong> $${d.maxTotal.toFixed(2)}${d.coverFee ? ' (includes processing fee)' : ''}</p>
             </td></tr>
           </table>
           ${d.message ? `<p style="color:#44403c;font-size:14px;line-height:1.6;margin:0 0 24px;padding:12px;background:#f5f5f4;border-left:3px solid #ea580c;border-radius:4px;"><em>"${d.message}"</em></p>` : ''}
