@@ -835,9 +835,15 @@ export default function BikeRidePledge() {
                             <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
                             <span className="text-muted-foreground ml-1">per mile</span>
                           </div>
-                          {/* Quick-pick buttons */}
+                          {/* Quick-pick buttons - dynamic based on mile goal */}
                           <div className="flex flex-wrap gap-2 justify-center">
-                            {[1, 2, 3, 4, 5, 10, 15, 20, 25, 50, 100].map(v => (
+                            {(() => {
+                              const miles = event?.mile_goal || 100;
+                              if (miles >= 500) return [1, 2, 3, 5, 10, 15, 20, 25, 50];
+                              if (miles >= 200) return [2, 5, 10, 15, 20, 25, 50, 75, 100];
+                              if (miles >= 100) return [5, 10, 15, 20, 25, 50, 75, 100, 150];
+                              return [10, 15, 20, 25, 50, 75, 100, 150, 200];
+                            })().map(v => (
                               <Button
                                 key={v}
                                 type="button"
