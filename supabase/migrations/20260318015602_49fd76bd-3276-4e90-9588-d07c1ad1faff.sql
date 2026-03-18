@@ -1,0 +1,1 @@
+ALTER TABLE public.bike_ride_scenic_photos ADD COLUMN is_default boolean NOT NULL DEFAULT false;

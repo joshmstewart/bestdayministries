@@ -1273,6 +1273,7 @@ export type Database = {
           event_id: string
           id: string
           image_url: string
+          is_default: boolean
         }
         Insert: {
           caption?: string | null
@@ -1281,6 +1282,7 @@ export type Database = {
           event_id: string
           id?: string
           image_url: string
+          is_default?: boolean
         }
         Update: {
           caption?: string | null
@@ -1289,6 +1291,7 @@ export type Database = {
           event_id?: string
           id?: string
           image_url?: string
+          is_default?: boolean
         }
         Relationships: [
           {

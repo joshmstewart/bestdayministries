@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 
@@ -69,7 +69,7 @@ export function BikeRideManager() {
   const [formRouteWaypoints, setFormRouteWaypoints] = useState<any[] | null>(null);
   const [uploadingRouteMap, setUploadingRouteMap] = useState(false);
   const [analyzingRoute, setAnalyzingRoute] = useState(false);
-  const [scenicPhotos, setScenicPhotos] = useState<{id: string; image_url: string; caption: string | null; display_order: number}[]>([]);
+  const [scenicPhotos, setScenicPhotos] = useState<{id: string; image_url: string; caption: string | null; display_order: number; is_default: boolean}[]>([]);
   const [uploadingScenicPhoto, setUploadingScenicPhoto] = useState(false);
   const [formSaving, setFormSaving] = useState(false);
 
@@ -305,6 +305,17 @@ export function BikeRideManager() {
   const deleteScenicPhoto = async (photoId: string) => {
     await supabase.from("bike_ride_scenic_photos").delete().eq("id", photoId);
     setScenicPhotos(prev => prev.filter(p => p.id !== photoId));
+  };
+
+  const toggleDefaultPhoto = async (photoId: string) => {
+    if (!editingEvent) return;
+    const isCurrentlyDefault = scenicPhotos.find(p => p.id === photoId)?.is_default;
+    // Clear all defaults for this event first
+    await supabase.from("bike_ride_scenic_photos").update({ is_default: false }).eq("event_id", editingEvent.id);
+    if (!isCurrentlyDefault) {
+      await supabase.from("bike_ride_scenic_photos").update({ is_default: true }).eq("id", photoId);
+    }
+    fetchScenicPhotos(editingEvent.id);
   };
 
   const statusColor = (status: string) => {
@@ -702,17 +713,34 @@ export function BikeRideManager() {
                 </p>
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   {scenicPhotos.map(photo => (
-                    <div key={photo.id} className="relative group">
+                    <div key={photo.id} className={`relative group ${photo.is_default ? 'ring-2 ring-primary rounded-md' : ''}`}>
                       <img src={photo.image_url} alt={photo.caption || "Scenic"} className="rounded-md border h-20 w-full object-cover" />
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteScenicPhoto(photo.id)}
-                        type="button"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {photo.is_default && (
+                        <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5">
+                          <Star className="h-2.5 w-2.5" /> Hero
+                        </span>
+                      )}
+                      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="icon"
+                          variant={photo.is_default ? "default" : "secondary"}
+                          className="h-5 w-5"
+                          onClick={() => toggleDefaultPhoto(photo.id)}
+                          type="button"
+                          title={photo.is_default ? "Remove as hero" : "Set as hero image"}
+                        >
+                          <Star className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="h-5 w-5"
+                          onClick={() => deleteScenicPhoto(photo.id)}
+                          type="button"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
