@@ -659,11 +659,45 @@ export default function BikeRidePledge() {
                 )}
               </div>
 
-              {/* Ride With GPS link — shown as a card since private routes can't embed */}
-              {event.ridewithgps_url ? (
+              {/* Ride With GPS — embed or link based on admin setting */}
+              {event.ridewithgps_url ? (() => {
+                const embedMode = (event as any).ridewithgps_embed_mode || 'embed';
+                if (embedMode === 'embed') {
+                  const rwgpsMatch = event.ridewithgps_url!.match(/ridewithgps\.com\/(routes|trips)\/(\d+)/);
+                  const rwgpsType = rwgpsMatch?.[1] || 'routes';
+                  const rwgpsId = rwgpsMatch?.[2];
+                  return rwgpsId ? (
+                    <div className="mb-4">
+                      <div className="rounded-lg overflow-hidden border">
+                        <iframe
+                          src={`https://ridewithgps.com/${rwgpsType}/${rwgpsId}/embed`}
+                          width="100%"
+                          height="500"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          allowFullScreen
+                          allow="geolocation; fullscreen"
+                          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                          title="RideWithGPS Route Map"
+                        />
+                      </div>
+                      <a
+                        href={event.ridewithgps_url!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-primary hover:underline font-medium text-xs mt-2"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Open full route on RideWithGPS
+                      </a>
+                    </div>
+                  ) : null;
+                }
+                // Link-only mode
+                return (
                   <div className="mb-4">
                     <a
-                      href={event.ridewithgps_url}
+                      href={event.ridewithgps_url!}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors group"
@@ -682,6 +716,8 @@ export default function BikeRidePledge() {
                       <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
                     </a>
                   </div>
+                );
+              })()
               ) : googleMapsKey ? (
                 /* Fallback: Google Map with waypoints */
                 <div className="rounded-lg overflow-hidden border">
