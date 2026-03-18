@@ -643,12 +643,21 @@ const NightOfJoy = () => {
                             <span>{t.price === 0 ? "Free" : `$${(t.price * ticketCounts[t.id]).toLocaleString()}`}</span>
                           </div>
                         ))}
+                        {paidTotal > 0 && (
+                          <div className="flex justify-between text-sm text-amber-200/60">
+                            <span>Processing fee</span>
+                            <span>+${ticketFee.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="border-t border-amber-700/30 pt-2 flex justify-between">
                           <span className="text-amber-100 font-medium">{totalTickets} ticket{totalTickets !== 1 ? "s" : ""}</span>
                           <span className="text-2xl font-bold text-amber-300">
-                            {paidTotal === 0 ? "Free" : `$${paidTotal.toLocaleString()}`}
+                            {paidTotal === 0 ? "Free" : `$${ticketTotalWithFee.toFixed(2)}`}
                           </span>
                         </div>
+                        {paidTotal > 0 && (
+                          <p className="text-[11px] text-amber-200/40 mt-1">Includes Stripe processing fee so 100% of your ticket price supports Best Day Ministries</p>
+                        )}
                       </CardContent>
                     </Card>
                   )}
