@@ -259,8 +259,15 @@ export default function BikeRidePledge() {
 
   const fetchEventStatus = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("get-bike-ride-status", {
-        body: forceTestMode ? { force_test_mode: true } : undefined,
+      const body: any = forceTestMode ? { force_test_mode: true } : undefined;
+      // Build URL with event_id if we have one from the route
+      const invokeOptions: any = {};
+      if (body) invokeOptions.body = body;
+      
+      let url = routeEventId ? `?event_id=${routeEventId}` : '';
+      
+      const { data, error } = await supabase.functions.invoke("get-bike-ride-status" + url, {
+        body: forceTestMode ? { force_test_mode: true } : (routeEventId ? { event_id: routeEventId } : undefined),
       });
       if (error) throw error;
       if (data?.event) {
