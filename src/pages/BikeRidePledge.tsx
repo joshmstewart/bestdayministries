@@ -682,20 +682,7 @@ export default function BikeRidePledge() {
                       <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0" />
                     </a>
                   </div>
-                ) : (
-                  <div className="mb-4">
-                    <a
-                      href={event.ridewithgps_url!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-primary hover:underline font-medium text-sm"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      View Interactive Route Map
-                    </a>
-                  </div>
-                );
-              })() : googleMapsKey ? (
+              ) : googleMapsKey ? (
                 /* Fallback: Google Map with waypoints */
                 <div className="rounded-lg overflow-hidden border">
                   {event.route_waypoints?.length ? (
