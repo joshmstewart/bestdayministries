@@ -156,6 +156,8 @@ export function BikeRideManager() {
         start_location: formStartLocation || null,
         end_location: formEndLocation || null,
         route_map_image_url: formRouteMapUrl || null,
+        race_url: formRaceUrl || null,
+        route_waypoints: formRouteWaypoints || null,
       };
 
       if (editingEvent) {
