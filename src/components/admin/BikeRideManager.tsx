@@ -224,7 +224,22 @@ export function BikeRideManager() {
         </Button>
       </div>
 
-      {/* Events List */}
+      {/* Quick Links */}
+      <div className="flex gap-3 flex-wrap">
+        <Link to="/bike-ride-pledge" target="_blank">
+          <Button variant="outline" size="sm">
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            Live Pledge Page
+          </Button>
+        </Link>
+        <Link to="/bike-ride-pledge?test=true" target="_blank">
+          <Button variant="outline" size="sm">
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            Test Pledge Page
+          </Button>
+        </Link>
+      </div>
+
       <div className="grid gap-3">
         {events.map(event => (
           <Card
