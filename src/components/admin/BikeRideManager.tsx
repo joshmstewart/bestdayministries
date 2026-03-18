@@ -120,6 +120,9 @@ export function BikeRideManager() {
       setFormStartLocation(event.start_location || "");
       setFormEndLocation(event.end_location || "");
       setFormRouteMapUrl(event.route_map_image_url || "");
+      setFormRaceUrl(event.race_url || "");
+      setFormRouteWaypoints(event.route_waypoints || null);
+      fetchScenicPhotos(event.id);
     } else {
       setEditingEvent(null);
       setFormTitle("");
