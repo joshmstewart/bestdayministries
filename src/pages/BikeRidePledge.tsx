@@ -399,70 +399,110 @@ export default function BikeRidePledge() {
           </section>
         )}
 
+        {/* Race Link */}
+        {event.race_url && (
+          <section className="py-4 border-b">
+            <div className="container max-w-4xl mx-auto px-4 text-center">
+              <a
+                href={event.race_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View Official Race/Event Page
+              </a>
+            </div>
+          </section>
+        )}
+
         {/* Route Map Section */}
-        {(event.start_location || event.end_location || event.route_map_image_url) && (
+        {(event.start_location || event.end_location || event.route_waypoints?.length) && (
           <section className="py-8 border-b">
             <div className="container max-w-4xl mx-auto px-4">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-primary" />
                 The Route
               </h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Google Map with Start/End */}
-                {(event.start_location || event.end_location) && (
-                  <div className="space-y-3">
-                    {event.start_location && (
-                      <div className="flex items-start gap-2">
-                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Navigation className="h-3 w-3 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground">START</p>
-                          <p className="text-sm font-medium">{event.start_location}</p>
-                        </div>
-                      </div>
-                    )}
-                    {event.end_location && (
-                      <div className="flex items-start gap-2">
-                        <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <MapPin className="h-3 w-3 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground">FINISH</p>
-                          <p className="text-sm font-medium">{event.end_location}</p>
-                        </div>
-                      </div>
-                    )}
-                    {/* Embedded Google Map */}
-                    {googleMapsKey && (
-                      <div className="rounded-lg overflow-hidden border mt-2">
-                        <iframe
-                          width="100%"
-                          height="300"
-                          style={{ border: 0 }}
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                          src={`https://www.google.com/maps/embed/v1/directions?key=${googleMapsKey}&origin=${encodeURIComponent(event.start_location || '')}&destination=${encodeURIComponent(event.end_location || event.start_location || '')}&mode=bicycling`}
-                          allowFullScreen
-                        />
-                      </div>
-                    )}
+              
+              {/* Start/End locations */}
+              <div className="flex flex-wrap gap-4 mb-4">
+                {event.start_location && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <Navigation className="h-3 w-3 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">START: </span>
+                      <span className="text-sm font-medium">{event.start_location}</span>
+                    </div>
                   </div>
                 )}
-
-                {/* Route Map Image */}
-                {event.route_map_image_url && (
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Planned Route</p>
-                    <img
-                      src={event.route_map_image_url}
-                      alt="Bike ride route map"
-                      className="rounded-lg border w-full object-contain max-h-[400px]"
-                    />
+                {event.end_location && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="h-3 w-3 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">FINISH: </span>
+                      <span className="text-sm font-medium">{event.end_location}</span>
+                    </div>
                   </div>
                 )}
               </div>
+
+              {/* Google Map with waypoints */}
+              {googleMapsKey && (
+                <div className="rounded-lg overflow-hidden border">
+                  {event.route_waypoints?.length ? (
+                    <BikeRouteMap
+                      apiKey={googleMapsKey}
+                      startLocation={event.start_location || ""}
+                      endLocation={event.end_location || ""}
+                      waypoints={event.route_waypoints}
+                    />
+                  ) : (event.start_location || event.end_location) ? (
+                    <iframe
+                      width="100%"
+                      height="400"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.google.com/maps/embed/v1/directions?key=${googleMapsKey}&origin=${encodeURIComponent(event.start_location || '')}&destination=${encodeURIComponent(event.end_location || event.start_location || '')}&mode=bicycling`}
+                      allowFullScreen
+                    />
+                  ) : null}
+                </div>
+              )}
             </div>
+          </section>
+        )}
+
+        {/* Scenic Photos */}
+        {scenicPhotos.length > 0 && (
+          <section className="py-8 border-b">
+            <div className="container max-w-4xl mx-auto px-4">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                Along the Route
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {scenicPhotos.map(photo => (
+                  <div key={photo.id} className="relative group">
+                    <img
+                      src={photo.image_url}
+                      alt={photo.caption || "Scenic view along the route"}
+                      className="rounded-lg border w-full h-40 object-cover"
+                    />
+                    {photo.caption && (
+                      <p className="text-xs text-muted-foreground mt-1 text-center">{photo.caption}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
           </section>
         )}
 
