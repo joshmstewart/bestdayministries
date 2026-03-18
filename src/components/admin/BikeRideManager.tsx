@@ -259,6 +259,13 @@ export function BikeRideManager() {
     fetchEvents();
   };
 
+  const toggleArchive = async (event: BikeEvent) => {
+    await supabase.from('bike_ride_events').update({ is_active: !event.is_active }).eq('id', event.id);
+    if (selectedEvent?.id === event.id) setSelectedEvent(null);
+    fetchEvents();
+    toast({ title: event.is_active ? "Event archived" : "Event restored" });
+  };
+
   const handleProcessCharges = async () => {
     if (!selectedEvent || !actualMiles) return;
     setProcessing(true);
