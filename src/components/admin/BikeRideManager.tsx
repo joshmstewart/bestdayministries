@@ -223,6 +223,8 @@ export function BikeRideManager() {
         finish_description: formFinishDescription || null,
         route_description: formRouteDescription || null,
         aid_stations: formAidStations.length > 0 ? formAidStations : null,
+        rider_bio: formRiderBio || null,
+        rider_image_url: formRiderImageUrl || null,
       };
 
       if (editingEvent) {
