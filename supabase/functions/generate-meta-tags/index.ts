@@ -67,7 +67,6 @@ Deno.serve(async (req: Request) => {
       'bike-rides': {
         title: 'Bike Ride Fundraisers – Best Day Ministries',
         description: 'Support adults with special abilities by pledging per mile on epic bike rides. Every mile ridden raises funds for joy, purpose, and community.',
-        image: 'https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/og-images/bike-rides-og.jpg',
         path: '/bike-rides',
       },
     }
