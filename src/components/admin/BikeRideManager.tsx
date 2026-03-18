@@ -589,7 +589,7 @@ export function BikeRideManager() {
       </div>
 
       <div className="grid gap-3">
-        {events.map(event => (
+        {events.filter(e => e.is_active).map(event => (
           <Card
             key={event.id}
             className={`cursor-pointer transition-colors ${selectedEvent?.id === event.id ? 'ring-2 ring-primary' : ''}`}
@@ -614,6 +614,9 @@ export function BikeRideManager() {
                 <Button size="icon" variant="outline" onClick={e => { e.stopPropagation(); openCreateDialog(event); }} title="Edit">
                   <Edit className="h-4 w-4" />
                 </Button>
+                <Button size="icon" variant="outline" onClick={e => { e.stopPropagation(); toggleArchive(event); }} title="Archive">
+                  <Archive className="h-4 w-4" />
+                </Button>
                 {event.status === 'draft' && (
                   <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); toggleEventStatus(event, 'active'); }}>
                     Activate
@@ -623,10 +626,48 @@ export function BikeRideManager() {
             </CardContent>
           </Card>
         ))}
-        {events.length === 0 && (
-          <p className="text-center text-muted-foreground py-8">No events yet. Create your first bike ride event!</p>
+        {events.filter(e => e.is_active).length === 0 && (
+          <p className="text-center text-muted-foreground py-8">No active events. Create your first bike ride event!</p>
         )}
       </div>
+
+      {/* Archived Events */}
+      {events.filter(e => !e.is_active).length > 0 && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-muted-foreground">
+              <Archive className="h-4 w-4 mr-1.5" />
+              Archived ({events.filter(e => !e.is_active).length})
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 grid gap-3">
+            {events.filter(e => !e.is_active).map(event => (
+              <Card
+                key={event.id}
+                className={`cursor-pointer transition-colors opacity-60 ${selectedEvent?.id === event.id ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => setSelectedEvent(event)}
+              >
+                <CardContent className="pt-4 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{event.title}</span>
+                      <Badge variant="secondary">archived</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {event.rider_name} · {event.mile_goal} miles · {new Date(event.ride_date + 'T00:00:00').toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="icon" variant="outline" onClick={e => { e.stopPropagation(); toggleArchive(event); }} title="Restore">
+                      <ArchiveRestore className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {/* Selected Event Details */}
       {selectedEvent && (
