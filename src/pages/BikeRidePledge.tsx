@@ -193,6 +193,7 @@ export default function BikeRidePledge() {
   useEffect(() => {
     fetchEventStatus();
     fetchStripeKey();
+    fetchGoogleMapsKey();
   }, []);
 
   const fetchStripeKey = async () => {
