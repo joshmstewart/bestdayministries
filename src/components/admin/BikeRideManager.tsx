@@ -807,8 +807,31 @@ export function BikeRideManager() {
                  >
                    {reconciling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                    Reconcile Pending
-                 </Button>
-               </div>
+                  </Button>
+                  <div className="flex gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCheckCards(true)}
+                      disabled={checkingCards}
+                      title="Check if any pledger cards are expired or expiring (dry run — no emails sent)"
+                    >
+                      {checkingCards ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                      Check Cards
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCheckCards(false)}
+                      disabled={checkingCards}
+                      title="Check cards AND send warning emails to pledgers with expired cards"
+                      className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                    >
+                      {checkingCards ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                      Send Expiry Emails
+                    </Button>
+                  </div>
+                </div>
             </CardHeader>
             <CardContent>
               {pledges.length > 0 ? (
