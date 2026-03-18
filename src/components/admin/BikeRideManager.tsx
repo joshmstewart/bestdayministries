@@ -210,6 +210,7 @@ export function BikeRideManager() {
       setFormDifficulty("");
       setFormRideWithGpsUrl("");
       setFormRwgpsEmbedMode("embed");
+      setFormShowGoogleMap(false);
       setFormKeyClimbs("");
       setFormStartTime("");
       setFormRegistrationUrl("");
