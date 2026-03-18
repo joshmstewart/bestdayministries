@@ -87,6 +87,7 @@ export function BikeRideManager() {
   const [importUrl, setImportUrl] = useState("");
   const [importingRace, setImportingRace] = useState(false);
   const [importedImages, setImportedImages] = useState<string[]>([]);
+  const [deepCrawl, setDeepCrawl] = useState(false);
 
   // Enhanced fields
   const [formElevationGain, setFormElevationGain] = useState("");
@@ -327,7 +328,7 @@ export function BikeRideManager() {
     setImportingRace(true);
     try {
       const { data, error } = await supabase.functions.invoke("extract-race-info", {
-        body: { url: importUrl },
+        body: { url: importUrl, deepCrawl },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Extraction failed");
@@ -354,7 +355,7 @@ export function BikeRideManager() {
       if (info.route_description && !formRouteDescription) setFormRouteDescription(info.route_description);
       if (info.aid_stations?.length && formAidStations.length === 0) setFormAidStations(info.aid_stations);
 
-      toast({ title: "Race info extracted!", description: `Found: ${info.title || "event details"}` });
+      toast({ title: "Race info extracted!", description: `Found: ${info.title || "event details"}${data.total_images_found ? ` (${data.total_images_found} images discovered)` : ""}` });
     } catch (err) {
       showErrorToastWithCopy("Extracting race info", err);
     } finally {
@@ -763,9 +764,18 @@ export function BikeRideManager() {
                 type="button"
               >
                 {importingRace ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Globe className="h-4 w-4 mr-1" />}
-                {importingRace ? "Extracting..." : "Extract"}
+                {importingRace ? (deepCrawl ? "Crawling..." : "Extracting...") : "Extract"}
               </Button>
             </div>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deepCrawl}
+                onChange={e => setDeepCrawl(e.target.checked)}
+                className="rounded border-muted-foreground"
+              />
+              <span>🔍 Deep crawl — explore multiple pages for more images (slower, uses more credits)</span>
+            </label>
             {/* Show extracted images */}
             {importedImages.length > 0 && (
               <div className="space-y-2 pt-2 border-t">
