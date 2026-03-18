@@ -759,8 +759,8 @@ export default function BikeRidePledge() {
           </section>
         )}
 
-        {/* Inline CTA after route map */}
-        {!isCompleted && (
+        {/* Inline CTA after route map — only if route map section actually rendered */}
+        {!isCompleted && (event.start_location || event.end_location || event.route_waypoints?.length || event.ridewithgps_url) && (
           <div className="container max-w-4xl mx-auto px-4 py-3 text-center">
             <button
               onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
