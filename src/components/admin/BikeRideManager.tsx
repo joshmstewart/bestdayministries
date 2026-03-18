@@ -947,7 +947,66 @@ export function BikeRideManager() {
               </div>
             )}
 
-            {/* Elevation & Difficulty */}
+            {/* Race Logo */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                <ImageIcon className="h-4 w-4" /> Race Logo
+              </p>
+              {formRaceLogoUrl ? (
+                <div className="flex items-center gap-3 mb-3">
+                  <img src={formRaceLogoUrl} alt="Race logo" className="h-16 max-w-[200px] object-contain rounded border bg-background p-1" />
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setFormRaceLogoUrl("")}>
+                    <X className="h-4 w-4 mr-1" /> Remove
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground mb-2">No logo set</p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleFetchLogos}
+                  disabled={fetchingLogos || (!formRaceUrl && !importUrl)}
+                >
+                  {fetchingLogos ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Globe className="h-4 w-4 mr-1" />}
+                  {fetchingLogos ? "Searching..." : "Fetch Logo from Website"}
+                </Button>
+                <label>
+                  <Button type="button" size="sm" variant="outline" asChild>
+                    <span><Upload className="h-4 w-4 mr-1" /> Upload Logo</span>
+                  </Button>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                </label>
+              </div>
+              {logoCandidates.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Found {logoCandidates.length} candidates — click to select:
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {logoCandidates.map((logo, i) => (
+                      <div
+                        key={i}
+                        className={`relative group cursor-pointer rounded-lg border-2 p-2 bg-background transition-all hover:border-primary ${formRaceLogoUrl === logo.url ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}
+                        onClick={() => { setFormRaceLogoUrl(logo.url); toast({ title: "Logo selected" }); }}
+                        title={`${logo.source} (${logo.confidence}% confidence)`}
+                      >
+                        <img
+                          src={logo.url}
+                          alt={`Logo candidate ${i + 1}`}
+                          className="h-12 w-full object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                        <span className="text-[9px] text-muted-foreground block mt-1 truncate text-center">{logo.source}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="border-t pt-4 mt-2">
               <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
                 <Mountain className="h-4 w-4" /> Elevation & Difficulty
