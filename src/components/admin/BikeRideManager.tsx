@@ -186,6 +186,8 @@ export function BikeRideManager() {
       setFormRiderImageUrl(event.rider_image_url || "");
       setFormRaceLogoUrl((event as any).race_logo_url || "");
       setLogoCandidates([]);
+      setFormSlug(event.slug || "");
+      setSlugSuggestion(event.slug ? "" : generateSlug(event.title, event.ride_date));
       fetchScenicPhotos(event.id);
     } else {
       setEditingEvent(null);
@@ -212,6 +214,8 @@ export function BikeRideManager() {
       setFormRiderImageUrl("");
       setFormRaceLogoUrl("");
       setLogoCandidates([]);
+      setFormSlug("");
+      setSlugSuggestion("");
       setScenicPhotos([]);
     }
     setImportUrl("");
