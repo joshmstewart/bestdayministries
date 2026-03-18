@@ -252,6 +252,7 @@ export function BikeRideManager() {
         difficulty_rating: formDifficulty || null,
         ridewithgps_url: formRideWithGpsUrl || null,
         ridewithgps_embed_mode: formRwgpsEmbedMode,
+        show_google_map: formShowGoogleMap,
         key_climbs: formKeyClimbs ? formKeyClimbs.split(",").map(s => s.trim()).filter(Boolean) : null,
         start_time: formStartTime || null,
         registration_url: formRegistrationUrl || null,
