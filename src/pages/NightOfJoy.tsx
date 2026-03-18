@@ -161,11 +161,13 @@ const NightOfJoy = () => {
     if (profile || user) {
       setFormData(prev => ({
         ...prev,
-        contactName: prev.contactName || profile?.display_name || '',
+        contactFirstName: prev.contactFirstName || profile?.first_name || '',
+        contactLastName: prev.contactLastName || profile?.last_name || '',
         email: prev.email || user?.email || '',
       }));
       setTicketEmail(prev => prev || user?.email || '');
-      setTicketName(prev => prev || profile?.display_name || '');
+      setTicketFirstName(prev => prev || profile?.first_name || '');
+      setTicketLastName(prev => prev || profile?.last_name || '');
     }
   }, [profile, user]);
 
