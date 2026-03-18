@@ -355,7 +355,7 @@ export function BikeRideManager() {
       if (info.route_description && !formRouteDescription) setFormRouteDescription(info.route_description);
       if (info.aid_stations?.length && formAidStations.length === 0) setFormAidStations(info.aid_stations);
 
-      toast({ title: "Race info extracted!", description: `Found: ${info.title || "event details"}` });
+      toast({ title: "Race info extracted!", description: `Found: ${info.title || "event details"}${data.total_images_found ? ` (${data.total_images_found} images discovered)` : ""}` });
     } catch (err) {
       showErrorToastWithCopy("Extracting race info", err);
     } finally {
