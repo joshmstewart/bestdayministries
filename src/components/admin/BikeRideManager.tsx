@@ -595,7 +595,7 @@ export function BikeRideManager() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Edit Event' : 'Create Bike Ride Event'}</DialogTitle>
           </DialogHeader>
@@ -620,6 +620,10 @@ export function BikeRideManager() {
               <Label>Description</Label>
               <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Tell supporters about the ride..." rows={3} />
             </div>
+            <div>
+              <Label className="flex items-center gap-1.5"><Link2 className="h-4 w-4" /> Race/Event Link</Label>
+              <Input value={formRaceUrl} onChange={e => setFormRaceUrl(e.target.value)} placeholder="https://race-website.com/event" />
+            </div>
             
             {/* Route Information */}
             <div className="border-t pt-4 mt-2">
@@ -638,17 +642,35 @@ export function BikeRideManager() {
                 <div>
                   <Label>Route Map Image</Label>
                   {formRouteMapUrl ? (
-                    <div className="relative mt-1">
-                      <img src={formRouteMapUrl} alt="Route map" className="rounded-lg border max-h-48 w-full object-cover" />
+                    <div className="space-y-2 mt-1">
+                      <div className="relative">
+                        <img src={formRouteMapUrl} alt="Route map" className="rounded-lg border max-h-48 w-full object-cover" />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-2 right-2 h-7 w-7"
+                          onClick={() => { setFormRouteMapUrl(""); setFormRouteWaypoints(null); }}
+                          type="button"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <Button
-                        size="icon"
-                        variant="destructive"
-                        className="absolute top-2 right-2 h-7 w-7"
-                        onClick={() => setFormRouteMapUrl("")}
+                        size="sm"
+                        variant="outline"
+                        onClick={analyzeRouteImage}
+                        disabled={analyzingRoute}
+                        className="w-full"
                         type="button"
                       >
-                        <X className="h-4 w-4" />
+                        {analyzingRoute ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                        {analyzingRoute ? "Analyzing route..." : formRouteWaypoints ? `Re-analyze (${formRouteWaypoints.length} waypoints)` : "AI: Extract Route Waypoints"}
                       </Button>
+                      {formRouteWaypoints && (
+                        <p className="text-xs text-muted-foreground">
+                          ✅ {formRouteWaypoints.length} waypoints extracted — will render on Google Maps
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-1">
@@ -659,7 +681,8 @@ export function BikeRideManager() {
                           ) : (
                             <>
                               <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                              <p className="text-sm text-muted-foreground">Click to upload route map</p>
+                              <p className="text-sm text-muted-foreground">Upload route map image</p>
+                              <p className="text-xs text-muted-foreground mt-1">AI will extract waypoints to render on Google Maps</p>
                             </>
                           )}
                         </div>
@@ -670,6 +693,41 @@ export function BikeRideManager() {
                 </div>
               </div>
             </div>
+
+            {/* Scenic Photos - only when editing */}
+            {editingEvent && (
+              <div className="border-t pt-4 mt-2">
+                <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <ImageIcon className="h-4 w-4" /> Scenic Photos Along the Route
+                </p>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {scenicPhotos.map(photo => (
+                    <div key={photo.id} className="relative group">
+                      <img src={photo.image_url} alt={photo.caption || "Scenic"} className="rounded-md border h-20 w-full object-cover" />
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => deleteScenicPhoto(photo.id)}
+                        type="button"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <label className="cursor-pointer">
+                  <div className="border-2 border-dashed rounded-lg p-3 text-center hover:border-primary/50 transition-colors">
+                    {uploadingScenicPhoto ? (
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">+ Add scenic photo</p>
+                    )}
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleScenicPhotoUpload} disabled={uploadingScenicPhoto} />
+                </label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
