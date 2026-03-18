@@ -210,6 +210,7 @@ export default function BikeRidePledge() {
   const [pledgerEmail, setPledgerEmail] = useState("");
   const [message, setMessage] = useState("");
   const [coverFees, setCoverFees] = useState(true);
+  const [customCentsInput, setCustomCentsInput] = useState("");
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
