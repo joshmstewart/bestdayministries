@@ -673,6 +673,47 @@ export function BikeRideManager() {
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Edit Event' : 'Create Bike Ride Event'}</DialogTitle>
           </DialogHeader>
+          {/* Import from Race URL */}
+          <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <Wand2 className="h-4 w-4 text-primary" /> Import from Race Website
+            </p>
+            <p className="text-xs text-muted-foreground">Paste a race/event URL and AI will extract the details for you</p>
+            <div className="flex gap-2">
+              <Input
+                value={importUrl}
+                onChange={e => setImportUrl(e.target.value)}
+                placeholder="https://race-website.com/event-page"
+                className="flex-1"
+              />
+              <Button
+                size="sm"
+                onClick={handleImportFromUrl}
+                disabled={!importUrl || importingRace}
+                type="button"
+              >
+                {importingRace ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Globe className="h-4 w-4 mr-1" />}
+                {importingRace ? "Extracting..." : "Extract"}
+              </Button>
+            </div>
+            {/* Show extracted images */}
+            {importedImages.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs font-medium text-muted-foreground">Found {importedImages.length} images — click to add as scenic photos{!editingEvent && " (save event first)"}</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {importedImages.map((imgUrl, i) => (
+                    <div key={i} className="relative group cursor-pointer" onClick={() => addImportedImageAsScenic(imgUrl)}>
+                      <img src={imgUrl} alt={`Race image ${i + 1}`} className="rounded border h-16 w-full object-cover" />
+                      <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                        <Plus className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-4">
             <div>
               <Label>Title *</Label>
