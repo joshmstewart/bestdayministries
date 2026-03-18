@@ -16,6 +16,7 @@ const pledgeSchema = z.object({
   cents_per_mile: z.number().min(5).max(500).optional(),
   message: z.string().max(500).optional(),
   force_test_mode: z.boolean().optional().default(false),
+  cover_stripe_fee: z.boolean().optional().default(false),
 });
 
 serve(async (req) => {
