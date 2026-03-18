@@ -869,36 +869,84 @@ export function BikeRideManager() {
                              </p>
                              {(() => {
                                const confirmed = pledges.filter(p => p.pledge_type === 'per_mile' && p.charge_status === 'confirmed');
+                               const alreadyCharged = pledges.filter(p => p.pledge_type === 'per_mile' && p.charge_status === 'charged');
+                               const failed = pledges.filter(p => p.pledge_type === 'per_mile' && p.charge_status === 'failed');
                                const testPledges = confirmed.filter(p => p.stripe_mode === 'test');
                                const livePledges = confirmed.filter(p => p.stripe_mode === 'live');
                                const calcTotal = (list: Pledge[]) => list.reduce((s, p) => s + ((p.cents_per_mile || 0) / 100) * Number(actualMiles || 0), 0);
+                               const isResume = alreadyCharged.length > 0;
                                return (
-                                 <div className="rounded-lg border p-3 space-y-2 text-sm">
-                                   {testPledges.length > 0 && (
-                                     <div className="flex justify-between items-center">
-                                       <span className="flex items-center gap-1.5">
-                                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">🟡 TEST</Badge>
-                                         {testPledges.length} pledge{testPledges.length !== 1 ? 's' : ''}
-                                       </span>
-                                       <span className="font-semibold">${calcTotal(testPledges).toFixed(2)}</span>
+                                 <div className="space-y-3">
+                                   {/* Already charged — safe zone */}
+                                   {isResume && (
+                                     <div className="rounded-lg border border-green-300 bg-green-50 p-3 space-y-2 text-sm">
+                                       <div className="flex items-center gap-2 font-semibold text-green-800">
+                                         <CheckCircle className="h-4 w-4" />
+                                         Already Charged — Will NOT Be Charged Again
+                                       </div>
+                                       <div className="flex justify-between items-center text-green-700">
+                                         <span>{alreadyCharged.length} pledge{alreadyCharged.length !== 1 ? 's' : ''} already processed</span>
+                                         <span className="font-semibold">${alreadyCharged.reduce((s, p) => s + (p.calculated_total || 0), 0).toFixed(2)}</span>
+                                       </div>
+                                       <p className="text-xs text-green-600 italic">
+                                         ✅ These pledges have status "charged" and are completely safe. The system only processes pledges with status "confirmed".
+                                       </p>
                                      </div>
                                    )}
-                                   {livePledges.length > 0 && (
-                                     <div className="flex justify-between items-center">
-                                       <span className="flex items-center gap-1.5">
-                                         <Badge variant="default" className="text-[10px] px-1.5 py-0">🟢 LIVE</Badge>
-                                         {livePledges.length} pledge{livePledges.length !== 1 ? 's' : ''}
-                                       </span>
-                                       <span className="font-semibold text-destructive">${calcTotal(livePledges).toFixed(2)} (REAL $)</span>
+
+                                   {/* Failed — won't retry automatically */}
+                                   {failed.length > 0 && (
+                                     <div className="rounded-lg border border-red-200 bg-red-50/50 p-3 text-sm">
+                                       <div className="flex justify-between items-center text-red-700">
+                                         <span>{failed.length} previously failed (will not retry)</span>
+                                         <span className="font-semibold">${calcTotal(failed).toFixed(2)}</span>
+                                       </div>
                                      </div>
                                    )}
-                                   {livePledges.length === 0 && testPledges.length > 0 && (
-                                     <p className="text-xs text-muted-foreground italic">✅ No real money will be charged — test mode only.</p>
-                                   )}
-                                   <div className="border-t pt-2 flex justify-between font-semibold">
-                                     <span>Total</span>
-                                     <span>${calcTotal(confirmed).toFixed(2)}</span>
+
+                                   {/* Will be charged now */}
+                                   <div className="rounded-lg border p-3 space-y-2 text-sm">
+                                     <div className="font-semibold text-foreground">
+                                       {isResume ? '⚡ Will Be Charged Now' : 'Pledges to Charge'}
+                                     </div>
+                                     {confirmed.length === 0 ? (
+                                       <p className="text-muted-foreground italic">No remaining pledges to charge.</p>
+                                     ) : (
+                                       <>
+                                         {testPledges.length > 0 && (
+                                           <div className="flex justify-between items-center">
+                                             <span className="flex items-center gap-1.5">
+                                               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">🟡 TEST</Badge>
+                                               {testPledges.length} pledge{testPledges.length !== 1 ? 's' : ''}
+                                             </span>
+                                             <span className="font-semibold">${calcTotal(testPledges).toFixed(2)}</span>
+                                           </div>
+                                         )}
+                                         {livePledges.length > 0 && (
+                                           <div className="flex justify-between items-center">
+                                             <span className="flex items-center gap-1.5">
+                                               <Badge variant="default" className="text-[10px] px-1.5 py-0">🟢 LIVE</Badge>
+                                               {livePledges.length} pledge{livePledges.length !== 1 ? 's' : ''}
+                                             </span>
+                                             <span className="font-semibold text-destructive">${calcTotal(livePledges).toFixed(2)} (REAL $)</span>
+                                           </div>
+                                         )}
+                                         {livePledges.length === 0 && testPledges.length > 0 && (
+                                           <p className="text-xs text-muted-foreground italic">✅ No real money will be charged — test mode only.</p>
+                                         )}
+                                         <div className="border-t pt-2 flex justify-between font-semibold">
+                                           <span>Total to charge</span>
+                                           <span>${calcTotal(confirmed).toFixed(2)}</span>
+                                         </div>
+                                       </>
+                                     )}
                                    </div>
+
+                                   {isResume && (
+                                     <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
+                                       🔒 <strong>How this is safe:</strong> Each pledge has a charge_status field. Only pledges with status "confirmed" are charged. Once charged, status changes to "charged" — the system will never re-process them.
+                                     </p>
+                                   )}
                                  </div>
                                );
                              })()}
@@ -908,7 +956,7 @@ export function BikeRideManager() {
                        <AlertDialogFooter>
                          <AlertDialogCancel>Cancel</AlertDialogCancel>
                          <AlertDialogAction onClick={handleProcessCharges}>
-                           Yes, Process Charges
+                           {pledges.some(p => p.charge_status === 'charged') ? 'Resume Processing' : 'Yes, Process Charges'}
                          </AlertDialogAction>
                        </AlertDialogFooter>
                      </AlertDialogContent>
