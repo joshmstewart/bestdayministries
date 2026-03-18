@@ -110,6 +110,9 @@ export function BikeRideManager() {
       setFormRiderName(event.rider_name);
       setFormRideDate(event.ride_date);
       setFormMileGoal(String(event.mile_goal));
+      setFormStartLocation(event.start_location || "");
+      setFormEndLocation(event.end_location || "");
+      setFormRouteMapUrl(event.route_map_image_url || "");
     } else {
       setEditingEvent(null);
       setFormTitle("");
@@ -117,6 +120,9 @@ export function BikeRideManager() {
       setFormRiderName("");
       setFormRideDate("");
       setFormMileGoal("118");
+      setFormStartLocation("");
+      setFormEndLocation("");
+      setFormRouteMapUrl("");
     }
     setShowCreateDialog(true);
   };
