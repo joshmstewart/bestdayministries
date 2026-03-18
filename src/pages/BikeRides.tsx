@@ -47,7 +47,7 @@ export default function BikeRides() {
     const fetchEvents = async () => {
       const { data, error } = await supabase
         .from("bike_ride_events")
-        .select("id, title, description, rider_name, ride_date, mile_goal, actual_miles, status, cover_image_url, start_location, end_location, elevation_gain_ft, difficulty_rating, is_active, race_logo_url")
+        .select("id, title, description, rider_name, ride_date, mile_goal, actual_miles, status, cover_image_url, start_location, end_location, elevation_gain_ft, difficulty_rating, is_active, race_logo_url, slug")
         .eq("is_active", true)
         .order("ride_date", { ascending: false });
 
