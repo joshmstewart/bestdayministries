@@ -184,7 +184,61 @@ serve(async (req) => {
           })
           .eq('id', pledge.id);
 
-        // Send receipt email (fire and forget)
+        // Create donation record so it appears in Donation History with proper tax receipts
+        // CRITICAL: donor_identifier_check constraint requires EITHER donor_id OR donor_email, never both
+        const donationDesignation = `Bike Ride Pledge: ${pledge.cents_per_mile}¢/mile × ${miles} mi — "${event.title}"`;
+        try {
+          const donationInsert: Record<string, unknown> = {
+            amount: totalDollars,
+            amount_charged: totalDollars,
+            frequency: 'one-time',
+            status: 'completed',
+            stripe_mode: pledge.stripe_mode,
+            stripe_customer_id: pledge.stripe_customer_id,
+            stripe_payment_intent_id: paymentIntent.id,
+            designation: donationDesignation,
+            contact_name: pledge.pledger_name,
+            started_at: new Date().toISOString(),
+          };
+
+          if (pledge.pledger_user_id) {
+            donationInsert.donor_id = pledge.pledger_user_id;
+            donationInsert.donor_email = null;
+          } else {
+            donationInsert.donor_email = pledge.pledger_email;
+            donationInsert.donor_id = null;
+          }
+
+          const { data: newDonation, error: donationError } = await supabaseAdmin
+            .from('donations')
+            .insert(donationInsert)
+            .select('id')
+            .single();
+
+          if (donationError) {
+            console.error(`Failed to create donation for pledge ${pledge.id} (non-fatal):`, donationError);
+          } else {
+            console.log(`Created donation ${newDonation.id} for pledge ${pledge.id}`);
+
+            // Generate tax receipt via existing system
+            try {
+              await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-missing-donation-receipts`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({ donation_id: newDonation.id }),
+              });
+            } catch (receiptErr) {
+              console.error(`Failed to generate receipt for donation ${newDonation.id} (non-fatal):`, receiptErr);
+            }
+          }
+        } catch (donErr) {
+          console.error(`Failed to create donation record for pledge ${pledge.id} (non-fatal):`, donErr);
+        }
+
+        // Send pledge-specific receipt email (fire and forget)
         try {
           await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-bike-pledge-email`, {
             method: 'POST',
