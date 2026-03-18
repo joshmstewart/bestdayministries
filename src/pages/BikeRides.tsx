@@ -39,6 +39,7 @@ const difficultyColor = (rating: string) => {
 export default function BikeRides() {
   const [events, setEvents] = useState<BikeEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultPhotos, setDefaultPhotos] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -50,6 +51,21 @@ export default function BikeRides() {
 
       if (!error && data) {
         setEvents(data);
+        
+        // Fetch default scenic photos for events without cover images
+        const idsNeedingPhoto = data.filter(e => !e.cover_image_url).map(e => e.id);
+        if (idsNeedingPhoto.length > 0) {
+          const { data: photos } = await supabase
+            .from("bike_ride_scenic_photos")
+            .select("event_id, image_url")
+            .in("event_id", idsNeedingPhoto)
+            .eq("is_default", true);
+          if (photos) {
+            const map: Record<string, string> = {};
+            photos.forEach(p => { map[p.event_id] = p.image_url; });
+            setDefaultPhotos(map);
+          }
+        }
       }
       setLoading(false);
     };
@@ -115,7 +131,7 @@ export default function BikeRides() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2">
                     {upcoming.map(event => (
-                      <BikeRideCard key={event.id} event={event} />
+                      <BikeRideCard key={event.id} event={event} fallbackImage={defaultPhotos[event.id]} />
                     ))}
                   </div>
                 )}
@@ -127,7 +143,7 @@ export default function BikeRides() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2">
                     {past.map(event => (
-                      <BikeRideCard key={event.id} event={event} isPast />
+                      <BikeRideCard key={event.id} event={event} isPast fallbackImage={defaultPhotos[event.id]} />
                     ))}
                   </div>
                 )}
@@ -141,18 +157,19 @@ export default function BikeRides() {
   );
 }
 
-function BikeRideCard({ event, isPast }: { event: BikeEvent; isPast?: boolean }) {
+function BikeRideCard({ event, isPast, fallbackImage }: { event: BikeEvent; isPast?: boolean; fallbackImage?: string }) {
   const rideDate = new Date(event.ride_date + "T00:00:00");
   const isCompleted = event.status === "completed" || event.status === "charges_processed";
+  const cardImage = event.cover_image_url || fallbackImage;
 
   return (
     <Link to={`/bike-rides/${event.id}`} className="group">
       <Card className="overflow-hidden transition-all hover:shadow-lg hover:border-primary/30 h-full">
         {/* Cover Image */}
         <div className="relative h-48 bg-gradient-to-br from-primary/10 via-accent/5 to-muted overflow-hidden">
-          {event.cover_image_url ? (
+          {cardImage ? (
             <img
-              src={event.cover_image_url}
+              src={cardImage}
               alt={event.title}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
             />
