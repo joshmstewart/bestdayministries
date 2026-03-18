@@ -246,6 +246,67 @@ export function BikeRideManager() {
     }
   };
 
+  const analyzeRouteImage = async () => {
+    if (!formRouteMapUrl) return;
+    setAnalyzingRoute(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-route-image", {
+        body: { imageUrl: formRouteMapUrl, startLocation: formStartLocation, endLocation: formEndLocation },
+      });
+      if (error) throw error;
+      if (data?.waypoints?.length) {
+        setFormRouteWaypoints(data.waypoints);
+        toast({ title: `Extracted ${data.waypoints.length} waypoints from route image` });
+      } else {
+        toast({ title: "Could not extract waypoints", variant: "destructive" });
+      }
+    } catch (err) {
+      showErrorToastWithCopy("Analyzing route image", err);
+    } finally {
+      setAnalyzingRoute(false);
+    }
+  };
+
+  const fetchScenicPhotos = async (eventId: string) => {
+    const { data } = await supabase
+      .from("bike_ride_scenic_photos")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("display_order");
+    setScenicPhotos(data || []);
+  };
+
+  const handleScenicPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingEvent) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingScenicPhoto(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const filePath = `bike-ride-scenic/${editingEvent.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('app-assets').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('app-assets').getPublicUrl(filePath);
+      const { error: insertError } = await supabase.from("bike_ride_scenic_photos").insert({
+        event_id: editingEvent.id,
+        image_url: publicUrl,
+        display_order: scenicPhotos.length,
+      });
+      if (insertError) throw insertError;
+      fetchScenicPhotos(editingEvent.id);
+      toast({ title: "Scenic photo added" });
+    } catch (err) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploadingScenicPhoto(false);
+    }
+  };
+
+  const deleteScenicPhoto = async (photoId: string) => {
+    await supabase.from("bike_ride_scenic_photos").delete().eq("id", photoId);
+    setScenicPhotos(prev => prev.filter(p => p.id !== photoId));
+  };
+
   const statusColor = (status: string) => {
     switch (status) {
       case 'draft': return 'secondary';
