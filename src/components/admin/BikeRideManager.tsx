@@ -72,6 +72,8 @@ export function BikeRideManager() {
   const [analyzingRoute, setAnalyzingRoute] = useState(false);
   const [scenicPhotos, setScenicPhotos] = useState<{id: string; image_url: string; caption: string | null; display_order: number; is_default: boolean}[]>([]);
   const [uploadingScenicPhoto, setUploadingScenicPhoto] = useState(false);
+  const [scenicPhotoPreview, setScenicPhotoPreview] = useState<string | null>(null);
+  const [scenicPhotoFile, setScenicPhotoFile] = useState<File | null>(null);
   const [formSaving, setFormSaving] = useState(false);
 
   // Process charges state
