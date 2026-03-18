@@ -65,7 +65,12 @@ export function BikeRideManager() {
   const [formStartLocation, setFormStartLocation] = useState("");
   const [formEndLocation, setFormEndLocation] = useState("");
   const [formRouteMapUrl, setFormRouteMapUrl] = useState("");
+  const [formRaceUrl, setFormRaceUrl] = useState("");
+  const [formRouteWaypoints, setFormRouteWaypoints] = useState<any[] | null>(null);
   const [uploadingRouteMap, setUploadingRouteMap] = useState(false);
+  const [analyzingRoute, setAnalyzingRoute] = useState(false);
+  const [scenicPhotos, setScenicPhotos] = useState<{id: string; image_url: string; caption: string | null; display_order: number}[]>([]);
+  const [uploadingScenicPhoto, setUploadingScenicPhoto] = useState(false);
   const [formSaving, setFormSaving] = useState(false);
 
   // Process charges state
