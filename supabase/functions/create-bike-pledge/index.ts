@@ -130,6 +130,7 @@ serve(async (req) => {
         stripe_setup_intent_id: setupIntent.id,
         stripe_mode: mode,
         message: message || null,
+        cover_stripe_fee: cover_stripe_fee,
       })
       .select()
       .single();

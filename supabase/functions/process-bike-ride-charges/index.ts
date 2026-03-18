@@ -136,18 +136,18 @@ serve(async (req) => {
         // Calculate charge amount
         const baseDollars = (pledge.cents_per_mile / 100) * miles;
         
-        // Check if pledge has fee coverage from setup intent metadata
-        let coverFee = false;
-        if (pledge.stripe_setup_intent_id) {
+        // Check if pledge has fee coverage — prefer DB column, fall back to setup intent metadata
+        let coverFee = pledge.cover_stripe_fee === true;
+        if (!coverFee && pledge.stripe_setup_intent_id) {
           try {
             const setupIntent = await stripe.setupIntents.retrieve(pledge.stripe_setup_intent_id);
             console.log(`Pledge ${pledge.id}: setup intent metadata =`, JSON.stringify(setupIntent.metadata));
             coverFee = setupIntent.metadata?.cover_stripe_fee === 'true';
-            console.log(`Pledge ${pledge.id}: coverFee = ${coverFee}`);
           } catch (siErr) {
-            console.error(`Pledge ${pledge.id}: Failed to retrieve setup intent ${pledge.stripe_setup_intent_id}:`, siErr instanceof Error ? siErr.message : siErr);
+            console.error(`Pledge ${pledge.id}: Failed to retrieve setup intent:`, siErr instanceof Error ? siErr.message : siErr);
           }
         }
+        console.log(`Pledge ${pledge.id}: coverFee = ${coverFee}, baseDollars = ${baseDollars}`);
         
         const totalDollars = coverFee && baseDollars > 0
           ? Math.round(((baseDollars + 0.30) / 0.971) * 100) / 100
