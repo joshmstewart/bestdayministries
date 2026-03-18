@@ -220,8 +220,8 @@ const NightOfJoy = () => {
 
   const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.contactName || !formData.email) {
-      toast.error("Please fill in your name and email.");
+    if (!formData.contactFirstName || !formData.contactLastName || !formData.email) {
+      toast.error("Please fill in your first name, last name, and email.");
       return;
     }
     setSubmitting(true);
