@@ -141,8 +141,12 @@ serve(async (req) => {
         if (pledge.stripe_setup_intent_id) {
           try {
             const setupIntent = await stripe.setupIntents.retrieve(pledge.stripe_setup_intent_id);
+            console.log(`Pledge ${pledge.id}: setup intent metadata =`, JSON.stringify(setupIntent.metadata));
             coverFee = setupIntent.metadata?.cover_stripe_fee === 'true';
-          } catch { /* ignore */ }
+            console.log(`Pledge ${pledge.id}: coverFee = ${coverFee}`);
+          } catch (siErr) {
+            console.error(`Pledge ${pledge.id}: Failed to retrieve setup intent ${pledge.stripe_setup_intent_id}:`, siErr instanceof Error ? siErr.message : siErr);
+          }
         }
         
         const totalDollars = coverFee && baseDollars > 0
