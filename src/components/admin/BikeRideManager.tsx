@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 
@@ -27,6 +27,8 @@ interface BikeEvent {
   start_location: string | null;
   end_location: string | null;
   route_map_image_url: string | null;
+  race_url: string | null;
+  route_waypoints: any[] | null;
 }
 
 interface Pledge {
@@ -63,7 +65,12 @@ export function BikeRideManager() {
   const [formStartLocation, setFormStartLocation] = useState("");
   const [formEndLocation, setFormEndLocation] = useState("");
   const [formRouteMapUrl, setFormRouteMapUrl] = useState("");
+  const [formRaceUrl, setFormRaceUrl] = useState("");
+  const [formRouteWaypoints, setFormRouteWaypoints] = useState<any[] | null>(null);
   const [uploadingRouteMap, setUploadingRouteMap] = useState(false);
+  const [analyzingRoute, setAnalyzingRoute] = useState(false);
+  const [scenicPhotos, setScenicPhotos] = useState<{id: string; image_url: string; caption: string | null; display_order: number}[]>([]);
+  const [uploadingScenicPhoto, setUploadingScenicPhoto] = useState(false);
   const [formSaving, setFormSaving] = useState(false);
 
   // Process charges state
@@ -113,6 +120,9 @@ export function BikeRideManager() {
       setFormStartLocation(event.start_location || "");
       setFormEndLocation(event.end_location || "");
       setFormRouteMapUrl(event.route_map_image_url || "");
+      setFormRaceUrl(event.race_url || "");
+      setFormRouteWaypoints(event.route_waypoints || null);
+      fetchScenicPhotos(event.id);
     } else {
       setEditingEvent(null);
       setFormTitle("");
@@ -123,6 +133,9 @@ export function BikeRideManager() {
       setFormStartLocation("");
       setFormEndLocation("");
       setFormRouteMapUrl("");
+      setFormRaceUrl("");
+      setFormRouteWaypoints(null);
+      setScenicPhotos([]);
     }
     setShowCreateDialog(true);
   };
@@ -143,6 +156,8 @@ export function BikeRideManager() {
         start_location: formStartLocation || null,
         end_location: formEndLocation || null,
         route_map_image_url: formRouteMapUrl || null,
+        race_url: formRaceUrl || null,
+        route_waypoints: formRouteWaypoints || null,
       };
 
       if (editingEvent) {
@@ -229,6 +244,67 @@ export function BikeRideManager() {
     } finally {
       setUploadingRouteMap(false);
     }
+  };
+
+  const analyzeRouteImage = async () => {
+    if (!formRouteMapUrl) return;
+    setAnalyzingRoute(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-route-image", {
+        body: { imageUrl: formRouteMapUrl, startLocation: formStartLocation, endLocation: formEndLocation },
+      });
+      if (error) throw error;
+      if (data?.waypoints?.length) {
+        setFormRouteWaypoints(data.waypoints);
+        toast({ title: `Extracted ${data.waypoints.length} waypoints from route image` });
+      } else {
+        toast({ title: "Could not extract waypoints", variant: "destructive" });
+      }
+    } catch (err) {
+      showErrorToastWithCopy("Analyzing route image", err);
+    } finally {
+      setAnalyzingRoute(false);
+    }
+  };
+
+  const fetchScenicPhotos = async (eventId: string) => {
+    const { data } = await supabase
+      .from("bike_ride_scenic_photos")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("display_order");
+    setScenicPhotos(data || []);
+  };
+
+  const handleScenicPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingEvent) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingScenicPhoto(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const filePath = `bike-ride-scenic/${editingEvent.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('app-assets').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('app-assets').getPublicUrl(filePath);
+      const { error: insertError } = await supabase.from("bike_ride_scenic_photos").insert({
+        event_id: editingEvent.id,
+        image_url: publicUrl,
+        display_order: scenicPhotos.length,
+      });
+      if (insertError) throw insertError;
+      fetchScenicPhotos(editingEvent.id);
+      toast({ title: "Scenic photo added" });
+    } catch (err) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploadingScenicPhoto(false);
+    }
+  };
+
+  const deleteScenicPhoto = async (photoId: string) => {
+    await supabase.from("bike_ride_scenic_photos").delete().eq("id", photoId);
+    setScenicPhotos(prev => prev.filter(p => p.id !== photoId));
   };
 
   const statusColor = (status: string) => {
@@ -519,7 +595,7 @@ export function BikeRideManager() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Edit Event' : 'Create Bike Ride Event'}</DialogTitle>
           </DialogHeader>
@@ -544,6 +620,10 @@ export function BikeRideManager() {
               <Label>Description</Label>
               <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Tell supporters about the ride..." rows={3} />
             </div>
+            <div>
+              <Label className="flex items-center gap-1.5"><Link2 className="h-4 w-4" /> Race/Event Link</Label>
+              <Input value={formRaceUrl} onChange={e => setFormRaceUrl(e.target.value)} placeholder="https://race-website.com/event" />
+            </div>
             
             {/* Route Information */}
             <div className="border-t pt-4 mt-2">
@@ -562,17 +642,35 @@ export function BikeRideManager() {
                 <div>
                   <Label>Route Map Image</Label>
                   {formRouteMapUrl ? (
-                    <div className="relative mt-1">
-                      <img src={formRouteMapUrl} alt="Route map" className="rounded-lg border max-h-48 w-full object-cover" />
+                    <div className="space-y-2 mt-1">
+                      <div className="relative">
+                        <img src={formRouteMapUrl} alt="Route map" className="rounded-lg border max-h-48 w-full object-cover" />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-2 right-2 h-7 w-7"
+                          onClick={() => { setFormRouteMapUrl(""); setFormRouteWaypoints(null); }}
+                          type="button"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <Button
-                        size="icon"
-                        variant="destructive"
-                        className="absolute top-2 right-2 h-7 w-7"
-                        onClick={() => setFormRouteMapUrl("")}
+                        size="sm"
+                        variant="outline"
+                        onClick={analyzeRouteImage}
+                        disabled={analyzingRoute}
+                        className="w-full"
                         type="button"
                       >
-                        <X className="h-4 w-4" />
+                        {analyzingRoute ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                        {analyzingRoute ? "Analyzing route..." : formRouteWaypoints ? `Re-analyze (${formRouteWaypoints.length} waypoints)` : "AI: Extract Route Waypoints"}
                       </Button>
+                      {formRouteWaypoints && (
+                        <p className="text-xs text-muted-foreground">
+                          ✅ {formRouteWaypoints.length} waypoints extracted — will render on Google Maps
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-1">
@@ -583,7 +681,8 @@ export function BikeRideManager() {
                           ) : (
                             <>
                               <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                              <p className="text-sm text-muted-foreground">Click to upload route map</p>
+                              <p className="text-sm text-muted-foreground">Upload route map image</p>
+                              <p className="text-xs text-muted-foreground mt-1">AI will extract waypoints to render on Google Maps</p>
                             </>
                           )}
                         </div>
@@ -594,6 +693,41 @@ export function BikeRideManager() {
                 </div>
               </div>
             </div>
+
+            {/* Scenic Photos - only when editing */}
+            {editingEvent && (
+              <div className="border-t pt-4 mt-2">
+                <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <ImageIcon className="h-4 w-4" /> Scenic Photos Along the Route
+                </p>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {scenicPhotos.map(photo => (
+                    <div key={photo.id} className="relative group">
+                      <img src={photo.image_url} alt={photo.caption || "Scenic"} className="rounded-md border h-20 w-full object-cover" />
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => deleteScenicPhoto(photo.id)}
+                        type="button"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <label className="cursor-pointer">
+                  <div className="border-2 border-dashed rounded-lg p-3 text-center hover:border-primary/50 transition-colors">
+                    {uploadingScenicPhoto ? (
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">+ Add scenic photo</p>
+                    )}
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleScenicPhotoUpload} disabled={uploadingScenicPhoto} />
+                </label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
