@@ -10,7 +10,7 @@ const corsHeaders = {
 
 const checkoutSchema = z.object({
   amount: z.number()
-    .min(100, "Minimum amount is $100")
+    .min(1, "Minimum amount is $1")
     .max(100000, "Maximum amount is $100,000"),
   tier_name: z.string().max(200).optional(),
   email: z.string().email().max(255).toLowerCase().trim(),
