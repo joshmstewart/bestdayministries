@@ -169,6 +169,8 @@ export function BikeRideManager() {
       setFormAidStations(event.aid_stations || []);
       setFormRiderBio(event.rider_bio || "");
       setFormRiderImageUrl(event.rider_image_url || "");
+      setFormRaceLogoUrl((event as any).race_logo_url || "");
+      setLogoCandidates([]);
       fetchScenicPhotos(event.id);
     } else {
       setEditingEvent(null);
