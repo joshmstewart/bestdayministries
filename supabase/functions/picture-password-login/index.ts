@@ -81,13 +81,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user email for signing in
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(
-      passwordData.user_id
-    );
+    // Get user email for signing in (with retry for transient 503s)
+    let userData: any = null;
+    let userError: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = await supabase.auth.admin.getUserById(passwordData.user_id);
+      userData = result.data;
+      userError = result.error;
+      if (!userError) break;
+      console.warn(`getUserById attempt ${attempt + 1} failed:`, userError.message || userError);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    }
 
-    if (userError || !userData.user) {
-      console.error("Error fetching user:", userError);
+    if (userError || !userData?.user) {
+      console.error("Error fetching user after retries:", userError);
       return new Response(
         JSON.stringify({ success: false, error: "User not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
