@@ -39,6 +39,7 @@ const difficultyColor = (rating: string) => {
 export default function BikeRides() {
   const [events, setEvents] = useState<BikeEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [defaultPhotos, setDefaultPhotos] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -50,6 +51,21 @@ export default function BikeRides() {
 
       if (!error && data) {
         setEvents(data);
+        
+        // Fetch default scenic photos for events without cover images
+        const idsNeedingPhoto = data.filter(e => !e.cover_image_url).map(e => e.id);
+        if (idsNeedingPhoto.length > 0) {
+          const { data: photos } = await supabase
+            .from("bike_ride_scenic_photos")
+            .select("event_id, image_url")
+            .in("event_id", idsNeedingPhoto)
+            .eq("is_default", true);
+          if (photos) {
+            const map: Record<string, string> = {};
+            photos.forEach(p => { map[p.event_id] = p.image_url; });
+            setDefaultPhotos(map);
+          }
+        }
       }
       setLoading(false);
     };
