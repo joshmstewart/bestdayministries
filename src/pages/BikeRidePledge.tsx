@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard } from "lucide-react";
+import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation } from "lucide-react";
 
 interface BikeEvent {
   id: string;
@@ -25,6 +25,9 @@ interface BikeEvent {
   actual_miles: number | null;
   status: string;
   cover_image_url: string | null;
+  start_location: string | null;
+  end_location: string | null;
+  route_map_image_url: string | null;
 }
 
 interface EventStats {
@@ -153,6 +156,7 @@ function PledgeCardForm({
 }
 
 export default function BikeRidePledge() {
+  const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
   const [stats, setStats] = useState<EventStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,6 +193,7 @@ export default function BikeRidePledge() {
   useEffect(() => {
     fetchEventStatus();
     fetchStripeKey();
+    fetchGoogleMapsKey();
   }, []);
 
   const fetchStripeKey = async () => {
@@ -202,6 +207,17 @@ export default function BikeRidePledge() {
       }
     } catch (err) {
       console.error("Error fetching Stripe key:", err);
+    }
+  };
+
+  const fetchGoogleMapsKey = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-google-places-key");
+      if (!error && data?.apiKey) {
+        setGoogleMapsKey(data.apiKey);
+      }
+    } catch (err) {
+      console.error("Error fetching Google Maps key:", err);
     }
   };
 
@@ -359,6 +375,73 @@ export default function BikeRidePledge() {
                     <p className="text-sm text-muted-foreground">Per-Mile Pledgers</p>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Route Map Section */}
+        {(event.start_location || event.end_location || event.route_map_image_url) && (
+          <section className="py-8 border-b">
+            <div className="container max-w-4xl mx-auto px-4">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                The Route
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Google Map with Start/End */}
+                {(event.start_location || event.end_location) && (
+                  <div className="space-y-3">
+                    {event.start_location && (
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Navigation className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground">START</p>
+                          <p className="text-sm font-medium">{event.start_location}</p>
+                        </div>
+                      </div>
+                    )}
+                    {event.end_location && (
+                      <div className="flex items-start gap-2">
+                        <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <MapPin className="h-3 w-3 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground">FINISH</p>
+                          <p className="text-sm font-medium">{event.end_location}</p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Embedded Google Map */}
+                    {googleMapsKey && (
+                      <div className="rounded-lg overflow-hidden border mt-2">
+                        <iframe
+                          width="100%"
+                          height="300"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          src={`https://www.google.com/maps/embed/v1/directions?key=${googleMapsKey}&origin=${encodeURIComponent(event.start_location || '')}&destination=${encodeURIComponent(event.end_location || event.start_location || '')}&mode=bicycling`}
+                          allowFullScreen
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Route Map Image */}
+                {event.route_map_image_url && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Planned Route</p>
+                    <img
+                      src={event.route_map_image_url}
+                      alt="Bike ride route map"
+                      className="rounded-lg border w-full object-contain max-h-[400px]"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </section>

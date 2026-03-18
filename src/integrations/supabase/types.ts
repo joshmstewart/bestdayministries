@@ -1138,11 +1138,14 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
+          end_location: string | null
           id: string
           is_active: boolean
           mile_goal: number
           ride_date: string
           rider_name: string
+          route_map_image_url: string | null
+          start_location: string | null
           status: string
           title: string
           updated_at: string
@@ -1153,11 +1156,14 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
+          end_location?: string | null
           id?: string
           is_active?: boolean
           mile_goal: number
           ride_date: string
           rider_name: string
+          route_map_image_url?: string | null
+          start_location?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -1168,11 +1174,14 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
+          end_location?: string | null
           id?: string
           is_active?: boolean
           mile_goal?: number
           ride_date?: string
           rider_name?: string
+          route_map_image_url?: string | null
+          start_location?: string | null
           status?: string
           title?: string
           updated_at?: string

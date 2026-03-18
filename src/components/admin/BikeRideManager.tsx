@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 
@@ -24,6 +24,9 @@ interface BikeEvent {
   status: string;
   is_active: boolean;
   created_at: string;
+  start_location: string | null;
+  end_location: string | null;
+  route_map_image_url: string | null;
 }
 
 interface Pledge {
@@ -57,6 +60,10 @@ export function BikeRideManager() {
   const [formRiderName, setFormRiderName] = useState("");
   const [formRideDate, setFormRideDate] = useState("");
   const [formMileGoal, setFormMileGoal] = useState("118");
+  const [formStartLocation, setFormStartLocation] = useState("");
+  const [formEndLocation, setFormEndLocation] = useState("");
+  const [formRouteMapUrl, setFormRouteMapUrl] = useState("");
+  const [uploadingRouteMap, setUploadingRouteMap] = useState(false);
   const [formSaving, setFormSaving] = useState(false);
 
   // Process charges state
@@ -103,6 +110,9 @@ export function BikeRideManager() {
       setFormRiderName(event.rider_name);
       setFormRideDate(event.ride_date);
       setFormMileGoal(String(event.mile_goal));
+      setFormStartLocation(event.start_location || "");
+      setFormEndLocation(event.end_location || "");
+      setFormRouteMapUrl(event.route_map_image_url || "");
     } else {
       setEditingEvent(null);
       setFormTitle("");
@@ -110,6 +120,9 @@ export function BikeRideManager() {
       setFormRiderName("");
       setFormRideDate("");
       setFormMileGoal("118");
+      setFormStartLocation("");
+      setFormEndLocation("");
+      setFormRouteMapUrl("");
     }
     setShowCreateDialog(true);
   };
@@ -127,6 +140,9 @@ export function BikeRideManager() {
         rider_name: formRiderName,
         ride_date: formRideDate,
         mile_goal: Number(formMileGoal),
+        start_location: formStartLocation || null,
+        end_location: formEndLocation || null,
+        route_map_image_url: formRouteMapUrl || null,
       };
 
       if (editingEvent) {
@@ -184,6 +200,34 @@ export function BikeRideManager() {
       showErrorToastWithCopy("Reconciling pledges", err);
     } finally {
       setReconciling(false);
+    }
+  };
+
+  const handleRouteMapUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingRouteMap(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const filePath = `bike-ride-routes/${Date.now()}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('app-assets')
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('app-assets')
+        .getPublicUrl(filePath);
+      
+      setFormRouteMapUrl(publicUrl);
+      toast({ title: "Route map uploaded" });
+    } catch (err) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploadingRouteMap(false);
     }
   };
 
@@ -499,6 +543,56 @@ export function BikeRideManager() {
             <div>
               <Label>Description</Label>
               <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Tell supporters about the ride..." rows={3} />
+            </div>
+            
+            {/* Route Information */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" /> Route Information
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <Label>Start Location</Label>
+                  <Input value={formStartLocation} onChange={e => setFormStartLocation(e.target.value)} placeholder="e.g., City Park, Denver CO" />
+                </div>
+                <div>
+                  <Label>End Location</Label>
+                  <Input value={formEndLocation} onChange={e => setFormEndLocation(e.target.value)} placeholder="e.g., Red Rocks Amphitheatre, Morrison CO" />
+                </div>
+                <div>
+                  <Label>Route Map Image</Label>
+                  {formRouteMapUrl ? (
+                    <div className="relative mt-1">
+                      <img src={formRouteMapUrl} alt="Route map" className="rounded-lg border max-h-48 w-full object-cover" />
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-2 right-2 h-7 w-7"
+                        onClick={() => setFormRouteMapUrl("")}
+                        type="button"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <label className="cursor-pointer">
+                        <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                          {uploadingRouteMap ? (
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                          ) : (
+                            <>
+                              <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                              <p className="text-sm text-muted-foreground">Click to upload route map</p>
+                            </>
+                          )}
+                        </div>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleRouteMapUpload} disabled={uploadingRouteMap} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
