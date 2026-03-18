@@ -132,7 +132,8 @@ const NightOfJoy = () => {
     general: 0, kids: 0, bestie: 0, "little-ones": 0,
   });
   const [ticketEmail, setTicketEmail] = useState("");
-  const [ticketName, setTicketName] = useState("");
+  const [ticketFirstName, setTicketFirstName] = useState("");
+  const [ticketLastName, setTicketLastName] = useState("");
 
   const updateTierCount = (tierId: TicketTierId, delta: number) => {
     setTicketCounts(prev => ({
