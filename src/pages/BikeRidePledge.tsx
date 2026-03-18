@@ -404,6 +404,17 @@ export default function BikeRidePledge() {
                   <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">{event.description}</p>
                 )}
 
+                {!isCompleted && (
+                  <Button
+                    size="lg"
+                    className="mt-6"
+                    onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  >
+                    <Heart className="h-5 w-5 mr-2" />
+                    Pledge Your Support
+                  </Button>
+                )}
+
                 {isCompleted && event.actual_miles && (
                   <div className="mt-6 bg-card/80 backdrop-blur-sm rounded-xl p-6 max-w-md mx-auto border">
                     <p className="text-sm text-muted-foreground mb-1">Actual Miles Ridden</p>
