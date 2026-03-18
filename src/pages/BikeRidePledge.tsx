@@ -28,6 +28,14 @@ interface BikeEvent {
   start_location: string | null;
   end_location: string | null;
   route_map_image_url: string | null;
+  race_url: string | null;
+  route_waypoints: any[] | null;
+}
+
+interface ScenicPhoto {
+  id: string;
+  image_url: string;
+  caption: string | null;
 }
 
 interface EventStats {
