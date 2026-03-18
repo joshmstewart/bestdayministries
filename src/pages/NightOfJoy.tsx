@@ -615,7 +615,7 @@ const NightOfJoy = () => {
                             </span>
                             <button
                               type="button"
-                              onClick={() => updateTierCount(tier.id, 1)}
+                              onClick={() => updateTierCount(tier.id as TicketTierId, 1)}
                               disabled={count >= 10}
                               className="w-9 h-9 rounded-full border border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
