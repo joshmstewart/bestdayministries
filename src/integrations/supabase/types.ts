@@ -1147,6 +1147,7 @@ export type Database = {
           is_active: boolean
           key_climbs: string[] | null
           mile_goal: number
+          race_logo_url: string | null
           race_url: string | null
           registration_url: string | null
           ride_date: string
@@ -1178,6 +1179,7 @@ export type Database = {
           is_active?: boolean
           key_climbs?: string[] | null
           mile_goal: number
+          race_logo_url?: string | null
           race_url?: string | null
           registration_url?: string | null
           ride_date: string
@@ -1209,6 +1211,7 @@ export type Database = {
           is_active?: boolean
           key_climbs?: string[] | null
           mile_goal?: number
+          race_logo_url?: string | null
           race_url?: string | null
           registration_url?: string | null
           ride_date?: string
