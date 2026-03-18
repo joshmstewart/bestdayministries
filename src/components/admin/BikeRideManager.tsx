@@ -807,10 +807,11 @@ export function BikeRideManager() {
                          ) : (
                            <span className="font-semibold">${pledge.flat_amount?.toFixed(2)}</span>
                          )}
-                         <span className={`text-xs block ${chargeStatusColor(pledge.charge_status)}`}>
-                           {pledge.charge_status}
-                           {pledge.calculated_total != null && ` · $${pledge.calculated_total.toFixed(2)}`}
-                         </span>
+                          <span className={`text-xs block ${chargeStatusColor(pledge.charge_status)}`}>
+                            {pledge.charge_status}
+                            {pledge.calculated_total != null && ` · $${pledge.calculated_total.toFixed(2)}`}
+                            {pledge.cover_stripe_fee && ' · +fees'}
+                          </span>
                          {pledge.charge_error && (
                            <span className="text-xs text-destructive block">{pledge.charge_error}</span>
                          )}
