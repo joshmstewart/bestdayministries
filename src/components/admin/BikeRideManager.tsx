@@ -119,6 +119,7 @@ export function BikeRideManager() {
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
   const [chargeResults, setChargeResults] = useState<any>(null);
+  const [hasLivePledges, setHasLivePledges] = useState(false);
 
   const generateSlug = (title: string, rideDate: string) => {
     const year = rideDate ? new Date(rideDate + "T00:00:00").getFullYear() : new Date().getFullYear();
@@ -163,7 +164,7 @@ export function BikeRideManager() {
     setPledges((data as any[]) || []);
   };
 
-  const openCreateDialog = (event?: BikeEvent) => {
+  const openCreateDialog = async (event?: BikeEvent) => {
     if (event) {
       setEditingEvent(event);
       setFormTitle(event.title);
@@ -194,8 +195,18 @@ export function BikeRideManager() {
       setFormSlug(event.slug || "");
       setSlugSuggestion(event.slug ? "" : generateSlug(event.title, event.ride_date));
       fetchScenicPhotos(event.id);
+
+      // Check if there are any LIVE confirmed pledges — locks mile_goal editing
+      const { count } = await supabase
+        .from('bike_ride_pledges')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', event.id)
+        .eq('stripe_mode', 'live')
+        .in('charge_status', ['confirmed', 'charged']);
+      setHasLivePledges((count || 0) > 0);
     } else {
       setEditingEvent(null);
+      setHasLivePledges(false);
       setFormTitle("");
       setFormDescription("");
       setFormRiderName("");
@@ -1018,7 +1029,19 @@ export function BikeRideManager() {
               </div>
               <div>
                 <Label>Mile Goal *</Label>
-                <Input type="number" value={formMileGoal} onChange={e => setFormMileGoal(e.target.value)} min={1} />
+                <Input
+                  type="number"
+                  value={formMileGoal}
+                  onChange={e => setFormMileGoal(e.target.value)}
+                  min={1}
+                  disabled={hasLivePledges}
+                />
+                {hasLivePledges && (
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 text-amber-500" />
+                    Locked — live pledges exist against this goal
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Start Time</Label>
