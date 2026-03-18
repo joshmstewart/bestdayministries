@@ -30,6 +30,7 @@ Deno.serve(async (req: Request) => {
     const eventId = urlObj.searchParams.get('eventId')
     const newsletterId = urlObj.searchParams.get('newsletterId')
     const pageId = urlObj.searchParams.get('pageId')
+    const bikeRideId = urlObj.searchParams.get('bikeRideId')
     const redirect = urlObj.searchParams.get('redirect')
 
     // Load SEO settings
