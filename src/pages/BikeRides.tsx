@@ -38,6 +38,45 @@ const difficultyColor = (rating: string) => {
   }
 };
 
+/** Detects if logo has transparency and applies dark bg for white/light logos */
+function RaceLogoOnCard({ src }: { src: string }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [hasTransparency, setHasTransparency] = useState(false);
+
+  const checkTransparency = useCallback(() => {
+    const img = imgRef.current;
+    if (!img || !img.naturalWidth) return;
+    try {
+      const canvas = document.createElement("canvas");
+      const size = 64;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+      for (let i = 3; i < data.length; i += 16) {
+        if (data[i] < 240) { setHasTransparency(true); return; }
+      }
+    } catch { /* CORS — fall back to default */ }
+  }, []);
+
+  return (
+    <div className="absolute bottom-2 left-3">
+      <img
+        ref={imgRef}
+        src={src}
+        alt=""
+        crossOrigin="anonymous"
+        onLoad={checkTransparency}
+        className={`h-10 max-w-[100px] object-contain drop-shadow-lg rounded px-1.5 py-0.5 ${
+          hasTransparency ? "bg-gray-900/80" : "bg-background/80"
+        }`}
+      />
+    </div>
+  );
+}
+
 export default function BikeRides() {
   const [events, setEvents] = useState<BikeEvent[]>([]);
   const [loading, setLoading] = useState(true);
