@@ -102,6 +102,7 @@ serve(async (req) => {
         max_total: String(maxTotal.toFixed(2)),
         pledger_name,
         pledger_email,
+        cover_stripe_fee: cover_stripe_fee ? 'true' : 'false',
       },
     });
 

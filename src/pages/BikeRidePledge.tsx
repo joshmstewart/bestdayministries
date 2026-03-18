@@ -298,6 +298,7 @@ export default function BikeRidePledge() {
           cents_per_mile: centsPerMile,
           message: message.trim() || undefined,
           force_test_mode: forceTestMode,
+          cover_stripe_fee: coverFees,
         },
       });
 
