@@ -1150,6 +1150,8 @@ export type Database = {
           race_url: string | null
           registration_url: string | null
           ride_date: string
+          rider_bio: string | null
+          rider_image_url: string | null
           rider_name: string
           ridewithgps_url: string | null
           route_description: string | null
@@ -1179,6 +1181,8 @@ export type Database = {
           race_url?: string | null
           registration_url?: string | null
           ride_date: string
+          rider_bio?: string | null
+          rider_image_url?: string | null
           rider_name: string
           ridewithgps_url?: string | null
           route_description?: string | null
@@ -1208,6 +1212,8 @@ export type Database = {
           race_url?: string | null
           registration_url?: string | null
           ride_date?: string
+          rider_bio?: string | null
+          rider_image_url?: string | null
           rider_name?: string
           ridewithgps_url?: string | null
           route_description?: string | null

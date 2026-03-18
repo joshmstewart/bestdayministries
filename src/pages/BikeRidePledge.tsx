@@ -42,6 +42,8 @@ interface BikeEvent {
   registration_url: string | null;
   finish_description: string | null;
   route_description: string | null;
+  rider_bio: string | null;
+  rider_image_url: string | null;
 }
 
 interface ScenicPhoto {
@@ -468,6 +470,27 @@ export default function BikeRidePledge() {
                     </p>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Rider Bio */}
+        {(event.rider_bio || event.rider_image_url) && (
+          <section className="py-8 border-b">
+            <div className="container max-w-4xl mx-auto px-4">
+              <h2 className="text-xl font-bold mb-4 text-center">Meet the Rider</h2>
+              <div className="flex flex-col md:flex-row items-center gap-6 max-w-2xl mx-auto">
+                {event.rider_image_url && (
+                  <img
+                    src={event.rider_image_url}
+                    alt={event.rider_name}
+                    className="h-32 w-32 rounded-full object-cover border-2 border-primary/20 flex-shrink-0"
+                  />
+                )}
+                {event.rider_bio && (
+                  <p className="text-muted-foreground text-center md:text-left">{event.rider_bio}</p>
+                )}
               </div>
             </div>
           </section>
