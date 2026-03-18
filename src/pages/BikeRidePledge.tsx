@@ -494,7 +494,7 @@ export default function BikeRidePledge() {
         )}
 
         {/* Scenic Photos */}
-        {scenicPhotos.length > 0 && (
+        {scenicPhotos.filter(p => !p.is_default).length > 0 && (
           <section className="py-8 border-b">
             <div className="container max-w-4xl mx-auto px-4">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
