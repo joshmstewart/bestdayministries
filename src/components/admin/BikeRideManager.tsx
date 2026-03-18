@@ -328,7 +328,7 @@ export function BikeRideManager() {
     setImportingRace(true);
     try {
       const { data, error } = await supabase.functions.invoke("extract-race-info", {
-        body: { url: importUrl },
+        body: { url: importUrl, deepCrawl },
       });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Extraction failed");
