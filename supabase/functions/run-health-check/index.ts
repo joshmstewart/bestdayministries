@@ -46,6 +46,7 @@ const ALL_FUNCTIONS: { name: string; tier: string }[] = [
   { name: 'send-contact-email', tier: 'important' },
   { name: 'send-contact-reply', tier: 'important' },
   { name: 'notify-admin-new-contact', tier: 'important' },
+  { name: 'notify-admin-noj-activity', tier: 'important' },
   { name: 'send-approval-notification', tier: 'important' },
   { name: 'send-message-notification', tier: 'important' },
   { name: 'record-terms-acceptance', tier: 'important' },
