@@ -120,7 +120,8 @@ const NightOfJoy = () => {
   const [formMode, setFormMode] = useState<FormMode>("inquire");
   const [formData, setFormData] = useState({
     businessName: "",
-    contactName: "",
+    contactFirstName: "",
+    contactLastName: "",
     phone: "",
     email: "",
     selectedTier: "",
