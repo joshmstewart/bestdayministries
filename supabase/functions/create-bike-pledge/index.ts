@@ -38,7 +38,7 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { event_id, pledger_name, pledger_email, pledge_type, cents_per_mile, message, force_test_mode } = validation.data;
+    const { event_id, pledger_name, pledger_email, pledge_type, cents_per_mile, message, force_test_mode, cover_stripe_fee } = validation.data;
 
     if (pledge_type === 'per_mile' && !cents_per_mile) {
       throw new Error('cents_per_mile is required for per_mile pledges');
