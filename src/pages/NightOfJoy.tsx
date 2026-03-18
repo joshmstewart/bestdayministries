@@ -120,7 +120,8 @@ const NightOfJoy = () => {
   const [formMode, setFormMode] = useState<FormMode>("inquire");
   const [formData, setFormData] = useState({
     businessName: "",
-    contactName: "",
+    contactFirstName: "",
+    contactLastName: "",
     phone: "",
     email: "",
     selectedTier: "",
@@ -132,7 +133,8 @@ const NightOfJoy = () => {
     general: 0, kids: 0, bestie: 0, "little-ones": 0,
   });
   const [ticketEmail, setTicketEmail] = useState("");
-  const [ticketName, setTicketName] = useState("");
+  const [ticketFirstName, setTicketFirstName] = useState("");
+  const [ticketLastName, setTicketLastName] = useState("");
 
   const updateTierCount = (tierId: TicketTierId, delta: number) => {
     setTicketCounts(prev => ({
@@ -157,13 +159,19 @@ const NightOfJoy = () => {
 
   useEffect(() => {
     if (profile || user) {
+      const displayName = profile?.display_name || '';
+      const nameParts = displayName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       setFormData(prev => ({
         ...prev,
-        contactName: prev.contactName || profile?.display_name || '',
+        contactFirstName: prev.contactFirstName || firstName,
+        contactLastName: prev.contactLastName || lastName,
         email: prev.email || user?.email || '',
       }));
       setTicketEmail(prev => prev || user?.email || '');
-      setTicketName(prev => prev || profile?.display_name || '');
+      setTicketFirstName(prev => prev || firstName);
+      setTicketLastName(prev => prev || lastName);
     }
   }, [profile, user]);
 
@@ -216,8 +224,8 @@ const NightOfJoy = () => {
 
   const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.contactName || !formData.email) {
-      toast.error("Please fill in your name and email.");
+    if (!formData.contactFirstName || !formData.contactLastName || !formData.email) {
+      toast.error("Please fill in your first name, last name, and email.");
       return;
     }
     setSubmitting(true);
@@ -230,7 +238,7 @@ const NightOfJoy = () => {
         }
       }
       const { error } = await supabase.from("contact_form_submissions").insert({
-        name: formData.contactName,
+        name: `${formData.contactFirstName} ${formData.contactLastName}`.trim(),
         email: formData.email,
         subject: `Night of Joy Sponsorship - ${formData.selectedTier || 'General Inquiry'}`,
         message: `Business: ${formData.businessName}\nPhone: ${formData.phone}\nPayment Method: ${formData.paymentMethod}\n\n${formData.message}`,
@@ -269,6 +277,10 @@ const NightOfJoy = () => {
 
   const handlePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.contactFirstName || !formData.contactLastName) {
+      toast.error("Please enter your first and last name.");
+      return;
+    }
     if (!formData.email) {
       toast.error("Please enter your email address.");
       return;
@@ -288,7 +300,7 @@ const NightOfJoy = () => {
           amount,
           tier_name: selectedTierObj ? `${selectedTierObj.name} - $${selectedTierObj.amount.toLocaleString()}` : undefined,
           email: formData.email,
-          contact_name: formData.contactName || undefined,
+          contact_name: `${formData.contactFirstName} ${formData.contactLastName}`.trim() || undefined,
           business_name: formData.businessName || undefined,
           cover_stripe_fee: true,
         },
@@ -305,6 +317,10 @@ const NightOfJoy = () => {
   };
 
   const handleTicketPurchase = async () => {
+    if (!ticketFirstName || !ticketLastName) {
+      toast.error("Please enter your first and last name.");
+      return;
+    }
     if (!ticketEmail) {
       toast.error("Please enter your email address.");
       return;
@@ -325,7 +341,7 @@ const NightOfJoy = () => {
         body: {
           ticket_items: ticketItems,
           email: ticketEmail,
-          contact_name: ticketName || undefined,
+          contact_name: `${ticketFirstName} ${ticketLastName}`.trim() || undefined,
           cover_stripe_fee: true,
         },
       });
@@ -687,12 +703,24 @@ const NightOfJoy = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="ticket-name" className="text-amber-200/80">Name</Label>
+                      <Label htmlFor="ticket-first-name" className="text-amber-200/80">First Name *</Label>
                       <Input
-                        id="ticket-name"
-                        value={ticketName}
-                        onChange={(e) => setTicketName(e.target.value)}
-                        placeholder="Your name"
+                        id="ticket-first-name"
+                        value={ticketFirstName}
+                        onChange={(e) => setTicketFirstName(e.target.value)}
+                        required
+                        placeholder="First name"
+                        className={inputClasses}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ticket-last-name" className="text-amber-200/80">Last Name *</Label>
+                      <Input
+                        id="ticket-last-name"
+                        value={ticketLastName}
+                        onChange={(e) => setTicketLastName(e.target.value)}
+                        required
+                        placeholder="Last name"
                         className={inputClasses}
                       />
                     </div>
@@ -701,7 +729,7 @@ const NightOfJoy = () => {
                   <Button
                     size="lg"
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30"
-                    disabled={submitting || !ticketEmail || totalTickets === 0}
+                    disabled={submitting || !ticketEmail || !ticketFirstName || !ticketLastName || totalTickets === 0}
                     onClick={handleTicketPurchase}
                   >
                     {submitting ? (
@@ -899,8 +927,12 @@ const NightOfJoy = () => {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="contactName" className="text-amber-200/80">Contact Name *</Label>
-                          <Input id="contactName" value={formData.contactName} onChange={(e) => handleChange("contactName", e.target.value)} required className={inputClasses} />
+                          <Label htmlFor="contactFirstName" className="text-amber-200/80">First Name *</Label>
+                          <Input id="contactFirstName" value={formData.contactFirstName} onChange={(e) => handleChange("contactFirstName", e.target.value)} required className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contactLastName" className="text-amber-200/80">Last Name *</Label>
+                          <Input id="contactLastName" value={formData.contactLastName} onChange={(e) => handleChange("contactLastName", e.target.value)} required className={inputClasses} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="businessName" className="text-amber-200/80">Business / Organization</Label>
@@ -1009,8 +1041,12 @@ const NightOfJoy = () => {
                           <Input id="pay-email" type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} required placeholder="your@email.com" className={inputClasses} />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="pay-name" className="text-amber-200/80">Name</Label>
-                          <Input id="pay-name" value={formData.contactName} onChange={(e) => handleChange("contactName", e.target.value)} placeholder="Your name" className={inputClasses} />
+                          <Label htmlFor="pay-first-name" className="text-amber-200/80">First Name *</Label>
+                          <Input id="pay-first-name" value={formData.contactFirstName} onChange={(e) => handleChange("contactFirstName", e.target.value)} required placeholder="First name" className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="pay-last-name" className="text-amber-200/80">Last Name *</Label>
+                          <Input id="pay-last-name" value={formData.contactLastName} onChange={(e) => handleChange("contactLastName", e.target.value)} required placeholder="Last name" className={inputClasses} />
                         </div>
                         <div className="space-y-2 sm:col-span-2">
                           <Label htmlFor="pay-business" className="text-amber-200/80">Business / Organization</Label>
