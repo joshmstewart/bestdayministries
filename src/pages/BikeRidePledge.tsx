@@ -730,8 +730,10 @@ export default function BikeRidePledge() {
                     </a>
                   </div>
                 );
-              })() : googleMapsKey ? (
-                /* Fallback: Google Map with waypoints */
+              })() : null}
+
+              {/* Google Maps — shown as fallback (no RWGPS) or when admin enables it alongside RWGPS */}
+              {googleMapsKey && (!event.ridewithgps_url || (event as any).show_google_map) && (
                 <div className="rounded-lg overflow-hidden border">
                   {event.route_waypoints?.length ? (
                     <BikeRouteMap
@@ -752,7 +754,7 @@ export default function BikeRidePledge() {
                     />
                   ) : null}
                 </div>
-              ) : null}
+              )}
             </div>
           </section>
         )}

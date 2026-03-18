@@ -1159,6 +1159,7 @@ export type Database = {
           route_description: string | null
           route_map_image_url: string | null
           route_waypoints: Json | null
+          show_google_map: boolean
           slug: string | null
           start_location: string | null
           start_time: string | null
@@ -1193,6 +1194,7 @@ export type Database = {
           route_description?: string | null
           route_map_image_url?: string | null
           route_waypoints?: Json | null
+          show_google_map?: boolean
           slug?: string | null
           start_location?: string | null
           start_time?: string | null
@@ -1227,6 +1229,7 @@ export type Database = {
           route_description?: string | null
           route_map_image_url?: string | null
           route_waypoints?: Json | null
+          show_google_map?: boolean
           slug?: string | null
           start_location?: string | null
           start_time?: string | null

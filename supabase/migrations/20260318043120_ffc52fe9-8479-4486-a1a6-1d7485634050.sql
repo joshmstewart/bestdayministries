@@ -1,0 +1,1 @@
+ALTER TABLE public.bike_ride_events ADD COLUMN show_google_map BOOLEAN NOT NULL DEFAULT false;

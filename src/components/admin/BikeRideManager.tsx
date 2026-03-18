@@ -114,6 +114,7 @@ export function BikeRideManager() {
   const [formSlug, setFormSlug] = useState("");
   const [slugSuggestion, setSlugSuggestion] = useState("");
   const [formRwgpsEmbedMode, setFormRwgpsEmbedMode] = useState("embed");
+  const [formShowGoogleMap, setFormShowGoogleMap] = useState(false);
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
@@ -179,6 +180,7 @@ export function BikeRideManager() {
       setFormDifficulty(event.difficulty_rating || "");
       setFormRideWithGpsUrl(event.ridewithgps_url || "");
       setFormRwgpsEmbedMode(event.ridewithgps_embed_mode || "embed");
+      setFormShowGoogleMap((event as any).show_google_map || false);
       setFormKeyClimbs(event.key_climbs?.join(", ") || "");
       setFormStartTime(event.start_time || "");
       setFormRegistrationUrl(event.registration_url || "");
@@ -208,6 +210,7 @@ export function BikeRideManager() {
       setFormDifficulty("");
       setFormRideWithGpsUrl("");
       setFormRwgpsEmbedMode("embed");
+      setFormShowGoogleMap(false);
       setFormKeyClimbs("");
       setFormStartTime("");
       setFormRegistrationUrl("");
@@ -249,6 +252,7 @@ export function BikeRideManager() {
         difficulty_rating: formDifficulty || null,
         ridewithgps_url: formRideWithGpsUrl || null,
         ridewithgps_embed_mode: formRwgpsEmbedMode,
+        show_google_map: formShowGoogleMap,
         key_climbs: formKeyClimbs ? formKeyClimbs.split(",").map(s => s.trim()).filter(Boolean) : null,
         start_time: formStartTime || null,
         registration_url: formRegistrationUrl || null,
@@ -1251,6 +1255,18 @@ export function BikeRideManager() {
                     </p>
                   </div>
                 )}
+                <div className="flex items-center gap-3 mt-2">
+                  <input
+                    type="checkbox"
+                    id="show-google-map"
+                    checked={formShowGoogleMap}
+                    onChange={e => setFormShowGoogleMap(e.target.checked)}
+                    className="rounded border-input"
+                  />
+                  <Label htmlFor="show-google-map" className="cursor-pointer text-sm">
+                    Also show Google Maps route (uses start/end locations)
+                  </Label>
+                </div>
                 <div>
                   <Label>Route Map Image</Label>
                   {formRouteMapUrl ? (
