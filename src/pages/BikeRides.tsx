@@ -221,9 +221,7 @@ function BikeRideCard({ event, isPast, fallbackImage }: { event: BikeEvent; isPa
           )}
           {/* Race logo */}
           {event.race_logo_url && (
-            <div className="absolute bottom-2 left-3">
-              <img src={event.race_logo_url} alt="" className="h-10 max-w-[100px] object-contain drop-shadow-md bg-background/80 rounded px-1.5 py-0.5" />
-            </div>
+            <RaceLogoOnCard src={event.race_logo_url} />
           )}
         </div>
 
