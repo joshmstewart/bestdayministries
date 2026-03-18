@@ -57,14 +57,19 @@ const BENEFITS = [
 
 const EVENT_DATE = new Date("2026-06-14T16:00:00");
 const DEADLINE_DATE = new Date("2026-05-04T23:59:59");
-const TICKET_TIERS = [
-  { id: "general", label: "General Admission (13+)", price: 60 },
-  { id: "kids", label: "Kids (6–12)", price: 40 },
-  { id: "bestie", label: "Besties", price: 40 },
-  { id: "little-ones", label: "Little Ones (5 & under)", price: 0 },
-] as const;
 
-type TicketTierId = typeof TICKET_TIERS[number]["id"];
+const DEFAULT_TICKET_PRICES: Record<string, number> = {
+  general: 60, kids: 40, bestie: 40, "little-ones": 0,
+};
+
+const TICKET_TIER_LABELS: { id: string; label: string }[] = [
+  { id: "general", label: "General Admission (13+)" },
+  { id: "kids", label: "Kids (6–12)" },
+  { id: "bestie", label: "Besties" },
+  { id: "little-ones", label: "Little Ones (5 & under)" },
+];
+
+type TicketTierId = "general" | "kids" | "bestie" | "little-ones";
 
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, passed: false });
@@ -95,6 +100,18 @@ const NightOfJoy = () => {
   const [searchParams] = useSearchParams();
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
+  const [ticketPrices, setTicketPrices] = useState<Record<string, number>>(DEFAULT_TICKET_PRICES);
+
+  useEffect(() => {
+    supabase.from("app_settings").select("setting_value").eq("setting_key", "noj_ticket_prices").maybeSingle()
+      .then(({ data }) => {
+        if (data?.setting_value && typeof data.setting_value === "object") {
+          setTicketPrices(prev => ({ ...prev, ...(data.setting_value as Record<string, number>) }));
+        }
+      });
+  }, []);
+
+  const TICKET_TIERS = TICKET_TIER_LABELS.map(t => ({ ...t, price: ticketPrices[t.id] ?? 0 }));
 
   const paymentSuccess = searchParams.get("payment") === "success";
   const paymentType = searchParams.get("type");
@@ -587,7 +604,7 @@ const NightOfJoy = () => {
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
-                              onClick={() => updateTierCount(tier.id, -1)}
+                              onClick={() => updateTierCount(tier.id as TicketTierId, -1)}
                               disabled={count <= 0}
                               className="w-9 h-9 rounded-full border border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
@@ -598,7 +615,7 @@ const NightOfJoy = () => {
                             </span>
                             <button
                               type="button"
-                              onClick={() => updateTierCount(tier.id, 1)}
+                              onClick={() => updateTierCount(tier.id as TicketTierId, 1)}
                               disabled={count >= 10}
                               className="w-9 h-9 rounded-full border border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >

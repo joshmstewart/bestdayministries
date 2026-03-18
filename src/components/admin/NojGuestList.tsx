@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Award, Search, Download, Users, DollarSign, Loader2 } from "lucide-react";
+import { Ticket, Award, Search, Download, Users, DollarSign, Loader2, Settings, Save } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { format } from "date-fns";
 
 interface NojGuest {
@@ -26,10 +28,28 @@ export function NojGuestList() {
   const [guests, setGuests] = useState<NojGuest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [ticketPrices, setTicketPrices] = useState<Record<string, number>>({ general: 60, kids: 40, bestie: 40, "little-ones": 0 });
+  const [savingPrices, setSavingPrices] = useState(false);
 
   useEffect(() => {
     loadGuests();
+    loadPrices();
   }, []);
+
+  const loadPrices = async () => {
+    const { data } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "noj_ticket_prices").maybeSingle();
+    if (data?.setting_value && typeof data.setting_value === "object") {
+      setTicketPrices(prev => ({ ...prev, ...(data.setting_value as Record<string, number>) }));
+    }
+  };
+
+  const savePrices = async () => {
+    setSavingPrices(true);
+    const { error } = await supabase.from("app_settings").update({ setting_value: ticketPrices as any, updated_at: new Date().toISOString() }).eq("setting_key", "noj_ticket_prices");
+    setSavingPrices(false);
+    if (error) { toast.error("Failed to save prices"); return; }
+    toast.success("Ticket prices updated");
+  };
 
   const loadGuests = async () => {
     setLoading(true);
@@ -238,6 +258,44 @@ export function NojGuestList() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Ticket Pricing */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Settings className="h-4 w-4" /> Ticket Pricing
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { id: "general", label: "General (13+)" },
+              { id: "kids", label: "Kids (6–12)" },
+              { id: "bestie", label: "Besties" },
+              { id: "little-ones", label: "Little Ones (5 & under)" },
+            ].map(tier => (
+              <div key={tier.id}>
+                <Label className="text-xs">{tier.label}</Label>
+                <div className="relative mt-1">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={ticketPrices[tier.id] ?? 0}
+                    onChange={e => setTicketPrices(prev => ({ ...prev, [tier.id]: Number(e.target.value) }))}
+                    className="pl-6 h-9"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button size="sm" onClick={savePrices} disabled={savingPrices} className="mt-3">
+            {savingPrices ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+            Save Prices
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Search & Export */}
       <div className="flex flex-col sm:flex-row gap-3">
