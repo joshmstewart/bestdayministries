@@ -140,6 +140,9 @@ export function BikeRideManager() {
         rider_name: formRiderName,
         ride_date: formRideDate,
         mile_goal: Number(formMileGoal),
+        start_location: formStartLocation || null,
+        end_location: formEndLocation || null,
+        route_map_image_url: formRouteMapUrl || null,
       };
 
       if (editingEvent) {
