@@ -131,7 +131,7 @@ export default function BikeRides() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2">
                     {upcoming.map(event => (
-                      <BikeRideCard key={event.id} event={event} />
+                      <BikeRideCard key={event.id} event={event} fallbackImage={defaultPhotos[event.id]} />
                     ))}
                   </div>
                 )}
