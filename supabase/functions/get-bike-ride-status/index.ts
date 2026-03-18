@@ -41,7 +41,7 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const eventId = url.searchParams.get('event_id');
+    const eventId = url.searchParams.get('event_id') || bodyEventId;
 
     // If no event_id, return the first active event
     let query = supabaseAdmin
