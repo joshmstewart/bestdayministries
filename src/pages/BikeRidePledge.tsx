@@ -837,7 +837,7 @@ export default function BikeRidePledge() {
                           <Slider
                             value={[centsPerMile]}
                             onValueChange={([v]) => setCentsPerMile(v)}
-                            min={5}
+                            min={1}
                             max={500}
                             step={5}
                             className="my-4"
