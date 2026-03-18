@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard } from "lucide-react";
+import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation } from "lucide-react";
 
 interface BikeEvent {
   id: string;
