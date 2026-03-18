@@ -55,16 +55,33 @@ export default function BikeRides() {
         // Fetch default scenic photos for events without cover images
         const idsNeedingPhoto = data.filter(e => !e.cover_image_url).map(e => e.id);
         if (idsNeedingPhoto.length > 0) {
-          const { data: photos } = await supabase
+          // First try photos marked as default
+          const { data: defaultPics } = await supabase
             .from("bike_ride_scenic_photos")
             .select("event_id, image_url")
             .in("event_id", idsNeedingPhoto)
             .eq("is_default", true);
-          if (photos) {
-            const map: Record<string, string> = {};
-            photos.forEach(p => { map[p.event_id] = p.image_url; });
-            setDefaultPhotos(map);
+          
+          const map: Record<string, string> = {};
+          if (defaultPics) {
+            defaultPics.forEach(p => { map[p.event_id] = p.image_url; });
           }
+          
+          // For events still without a photo, grab the first one by display_order
+          const stillNeeding = idsNeedingPhoto.filter(id => !map[id]);
+          if (stillNeeding.length > 0) {
+            const { data: firstPics } = await supabase
+              .from("bike_ride_scenic_photos")
+              .select("event_id, image_url")
+              .in("event_id", stillNeeding)
+              .order("display_order", { ascending: true });
+            if (firstPics) {
+              firstPics.forEach(p => {
+                if (!map[p.event_id]) map[p.event_id] = p.image_url;
+              });
+            }
+          }
+          setDefaultPhotos(map);
         }
       }
       setLoading(false);
