@@ -210,6 +210,17 @@ export default function BikeRidePledge() {
     }
   };
 
+  const fetchGoogleMapsKey = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-google-places-key");
+      if (!error && data?.apiKey) {
+        setGoogleMapsKey(data.apiKey);
+      }
+    } catch (err) {
+      console.error("Error fetching Google Maps key:", err);
+    }
+  };
+
   const fetchEventStatus = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("get-bike-ride-status", {
