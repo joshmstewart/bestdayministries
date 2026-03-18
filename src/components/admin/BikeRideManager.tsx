@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star, Globe, Wand2, Mountain, Clock, Flag, Archive, ArchiveRestore, CheckCircle } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star, Globe, Wand2, Mountain, Clock, Flag, Archive, ArchiveRestore, CheckCircle, CreditCard } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
@@ -70,6 +70,7 @@ export function BikeRideManager() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [reconciling, setReconciling] = useState(false);
+  const [checkingCards, setCheckingCards] = useState(false);
 
   // Create/Edit form state
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -370,6 +371,33 @@ export function BikeRideManager() {
       showErrorToastWithCopy("Reconciling pledges", err);
     } finally {
       setReconciling(false);
+    }
+  };
+
+  const handleCheckCards = async (dryRun = true) => {
+    setCheckingCards(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-bike-pledge-cards', {
+        body: { dry_run: dryRun, days_ahead: 14 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const s = data.summary;
+      const expiredList = (data.results || []).filter((r: any) => r.is_expired || r.expires_before_event);
+      if (s.expired_or_expiring === 0) {
+        toast({ title: "All cards look good! ✅", description: `Checked ${s.pledges_checked} pledge(s) across ${s.events_checked} event(s).` });
+      } else {
+        toast({
+          title: `${s.expired_or_expiring} card(s) expiring ⚠️`,
+          description: dryRun
+            ? `Dry run — ${expiredList.map((r: any) => `${r.pledger_name} (${r.card_brand} ****${r.card_last4}, exp ${r.card_exp_month}/${r.card_exp_year})`).join('; ')}. Run again with "Send Emails" to notify them.`
+            : `Sent ${s.emails_sent} warning email(s).`,
+        });
+      }
+    } catch (err) {
+      showErrorToastWithCopy("Checking pledge cards", err);
+    } finally {
+      setCheckingCards(false);
     }
   };
 
@@ -779,8 +807,31 @@ export function BikeRideManager() {
                  >
                    {reconciling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                    Reconcile Pending
-                 </Button>
-               </div>
+                  </Button>
+                  <div className="flex gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCheckCards(true)}
+                      disabled={checkingCards}
+                      title="Check if any pledger cards are expired or expiring (dry run — no emails sent)"
+                    >
+                      {checkingCards ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                      Check Cards
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCheckCards(false)}
+                      disabled={checkingCards}
+                      title="Check cards AND send warning emails to pledgers with expired cards"
+                      className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                    >
+                      {checkingCards ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CreditCard className="h-4 w-4 mr-1" />}
+                      Send Expiry Emails
+                    </Button>
+                  </div>
+                </div>
             </CardHeader>
             <CardContent>
               {pledges.length > 0 ? (
