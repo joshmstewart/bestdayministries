@@ -7,6 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// Rate limiting: 600ms between Stripe charges to stay well under 100 req/s limit
+const DELAY_BETWEEN_CHARGES_MS = 600;
+// Max pledges per invocation to avoid edge function timeout (~60s)
+const DEFAULT_BATCH_SIZE = 25;
+
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -39,11 +48,13 @@ serve(async (req) => {
       throw new Error('Admin access required');
     }
 
-    const { event_id, actual_miles } = await req.json();
+    const { event_id, actual_miles, batch_size } = await req.json();
 
     if (!event_id || actual_miles === undefined || actual_miles === null) {
       throw new Error('event_id and actual_miles are required');
     }
+
+    const maxBatch = Math.min(batch_size || DEFAULT_BATCH_SIZE, 50);
 
     // Get event
     const { data: event, error: eventError } = await supabaseAdmin
@@ -61,37 +72,67 @@ serve(async (req) => {
       throw new Error(`actual_miles (${miles}) cannot exceed mile_goal (${event.mile_goal})`);
     }
 
-    // Update event with actual miles
+    // Update event with actual miles (only set to completed on first run)
     await supabaseAdmin
       .from('bike_ride_events')
       .update({ actual_miles: miles, status: 'completed' })
       .eq('id', event_id);
 
-    // Get all confirmed per-mile pledges (confirmed = card verified via Stripe)
+    // Get ALL confirmed per-mile pledges to know total remaining
+    const { data: allPledges, error: countError } = await supabaseAdmin
+      .from('bike_ride_pledges')
+      .select('id', { count: 'exact' })
+      .eq('event_id', event_id)
+      .eq('pledge_type', 'per_mile')
+      .eq('charge_status', 'confirmed');
+
+    const totalRemaining = allPledges?.length ?? 0;
+
+    // Get batch of confirmed per-mile pledges (limited to batch size)
     const { data: pledges } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('*')
       .eq('event_id', event_id)
       .eq('pledge_type', 'per_mile')
-      .eq('charge_status', 'confirmed');
+      .eq('charge_status', 'confirmed')
+      .order('created_at', { ascending: true })
+      .limit(maxBatch);
 
     if (!pledges || pledges.length === 0) {
-      // Update status
+      // All done — mark event as fully processed
       await supabaseAdmin
         .from('bike_ride_events')
         .update({ status: 'charges_processed' })
         .eq('id', event_id);
 
       return new Response(
-        JSON.stringify({ message: 'No pending pledges to charge', results: [] }),
+        JSON.stringify({ message: 'No pending pledges to charge', results: [], has_more: false, remaining: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const results = [];
 
-    for (const pledge of pledges) {
+    for (let i = 0; i < pledges.length; i++) {
+      const pledge = pledges[i];
+
+      // Rate limit: wait between charges (skip delay on first one)
+      if (i > 0) {
+        await delay(DELAY_BETWEEN_CHARGES_MS);
+      }
+
       try {
+        // Get Stripe key based on pledge mode
+        const stripeKey = pledge.stripe_mode === 'live'
+          ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
+          : Deno.env.get('STRIPE_SECRET_KEY_TEST');
+
+        if (!stripeKey) {
+          throw new Error(`Stripe ${pledge.stripe_mode} key not configured`);
+        }
+
+        const stripe = new Stripe(stripeKey, { apiVersion: '2024-11-20.acacia' });
+
         // Calculate charge amount
         const baseDollars = (pledge.cents_per_mile / 100) * miles;
         
@@ -129,17 +170,6 @@ serve(async (req) => {
           });
           continue;
         }
-
-        // Get Stripe key based on pledge mode
-        const stripeKey = pledge.stripe_mode === 'live'
-          ? Deno.env.get('STRIPE_SECRET_KEY_LIVE')
-          : Deno.env.get('STRIPE_SECRET_KEY_TEST');
-
-        if (!stripeKey) {
-          throw new Error(`Stripe ${pledge.stripe_mode} key not configured`);
-        }
-
-        const stripe = new Stripe(stripeKey, { apiVersion: '2024-11-20.acacia' });
 
         // Get the payment method from the setup intent
         let paymentMethodId = pledge.stripe_payment_method_id;
@@ -282,11 +312,18 @@ serve(async (req) => {
       }
     }
 
-    // Update event status
-    await supabaseAdmin
-      .from('bike_ride_events')
-      .update({ status: 'charges_processed' })
-      .eq('id', event_id);
+    // Check if there are more pledges remaining
+    const processedCount = pledges.length;
+    const hasMore = totalRemaining > processedCount;
+    const remainingAfterBatch = Math.max(0, totalRemaining - processedCount);
+
+    // Only mark fully processed if no more remain
+    if (!hasMore) {
+      await supabaseAdmin
+        .from('bike_ride_events')
+        .update({ status: 'charges_processed' })
+        .eq('id', event_id);
+    }
 
     const summary = {
       total: results.length,
@@ -296,10 +333,13 @@ serve(async (req) => {
       total_collected: results
         .filter(r => r.status === 'charged')
         .reduce((s, r) => s + (r.amount || 0), 0),
+      has_more: hasMore,
+      remaining: remainingAfterBatch,
+      batch_size: maxBatch,
     };
 
     return new Response(
-      JSON.stringify({ summary, results }),
+      JSON.stringify({ summary, results, has_more: hasMore, remaining: remainingAfterBatch }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
