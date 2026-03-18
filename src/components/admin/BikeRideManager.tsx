@@ -544,6 +544,56 @@ export function BikeRideManager() {
               <Label>Description</Label>
               <Textarea value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Tell supporters about the ride..." rows={3} />
             </div>
+            
+            {/* Route Information */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" /> Route Information
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <Label>Start Location</Label>
+                  <Input value={formStartLocation} onChange={e => setFormStartLocation(e.target.value)} placeholder="e.g., City Park, Denver CO" />
+                </div>
+                <div>
+                  <Label>End Location</Label>
+                  <Input value={formEndLocation} onChange={e => setFormEndLocation(e.target.value)} placeholder="e.g., Red Rocks Amphitheatre, Morrison CO" />
+                </div>
+                <div>
+                  <Label>Route Map Image</Label>
+                  {formRouteMapUrl ? (
+                    <div className="relative mt-1">
+                      <img src={formRouteMapUrl} alt="Route map" className="rounded-lg border max-h-48 w-full object-cover" />
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-2 right-2 h-7 w-7"
+                        onClick={() => setFormRouteMapUrl("")}
+                        type="button"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <label className="cursor-pointer">
+                        <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
+                          {uploadingRouteMap ? (
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                          ) : (
+                            <>
+                              <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                              <p className="text-sm text-muted-foreground">Click to upload route map</p>
+                            </>
+                          )}
+                        </div>
+                        <input type="file" accept="image/*" className="hidden" onChange={handleRouteMapUpload} disabled={uploadingRouteMap} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
