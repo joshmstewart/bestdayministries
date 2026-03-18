@@ -463,6 +463,49 @@ export function BikeRideManager() {
     }
   };
 
+  const handleFetchLogos = async () => {
+    const urlToFetch = formRaceUrl || importUrl;
+    if (!urlToFetch) {
+      toast({ title: "Enter a Race/Event Link first", variant: "destructive" });
+      return;
+    }
+    setFetchingLogos(true);
+    setLogoCandidates([]);
+    try {
+      const { data, error } = await supabase.functions.invoke("fetch-race-logos", {
+        body: { url: urlToFetch },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to fetch logos");
+      setLogoCandidates(data.logos || []);
+      if (!data.logos?.length) {
+        toast({ title: "No logos found on that page", variant: "destructive" });
+      } else {
+        toast({ title: `Found ${data.logos.length} potential logos` });
+      }
+    } catch (err) {
+      showErrorToastWithCopy("Fetching logos", err);
+    } finally {
+      setFetchingLogos(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const filePath = `bike-ride-logos/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('app-assets').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('app-assets').getPublicUrl(filePath);
+      setFormRaceLogoUrl(publicUrl);
+      toast({ title: "Logo uploaded" });
+    } catch (err) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    }
+  };
+
   const deleteScenicPhoto = async (photoId: string) => {
     await supabase.from("bike_ride_scenic_photos").delete().eq("id", photoId);
     setScenicPhotos(prev => prev.filter(p => p.id !== photoId));
