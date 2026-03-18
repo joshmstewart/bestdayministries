@@ -1029,7 +1029,19 @@ export function BikeRideManager() {
               </div>
               <div>
                 <Label>Mile Goal *</Label>
-                <Input type="number" value={formMileGoal} onChange={e => setFormMileGoal(e.target.value)} min={1} />
+                <Input
+                  type="number"
+                  value={formMileGoal}
+                  onChange={e => setFormMileGoal(e.target.value)}
+                  min={1}
+                  disabled={hasLivePledges}
+                />
+                {hasLivePledges && (
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 text-amber-500" />
+                    Locked — live pledges exist against this goal
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Start Time</Label>
