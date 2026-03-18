@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy } from "lucide-react";
 import { BikeRouteMap } from "@/components/BikeRouteMap";
 
 interface BikeEvent {
@@ -31,6 +32,15 @@ interface BikeEvent {
   route_map_image_url: string | null;
   race_url: string | null;
   route_waypoints: any[] | null;
+  elevation_gain_ft: number | null;
+  difficulty_rating: string | null;
+  ridewithgps_url: string | null;
+  aid_stations: any[] | null;
+  key_climbs: string[] | null;
+  start_time: string | null;
+  registration_url: string | null;
+  finish_description: string | null;
+  route_description: string | null;
 }
 
 interface ScenicPhoto {
@@ -93,7 +103,6 @@ function PledgeCardForm({
           variant: "destructive",
         });
       } else if (setupIntent?.status === "succeeded") {
-        // Confirm pledge and send email via edge function (bypasses RLS)
         try {
           await supabase.functions.invoke("confirm-bike-pledge", {
             body: { setup_intent_id: setupIntent.id },
@@ -165,6 +174,16 @@ function PledgeCardForm({
   );
 }
 
+const difficultyColor = (rating: string) => {
+  switch (rating) {
+    case "Easy": return "bg-green-500/10 text-green-700 border-green-500/30";
+    case "Moderate": return "bg-yellow-500/10 text-yellow-700 border-yellow-500/30";
+    case "Challenging": return "bg-orange-500/10 text-orange-700 border-orange-500/30";
+    case "Epic": return "bg-red-500/10 text-red-700 border-red-500/30";
+    default: return "bg-muted text-muted-foreground";
+  }
+};
+
 export default function BikeRidePledge() {
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
@@ -186,7 +205,6 @@ export default function BikeRidePledge() {
   const [pledgerEmail, setPledgerEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  // Autofill email from logged-in user
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) {
@@ -242,7 +260,6 @@ export default function BikeRidePledge() {
       if (data?.event) {
         setEvent(data.event);
         setStats(data.stats);
-        // Fetch scenic photos
         if (data.event.id) {
           const { data: photos } = await supabase
             .from("bike_ride_scenic_photos")
@@ -344,12 +361,10 @@ export default function BikeRidePledge() {
           return (
             <section className="relative bg-gradient-to-br from-primary/10 via-accent/5 to-background py-12 md:py-16 overflow-hidden">
               {heroPhoto && (
-                <>
-                  <div className="absolute inset-0">
-                    <img src={heroPhoto.image_url} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/70 to-background/90" />
-                  </div>
-                </>
+                <div className="absolute inset-0">
+                  <img src={heroPhoto.image_url} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/70 to-background/90" />
+                </div>
               )}
               <div className="container max-w-4xl mx-auto px-4 text-center relative z-10">
                 <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4 backdrop-blur-sm">
@@ -363,6 +378,7 @@ export default function BikeRidePledge() {
                 </p>
                 <p className="text-muted-foreground">
                   {rideDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                  {event.start_time && ` · ${event.start_time}`}
                 </p>
                 {event.description && (
                   <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">{event.description}</p>
@@ -380,6 +396,38 @@ export default function BikeRidePledge() {
             </section>
           );
         })()}
+
+        {/* Challenge Stats Badges */}
+        {(event.elevation_gain_ft || event.difficulty_rating || event.key_climbs?.length) && (
+          <section className="py-6 border-b">
+            <div className="container max-w-4xl mx-auto px-4">
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {event.difficulty_rating && (
+                  <div className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold ${difficultyColor(event.difficulty_rating)}`}>
+                    <Mountain className="h-4 w-4" />
+                    {event.difficulty_rating}
+                  </div>
+                )}
+                {event.elevation_gain_ft && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary">
+                    <Mountain className="h-4 w-4" />
+                    {event.elevation_gain_ft.toLocaleString()} ft elevation
+                  </div>
+                )}
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary">
+                  <Bike className="h-4 w-4" />
+                  {event.mile_goal} miles
+                </div>
+                {event.key_climbs && event.key_climbs.length > 0 && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 px-4 py-2 text-sm font-medium text-accent-foreground">
+                    <Flag className="h-4 w-4" />
+                    {event.key_climbs.length} major climb{event.key_climbs.length !== 1 ? "s" : ""}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Stats */}
         {stats && (
@@ -415,24 +463,114 @@ export default function BikeRidePledge() {
         )}
 
         {/* Race Link */}
-        {event.race_url && (
+        {(event.race_url || event.registration_url) && (
           <section className="py-4 border-b">
-            <div className="container max-w-4xl mx-auto px-4 text-center">
-              <a
-                href={event.race_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-              >
-                <ExternalLink className="h-4 w-4" />
-                View Official Race/Event Page
-              </a>
+            <div className="container max-w-4xl mx-auto px-4 text-center flex items-center justify-center gap-4 flex-wrap">
+              {event.race_url && (
+                <a
+                  href={event.race_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View Official Race Page
+                </a>
+              )}
+              {event.registration_url && (
+                <a
+                  href={event.registration_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Register for the Race
+                </a>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Key Climbs & Route Description */}
+        {(event.key_climbs?.length || event.route_description) && (
+          <section className="py-8 border-b">
+            <div className="container max-w-4xl mx-auto px-4">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Mountain className="h-5 w-5 text-primary" />
+                The Challenge
+              </h2>
+              {event.route_description && (
+                <p className="text-muted-foreground mb-4">{event.route_description}</p>
+              )}
+              {event.key_climbs && event.key_climbs.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {event.key_climbs.map((climb, i) => (
+                    <Badge key={i} variant="outline" className="text-sm py-1.5 px-3">
+                      <Mountain className="h-3 w-3 mr-1.5" />
+                      {climb}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Aid Stations / Milestones Timeline */}
+        {event.aid_stations && event.aid_stations.length > 0 && (
+          <section className="py-8 border-b">
+            <div className="container max-w-4xl mx-auto px-4">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Flag className="h-5 w-5 text-primary" />
+                Course Milestones
+              </h2>
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-primary/20" />
+                <div className="space-y-4">
+                  {/* Start */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 z-10">
+                      <Navigation className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="pt-1">
+                      <p className="font-semibold text-sm">START — Mile 0</p>
+                      {event.start_location && <p className="text-xs text-muted-foreground">{event.start_location}</p>}
+                      {event.start_time && <p className="text-xs text-muted-foreground">{event.start_time}</p>}
+                    </div>
+                  </div>
+                  {/* Aid stations */}
+                  {event.aid_stations.map((station: any, i: number) => (
+                    <div key={i} className="flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center flex-shrink-0 z-10">
+                        <Flag className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <div className="pt-1">
+                        <p className="font-semibold text-sm">{station.name} — Mile {station.mile}</p>
+                        {station.services && <p className="text-xs text-muted-foreground">{station.services}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {/* Finish */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 z-10">
+                      <Trophy className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="pt-1">
+                      <p className="font-semibold text-sm">FINISH — Mile {event.mile_goal}</p>
+                      {event.end_location && <p className="text-xs text-muted-foreground">{event.end_location}</p>}
+                      {event.finish_description && <p className="text-xs text-muted-foreground">{event.finish_description}</p>}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         )}
 
         {/* Route Map Section */}
-        {(event.start_location || event.end_location || event.route_waypoints?.length) && (
+        {(event.start_location || event.end_location || event.route_waypoints?.length || event.ridewithgps_url) && (
           <section className="py-8 border-b">
             <div className="container max-w-4xl mx-auto px-4">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -465,6 +603,21 @@ export default function BikeRidePledge() {
                   </div>
                 )}
               </div>
+
+              {/* Ride With GPS embed */}
+              {event.ridewithgps_url && (
+                <div className="mb-4">
+                  <a
+                    href={event.ridewithgps_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-primary hover:underline font-medium text-sm mb-2"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Interactive Route Map
+                  </a>
+                </div>
+              )}
 
               {/* Google Map with waypoints */}
               {googleMapsKey && (
@@ -700,6 +853,21 @@ export default function BikeRidePledge() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Finish Line Info */}
+            {event.finish_description && !event.aid_stations?.length && (
+              <Card className="mt-4">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <Trophy className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-sm">At the Finish Line</p>
+                      <p className="text-sm text-muted-foreground">{event.finish_description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* If completed, show results in left column */}
