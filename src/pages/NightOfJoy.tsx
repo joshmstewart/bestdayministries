@@ -57,14 +57,19 @@ const BENEFITS = [
 
 const EVENT_DATE = new Date("2026-06-14T16:00:00");
 const DEADLINE_DATE = new Date("2026-05-04T23:59:59");
-const TICKET_TIERS = [
-  { id: "general", label: "General Admission (13+)", price: 60 },
-  { id: "kids", label: "Kids (6–12)", price: 40 },
-  { id: "bestie", label: "Besties", price: 40 },
-  { id: "little-ones", label: "Little Ones (5 & under)", price: 0 },
-] as const;
 
-type TicketTierId = typeof TICKET_TIERS[number]["id"];
+const DEFAULT_TICKET_PRICES: Record<string, number> = {
+  general: 60, kids: 40, bestie: 40, "little-ones": 0,
+};
+
+const TICKET_TIER_LABELS: { id: string; label: string }[] = [
+  { id: "general", label: "General Admission (13+)" },
+  { id: "kids", label: "Kids (6–12)" },
+  { id: "bestie", label: "Besties" },
+  { id: "little-ones", label: "Little Ones (5 & under)" },
+];
+
+type TicketTierId = "general" | "kids" | "bestie" | "little-ones";
 
 function useCountdown(targetDate: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, passed: false });
