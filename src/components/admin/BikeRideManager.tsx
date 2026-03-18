@@ -24,6 +24,9 @@ interface BikeEvent {
   status: string;
   is_active: boolean;
   created_at: string;
+  start_location: string | null;
+  end_location: string | null;
+  route_map_image_url: string | null;
 }
 
 interface Pledge {
