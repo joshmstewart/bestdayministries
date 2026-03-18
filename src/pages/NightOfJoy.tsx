@@ -915,8 +915,12 @@ const NightOfJoy = () => {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="contactName" className="text-amber-200/80">Contact Name *</Label>
-                          <Input id="contactName" value={formData.contactName} onChange={(e) => handleChange("contactName", e.target.value)} required className={inputClasses} />
+                          <Label htmlFor="contactFirstName" className="text-amber-200/80">First Name *</Label>
+                          <Input id="contactFirstName" value={formData.contactFirstName} onChange={(e) => handleChange("contactFirstName", e.target.value)} required className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="contactLastName" className="text-amber-200/80">Last Name *</Label>
+                          <Input id="contactLastName" value={formData.contactLastName} onChange={(e) => handleChange("contactLastName", e.target.value)} required className={inputClasses} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="businessName" className="text-amber-200/80">Business / Organization</Label>
