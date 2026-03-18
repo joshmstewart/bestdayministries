@@ -31,9 +31,9 @@ interface BikeEvent {
 const difficultyColor = (rating: string) => {
   switch (rating) {
     case "Easy": return "bg-green-500/10 text-green-700 border-green-500/30";
-    case "Moderate": return "bg-yellow-500/10 text-yellow-700 border-yellow-500/30";
-    case "Challenging": return "bg-orange-500/10 text-orange-700 border-orange-500/30";
-    case "Epic": return "bg-red-500/10 text-red-700 border-red-500/30";
+    case "Moderate": return "bg-yellow-500/90 text-white border-yellow-600/50";
+    case "Challenging": return "bg-orange-500/90 text-white border-orange-600/50";
+    case "Epic": return "bg-red-600/90 text-white border-red-700/50";
     default: return "bg-muted text-muted-foreground";
   }
 };
