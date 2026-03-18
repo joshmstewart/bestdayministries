@@ -308,18 +308,49 @@ export function BikeRideManager() {
   const handleProcessCharges = async () => {
     if (!selectedEvent || !actualMiles) return;
     setProcessing(true);
+    let totalCharged = 0;
+    let totalFailed = 0;
+    let totalSkipped = 0;
+    let totalCollected = 0;
+    let batchNum = 0;
+    let allResults: unknown[] = [];
+
     try {
-      const { data, error } = await supabase.functions.invoke('process-bike-ride-charges', {
-        body: { event_id: selectedEvent.id, actual_miles: Number(actualMiles) },
+      let hasMore = true;
+      while (hasMore) {
+        batchNum++;
+        toast({ title: `Processing batch ${batchNum}...`, description: "Please wait" });
+
+        const { data, error } = await supabase.functions.invoke('process-bike-ride-charges', {
+          body: { event_id: selectedEvent.id, actual_miles: Number(actualMiles) },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        totalCharged += data.summary?.charged || 0;
+        totalFailed += data.summary?.failed || 0;
+        totalSkipped += data.summary?.skipped || 0;
+        totalCollected += data.summary?.total_collected || 0;
+        allResults = [...allResults, ...(data.results || [])];
+        hasMore = data.has_more === true;
+
+        if (hasMore) {
+          toast({ title: `Batch ${batchNum} done`, description: `${data.remaining} pledges remaining. Continuing...` });
+          // Brief pause between batches to avoid hammering
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      setChargeResults({
+        summary: { total: allResults.length, charged: totalCharged, failed: totalFailed, skipped: totalSkipped, total_collected: totalCollected },
+        results: allResults,
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setChargeResults(data);
       fetchEvents();
       fetchPledges(selectedEvent.id);
-      toast({ title: `Charges processed: ${data.summary.charged} successful, ${data.summary.failed} failed` });
+      toast({ title: `All charges processed: ${totalCharged} successful, ${totalFailed} failed${batchNum > 1 ? ` (${batchNum} batches)` : ''}` });
     } catch (err) {
-      toast({ title: "Error processing charges", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+      toast({ title: "Error processing charges", description: `${totalCharged} charged before error. Re-run to continue. ${err instanceof Error ? err.message : "Unknown error"}`, variant: "destructive" });
+      fetchPledges(selectedEvent.id);
     } finally {
       setProcessing(false);
     }
