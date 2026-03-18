@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { BikeRouteMap } from "@/components/BikeRouteMap";
 
 interface BikeEvent {
   id: string;
