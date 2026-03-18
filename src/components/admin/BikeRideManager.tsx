@@ -947,7 +947,51 @@ export function BikeRideManager() {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Title *</Label>
-                <Input value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="Bike Ride for Best Day" />
+                <Input value={formTitle} onChange={e => {
+                  setFormTitle(e.target.value);
+                  if (!formSlug) {
+                    setSlugSuggestion(generateSlug(e.target.value, formRideDate));
+                  }
+                }} placeholder="Bike Ride for Best Day" />
+              </div>
+              <div className="col-span-2">
+                <Label>URL Slug</Label>
+                <div className="flex gap-2 items-center">
+                  <div className="flex-1 relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">/bike-rides/</span>
+                    <Input 
+                      value={formSlug} 
+                      onChange={e => {
+                        const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-");
+                        setFormSlug(val);
+                        setSlugSuggestion("");
+                      }}
+                      className="pl-[95px]"
+                      placeholder="my-ride-2026"
+                    />
+                  </div>
+                  {formSlug && (
+                    <Button type="button" variant="ghost" size="icon" onClick={() => { setFormSlug(""); setSlugSuggestion(generateSlug(formTitle, formRideDate)); }} title="Clear slug">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {!formSlug && slugSuggestion && (
+                  <button 
+                    type="button"
+                    onClick={() => { setFormSlug(slugSuggestion); setSlugSuggestion(""); }}
+                    className="mt-1.5 text-xs text-primary hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Use suggestion: <span className="font-mono">{slugSuggestion}</span>
+                  </button>
+                )}
+                {formSlug && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    URL: <span className="font-mono text-foreground">/bike-rides/{formSlug}</span>
+                    {editingEvent?.slug === formSlug && <span className="ml-1.5 text-green-600">✓ Locked</span>}
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Rider Name *</Label>
