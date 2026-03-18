@@ -24,6 +24,7 @@ interface BikeEvent {
   elevation_gain_ft: number | null;
   difficulty_rating: string | null;
   is_active: boolean;
+  race_logo_url: string | null;
 }
 
 const difficultyColor = (rating: string) => {
