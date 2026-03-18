@@ -16,6 +16,7 @@ const checkoutSchema = z.object({
   email: z.string().email().max(255).toLowerCase().trim(),
   contact_name: z.string().max(255).optional(),
   business_name: z.string().max(255).optional(),
+  cover_stripe_fee: z.boolean().optional().default(false),
 });
 
 serve(async (req) => {
