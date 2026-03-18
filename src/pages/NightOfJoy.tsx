@@ -1029,8 +1029,12 @@ const NightOfJoy = () => {
                           <Input id="pay-email" type="email" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} required placeholder="your@email.com" className={inputClasses} />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="pay-name" className="text-amber-200/80">Name</Label>
-                          <Input id="pay-name" value={formData.contactName} onChange={(e) => handleChange("contactName", e.target.value)} placeholder="Your name" className={inputClasses} />
+                          <Label htmlFor="pay-first-name" className="text-amber-200/80">First Name *</Label>
+                          <Input id="pay-first-name" value={formData.contactFirstName} onChange={(e) => handleChange("contactFirstName", e.target.value)} required placeholder="First name" className={inputClasses} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="pay-last-name" className="text-amber-200/80">Last Name *</Label>
+                          <Input id="pay-last-name" value={formData.contactLastName} onChange={(e) => handleChange("contactLastName", e.target.value)} required placeholder="Last name" className={inputClasses} />
                         </div>
                         <div className="space-y-2 sm:col-span-2">
                           <Label htmlFor="pay-business" className="text-amber-200/80">Business / Organization</Label>
