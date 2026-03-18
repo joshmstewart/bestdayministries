@@ -757,6 +757,19 @@ export default function BikeRidePledge() {
           </section>
         )}
 
+        {/* Inline CTA after route map */}
+        {!isCompleted && (
+          <div className="container max-w-4xl mx-auto px-4 py-3 text-center">
+            <button
+              onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
+            >
+              <Heart className="h-3.5 w-3.5" />
+              Support this ride — pledge below
+            </button>
+          </div>
+        )}
+
         {/* Scenic Photos */}
         {scenicPhotos.filter(p => !p.is_default).length > 0 && (
           <section className="py-8 border-b">
