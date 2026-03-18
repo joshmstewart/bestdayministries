@@ -275,7 +275,7 @@ const NightOfJoy = () => {
     }
     const amount = getPaymentAmount();
     if (!amount) {
-      toast.error("Please select a sponsorship level or enter a custom amount (minimum $100).");
+      toast.error("Please select a sponsorship level or enter an amount.");
       return;
     }
     setSubmitting(true);
