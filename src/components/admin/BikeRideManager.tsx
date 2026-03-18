@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
+import { ImageUploadWithCrop } from "@/components/common/ImageUploadWithCrop";
 
 interface BikeEvent {
   id: string;
@@ -71,6 +72,8 @@ export function BikeRideManager() {
   const [analyzingRoute, setAnalyzingRoute] = useState(false);
   const [scenicPhotos, setScenicPhotos] = useState<{id: string; image_url: string; caption: string | null; display_order: number; is_default: boolean}[]>([]);
   const [uploadingScenicPhoto, setUploadingScenicPhoto] = useState(false);
+  const [scenicPhotoPreview, setScenicPhotoPreview] = useState<string | null>(null);
+  const [scenicPhotoFile, setScenicPhotoFile] = useState<File | null>(null);
   const [formSaving, setFormSaving] = useState(false);
 
   // Process charges state
@@ -276,10 +279,16 @@ export function BikeRideManager() {
     setScenicPhotos(data || []);
   };
 
-  const handleScenicPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleScenicPhotoSelected = (file: File | null, preview: string | null) => {
+    setScenicPhotoFile(file);
+    setScenicPhotoPreview(preview);
+    if (file && editingEvent) {
+      uploadScenicPhoto(file);
+    }
+  };
+
+  const uploadScenicPhoto = async (file: File) => {
     if (!editingEvent) return;
-    const file = e.target.files?.[0];
-    if (!file) return;
     setUploadingScenicPhoto(true);
     try {
       const ext = file.name.split('.').pop() || 'jpg';
@@ -295,6 +304,9 @@ export function BikeRideManager() {
       if (insertError) throw insertError;
       fetchScenicPhotos(editingEvent.id);
       toast({ title: "Scenic photo added" });
+      // Reset the uploader for next photo
+      setScenicPhotoFile(null);
+      setScenicPhotoPreview(null);
     } catch (err) {
       toast({ title: "Upload failed", variant: "destructive" });
     } finally {
@@ -744,16 +756,21 @@ export function BikeRideManager() {
                     </div>
                   ))}
                 </div>
-                <label className="cursor-pointer">
-                  <div className="border-2 border-dashed rounded-lg p-3 text-center hover:border-primary/50 transition-colors">
-                    {uploadingScenicPhoto ? (
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">+ Add scenic photo</p>
-                    )}
+                {uploadingScenicPhoto ? (
+                  <div className="flex items-center justify-center p-3 border-2 border-dashed rounded-lg">
+                    <Loader2 className="h-5 w-5 animate-spin mr-2 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Uploading...</span>
                   </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleScenicPhotoUpload} disabled={uploadingScenicPhoto} />
-                </label>
+                ) : (
+                  <ImageUploadWithCrop
+                    label="Add Scenic Photo"
+                    imagePreview={scenicPhotoPreview}
+                    onImageChange={handleScenicPhotoSelected}
+                    aspectRatio="16:9"
+                    allowAspectRatioChange={true}
+                    maxSizeMB={20}
+                  />
+                )}
               </div>
             )}
           </div>
