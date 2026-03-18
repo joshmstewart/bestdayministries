@@ -114,7 +114,25 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const twitterHandle = settingsMap.twitter_handle || ''
+    if (bikeRideId) {
+      const rides = await querySupabase(
+        'bike_ride_events',
+        `select=id,title,description,cover_image_url,rider_name,mile_goal,slug&id=eq.${bikeRideId}&is_active=eq.true&limit=1`
+      )
+      const ride = rides[0]
+      if (ride) {
+        finalTitle = `${ride.title} – Best Day Ministries`
+        finalDescription = ride.description
+          ? ride.description.substring(0, 155) + (ride.description.length > 155 ? '…' : '')
+          : `Pledge per mile for ${ride.rider_name}'s ${ride.mile_goal}-mile ride to support adults with special abilities!`
+        if (ride.cover_image_url) finalImage = ride.cover_image_url
+        finalType = 'article'
+        const ridePath = ride.slug ? `/bike-rides/${ride.slug}` : `/bike-rides/${ride.id}`
+        finalRedirect = redirect || `${SITE_URL}${ridePath}`
+        ogUrl = `${SITE_URL}/share?bikeRideId=${ride.id}&redirect=${encodeURIComponent(finalRedirect)}`
+      }
+    }
+
 
     const html = `<!DOCTYPE html>
 <html lang="en">
