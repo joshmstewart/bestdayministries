@@ -281,6 +281,7 @@ const NightOfJoy = () => {
           email: formData.email,
           contact_name: formData.contactName || undefined,
           business_name: formData.businessName || undefined,
+          cover_stripe_fee: true,
         },
       });
       if (error) throw error;
