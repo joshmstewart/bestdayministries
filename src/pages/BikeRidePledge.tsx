@@ -240,6 +240,15 @@ export default function BikeRidePledge() {
       if (data?.event) {
         setEvent(data.event);
         setStats(data.stats);
+        // Fetch scenic photos
+        if (data.event.id) {
+          const { data: photos } = await supabase
+            .from("bike_ride_scenic_photos")
+            .select("id, image_url, caption")
+            .eq("event_id", data.event.id)
+            .order("display_order");
+          setScenicPhotos(photos || []);
+        }
       }
     } catch (err) {
       console.error("Error fetching event:", err);
