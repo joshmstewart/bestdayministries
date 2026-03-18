@@ -279,10 +279,16 @@ export function BikeRideManager() {
     setScenicPhotos(data || []);
   };
 
-  const handleScenicPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleScenicPhotoSelected = (file: File | null, preview: string | null) => {
+    setScenicPhotoFile(file);
+    setScenicPhotoPreview(preview);
+    if (file && editingEvent) {
+      uploadScenicPhoto(file);
+    }
+  };
+
+  const uploadScenicPhoto = async (file: File) => {
     if (!editingEvent) return;
-    const file = e.target.files?.[0];
-    if (!file) return;
     setUploadingScenicPhoto(true);
     try {
       const ext = file.name.split('.').pop() || 'jpg';
@@ -298,6 +304,9 @@ export function BikeRideManager() {
       if (insertError) throw insertError;
       fetchScenicPhotos(editingEvent.id);
       toast({ title: "Scenic photo added" });
+      // Reset the uploader for next photo
+      setScenicPhotoFile(null);
+      setScenicPhotoPreview(null);
     } catch (err) {
       toast({ title: "Upload failed", variant: "destructive" });
     } finally {
