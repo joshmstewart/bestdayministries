@@ -356,4 +356,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.fetch-race-logos]
-verify_jwt = true
+verify_jwt = false
