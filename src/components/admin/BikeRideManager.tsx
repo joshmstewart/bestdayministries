@@ -60,6 +60,7 @@ interface Pledge {
   message: string | null;
   created_at: string;
   stripe_mode: string;
+  cover_stripe_fee: boolean;
 }
 
 export function BikeRideManager() {
