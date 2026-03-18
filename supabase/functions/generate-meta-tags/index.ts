@@ -79,6 +79,17 @@ Deno.serve(async (req: Request) => {
       finalType = 'article'
       finalRedirect = redirect || `${SITE_URL}${page.path}`
       ogUrl = `${SITE_URL}/share?pageId=${pageId}&redirect=${encodeURIComponent(finalRedirect)}`
+
+      // For bike-rides listing, pull cover image from soonest upcoming ride
+      if (pageId === 'bike-rides' && !page.image) {
+        const soonestRides = await querySupabase(
+          'bike_ride_events',
+          `select=cover_image_url&is_active=eq.true&ride_date=gte.${new Date().toISOString().split('T')[0]}&order=ride_date.asc&limit=1`
+        )
+        if (soonestRides[0]?.cover_image_url) {
+          finalImage = soonestRides[0].cover_image_url
+        }
+      }
     }
 
     if (eventId) {
