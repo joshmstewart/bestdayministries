@@ -220,7 +220,10 @@ export default function BikeRidePledge() {
 
   const { toast } = useToast();
 
-  const maxTotal = event ? (centsPerMile / 100) * event.mile_goal : 0;
+  const maxTotalBase = event ? (centsPerMile / 100) * event.mile_goal : 0;
+  const calculateFeeTotal = (amount: number) => Math.round(((amount + 0.30) / 0.971) * 100) / 100;
+  const maxTotal = coverFees && maxTotalBase > 0 ? calculateFeeTotal(maxTotalBase) : maxTotalBase;
+  const feeDiff = coverFees && maxTotalBase > 0 ? +(maxTotal - maxTotalBase).toFixed(2) : 0;
 
   useEffect(() => {
     fetchEventStatus();
