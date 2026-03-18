@@ -21,10 +21,12 @@ serve(async (req) => {
     // Check if force_test_mode is requested
     let forceTest = false;
     let bodyEventId: string | null = null;
+    let bodyEventSlug: string | null = null;
     try {
       const body = await req.json();
       forceTest = body?.force_test_mode === true;
       bodyEventId = body?.event_id || null;
+      bodyEventSlug = body?.event_slug || null;
     } catch {
       // No body or invalid JSON, that's fine
     }
@@ -42,6 +44,7 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const eventId = url.searchParams.get('event_id') || bodyEventId;
+    const eventSlug = url.searchParams.get('event_slug') || bodyEventSlug;
 
     // If no event_id, return the first active event
     let query = supabaseAdmin
@@ -51,6 +54,14 @@ serve(async (req) => {
 
     if (eventId) {
       query = query.eq('id', eventId);
+    } else if (eventSlug) {
+      // Try slug first, fall back to treating it as an ID (for backwards compat)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventSlug);
+      if (isUUID) {
+        query = query.eq('id', eventSlug);
+      } else {
+        query = query.eq('slug', eventSlug);
+      }
     } else {
       query = query.eq('status', 'active');
     }
