@@ -70,6 +70,7 @@ export function BikeRideManager() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [reconciling, setReconciling] = useState(false);
+  const [checkingCards, setCheckingCards] = useState(false);
 
   // Create/Edit form state
   const [showCreateDialog, setShowCreateDialog] = useState(false);
