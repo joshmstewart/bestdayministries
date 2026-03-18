@@ -670,7 +670,7 @@ export default function BikeRidePledge() {
             <div className="container max-w-4xl mx-auto px-4">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <ImageIcon className="h-5 w-5 text-primary" />
-                Along the Route
+                Event Photos
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {scenicPhotos.filter(p => !p.is_default).map(photo => (
