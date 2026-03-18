@@ -329,7 +329,7 @@ const NightOfJoy = () => {
         body: {
           ticket_items: ticketItems,
           email: ticketEmail,
-          contact_name: ticketName || undefined,
+          contact_name: `${ticketFirstName} ${ticketLastName}`.trim() || undefined,
           cover_stripe_fee: true,
         },
       });
