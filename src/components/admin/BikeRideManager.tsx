@@ -195,6 +195,8 @@ export function BikeRideManager() {
       setFormAidStations([]);
       setFormRiderBio("");
       setFormRiderImageUrl("");
+      setFormRaceLogoUrl("");
+      setLogoCandidates([]);
       setScenicPhotos([]);
     }
     setImportUrl("");
