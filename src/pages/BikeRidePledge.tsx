@@ -44,6 +44,7 @@ interface BikeEvent {
   route_description: string | null;
   rider_bio: string | null;
   rider_image_url: string | null;
+  race_logo_url: string | null;
 }
 
 interface ScenicPhoto {
