@@ -48,7 +48,7 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { ticket_items, email, contact_name } = validationResult.data;
+    const { ticket_items, email, contact_name, cover_stripe_fee } = validationResult.data;
 
     // Separate free and paid items
     const freeItems = ticket_items.filter(i => i.unit_price === 0);
