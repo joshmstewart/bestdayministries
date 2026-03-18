@@ -827,25 +827,58 @@ export default function BikeRidePledge() {
                   <CardContent className="space-y-6">
                     {step === "form" ? (
                       <>
-                        {/* Cents per mile slider */}
+                        {/* Cents per mile selector */}
                         <div className="space-y-3">
                           <Label className="text-base font-semibold">Cents Per Mile</Label>
                           <div className="text-center">
                             <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
                             <span className="text-muted-foreground ml-1">per mile</span>
                           </div>
-                          <Slider
-                            value={[centsPerMile]}
-                            onValueChange={([v]) => setCentsPerMile(v)}
-                            min={1}
-                            max={500}
-                            step={5}
-                            className="my-4"
-                          />
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>5¢</span>
-                            <span>$5.00</span>
+                          {/* Quick-pick buttons */}
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {[1, 2, 3, 4, 5, 10, 15, 20, 25, 50, 100].map(v => (
+                              <Button
+                                key={v}
+                                type="button"
+                                size="sm"
+                                variant={centsPerMile === v ? "default" : "outline"}
+                                onClick={() => { setCentsPerMile(v); setCustomCentsInput(""); }}
+                                className="min-w-[3rem]"
+                              >
+                                {v}¢
+                              </Button>
+                            ))}
                           </div>
+                          {/* Custom input */}
+                          <div className="flex items-center gap-2 justify-center">
+                            <span className="text-sm text-muted-foreground">Or enter custom:</span>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={500}
+                              placeholder="e.g. 75"
+                              className="w-24 text-center"
+                              value={customCentsInput}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setCustomCentsInput(val);
+                                const num = parseInt(val);
+                                if (!isNaN(num) && num >= 1 && num <= 500) {
+                                  setCentsPerMile(num);
+                                }
+                              }}
+                            />
+                            <span className="text-sm text-muted-foreground">¢/mile</span>
+                          </div>
+                          {/* High amount warning */}
+                          {centsPerMile >= 100 && event && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
+                              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                              <span>
+                                At {centsPerMile}¢/mile, your maximum charge would be <strong>${maxTotalBase.toFixed(2)}</strong> for {event.mile_goal} miles. Make sure this is the amount you intend!
+                              </span>
+                            </div>
+                          )}
                           <div className="bg-primary/10 rounded-lg p-4 text-center">
                             <p className="text-sm text-muted-foreground">Maximum charge at {event.mile_goal} miles:</p>
                             <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
