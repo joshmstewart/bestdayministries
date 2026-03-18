@@ -119,6 +119,7 @@ export function BikeRideManager() {
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
   const [chargeResults, setChargeResults] = useState<any>(null);
+  const [hasLivePledges, setHasLivePledges] = useState(false);
 
   const generateSlug = (title: string, rideDate: string) => {
     const year = rideDate ? new Date(rideDate + "T00:00:00").getFullYear() : new Date().getFullYear();
