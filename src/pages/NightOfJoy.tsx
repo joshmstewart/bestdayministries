@@ -277,6 +277,10 @@ const NightOfJoy = () => {
 
   const handlePaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.contactFirstName || !formData.contactLastName) {
+      toast.error("Please enter your first and last name.");
+      return;
+    }
     if (!formData.email) {
       toast.error("Please enter your email address.");
       return;
