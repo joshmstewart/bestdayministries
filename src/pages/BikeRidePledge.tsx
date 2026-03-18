@@ -37,6 +37,7 @@ interface ScenicPhoto {
   id: string;
   image_url: string;
   caption: string | null;
+  is_default: boolean;
 }
 
 interface EventStats {
