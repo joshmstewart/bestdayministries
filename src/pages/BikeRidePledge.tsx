@@ -415,17 +415,19 @@ export default function BikeRidePledge() {
                       </div>
                     )}
                     {/* Embedded Google Map */}
-                    <div className="rounded-lg overflow-hidden border mt-2">
-                      <iframe
-                        width="100%"
-                        height="300"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps/embed/v1/directions?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}&origin=${encodeURIComponent(event.start_location || '')}&destination=${encodeURIComponent(event.end_location || event.start_location || '')}&mode=bicycling`}
-                        allowFullScreen
-                      />
-                    </div>
+                    {googleMapsKey && (
+                      <div className="rounded-lg overflow-hidden border mt-2">
+                        <iframe
+                          width="100%"
+                          height="300"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          src={`https://www.google.com/maps/embed/v1/directions?key=${googleMapsKey}&origin=${encodeURIComponent(event.start_location || '')}&destination=${encodeURIComponent(event.end_location || event.start_location || '')}&mode=bicycling`}
+                          allowFullScreen
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
