@@ -90,6 +90,22 @@ serve(async (req) => {
         coverFee,
         message: pledge.message,
       });
+    } else if (type === 'card_expiry_warning') {
+      // Card expiry warning — no charges, just a heads-up
+      if (!card_info) throw new Error('card_info is required for card_expiry_warning');
+      subject = `Action needed: Update your card for "${event.title}" pledge 💳`;
+      htmlContent = buildCardExpiryWarningEmail({
+        pledgerName: pledge.pledger_name,
+        eventTitle: event.title,
+        riderName: event.rider_name,
+        rideDate,
+        cardBrand: card_info.brand || 'Card',
+        cardLast4: card_info.last4 || '****',
+        cardExpMonth: card_info.exp_month,
+        cardExpYear: card_info.exp_year,
+        centsPerMile: pledge.cents_per_mile,
+        mileGoal: Number(event.mile_goal),
+      });
     } else {
       // Receipt email after charge
       const actualMiles = Number(event.actual_miles);
