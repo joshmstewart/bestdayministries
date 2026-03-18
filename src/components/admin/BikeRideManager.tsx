@@ -180,6 +180,7 @@ export function BikeRideManager() {
       setFormDifficulty(event.difficulty_rating || "");
       setFormRideWithGpsUrl(event.ridewithgps_url || "");
       setFormRwgpsEmbedMode(event.ridewithgps_embed_mode || "embed");
+      setFormShowGoogleMap((event as any).show_google_map || false);
       setFormKeyClimbs(event.key_climbs?.join(", ") || "");
       setFormStartTime(event.start_time || "");
       setFormRegistrationUrl(event.registration_url || "");
