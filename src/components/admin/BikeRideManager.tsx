@@ -437,6 +437,23 @@ export function BikeRideManager() {
     }
   };
 
+  const uploadRiderImage = async (file: File) => {
+    setUploadingRiderImage(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const filePath = `bike-ride-riders/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('app-assets').upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('app-assets').getPublicUrl(filePath);
+      setFormRiderImageUrl(publicUrl);
+      toast({ title: "Rider image uploaded" });
+    } catch (err) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploadingRiderImage(false);
+    }
+  };
+
   const deleteScenicPhoto = async (photoId: string) => {
     await supabase.from("bike_ride_scenic_photos").delete().eq("id", photoId);
     setScenicPhotos(prev => prev.filter(p => p.id !== photoId));
