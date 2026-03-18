@@ -253,6 +253,7 @@ export function BikeRideManager() {
         rider_bio: formRiderBio || null,
         rider_image_url: formRiderImageUrl || null,
         race_logo_url: formRaceLogoUrl || null,
+        slug: formSlug || null,
       };
 
       if (editingEvent) {
