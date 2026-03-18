@@ -187,6 +187,8 @@ export function BikeRideManager() {
       setFormFinishDescription("");
       setFormRouteDescription("");
       setFormAidStations([]);
+      setFormRiderBio("");
+      setFormRiderImageUrl("");
       setScenicPhotos([]);
     }
     setImportUrl("");
