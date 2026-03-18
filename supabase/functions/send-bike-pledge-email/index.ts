@@ -144,6 +144,7 @@ interface ConfirmationData {
   centsPerMile: number;
   mileGoal: number;
   maxTotal: number;
+  coverFee: boolean;
   message?: string | null;
 }
 
