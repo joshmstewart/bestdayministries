@@ -1142,9 +1142,11 @@ export type Database = {
           id: string
           is_active: boolean
           mile_goal: number
+          race_url: string | null
           ride_date: string
           rider_name: string
           route_map_image_url: string | null
+          route_waypoints: Json | null
           start_location: string | null
           status: string
           title: string
@@ -1160,9 +1162,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           mile_goal: number
+          race_url?: string | null
           ride_date: string
           rider_name: string
           route_map_image_url?: string | null
+          route_waypoints?: Json | null
           start_location?: string | null
           status?: string
           title: string
@@ -1178,9 +1182,11 @@ export type Database = {
           id?: string
           is_active?: boolean
           mile_goal?: number
+          race_url?: string | null
           ride_date?: string
           rider_name?: string
           route_map_image_url?: string | null
+          route_waypoints?: Json | null
           start_location?: string | null
           status?: string
           title?: string
@@ -1252,6 +1258,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bike_ride_pledges_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "bike_ride_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bike_ride_scenic_photos: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          display_order: number | null
+          event_id: string
+          id: string
+          image_url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          event_id: string
+          id?: string
+          image_url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          event_id?: string
+          id?: string
+          image_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bike_ride_scenic_photos_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "bike_ride_events"
