@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star, Globe, Wand2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { ImageUploadWithCrop } from "@/components/common/ImageUploadWithCrop";
@@ -75,6 +75,9 @@ export function BikeRideManager() {
   const [scenicPhotoPreview, setScenicPhotoPreview] = useState<string | null>(null);
   const [scenicPhotoFile, setScenicPhotoFile] = useState<File | null>(null);
   const [formSaving, setFormSaving] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importingRace, setImportingRace] = useState(false);
+  const [importedImages, setImportedImages] = useState<string[]>([]);
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
@@ -140,6 +143,8 @@ export function BikeRideManager() {
       setFormRouteWaypoints(null);
       setScenicPhotos([]);
     }
+    setImportUrl("");
+    setImportedImages([]);
     setShowCreateDialog(true);
   };
 
@@ -267,6 +272,54 @@ export function BikeRideManager() {
       showErrorToastWithCopy("Analyzing route image", err);
     } finally {
       setAnalyzingRoute(false);
+    }
+  };
+
+  const handleImportFromUrl = async () => {
+    if (!importUrl) return;
+    setImportingRace(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("extract-race-info", {
+        body: { url: importUrl },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Extraction failed");
+
+      const info = data.data;
+      if (info.title && !formTitle) setFormTitle(info.title);
+      if (info.description) setFormDescription(prev => prev || info.description);
+      if (info.ride_date && !formRideDate) setFormRideDate(info.ride_date);
+      if (info.mile_goal && formMileGoal === "118") setFormMileGoal(String(Math.round(info.mile_goal)));
+      if (info.start_location && !formStartLocation) setFormStartLocation(info.start_location);
+      if (info.end_location && !formEndLocation) setFormEndLocation(info.end_location);
+      if (!formRaceUrl) setFormRaceUrl(importUrl);
+      if (info.images?.length) setImportedImages(info.images);
+
+      toast({ title: "Race info extracted!", description: `Found: ${info.title || "event details"}` });
+    } catch (err) {
+      showErrorToastWithCopy("Extracting race info", err);
+    } finally {
+      setImportingRace(false);
+    }
+  };
+
+  const addImportedImageAsScenic = async (imageUrl: string) => {
+    if (!editingEvent) {
+      toast({ title: "Save the event first, then add scenic photos", variant: "destructive" });
+      return;
+    }
+    try {
+      const { error } = await supabase.from("bike_ride_scenic_photos").insert({
+        event_id: editingEvent.id,
+        image_url: imageUrl,
+        display_order: scenicPhotos.length,
+      });
+      if (error) throw error;
+      fetchScenicPhotos(editingEvent.id);
+      setImportedImages(prev => prev.filter(u => u !== imageUrl));
+      toast({ title: "Image added as scenic photo" });
+    } catch (err) {
+      toast({ title: "Failed to add image", variant: "destructive" });
     }
   };
 
@@ -622,6 +675,47 @@ export function BikeRideManager() {
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Edit Event' : 'Create Bike Ride Event'}</DialogTitle>
           </DialogHeader>
+          {/* Import from Race URL */}
+          <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+            <p className="text-sm font-medium flex items-center gap-1.5">
+              <Wand2 className="h-4 w-4 text-primary" /> Import from Race Website
+            </p>
+            <p className="text-xs text-muted-foreground">Paste a race/event URL and AI will extract the details for you</p>
+            <div className="flex gap-2">
+              <Input
+                value={importUrl}
+                onChange={e => setImportUrl(e.target.value)}
+                placeholder="https://race-website.com/event-page"
+                className="flex-1"
+              />
+              <Button
+                size="sm"
+                onClick={handleImportFromUrl}
+                disabled={!importUrl || importingRace}
+                type="button"
+              >
+                {importingRace ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Globe className="h-4 w-4 mr-1" />}
+                {importingRace ? "Extracting..." : "Extract"}
+              </Button>
+            </div>
+            {/* Show extracted images */}
+            {importedImages.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs font-medium text-muted-foreground">Found {importedImages.length} images — click to add as scenic photos{!editingEvent && " (save event first)"}</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {importedImages.map((imgUrl, i) => (
+                    <div key={i} className="relative group cursor-pointer" onClick={() => addImportedImageAsScenic(imgUrl)}>
+                      <img src={imgUrl} alt={`Race image ${i + 1}`} className="rounded border h-16 w-full object-cover" />
+                      <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                        <Plus className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-4">
             <div>
               <Label>Title *</Label>
