@@ -43,6 +43,7 @@ interface BikeEvent {
   rider_bio: string | null;
   rider_image_url: string | null;
   race_logo_url: string | null;
+  slug: string | null;
 }
 
 interface Pledge {
