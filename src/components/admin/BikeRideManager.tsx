@@ -627,6 +627,7 @@ export function BikeRideManager() {
                   {event.rider_name} · {event.mile_goal} miles
                   {event.elevation_gain_ft ? ` · ${event.elevation_gain_ft.toLocaleString()}ft gain` : ""}
                   {" · "}{new Date(event.ride_date + 'T00:00:00').toLocaleDateString()}
+                  {event.slug && <span className="ml-1 font-mono text-xs">/{event.slug}</span>}
                 </p>
               </div>
               <div className="flex gap-2">
