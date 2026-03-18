@@ -713,17 +713,34 @@ export function BikeRideManager() {
                 </p>
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   {scenicPhotos.map(photo => (
-                    <div key={photo.id} className="relative group">
+                    <div key={photo.id} className={`relative group ${photo.is_default ? 'ring-2 ring-primary rounded-md' : ''}`}>
                       <img src={photo.image_url} alt={photo.caption || "Scenic"} className="rounded-md border h-20 w-full object-cover" />
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteScenicPhoto(photo.id)}
-                        type="button"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {photo.is_default && (
+                        <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5">
+                          <Star className="h-2.5 w-2.5" /> Hero
+                        </span>
+                      )}
+                      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="icon"
+                          variant={photo.is_default ? "default" : "secondary"}
+                          className="h-5 w-5"
+                          onClick={() => toggleDefaultPhoto(photo.id)}
+                          type="button"
+                          title={photo.is_default ? "Remove as hero" : "Set as hero image"}
+                        >
+                          <Star className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="h-5 w-5"
+                          onClick={() => deleteScenicPhoto(photo.id)}
+                          type="button"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -501,7 +501,7 @@ export default function BikeRidePledge() {
                 Along the Route
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {scenicPhotos.map(photo => (
+                {scenicPhotos.filter(p => !p.is_default).map(photo => (
                   <div key={photo.id} className="relative group">
                     <img
                       src={photo.image_url}
