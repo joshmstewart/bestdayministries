@@ -219,7 +219,7 @@ export function BikeRideManager() {
         await supabase.from('bike_ride_events').update(payload).eq('id', editingEvent.id);
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('bike_ride_events').insert({ ...payload, created_by: user!.id });
+        await supabase.from('bike_ride_events').insert([{ ...payload, created_by: user!.id }] as any);
       }
 
       setShowCreateDialog(false);
