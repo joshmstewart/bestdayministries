@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star, Globe, Wand2 } from "lucide-react";
+import { Bike, Plus, Edit, DollarSign, Loader2, Users, AlertTriangle, RefreshCw, ExternalLink, MapPin, Upload, X, Link2, Sparkles, Image as ImageIcon, Trash2, Star, Globe, Wand2, Mountain, Clock, Flag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { showErrorToastWithCopy } from "@/lib/errorToast";
 import { ImageUploadWithCrop } from "@/components/common/ImageUploadWithCrop";
@@ -30,6 +30,15 @@ interface BikeEvent {
   route_map_image_url: string | null;
   race_url: string | null;
   route_waypoints: any[] | null;
+  elevation_gain_ft: number | null;
+  difficulty_rating: string | null;
+  ridewithgps_url: string | null;
+  aid_stations: any[] | null;
+  key_climbs: string[] | null;
+  start_time: string | null;
+  registration_url: string | null;
+  finish_description: string | null;
+  route_description: string | null;
 }
 
 interface Pledge {
@@ -78,6 +87,17 @@ export function BikeRideManager() {
   const [importUrl, setImportUrl] = useState("");
   const [importingRace, setImportingRace] = useState(false);
   const [importedImages, setImportedImages] = useState<string[]>([]);
+
+  // Enhanced fields
+  const [formElevationGain, setFormElevationGain] = useState("");
+  const [formDifficulty, setFormDifficulty] = useState("");
+  const [formRideWithGpsUrl, setFormRideWithGpsUrl] = useState("");
+  const [formKeyClimbs, setFormKeyClimbs] = useState("");
+  const [formStartTime, setFormStartTime] = useState("");
+  const [formRegistrationUrl, setFormRegistrationUrl] = useState("");
+  const [formFinishDescription, setFormFinishDescription] = useState("");
+  const [formRouteDescription, setFormRouteDescription] = useState("");
+  const [formAidStations, setFormAidStations] = useState<any[]>([]);
 
   // Process charges state
   const [actualMiles, setActualMiles] = useState("");
@@ -128,6 +148,15 @@ export function BikeRideManager() {
       setFormRouteMapUrl(event.route_map_image_url || "");
       setFormRaceUrl(event.race_url || "");
       setFormRouteWaypoints(event.route_waypoints || null);
+      setFormElevationGain(event.elevation_gain_ft ? String(event.elevation_gain_ft) : "");
+      setFormDifficulty(event.difficulty_rating || "");
+      setFormRideWithGpsUrl(event.ridewithgps_url || "");
+      setFormKeyClimbs(event.key_climbs?.join(", ") || "");
+      setFormStartTime(event.start_time || "");
+      setFormRegistrationUrl(event.registration_url || "");
+      setFormFinishDescription(event.finish_description || "");
+      setFormRouteDescription(event.route_description || "");
+      setFormAidStations(event.aid_stations || []);
       fetchScenicPhotos(event.id);
     } else {
       setEditingEvent(null);
@@ -141,6 +170,15 @@ export function BikeRideManager() {
       setFormRouteMapUrl("");
       setFormRaceUrl("");
       setFormRouteWaypoints(null);
+      setFormElevationGain("");
+      setFormDifficulty("");
+      setFormRideWithGpsUrl("");
+      setFormKeyClimbs("");
+      setFormStartTime("");
+      setFormRegistrationUrl("");
+      setFormFinishDescription("");
+      setFormRouteDescription("");
+      setFormAidStations([]);
       setScenicPhotos([]);
     }
     setImportUrl("");
@@ -155,7 +193,7 @@ export function BikeRideManager() {
     }
     setFormSaving(true);
     try {
-      const payload = {
+      const payload: Record<string, any> = {
         title: formTitle,
         description: formDescription || null,
         rider_name: formRiderName,
@@ -166,13 +204,22 @@ export function BikeRideManager() {
         route_map_image_url: formRouteMapUrl || null,
         race_url: formRaceUrl || null,
         route_waypoints: formRouteWaypoints || null,
+        elevation_gain_ft: formElevationGain ? Number(formElevationGain) : null,
+        difficulty_rating: formDifficulty || null,
+        ridewithgps_url: formRideWithGpsUrl || null,
+        key_climbs: formKeyClimbs ? formKeyClimbs.split(",").map(s => s.trim()).filter(Boolean) : null,
+        start_time: formStartTime || null,
+        registration_url: formRegistrationUrl || null,
+        finish_description: formFinishDescription || null,
+        route_description: formRouteDescription || null,
+        aid_stations: formAidStations.length > 0 ? formAidStations : null,
       };
 
       if (editingEvent) {
         await supabase.from('bike_ride_events').update(payload).eq('id', editingEvent.id);
       } else {
         const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('bike_ride_events').insert({ ...payload, created_by: user!.id });
+        await supabase.from('bike_ride_events').insert([{ ...payload, created_by: user!.id }] as any);
       }
 
       setShowCreateDialog(false);
@@ -286,6 +333,7 @@ export function BikeRideManager() {
       if (!data?.success) throw new Error(data?.error || "Extraction failed");
 
       const info = data.data;
+      // Auto-fill only empty fields
       if (info.title && !formTitle) setFormTitle(info.title);
       if (info.description) setFormDescription(prev => prev || info.description);
       if (info.ride_date && !formRideDate) setFormRideDate(info.ride_date);
@@ -294,6 +342,17 @@ export function BikeRideManager() {
       if (info.end_location && !formEndLocation) setFormEndLocation(info.end_location);
       if (!formRaceUrl) setFormRaceUrl(importUrl);
       if (info.images?.length) setImportedImages(info.images);
+
+      // Enhanced fields
+      if (info.elevation_gain_ft && !formElevationGain) setFormElevationGain(String(Math.round(info.elevation_gain_ft)));
+      if (info.difficulty_rating && !formDifficulty) setFormDifficulty(info.difficulty_rating);
+      if (info.ridewithgps_url && !formRideWithGpsUrl) setFormRideWithGpsUrl(info.ridewithgps_url);
+      if (info.key_climbs?.length && !formKeyClimbs) setFormKeyClimbs(info.key_climbs.join(", "));
+      if (info.start_time && !formStartTime) setFormStartTime(info.start_time);
+      if (info.registration_url && !formRegistrationUrl) setFormRegistrationUrl(info.registration_url);
+      if (info.finish_description && !formFinishDescription) setFormFinishDescription(info.finish_description);
+      if (info.route_description && !formRouteDescription) setFormRouteDescription(info.route_description);
+      if (info.aid_stations?.length && formAidStations.length === 0) setFormAidStations(info.aid_stations);
 
       toast({ title: "Race info extracted!", description: `Found: ${info.title || "event details"}` });
     } catch (err) {
@@ -357,7 +416,6 @@ export function BikeRideManager() {
       if (insertError) throw insertError;
       fetchScenicPhotos(editingEvent.id);
       toast({ title: "Scenic photo added" });
-      // Reset the uploader for next photo
       setScenicPhotoFile(null);
       setScenicPhotoPreview(null);
     } catch (err) {
@@ -375,12 +433,23 @@ export function BikeRideManager() {
   const toggleDefaultPhoto = async (photoId: string) => {
     if (!editingEvent) return;
     const isCurrentlyDefault = scenicPhotos.find(p => p.id === photoId)?.is_default;
-    // Clear all defaults for this event first
     await supabase.from("bike_ride_scenic_photos").update({ is_default: false }).eq("event_id", editingEvent.id);
     if (!isCurrentlyDefault) {
       await supabase.from("bike_ride_scenic_photos").update({ is_default: true }).eq("id", photoId);
     }
     fetchScenicPhotos(editingEvent.id);
+  };
+
+  const addAidStation = () => {
+    setFormAidStations(prev => [...prev, { name: "", mile: 0, services: "" }]);
+  };
+
+  const updateAidStation = (index: number, field: string, value: any) => {
+    setFormAidStations(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
+  const removeAidStation = (index: number) => {
+    setFormAidStations(prev => prev.filter((_, i) => i !== index));
   };
 
   const statusColor = (status: string) => {
@@ -448,9 +517,14 @@ export function BikeRideManager() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{event.title}</span>
                   <Badge variant={statusColor(event.status)}>{event.status}</Badge>
+                  {event.difficulty_rating && (
+                    <Badge variant="outline" className="text-[10px]">{event.difficulty_rating}</Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {event.rider_name} · {event.mile_goal} miles · {new Date(event.ride_date + 'T00:00:00').toLocaleDateString()}
+                  {event.rider_name} · {event.mile_goal} miles
+                  {event.elevation_gain_ft ? ` · ${event.elevation_gain_ft.toLocaleString()}ft gain` : ""}
+                  {" · "}{new Date(event.ride_date + 'T00:00:00').toLocaleDateString()}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -671,7 +745,7 @@ export function BikeRideManager() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] overflow-y-auto max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Edit Event' : 'Create Bike Ride Event'}</DialogTitle>
           </DialogHeader>
@@ -680,7 +754,7 @@ export function BikeRideManager() {
             <p className="text-sm font-medium flex items-center gap-1.5">
               <Wand2 className="h-4 w-4 text-primary" /> Import from Race Website
             </p>
-            <p className="text-xs text-muted-foreground">Paste a race/event URL and AI will extract the details for you</p>
+            <p className="text-xs text-muted-foreground">Paste a race/event URL and AI will extract details, images, elevation, aid stations, and more</p>
             <div className="flex gap-2">
               <Input
                 value={importUrl}
@@ -717,21 +791,28 @@ export function BikeRideManager() {
           </div>
 
           <div className="space-y-4">
-            <div>
-              <Label>Title *</Label>
-              <Input value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="Bike Ride for Best Day" />
-            </div>
-            <div>
-              <Label>Rider Name *</Label>
-              <Input value={formRiderName} onChange={e => setFormRiderName(e.target.value)} placeholder="John Smith" />
-            </div>
-            <div>
-              <Label>Ride Date *</Label>
-              <Input type="date" value={formRideDate} onChange={e => setFormRideDate(e.target.value)} />
-            </div>
-            <div>
-              <Label>Mile Goal *</Label>
-              <Input type="number" value={formMileGoal} onChange={e => setFormMileGoal(e.target.value)} min={1} />
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label>Title *</Label>
+                <Input value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="Bike Ride for Best Day" />
+              </div>
+              <div>
+                <Label>Rider Name *</Label>
+                <Input value={formRiderName} onChange={e => setFormRiderName(e.target.value)} placeholder="John Smith" />
+              </div>
+              <div>
+                <Label>Ride Date *</Label>
+                <Input type="date" value={formRideDate} onChange={e => setFormRideDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Mile Goal *</Label>
+                <Input type="number" value={formMileGoal} onChange={e => setFormMileGoal(e.target.value)} min={1} />
+              </div>
+              <div>
+                <Label>Start Time</Label>
+                <Input value={formStartTime} onChange={e => setFormStartTime(e.target.value)} placeholder="5:15 AM" />
+              </div>
             </div>
             <div>
               <Label>Description</Label>
@@ -741,6 +822,86 @@ export function BikeRideManager() {
               <Label className="flex items-center gap-1.5"><Link2 className="h-4 w-4" /> Race/Event Link</Label>
               <Input value={formRaceUrl} onChange={e => setFormRaceUrl(e.target.value)} placeholder="https://race-website.com/event" />
             </div>
+            {formRegistrationUrl && (
+              <div>
+                <Label className="flex items-center gap-1.5"><ExternalLink className="h-4 w-4" /> Registration URL</Label>
+                <Input value={formRegistrationUrl} onChange={e => setFormRegistrationUrl(e.target.value)} placeholder="https://..." />
+              </div>
+            )}
+
+            {/* Elevation & Difficulty */}
+            <div className="border-t pt-4 mt-2">
+              <p className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+                <Mountain className="h-4 w-4" /> Elevation & Difficulty
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Elevation Gain (ft)</Label>
+                  <Input type="number" value={formElevationGain} onChange={e => setFormElevationGain(e.target.value)} placeholder="10800" />
+                </div>
+                <div>
+                  <Label>Difficulty Rating</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={formDifficulty}
+                    onChange={e => setFormDifficulty(e.target.value)}
+                  >
+                    <option value="">Select...</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Challenging">Challenging</option>
+                    <option value="Epic">Epic</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-3">
+                <Label>Key Climbs (comma-separated)</Label>
+                <Input value={formKeyClimbs} onChange={e => setFormKeyClimbs(e.target.value)} placeholder="Juniper Pass, Loveland Pass, Vail Pass" />
+              </div>
+              {formRouteDescription !== undefined && (
+                <div className="mt-3">
+                  <Label>Route Description</Label>
+                  <Textarea value={formRouteDescription} onChange={e => setFormRouteDescription(e.target.value)} placeholder="Describe the terrain and route..." rows={2} />
+                </div>
+              )}
+              {formFinishDescription !== undefined && (
+                <div className="mt-3">
+                  <Label>Finish Line Details</Label>
+                  <Input value={formFinishDescription} onChange={e => setFormFinishDescription(e.target.value)} placeholder="Post-ride party, food, awards..." />
+                </div>
+              )}
+            </div>
+
+            {/* Aid Stations */}
+            <div className="border-t pt-4 mt-2">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Flag className="h-4 w-4" /> Aid Stations / Milestones
+                </p>
+                <Button type="button" size="sm" variant="outline" onClick={addAidStation}>
+                  <Plus className="h-3 w-3 mr-1" /> Add
+                </Button>
+              </div>
+              {formAidStations.map((station, i) => (
+                <div key={i} className="grid grid-cols-[1fr_60px_1fr_32px] gap-2 mb-2 items-end">
+                  <div>
+                    <Label className="text-xs">Name</Label>
+                    <Input value={station.name} onChange={e => updateAidStation(i, "name", e.target.value)} placeholder="Station name" className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Mile</Label>
+                    <Input type="number" value={station.mile} onChange={e => updateAidStation(i, "mile", Number(e.target.value))} className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Services</Label>
+                    <Input value={station.services || ""} onChange={e => updateAidStation(i, "services", e.target.value)} placeholder="Water, snacks..." className="h-8 text-sm" />
+                  </div>
+                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeAidStation(i)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
             
             {/* Route Information */}
             <div className="border-t pt-4 mt-2">
@@ -748,13 +909,19 @@ export function BikeRideManager() {
                 <MapPin className="h-4 w-4" /> Route Information
               </p>
               <div className="space-y-3">
-                <div>
-                  <Label>Start Location</Label>
-                  <Input value={formStartLocation} onChange={e => setFormStartLocation(e.target.value)} placeholder="e.g., City Park, Denver CO" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Start Location</Label>
+                    <Input value={formStartLocation} onChange={e => setFormStartLocation(e.target.value)} placeholder="e.g., City Park, Denver CO" />
+                  </div>
+                  <div>
+                    <Label>End Location</Label>
+                    <Input value={formEndLocation} onChange={e => setFormEndLocation(e.target.value)} placeholder="e.g., Avon, CO" />
+                  </div>
                 </div>
                 <div>
-                  <Label>End Location</Label>
-                  <Input value={formEndLocation} onChange={e => setFormEndLocation(e.target.value)} placeholder="e.g., Red Rocks Amphitheatre, Morrison CO" />
+                  <Label>Ride With GPS / Interactive Map URL</Label>
+                  <Input value={formRideWithGpsUrl} onChange={e => setFormRideWithGpsUrl(e.target.value)} placeholder="https://ridewithgps.com/routes/..." />
                 </div>
                 <div>
                   <Label>Route Map Image</Label>

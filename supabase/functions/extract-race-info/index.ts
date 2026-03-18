@@ -49,10 +49,10 @@ serve(async (req) => {
     console.log("Scraped content length:", markdown.length, "links:", links.length);
 
     // Step 2: Use AI to extract structured race info
-    const prompt = `Analyze this race/cycling event page content and extract key information.
+    const prompt = `Analyze this race/cycling event page content and extract ALL available information.
 
 PAGE CONTENT:
-${markdown.substring(0, 8000)}
+${markdown.substring(0, 12000)}
 
 PAGE METADATA:
 Title: ${metadata.title || ""}
@@ -61,7 +61,10 @@ Description: ${metadata.description || ""}
 IMAGE LINKS FOUND ON PAGE:
 ${links.filter((l: string) => /\.(jpg|jpeg|png|webp|gif)/i.test(l)).slice(0, 20).join("\n")}
 
-Extract the following information and return as JSON. Use null for any field you can't determine:
+ALL LINKS FOUND ON PAGE:
+${links.filter((l: string) => /ridewithgps|strava|mapmy|komoot/i.test(l)).slice(0, 10).join("\n")}
+
+Extract ALL of the following information and return as JSON. Use null for any field you can't determine:
 
 {
   "title": "Event/race title",
@@ -69,9 +72,17 @@ Extract the following information and return as JSON. Use null for any field you
   "ride_date": "YYYY-MM-DD format if found",
   "mile_goal": number of miles (convert from km if needed),
   "start_location": "Start city/location",
-  "end_location": "End city/location",
+  "end_location": "End city/location (or same as start for loops)",
   "images": ["array of image URLs found on the page that show the route, scenery, or event - up to 5 best ones"],
-  "route_description": "Brief description of the route/terrain"
+  "route_description": "Brief description of the route/terrain",
+  "elevation_gain_ft": number of feet of elevation gain (convert from meters if needed, 1m = 3.281ft),
+  "difficulty_rating": "Easy, Moderate, Challenging, or Epic - based on distance and elevation",
+  "key_climbs": ["array of named mountain passes or significant climbs mentioned"],
+  "aid_stations": [{"name": "Station Name", "mile": approximate mile marker, "services": "what's available"}],
+  "start_time": "Start time like '5:15 AM' if mentioned",
+  "registration_url": "URL for registration/sign-up if found",
+  "finish_description": "What happens at the finish line (party, food, ceremony, etc.)",
+  "ridewithgps_url": "Ride With GPS URL if found, or any interactive route map URL"
 }
 
 Return ONLY valid JSON, no other text.`;
@@ -103,7 +114,7 @@ Return ONLY valid JSON, no other text.`;
     if (!jsonMatch) throw new Error("Could not parse AI response");
 
     const extracted = JSON.parse(jsonMatch[0]);
-    console.log("Extracted race info:", JSON.stringify(extracted).substring(0, 300));
+    console.log("Extracted race info:", JSON.stringify(extracted).substring(0, 500));
 
     return new Response(
       JSON.stringify({ success: true, data: extracted, source_url: url }),

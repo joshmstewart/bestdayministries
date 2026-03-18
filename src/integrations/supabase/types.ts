@@ -1134,60 +1134,87 @@ export type Database = {
       bike_ride_events: {
         Row: {
           actual_miles: number | null
+          aid_stations: Json | null
           cover_image_url: string | null
           created_at: string
           created_by: string
           description: string | null
+          difficulty_rating: string | null
+          elevation_gain_ft: number | null
           end_location: string | null
+          finish_description: string | null
           id: string
           is_active: boolean
+          key_climbs: string[] | null
           mile_goal: number
           race_url: string | null
+          registration_url: string | null
           ride_date: string
           rider_name: string
+          ridewithgps_url: string | null
+          route_description: string | null
           route_map_image_url: string | null
           route_waypoints: Json | null
           start_location: string | null
+          start_time: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
           actual_miles?: number | null
+          aid_stations?: Json | null
           cover_image_url?: string | null
           created_at?: string
           created_by: string
           description?: string | null
+          difficulty_rating?: string | null
+          elevation_gain_ft?: number | null
           end_location?: string | null
+          finish_description?: string | null
           id?: string
           is_active?: boolean
+          key_climbs?: string[] | null
           mile_goal: number
           race_url?: string | null
+          registration_url?: string | null
           ride_date: string
           rider_name: string
+          ridewithgps_url?: string | null
+          route_description?: string | null
           route_map_image_url?: string | null
           route_waypoints?: Json | null
           start_location?: string | null
+          start_time?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
           actual_miles?: number | null
+          aid_stations?: Json | null
           cover_image_url?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
+          difficulty_rating?: string | null
+          elevation_gain_ft?: number | null
           end_location?: string | null
+          finish_description?: string | null
           id?: string
           is_active?: boolean
+          key_climbs?: string[] | null
           mile_goal?: number
           race_url?: string | null
+          registration_url?: string | null
           ride_date?: string
           rider_name?: string
+          ridewithgps_url?: string | null
+          route_description?: string | null
           route_map_image_url?: string | null
           route_waypoints?: Json | null
           start_location?: string | null
+          start_time?: string | null
           status?: string
           title?: string
           updated_at?: string
