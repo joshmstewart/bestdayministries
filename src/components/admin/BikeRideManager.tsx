@@ -87,6 +87,7 @@ export function BikeRideManager() {
   const [importUrl, setImportUrl] = useState("");
   const [importingRace, setImportingRace] = useState(false);
   const [importedImages, setImportedImages] = useState<string[]>([]);
+  const [deepCrawl, setDeepCrawl] = useState(false);
 
   // Enhanced fields
   const [formElevationGain, setFormElevationGain] = useState("");
