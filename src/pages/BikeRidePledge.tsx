@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy } from "lucide-react";
+import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy, ArrowLeft } from "lucide-react";
 import { BikeRouteMap } from "@/components/BikeRouteMap";
 
 interface BikeEvent {
@@ -186,6 +186,7 @@ const difficultyColor = (rating: string) => {
 };
 
 export default function BikeRidePledge() {
+  const { eventId: routeEventId } = useParams<{ eventId: string }>();
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
   const [scenicPhotos, setScenicPhotos] = useState<ScenicPhoto[]>([]);
@@ -258,8 +259,12 @@ export default function BikeRidePledge() {
 
   const fetchEventStatus = async () => {
     try {
+      const body: any = {};
+      if (forceTestMode) body.force_test_mode = true;
+      if (routeEventId) body.event_id = routeEventId;
+      
       const { data, error } = await supabase.functions.invoke("get-bike-ride-status", {
-        body: forceTestMode ? { force_test_mode: true } : undefined,
+        body: Object.keys(body).length > 0 ? body : undefined,
       });
       if (error) throw error;
       if (data?.event) {
@@ -361,6 +366,13 @@ export default function BikeRidePledge() {
     <div className="min-h-screen bg-background">
       <UnifiedHeader />
       <main className="pt-24 pb-12">
+        {/* Back link */}
+        <div className="container max-w-4xl mx-auto px-4 mb-4">
+          <Link to="/bike-rides" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            All Bike Rides
+          </Link>
+        </div>
         {/* Hero Section */}
         {(() => {
           const heroPhoto = scenicPhotos.find(p => p.is_default);

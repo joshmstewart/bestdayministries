@@ -20,9 +20,11 @@ serve(async (req) => {
 
     // Check if force_test_mode is requested
     let forceTest = false;
+    let bodyEventId: string | null = null;
     try {
       const body = await req.json();
       forceTest = body?.force_test_mode === true;
+      bodyEventId = body?.event_id || null;
     } catch {
       // No body or invalid JSON, that's fine
     }
@@ -39,7 +41,7 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const eventId = url.searchParams.get('event_id');
+    const eventId = url.searchParams.get('event_id') || bodyEventId;
 
     // If no event_id, return the first active event
     let query = supabaseAdmin
