@@ -60,6 +60,10 @@ export function BikeRideManager() {
   const [formRiderName, setFormRiderName] = useState("");
   const [formRideDate, setFormRideDate] = useState("");
   const [formMileGoal, setFormMileGoal] = useState("118");
+  const [formStartLocation, setFormStartLocation] = useState("");
+  const [formEndLocation, setFormEndLocation] = useState("");
+  const [formRouteMapUrl, setFormRouteMapUrl] = useState("");
+  const [uploadingRouteMap, setUploadingRouteMap] = useState(false);
   const [formSaving, setFormSaving] = useState(false);
 
   // Process charges state
