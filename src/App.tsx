@@ -342,9 +342,11 @@ const App = () => {
             <Route path="/workout-tracker" element={<WorkoutTracker />} />
             <Route path="/checkout-success" element={<CheckoutSuccess />} />
             <Route path="/share" element={<ShareRedirect />} />
-            <Route path="/bike-ride-pledge" element={<BikeRidePledge />} />
+            <Route path="/bike-rides" element={<BikeRides />} />
+            <Route path="/bike-rides/:eventId" element={<BikeRidePledge />} />
+            <Route path="/bike-ride-pledge" element={<Navigate to="/bike-rides" replace />} />
             <Route path="/night-of-joy" element={<NightOfJoy />} />
-            <Route path="/bike-ride-pledge-test" element={<Navigate to="/bike-ride-pledge?test=true" replace />} />
+            <Route path="/bike-ride-pledge-test" element={<Navigate to="/bike-rides?test=true" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
