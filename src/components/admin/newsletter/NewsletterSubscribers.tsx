@@ -13,28 +13,133 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { SectionLoadingState } from "@/components/common";
+import { BulkImportPreview } from "./BulkImportPreview";
+
+interface ParsedRow {
+  columns: string[];
+}
+
+interface ColumnMapping {
+  email: number;
+  name: number;
+  city: number;
+  state: number;
+  country: number;
+}
+
+const UNMAPPED = -1;
+
+/** Try to auto-detect column mapping from header strings */
+function autoDetectMapping(headers: string[]): ColumnMapping {
+  const lower = headers.map(h => h.toLowerCase());
+
+  const emailIdx = lower.findIndex(h => h.includes("email") && !h.includes("status"));
+  const nameIdx = lower.findIndex(h => h.includes("name") && !h.includes("email"));
+  const cityIdx = lower.findIndex(h => h.includes("city"));
+  const stateIdx = lower.findIndex(h => h.includes("state") || h.includes("province"));
+  const countryIdx = lower.findIndex(h => h.includes("country"));
+
+  return {
+    email: emailIdx >= 0 ? emailIdx : UNMAPPED,
+    name: nameIdx >= 0 ? nameIdx : UNMAPPED,
+    city: cityIdx >= 0 ? cityIdx : UNMAPPED,
+    state: stateIdx >= 0 ? stateIdx : UNMAPPED,
+    country: countryIdx >= 0 ? countryIdx : UNMAPPED,
+  };
+}
+
+/** Parse CSV text into rows */
+function parseCSV(text: string): { headers: string[]; rows: ParsedRow[] } {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return { headers: [], rows: [] };
+
+  const rows: ParsedRow[] = lines.map(line => ({
+    columns: line.split(",").map(col => col.trim().replace(/^["']|["']$/g, "")),
+  }));
+
+  // Check if first row looks like a header
+  const firstRow = rows[0].columns.map(c => c.toLowerCase());
+  const looksLikeHeader = firstRow.some(c => c.includes("email") || c.includes("name"));
+
+  return {
+    headers: looksLikeHeader ? rows[0].columns : [],
+    rows,
+  };
+}
+
+/** Parse simple text content (from PDF extraction) — expects lines of "Name | Email" or similar */
+function parseTextTable(text: string): { headers: string[]; rows: ParsedRow[] } {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length === 0) return { headers: [], rows: [] };
+
+  // Detect delimiter: tab, pipe, or multi-space
+  const firstLines = lines.slice(0, 5).join("\n");
+  let splitRegex: RegExp;
+  if (firstLines.includes("\t")) {
+    splitRegex = /\t+/;
+  } else if (firstLines.includes("|")) {
+    splitRegex = /\s*\|\s*/;
+  } else {
+    // Multi-space separator
+    splitRegex = /\s{2,}/;
+  }
+
+  const rows: ParsedRow[] = lines.map(line => ({
+    columns: line.split(splitRegex).map(col => col.trim()).filter(Boolean),
+  }));
+
+  const firstRow = rows[0].columns.map(c => c.toLowerCase());
+  const looksLikeHeader = firstRow.some(c => c.includes("email") || c.includes("name"));
+
+  return {
+    headers: looksLikeHeader ? rows[0].columns : [],
+    rows,
+  };
+}
+
+/** Extract text from PDF using edge function */
+async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = btoa(
+    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+  );
+
+  const { data, error } = await supabase.functions.invoke("extract-pdf-text", {
+    body: { pdf_base64: base64 },
+  });
+
+  if (error) throw new Error("Failed to extract text from PDF");
+  return data?.text || "";
+}
 
 export const NewsletterSubscribers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [isUploading, setIsUploading] = useState(false);
+  const [isParsingFile, setIsParsingFile] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
+
+  // Preview dialog state
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    rows: ParsedRow[];
+    headers: string[];
+    fileName: string;
+    mapping: ColumnMapping;
+  } | null>(null);
 
   const { data: subscribers, isLoading } = useQuery({
     queryKey: ["newsletter-subscribers"],
     queryFn: async () => {
-      // Fetch all subscribers - use range to bypass 1000 row limit
       let allSubscribers: any[] = [];
       let from = 0;
       const batchSize = 1000;
-      
+
       while (true) {
         const { data, error } = await supabase
           .from("newsletter_subscribers")
@@ -44,12 +149,12 @@ export const NewsletterSubscribers = () => {
 
         if (error) throw error;
         if (!data || data.length === 0) break;
-        
+
         allSubscribers = [...allSubscribers, ...data];
         if (data.length < batchSize) break;
         from += batchSize;
       }
-      
+
       return allSubscribers;
     },
   });
@@ -78,14 +183,12 @@ export const NewsletterSubscribers = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Reset to page 1 when filters change
   const totalPages = Math.ceil((filteredSubscribers?.length || 0) / pageSize);
   const paginatedSubscribers = filteredSubscribers?.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  // Reset page when filters change
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
@@ -138,186 +241,82 @@ export const NewsletterSubscribers = () => {
     }
   };
 
-  const handleBulkUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
+    setIsParsingFile(true);
 
     try {
-      const text = await file.text();
-      const lines = text.split(/\r?\n/).filter(line => line.trim());
-      
-      if (lines.length === 0) {
-        toast.error("File is empty");
-        return;
-      }
+      let parsed: { headers: string[]; rows: ParsedRow[] };
+      const isPDF = file.name.toLowerCase().endsWith(".pdf");
 
-      // Parse header to find relevant columns
-      const headerCols = lines[0].split(",").map(col => col.trim().replace(/^["']|["']$/g, "").toLowerCase());
-      
-      // Find column indices
-      const emailColIndices = headerCols
-        .map((col, idx) => col.includes("email") && !col.includes("status") ? idx : -1)
-        .filter(idx => idx !== -1);
-      
-      const cityColIdx = headerCols.findIndex(col => col.includes("city"));
-      const stateColIdx = headerCols.findIndex(col => col.includes("state") || col.includes("province"));
-      const countryColIdx = headerCols.findIndex(col => col.includes("country"));
-
-      const hasHeader = emailColIndices.length > 0;
-      const startIndex = hasHeader ? 1 : 0;
-      
-      interface SubscriberData {
-        email: string;
-        city?: string;
-        state?: string;
-        country?: string;
-        timezone?: string;
-      }
-      
-      // Map US states to timezones
-      const stateTimezones: Record<string, string> = {
-        // Eastern
-        CT: "America/New_York", DE: "America/New_York", FL: "America/New_York", GA: "America/New_York",
-        IN: "America/New_York", KY: "America/New_York", ME: "America/New_York", MD: "America/New_York",
-        MA: "America/New_York", MI: "America/New_York", NH: "America/New_York", NJ: "America/New_York",
-        NY: "America/New_York", NC: "America/New_York", OH: "America/New_York", PA: "America/New_York",
-        RI: "America/New_York", SC: "America/New_York", VT: "America/New_York", VA: "America/New_York",
-        WV: "America/New_York", DC: "America/New_York",
-        // Central
-        AL: "America/Chicago", AR: "America/Chicago", IL: "America/Chicago", IA: "America/Chicago",
-        KS: "America/Chicago", LA: "America/Chicago", MN: "America/Chicago", MS: "America/Chicago",
-        MO: "America/Chicago", NE: "America/Chicago", ND: "America/Chicago", OK: "America/Chicago",
-        SD: "America/Chicago", TN: "America/Chicago", TX: "America/Chicago", WI: "America/Chicago",
-        // Mountain
-        AZ: "America/Phoenix", CO: "America/Denver", ID: "America/Denver", MT: "America/Denver",
-        NM: "America/Denver", UT: "America/Denver", WY: "America/Denver",
-        // Pacific
-        CA: "America/Los_Angeles", NV: "America/Los_Angeles", OR: "America/Los_Angeles", WA: "America/Los_Angeles",
-        // Other
-        AK: "America/Anchorage", HI: "Pacific/Honolulu",
-      };
-
-      // Map Canadian provinces to timezones
-      const provinceTimezones: Record<string, string> = {
-        ON: "America/Toronto", QC: "America/Montreal", BC: "America/Vancouver",
-        AB: "America/Edmonton", MB: "America/Winnipeg", SK: "America/Regina",
-        NS: "America/Halifax", NB: "America/Moncton", NL: "America/St_Johns",
-        PE: "America/Halifax", YT: "America/Whitehorse", NT: "America/Yellowknife", NU: "America/Iqaluit",
-      };
-
-      const deriveTimezone = (state?: string, country?: string): string | undefined => {
-        if (!state) return undefined;
-        const stateUpper = state.toUpperCase().trim();
-        
-        // Check US states
-        if (stateTimezones[stateUpper]) return stateTimezones[stateUpper];
-        
-        // Check Canadian provinces
-        if (provinceTimezones[stateUpper]) return provinceTimezones[stateUpper];
-        
-        // Try full state names
-        const stateNameMap: Record<string, string> = {
-          CALIFORNIA: "CA", TEXAS: "TX", FLORIDA: "FL", "NEW YORK": "NY", COLORADO: "CO",
-          WASHINGTON: "WA", OREGON: "OR", ARIZONA: "AZ", NEVADA: "NV", UTAH: "UT",
-          ONTARIO: "ON", QUEBEC: "QC", "BRITISH COLUMBIA": "BC", ALBERTA: "AB",
-        };
-        const abbrev = stateNameMap[stateUpper];
-        if (abbrev) {
-          return stateTimezones[abbrev] || provinceTimezones[abbrev];
+      if (isPDF) {
+        const text = await extractTextFromPDF(file);
+        if (!text.trim()) {
+          toast.error("Could not extract text from PDF. Try converting to CSV first.");
+          return;
         }
-        
-        return undefined;
-      };
-      
-      const subscriberData: SubscriberData[] = [];
-      for (let i = startIndex; i < lines.length; i++) {
-        const cols = lines[i].split(",").map(col => col.trim().replace(/^["']|["']$/g, ""));
-        
-        // Get location data if columns exist
-        const city = cityColIdx >= 0 ? cols[cityColIdx] || undefined : undefined;
-        const state = stateColIdx >= 0 ? cols[stateColIdx] || undefined : undefined;
-        const country = countryColIdx >= 0 ? cols[countryColIdx] || undefined : undefined;
-        const timezone = deriveTimezone(state, country);
-        
-        if (hasHeader) {
-          for (const colIdx of emailColIndices) {
-            const email = cols[colIdx];
-            if (email && email.includes("@")) {
-              subscriberData.push({ email: email.toLowerCase(), city, state, country, timezone });
-            }
-          }
+        parsed = parseTextTable(text);
+      } else {
+        const text = await file.text();
+        // Check if it's tab/pipe separated vs CSV
+        const firstLine = text.split(/\r?\n/)[0] || "";
+        if (firstLine.includes("\t") || (firstLine.includes("|") && !firstLine.includes(","))) {
+          parsed = parseTextTable(text);
         } else {
-          const email = cols.find(col => col.includes("@"));
-          if (email) {
-            subscriberData.push({ email: email.toLowerCase(), city, state, country, timezone });
-          }
+          parsed = parseCSV(text);
         }
       }
 
-      if (subscriberData.length === 0) {
-        toast.error("No valid emails found in file");
+      if (parsed.rows.length === 0) {
+        toast.error("No data found in file");
         return;
       }
 
-      // Get existing emails to avoid duplicates
-      const { data: existing } = await supabase
-        .from("newsletter_subscribers")
-        .select("email");
-      
-      const existingEmails = new Set(existing?.map(e => e.email.toLowerCase()) || []);
-      const newSubscribers = subscriberData.filter(sub => !existingEmails.has(sub.email));
+      // Auto-detect column mapping
+      let mapping: ColumnMapping;
+      if (parsed.headers.length > 0) {
+        mapping = autoDetectMapping(parsed.headers);
+      } else {
+        // Try to guess: find column with most emails
+        const colCount = parsed.rows[0]?.columns.length || 0;
+        let bestEmailCol = UNMAPPED;
+        let bestEmailCount = 0;
 
-      if (newSubscribers.length === 0) {
-        toast.info("All emails already exist in the list");
-        return;
+        for (let c = 0; c < colCount; c++) {
+          const emailCount = parsed.rows.filter(r => r.columns[c]?.includes("@")).length;
+          if (emailCount > bestEmailCount) {
+            bestEmailCount = emailCount;
+            bestEmailCol = c;
+          }
+        }
+
+        mapping = { email: bestEmailCol, name: UNMAPPED, city: UNMAPPED, state: UNMAPPED, country: UNMAPPED };
+
+        // If 2 columns and one is email, the other is likely name
+        if (colCount === 2 && bestEmailCol >= 0) {
+          mapping.name = bestEmailCol === 0 ? 1 : 0;
+        }
       }
 
-      // Insert in batches of 100
-      const batchSize = 100;
-      let inserted = 0;
-      
-      for (let i = 0; i < newSubscribers.length; i += batchSize) {
-        const batch = newSubscribers.slice(i, i + batchSize).map(sub => ({
-          email: sub.email,
-          status: "active" as const,
-          source: "bulk_import",
-          location_city: sub.city || null,
-          location_state: sub.state || null,
-          location_country: sub.country || null,
-          timezone: sub.timezone || null,
-        }));
-
-        const { error } = await supabase
-          .from("newsletter_subscribers")
-          .insert(batch);
-
-        if (error) throw error;
-        inserted += batch.length;
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
-      queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
-
-      toast.success(`Added ${inserted} new subscribers`, {
-        description: subscriberData.length - newSubscribers.length > 0 
-          ? `${subscriberData.length - newSubscribers.length} duplicates skipped`
-          : undefined
+      setPreviewData({
+        rows: parsed.rows,
+        headers: parsed.headers,
+        fileName: file.name,
+        mapping,
       });
+      setPreviewOpen(true);
     } catch (error) {
-      console.error("Bulk upload error:", error);
-      // Refresh to show any data that was inserted before the error
-      queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
-      queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
-      toast.error("Upload encountered an issue - some subscribers may have been added");
+      console.error("File parse error:", error);
+      toast.error("Failed to parse file. Check the format and try again.");
     } finally {
-      setIsUploading(false);
+      setIsParsingFile(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
-  };
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -381,16 +380,16 @@ export const NewsletterSubscribers = () => {
         <input
           type="file"
           ref={fileInputRef}
-          accept=".csv,.txt"
-          onChange={handleBulkUpload}
+          accept=".csv,.txt,.pdf"
+          onChange={handleFileSelected}
           className="hidden"
         />
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isParsingFile}
         >
-          {isUploading ? (
+          {isParsingFile ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Upload className="mr-2 h-4 w-4" />
@@ -472,6 +471,21 @@ export const NewsletterSubscribers = () => {
             </div>
           )}
         </Card>
+      )}
+
+      {/* Preview Dialog */}
+      {previewData && (
+        <BulkImportPreview
+          open={previewOpen}
+          onOpenChange={(open) => {
+            setPreviewOpen(open);
+            if (!open) setPreviewData(null);
+          }}
+          parsedRows={previewData.rows}
+          detectedHeaders={previewData.headers}
+          fileName={previewData.fileName}
+          initialMapping={previewData.mapping}
+        />
       )}
     </div>
   );
