@@ -99,7 +99,7 @@ export const BulkImportPreview = ({
   const queryClient = useQueryClient();
 
   // Load existing emails once dialog opens
-  useState(() => {
+  useEffect(() => {
     if (open && !existingEmails) {
       supabase
         .from("newsletter_subscribers")
@@ -108,7 +108,7 @@ export const BulkImportPreview = ({
           setExistingEmails(new Set(data?.map(e => e.email.toLowerCase()) || []));
         });
     }
-  });
+  }, [open, existingEmails]);
 
   const dataRows = useMemo(() => {
     // Skip header row if headers were detected
