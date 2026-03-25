@@ -21,18 +21,41 @@ serve(async (req) => {
       );
     }
 
-    // Decode base64 to binary
+    // First try native extraction
     const binaryString = atob(pdf_base64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Simple PDF text extraction - parse the PDF content streams
-    const pdfText = extractTextFromPDF(bytes);
+    const nativeText = extractTextFromPDF(bytes);
+    
+    // Quality check: does native extraction have enough email-like content?
+    const emailCount = (nativeText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []).length;
+    
+    if (emailCount >= 3) {
+      console.log(`Native extraction found ${emailCount} emails, using native result`);
+      return new Response(
+        JSON.stringify({ text: nativeText }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
+    // Fallback: Use Lovable AI (Gemini) for OCR/extraction
+    console.log(`Native extraction found only ${emailCount} emails, falling back to AI extraction`);
+    
+    const aiText = await extractWithAI(pdf_base64);
+    
+    if (aiText) {
+      return new Response(
+        JSON.stringify({ text: aiText }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // If AI also failed, return whatever native got
     return new Response(
-      JSON.stringify({ text: pdfText }),
+      JSON.stringify({ text: nativeText || "No text could be extracted from this PDF." }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
@@ -44,19 +67,78 @@ serve(async (req) => {
   }
 });
 
+async function extractWithAI(pdf_base64: string): Promise<string | null> {
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY not available for AI extraction");
+      return null;
+    }
+
+    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Extract ALL names and email addresses from this PDF document. 
+Return ONLY the data in this exact format, one entry per line:
+Name<TAB>email@example.com
+
+If there are headers like "Name" and "Email", skip those header rows.
+Do not add any other text, explanations, or formatting. Just the name and email separated by a tab character on each line.`,
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:application/pdf;base64,${pdf_base64}`,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 4096,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("AI extraction failed:", response.status, await response.text());
+      return null;
+    }
+
+    const result = await response.json();
+    const text = result.choices?.[0]?.message?.content;
+    
+    if (text) {
+      console.log(`AI extraction returned ${text.split('\n').length} lines`);
+      return text.trim();
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("AI extraction error:", error);
+    return null;
+  }
+}
+
 function extractTextFromPDF(bytes: Uint8Array): string {
   const content = new TextDecoder("latin1").decode(bytes);
   const lines: string[] = [];
 
-  // Find all text streams between BT and ET markers
   const streamPattern = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
   let streamMatch;
 
   while ((streamMatch = streamPattern.exec(content)) !== null) {
     const stream = streamMatch[1];
 
-    // Extract text from Tj and TJ operators
-    // Tj = show text string
     const tjPattern = /\(([^)]*)\)\s*Tj/g;
     let tjMatch;
     while ((tjMatch = tjPattern.exec(stream)) !== null) {
@@ -64,7 +146,6 @@ function extractTextFromPDF(bytes: Uint8Array): string {
       if (text.trim()) lines.push(text.trim());
     }
 
-    // TJ = show text array
     const tjArrayPattern = /\[((?:[^[\]]*|\[(?:[^[\]]*|\[[^[\]]*\])*\])*)\]\s*TJ/g;
     let tjArrayMatch;
     while ((tjArrayMatch = tjArrayPattern.exec(stream)) !== null) {
@@ -77,7 +158,6 @@ function extractTextFromPDF(bytes: Uint8Array): string {
           text += decodePDFString(itemMatch[1]);
         } else if (itemMatch[2] !== undefined) {
           const kern = parseFloat(itemMatch[2]);
-          // Large negative kerning typically means a space
           if (kern < -100) text += " ";
         }
       }
@@ -85,40 +165,33 @@ function extractTextFromPDF(bytes: Uint8Array): string {
     }
   }
 
-  // If stream extraction found nothing, try a simpler approach for text-based PDFs
   if (lines.length === 0) {
-    // Look for text between parentheses near Tj/TJ operators anywhere
     const simplePattern = /\(([^)]{2,})\)/g;
     let simpleMatch;
     while ((simpleMatch = simplePattern.exec(content)) !== null) {
       const text = decodePDFString(simpleMatch[1]);
-      if (text.trim() && text.length > 1 && text.includes("@") || /^[A-Za-z\s]+$/.test(text.trim())) {
+      if (text.trim() && text.length > 1 && (text.includes("@") || /^[A-Za-z\s]+$/.test(text.trim()))) {
         lines.push(text.trim());
       }
     }
   }
 
-  // Try to pair names and emails by proximity
   const result: string[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.includes("@")) {
-      // Check if previous line is a name
       if (i > 0 && !lines[i - 1].includes("@") && /^[A-Za-z\s]+$/.test(lines[i - 1])) {
         result.push(`${lines[i - 1]}\t${line}`);
       } else {
         result.push(line);
       }
     } else if (i < lines.length - 1 && lines[i + 1]?.includes("@")) {
-      // Name before email — skip, will be paired on next iteration
       continue;
     } else if (/^[A-Za-z\s]+$/.test(line) && line.split(" ").length <= 4) {
-      // Standalone name — add as-is, might be useful
       result.push(line);
     }
   }
 
-  // If we got paired results, use those; otherwise return raw lines
   if (result.length > 0) {
     return result.join("\n");
   }
