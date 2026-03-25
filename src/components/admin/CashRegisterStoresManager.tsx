@@ -356,7 +356,7 @@ export const CashRegisterStoresManager = () => {
     try {
       const { data, error } = await supabase.functions.invoke("lovable-ai", {
         body: {
-          model: "google/gemini-2.5-flash-lite",
+          model: "google/gemini-3-flash-preview",
           messages: [
             {
               role: "user",

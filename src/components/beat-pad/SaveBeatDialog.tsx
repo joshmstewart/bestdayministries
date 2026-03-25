@@ -134,7 +134,7 @@ Return ONLY the beat name, nothing else.`;
       const response = await supabase.functions.invoke('lovable-ai', {
         body: {
           messages: [{ role: 'user', content: prompt }],
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-3-flash-preview',
         },
       });
 

@@ -27,7 +27,7 @@ Analyzes text content for policy violations using AI
 ### Key Logic
 1. Validates request with Zod
 2. Calls Lovable AI Gateway at `https://ai.gateway.lovable.dev/v1/chat/completions`
-3. Uses `google/gemini-2.5-flash` model by default
+3. Uses `google/gemini-3-flash-preview` model by default
 4. System prompt defines moderation policies:
    - Hate speech detection
    - Violence/threats
@@ -122,7 +122,7 @@ Analyzes images for policy violations using AI vision
 ### Key Logic
 1. Validates image URL format
 2. Calls Lovable AI Gateway with vision model
-3. Uses `google/gemini-2.5-flash` (supports vision)
+3. Uses `google/gemini-3-flash-preview` (supports vision)
 4. System prompt defines image moderation policies:
    - Nudity/sexual content
    - Violence/gore

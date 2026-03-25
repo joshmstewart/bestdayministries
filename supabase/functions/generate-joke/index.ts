@@ -16,7 +16,7 @@ async function generateJoke(apiKey: string, categoryPrompt: string): Promise<{ q
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         {
           role: 'system',
@@ -70,7 +70,7 @@ async function reviewJokeQuality(apiKey: string, joke: { question: string; answe
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         {
           role: 'system',
@@ -170,7 +170,7 @@ serve(async (req) => {
     // Log AI usage (2 calls per attempt: generate + review)
     await logAiUsage({
       functionName: "generate-joke",
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       metadata: { attempts, category: category || 'random' },
     });
 

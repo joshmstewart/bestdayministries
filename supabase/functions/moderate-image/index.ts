@@ -100,7 +100,7 @@ Examples:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           { 
@@ -149,7 +149,7 @@ Examples:
     // Log AI usage with userId
     await logAiUsage({
       functionName: "moderate-image",
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       userId,
       metadata: { approved: result.approved },
     });

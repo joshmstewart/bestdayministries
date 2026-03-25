@@ -129,7 +129,7 @@ Respond in JSON format:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "You are a word game assistant. Pick the best word from the provided list. Only use words from the list. No explanations." },
           { role: "user", content: prompt }
