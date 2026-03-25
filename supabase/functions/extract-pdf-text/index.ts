@@ -82,7 +82,7 @@ async function extractWithAI(pdf_base64: string): Promise<string | null> {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           {
             role: "user",
