@@ -40,7 +40,7 @@ The icon should immediately make someone think of "${categoryName}" jokes and ma
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: 'google/gemini-3.1-flash-image-preview',
         messages: [
           {
             role: 'user',

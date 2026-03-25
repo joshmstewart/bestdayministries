@@ -82,7 +82,7 @@ Only return the JSON, no other text.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: recipePrompt },
           { role: "user", content: `Please create a simple recipe for: ${recipeName}` },
@@ -165,7 +165,7 @@ Homemade, warm, and inviting appearance.`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image-preview",
+          model: "google/gemini-3.1-flash-image-preview",
           messages: [
             { role: "user", content: imagePrompt }
           ],

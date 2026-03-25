@@ -52,7 +52,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3-flash-preview',
         messages: [
           {
             role: 'system',
@@ -160,7 +160,7 @@ No other text, just the JSON array.`
     // Log AI usage
     await logAiUsage({
       functionName: "seed-jokes",
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       metadata: { requestedCount: count, generated: jokes.length, inserted, duplicates: duplicates + (jokes.length - newJokes.length), category },
     });
 
