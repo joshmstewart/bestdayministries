@@ -56,7 +56,7 @@ Respond ONLY with valid JSON in this exact format, no other text:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "google/gemini-3-flash-preview",
         messages: [{ role: "user", content: prompt }],
       }),
     });

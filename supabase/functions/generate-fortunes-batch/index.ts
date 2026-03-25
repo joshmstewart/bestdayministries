@@ -452,7 +452,7 @@ Format as JSON array:
             "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite", // Fast model for quick checks
+            model: "google/gemini-3-flash-preview", // Fast model for quick checks
             messages: [
               {
                 role: "system",
