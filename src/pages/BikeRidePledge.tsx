@@ -812,13 +812,21 @@ export default function BikeRidePledge() {
                 <Card>
                   <CardContent className="pt-6 text-center space-y-4">
                     <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
-                    <h2 className="text-2xl font-bold">Pledge Confirmed!</h2>
+                    <h2 className="text-2xl font-bold">
+                      {pledgeType === "flat" ? "Donation Confirmed!" : "Pledge Confirmed!"}
+                    </h2>
                     <p className="text-muted-foreground">
-                      Thank you, {pledgerName}! You pledged {centsPerMile}¢ per mile
-                      (up to <span className="font-semibold text-foreground">${maxTotal.toFixed(2)}</span>).
+                      Thank you, {pledgerName}!{" "}
+                      {pledgeType === "flat" ? (
+                        <>You donated <span className="font-semibold text-foreground">${maxTotal.toFixed(2)}</span>.</>
+                      ) : (
+                        <>You pledged {centsPerMile}¢ per mile (up to <span className="font-semibold text-foreground">${maxTotal.toFixed(2)}</span>).</>
+                      )}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Your card is saved and will be charged after the ride based on actual miles completed.
+                      {pledgeType === "flat"
+                        ? "Your card is saved and will be charged after the ride is complete."
+                        : "Your card is saved and will be charged after the ride based on actual miles completed."}
                     </p>
                   </CardContent>
                 </Card>
