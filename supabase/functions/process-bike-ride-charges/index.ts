@@ -310,12 +310,16 @@ serve(async (req) => {
         const errorMsg = chargeError instanceof Error ? chargeError.message : 'Unknown error';
         console.error(`Failed to charge pledge ${pledge.id}:`, errorMsg);
 
+        const failedAmount = pledge.pledge_type === 'flat'
+          ? Number(pledge.flat_amount)
+          : (pledge.cents_per_mile / 100) * miles;
+
         await supabaseAdmin
           .from('bike_ride_pledges')
           .update({
             charge_status: 'failed',
             charge_error: errorMsg,
-            calculated_total: (pledge.cents_per_mile / 100) * miles,
+            calculated_total: failedAmount,
           })
           .eq('id', pledge.id);
 
@@ -324,7 +328,7 @@ serve(async (req) => {
           pledger_name: pledge.pledger_name,
           status: 'failed',
           error: errorMsg,
-          amount: (pledge.cents_per_mile / 100) * miles,
+          amount: failedAmount,
         });
       }
     }
