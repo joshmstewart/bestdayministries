@@ -231,7 +231,9 @@ serve(async (req) => {
 
         // Create donation record so it appears in Donation History with proper tax receipts
         // CRITICAL: donor_identifier_check constraint requires EITHER donor_id OR donor_email, never both
-        const donationDesignation = `Bike Ride Pledge: ${pledge.cents_per_mile}¢/mile × ${miles} mi — "${event.title}"`;
+        const donationDesignation = pledge.pledge_type === 'flat'
+          ? `Bike Ride Donation: $${baseDollars.toFixed(2)} — "${event.title}"`
+          : `Bike Ride Pledge: ${pledge.cents_per_mile}¢/mile × ${miles} mi — "${event.title}"`;
         try {
           const donationInsert: Record<string, unknown> = {
             amount: totalDollars,
