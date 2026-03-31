@@ -841,82 +841,180 @@ export default function BikeRidePledge() {
                   <CardContent className="space-y-6">
                     {step === "form" ? (
                       <>
-                        {/* Cents per mile selector */}
-                        <div className="space-y-3">
-                          <Label className="text-base font-semibold">Cents Per Mile</Label>
-                          <div className="text-center">
-                            <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
-                            <span className="text-muted-foreground ml-1">per mile</span>
-                          </div>
-                          {/* Quick-pick buttons - dynamic based on mile goal */}
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {(() => {
-                              const miles = event?.mile_goal || 100;
-                              if (miles >= 500) return [1, 2, 3, 5, 10, 15, 20, 25, 50];
-                              if (miles >= 200) return [2, 5, 10, 15, 20, 25, 50, 75, 100];
-                              if (miles >= 100) return [5, 10, 15, 20, 25, 50, 75, 100, 150];
-                              return [10, 15, 20, 25, 50, 75, 100, 150, 200];
-                            })().map(v => (
-                              <Button
-                                key={v}
-                                type="button"
-                                size="sm"
-                                variant={centsPerMile === v ? "default" : "outline"}
-                                onClick={() => { setCentsPerMile(v); setCustomCentsInput(""); }}
-                                className="min-w-[3rem]"
-                              >
-                                {v}¢
-                              </Button>
-                            ))}
-                          </div>
-                          {/* Custom input */}
-                          <div className="flex items-center gap-2 justify-center">
-                            <span className="text-sm text-muted-foreground">Or enter custom:</span>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={500}
-                              placeholder="e.g. 75"
-                              className="w-24 text-center"
-                              value={customCentsInput}
-                              onChange={e => {
-                                const val = e.target.value;
-                                setCustomCentsInput(val);
-                                const num = parseInt(val);
-                                if (!isNaN(num) && num >= 1 && num <= 500) {
-                                  setCentsPerMile(num);
-                                }
-                              }}
-                            />
-                            <span className="text-sm text-muted-foreground">¢/mile</span>
-                          </div>
-                          {/* High amount warning */}
-                          {centsPerMile >= 100 && event && (
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
-                              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                              <span>
-                                At {centsPerMile}¢/mile, your maximum charge would be <strong>${maxTotalBase.toFixed(2)}</strong> for {event.mile_goal} miles. Make sure this is the amount you intend!
-                              </span>
+                        {/* Pledge Type Toggle */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            type="button"
+                            variant={pledgeType === "flat" ? "default" : "outline"}
+                            onClick={() => setPledgeType("flat")}
+                            className="h-auto py-3"
+                          >
+                            <DollarSign className="h-4 w-4 mr-1.5" />
+                            <div className="text-left">
+                              <div className="font-semibold">Flat Donation</div>
+                              <div className="text-xs opacity-80">Fixed amount</div>
                             </div>
-                          )}
-                          <div className="bg-primary/10 rounded-lg p-4 text-center">
-                            <p className="text-sm text-muted-foreground">Maximum charge at {event.mile_goal} miles:</p>
-                            <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
-                            {coverFees && feeDiff > 0 && (
-                              <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
-                            )}
-                          </div>
-                          <div className="flex items-start space-x-2 mt-3">
-                            <Checkbox
-                              id="cover-fees"
-                              checked={coverFees}
-                              onCheckedChange={(checked) => setCoverFees(checked === true)}
-                            />
-                            <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
-                              Cover processing fees so 100% of my pledge goes to Best Day Ministries
-                            </label>
-                          </div>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={pledgeType === "per_mile" ? "default" : "outline"}
+                            onClick={() => setPledgeType("per_mile")}
+                            className="h-auto py-3"
+                          >
+                            <Bike className="h-4 w-4 mr-1.5" />
+                            <div className="text-left">
+                              <div className="font-semibold">Per Mile</div>
+                              <div className="text-xs opacity-80">Based on miles ridden</div>
+                            </div>
+                          </Button>
                         </div>
+
+                        {pledgeType === "flat" ? (
+                          /* Flat Donation Form */
+                          <div className="space-y-3">
+                            <Label className="text-base font-semibold">Donation Amount</Label>
+                            <div className="text-center">
+                              <span className="text-4xl font-bold text-primary">${flatAmount}</span>
+                            </div>
+                            {/* Quick-pick buttons */}
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              {[10, 25, 50, 75, 100, 150, 250, 500].map(v => (
+                                <Button
+                                  key={v}
+                                  type="button"
+                                  size="sm"
+                                  variant={flatAmount === v ? "default" : "outline"}
+                                  onClick={() => { setFlatAmount(v); setCustomFlatInput(""); }}
+                                  className="min-w-[3.5rem]"
+                                >
+                                  ${v}
+                                </Button>
+                              ))}
+                            </div>
+                            {/* Custom input */}
+                            <div className="flex items-center gap-2 justify-center">
+                              <span className="text-sm text-muted-foreground">Or enter custom: $</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={10000}
+                                placeholder="e.g. 200"
+                                className="w-24 text-center"
+                                value={customFlatInput}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setCustomFlatInput(val);
+                                  const num = parseInt(val);
+                                  if (!isNaN(num) && num >= 1 && num <= 10000) {
+                                    setFlatAmount(num);
+                                  }
+                                }}
+                              />
+                            </div>
+                            {flatAmount >= 500 && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                                <span>
+                                  You're donating <strong>${flatAmount}</strong>. Make sure this is the amount you intend!
+                                </span>
+                              </div>
+                            )}
+                            <div className="bg-primary/10 rounded-lg p-4 text-center">
+                              <p className="text-sm text-muted-foreground">Your donation:</p>
+                              <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
+                              {coverFees && feeDiff > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
+                              )}
+                            </div>
+                            <div className="flex items-start space-x-2 mt-3">
+                              <Checkbox
+                                id="cover-fees"
+                                checked={coverFees}
+                                onCheckedChange={(checked) => setCoverFees(checked === true)}
+                              />
+                              <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                                Cover processing fees so 100% of my donation goes to Best Day Ministries
+                              </label>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Per Mile Form */
+                          <div className="space-y-3">
+                            <Label className="text-base font-semibold">Cents Per Mile</Label>
+                            <div className="text-center">
+                              <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
+                              <span className="text-muted-foreground ml-1">per mile</span>
+                            </div>
+                            {/* Quick-pick buttons - dynamic based on mile goal */}
+                            <div className="flex flex-wrap gap-2 justify-center">
+                              {(() => {
+                                const miles = event?.mile_goal || 100;
+                                if (miles >= 500) return [1, 2, 3, 5, 10, 15, 20, 25, 50];
+                                if (miles >= 200) return [2, 5, 10, 15, 20, 25, 50, 75, 100];
+                                if (miles >= 100) return [5, 10, 15, 20, 25, 50, 75, 100, 150];
+                                return [10, 15, 20, 25, 50, 75, 100, 150, 200];
+                              })().map(v => (
+                                <Button
+                                  key={v}
+                                  type="button"
+                                  size="sm"
+                                  variant={centsPerMile === v ? "default" : "outline"}
+                                  onClick={() => { setCentsPerMile(v); setCustomCentsInput(""); }}
+                                  className="min-w-[3rem]"
+                                >
+                                  {v}¢
+                                </Button>
+                              ))}
+                            </div>
+                            {/* Custom input */}
+                            <div className="flex items-center gap-2 justify-center">
+                              <span className="text-sm text-muted-foreground">Or enter custom:</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={500}
+                                placeholder="e.g. 75"
+                                className="w-24 text-center"
+                                value={customCentsInput}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setCustomCentsInput(val);
+                                  const num = parseInt(val);
+                                  if (!isNaN(num) && num >= 1 && num <= 500) {
+                                    setCentsPerMile(num);
+                                  }
+                                }}
+                              />
+                              <span className="text-sm text-muted-foreground">¢/mile</span>
+                            </div>
+                            {/* High amount warning */}
+                            {centsPerMile >= 100 && event && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                                <span>
+                                  At {centsPerMile}¢/mile, your maximum charge would be <strong>${maxTotalBase.toFixed(2)}</strong> for {event.mile_goal} miles. Make sure this is the amount you intend!
+                                </span>
+                              </div>
+                            )}
+                            <div className="bg-primary/10 rounded-lg p-4 text-center">
+                              <p className="text-sm text-muted-foreground">Maximum charge at {event.mile_goal} miles:</p>
+                              <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
+                              {coverFees && feeDiff > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
+                              )}
+                            </div>
+                            <div className="flex items-start space-x-2 mt-3">
+                              <Checkbox
+                                id="cover-fees"
+                                checked={coverFees}
+                                onCheckedChange={(checked) => setCoverFees(checked === true)}
+                              />
+                              <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                                Cover processing fees so 100% of my pledge goes to Best Day Ministries
+                              </label>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Name & Email */}
                         <div className="space-y-3">
@@ -974,8 +1072,9 @@ export default function BikeRidePledge() {
                         </Button>
 
                         <p className="text-xs text-muted-foreground text-center">
-                          Your card will be securely saved and only charged after the ride is complete,
-                          based on actual miles ridden.
+                          {pledgeType === "flat"
+                            ? "Your card will be securely saved and charged after the ride is complete."
+                            : "Your card will be securely saved and only charged after the ride is complete, based on actual miles ridden."}
                         </p>
                       </>
                     ) : clientSecret && stripePromise ? (
@@ -983,7 +1082,9 @@ export default function BikeRidePledge() {
                         <div className="space-y-4">
                           <div className="bg-primary/10 rounded-lg p-3 text-center">
                             <p className="text-sm text-muted-foreground">
-                              {pledgerName} — {centsPerMile}¢/mile — Max ${maxTotal.toFixed(2)}
+                              {pledgeType === "flat"
+                                ? `${pledgerName} — $${maxTotal.toFixed(2)} donation`
+                                : `${pledgerName} — ${centsPerMile}¢/mile — Max $${maxTotal.toFixed(2)}`}
                             </p>
                           </div>
 
@@ -992,6 +1093,7 @@ export default function BikeRidePledge() {
                             pledgerName={pledgerName}
                             maxTotal={maxTotal}
                             centsPerMile={centsPerMile}
+                            pledgeType={pledgeType}
                             onSuccess={handleCardSuccess}
                           />
 
