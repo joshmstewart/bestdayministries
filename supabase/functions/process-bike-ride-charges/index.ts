@@ -78,22 +78,22 @@ serve(async (req) => {
       .update({ actual_miles: miles, status: 'completed' })
       .eq('id', event_id);
 
-    // Get ALL confirmed per-mile pledges to know total remaining
+    // Get ALL confirmed pledges (both per_mile and flat) to know total remaining
     const { data: allPledges, error: countError } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('id', { count: 'exact' })
       .eq('event_id', event_id)
-      .eq('pledge_type', 'per_mile')
+      .in('pledge_type', ['per_mile', 'flat'])
       .eq('charge_status', 'confirmed');
 
     const totalRemaining = allPledges?.length ?? 0;
 
-    // Get batch of confirmed per-mile pledges (limited to batch size)
+    // Get batch of confirmed pledges (limited to batch size)
     const { data: pledges } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('*')
       .eq('event_id', event_id)
-      .eq('pledge_type', 'per_mile')
+      .in('pledge_type', ['per_mile', 'flat'])
       .eq('charge_status', 'confirmed')
       .order('created_at', { ascending: true })
       .limit(maxBatch);
@@ -133,8 +133,10 @@ serve(async (req) => {
 
         const stripe = new Stripe(stripeKey, { apiVersion: '2024-11-20.acacia' });
 
-        // Calculate charge amount
-        const baseDollars = (pledge.cents_per_mile / 100) * miles;
+        // Calculate charge amount based on pledge type
+        const baseDollars = pledge.pledge_type === 'flat'
+          ? Number(pledge.flat_amount)
+          : (pledge.cents_per_mile / 100) * miles;
         
         // Check if pledge has fee coverage — prefer DB column, fall back to setup intent metadata
         let coverFee = pledge.cover_stripe_fee === true;
@@ -189,6 +191,10 @@ serve(async (req) => {
           throw new Error('No payment method found');
         }
 
+        const chargeDescription = pledge.pledge_type === 'flat'
+          ? `Bike ride donation: $${baseDollars.toFixed(2)} for "${event.title}"`
+          : `Bike ride pledge: ${pledge.cents_per_mile}¢/mile × ${miles} miles for "${event.title}"`;
+
         // Create PaymentIntent and charge
         const paymentIntent = await stripe.paymentIntents.create({
           amount: totalCents,
@@ -197,13 +203,18 @@ serve(async (req) => {
           payment_method: paymentMethodId,
           off_session: true,
           confirm: true,
-          description: `Bike ride pledge: ${pledge.cents_per_mile}¢/mile × ${miles} miles for "${event.title}"`,
+          description: chargeDescription,
           metadata: {
             type: 'bike_ride_pledge',
             event_id: event.id,
             pledge_id: pledge.id,
-            cents_per_mile: String(pledge.cents_per_mile),
-            actual_miles: String(miles),
+            pledge_type: pledge.pledge_type,
+            ...(pledge.pledge_type === 'per_mile' ? {
+              cents_per_mile: String(pledge.cents_per_mile),
+              actual_miles: String(miles),
+            } : {
+              flat_amount: String(pledge.flat_amount),
+            }),
           },
         });
 
@@ -220,7 +231,9 @@ serve(async (req) => {
 
         // Create donation record so it appears in Donation History with proper tax receipts
         // CRITICAL: donor_identifier_check constraint requires EITHER donor_id OR donor_email, never both
-        const donationDesignation = `Bike Ride Pledge: ${pledge.cents_per_mile}¢/mile × ${miles} mi — "${event.title}"`;
+        const donationDesignation = pledge.pledge_type === 'flat'
+          ? `Bike Ride Donation: $${baseDollars.toFixed(2)} — "${event.title}"`
+          : `Bike Ride Pledge: ${pledge.cents_per_mile}¢/mile × ${miles} mi — "${event.title}"`;
         try {
           const donationInsert: Record<string, unknown> = {
             amount: totalDollars,
@@ -297,12 +310,16 @@ serve(async (req) => {
         const errorMsg = chargeError instanceof Error ? chargeError.message : 'Unknown error';
         console.error(`Failed to charge pledge ${pledge.id}:`, errorMsg);
 
+        const failedAmount = pledge.pledge_type === 'flat'
+          ? Number(pledge.flat_amount)
+          : (pledge.cents_per_mile / 100) * miles;
+
         await supabaseAdmin
           .from('bike_ride_pledges')
           .update({
             charge_status: 'failed',
             charge_error: errorMsg,
-            calculated_total: (pledge.cents_per_mile / 100) * miles,
+            calculated_total: failedAmount,
           })
           .eq('id', pledge.id);
 
@@ -311,7 +328,7 @@ serve(async (req) => {
           pledger_name: pledge.pledger_name,
           status: 'failed',
           error: errorMsg,
-          amount: (pledge.cents_per_mile / 100) * miles,
+          amount: failedAmount,
         });
       }
     }

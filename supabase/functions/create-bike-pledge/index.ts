@@ -12,8 +12,9 @@ const pledgeSchema = z.object({
   event_id: z.string().uuid("Invalid event ID"),
   pledger_name: z.string().min(1).max(200),
   pledger_email: z.string().email().max(255).toLowerCase().trim(),
-  pledge_type: z.enum(['per_mile']),
+  pledge_type: z.enum(['per_mile', 'flat']),
   cents_per_mile: z.number().min(1).max(500).optional(),
+  flat_amount: z.number().min(1).max(10000).optional(),
   message: z.string().max(500).optional(),
   force_test_mode: z.boolean().optional().default(false),
   cover_stripe_fee: z.boolean().optional().default(false),
@@ -38,10 +39,13 @@ serve(async (req) => {
       throw new Error(`Validation failed: ${errors}`);
     }
 
-    const { event_id, pledger_name, pledger_email, pledge_type, cents_per_mile, message, force_test_mode, cover_stripe_fee } = validation.data;
+    const { event_id, pledger_name, pledger_email, pledge_type, cents_per_mile, flat_amount, message, force_test_mode, cover_stripe_fee } = validation.data;
 
     if (pledge_type === 'per_mile' && !cents_per_mile) {
       throw new Error('cents_per_mile is required for per_mile pledges');
+    }
+    if (pledge_type === 'flat' && !flat_amount) {
+      throw new Error('flat_amount is required for flat pledges');
     }
 
     // Get event details
@@ -90,15 +94,23 @@ serve(async (req) => {
       });
     }
 
+    // Calculate max total based on pledge type
+    let maxTotal: number;
+    if (pledge_type === 'per_mile') {
+      maxTotal = (cents_per_mile! / 100) * Number(event.mile_goal);
+    } else {
+      maxTotal = flat_amount!;
+    }
+
     // Create Setup Intent (saves card, no charge)
-    const maxTotal = (cents_per_mile! / 100) * Number(event.mile_goal);
     const setupIntent = await stripe.setupIntents.create({
       customer: customer.id,
       payment_method_types: ['card'],
       metadata: {
         event_id,
         pledge_type,
-        cents_per_mile: String(cents_per_mile),
+        cents_per_mile: pledge_type === 'per_mile' ? String(cents_per_mile) : '0',
+        flat_amount: pledge_type === 'flat' ? String(flat_amount) : '0',
         max_total: String(maxTotal.toFixed(2)),
         pledger_name,
         pledger_email,
@@ -125,7 +137,8 @@ serve(async (req) => {
         pledger_name,
         pledger_user_id: pledgerUserId,
         pledge_type,
-        cents_per_mile,
+        cents_per_mile: pledge_type === 'per_mile' ? cents_per_mile : null,
+        flat_amount: pledge_type === 'flat' ? flat_amount : null,
         stripe_customer_id: customer.id,
         stripe_setup_intent_id: setupIntent.id,
         stripe_mode: mode,
@@ -139,9 +152,6 @@ serve(async (req) => {
       console.error('Error inserting pledge:', pledgeError);
       throw new Error('Failed to save pledge');
     }
-
-    // NOTE: Confirmation email is sent AFTER card is confirmed on the frontend,
-    // not here (pledge is still pending at this point).
 
     return new Response(
       JSON.stringify({
