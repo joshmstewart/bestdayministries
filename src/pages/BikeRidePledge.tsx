@@ -205,7 +205,10 @@ export default function BikeRidePledge() {
   const [step, setStep] = useState<"form" | "card">("form");
 
   // Pledge form state
+  const [pledgeType, setPledgeType] = useState<"flat" | "per_mile">("flat");
   const [centsPerMile, setCentsPerMile] = useState(25);
+  const [flatAmount, setFlatAmount] = useState(25);
+  const [customFlatInput, setCustomFlatInput] = useState("");
   const [pledgerName, setPledgerName] = useState("");
   const [pledgerEmail, setPledgerEmail] = useState("");
   const [message, setMessage] = useState("");
