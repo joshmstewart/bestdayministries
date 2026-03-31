@@ -117,8 +117,10 @@ function PledgeCardForm({
           console.error("Error confirming pledge (non-fatal):", confirmErr);
         }
         toast({
-          title: "Pledge Confirmed! 🎉",
-          description: `Your card is saved. You'll be charged up to $${maxTotal.toFixed(2)} after the ride.`,
+          title: pledgeType === "flat" ? "Donation Confirmed! 🎉" : "Pledge Confirmed! 🎉",
+          description: pledgeType === "flat"
+            ? `Your card is saved. You'll be charged $${maxTotal.toFixed(2)} after the ride.`
+            : `Your card is saved. You'll be charged up to $${maxTotal.toFixed(2)} after the ride.`,
         });
         onSuccess();
       }
