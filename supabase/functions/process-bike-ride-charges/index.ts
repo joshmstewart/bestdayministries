@@ -133,8 +133,10 @@ serve(async (req) => {
 
         const stripe = new Stripe(stripeKey, { apiVersion: '2024-11-20.acacia' });
 
-        // Calculate charge amount
-        const baseDollars = (pledge.cents_per_mile / 100) * miles;
+        // Calculate charge amount based on pledge type
+        const baseDollars = pledge.pledge_type === 'flat'
+          ? Number(pledge.flat_amount)
+          : (pledge.cents_per_mile / 100) * miles;
         
         // Check if pledge has fee coverage — prefer DB column, fall back to setup intent metadata
         let coverFee = pledge.cover_stripe_fee === true;
