@@ -733,8 +733,8 @@ export default function BikeRidePledge() {
                 );
               })() : null}
 
-              {/* Google Maps — shown as fallback (no RWGPS) or when admin enables it alongside RWGPS */}
-              {googleMapsKey && (!event.ridewithgps_url || (event as any).show_google_map) && (
+              {/* Google Maps — only shown when admin explicitly enables it */}
+              {googleMapsKey && (event as any).show_google_map && (
                 <div className="rounded-lg overflow-hidden border">
                   {event.route_waypoints?.length ? (
                     <BikeRouteMap
