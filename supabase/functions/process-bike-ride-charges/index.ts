@@ -78,22 +78,22 @@ serve(async (req) => {
       .update({ actual_miles: miles, status: 'completed' })
       .eq('id', event_id);
 
-    // Get ALL confirmed per-mile pledges to know total remaining
+    // Get ALL confirmed pledges (both per_mile and flat) to know total remaining
     const { data: allPledges, error: countError } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('id', { count: 'exact' })
       .eq('event_id', event_id)
-      .eq('pledge_type', 'per_mile')
+      .in('pledge_type', ['per_mile', 'flat'])
       .eq('charge_status', 'confirmed');
 
     const totalRemaining = allPledges?.length ?? 0;
 
-    // Get batch of confirmed per-mile pledges (limited to batch size)
+    // Get batch of confirmed pledges (limited to batch size)
     const { data: pledges } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('*')
       .eq('event_id', event_id)
-      .eq('pledge_type', 'per_mile')
+      .in('pledge_type', ['per_mile', 'flat'])
       .eq('charge_status', 'confirmed')
       .order('created_at', { ascending: true })
       .limit(maxBatch);
