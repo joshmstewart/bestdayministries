@@ -170,13 +170,16 @@ function PledgeCardForm({
             Verifying Card...
           </>
         ) : (
-          <>Confirm Pledge — {centsPerMile}¢/mile (up to ${maxTotal.toFixed(2)})</>
+          <>{pledgeType === "flat"
+              ? `Confirm $${maxTotal.toFixed(2)} Donation`
+              : `Confirm Pledge — ${centsPerMile}¢/mile (up to $${maxTotal.toFixed(2)})`}</>
         )}
       </Button>
 
       <p className="text-xs text-muted-foreground text-center">
-        Your card is saved securely with Stripe. You will only be charged after the ride
-        is complete, based on actual miles ridden.
+        {pledgeType === "flat"
+          ? "Your card is saved securely with Stripe. You will be charged after the ride is complete."
+          : "Your card is saved securely with Stripe. You will only be charged after the ride is complete, based on actual miles ridden."}
       </p>
     </div>
   );
