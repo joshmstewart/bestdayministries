@@ -191,6 +191,10 @@ serve(async (req) => {
           throw new Error('No payment method found');
         }
 
+        const chargeDescription = pledge.pledge_type === 'flat'
+          ? `Bike ride donation: $${baseDollars.toFixed(2)} for "${event.title}"`
+          : `Bike ride pledge: ${pledge.cents_per_mile}¢/mile × ${miles} miles for "${event.title}"`;
+
         // Create PaymentIntent and charge
         const paymentIntent = await stripe.paymentIntents.create({
           amount: totalCents,
@@ -199,13 +203,18 @@ serve(async (req) => {
           payment_method: paymentMethodId,
           off_session: true,
           confirm: true,
-          description: `Bike ride pledge: ${pledge.cents_per_mile}¢/mile × ${miles} miles for "${event.title}"`,
+          description: chargeDescription,
           metadata: {
             type: 'bike_ride_pledge',
             event_id: event.id,
             pledge_id: pledge.id,
-            cents_per_mile: String(pledge.cents_per_mile),
-            actual_miles: String(miles),
+            pledge_type: pledge.pledge_type,
+            ...(pledge.pledge_type === 'per_mile' ? {
+              cents_per_mile: String(pledge.cents_per_mile),
+              actual_miles: String(miles),
+            } : {
+              flat_amount: String(pledge.flat_amount),
+            }),
           },
         });
 
