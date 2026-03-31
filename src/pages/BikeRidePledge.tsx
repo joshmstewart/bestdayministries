@@ -835,7 +835,7 @@ export default function BikeRidePledge() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Bike className="h-5 w-5 text-primary" />
-                      {step === "form" ? "Make Your Pledge" : "Enter Card Details"}
+                      {step === "form" ? "Support This Ride" : "Enter Card Details"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
