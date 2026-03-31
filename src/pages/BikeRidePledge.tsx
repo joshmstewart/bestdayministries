@@ -68,12 +68,14 @@ function PledgeCardForm({
   pledgerName,
   maxTotal,
   centsPerMile,
+  pledgeType,
   onSuccess,
 }: {
   clientSecret: string;
   pledgerName: string;
   maxTotal: number;
   centsPerMile: number;
+  pledgeType: "flat" | "per_mile";
   onSuccess: () => void;
 }) {
   const stripe = useStripe();
