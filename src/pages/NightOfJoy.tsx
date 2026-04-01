@@ -15,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Star, Heart, Calendar, MapPin, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign, Sparkles, Ticket, ArrowLeft, Minus, Plus } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import farmTableBg from "@/assets/background_farmtable.png";
-import rockiesLogo from "@/assets/rockies-logo.png";
 
 const ACCEPTED_FILE_TYPES = [
   "image/jpeg", "image/png", "image/webp", "image/svg+xml",
@@ -535,7 +534,9 @@ const NightOfJoy = () => {
             <div className="relative bg-gradient-to-r from-[#33006F]/30 via-[#2a1e14] to-[#33006F]/30 border-2 border-amber-500/40 rounded-2xl p-8 text-center space-y-4 overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
               <div className="flex justify-center">
-                <img src={rockiesLogo} alt="Colorado Rockies" className="w-20 h-20 object-contain" loading="lazy" width={512} height={512} />
+                <div className="w-16 h-16 rounded-full bg-amber-600/20 border-2 border-amber-500/40 flex items-center justify-center">
+                  <Ticket className="w-8 h-8 text-amber-300" />
+                </div>
               </div>
               <h3 className="text-2xl md:text-3xl font-bold text-amber-100">
                 2 FREE Colorado Rockies Tickets Included!
