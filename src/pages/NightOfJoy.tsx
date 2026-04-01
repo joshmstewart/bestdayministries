@@ -1112,6 +1112,23 @@ const NightOfJoy = () => {
             )}
           </div>
         </section>
+        {/* ============ GENERAL DONATION CTA ============ */}
+        <section className="py-12 bg-[#1a120b] border-t border-amber-900/30">
+          <div className="container max-w-2xl mx-auto px-4 text-center space-y-4">
+            <p className="text-amber-100/80 text-base">
+              Want to support Best Day Ministries beyond this event?
+            </p>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-amber-600/50 text-amber-200 hover:bg-amber-900/30 hover:text-amber-100"
+              onClick={() => window.location.href = "/support"}
+            >
+              <Heart className="w-4 h-4 mr-2" />
+              Make a General Donation
+            </Button>
+          </div>
+        </section>
       </main>
 
       <Footer />
