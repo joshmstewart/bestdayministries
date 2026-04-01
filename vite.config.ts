@@ -6,6 +6,19 @@ import { componentTagger } from "lovable-tagger";
 // Generate build version at build time
 const BUILD_VERSION = Date.now().toString();
 
+function buildVersionPlugin() {
+  return {
+    name: "build-version-plugin",
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "version.json",
+        source: JSON.stringify({ version: BUILD_VERSION }, null, 2),
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   // Inject build version as environment variable
@@ -19,7 +32,7 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 8080,
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [react(), buildVersionPlugin(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
