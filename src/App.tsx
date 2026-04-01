@@ -18,7 +18,10 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { DailyLoginRewardManager } from "@/components/DailyLoginRewardManager";
 import { SkipLink } from "@/components/accessibility";
 import { AppRecoveryBanner } from "@/components/AppRecoveryBanner";
-import { useState, useEffect, lazy, Suspense } from "react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { RouteRecoveryFallback } from "@/components/RouteRecoveryFallback";
+import { lazyWithRecovery } from "@/lib/lazyWithRecovery";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeSentry } from "@/lib/sentry";
 import { getPublicSiteUrl } from "@/lib/publicSiteUrl";
@@ -28,6 +31,8 @@ import Index from "./pages/Index";
 import CoffeeShopHome from "./pages/CoffeeShopHome";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+
+const lazy = lazyWithRecovery;
 
 // Lazy loaded pages - grouped by feature area for better chunking
 const ColoringBook = lazy(() => import("./pages/ColoringBook"));
@@ -100,7 +105,10 @@ const CoffeeProductDetail = lazy(() => import("./pages/CoffeeProductDetail"));
 const ShareRedirect = lazy(() => import("./pages/ShareRedirect"));
 const BikeRidePledge = lazy(() => import("./pages/BikeRidePledge"));
 const BikeRides = lazy(() => import("./pages/BikeRides"));
-const NightOfJoy = lazy(() => import("./pages/NightOfJoy"));
+const NightOfJoy = lazyWithRecovery(() => import("./pages/NightOfJoy"), {
+  label: "Night of Joy",
+  recoveryReason: "night_of_joy_lazy_failure",
+});
 
 // Loading fallback component
 const PageLoader = () => (
@@ -268,6 +276,11 @@ const App = () => {
           <PageTracker />
           <TermsAcceptanceGuard>
             <main id="main-content" className="flex-1">
+            <ErrorBoundary
+              fallback={
+                <RouteRecoveryFallback routeLabel="this page" />
+              }
+            >
             <Suspense fallback={<PageLoader />}>
               <Routes>
               <Route path="/" element={<DomainRouter />} />
@@ -351,6 +364,7 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
+            </ErrorBoundary>
             </main>
           </TermsAcceptanceGuard>
         </BrowserRouter>

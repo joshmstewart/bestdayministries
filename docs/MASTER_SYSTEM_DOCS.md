@@ -1091,9 +1091,10 @@ EVENT-DETAILS:event:uuid→fetch-event+saved_locations→display[Calendar-Clock-
 SEO:SEOHead[title|desc|image|type|noindex|canonical|structuredData]|structured[Org|Article|Event-Schema.org]
 SITEMAP:edge-generate-sitemap[static+posts+events+albums+vendors-XML-1k-limit]
 IMAGE-OPT:OptimizedImage[memo+lazy-except-priority+Intersection-100px-before+blur-placeholder+fade+error-handling+sizes-prop]
-BUNDLE-OPT:vite.config.ts[terser-minification+manual-chunk-splitting+optimizeDeps]
+BUNDLE-OPT:vite.config.ts[terser-minification+manual-chunk-splitting+optimizeDeps+build-version.json]
 CHUNKS:react-vendor|ui-vendor|data-vendor|supabase-vendor|form-vendor|editor-vendor|date-vendor|icons-vendor
-CODE-SPLIT:React.lazy()→all-50+-pages+Suspense-fallback
+CODE-SPLIT:lazyWithRecovery()→all-50+-pages+Suspense-fallback+RouteRecoveryFallback+ErrorBoundary
+STALE-ROUTE-RECOVERY:NotFound→fetch/version.json[no-store]→detect-new-build→clear-caches+cache-busting-reload|public/_headers[index.html+version.json=no-cache]
 MEMOIZATION:Footer[memo+5min-cache]|TextToSpeech[memo+useCallback+settings-cache]|OptimizedImage[memo]
 PERF-UTILS:src/lib/performanceUtils.ts[useDebounce|useThrottle|useIntersectionObserver|useRenderTime|preloadImage|createLRUCache|batchDOMReads|batchDOMUpdates]
 PERF:preconnect-fonts|preload-favicon|theme-color|compress-5MB-1920px|code-split-lazy
