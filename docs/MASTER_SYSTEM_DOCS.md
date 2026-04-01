@@ -184,6 +184,7 @@ DETECTION:src/lib/browserDetection.ts[getIOSVersion|isProblematicIOSVersion]
 PATTERN:conditional-className+ErrorBoundary-wrapper
 AFFECTED:iOS-18.0→18.7.1+[possibly-higher]
 SOLUTION:avoid-inline-transform-styles+use-CSS-classes+conditional-application
+STARTUP-RECOVERY:listen[vite:preloadError+window-error+unhandledrejection]→clear-non-auth-caches→query-param-cache-bust-navigation
 SYMPTOMS:page-loads-briefly→disappears|rapid-horizontal-translations|content-shifts-off-screen|layout-thrashing
 ROOT-CAUSE:Safari-iOS-18.x-bug[absolute-positioning+inline-transform+child-animations+transform-origin]
 IMPLEMENTATION:

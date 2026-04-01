@@ -294,10 +294,10 @@ Before deploying changes involving transforms, animations, or positioning:
 - **Affected:** macOS Safari (reported on Safari 18)
 - **Symptoms:** App shell appears blank or partially rendered until user clears site data
 - **Root Cause (likely):** Stale cached HTML/JS OR corrupted localStorage JSON
-- **Solution:** Startup recovery: validate & clear corrupted storage + one-time cache-busting reload on module/chunk load failures + IndexedDB auth storage timeouts (fallback instead of infinite hang)
-- **Files:** `src/lib/appStartupRecovery.ts`, `src/main.tsx`, `index.html`
+- **Solution:** Startup recovery validates risky storage, listens for Vite `vite:preloadError` plus module/chunk load failures, clears non-auth caches, and uses a query-param cache-busting navigation instead of a plain reload so stale HTML stops pointing at deleted hashed chunks.
+- **Files:** `src/lib/appStartupRecovery.ts`, `src/lib/cacheManager.ts`, `src/main.tsx`
 - **Discovered:** 2026-01-09
-- **Fixed:** 2026-01-09
+- **Fixed:** 2026-04-01 (recovery path hardened for stale preview/build assets)
 
 ### Historical Issues
 
