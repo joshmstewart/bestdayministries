@@ -528,7 +528,7 @@ const NightOfJoy = () => {
           </div>
         </section>
 
-        {/* ============ ROCKIES TICKETS BONUS ============ */}
+        {/* ============ ROCKIES TICKETS BONUS — 2 FREE Rockies Tickets ============ */}
         <section className="py-12 md:py-16 bg-[#1a120b] border-t border-amber-900/30">
           <div className="container max-w-3xl mx-auto px-4">
             <div className="relative bg-gradient-to-r from-[#33006F]/30 via-[#2a1e14] to-[#33006F]/30 border-2 border-amber-500/40 rounded-2xl p-8 text-center space-y-4 overflow-hidden">
