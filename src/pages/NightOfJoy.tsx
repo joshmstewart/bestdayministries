@@ -528,6 +528,29 @@ const NightOfJoy = () => {
           </div>
         </section>
 
+        {/* ============ ROCKIES TICKETS BONUS ============ */}
+        <section className="py-12 md:py-16 bg-[#1a120b] border-t border-amber-900/30">
+          <div className="container max-w-3xl mx-auto px-4">
+            <div className="relative bg-gradient-to-r from-[#33006F]/30 via-[#2a1e14] to-[#33006F]/30 border-2 border-amber-500/40 rounded-2xl p-8 text-center space-y-4 overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
+              <div className="flex justify-center">
+                <div className="w-16 h-16 rounded-full bg-amber-600/20 border-2 border-amber-500/40 flex items-center justify-center">
+                  <Ticket className="w-8 h-8 text-amber-300" />
+                </div>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-amber-100">
+                2 FREE Colorado Rockies Tickets Included!
+              </h3>
+              <p className="text-amber-200/80 text-lg max-w-xl mx-auto leading-relaxed">
+                Every attendee receives <span className="font-bold text-amber-300">2 complimentary Rockies tickets</span> at the event — a <span className="font-bold text-amber-300">$60 value</span>. Your ticket practically pays for itself!
+              </p>
+              <p className="text-amber-400/60 text-sm italic">
+                Tickets will be handed out in person when you attend the event.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* ============ PAYMENT SUCCESS ============ */}
         {paymentSuccess && (
           <section className="py-8 bg-amber-600/10 border-t border-amber-800/30">
