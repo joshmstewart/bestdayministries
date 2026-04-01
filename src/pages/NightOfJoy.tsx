@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Star, Heart, Calendar, MapPin, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign, Sparkles, Ticket, ArrowLeft, Minus, Plus } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
 import farmTableBg from "@/assets/background_farmtable.png";
+import rockiesLogo from "@/assets/rockies-logo.png";
 
 const ACCEPTED_FILE_TYPES = [
   "image/jpeg", "image/png", "image/webp", "image/svg+xml",
