@@ -222,16 +222,16 @@ export function forceCacheBustingReload(reason: string): void {
   }
 
   try {
-    // Prefer a unique URL over reload() so the browser must request fresh HTML
-    // instead of reusing a stale entry document that points to deleted chunks.
-    const url = new URL(window.location.href);
-    url.searchParams.set('__refresh', String(Date.now()));
-    url.searchParams.set('__reason', reason);
-    window.location.replace(url.toString());
+    // Prefer location.reload() — Safari is more likely to bypass its cache
+    // with a full reload than with location.replace() + query params.
+    window.location.reload();
   } catch {
     try {
-      // Final fallback if URL construction/navigation fails.
-      window.location.reload();
+      // Fallback: navigate with cache-busting query param
+      const url = new URL(window.location.href);
+      url.searchParams.set('__refresh', String(Date.now()));
+      url.searchParams.set('__reason', reason);
+      window.location.replace(url.toString());
     } catch {
       // Give up
     }

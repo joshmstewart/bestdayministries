@@ -184,7 +184,6 @@ DETECTION:src/lib/browserDetection.ts[getIOSVersion|isProblematicIOSVersion]
 PATTERN:conditional-className+ErrorBoundary-wrapper
 AFFECTED:iOS-18.0→18.7.1+[possibly-higher]
 SOLUTION:avoid-inline-transform-styles+use-CSS-classes+conditional-application
-STARTUP-RECOVERY:listen[vite:preloadError+window-error+unhandledrejection]→clear-non-auth-caches→query-param-cache-bust-navigation
 SYMPTOMS:page-loads-briefly→disappears|rapid-horizontal-translations|content-shifts-off-screen|layout-thrashing
 ROOT-CAUSE:Safari-iOS-18.x-bug[absolute-positioning+inline-transform+child-animations+transform-origin]
 IMPLEMENTATION:
@@ -1091,10 +1090,9 @@ EVENT-DETAILS:event:uuid→fetch-event+saved_locations→display[Calendar-Clock-
 SEO:SEOHead[title|desc|image|type|noindex|canonical|structuredData]|structured[Org|Article|Event-Schema.org]
 SITEMAP:edge-generate-sitemap[static+posts+events+albums+vendors-XML-1k-limit]
 IMAGE-OPT:OptimizedImage[memo+lazy-except-priority+Intersection-100px-before+blur-placeholder+fade+error-handling+sizes-prop]
-BUNDLE-OPT:vite.config.ts[terser-minification+manual-chunk-splitting+optimizeDeps+build-version.json]
+BUNDLE-OPT:vite.config.ts[terser-minification+manual-chunk-splitting+optimizeDeps]
 CHUNKS:react-vendor|ui-vendor|data-vendor|supabase-vendor|form-vendor|editor-vendor|date-vendor|icons-vendor
-CODE-SPLIT:lazyWithRecovery()→all-50+-pages+Suspense-fallback+RouteRecoveryFallback+ErrorBoundary
-STALE-ROUTE-RECOVERY:NotFound→fetch/version.json[no-store]→detect-new-build→clear-caches+cache-busting-reload|public/_headers[index.html+version.json=no-cache]
+CODE-SPLIT:React.lazy()→all-50+-pages+Suspense-fallback
 MEMOIZATION:Footer[memo+5min-cache]|TextToSpeech[memo+useCallback+settings-cache]|OptimizedImage[memo]
 PERF-UTILS:src/lib/performanceUtils.ts[useDebounce|useThrottle|useIntersectionObserver|useRenderTime|preloadImage|createLRUCache|batchDOMReads|batchDOMUpdates]
 PERF:preconnect-fonts|preload-favicon|theme-color|compress-5MB-1920px|code-split-lazy

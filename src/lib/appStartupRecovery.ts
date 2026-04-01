@@ -213,17 +213,12 @@ export async function checkAndRecoverFromBuildMismatch(): Promise<void> {
 export function installStartupRecoveryListeners() {
   if (typeof window === "undefined") return;
 
-  window.addEventListener("vite:preloadError", (event) => {
-    event.preventDefault();
-    void handleChunkLoadError("vite_preload_error");
-  });
-
   window.addEventListener(
     "error",
     (e) => {
       const msg = (e as ErrorEvent)?.message || "";
       if (msg && shouldForceRefreshFromError(msg)) {
-        void handleChunkLoadError("script_error");
+        handleChunkLoadError("script_error");
       }
     },
     true
@@ -237,7 +232,7 @@ export function installStartupRecoveryListeners() {
         : (reason && typeof reason.message === "string" ? reason.message : "");
 
     if (msg && shouldForceRefreshFromError(msg)) {
-      void handleChunkLoadError("unhandled_rejection");
+      handleChunkLoadError("unhandled_rejection");
     }
   });
 }
