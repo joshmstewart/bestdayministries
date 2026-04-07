@@ -81,6 +81,25 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-11-20.acacia' });
 
+    // Calculate charge amount based on pledge type
+    let baseAmount: number;
+    let designation: string;
+    if (pledge_type === 'per_mile') {
+      baseAmount = (cents_per_mile! / 100) * Number(event.mile_goal);
+      designation = `Bike Ride: ${event.title} (${cents_per_mile}¢/mile × ${event.mile_goal} miles)`;
+    } else {
+      baseAmount = flat_amount!;
+      designation = `Bike Ride: ${event.title}`;
+    }
+
+    // Calculate final amount with fee coverage
+    let finalAmount = baseAmount;
+    if (cover_stripe_fee) {
+      finalAmount = (baseAmount + 0.30) / 0.971;
+    }
+
+    const amountInCents = Math.round(finalAmount * 100);
+
     // Get or create Stripe customer
     const existingCustomers = await stripe.customers.list({ email: pledger_email, limit: 1 });
     let customer;
@@ -90,46 +109,90 @@ serve(async (req) => {
       customer = await stripe.customers.create({
         email: pledger_email,
         name: pledger_name,
-        metadata: { source: 'bike_ride_pledge' },
+        metadata: { source: 'bike_ride_donation' },
       });
     }
 
-    // Calculate max total based on pledge type
-    let maxTotal: number;
-    if (pledge_type === 'per_mile') {
-      maxTotal = (cents_per_mile! / 100) * Number(event.mile_goal);
-    } else {
-      maxTotal = flat_amount!;
-    }
+    // Build success/cancel URLs
+    const origin = req.headers.get('origin') || '';
+    const eventSlug = event.slug || event.id;
 
-    // Create Setup Intent (saves card, no charge)
-    const setupIntent = await stripe.setupIntents.create({
+    // Create Stripe Checkout Session (immediate charge)
+    const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: designation,
+              description: `Supporting ${event.rider_name}'s ${event.mile_goal}-mile ride`,
+            },
+            unit_amount: amountInCents,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${origin}/bike-rides/${eventSlug}?donation=success&name=${encodeURIComponent(pledger_name)}`,
+      cancel_url: `${origin}/bike-rides/${eventSlug}`,
       metadata: {
+        type: 'donation',
+        donation_type: 'bike_ride',
         event_id,
+        event_title: event.title,
         pledge_type,
         cents_per_mile: pledge_type === 'per_mile' ? String(cents_per_mile) : '0',
         flat_amount: pledge_type === 'flat' ? String(flat_amount) : '0',
-        max_total: String(maxTotal.toFixed(2)),
+        mile_goal: String(event.mile_goal),
         pledger_name,
         pledger_email,
+        amount: baseAmount.toString(),
+        coverStripeFee: cover_stripe_fee.toString(),
         cover_stripe_fee: cover_stripe_fee ? 'true' : 'false',
+        message: message || '',
       },
     });
 
-    // Get user ID from auth header if available
-    let pledgerUserId = null;
-    const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      const { data: { user } } = await supabaseAdmin.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-      if (user) pledgerUserId = user.id;
+    console.log('Bike ride donation checkout session created:', session.id);
+
+    // Look up profile for donor_id
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("id, email")
+      .eq("email", pledger_email)
+      .maybeSingle();
+
+    // RESPECT donor_identifier_check CONSTRAINT
+    const donorId = profile?.id ?? null;
+    const donorEmail = profile ? null : pledger_email;
+
+    // Create pending donation record (will be updated by webhook/reconciliation)
+    const { error: insertError } = await supabaseAdmin
+      .from("donations")
+      .insert({
+        donor_id: donorId,
+        donor_email: donorEmail,
+        amount: baseAmount,
+        amount_charged: finalAmount,
+        frequency: 'one-time',
+        status: 'pending',
+        designation: designation,
+        started_at: new Date().toISOString(),
+        stripe_mode: mode,
+        stripe_customer_id: customer.id,
+        stripe_checkout_session_id: session.id,
+      });
+
+    if (insertError) {
+      console.error('Failed to create donation record:', insertError);
+      // Don't fail the checkout - the reconciliation system will catch it
     }
 
-    // Store pledge in database
-    const { data: pledge, error: pledgeError } = await supabaseAdmin
+    // Also store a record in bike_ride_pledges for backward compatibility / admin tracking
+    const pledgerUserId = profile?.id || null;
+    const { error: pledgeError } = await supabaseAdmin
       .from('bike_ride_pledges')
       .insert({
         event_id,
@@ -140,24 +203,22 @@ serve(async (req) => {
         cents_per_mile: pledge_type === 'per_mile' ? cents_per_mile : null,
         flat_amount: pledge_type === 'flat' ? flat_amount : null,
         stripe_customer_id: customer.id,
-        stripe_setup_intent_id: setupIntent.id,
+        stripe_setup_intent_id: null,
         stripe_mode: mode,
         message: message || null,
         cover_stripe_fee: cover_stripe_fee,
-      })
-      .select()
-      .single();
+        charge_status: 'pending',
+      });
 
     if (pledgeError) {
-      console.error('Error inserting pledge:', pledgeError);
-      throw new Error('Failed to save pledge');
+      console.error('Error inserting bike_ride_pledge (non-fatal):', pledgeError);
     }
 
     return new Response(
       JSON.stringify({
-        client_secret: setupIntent.client_secret,
-        pledge_id: pledge.id,
-        max_total: maxTotal,
+        url: session.url,
+        amount: baseAmount,
+        amount_charged: finalAmount,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

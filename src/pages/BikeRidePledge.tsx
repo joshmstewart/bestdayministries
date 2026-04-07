@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { loadStripe, type Stripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -62,129 +59,6 @@ interface EventStats {
   messages: { name: string; message: string }[];
 }
 
-// Inner form that has access to Stripe context
-function PledgeCardForm({
-  clientSecret,
-  pledgerName,
-  maxTotal,
-  centsPerMile,
-  pledgeType,
-  onSuccess,
-}: {
-  clientSecret: string;
-  pledgerName: string;
-  maxTotal: number;
-  centsPerMile: number;
-  pledgeType: "flat" | "per_mile";
-  onSuccess: () => void;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [confirming, setConfirming] = useState(false);
-  const [cardError, setCardError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const handleConfirmCard = async () => {
-    if (!stripe || !elements) return;
-
-    const cardElement = elements.getElement(CardElement);
-    if (!cardElement) return;
-
-    setConfirming(true);
-    setCardError(null);
-
-    try {
-      const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: { name: pledgerName },
-        },
-      });
-
-      if (error) {
-        setCardError(error.message || "Card verification failed");
-        toast({
-          title: "Card Error",
-          description: error.message || "Please check your card details.",
-          variant: "destructive",
-        });
-      } else if (setupIntent?.status === "succeeded") {
-        try {
-          await supabase.functions.invoke("confirm-bike-pledge", {
-            body: { setup_intent_id: setupIntent.id },
-          });
-        } catch (confirmErr) {
-          console.error("Error confirming pledge (non-fatal):", confirmErr);
-        }
-        toast({
-          title: pledgeType === "flat" ? "Donation Confirmed! 🎉" : "Pledge Confirmed! 🎉",
-          description: pledgeType === "flat"
-            ? `Your card is saved. You'll be charged $${maxTotal.toFixed(2)} after the ride.`
-            : `Your card is saved. You'll be charged up to $${maxTotal.toFixed(2)} after the ride.`,
-        });
-        onSuccess();
-      }
-    } catch (err) {
-      console.error("Error confirming card:", err);
-      setCardError("An unexpected error occurred. Please try again.");
-    } finally {
-      setConfirming(false);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label className="text-base font-semibold flex items-center gap-2 mb-3">
-          <CreditCard className="h-4 w-4 text-primary" />
-          Card Details
-        </Label>
-        <div className="border rounded-md p-4 bg-background">
-          <CardElement
-            options={{
-              style: {
-                base: {
-                  fontSize: "16px",
-                  color: "hsl(var(--foreground))",
-                  "::placeholder": { color: "hsl(var(--muted-foreground))" },
-                },
-                invalid: { color: "hsl(var(--destructive))" },
-              },
-            }}
-          />
-        </div>
-        {cardError && (
-          <p className="text-sm text-destructive mt-2">{cardError}</p>
-        )}
-      </div>
-
-      <Button
-        onClick={handleConfirmCard}
-        disabled={confirming || !stripe}
-        className="w-full"
-        size="lg"
-      >
-        {confirming ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            Verifying Card...
-          </>
-        ) : (
-          <>{pledgeType === "flat"
-              ? `Confirm $${maxTotal.toFixed(2)} Donation`
-              : `Confirm Pledge — ${centsPerMile}¢/mile (up to $${maxTotal.toFixed(2)})`}</>
-        )}
-      </Button>
-
-      <p className="text-xs text-muted-foreground text-center">
-        {pledgeType === "flat"
-          ? "Your card is saved securely with Stripe. You will be charged after the ride is complete."
-          : "Your card is saved securely with Stripe. You will only be charged after the ride is complete, based on actual miles ridden."}
-      </p>
-    </div>
-  );
-}
-
 const difficultyColor = (rating: string) => {
   switch (rating) {
     case "Easy": return "bg-green-500/10 text-green-700 border-green-500/30";
@@ -200,16 +74,9 @@ export default function BikeRidePledge() {
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
   const [scenicPhotos, setScenicPhotos] = useState<ScenicPhoto[]>([]);
-  const [mapRef, setMapRef] = useState<HTMLDivElement | null>(null);
   const [stats, setStats] = useState<EventStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  // Stripe state
-  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [step, setStep] = useState<"form" | "card">("form");
 
   // Pledge form state
   const [pledgeType, setPledgeType] = useState<"flat" | "per_mile">("flat");
@@ -222,6 +89,12 @@ export default function BikeRidePledge() {
   const [coverFees, setCoverFees] = useState(true);
   const [customCentsInput, setCustomCentsInput] = useState("");
 
+  // Check for donation success return
+  const [searchParams] = useSearchParams();
+  const donationSuccess = searchParams.get("donation") === "success";
+  const returnedName = searchParams.get("name") || "";
+  const forceTestMode = searchParams.get("test") === "true";
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) {
@@ -229,9 +102,6 @@ export default function BikeRidePledge() {
       }
     });
   }, []);
-
-  const [searchParams] = useSearchParams();
-  const forceTestMode = searchParams.get("test") === "true";
 
   const { toast } = useToast();
 
@@ -244,23 +114,8 @@ export default function BikeRidePledge() {
 
   useEffect(() => {
     fetchEventStatus();
-    fetchStripeKey();
     fetchGoogleMapsKey();
   }, []);
-
-  const fetchStripeKey = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("get-stripe-publishable-key", {
-        body: forceTestMode ? { force_test_mode: true } : undefined,
-      });
-      if (error) throw error;
-      if (data?.publishable_key) {
-        setStripePromise(loadStripe(data.publishable_key));
-      }
-    } catch (err) {
-      console.error("Error fetching Stripe key:", err);
-    }
-  };
 
   const fetchGoogleMapsKey = async () => {
     try {
@@ -326,27 +181,19 @@ export default function BikeRidePledge() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      if (data?.client_secret) {
-        setClientSecret(data.client_secret);
-        setStep("card");
+      // Redirect to Stripe Checkout
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err) {
       console.error("Error submitting pledge:", err);
       toast({
-        title: "Error submitting pledge",
+        title: "Error",
         description: err instanceof Error ? err.message : "Please try again",
         variant: "destructive",
       });
-    } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleCardSuccess = () => {
-    setSuccess(true);
-    setStep("form");
-    setClientSecret(null);
-    fetchEventStatus();
   };
 
   if (loading) {
@@ -389,6 +236,25 @@ export default function BikeRidePledge() {
             All Bike Rides
           </Link>
         </div>
+
+        {/* Donation Success Banner */}
+        {donationSuccess && (
+          <div className="container max-w-4xl mx-auto px-4 mb-6">
+            <Card className="border-green-500/30 bg-green-50 dark:bg-green-950/20">
+              <CardContent className="pt-6 text-center space-y-3">
+                <CheckCircle2 className="h-12 w-12 mx-auto text-green-500" />
+                <h2 className="text-2xl font-bold text-green-800 dark:text-green-200">Donation Complete! 🎉</h2>
+                <p className="text-green-700 dark:text-green-300">
+                  Thank you{returnedName ? `, ${decodeURIComponent(returnedName)}` : ""}! Your donation has been processed and will go directly to supporting this ride.
+                </p>
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  You'll receive a receipt via email shortly.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Hero Section */}
         {(() => {
           const heroPhoto = scenicPhotos.find(p => p.is_default);
@@ -412,7 +278,7 @@ export default function BikeRidePledge() {
                 )}
                 <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-4 backdrop-blur-sm">
                   <Bike className="h-4 w-4" />
-                  {isCompleted ? "Ride Complete!" : "Pledge Your Support"}
+                  {isCompleted ? "Ride Complete!" : "Support This Ride"}
                 </div>
                 <h1 className="text-3xl md:text-5xl font-bold mb-3">{event.title}</h1>
                 <p className="text-lg text-muted-foreground mb-2">
@@ -427,14 +293,14 @@ export default function BikeRidePledge() {
                   <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">{event.description}</p>
                 )}
 
-                {!isCompleted && (
+                {!isCompleted && !donationSuccess && (
                   <Button
                     size="lg"
                     className="mt-6"
                     onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
                   >
                     <Heart className="h-5 w-5 mr-2" />
-                    Pledge Your Support
+                    Donate Now
                   </Button>
                 )}
 
@@ -500,7 +366,7 @@ export default function BikeRidePledge() {
                     <DollarSign className="h-6 w-6 mx-auto mb-2 text-primary" />
                     <div className="text-2xl font-bold">${stats.estimated_total_at_goal.toLocaleString()}</div>
                     <p className="text-sm text-muted-foreground">
-                      {isCompleted ? "Total Raised" : "Estimated at Goal"}
+                      {isCompleted ? "Total Raised" : "Total Donated"}
                     </p>
                   </CardContent>
                 </Card>
@@ -530,15 +396,15 @@ export default function BikeRidePledge() {
           </section>
         )}
 
-        {/* Inline CTA after rider bio — only if rider bio section actually rendered */}
-        {!isCompleted && (event.rider_name && (event.rider_image_url || event.rider_bio)) && (
+        {/* Inline CTA after rider bio */}
+        {!isCompleted && !donationSuccess && (event.rider_name && (event.rider_image_url || event.rider_bio)) && (
           <div className="container max-w-4xl mx-auto px-4 py-3 text-center">
             <button
               onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
             >
               <Heart className="h-3.5 w-3.5" />
-              Ready to pledge? Jump to the form
+              Ready to donate? Jump to the form
             </button>
           </div>
         )}
@@ -607,10 +473,8 @@ export default function BikeRidePledge() {
                 Course Milestones
               </h2>
               <div className="relative">
-                {/* Timeline line */}
                 <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-primary/20" />
                 <div className="space-y-4">
-                  {/* Start */}
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 z-10">
                       <Navigation className="h-4 w-4 text-white" />
@@ -621,7 +485,6 @@ export default function BikeRidePledge() {
                       {event.start_time && <p className="text-xs text-muted-foreground">{event.start_time}</p>}
                     </div>
                   </div>
-                  {/* Aid stations */}
                   {event.aid_stations.map((station: any, i: number) => (
                     <div key={i} className="flex items-start gap-4">
                       <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center flex-shrink-0 z-10">
@@ -633,7 +496,6 @@ export default function BikeRidePledge() {
                       </div>
                     </div>
                   ))}
-                  {/* Finish */}
                   <div className="flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 z-10">
                       <Trophy className="h-4 w-4 text-white" />
@@ -659,7 +521,6 @@ export default function BikeRidePledge() {
                 The Route
               </h2>
               
-              {/* Start/End locations */}
               <div className="flex flex-wrap gap-4 mb-4">
                 {event.start_location && (
                   <div className="flex items-center gap-2">
@@ -685,7 +546,6 @@ export default function BikeRidePledge() {
                 )}
               </div>
 
-              {/* Ride With GPS — embed or link based on admin setting */}
               {event.ridewithgps_url ? (() => {
                 const embedMode = (event as any).ridewithgps_embed_mode || 'embed';
                 if (embedMode === 'embed') {
@@ -719,7 +579,6 @@ export default function BikeRidePledge() {
                     </div>
                   ) : null;
                 }
-                // Link-only mode
                 return (
                   <div className="mb-4">
                     <a
@@ -745,7 +604,6 @@ export default function BikeRidePledge() {
                 );
               })() : null}
 
-              {/* Google Maps — only shown when admin explicitly enables it */}
               {googleMapsKey && (event as any).show_google_map && (
                 <div className="rounded-lg overflow-hidden border">
                   {event.route_waypoints?.length ? (
@@ -772,15 +630,15 @@ export default function BikeRidePledge() {
           </section>
         )}
 
-        {/* Inline CTA after route map — only if route map section actually rendered */}
-        {!isCompleted && (event.start_location || event.end_location || event.route_waypoints?.length || event.ridewithgps_url) && (
+        {/* Inline CTA after route map */}
+        {!isCompleted && !donationSuccess && (event.start_location || event.end_location || event.route_waypoints?.length || event.ridewithgps_url) && (
           <div className="container max-w-4xl mx-auto px-4 py-3 text-center">
             <button
               onClick={() => document.getElementById('pledge-section')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
             >
               <Heart className="h-3.5 w-3.5" />
-              Support this ride — pledge below
+              Support this ride — donate below
             </button>
           </div>
         )}
@@ -812,319 +670,249 @@ export default function BikeRidePledge() {
         )}
 
         <div id="pledge-section" className="container max-w-4xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8 scroll-mt-24">
-          {/* Pledge Form */}
-          {!isCompleted && (
+          {/* Donation Form */}
+          {!isCompleted && !donationSuccess && (
             <div>
-              {success ? (
-                <Card>
-                  <CardContent className="pt-6 text-center space-y-4">
-                    <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
-                    <h2 className="text-2xl font-bold">
-                      {pledgeType === "flat" ? "Donation Confirmed!" : "Pledge Confirmed!"}
-                    </h2>
-                    <p className="text-muted-foreground">
-                      Thank you, {pledgerName}!{" "}
-                      {pledgeType === "flat" ? (
-                        <>You donated <span className="font-semibold text-foreground">${maxTotal.toFixed(2)}</span>.</>
-                      ) : (
-                        <>You pledged {centsPerMile}¢ per mile (up to <span className="font-semibold text-foreground">${maxTotal.toFixed(2)}</span>).</>
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {pledgeType === "flat"
-                        ? "Your card is saved and will be charged after the ride is complete."
-                        : "Your card is saved and will be charged after the ride based on actual miles completed."}
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Bike className="h-5 w-5 text-primary" />
-                      {step === "form" ? "Support This Ride" : "Enter Card Details"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {step === "form" ? (
-                      <>
-                        {/* Pledge Type Toggle */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            type="button"
-                            variant={pledgeType === "flat" ? "default" : "outline"}
-                            onClick={() => setPledgeType("flat")}
-                            className="h-auto py-3"
-                          >
-                            <DollarSign className="h-4 w-4 mr-1.5" />
-                            <div className="text-left">
-                              <div className="font-semibold">Flat Donation</div>
-                              <div className="text-xs opacity-80">Fixed amount</div>
-                            </div>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant={pledgeType === "per_mile" ? "default" : "outline"}
-                            onClick={() => setPledgeType("per_mile")}
-                            className="h-auto py-3"
-                          >
-                            <Bike className="h-4 w-4 mr-1.5" />
-                            <div className="text-left">
-                              <div className="font-semibold">Per Mile</div>
-                              <div className="text-xs opacity-80">Based on miles ridden</div>
-                            </div>
-                          </Button>
-                        </div>
-
-                        {pledgeType === "flat" ? (
-                          /* Flat Donation Form */
-                          <div className="space-y-3">
-                            <Label className="text-base font-semibold">Donation Amount</Label>
-                            <div className="text-center">
-                              <span className="text-4xl font-bold text-primary">${flatAmount}</span>
-                            </div>
-                            {/* Quick-pick buttons */}
-                            <div className="flex flex-wrap gap-2 justify-center">
-                              {[10, 25, 50, 75, 100, 150, 250, 500].map(v => (
-                                <Button
-                                  key={v}
-                                  type="button"
-                                  size="sm"
-                                  variant={flatAmount === v ? "default" : "outline"}
-                                  onClick={() => { setFlatAmount(v); setCustomFlatInput(""); }}
-                                  className="min-w-[3.5rem]"
-                                >
-                                  ${v}
-                                </Button>
-                              ))}
-                            </div>
-                            {/* Custom input */}
-                            <div className="flex items-center gap-2 justify-center">
-                              <span className="text-sm text-muted-foreground">Or enter custom: $</span>
-                              <Input
-                                type="number"
-                                min={1}
-                                max={10000}
-                                placeholder="e.g. 200"
-                                className="w-24 text-center"
-                                value={customFlatInput}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setCustomFlatInput(val);
-                                  const num = parseInt(val);
-                                  if (!isNaN(num) && num >= 1 && num <= 10000) {
-                                    setFlatAmount(num);
-                                  }
-                                }}
-                              />
-                            </div>
-                            {flatAmount >= 500 && (
-                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
-                                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                                <span>
-                                  You're donating <strong>${flatAmount}</strong>. Make sure this is the amount you intend!
-                                </span>
-                              </div>
-                            )}
-                            <div className="bg-primary/10 rounded-lg p-4 text-center">
-                              <p className="text-sm text-muted-foreground">Your donation:</p>
-                              <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
-                              {coverFees && feeDiff > 0 && (
-                                <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
-                              )}
-                            </div>
-                            <div className="flex items-start space-x-2 mt-3">
-                              <Checkbox
-                                id="cover-fees"
-                                checked={coverFees}
-                                onCheckedChange={(checked) => setCoverFees(checked === true)}
-                              />
-                              <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
-                                Cover processing fees so 100% of my donation goes to Best Day Ministries
-                              </label>
-                            </div>
-                          </div>
-                        ) : (
-                          /* Per Mile Form */
-                          <div className="space-y-3">
-                            <Label className="text-base font-semibold">Cents Per Mile</Label>
-                            <div className="text-center">
-                              <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
-                              <span className="text-muted-foreground ml-1">per mile</span>
-                            </div>
-                            {/* Quick-pick buttons - dynamic based on mile goal */}
-                            <div className="flex flex-wrap gap-2 justify-center">
-                              {(() => {
-                                const miles = event?.mile_goal || 100;
-                                if (miles >= 500) return [1, 2, 3, 5, 10, 15, 20, 25, 50];
-                                if (miles >= 200) return [2, 5, 10, 15, 20, 25, 50, 75, 100];
-                                if (miles >= 100) return [5, 10, 15, 20, 25, 50, 75, 100, 150];
-                                return [10, 15, 20, 25, 50, 75, 100, 150, 200];
-                              })().map(v => (
-                                <Button
-                                  key={v}
-                                  type="button"
-                                  size="sm"
-                                  variant={centsPerMile === v ? "default" : "outline"}
-                                  onClick={() => { setCentsPerMile(v); setCustomCentsInput(""); }}
-                                  className="min-w-[3rem]"
-                                >
-                                  {v}¢
-                                </Button>
-                              ))}
-                            </div>
-                            {/* Custom input */}
-                            <div className="flex items-center gap-2 justify-center">
-                              <span className="text-sm text-muted-foreground">Or enter custom:</span>
-                              <Input
-                                type="number"
-                                min={1}
-                                max={500}
-                                placeholder="e.g. 75"
-                                className="w-24 text-center"
-                                value={customCentsInput}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setCustomCentsInput(val);
-                                  const num = parseInt(val);
-                                  if (!isNaN(num) && num >= 1 && num <= 500) {
-                                    setCentsPerMile(num);
-                                  }
-                                }}
-                              />
-                              <span className="text-sm text-muted-foreground">¢/mile</span>
-                            </div>
-                            {/* High amount warning */}
-                            {centsPerMile >= 100 && event && (
-                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
-                                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                                <span>
-                                  At {centsPerMile}¢/mile, your maximum charge would be <strong>${maxTotalBase.toFixed(2)}</strong> for {event.mile_goal} miles. Make sure this is the amount you intend!
-                                </span>
-                              </div>
-                            )}
-                            <div className="bg-primary/10 rounded-lg p-4 text-center">
-                              <p className="text-sm text-muted-foreground">Maximum charge at {event.mile_goal} miles:</p>
-                              <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
-                              {coverFees && feeDiff > 0 && (
-                                <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
-                              )}
-                            </div>
-                            <div className="flex items-start space-x-2 mt-3">
-                              <Checkbox
-                                id="cover-fees"
-                                checked={coverFees}
-                                onCheckedChange={(checked) => setCoverFees(checked === true)}
-                              />
-                              <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
-                                Cover processing fees so 100% of my pledge goes to Best Day Ministries
-                              </label>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Name & Email */}
-                        <div className="space-y-3">
-                          <div>
-                            <Label htmlFor="pledger-name">Your Name</Label>
-                            <Input
-                              id="pledger-name"
-                              value={pledgerName}
-                              onChange={(e) => setPledgerName(e.target.value)}
-                              placeholder="John Doe"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="pledger-email">Your Email</Label>
-                            <Input
-                              id="pledger-email"
-                              type="email"
-                              value={pledgerEmail}
-                              onChange={(e) => setPledgerEmail(e.target.value)}
-                              placeholder="john@example.com"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Optional message */}
-                        <div>
-                          <Label htmlFor="pledge-message">Encouragement Message (optional)</Label>
-                          <Textarea
-                            id="pledge-message"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            placeholder="You got this! 🚴"
-                            maxLength={500}
-                            rows={2}
-                          />
-                        </div>
-
-                        <Button
-                          onClick={handleSubmitPledge}
-                          disabled={submitting || !pledgerName.trim() || !pledgerEmail.trim()}
-                          className="w-full"
-                          size="lg"
-                        >
-                          {submitting ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Preparing...
-                            </>
-                          ) : (
-                            <>
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              Continue to Card Details
-                            </>
-                          )}
-                        </Button>
-
-                        <p className="text-xs text-muted-foreground text-center">
-                          {pledgeType === "flat"
-                            ? "Your card will be securely saved and charged after the ride is complete."
-                            : "Your card will be securely saved and only charged after the ride is complete, based on actual miles ridden."}
-                        </p>
-                      </>
-                    ) : clientSecret && stripePromise ? (
-                      <Elements stripe={stripePromise} options={{ clientSecret }}>
-                        <div className="space-y-4">
-                          <div className="bg-primary/10 rounded-lg p-3 text-center">
-                            <p className="text-sm text-muted-foreground">
-                              {pledgeType === "flat"
-                                ? `${pledgerName} — $${maxTotal.toFixed(2)} donation`
-                                : `${pledgerName} — ${centsPerMile}¢/mile — Max $${maxTotal.toFixed(2)}`}
-                            </p>
-                          </div>
-
-                          <PledgeCardForm
-                            clientSecret={clientSecret}
-                            pledgerName={pledgerName}
-                            maxTotal={maxTotal}
-                            centsPerMile={centsPerMile}
-                            pledgeType={pledgeType}
-                            onSuccess={handleCardSuccess}
-                          />
-
-                          <Button
-                            variant="ghost"
-                            className="w-full"
-                            onClick={() => {
-                              setStep("form");
-                              setClientSecret(null);
-                            }}
-                          >
-                            ← Back to pledge details
-                          </Button>
-                        </div>
-                      </Elements>
-                    ) : (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                        <span className="ml-2 text-muted-foreground">Loading payment form...</span>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bike className="h-5 w-5 text-primary" />
+                    Support This Ride
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Pledge Type Toggle */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={pledgeType === "flat" ? "default" : "outline"}
+                      onClick={() => setPledgeType("flat")}
+                      className="h-auto py-3"
+                    >
+                      <DollarSign className="h-4 w-4 mr-1.5" />
+                      <div className="text-left">
+                        <div className="font-semibold">Flat Donation</div>
+                        <div className="text-xs opacity-80">Fixed amount</div>
                       </div>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={pledgeType === "per_mile" ? "default" : "outline"}
+                      onClick={() => setPledgeType("per_mile")}
+                      className="h-auto py-3"
+                    >
+                      <Bike className="h-4 w-4 mr-1.5" />
+                      <div className="text-left">
+                        <div className="font-semibold">Per Mile</div>
+                        <div className="text-xs opacity-80">Based on mile goal</div>
+                      </div>
+                    </Button>
+                  </div>
+
+                  {pledgeType === "flat" ? (
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold">Donation Amount</Label>
+                      <div className="text-center">
+                        <span className="text-4xl font-bold text-primary">${flatAmount}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {[10, 25, 50, 75, 100, 150, 250, 500].map(v => (
+                          <Button
+                            key={v}
+                            type="button"
+                            size="sm"
+                            variant={flatAmount === v ? "default" : "outline"}
+                            onClick={() => { setFlatAmount(v); setCustomFlatInput(""); }}
+                            className="min-w-[3.5rem]"
+                          >
+                            ${v}
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 justify-center">
+                        <span className="text-sm text-muted-foreground">Or enter custom: $</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={10000}
+                          placeholder="e.g. 200"
+                          className="w-24 text-center"
+                          value={customFlatInput}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setCustomFlatInput(val);
+                            const num = parseInt(val);
+                            if (!isNaN(num) && num >= 1 && num <= 10000) {
+                              setFlatAmount(num);
+                            }
+                          }}
+                        />
+                      </div>
+                      {flatAmount >= 500 && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                          <span>
+                            You're donating <strong>${flatAmount}</strong>. Make sure this is the amount you intend!
+                          </span>
+                        </div>
+                      )}
+                      <div className="bg-primary/10 rounded-lg p-4 text-center">
+                        <p className="text-sm text-muted-foreground">You'll be charged:</p>
+                        <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
+                        {coverFees && feeDiff > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
+                        )}
+                      </div>
+                      <div className="flex items-start space-x-2 mt-3">
+                        <Checkbox
+                          id="cover-fees"
+                          checked={coverFees}
+                          onCheckedChange={(checked) => setCoverFees(checked === true)}
+                        />
+                        <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                          Cover processing fees so 100% of my donation goes to Best Day Ministries
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Label className="text-base font-semibold">Cents Per Mile</Label>
+                      <div className="text-center">
+                        <span className="text-4xl font-bold text-primary">{centsPerMile}¢</span>
+                        <span className="text-muted-foreground ml-1">per mile</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {(() => {
+                          const miles = event?.mile_goal || 100;
+                          if (miles >= 500) return [1, 2, 3, 5, 10, 15, 20, 25, 50];
+                          if (miles >= 200) return [2, 5, 10, 15, 20, 25, 50, 75, 100];
+                          if (miles >= 100) return [5, 10, 15, 20, 25, 50, 75, 100, 150];
+                          return [10, 15, 20, 25, 50, 75, 100, 150, 200];
+                        })().map(v => (
+                          <Button
+                            key={v}
+                            type="button"
+                            size="sm"
+                            variant={centsPerMile === v ? "default" : "outline"}
+                            onClick={() => { setCentsPerMile(v); setCustomCentsInput(""); }}
+                            className="min-w-[3rem]"
+                          >
+                            {v}¢
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 justify-center">
+                        <span className="text-sm text-muted-foreground">Or enter custom:</span>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={500}
+                          placeholder="e.g. 75"
+                          className="w-24 text-center"
+                          value={customCentsInput}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setCustomCentsInput(val);
+                            const num = parseInt(val);
+                            if (!isNaN(num) && num >= 1 && num <= 500) {
+                              setCentsPerMile(num);
+                            }
+                          }}
+                        />
+                        <span className="text-sm text-muted-foreground">¢/mile</span>
+                      </div>
+                      {centsPerMile >= 100 && event && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800 flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                          <span>
+                            At {centsPerMile}¢/mile, your total charge would be <strong>${maxTotalBase.toFixed(2)}</strong> for {event.mile_goal} miles. Make sure this is the amount you intend!
+                          </span>
+                        </div>
+                      )}
+                      <div className="bg-primary/10 rounded-lg p-4 text-center">
+                        <p className="text-sm text-muted-foreground">
+                          Total for {event.mile_goal} miles:
+                        </p>
+                        <p className="text-3xl font-bold text-primary">${maxTotal.toFixed(2)}</p>
+                        {coverFees && feeDiff > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">(includes ${feeDiff.toFixed(2)} processing fee)</p>
+                        )}
+                      </div>
+                      <div className="flex items-start space-x-2 mt-3">
+                        <Checkbox
+                          id="cover-fees"
+                          checked={coverFees}
+                          onCheckedChange={(checked) => setCoverFees(checked === true)}
+                        />
+                        <label htmlFor="cover-fees" className="text-sm text-muted-foreground leading-tight cursor-pointer">
+                          Cover processing fees so 100% goes to Best Day Ministries
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Name & Email */}
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="pledger-name">Your Name</Label>
+                      <Input
+                        id="pledger-name"
+                        value={pledgerName}
+                        onChange={(e) => setPledgerName(e.target.value)}
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pledger-email">Your Email</Label>
+                      <Input
+                        id="pledger-email"
+                        type="email"
+                        value={pledgerEmail}
+                        onChange={(e) => setPledgerEmail(e.target.value)}
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Optional message */}
+                  <div>
+                    <Label htmlFor="pledge-message">Encouragement Message (optional)</Label>
+                    <Textarea
+                      id="pledge-message"
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="You got this! 🚴"
+                      maxLength={500}
+                      rows={2}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleSubmitPledge}
+                    disabled={submitting || !pledgerName.trim() || !pledgerEmail.trim()}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Preparing checkout...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        {pledgeType === "flat"
+                          ? `Donate $${maxTotal.toFixed(2)}`
+                          : `Donate $${maxTotal.toFixed(2)} (${centsPerMile}¢/mile)`}
+                      </>
                     )}
-                  </CardContent>
-                </Card>
-              )}
+                  </Button>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    You'll be redirected to Stripe for secure payment. Your card will be charged immediately.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -1155,7 +943,6 @@ export default function BikeRidePledge() {
               </CardContent>
             </Card>
 
-            {/* Finish Line Info */}
             {event.finish_description && !event.aid_stations?.length && (
               <Card className="mt-4">
                 <CardContent className="pt-6">
