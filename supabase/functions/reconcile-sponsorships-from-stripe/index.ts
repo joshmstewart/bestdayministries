@@ -391,6 +391,14 @@ serve(async (req) => {
             } else {
               result.sponsorshipId = newSponsorship?.id;
               logStep(`✅ Created missing one-time sponsorship ${newSponsorship?.id}`);
+              
+              // Auto-create receipt
+              const startedAtStr = new Date(session.created * 1000).toISOString();
+              result.receiptCreated = await createReceiptForSponsorship(
+                supabaseClient, newSponsorship.id, result.customerEmail,
+                null, userId, result.bestieName || 'General Support',
+                result.amount || 0, 'one-time', startedAtStr, mode
+              );
             }
           }
         }
