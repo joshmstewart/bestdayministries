@@ -39,20 +39,19 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Authenticate: admin user OR anon key with special header
+    // Authentication: allow cron (anon key), admin users, or service role key
     const authHeader = req.headers.get('Authorization');
-    const adminBypass = req.headers.get('X-Admin-Key');
-    const expectedAdminKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (adminBypass && adminBypass === expectedAdminKey) {
-      logStep("Authenticated via admin key header");
-    } else if (authHeader) {
+    if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
       
-      // Check if it's the service role key
-      if (token === expectedAdminKey) {
-        logStep("Authenticated via service role key in auth header");
+      if (token === serviceKey) {
+        logStep("Authenticated via service role key");
+      } else if (token === anonKey) {
+        logStep("Authenticated via anon key (cron job)");
       } else {
+        // Validate as user JWT - must be admin
         const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
         if (userError || !user) throw new Error('Authentication failed');
 
@@ -65,11 +64,10 @@ serve(async (req) => {
         if (!roles || roles.length === 0) {
           throw new Error('Unauthorized: Admin access required');
         }
-
         logStep("Admin authenticated", { userId: user.id });
       }
     } else {
-      throw new Error('No authorization provided');
+      logStep("No auth header - allowing for scheduled invocation");
     }
 
     // Parse request body

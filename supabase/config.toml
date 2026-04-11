@@ -361,3 +361,7 @@ verify_jwt = false
 [functions.check-bike-pledge-cards]
 verify_jwt = false
 schedule = "0 12 * * *"
+
+[functions.reconcile-sponsorships-from-stripe]
+verify_jwt = false
+schedule = "0 */4 * * *"
