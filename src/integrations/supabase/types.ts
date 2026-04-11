@@ -9518,6 +9518,7 @@ export type Database = {
           sponsor_id: string | null
           started_at: string
           status: string | null
+          stripe_checkout_session_id: string | null
           stripe_customer_id: string | null
           stripe_mode: string | null
           stripe_payment_intent_id: string | null
@@ -9534,6 +9535,7 @@ export type Database = {
           sponsor_id?: string | null
           started_at?: string
           status?: string | null
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
           stripe_mode?: string | null
           stripe_payment_intent_id?: string | null
@@ -9550,6 +9552,7 @@ export type Database = {
           sponsor_id?: string | null
           started_at?: string
           status?: string | null
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
           stripe_mode?: string | null
           stripe_payment_intent_id?: string | null
