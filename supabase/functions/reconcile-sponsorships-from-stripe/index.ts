@@ -22,7 +22,64 @@ interface ReconcileResult {
   bestieName?: string;
   frequency?: string;
   sponsorshipId?: string;
+  receiptCreated?: boolean;
   error?: string;
+}
+
+async function createReceiptForSponsorship(
+  supabaseClient: any,
+  sponsorshipId: string,
+  email: string | null | undefined,
+  sponsorName: string | null | undefined,
+  userId: string | null,
+  bestieName: string,
+  amount: number,
+  frequency: string,
+  startedAt: string,
+  stripeMode: string,
+): Promise<boolean> {
+  try {
+    // Get org info
+    const { data: orgSettings } = await supabaseClient
+      .from('receipt_settings')
+      .select('organization_name, organization_ein')
+      .limit(1)
+      .maybeSingle();
+
+    const orgName = orgSettings?.organization_name || 'Best Day Ministries';
+    const orgEin = orgSettings?.organization_ein || '00-0000000';
+    const txDate = new Date(startedAt);
+    const receiptNum = `RCP-RECON-${txDate.toISOString().slice(0, 10).replace(/-/g, '')}-${sponsorshipId.slice(0, 8)}`;
+
+    const { error } = await supabaseClient
+      .from('sponsorship_receipts')
+      .insert({
+        sponsorship_id: sponsorshipId,
+        sponsor_email: email || null,
+        sponsor_name: sponsorName || (email ? email.split('@')[0] : 'Sponsor'),
+        user_id: userId,
+        bestie_name: bestieName || 'General Support',
+        amount,
+        frequency,
+        transaction_id: `sponsorship_${sponsorshipId.slice(0, 8)}`,
+        transaction_date: startedAt,
+        stripe_mode: stripeMode,
+        organization_name: orgName,
+        organization_ein: orgEin,
+        receipt_number: receiptNum,
+        tax_year: txDate.getFullYear(),
+      });
+
+    if (error) {
+      logStep(`⚠️ Receipt creation failed for ${sponsorshipId}`, { error: error.message });
+      return false;
+    }
+    logStep(`🧾 Receipt created for sponsorship ${sponsorshipId}`);
+    return true;
+  } catch (e) {
+    logStep(`⚠️ Receipt creation error for ${sponsorshipId}`, { error: String(e) });
+    return false;
+  }
 }
 
 serve(async (req) => {
