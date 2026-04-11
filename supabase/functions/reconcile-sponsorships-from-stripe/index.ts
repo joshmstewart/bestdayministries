@@ -281,6 +281,14 @@ serve(async (req) => {
           } else {
             result.sponsorshipId = newSponsorship?.id;
             logStep(`✅ Created missing sponsorship ${newSponsorship?.id} for ${sub.id}`);
+            
+            // Auto-create receipt
+            const startedAt = new Date(sub.created * 1000).toISOString();
+            result.receiptCreated = await createReceiptForSponsorship(
+              supabaseClient, newSponsorship.id, result.customerEmail,
+              null, userId, result.bestieName || 'General Support',
+              result.amount || 0, result.frequency || 'monthly', startedAt, mode
+            );
           }
         }
       }
