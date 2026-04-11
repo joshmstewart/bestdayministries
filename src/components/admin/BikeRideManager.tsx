@@ -846,7 +846,46 @@ export function BikeRideManager() {
                            </Badge>
                          </div>
                          <span className="text-muted-foreground text-sm">{pledge.pledger_email}</span>
-                         {pledge.message && <p className="text-xs text-muted-foreground italic">"{pledge.message}"</p>}
+                          {pledge.message && (
+                            <div className="flex items-center gap-1">
+                              <p className="text-xs text-muted-foreground italic">"{pledge.message}"</p>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive hover:text-destructive" title="Delete comment">
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete comment?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently remove the encouragement message from {pledge.pledger_name}'s pledge.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      onClick={async () => {
+                                        const { error } = await supabase
+                                          .from('bike_ride_pledges')
+                                          .update({ message: null })
+                                          .eq('id', pledge.id);
+                                        if (error) {
+                                          toast({ variant: "destructive", title: "Error", description: error.message });
+                                        } else {
+                                          toast({ description: "Comment deleted" });
+                                          if (selectedEvent) fetchPledges(selectedEvent.id);
+                                        }
+                                      }}
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          )}
                        </div>
                        <div className="text-right">
                          {pledge.pledge_type === 'per_mile' ? (
