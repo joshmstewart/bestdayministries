@@ -39,31 +39,37 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Authenticate: admin user OR service role key
+    // Authenticate: admin user OR anon key with special header
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('No authorization header');
+    const adminBypass = req.headers.get('X-Admin-Key');
+    const expectedAdminKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    const token = authHeader.replace('Bearer ', '');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    // Check if called with service role key directly
-    if (token === serviceRoleKey) {
-      logStep("Authenticated via service role key");
-    } else {
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-      if (userError || !user) throw new Error('Authentication failed');
+    if (adminBypass && adminBypass === expectedAdminKey) {
+      logStep("Authenticated via admin key header");
+    } else if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      
+      // Check if it's the service role key
+      if (token === expectedAdminKey) {
+        logStep("Authenticated via service role key in auth header");
+      } else {
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+        if (userError || !user) throw new Error('Authentication failed');
 
-      const { data: roles } = await supabaseClient
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .in('role', ['admin', 'owner']);
+        const { data: roles } = await supabaseClient
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .in('role', ['admin', 'owner']);
 
-      if (!roles || roles.length === 0) {
-        throw new Error('Unauthorized: Admin access required');
+        if (!roles || roles.length === 0) {
+          throw new Error('Unauthorized: Admin access required');
+        }
+
+        logStep("Admin authenticated", { userId: user.id });
       }
-
-      logStep("Admin authenticated", { userId: user.id });
+    } else {
+      throw new Error('No authorization provided');
     }
 
     // Parse request body
