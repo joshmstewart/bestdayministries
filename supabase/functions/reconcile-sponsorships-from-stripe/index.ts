@@ -39,25 +39,32 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Authenticate: admin user required
+    // Authenticate: admin user OR service role key
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header');
     
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !user) throw new Error('Authentication failed');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    // Check if called with service role key directly
+    if (token === serviceRoleKey) {
+      logStep("Authenticated via service role key");
+    } else {
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+      if (userError || !user) throw new Error('Authentication failed');
 
-    const { data: roles } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .in('role', ['admin', 'owner']);
+      const { data: roles } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .in('role', ['admin', 'owner']);
 
-    if (!roles || roles.length === 0) {
-      throw new Error('Unauthorized: Admin access required');
+      if (!roles || roles.length === 0) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+
+      logStep("Admin authenticated", { userId: user.id });
     }
-
-    logStep("Admin authenticated", { userId: user.id });
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
