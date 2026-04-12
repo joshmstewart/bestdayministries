@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -56,7 +56,7 @@ interface EventStats {
   per_mile_pledgers: number;
   flat_donors: number;
   estimated_total_at_goal: number;
-  messages: { name: string; message: string }[];
+  messages: { name: string; message: string; id: string }[];
 }
 
 const difficultyColor = (rating: string) => {
