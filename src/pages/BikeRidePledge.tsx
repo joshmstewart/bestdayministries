@@ -12,8 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy, ArrowLeft, AlertTriangle, Trash2 } from "lucide-react";
 import { BikeRouteMap } from "@/components/BikeRouteMap";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BikeEvent {
   id: string;
