@@ -70,7 +70,7 @@ const difficultyColor = (rating: string) => {
   }
 };
 
-export default function BikeRidePledge() {
+const { isAdmin, isOwner } = useAuth();
   const { eventSlug: routeEventSlug } = useParams<{ eventSlug: string }>();
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
