@@ -816,20 +816,20 @@ export function BikeRideManager() {
                 <div>
                     <CardTitle className="flex items-center gap-2">
                      <Users className="h-5 w-5" />
-                     Pledges for "{selectedEvent.title}"
+                     Donations for "{selectedEvent.title}"
                    </CardTitle>
                    <CardDescription>
-                     {pledges.length} total pledges
+                     {pledges.length} total donations
                      {(() => {
-                       const confirmed = pledges.filter(p => p.charge_status === 'confirmed');
-                       const pending = pledges.filter(p => p.charge_status === 'pending');
-                       const testConfirmed = confirmed.filter(p => p.stripe_mode === 'test').length;
-                       const liveConfirmed = confirmed.filter(p => p.stripe_mode === 'live').length;
+                       const paid = pledges.filter(p => getEffectiveStatus(p) === 'paid');
+                       const pending = pledges.filter(p => ['pending', 'checkout pending'].includes(getEffectiveStatus(p)));
+                       const testPaid = paid.filter(p => p.stripe_mode === 'test').length;
+                       const livePaid = paid.filter(p => p.stripe_mode === 'live').length;
                        return (
                          <span className="ml-2">
-                           ({confirmed.length} confirmed
-                           {testConfirmed > 0 && <span> · <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">🟡 {testConfirmed} TEST</Badge></span>}
-                           {liveConfirmed > 0 && <span> · <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-0.5">🟢 {liveConfirmed} LIVE</Badge></span>}
+                           ({paid.length} paid
+                           {testPaid > 0 && <span> · <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">🟡 {testPaid} TEST</Badge></span>}
+                           {livePaid > 0 && <span> · <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-0.5">🟢 {livePaid} LIVE</Badge></span>}
                            {pending.length > 0 && ` · ${pending.length} pending`})
                          </span>
                        );
