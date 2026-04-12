@@ -705,9 +705,9 @@ export function BikeRideManager() {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Bike className="h-5 w-5 text-primary" />
-            Bike Ride Pledges
+            Bike Ride Donations
           </h2>
-          <p className="text-sm text-muted-foreground">Manage bike ride fundraiser events and pledges</p>
+          <p className="text-sm text-muted-foreground">Manage bike ride fundraiser events and donations</p>
         </div>
         <Button onClick={() => openCreateDialog()}>
           <Plus className="h-4 w-4 mr-1" />
