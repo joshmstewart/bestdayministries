@@ -672,10 +672,26 @@ export function BikeRideManager() {
     }
   };
 
+  // Use donation_status (from donations table) as truth, fallback to charge_status
+  const getEffectiveStatus = (pledge: Pledge) => {
+    if (pledge.donation_status === 'completed' || pledge.donation_status === 'active') return 'paid';
+    if (pledge.charge_status === 'charged') return 'paid';
+    if (pledge.charge_status === 'checkout_pending') return 'checkout pending';
+    if (pledge.charge_status === 'cancelled' && pledge.donation_status === 'completed') return 'paid';
+    if (pledge.charge_status === 'failed') return 'failed';
+    if (pledge.charge_status === 'cancelled') return 'cancelled';
+    return pledge.charge_status;
+  };
+
   const chargeStatusColor = (status: string) => {
     switch (status) {
+      case 'paid':
       case 'charged': return 'text-green-600';
+      case 'completed': return 'text-green-600';
+      case 'active': return 'text-green-600';
       case 'failed': return 'text-red-600';
+      case 'cancelled': return 'text-red-600';
+      case 'checkout pending': return 'text-yellow-600';
       default: return 'text-yellow-600';
     }
   };
