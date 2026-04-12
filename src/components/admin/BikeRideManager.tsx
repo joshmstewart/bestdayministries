@@ -61,6 +61,8 @@ interface Pledge {
   created_at: string;
   stripe_mode: string;
   cover_stripe_fee: boolean;
+  // Joined from donations table
+  donation_status?: string | null;
 }
 
 export function BikeRideManager() {
@@ -154,7 +156,8 @@ export function BikeRideManager() {
   };
 
   const fetchPledges = async (eventId: string) => {
-    const { data, error } = await supabase
+    // Fetch pledges
+    const { data: pledgeData, error } = await supabase
       .from('bike_ride_pledges')
       .select('*')
       .eq('event_id', eventId)
@@ -162,8 +165,27 @@ export function BikeRideManager() {
     if (error) {
       console.error('Error fetching pledges:', error);
     }
-    console.log('Fetched pledges for event', eventId, ':', data?.length, data);
-    setPledges((data as any[]) || []);
+
+    // Fetch donations linked to this event to get real payment status
+    const { data: donations } = await supabase
+      .from('donations')
+      .select('status, stripe_customer_id, stripe_mode, designation')
+      .like('designation', `Bike Ride:%`);
+
+    // Merge donation status into pledge records
+    const mergedPledges = (pledgeData || []).map((pledge: any) => {
+      const matchingDonation = (donations || []).find(
+        (d: any) => d.stripe_customer_id === pledge.stripe_customer_id 
+          && d.stripe_mode === pledge.stripe_mode
+      );
+      return {
+        ...pledge,
+        donation_status: matchingDonation?.status || null,
+      };
+    });
+
+    console.log('Fetched pledges for event', eventId, ':', mergedPledges.length, mergedPledges);
+    setPledges(mergedPledges);
   };
 
   const openCreateDialog = async (event?: BikeEvent) => {
