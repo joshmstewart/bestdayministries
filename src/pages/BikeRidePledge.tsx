@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
@@ -12,8 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Bike, Heart, Users, DollarSign, MessageCircle, CheckCircle2, Loader2, CreditCard, MapPin, Navigation, ExternalLink, Image as ImageIcon, Mountain, Clock, Flag, Trophy, ArrowLeft, AlertTriangle, Trash2 } from "lucide-react";
 import { BikeRouteMap } from "@/components/BikeRouteMap";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BikeEvent {
   id: string;
@@ -56,7 +57,7 @@ interface EventStats {
   per_mile_pledgers: number;
   flat_donors: number;
   estimated_total_at_goal: number;
-  messages: { name: string; message: string }[];
+  messages: { name: string; message: string; id: string }[];
 }
 
 const difficultyColor = (rating: string) => {
@@ -70,6 +71,7 @@ const difficultyColor = (rating: string) => {
 };
 
 export default function BikeRidePledge() {
+  const { isAdmin, isOwner } = useAuth();
   const { eventSlug: routeEventSlug } = useParams<{ eventSlug: string }>();
   const [googleMapsKey, setGoogleMapsKey] = useState<string>("");
   const [event, setEvent] = useState<BikeEvent | null>(null);
@@ -154,6 +156,27 @@ export default function BikeRidePledge() {
       console.error("Error fetching event:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteMessage = async (pledgeId: string) => {
+    try {
+      const { error } = await supabase
+        .from("bike_ride_pledges")
+        .update({ message: null })
+        .eq("id", pledgeId);
+      if (error) throw error;
+      // Remove from local state
+      if (stats) {
+        setStats({
+          ...stats,
+          messages: stats.messages.filter(m => m.id !== pledgeId),
+        });
+      }
+      toast({ title: "Message deleted" });
+    } catch (err) {
+      console.error("Error deleting message:", err);
+      toast({ title: "Failed to delete message", variant: "destructive" });
     }
   };
 
@@ -928,10 +951,23 @@ export default function BikeRidePledge() {
               <CardContent>
                 {stats && stats.messages.length > 0 ? (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {stats.messages.map((msg, i) => (
-                      <div key={i} className="bg-muted/50 rounded-lg p-3">
-                        <p className="font-medium text-sm">{msg.name}</p>
-                        <p className="text-muted-foreground text-sm mt-1">{msg.message}</p>
+                    {stats.messages.map((msg) => (
+                      <div key={msg.id} className="bg-muted/50 rounded-lg p-3 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm">{msg.name}</p>
+                          <p className="text-muted-foreground text-sm mt-1">{msg.message}</p>
+                        </div>
+                        {(isAdmin || isOwner) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="flex-shrink-0 h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            title="Delete message"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -78,7 +78,7 @@ serve(async (req) => {
     // Get pledge stats - filtered by stripe_mode
     const { data: pledges } = await supabaseAdmin
       .from('bike_ride_pledges')
-      .select('pledge_type, cents_per_mile, flat_amount, message, pledger_name, charge_status, stripe_mode')
+      .select('id, pledge_type, cents_per_mile, flat_amount, message, pledger_name, charge_status, stripe_mode')
       .eq('event_id', event.id)
       .eq('stripe_mode', mode);
 
@@ -92,7 +92,7 @@ serve(async (req) => {
 
     const messages = confirmedPledges
       .filter(p => p.message)
-      .map(p => ({ name: p.pledger_name, message: p.message }));
+      .map(p => ({ name: p.pledger_name, message: p.message, id: (p as any).id }));
 
     return new Response(
       JSON.stringify({
