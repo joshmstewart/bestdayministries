@@ -951,10 +951,23 @@ export default function BikeRidePledge() {
               <CardContent>
                 {stats && stats.messages.length > 0 ? (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {stats.messages.map((msg, i) => (
-                      <div key={i} className="bg-muted/50 rounded-lg p-3">
-                        <p className="font-medium text-sm">{msg.name}</p>
-                        <p className="text-muted-foreground text-sm mt-1">{msg.message}</p>
+                    {stats.messages.map((msg) => (
+                      <div key={msg.id} className="bg-muted/50 rounded-lg p-3 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm">{msg.name}</p>
+                          <p className="text-muted-foreground text-sm mt-1">{msg.message}</p>
+                        </div>
+                        {(isAdmin || isOwner) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="flex-shrink-0 h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            title="Delete message"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
