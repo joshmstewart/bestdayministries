@@ -401,6 +401,22 @@ async function processDonationCheckout(
       new_status: newStatus,
     });
 
+    // Sync bike_ride_pledges if this is a bike ride donation
+    if (session.metadata?.donation_type === 'bike_ride') {
+      const { error: pledgeUpdateError } = await supabaseAdmin
+        .from("bike_ride_pledges")
+        .update({ charge_status: 'charged' })
+        .eq('stripe_customer_id', session.customer as string)
+        .eq('event_id', session.metadata.event_id)
+        .in('charge_status', ['checkout_pending', 'pending']);
+      
+      if (pledgeUpdateError) {
+        await logStep("bike_pledge_sync_failed", "warning", { error: pledgeUpdateError.message });
+      } else {
+        await logStep("bike_pledge_synced", "success", { event_id: session.metadata.event_id });
+      }
+    }
+
     // Get donor email - from donation record OR from profiles table
     const donorEmail = existingDonation.donor_email || 
       (existingDonation.donor_id ? (await supabaseAdmin

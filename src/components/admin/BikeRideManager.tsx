@@ -61,6 +61,8 @@ interface Pledge {
   created_at: string;
   stripe_mode: string;
   cover_stripe_fee: boolean;
+  // Joined from donations table
+  donation_status?: string | null;
 }
 
 export function BikeRideManager() {
@@ -154,7 +156,8 @@ export function BikeRideManager() {
   };
 
   const fetchPledges = async (eventId: string) => {
-    const { data, error } = await supabase
+    // Fetch pledges
+    const { data: pledgeData, error } = await supabase
       .from('bike_ride_pledges')
       .select('*')
       .eq('event_id', eventId)
@@ -162,8 +165,27 @@ export function BikeRideManager() {
     if (error) {
       console.error('Error fetching pledges:', error);
     }
-    console.log('Fetched pledges for event', eventId, ':', data?.length, data);
-    setPledges((data as any[]) || []);
+
+    // Fetch donations linked to this event to get real payment status
+    const { data: donations } = await supabase
+      .from('donations')
+      .select('status, stripe_customer_id, stripe_mode, designation')
+      .like('designation', `Bike Ride:%`);
+
+    // Merge donation status into pledge records
+    const mergedPledges = (pledgeData || []).map((pledge: any) => {
+      const matchingDonation = (donations || []).find(
+        (d: any) => d.stripe_customer_id === pledge.stripe_customer_id 
+          && d.stripe_mode === pledge.stripe_mode
+      );
+      return {
+        ...pledge,
+        donation_status: matchingDonation?.status || null,
+      };
+    });
+
+    console.log('Fetched pledges for event', eventId, ':', mergedPledges.length, mergedPledges);
+    setPledges(mergedPledges);
   };
 
   const openCreateDialog = async (event?: BikeEvent) => {
@@ -650,10 +672,26 @@ export function BikeRideManager() {
     }
   };
 
+  // Use donation_status (from donations table) as truth, fallback to charge_status
+  const getEffectiveStatus = (pledge: Pledge) => {
+    if (pledge.donation_status === 'completed' || pledge.donation_status === 'active') return 'paid';
+    if (pledge.charge_status === 'charged') return 'paid';
+    if (pledge.charge_status === 'checkout_pending') return 'checkout pending';
+    if (pledge.charge_status === 'cancelled' && pledge.donation_status === 'completed') return 'paid';
+    if (pledge.charge_status === 'failed') return 'failed';
+    if (pledge.charge_status === 'cancelled') return 'cancelled';
+    return pledge.charge_status;
+  };
+
   const chargeStatusColor = (status: string) => {
     switch (status) {
+      case 'paid':
       case 'charged': return 'text-green-600';
+      case 'completed': return 'text-green-600';
+      case 'active': return 'text-green-600';
       case 'failed': return 'text-red-600';
+      case 'cancelled': return 'text-red-600';
+      case 'checkout pending': return 'text-yellow-600';
       default: return 'text-yellow-600';
     }
   };
@@ -667,9 +705,9 @@ export function BikeRideManager() {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Bike className="h-5 w-5 text-primary" />
-            Bike Ride Pledges
+            Bike Ride Donations
           </h2>
-          <p className="text-sm text-muted-foreground">Manage bike ride fundraiser events and pledges</p>
+          <p className="text-sm text-muted-foreground">Manage bike ride fundraiser events and donations</p>
         </div>
         <Button onClick={() => openCreateDialog()}>
           <Plus className="h-4 w-4 mr-1" />
@@ -778,20 +816,20 @@ export function BikeRideManager() {
                 <div>
                     <CardTitle className="flex items-center gap-2">
                      <Users className="h-5 w-5" />
-                     Pledges for "{selectedEvent.title}"
+                     Donations for "{selectedEvent.title}"
                    </CardTitle>
                    <CardDescription>
-                     {pledges.length} total pledges
+                     {pledges.length} total donations
                      {(() => {
-                       const confirmed = pledges.filter(p => p.charge_status === 'confirmed');
-                       const pending = pledges.filter(p => p.charge_status === 'pending');
-                       const testConfirmed = confirmed.filter(p => p.stripe_mode === 'test').length;
-                       const liveConfirmed = confirmed.filter(p => p.stripe_mode === 'live').length;
+                       const paid = pledges.filter(p => getEffectiveStatus(p) === 'paid');
+                       const pending = pledges.filter(p => ['pending', 'checkout pending'].includes(getEffectiveStatus(p)));
+                       const testPaid = paid.filter(p => p.stripe_mode === 'test').length;
+                       const livePaid = paid.filter(p => p.stripe_mode === 'live').length;
                        return (
                          <span className="ml-2">
-                           ({confirmed.length} confirmed
-                           {testConfirmed > 0 && <span> · <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">🟡 {testConfirmed} TEST</Badge></span>}
-                           {liveConfirmed > 0 && <span> · <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-0.5">🟢 {liveConfirmed} LIVE</Badge></span>}
+                           ({paid.length} paid
+                           {testPaid > 0 && <span> · <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">🟡 {testPaid} TEST</Badge></span>}
+                           {livePaid > 0 && <span> · <Badge variant="default" className="text-[10px] px-1.5 py-0 ml-0.5">🟢 {livePaid} LIVE</Badge></span>}
                            {pending.length > 0 && ` · ${pending.length} pending`})
                          </span>
                        );
@@ -898,11 +936,11 @@ export function BikeRideManager() {
                          ) : (
                            <span className="font-semibold">${pledge.flat_amount?.toFixed(2)}</span>
                          )}
-                          <span className={`text-xs block ${chargeStatusColor(pledge.charge_status)}`}>
-                            {pledge.charge_status}
-                            {pledge.calculated_total != null && ` · $${pledge.calculated_total.toFixed(2)}`}
-                            {pledge.cover_stripe_fee && ' · +fees'}
-                          </span>
+                           <span className={`text-xs block ${chargeStatusColor(getEffectiveStatus(pledge))}`}>
+                             {getEffectiveStatus(pledge)}
+                             {pledge.calculated_total != null && ` · $${pledge.calculated_total.toFixed(2)}`}
+                             {pledge.cover_stripe_fee && ' · +fees'}
+                           </span>
                          {pledge.charge_error && (
                            <span className="text-xs text-destructive block">{pledge.charge_error}</span>
                          )}
