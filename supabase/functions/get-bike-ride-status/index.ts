@@ -92,7 +92,7 @@ serve(async (req) => {
 
     const messages = confirmedPledges
       .filter(p => p.message)
-      .map(p => ({ name: p.pledger_name, message: p.message }));
+      .map(p => ({ name: p.pledger_name, message: p.message, id: (p as any).id }));
 
     return new Response(
       JSON.stringify({
