@@ -159,6 +159,27 @@ export default function BikeRidePledge() {
     }
   };
 
+  const handleDeleteMessage = async (pledgeId: string) => {
+    try {
+      const { error } = await supabase
+        .from("bike_ride_pledges")
+        .update({ message: null })
+        .eq("id", pledgeId);
+      if (error) throw error;
+      // Remove from local state
+      if (stats) {
+        setStats({
+          ...stats,
+          messages: stats.messages.filter(m => m.id !== pledgeId),
+        });
+      }
+      toast({ title: "Message deleted" });
+    } catch (err) {
+      console.error("Error deleting message:", err);
+      toast({ title: "Failed to delete message", variant: "destructive" });
+    }
+  };
+
   const handleSubmitPledge = async () => {
     if (!event || !pledgerName.trim() || !pledgerEmail.trim()) {
       toast({ title: "Please fill in your name and email", variant: "destructive" });
