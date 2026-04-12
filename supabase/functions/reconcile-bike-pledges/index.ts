@@ -46,7 +46,10 @@ serve(async (req) => {
     const thirtyMinutesAgo = new Date(Date.now() - RECONCILE_AFTER_MINUTES * 60 * 1000).toISOString();
     const twentyFourHoursAgo = new Date(Date.now() - AUTO_CANCEL_AFTER_HOURS * 60 * 60 * 1000).toISOString();
 
-    // Fetch all pending pledges older than 30 minutes
+    // Fetch all legacy pending pledges older than 30 minutes
+    // NOTE: Modern bike ride donations use 'checkout_pending' status and are
+    // handled by the stripe-webhook + donations table. We only reconcile
+    // legacy 'pending' records that used the old SetupIntent flow.
     const { data: pendingPledges, error: fetchError } = await supabaseAdmin
       .from('bike_ride_pledges')
       .select('*')
