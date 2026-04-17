@@ -71,6 +71,7 @@ import { BeatPadSoundsManager } from "@/components/admin/BeatPadSoundsManager";
 import { SocialSharingGuide } from "@/components/admin/SocialSharingGuide";
 import { BikeRideManager } from "@/components/admin/BikeRideManager";
 import { NojGuestList } from "@/components/admin/NojGuestList";
+import { NojEmailPreview } from "@/components/admin/NojEmailPreview";
 import { StaticMetaTagsManager } from "@/components/admin/StaticMetaTagsManager";
 
 import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
@@ -445,6 +446,9 @@ const Admin = () => {
                       <NojGuestList />
                     </CardContent>
                   </Card>
+                  <div className="mt-6">
+                    <NojEmailPreview />
+                  </div>
                 </TabsContent>
                 <TabsContent value="bike-ride">
                   <BikeRideManager />
