@@ -41,10 +41,10 @@ const SPONSOR_LOGOS = [
   },
 ];
 
-const EVENT_ADDRESS = "1565 Briargate Blvd, Colorado Springs, CO 80920";
+const EVENT_ADDRESS = "10652 County Rd 15, Firestone, CO 80504";
 const EVENT_VENUE = "Truitt Homestead";
 const EVENT_DATE_LONG = "Saturday, June 14, 2026";
-const EVENT_TIME_RANGE = "5:30 PM – 9:30 PM";
+const EVENT_TIME_RANGE = "4:00 PM – 7:00 PM MST";
 const EVENT_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${EVENT_VENUE}, ${EVENT_ADDRESS}`)}`;
 
 function buildEmailHtml(opts: {
