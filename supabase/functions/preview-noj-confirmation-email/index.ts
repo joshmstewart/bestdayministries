@@ -74,8 +74,10 @@ function buildEmailHtml(opts: {
   const sponsorLogosHtml = SPONSOR_LOGOS.map(
     (s) => `
       <td align="center" valign="middle" style="padding:14px 18px;">
-        <img src="${s.url}" alt="${s.name}" style="max-height:60px;max-width:180px;height:auto;width:auto;display:block;" />
-        ${s.caption ? `<div style="margin-top:6px;font-size:12px;color:#8b7355;font-family:Arial,sans-serif;">${s.caption}</div>` : ""}
+        <a href="${s.link}" target="_blank" style="text-decoration:none;color:#5b2e0a;">
+          <img src="${s.url}" alt="${s.name}" style="max-height:60px;max-width:180px;height:auto;width:auto;display:block;border:0;" />
+          ${s.caption ? `<div style="margin-top:6px;font-size:12px;color:#5b2e0a;font-family:Arial,sans-serif;text-decoration:underline;">${s.caption}</div>` : ""}
+        </a>
       </td>`,
   ).join("");
 
