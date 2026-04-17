@@ -669,11 +669,34 @@ const NightOfJoy = () => {
                   <p className="text-amber-200/60">Select your ticket type and quantity below</p>
                 </div>
 
+                {/* Low-availability / sold-out banner — only when remaining ≤ 50 */}
+                {ticketStats && ticketStats.remaining <= 50 && (
+                  <div
+                    className={`mb-6 rounded-xl border-2 px-4 py-3 text-center ${
+                      ticketStats.remaining === 0
+                        ? "border-red-500/60 bg-red-900/30 text-red-200"
+                        : "border-amber-500 bg-amber-600/20 text-amber-100"
+                    }`}
+                  >
+                    {ticketStats.remaining === 0 ? (
+                      <span className="font-bold">Sold out — no tickets remaining</span>
+                    ) : (
+                      <>
+                        <span className="font-bold">Only {ticketStats.remaining} ticket{ticketStats.remaining === 1 ? "" : "s"} remaining!</span>
+                        <span className="block text-sm text-amber-200/80 mt-0.5">Reserve yours before they're gone.</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-6">
                   {/* Per-tier quantity selectors */}
                   <div className="space-y-3">
                     {TICKET_TIERS.map(tier => {
                       const count = ticketCounts[tier.id];
+                      const remaining = ticketStats?.remaining ?? Infinity;
+                      const atRemainingCap = totalTickets >= remaining;
+                      const soldOut = remaining === 0;
                       return (
                         <div
                           key={tier.id}
@@ -681,7 +704,7 @@ const NightOfJoy = () => {
                             count > 0
                               ? "border-amber-500 bg-amber-600/15"
                               : "border-amber-800/30 bg-[#231811]"
-                          }`}
+                          } ${soldOut ? "opacity-50" : ""}`}
                         >
                           <div className="flex-1 min-w-0 mr-4">
                             <span className={`font-medium block ${count > 0 ? "text-amber-100" : "text-amber-200/80"}`}>
@@ -706,7 +729,7 @@ const NightOfJoy = () => {
                             <button
                               type="button"
                               onClick={() => updateTierCount(tier.id as TicketTierId, 1)}
-                              disabled={count >= 10}
+                              disabled={count >= 10 || atRemainingCap || soldOut}
                               className="w-9 h-9 rounded-full border border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <Plus className="w-4 h-4" />
