@@ -4,7 +4,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Search, Upload, Loader2, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, Search, Upload, Loader2, Info, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -117,12 +127,33 @@ async function extractTextFromPDF(file: File): Promise<string> {
 }
 
 export const NewsletterSubscribers = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const pageSize = 50;
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    const { error } = await supabase
+      .from("newsletter_subscribers")
+      .delete()
+      .eq("id", deleteTarget.id);
+    setIsDeleting(false);
+    if (error) {
+      toast.error("Failed to delete subscriber: " + error.message);
+      return;
+    }
+    toast.success(`Deleted ${deleteTarget.email}`);
+    setDeleteTarget(null);
+    queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
+    queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
+  };
 
   // Preview dialog state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -419,6 +450,7 @@ export const NewsletterSubscribers = () => {
                   <th className="px-4 py-3 text-left text-sm font-medium">Location</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Timezone</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Subscribed</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -434,6 +466,17 @@ export const NewsletterSubscribers = () => {
                     <td className="px-4 py-3 text-sm">{subscriber.timezone || "-"}</td>
                     <td className="px-4 py-3 text-sm">
                       {format(new Date(subscriber.subscribed_at), "MMM d, yyyy")}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setDeleteTarget({ id: subscriber.id, email: subscriber.email })}
+                        title="Delete subscriber"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -487,6 +530,27 @@ export const NewsletterSubscribers = () => {
           initialMapping={previewData.mapping}
         />
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete subscriber?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove <strong>{deleteTarget?.email}</strong> from your newsletter subscriber list. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDelete(); }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
