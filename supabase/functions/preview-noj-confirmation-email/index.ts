@@ -104,8 +104,8 @@ function buildEmailHtml(opts: {
             <td style="background:linear-gradient(135deg,#5b2e0a 0%,#8b4513 50%,#b8860b 100%);padding:40px 30px;text-align:center;">
               <div style="font-size:13px;letter-spacing:3px;color:#f4e4c1;text-transform:uppercase;font-weight:600;margin-bottom:8px;">A Night of Joy</div>
               <h1 style="margin:0;font-family:Georgia,serif;font-size:32px;color:#fff;letter-spacing:1px;">You're Confirmed!</h1>
-              <div style="margin-top:14px;color:#fde9c5;font-size:15px;">Saturday, June 14, 2026 · 4:00 PM</div>
-              <div style="color:#fde9c5;font-size:14px;">Truitt Homestead</div>
+              <div style="margin-top:14px;color:#fde9c5;font-size:15px;">${EVENT_DATE_LONG} · ${EVENT_TIME_RANGE}</div>
+              <div style="color:#fde9c5;font-size:14px;">${EVENT_VENUE}</div>
             </td>
           </tr>
 
