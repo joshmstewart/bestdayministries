@@ -52,6 +52,7 @@ export function NojGuestList() {
   useEffect(() => {
     loadGuests();
     loadPrices();
+    loadCap();
   }, []);
 
   const loadPrices = async () => {
@@ -61,12 +62,29 @@ export function NojGuestList() {
     }
   };
 
+  const loadCap = async () => {
+    const { data } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "noj_ticket_cap").maybeSingle();
+    const v = data?.setting_value as any;
+    if (typeof v === "number") setTicketCap(v);
+    else if (typeof v === "string") setTicketCap(parseInt(v, 10) || DEFAULT_NOJ_TICKET_CAP);
+  };
+
   const savePrices = async () => {
     setSavingPrices(true);
     const { error } = await supabase.from("app_settings").update({ setting_value: ticketPrices as any, updated_at: new Date().toISOString() }).eq("setting_key", "noj_ticket_prices");
     setSavingPrices(false);
     if (error) { toast.error("Failed to save prices"); return; }
     toast.success("Ticket prices updated");
+  };
+
+  const saveCap = async () => {
+    setSavingCap(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ setting_key: "noj_ticket_cap", setting_value: ticketCap as any, updated_at: new Date().toISOString() }, { onConflict: "setting_key" });
+    setSavingCap(false);
+    if (error) { toast.error("Failed to save cap"); return; }
+    toast.success(`Ticket cap set to ${ticketCap}`);
   };
 
   const loadGuests = async () => {
