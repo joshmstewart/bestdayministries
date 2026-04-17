@@ -144,9 +144,10 @@ function buildEmailHtml(opts: {
             <td style="padding:8px 30px 24px;">
               <div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b8860b;font-weight:bold;margin-bottom:12px;">Event Details</div>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="color:#d4b896;font-size:14px;line-height:1.7;">
-                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📅 Date:</strong> Saturday, June 14, 2026</td></tr>
-                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">🕓 Time:</strong> 4:00 PM</td></tr>
-                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📍 Venue:</strong> Truitt Homestead</td></tr>
+                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📅 Date:</strong> ${EVENT_DATE_LONG}</td></tr>
+                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">🕓 Time:</strong> ${EVENT_TIME_RANGE}</td></tr>
+                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📍 Venue:</strong> ${EVENT_VENUE}</td></tr>
+                <tr><td style="padding:4px 0 4px 22px;"><a href="${EVENT_MAPS_URL}" target="_blank" style="color:#b8860b;text-decoration:underline;">${EVENT_ADDRESS}</a></td></tr>
                 <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">🎟️ Check-in:</strong> Bring this confirmation — no printed ticket required</td></tr>
               </table>
             </td>
