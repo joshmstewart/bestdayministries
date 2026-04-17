@@ -349,6 +349,15 @@ const NightOfJoy = () => {
       toast.error("Please select at least one ticket.");
       return;
     }
+    if (ticketStats && totalTickets > ticketStats.remaining) {
+      toast.error(
+        ticketStats.remaining === 0
+          ? "Sorry, A Night of Joy is sold out."
+          : `Only ${ticketStats.remaining} ticket${ticketStats.remaining === 1 ? "" : "s"} remaining.`
+      );
+      refreshTicketStats();
+      return;
+    }
 
     // Build ticket items array from counts
     const ticketItems = TICKET_TIERS
@@ -366,10 +375,16 @@ const NightOfJoy = () => {
         },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        if (typeof data.remaining === "number") {
+          setTicketStats(prev => prev ? { ...prev, remaining: data.remaining, claimed: prev.cap - data.remaining } : prev);
+        }
+        throw new Error(data.error);
+      }
       if (data?.free) {
         toast.success(`${totalTickets} free ticket${totalTickets > 1 ? "s" : ""} registered!`);
         setPageView("choose");
+        refreshTicketStats();
       } else if (data?.url) {
         window.location.href = data.url;
       }
