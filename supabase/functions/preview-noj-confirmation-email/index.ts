@@ -31,13 +31,21 @@ const SPONSOR_LOGOS = [
     name: "Phil Long Ford",
     url: "https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/noj/sponsor-phil-long-ford.png",
     caption: "Phil Long Ford",
+    link: "https://www.phillongford.com",
   },
   {
     name: "General Air",
     url: "https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/noj/sponsor-general-air.png",
-    caption: null,
+    caption: "General Air",
+    link: "https://www.generalair.com",
   },
 ];
+
+const EVENT_ADDRESS = "1565 Briargate Blvd, Colorado Springs, CO 80920";
+const EVENT_VENUE = "Truitt Homestead";
+const EVENT_DATE_LONG = "Saturday, June 14, 2026";
+const EVENT_TIME_RANGE = "5:30 PM – 9:30 PM";
+const EVENT_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${EVENT_VENUE}, ${EVENT_ADDRESS}`)}`;
 
 function buildEmailHtml(opts: {
   contact_name?: string;
