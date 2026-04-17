@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Heart, Calendar, MapPin, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign, Sparkles, Ticket, ArrowLeft, Minus, Plus } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { loadNojTicketStats } from "@/lib/nojTickets";
 import farmTableBg from "@/assets/background_farmtable.png";
 
 const ACCEPTED_FILE_TYPES = [
@@ -101,6 +102,11 @@ const NightOfJoy = () => {
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
   const [ticketPrices, setTicketPrices] = useState<Record<string, number>>(DEFAULT_TICKET_PRICES);
+  const [ticketStats, setTicketStats] = useState<{ cap: number; claimed: number; remaining: number } | null>(null);
+
+  const refreshTicketStats = () => {
+    loadNojTicketStats().then(setTicketStats).catch(err => console.error("Failed to load NOJ ticket stats:", err));
+  };
 
   useEffect(() => {
     supabase.from("app_settings").select("setting_value").eq("setting_key", "noj_ticket_prices").maybeSingle()
@@ -109,6 +115,7 @@ const NightOfJoy = () => {
           setTicketPrices(prev => ({ ...prev, ...(data.setting_value as Record<string, number>) }));
         }
       });
+    refreshTicketStats();
   }, []);
 
   const TICKET_TIERS = TICKET_TIER_LABELS.map(t => ({ ...t, price: ticketPrices[t.id] ?? 0 }));
@@ -342,6 +349,15 @@ const NightOfJoy = () => {
       toast.error("Please select at least one ticket.");
       return;
     }
+    if (ticketStats && totalTickets > ticketStats.remaining) {
+      toast.error(
+        ticketStats.remaining === 0
+          ? "Sorry, A Night of Joy is sold out."
+          : `Only ${ticketStats.remaining} ticket${ticketStats.remaining === 1 ? "" : "s"} remaining.`
+      );
+      refreshTicketStats();
+      return;
+    }
 
     // Build ticket items array from counts
     const ticketItems = TICKET_TIERS
@@ -359,10 +375,16 @@ const NightOfJoy = () => {
         },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        if (typeof data.remaining === "number") {
+          setTicketStats(prev => prev ? { ...prev, remaining: data.remaining, claimed: prev.cap - data.remaining } : prev);
+        }
+        throw new Error(data.error);
+      }
       if (data?.free) {
         toast.success(`${totalTickets} free ticket${totalTickets > 1 ? "s" : ""} registered!`);
         setPageView("choose");
+        refreshTicketStats();
       } else if (data?.url) {
         window.location.href = data.url;
       }
@@ -647,11 +669,34 @@ const NightOfJoy = () => {
                   <p className="text-amber-200/60">Select your ticket type and quantity below</p>
                 </div>
 
+                {/* Low-availability / sold-out banner — only when remaining ≤ 50 */}
+                {ticketStats && ticketStats.remaining <= 50 && (
+                  <div
+                    className={`mb-6 rounded-xl border-2 px-4 py-3 text-center ${
+                      ticketStats.remaining === 0
+                        ? "border-red-500/60 bg-red-900/30 text-red-200"
+                        : "border-amber-500 bg-amber-600/20 text-amber-100"
+                    }`}
+                  >
+                    {ticketStats.remaining === 0 ? (
+                      <span className="font-bold">Sold out — no tickets remaining</span>
+                    ) : (
+                      <>
+                        <span className="font-bold">Only {ticketStats.remaining} ticket{ticketStats.remaining === 1 ? "" : "s"} remaining!</span>
+                        <span className="block text-sm text-amber-200/80 mt-0.5">Reserve yours before they're gone.</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-6">
                   {/* Per-tier quantity selectors */}
                   <div className="space-y-3">
                     {TICKET_TIERS.map(tier => {
                       const count = ticketCounts[tier.id];
+                      const remaining = ticketStats?.remaining ?? Infinity;
+                      const atRemainingCap = totalTickets >= remaining;
+                      const soldOut = remaining === 0;
                       return (
                         <div
                           key={tier.id}
@@ -659,7 +704,7 @@ const NightOfJoy = () => {
                             count > 0
                               ? "border-amber-500 bg-amber-600/15"
                               : "border-amber-800/30 bg-[#231811]"
-                          }`}
+                          } ${soldOut ? "opacity-50" : ""}`}
                         >
                           <div className="flex-1 min-w-0 mr-4">
                             <span className={`font-medium block ${count > 0 ? "text-amber-100" : "text-amber-200/80"}`}>
@@ -684,7 +729,7 @@ const NightOfJoy = () => {
                             <button
                               type="button"
                               onClick={() => updateTierCount(tier.id as TicketTierId, 1)}
-                              disabled={count >= 10}
+                              disabled={count >= 10 || atRemainingCap || soldOut}
                               className="w-9 h-9 rounded-full border border-amber-700/40 flex items-center justify-center text-amber-300 hover:bg-amber-600/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                               <Plus className="w-4 h-4" />
@@ -765,7 +810,11 @@ const NightOfJoy = () => {
                   <Button
                     size="lg"
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30"
-                    disabled={submitting || !ticketEmail || !ticketFirstName || !ticketLastName || totalTickets === 0}
+                    disabled={
+                      submitting || !ticketEmail || !ticketFirstName || !ticketLastName || totalTickets === 0 ||
+                      (ticketStats?.remaining === 0) ||
+                      (ticketStats ? totalTickets > ticketStats.remaining : false)
+                    }
                     onClick={handleTicketPurchase}
                   >
                     {submitting ? (
@@ -773,6 +822,8 @@ const NightOfJoy = () => {
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         {hasFreeOnly ? "Registering..." : "Redirecting to Checkout..."}
                       </>
+                    ) : ticketStats?.remaining === 0 ? (
+                      <>Sold Out</>
                     ) : (
                       <>
                         <Ticket className="w-4 h-4 mr-2" />

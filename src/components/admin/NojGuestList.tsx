@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DEFAULT_NOJ_TICKET_CAP, getTicketsFromDesignation } from "@/lib/nojTickets";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,8 @@ export function NojGuestList() {
   const [search, setSearch] = useState("");
   const [ticketPrices, setTicketPrices] = useState<Record<string, number>>({ general: 60, kids: 40, bestie: 40, "little-ones": 0 });
   const [savingPrices, setSavingPrices] = useState(false);
+  const [ticketCap, setTicketCap] = useState<number>(DEFAULT_NOJ_TICKET_CAP);
+  const [savingCap, setSavingCap] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [archiving, setArchiving] = useState(false);
@@ -49,6 +52,7 @@ export function NojGuestList() {
   useEffect(() => {
     loadGuests();
     loadPrices();
+    loadCap();
   }, []);
 
   const loadPrices = async () => {
@@ -58,12 +62,29 @@ export function NojGuestList() {
     }
   };
 
+  const loadCap = async () => {
+    const { data } = await supabase.from("app_settings").select("setting_value").eq("setting_key", "noj_ticket_cap").maybeSingle();
+    const v = data?.setting_value as any;
+    if (typeof v === "number") setTicketCap(v);
+    else if (typeof v === "string") setTicketCap(parseInt(v, 10) || DEFAULT_NOJ_TICKET_CAP);
+  };
+
   const savePrices = async () => {
     setSavingPrices(true);
     const { error } = await supabase.from("app_settings").update({ setting_value: ticketPrices as any, updated_at: new Date().toISOString() }).eq("setting_key", "noj_ticket_prices");
     setSavingPrices(false);
     if (error) { toast.error("Failed to save prices"); return; }
     toast.success("Ticket prices updated");
+  };
+
+  const saveCap = async () => {
+    setSavingCap(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ setting_key: "noj_ticket_cap", setting_value: ticketCap as any, updated_at: new Date().toISOString() }, { onConflict: "setting_key" });
+    setSavingCap(false);
+    if (error) { toast.error("Failed to save cap"); return; }
+    toast.success(`Ticket cap set to ${ticketCap}`);
   };
 
   const loadGuests = async () => {
@@ -179,6 +200,7 @@ export function NojGuestList() {
   const confirmedSponsors = guests.filter(s => isSponsor(s) && (s.status === "completed" || s.status === "active") && s.stripe_mode !== "test");
   const totalRevenue = [...confirmedTickets, ...confirmedSponsors].reduce((sum, g) => sum + g.amount, 0);
 
+  // Tickets-sold count: combos + free registrations (admin "Tickets Sold" stat)
   const getTicketQty = (designation: string | null) => {
     if (!designation) return 1;
     const paidMatches = designation.matchAll(/(\d+)×/g);
@@ -188,6 +210,12 @@ export function NojGuestList() {
     return freeMatch ? parseInt(freeMatch[1]) : 1;
   };
   const totalTicketCount = confirmedTickets.reduce((sum, t) => sum + getTicketQty(t.designation), 0);
+
+  // Cap-tracking: includes sponsor-tier included tickets too
+  const totalClaimedAgainstCap = [...confirmedTickets, ...confirmedSponsors].reduce(
+    (sum, g) => sum + getTicketsFromDesignation(g.designation), 0
+  );
+  const remainingTickets = Math.max(0, ticketCap - totalClaimedAgainstCap);
 
   const exportCsv = (list: NojGuest[], filename: string) => {
     const headers = ["Name/Email", "Amount", "Type", "Status", "Date", "Mode"];
@@ -354,7 +382,7 @@ export function NojGuestList() {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
@@ -363,6 +391,18 @@ export function NojGuestList() {
             </div>
             <div className="text-2xl font-bold">{totalTicketCount}</div>
             <div className="text-xs text-muted-foreground">{confirmedTickets.length} order{confirmedTickets.length !== 1 ? "s" : ""}</div>
+          </CardContent>
+        </Card>
+        <Card className={remainingTickets <= 50 ? "border-amber-500" : ""}>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Ticket className="h-4 w-4" />
+              Remaining
+            </div>
+            <div className={`text-2xl font-bold ${remainingTickets === 0 ? "text-destructive" : remainingTickets <= 50 ? "text-amber-600" : ""}`}>
+              {remainingTickets}
+            </div>
+            <div className="text-xs text-muted-foreground">{totalClaimedAgainstCap} of {ticketCap} claimed</div>
           </CardContent>
         </Card>
         <Card>
@@ -393,6 +433,32 @@ export function NojGuestList() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Ticket Cap */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Settings className="h-4 w-4" /> Ticket Cap
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-3">
+            <div className="flex-1 max-w-xs">
+              <Label htmlFor="ticket-cap" className="text-xs">Max tickets (counts paid + free + sponsor-included)</Label>
+              <Input
+                id="ticket-cap"
+                type="number"
+                min={1}
+                value={ticketCap}
+                onChange={e => setTicketCap(parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <Button onClick={saveCap} disabled={savingCap || ticketCap < 1} size="sm">
+              {savingCap ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Save Cap</>}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Ticket Pricing */}
       <Card>

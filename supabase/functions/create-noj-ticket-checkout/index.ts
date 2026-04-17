@@ -50,6 +50,59 @@ serve(async (req) => {
 
     const { ticket_items, email, contact_name, cover_stripe_fee } = validationResult.data;
 
+    // ===== Enforce ticket cap (default 280) =====
+    const requestedQty = ticket_items.reduce((s, i) => s + i.quantity, 0);
+
+    const [{ data: capSetting }, { data: existingRows }] = await Promise.all([
+      supabaseAdmin.from('app_settings').select('setting_value').eq('setting_key', 'noj_ticket_cap').maybeSingle(),
+      supabaseAdmin
+        .from('donations')
+        .select('designation, status, stripe_mode')
+        .like('designation', 'A Night of Joy%'),
+    ]);
+
+    let cap = 280;
+    const cv = capSetting?.setting_value as any;
+    if (typeof cv === 'number') cap = cv;
+    else if (typeof cv === 'string') cap = parseInt(cv, 10) || 280;
+    else if (cv && typeof cv === 'object' && 'cap' in cv) cap = Number(cv.cap) || 280;
+
+    const sponsorTierTickets = (d: string): number => {
+      if (/Best Day Ever Sponsor[^$]*\$10[,]?000/i.test(d)) return 8;
+      if (/Best Day Ever Sponsor[^$]*\$5[,]?000/i.test(d)) return 6;
+      if (/Bestie Champion[^$]*\$2[,]?500/i.test(d)) return 4;
+      if (/Joy Builder[^$]*\$1[,]?000/i.test(d)) return 2;
+      return 0;
+    };
+    const ticketsFromDesignation = (designation: string | null): number => {
+      if (!designation) return 0;
+      const d = designation.replace(/A Night of Joy\s*[–-]\s*/i, '');
+      const paid = [...d.matchAll(/(\d+)\s*×/g)];
+      if (paid.length > 0) return paid.reduce((s, m) => s + parseInt(m[1], 10), 0);
+      const free = d.match(/×\s*(\d+)/);
+      if (free) return parseInt(free[1], 10);
+      return sponsorTierTickets(d);
+    };
+    const claimed = (existingRows || []).reduce((sum, r: any) => {
+      if (r.stripe_mode === 'test') return sum;
+      if (r.status !== 'completed' && r.status !== 'active') return sum;
+      return sum + ticketsFromDesignation(r.designation);
+    }, 0);
+    const remaining = Math.max(0, cap - claimed);
+
+    if (requestedQty > remaining) {
+      return new Response(
+        JSON.stringify({
+          error: remaining === 0
+            ? 'Sorry, A Night of Joy is sold out.'
+            : `Only ${remaining} ticket${remaining === 1 ? '' : 's'} remaining. Please reduce your quantity.`,
+          remaining,
+          cap,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 409 }
+      );
+    }
+
     // Separate free and paid items
     const freeItems = ticket_items.filter(i => i.unit_price === 0);
     const paidItems = ticket_items.filter(i => i.unit_price > 0);
