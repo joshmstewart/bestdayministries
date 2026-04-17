@@ -200,6 +200,7 @@ export function NojGuestList() {
   const confirmedSponsors = guests.filter(s => isSponsor(s) && (s.status === "completed" || s.status === "active") && s.stripe_mode !== "test");
   const totalRevenue = [...confirmedTickets, ...confirmedSponsors].reduce((sum, g) => sum + g.amount, 0);
 
+  // Tickets-sold count: combos + free registrations (admin "Tickets Sold" stat)
   const getTicketQty = (designation: string | null) => {
     if (!designation) return 1;
     const paidMatches = designation.matchAll(/(\d+)×/g);
@@ -209,6 +210,12 @@ export function NojGuestList() {
     return freeMatch ? parseInt(freeMatch[1]) : 1;
   };
   const totalTicketCount = confirmedTickets.reduce((sum, t) => sum + getTicketQty(t.designation), 0);
+
+  // Cap-tracking: includes sponsor-tier included tickets too
+  const totalClaimedAgainstCap = [...confirmedTickets, ...confirmedSponsors].reduce(
+    (sum, g) => sum + getTicketsFromDesignation(g.designation), 0
+  );
+  const remainingTickets = Math.max(0, ticketCap - totalClaimedAgainstCap);
 
   const exportCsv = (list: NojGuest[], filename: string) => {
     const headers = ["Name/Email", "Amount", "Type", "Status", "Date", "Mode"];
