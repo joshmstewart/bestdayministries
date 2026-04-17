@@ -31,13 +31,21 @@ const SPONSOR_LOGOS = [
     name: "Phil Long Ford",
     url: "https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/noj/sponsor-phil-long-ford.png",
     caption: "Phil Long Ford",
+    link: "https://www.phillongford.com",
   },
   {
     name: "General Air",
     url: "https://nbvijawmjkycyweioglk.supabase.co/storage/v1/object/public/app-assets/noj/sponsor-general-air.png",
-    caption: null,
+    caption: "General Air",
+    link: "https://www.generalair.com",
   },
 ];
+
+const EVENT_ADDRESS = "10652 County Rd 15, Firestone, CO 80504";
+const EVENT_VENUE = "Truitt Homestead";
+const EVENT_DATE_LONG = "Saturday, June 14, 2026";
+const EVENT_TIME_RANGE = "4:00 PM – 7:00 PM MST";
+const EVENT_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${EVENT_VENUE}, ${EVENT_ADDRESS}`)}`;
 
 function buildEmailHtml(opts: {
   contact_name?: string;
@@ -66,8 +74,10 @@ function buildEmailHtml(opts: {
   const sponsorLogosHtml = SPONSOR_LOGOS.map(
     (s) => `
       <td align="center" valign="middle" style="padding:14px 18px;">
-        <img src="${s.url}" alt="${s.name}" style="max-height:60px;max-width:180px;height:auto;width:auto;display:block;" />
-        ${s.caption ? `<div style="margin-top:6px;font-size:12px;color:#8b7355;font-family:Arial,sans-serif;">${s.caption}</div>` : ""}
+        <a href="${s.link}" target="_blank" style="text-decoration:none;color:#5b2e0a;">
+          <img src="${s.url}" alt="${s.name}" style="max-height:60px;max-width:180px;height:auto;width:auto;display:block;border:0;" />
+          ${s.caption ? `<div style="margin-top:6px;font-size:12px;color:#5b2e0a;font-family:Arial,sans-serif;text-decoration:underline;">${s.caption}</div>` : ""}
+        </a>
       </td>`,
   ).join("");
 
@@ -94,8 +104,8 @@ function buildEmailHtml(opts: {
             <td style="background:linear-gradient(135deg,#5b2e0a 0%,#8b4513 50%,#b8860b 100%);padding:40px 30px;text-align:center;">
               <div style="font-size:13px;letter-spacing:3px;color:#f4e4c1;text-transform:uppercase;font-weight:600;margin-bottom:8px;">A Night of Joy</div>
               <h1 style="margin:0;font-family:Georgia,serif;font-size:32px;color:#fff;letter-spacing:1px;">You're Confirmed!</h1>
-              <div style="margin-top:14px;color:#fde9c5;font-size:15px;">Saturday, June 14, 2026 · 4:00 PM</div>
-              <div style="color:#fde9c5;font-size:14px;">Truitt Homestead</div>
+              <div style="margin-top:14px;color:#fde9c5;font-size:15px;">${EVENT_DATE_LONG} · ${EVENT_TIME_RANGE}</div>
+              <div style="color:#fde9c5;font-size:14px;">${EVENT_VENUE}</div>
             </td>
           </tr>
 
@@ -134,9 +144,10 @@ function buildEmailHtml(opts: {
             <td style="padding:8px 30px 24px;">
               <div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b8860b;font-weight:bold;margin-bottom:12px;">Event Details</div>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="color:#d4b896;font-size:14px;line-height:1.7;">
-                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📅 Date:</strong> Saturday, June 14, 2026</td></tr>
-                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">🕓 Time:</strong> 4:00 PM</td></tr>
-                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📍 Venue:</strong> Truitt Homestead</td></tr>
+                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📅 Date:</strong> ${EVENT_DATE_LONG}</td></tr>
+                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">🕓 Time:</strong> ${EVENT_TIME_RANGE}</td></tr>
+                <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">📍 Venue:</strong> ${EVENT_VENUE}</td></tr>
+                <tr><td style="padding:4px 0 4px 22px;"><a href="${EVENT_MAPS_URL}" target="_blank" style="color:#b8860b;text-decoration:underline;">${EVENT_ADDRESS}</a></td></tr>
                 <tr><td style="padding:4px 0;"><strong style="color:#f4e4c1;">🎟️ Check-in:</strong> Bring this confirmation — no printed ticket required</td></tr>
               </table>
             </td>
