@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Star, Heart, Calendar, MapPin, CheckCircle2, Upload, X, FileText, Clock, Music, ShoppingBag, UtensilsCrossed, CreditCard, MessageSquare, Loader2, DollarSign, Sparkles, Ticket, ArrowLeft, Minus, Plus } from "lucide-react";
 import { compressImage } from "@/lib/imageUtils";
+import { loadNojTicketStats } from "@/lib/nojTickets";
 import farmTableBg from "@/assets/background_farmtable.png";
 
 const ACCEPTED_FILE_TYPES = [
