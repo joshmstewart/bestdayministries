@@ -213,23 +213,37 @@ const ProductDetail = () => {
   const defaultColor = defaultOption1;
   const defaultSize = defaultOption2;
 
-  // Which selected value is actually "Color" (sometimes it's option2)
+  // Find the regular product option that represents "Color" (case-insensitive)
+  const regularColorOption = useMemo(() => {
+    if (product?.is_printify_product) return null;
+    const opts = Array.isArray(product?.options) ? (product?.options as unknown as ProductOption[]) : [];
+    return opts.find(o => o.name?.trim().toLowerCase() === "color") || null;
+  }, [product?.is_printify_product, product?.options]);
+
+  // Which selected value is actually "Color" (works for Printify and regular products)
   const selectedColorName = useMemo(() => {
-    if (!product?.is_printify_product) return "";
-    const l1 = option1Label.trim().toLowerCase();
-    const l2 = option2Label.trim().toLowerCase();
-    if (l1 === "color") return selectedColor;
-    if (l2 === "color") return selectedSize;
+    if (product?.is_printify_product) {
+      const l1 = option1Label.trim().toLowerCase();
+      const l2 = option2Label.trim().toLowerCase();
+      if (l1 === "color") return selectedColor;
+      if (l2 === "color") return selectedSize;
+      return "";
+    }
+    // Regular products: check selectedOptions for a "Color" option
+    if (regularColorOption) return selectedOptions[regularColorOption.name] || "";
     return "";
-  }, [option1Label, option2Label, product?.is_printify_product, selectedColor, selectedSize]);
+  }, [option1Label, option2Label, product?.is_printify_product, selectedColor, selectedSize, regularColorOption, selectedOptions]);
 
   const availableColorValues = useMemo(() => {
-    const l1 = option1Label.trim().toLowerCase();
-    const l2 = option2Label.trim().toLowerCase();
-    if (l1 === "color") return option1Values;
-    if (l2 === "color") return option2Values;
-    return [] as string[];
-  }, [option1Label, option2Label, option1Values, option2Values]);
+    if (product?.is_printify_product) {
+      const l1 = option1Label.trim().toLowerCase();
+      const l2 = option2Label.trim().toLowerCase();
+      if (l1 === "color") return option1Values;
+      if (l2 === "color") return option2Values;
+      return [] as string[];
+    }
+    return regularColorOption?.values || [];
+  }, [option1Label, option2Label, option1Values, option2Values, product?.is_printify_product, regularColorOption]);
 
   // Auto-select single options when product loads
   useEffect(() => {
@@ -310,8 +324,20 @@ const ProductDetail = () => {
       result.push(url);
     };
 
-    // If this isn't a Printify product, keep existing simple behavior (custom first, then API)
+    // If this isn't a Printify product, order by color sections using custom assignments
     if (!product?.is_printify_product) {
+      const orderedColorKeys = availableColorValues.map(normalizeKey);
+      orderedColorKeys.forEach((colorKey) => {
+        rows
+          .filter((r) => normalizeKey(r.color_name || "") === colorKey)
+          .sort((a, b) => {
+            const orderA = Number(a.display_order ?? 0);
+            const orderB = Number(b.display_order ?? 0);
+            if (orderA !== orderB) return orderA - orderB;
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          })
+          .forEach((r) => add(r.image_url));
+      });
       rows.forEach((r) => add(r.image_url));
       apiImages.forEach((url) => add(url));
       return result;
