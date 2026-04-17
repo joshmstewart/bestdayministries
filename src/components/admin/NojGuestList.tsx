@@ -382,7 +382,7 @@ export function NojGuestList() {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
@@ -391,6 +391,18 @@ export function NojGuestList() {
             </div>
             <div className="text-2xl font-bold">{totalTicketCount}</div>
             <div className="text-xs text-muted-foreground">{confirmedTickets.length} order{confirmedTickets.length !== 1 ? "s" : ""}</div>
+          </CardContent>
+        </Card>
+        <Card className={remainingTickets <= 50 ? "border-amber-500" : ""}>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Ticket className="h-4 w-4" />
+              Remaining
+            </div>
+            <div className={`text-2xl font-bold ${remainingTickets === 0 ? "text-destructive" : remainingTickets <= 50 ? "text-amber-600" : ""}`}>
+              {remainingTickets}
+            </div>
+            <div className="text-xs text-muted-foreground">{totalClaimedAgainstCap} of {ticketCap} claimed</div>
           </CardContent>
         </Card>
         <Card>
@@ -421,6 +433,32 @@ export function NojGuestList() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Ticket Cap */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Settings className="h-4 w-4" /> Ticket Cap
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-3">
+            <div className="flex-1 max-w-xs">
+              <Label htmlFor="ticket-cap" className="text-xs">Max tickets (counts paid + free + sponsor-included)</Label>
+              <Input
+                id="ticket-cap"
+                type="number"
+                min={1}
+                value={ticketCap}
+                onChange={e => setTicketCap(parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <Button onClick={saveCap} disabled={savingCap || ticketCap < 1} size="sm">
+              {savingCap ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Save Cap</>}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Ticket Pricing */}
       <Card>
