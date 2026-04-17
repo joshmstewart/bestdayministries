@@ -810,7 +810,11 @@ const NightOfJoy = () => {
                   <Button
                     size="lg"
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white border border-amber-500/30"
-                    disabled={submitting || !ticketEmail || !ticketFirstName || !ticketLastName || totalTickets === 0}
+                    disabled={
+                      submitting || !ticketEmail || !ticketFirstName || !ticketLastName || totalTickets === 0 ||
+                      (ticketStats?.remaining === 0) ||
+                      (ticketStats ? totalTickets > ticketStats.remaining : false)
+                    }
                     onClick={handleTicketPurchase}
                   >
                     {submitting ? (
@@ -818,6 +822,8 @@ const NightOfJoy = () => {
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         {hasFreeOnly ? "Registering..." : "Redirecting to Checkout..."}
                       </>
+                    ) : ticketStats?.remaining === 0 ? (
+                      <>Sold Out</>
                     ) : (
                       <>
                         <Ticket className="w-4 h-4 mr-2" />
