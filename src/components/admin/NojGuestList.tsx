@@ -42,6 +42,8 @@ export function NojGuestList() {
   const [search, setSearch] = useState("");
   const [ticketPrices, setTicketPrices] = useState<Record<string, number>>({ general: 60, kids: 40, bestie: 40, "little-ones": 0 });
   const [savingPrices, setSavingPrices] = useState(false);
+  const [ticketCap, setTicketCap] = useState<number>(DEFAULT_NOJ_TICKET_CAP);
+  const [savingCap, setSavingCap] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [archiving, setArchiving] = useState(false);
