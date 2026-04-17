@@ -450,6 +450,7 @@ export const NewsletterSubscribers = () => {
                   <th className="px-4 py-3 text-left text-sm font-medium">Location</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Timezone</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Subscribed</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -465,6 +466,17 @@ export const NewsletterSubscribers = () => {
                     <td className="px-4 py-3 text-sm">{subscriber.timezone || "-"}</td>
                     <td className="px-4 py-3 text-sm">
                       {format(new Date(subscriber.subscribed_at), "MMM d, yyyy")}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setDeleteTarget({ id: subscriber.id, email: subscriber.email })}
+                        title="Delete subscriber"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
