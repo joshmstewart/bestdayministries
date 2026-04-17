@@ -102,6 +102,11 @@ const NightOfJoy = () => {
   const eventCountdown = useCountdown(EVENT_DATE);
   const deadlineCountdown = useCountdown(DEADLINE_DATE);
   const [ticketPrices, setTicketPrices] = useState<Record<string, number>>(DEFAULT_TICKET_PRICES);
+  const [ticketStats, setTicketStats] = useState<{ cap: number; claimed: number; remaining: number } | null>(null);
+
+  const refreshTicketStats = () => {
+    loadNojTicketStats().then(setTicketStats).catch(err => console.error("Failed to load NOJ ticket stats:", err));
+  };
 
   useEffect(() => {
     supabase.from("app_settings").select("setting_value").eq("setting_key", "noj_ticket_prices").maybeSingle()
@@ -110,6 +115,7 @@ const NightOfJoy = () => {
           setTicketPrices(prev => ({ ...prev, ...(data.setting_value as Record<string, number>) }));
         }
       });
+    refreshTicketStats();
   }, []);
 
   const TICKET_TIERS = TICKET_TIER_LABELS.map(t => ({ ...t, price: ticketPrices[t.id] ?? 0 }));
