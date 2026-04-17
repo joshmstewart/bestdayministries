@@ -7183,6 +7183,39 @@ export type Database = {
         }
         Relationships: []
       }
+      noj_confirmation_email_log: {
+        Row: {
+          contact_name: string | null
+          id: string
+          idempotency_key: string
+          recipient_email: string
+          resend_email_id: string | null
+          sent_at: string
+          ticket_items: Json
+          total_amount: number
+        }
+        Insert: {
+          contact_name?: string | null
+          id?: string
+          idempotency_key: string
+          recipient_email: string
+          resend_email_id?: string | null
+          sent_at?: string
+          ticket_items: Json
+          total_amount: number
+        }
+        Update: {
+          contact_name?: string | null
+          id?: string
+          idempotency_key?: string
+          recipient_email?: string
+          resend_email_id?: string | null
+          sent_at?: string
+          ticket_items?: Json
+          total_amount?: number
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string
