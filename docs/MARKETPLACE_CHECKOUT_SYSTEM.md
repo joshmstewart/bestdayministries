@@ -144,7 +144,7 @@ The checkout uses **polling-based verification** instead of webhooks:
 | Route | Component | Purpose |
 |-------|-----------|---------|
 | `/marketplace` | Marketplace.tsx | Main store with tabs |
-| `/store/product/:productId` | ProductDetail.tsx | Product detail with variant selection |
+| `/store/product/:productId` | ProductDetail.tsx | Product detail with variant selection and color-linked image switching (`image_option_mapping` for regular products, `product_color_images`/variant matching for Printify) |
 | `/checkout-success` | CheckoutSuccess.tsx | Payment verification + polling |
 | `/orders` | OrderHistory.tsx | Customer order history with vendor info display |
 | `/vendor-dashboard` | VendorDashboard.tsx | Vendor management portal |
