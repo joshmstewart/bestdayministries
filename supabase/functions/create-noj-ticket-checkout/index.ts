@@ -85,6 +85,36 @@ serve(async (req) => {
       }
     }
 
+    // If there are NO paid items, send the branded confirmation email now
+    // for the free tickets. (Paid tickets get the email after Stripe success.)
+    if (paidItems.length === 0 && freeItems.length > 0) {
+      try {
+        const sendUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-noj-confirmation-email`;
+        const ticket_items = freeItems.map(i => ({
+          label: TIER_LABELS[i.tier] || i.tier,
+          quantity: i.quantity,
+          unit_price: 0,
+        }));
+        const idempotencyKey = `noj-free-${email}-${Date.now()}`;
+        fetch(sendUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            email,
+            contact_name,
+            ticket_items,
+            total_amount: 0,
+            idempotency_key: idempotencyKey,
+          }),
+        }).catch(err => console.error('Failed to send NOJ free-ticket confirmation:', err));
+      } catch (e) {
+        console.error('Error triggering NOJ free-ticket email:', e);
+      }
+    }
+
     // Build tier summary for notifications
     const allTierSummary = ticket_items
       .map(i => `${i.quantity}× ${TIER_LABELS[i.tier] || i.tier}`)
