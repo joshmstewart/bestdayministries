@@ -324,8 +324,20 @@ const ProductDetail = () => {
       result.push(url);
     };
 
-    // If this isn't a Printify product, keep existing simple behavior (custom first, then API)
+    // If this isn't a Printify product, order by color sections using custom assignments
     if (!product?.is_printify_product) {
+      const orderedColorKeys = availableColorValues.map(normalizeKey);
+      orderedColorKeys.forEach((colorKey) => {
+        rows
+          .filter((r) => normalizeKey(r.color_name || "") === colorKey)
+          .sort((a, b) => {
+            const orderA = Number(a.display_order ?? 0);
+            const orderB = Number(b.display_order ?? 0);
+            if (orderA !== orderB) return orderA - orderB;
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          })
+          .forEach((r) => add(r.image_url));
+      });
       rows.forEach((r) => add(r.image_url));
       apiImages.forEach((url) => add(url));
       return result;
