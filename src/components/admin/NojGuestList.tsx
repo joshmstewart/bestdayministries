@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DEFAULT_NOJ_TICKET_CAP, getTicketsFromDesignation } from "@/lib/nojTickets";
 import {
   AlertDialog,
   AlertDialogAction,
