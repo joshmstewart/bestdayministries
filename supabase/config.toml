@@ -355,6 +355,12 @@ verify_jwt = false
 [functions.create-noj-ticket-checkout]
 verify_jwt = false
 
+[functions.preview-noj-confirmation-email]
+verify_jwt = false
+
+[functions.send-noj-confirmation-email]
+verify_jwt = false
+
 [functions.fetch-race-logos]
 verify_jwt = false
 

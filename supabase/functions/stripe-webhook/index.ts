@@ -401,6 +401,45 @@ async function processDonationCheckout(
       new_status: newStatus,
     });
 
+    // Send branded NOJ ticket confirmation email for paid Night-of-Joy tickets
+    if (session.metadata?.donation_type === 'night-of-joy-ticket') {
+      try {
+        const ticketItemsRaw = session.metadata?.ticket_items;
+        const TIER_LABELS: Record<string, string> = {
+          'general': 'General Admission (13+)',
+          'kids': 'Kids (6–12)',
+          'bestie': 'Besties',
+          'little-ones': 'Little Ones (5 & under)',
+        };
+        const parsed = ticketItemsRaw ? JSON.parse(ticketItemsRaw) : [];
+        const ticket_items = parsed.map((i: any) => ({
+          label: TIER_LABELS[i.tier] || i.tier,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+        }));
+        const sendUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-noj-confirmation-email`;
+        fetch(sendUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            email: customerEmail,
+            contact_name: session.metadata?.contact_name || undefined,
+            ticket_items,
+            total_amount: amountCharged,
+            idempotency_key: `noj-paid-${session.id}`,
+          }),
+        }).catch(err => console.error('NOJ ticket email send failed:', err));
+        await logStep("noj_ticket_email_dispatched", "info", { email: customerEmail });
+      } catch (e) {
+        await logStep("noj_ticket_email_error", "warning", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
     // Sync bike_ride_pledges if this is a bike ride donation
     if (session.metadata?.donation_type === 'bike_ride') {
       const { error: pledgeUpdateError } = await supabaseAdmin
