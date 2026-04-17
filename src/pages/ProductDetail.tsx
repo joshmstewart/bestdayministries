@@ -30,6 +30,10 @@ interface ProductOption {
   values: string[];
 }
 
+interface ImageOptionMapping {
+  [optionValue: string]: number[];
+}
+
 const ProductDetail = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -254,6 +258,33 @@ const ProductDetail = () => {
   // --- Image ordering + "jump to color" behavior (per docs) ---
   const normalizeKey = (value: string) => value.trim().toLowerCase();
 
+  const regularMappedUrlToColorKey = useMemo(() => {
+    const map = new Map<string, string>();
+    if (product?.is_printify_product) return map;
+
+    const apiImages = (product?.images as string[]) || [];
+    const colorKeys = new Set(availableColorValues.map(normalizeKey));
+    const rawMapping = product?.image_option_mapping;
+
+    if (!rawMapping || typeof rawMapping !== 'object' || Array.isArray(rawMapping)) {
+      return map;
+    }
+
+    Object.entries(rawMapping as ImageOptionMapping).forEach(([optionValue, imageIndexes]) => {
+      const colorKey = normalizeKey(optionValue);
+      if (!colorKeys.has(colorKey) || !Array.isArray(imageIndexes)) return;
+
+      imageIndexes.forEach((imageIndex) => {
+        const imageUrl = apiImages[Number(imageIndex)];
+        if (typeof imageUrl === 'string' && imageUrl) {
+          map.set(imageUrl, colorKey);
+        }
+      });
+    });
+
+    return map;
+  }, [availableColorValues, product?.image_option_mapping, product?.images, product?.is_printify_product]);
+
   // Build variantId -> colorKey mapping (handles "Color / Size" and "Size / Color")
   const variantIdToColorKey = useMemo(() => {
     const map = new Map<number, string>();
@@ -279,12 +310,18 @@ const ProductDetail = () => {
   // Map any URLs that have an explicit color assignment in product_color_images
   const urlToAssignedColorKey = useMemo(() => {
     const map = new Map<string, string>();
+
+    regularMappedUrlToColorKey.forEach((colorKey, imageUrl) => {
+      map.set(imageUrl, colorKey);
+    });
+
     (customColorImages || []).forEach((r) => {
       if (!r?.image_url || !r?.color_name) return;
       map.set(r.image_url, normalizeKey(r.color_name));
     });
+
     return map;
-  }, [customColorImages]);
+  }, [customColorImages, regularMappedUrlToColorKey]);
 
   // Infer color from Printify image URLs when not explicitly assigned
   const urlToInferredColorKey = useMemo(() => {
@@ -324,29 +361,8 @@ const ProductDetail = () => {
       result.push(url);
     };
 
-    // If this isn't a Printify product, order by color sections using custom assignments
-    if (!product?.is_printify_product) {
-      const orderedColorKeys = availableColorValues.map(normalizeKey);
-      orderedColorKeys.forEach((colorKey) => {
-        rows
-          .filter((r) => normalizeKey(r.color_name || "") === colorKey)
-          .sort((a, b) => {
-            const orderA = Number(a.display_order ?? 0);
-            const orderB = Number(b.display_order ?? 0);
-            if (orderA !== orderB) return orderA - orderB;
-            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-          })
-          .forEach((r) => add(r.image_url));
-      });
-      rows.forEach((r) => add(r.image_url));
-      apiImages.forEach((url) => add(url));
-      return result;
-    }
-
-    // Color sections: use the actual color option values (could be option1 or option2)
     const orderedColorKeys = availableColorValues.map(normalizeKey);
 
-    // For each color section: custom uploads (ordered), then matching API images
     orderedColorKeys.forEach((colorKey) => {
       rows
         .filter((r) => normalizeKey(r.color_name || "") === colorKey)
@@ -371,7 +387,7 @@ const ProductDetail = () => {
     apiImages.forEach((url) => add(url));
 
     return result;
-  }, [availableColorValues, customColorImages, product?.images, product?.is_printify_product, urlToAssignedColorKey, urlToInferredColorKey]);
+  }, [availableColorValues, customColorImages, product?.images, urlToAssignedColorKey, urlToInferredColorKey]);
 
   // On first load, if a default image was set in admin, start on it
   const hasSetInitialImageRef = useRef(false);

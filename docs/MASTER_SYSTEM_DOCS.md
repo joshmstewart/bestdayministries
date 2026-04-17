@@ -1151,7 +1151,7 @@ VENDOR-STATUS:pending|approved|rejected|suspended→NOT-a-role→any-user-can-ap
 STRIPE-CONNECT:vendors.stripe_account_id|stripe_charges_enabled=true→can-receive-payments
 CHECKOUT-FLOW:cart→create-marketplace-checkout→Stripe→/checkout-success→verify-marketplace-payment[polls-3s×10]→order-confirmed
 VENDOR-FLOW:apply→admin-approve→Stripe-Connect-onboard→add-products→receive-orders→submit-tracking→receive-payout
-VENDOR-PRODUCT-OPTIONS:ProductForm stores handmade options in products.options(JSON). Save is blocked if an option type is chosen with no choices; the in-progress (type+choices) option is auto-included on save. Use Add Another Option to stage multiple option groups.
+VENDOR-PRODUCT-OPTIONS:ProductForm stores handmade options in products.options(JSON). Save is blocked if an option type is chosen with no choices; the in-progress (type+choices) option is auto-included on save. Use Add Another Option to stage multiple option groups. ProductForm also stores per-option image links in products.image_option_mapping, and ProductDetail must use those mappings for regular product color image switching.
 CURRENT-STATUS:Printify-products-imported|checkout-working|polling-verification-NO-webhooks|needs-testing
 DOC:MARKETPLACE_CHECKOUT_SYSTEM.md|PRINTIFY_INTEGRATION.md|VENDOR_SYSTEM_CONCISE.md|VENDOR_AUTH_SYSTEM.md|STRIPE_CONNECT_CONCISE.md
 
