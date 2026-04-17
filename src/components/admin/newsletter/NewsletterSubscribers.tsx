@@ -127,12 +127,33 @@ async function extractTextFromPDF(file: File): Promise<string> {
 }
 
 export const NewsletterSubscribers = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; email: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const pageSize = 50;
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    const { error } = await supabase
+      .from("newsletter_subscribers")
+      .delete()
+      .eq("id", deleteTarget.id);
+    setIsDeleting(false);
+    if (error) {
+      toast.error("Failed to delete subscriber: " + error.message);
+      return;
+    }
+    toast.success(`Deleted ${deleteTarget.email}`);
+    setDeleteTarget(null);
+    queryClient.invalidateQueries({ queryKey: ["newsletter-subscribers"] });
+    queryClient.invalidateQueries({ queryKey: ["newsletter-subscriber-stats"] });
+  };
 
   // Preview dialog state
   const [previewOpen, setPreviewOpen] = useState(false);
