@@ -57,6 +57,7 @@ interface Transaction {
   transaction_type: 'sponsorship' | 'donation';
   receipt_number: string | null;
   receipt_generated_at: string | null;
+  designation?: string | null;
   sponsor_profile?: {
     display_name: string;
     avatar_url: string | null;
@@ -231,6 +232,7 @@ export const SponsorshipTransactionsManager = () => {
           sponsor_bestie: undefined,
           receipt_number: receipt?.receipt_number || null,
           receipt_generated_at: receipt?.created_at || null,
+          designation: d.designation || null,
         };
       });
 
