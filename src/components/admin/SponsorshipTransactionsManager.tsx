@@ -57,6 +57,7 @@ interface Transaction {
   transaction_type: 'sponsorship' | 'donation';
   receipt_number: string | null;
   receipt_generated_at: string | null;
+  designation?: string | null;
   sponsor_profile?: {
     display_name: string;
     avatar_url: string | null;
@@ -231,6 +232,7 @@ export const SponsorshipTransactionsManager = () => {
           sponsor_bestie: undefined,
           receipt_number: receipt?.receipt_number || null,
           receipt_generated_at: receipt?.created_at || null,
+          designation: d.designation || null,
         };
       });
 
@@ -1196,11 +1198,11 @@ export const SponsorshipTransactionsManager = () => {
                       </TableCell>
                       <TableCell>
                         <span className="font-medium">
-                          {transaction.transaction_type === 'sponsorship' 
-                            ? (transaction.sponsor_bestie?.bestie_name || 
-                               transaction.bestie_profile?.display_name || 
+                          {transaction.transaction_type === 'sponsorship'
+                            ? (transaction.sponsor_bestie?.bestie_name ||
+                               transaction.bestie_profile?.display_name ||
                                'Unknown')
-                            : 'General Fund'}
+                            : (transaction.designation || 'General Fund')}
                         </span>
                       </TableCell>
                       <TableCell>
