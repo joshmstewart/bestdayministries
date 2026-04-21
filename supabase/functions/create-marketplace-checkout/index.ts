@@ -66,6 +66,12 @@ serve(async (req) => {
     { auth: { persistSession: false } }
   );
 
+  const supabaseAuthClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { auth: { persistSession: false } }
+  );
+
   try {
     logStep("Function started");
 
@@ -90,7 +96,15 @@ serve(async (req) => {
 
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabaseClient.auth.getUser(token);
+      const { data: userData, error: authError } = await supabaseAuthClient.auth.getUser(token);
+
+      if (authError) {
+        logStep("Auth token validation failed", { message: authError.message });
+        if (!guestSessionId) {
+          throw new Error("Please sign in again to continue checkout");
+        }
+      }
+
       user = userData.user;
       customerEmail = user?.email;
       logStep("User authenticated", { userId: user?.id, email: customerEmail });
