@@ -501,6 +501,20 @@ export const UnifiedCartSheet = ({ open, onOpenChange }: UnifiedCartSheetProps) 
     setIsCheckingOutHandmade(true);
     
     try {
+      if (isAuthenticated) {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+          toast({
+            title: "Login required",
+            description: "Please sign in again to complete your purchase.",
+            variant: "destructive"
+          });
+          setIsCheckingOutHandmade(false);
+          return;
+        }
+      }
+
       // Build body with shipping info if available
       let body: Record<string, any> = {};
       
