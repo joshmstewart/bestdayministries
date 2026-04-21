@@ -486,6 +486,10 @@ async function processDonationCheckout(
       donationDesignation
     );
 
+    // Send generic receipt email — SKIP for Night-of-Joy ticket purchases (branded email sent above).
+    if (session.metadata?.donation_type === 'night-of-joy-ticket') {
+      await logStep("receipt_email_skipped_noj_ticket", "info", { email: donorEmail });
+    } else
     // Send receipt email
     try {
       await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-sponsorship-receipt`, {
