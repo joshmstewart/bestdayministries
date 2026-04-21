@@ -451,21 +451,21 @@ serve(async (req) => {
     }));
 
     // Create line items for coffee products
-    const coffeeLineItems = typedCoffeeItems.map(item => ({
+    const coffeeLineItems = typedCoffeeItems.map(item => {
       const tierQuantity = Number(item.variant_info?.tier_quantity ?? item.quantity);
       const pricePerUnit = Number(item.variant_info?.price_per_unit ?? item.coffee_product?.selling_price ?? 0);
       const primaryImage = item.coffee_product?.images?.[0] ?? null;
 
       return {
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: `${item.coffee_product.name} (${tierQuantity}-pack)`,
-          images: primaryImage ? [primaryImage] : [],
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `${item.coffee_product.name} (${tierQuantity}-pack)`,
+            images: primaryImage ? [primaryImage] : [],
+          },
+          unit_amount: Math.round(pricePerUnit * 100),
         },
-        unit_amount: Math.round(pricePerUnit * 100),
-      },
-      quantity: item.quantity,
+        quantity: item.quantity,
       };
     });
 
