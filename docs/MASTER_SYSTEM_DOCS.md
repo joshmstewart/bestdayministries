@@ -723,6 +723,7 @@ ADMIN:Admin→Vendors→Coffee→Products
 DB:coffee_products[images:text[]-public-URLs]
 STORAGE:app-assets/coffee-products/
 UPLOAD:save-auto-uploads-selected/cropped-image-if-not-added|filename-sanitization-required
+CHECKOUT:create-marketplace-checkout→reads-shopping_cart.variant_info[price_per_unit+tier_quantity]→uses-coffee_products.images[0]
 
 ## COMMUNITY_PREVIEWS
 CRITICAL:fetch-profiles_public[role]→effectiveRole→loadContent

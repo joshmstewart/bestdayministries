@@ -68,8 +68,8 @@ The checkout uses **polling-based verification** instead of webhooks:
 - Printify columns: `printify_product_id`, `printify_blueprint_id`, `printify_print_provider_id`, `printify_variant_ids`, `printify_original_title`, `printify_original_description`, `printify_original_price`
 
 **shopping_cart:**
-- `user_id`, `product_id`, `quantity`
-- `variant_info`: JSONB `{ variant: "Natural / XS", variantId: 12345 }`
+- `user_id`, `product_id`, `quantity`, `coffee_product_id`
+- `variant_info`: JSONB for cart-specific pricing/details, including coffee tiers like `{ price_per_unit: 17.25, tier_quantity: 1 }`
 
 **orders:**
 - `id`, `user_id`, `customer_id`, `total_amount`
@@ -105,6 +105,8 @@ The checkout uses **polling-based verification** instead of webhooks:
 6. Create `order_items` with fee breakdown
 7. Create Stripe checkout session
 8. Return checkout URL
+
+**Coffee cart note:** Coffee checkout reads tier pricing from `shopping_cart.variant_info` and uses the first URL from `coffee_products.images` for Stripe line item images.
 
 **Shipping Logic:**
 - Flat rate: $6.99 per vendor
