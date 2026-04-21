@@ -45,12 +45,17 @@ interface CoffeeCartItem {
   id: string;
   coffee_product_id: string;
   quantity: number;
-  tier_quantity: number;
-  unit_price: number;
-  coffee_products: {
+  variant_info?: {
+    tier_quantity?: number;
+    price_per_unit?: number;
+    product_name?: string;
+    type?: string;
+  } | null;
+  coffee_product: {
     id: string;
     name: string;
-    image_url: string | null;
+    images?: string[] | null;
+    selling_price?: number | null;
     shipstation_sku: string | null;
   };
 }
@@ -157,12 +162,12 @@ serve(async (req) => {
         id,
         coffee_product_id,
         quantity,
-        tier_quantity,
-        unit_price,
-        coffee_products (
+        variant_info,
+        coffee_product:coffee_products (
           id,
           name,
-          image_url,
+          images,
+          selling_price,
           shipstation_sku
         )
       `)
@@ -259,7 +264,8 @@ serve(async (req) => {
     // Calculate coffee subtotal for grouping
     let coffeeSubtotalCents = 0;
     for (const coffeeItem of typedCoffeeItems) {
-      coffeeSubtotalCents += Math.round(coffeeItem.unit_price * 100) * coffeeItem.quantity;
+      const pricePerUnit = Number(coffeeItem.variant_info?.price_per_unit ?? coffeeItem.coffee_product?.selling_price ?? 0);
+      coffeeSubtotalCents += Math.round(pricePerUnit * 100) * coffeeItem.quantity;
     }
 
     // Get commission percentage (only applies to regular vendor items)
@@ -446,16 +452,22 @@ serve(async (req) => {
 
     // Create line items for coffee products
     const coffeeLineItems = typedCoffeeItems.map(item => ({
+      const tierQuantity = Number(item.variant_info?.tier_quantity ?? item.quantity);
+      const pricePerUnit = Number(item.variant_info?.price_per_unit ?? item.coffee_product?.selling_price ?? 0);
+      const primaryImage = item.coffee_product?.images?.[0] ?? null;
+
+      return {
       price_data: {
         currency: "usd",
         product_data: {
-          name: `${item.coffee_products.name} (${item.tier_quantity}-pack)`,
-          images: item.coffee_products.image_url ? [item.coffee_products.image_url] : [],
+          name: `${item.coffee_product.name} (${tierQuantity}-pack)`,
+          images: primaryImage ? [primaryImage] : [],
         },
-        unit_amount: Math.round(item.unit_price * 100),
+        unit_amount: Math.round(pricePerUnit * 100),
       },
       quantity: item.quantity,
-    }));
+      };
+    });
 
     // Add processing fee as a separate line item with explanation
     const processingFeeLineItem = {
@@ -514,15 +526,19 @@ serve(async (req) => {
     });
 
     // Create order items for coffee products (use coffee_product_id, not product_id)
-    const coffeeOrderItems = typedCoffeeItems.map(item => ({
-      order_id: order.id,
-      coffee_product_id: item.coffee_product_id,
-      vendor_id: COFFEE_VENDOR_ID,
-      quantity: item.quantity,
-      price_at_purchase: item.unit_price,
-      platform_fee: item.unit_price * item.quantity, // 100% to platform
-      vendor_payout: 0,
-    }));
+    const coffeeOrderItems = typedCoffeeItems.map(item => {
+      const pricePerUnit = Number(item.variant_info?.price_per_unit ?? item.coffee_product?.selling_price ?? 0);
+
+      return {
+        order_id: order.id,
+        coffee_product_id: item.coffee_product_id,
+        vendor_id: COFFEE_VENDOR_ID,
+        quantity: item.quantity,
+        price_at_purchase: pricePerUnit,
+        platform_fee: pricePerUnit * item.quantity, // 100% to platform
+        vendor_payout: 0,
+      };
+    });
 
     // Insert all order items
     const allOrderItems = [...orderItems, ...coffeeOrderItems];
