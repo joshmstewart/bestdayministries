@@ -27,6 +27,24 @@ const donationSchema = z.object({
   force_test_mode: z.boolean().optional().default(false)
 });
 
+const DEFAULT_SITE_URL = "https://bestdayministries.lovable.app";
+
+function resolveSiteOrigin(req: Request) {
+  const origin = req.headers.get("origin");
+  if (origin) return origin;
+
+  const referer = req.headers.get("referer");
+  if (referer) {
+    try {
+      return new URL(referer).origin;
+    } catch {
+      console.warn("Invalid referer header received for donation checkout");
+    }
+  }
+
+  return DEFAULT_SITE_URL;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -111,6 +129,8 @@ serve(async (req) => {
       });
     }
 
+    const siteOrigin = resolveSiteOrigin(req);
+
     // Create checkout session
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customer.id,
@@ -136,8 +156,8 @@ serve(async (req) => {
         },
       ],
       mode: frequency === 'monthly' ? 'subscription' : 'payment',
-      success_url: `${req.headers.get('origin')}/support?donation=success`,
-      cancel_url: `${req.headers.get('origin')}/support`,
+      success_url: `${siteOrigin}/support?donation=success`,
+      cancel_url: `${siteOrigin}/support`,
       metadata: {
         type: 'donation',
         frequency,
