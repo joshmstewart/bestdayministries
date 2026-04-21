@@ -1,5 +1,11 @@
 import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import StarterKitRaw from "@tiptap/starter-kit";
+// StarterKit ships its own nested @tiptap/core copy which causes a duplicate-types
+// mismatch with our root @tiptap/core. Cast to any to bypass the false positive —
+// runtime behavior is unaffected.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const StarterKit: any = StarterKitRaw;
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
 import Link from "@tiptap/extension-link";
