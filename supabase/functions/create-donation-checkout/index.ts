@@ -73,7 +73,7 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey, {
-      apiVersion: '2024-11-20.acacia',
+      apiVersion: '2025-08-27.basil',
     });
 
     const { amount, frequency, email, coverStripeFee, subscribeNewsletter } = validationResult.data;
