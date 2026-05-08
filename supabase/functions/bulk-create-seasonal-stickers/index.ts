@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
           sticker_number: stickerNumber,
           is_active: true,
           visual_style: RARITY_VISUAL[spec.rarity] ?? "kawaii sticker illustration",
+          drop_rate: RARITY_DROP_RATE[spec.rarity] ?? 10,
         });
         if (insErr) throw new Error(`insert: ${insErr.message}`);
         results.push({ ok: true, name: spec.name, sticker_number: stickerNumber, image_url: pub.publicUrl });
