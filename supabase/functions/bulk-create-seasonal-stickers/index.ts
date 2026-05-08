@@ -30,6 +30,14 @@ const RARITY_VISUAL: Record<string, string> = {
   legendary: "masterpiece illustration, golden glow, sparkling magical aura, intricate detail",
 };
 
+const RARITY_DROP_RATE: Record<string, number> = {
+  common: 50,
+  uncommon: 30,
+  rare: 15,
+  epic: 4,
+  legendary: 1,
+};
+
 async function generateImage(prompt: string, apiKey: string): Promise<Uint8Array> {
   const fullPrompt = `${prompt}. Cute kawaii sticker style, thick clean white outline, isolated on a pure solid white background (#FFFFFF), centered, square 1:1 framing, no text, no watermark, no shadow, vibrant cheerful colors, suitable for a kids/family sticker album.`;
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -117,6 +125,7 @@ Deno.serve(async (req) => {
           sticker_number: stickerNumber,
           is_active: true,
           visual_style: RARITY_VISUAL[spec.rarity] ?? "kawaii sticker illustration",
+          drop_rate: RARITY_DROP_RATE[spec.rarity] ?? 10,
         });
         if (insErr) throw new Error(`insert: ${insErr.message}`);
         results.push({ ok: true, name: spec.name, sticker_number: stickerNumber, image_url: pub.publicUrl });
