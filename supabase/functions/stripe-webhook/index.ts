@@ -442,17 +442,35 @@ async function processDonationCheckout(
 
     // Sync bike_ride_pledges if this is a bike ride donation
     if (session.metadata?.donation_type === 'bike_ride') {
-      const { error: pledgeUpdateError } = await supabaseAdmin
+      const { data: updatedPledges, error: pledgeUpdateError } = await supabaseAdmin
         .from("bike_ride_pledges")
         .update({ charge_status: 'charged' })
         .eq('stripe_customer_id', session.customer as string)
         .eq('event_id', session.metadata.event_id)
-        .in('charge_status', ['checkout_pending', 'pending']);
+        .in('charge_status', ['checkout_pending', 'pending'])
+        .select('id');
       
       if (pledgeUpdateError) {
         await logStep("bike_pledge_sync_failed", "warning", { error: pledgeUpdateError.message });
       } else {
         await logStep("bike_pledge_synced", "success", { event_id: session.metadata.event_id });
+        // Notify rider for each newly charged pledge (non-fatal)
+        for (const p of updatedPledges || []) {
+          try {
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-rider-new-supporter`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({ pledge_id: p.id }),
+            });
+          } catch (notifyErr) {
+            await logStep("bike_rider_notify_failed", "warning", {
+              error: notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+            });
+          }
+        }
       }
     }
 
