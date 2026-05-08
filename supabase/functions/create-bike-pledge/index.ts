@@ -207,7 +207,7 @@ serve(async (req) => {
         stripe_mode: mode,
         message: message || null,
         cover_stripe_fee: cover_stripe_fee,
-        charge_status: 'checkout_pending',
+        charge_status: 'pending',
       });
 
     if (pledgeError) {
