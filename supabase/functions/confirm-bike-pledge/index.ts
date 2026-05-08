@@ -48,6 +48,20 @@ serve(async (req) => {
       } catch (emailErr) {
         console.error('Failed to send confirmation email (non-fatal):', emailErr);
       }
+
+      // Notify the rider that they got a new supporter (non-fatal)
+      try {
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify-rider-new-supporter`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ pledge_id: pledge.id }),
+        });
+      } catch (notifyErr) {
+        console.error('Failed to notify rider (non-fatal):', notifyErr);
+      }
     }
 
     return new Response(
