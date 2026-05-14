@@ -132,8 +132,8 @@ serve(async (req) => {
         products (
           id,
           name,
-          sku,
-          weight
+          vendor_sku,
+          weight_oz
         ),
         coffee_products (
           id,
@@ -230,12 +230,12 @@ serve(async (req) => {
             } else if (item.products) {
               // Regular product
               return {
-                sku: item.products.sku || (item.product_id ? item.product_id.slice(0, 8) : "UNKNOWN"),
+                sku: item.products.vendor_sku || (item.product_id ? item.product_id.slice(0, 8) : "UNKNOWN"),
                 name: item.products.name || "Product",
                 quantity: item.quantity,
                 unitPrice: item.price_at_purchase,
                 weight: {
-                  value: item.products.weight || 1,
+                  value: item.products.weight_oz || 1,
                   units: "ounces",
                 },
               };
