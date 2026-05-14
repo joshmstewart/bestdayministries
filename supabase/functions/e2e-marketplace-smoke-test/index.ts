@@ -86,6 +86,7 @@ serve(async (req) => {
   const authHeader = req.headers.get("Authorization") ?? "";
   const bearer = authHeader.replace(/^Bearer\s+/i, "");
   const isServiceRole = bearer && bearer === SERVICE_KEY;
+  let triggeredBy: string | null = null;
   if (!isServiceRole) {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Authorization required" }), {
@@ -108,6 +109,7 @@ serve(async (req) => {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    triggeredBy = user.id;
   }
 
   const body = await req.json().catch(() => ({}));
