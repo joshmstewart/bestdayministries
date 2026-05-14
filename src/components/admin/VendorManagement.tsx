@@ -455,14 +455,33 @@ export const VendorManagement = () => {
     return ['pending', 'processing', 'completed'].includes(status);
   };
 
+  const formatRefundAmount = (amount: number | null, currency: string | null) => {
+    if (amount == null) return null;
+    const major = amount / 100;
+    const cur = (currency || "usd").toUpperCase();
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(major);
+    } catch {
+      return `${major.toFixed(2)} ${cur}`;
+    }
+  };
+
   const handleCancelAndRefund = async () => {
     if (!cancelOrder) return;
     try {
       setCancelLoading(true);
+      setCancelResult(null);
       const { data, error } = await supabase.functions.invoke('cancel-and-refund-order', {
         body: { orderId: cancelOrder.id, reason: cancelReason || undefined },
       });
       if (error) throw error;
+      setCancelResult({
+        refundId: data?.refundId ?? null,
+        refundAmount: data?.refundAmount ?? null,
+        refundCurrency: data?.refundCurrency ?? null,
+        refundError: data?.refundError ?? null,
+      });
+      const formatted = formatRefundAmount(data?.refundAmount ?? null, data?.refundCurrency ?? null);
       if (data?.refundError) {
         toast({
           title: "Order cancelled, refund FAILED",
@@ -473,13 +492,10 @@ export const VendorManagement = () => {
         toast({
           title: "Order cancelled & refunded",
           description: data?.refundId
-            ? `Stripe refund ${data.refundId} issued.`
+            ? `Stripe refund ${data.refundId}${formatted ? ` for ${formatted}` : ""} issued.`
             : "Order marked cancelled.",
         });
       }
-      setCancelDialogOpen(false);
-      setCancelOrder(null);
-      setCancelReason("");
       await loadData();
     } catch (err: any) {
       toast({
