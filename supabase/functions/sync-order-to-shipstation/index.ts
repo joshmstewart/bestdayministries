@@ -235,7 +235,7 @@ serve(async (req) => {
                 quantity: item.quantity,
                 unitPrice: item.price_at_purchase,
                 weight: {
-                  value: item.products.weight || 1,
+                  value: item.products.weight_oz || 1,
                   units: "ounces",
                 },
               };
