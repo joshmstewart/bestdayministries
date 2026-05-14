@@ -54,12 +54,16 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
 
       if (orderError) throw orderError;
 
-      // Get customer profile
-      const { data: customerProfile } = await supabase
-        .from('profiles')
-        .select('display_name, id')
-        .eq('id', orderData.customer_id)
-        .single();
+      // Get customer profile (skip for guest checkouts where customer_id is null)
+      let customerProfile = null;
+      if (orderData.customer_id) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('display_name, id')
+          .eq('id', orderData.customer_id)
+          .maybeSingle();
+        customerProfile = data;
+      }
 
       setOrder({
         ...orderData,
