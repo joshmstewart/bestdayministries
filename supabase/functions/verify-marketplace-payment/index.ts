@@ -538,31 +538,48 @@ serve(async (req) => {
         logStep("Notifying vendors", { vendorCount: uniqueVendorIds.length, vendorIds: uniqueVendorIds });
 
         for (const vendorId of uniqueVendorIds) {
-          try {
-            const vendorEmailResponse = await fetch(
-              `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-vendor-order-notification`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                },
-                body: JSON.stringify({ orderId: order_id, vendorId }),
-              }
-            );
+          // One inline retry on failure — the hourly retry-vendor-order-notifications
+          // sweep is the real safety net, this just shrinks the window.
+          let lastError: unknown = null;
+          let sent = false;
+          for (let attempt = 1; attempt <= 2 && !sent; attempt++) {
+            try {
+              const vendorEmailResponse = await fetch(
+                `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-vendor-order-notification`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  },
+                  body: JSON.stringify({ orderId: order_id, vendorId }),
+                }
+              );
 
-            const vendorEmailResult = await vendorEmailResponse.json();
-            logStep("Vendor notification email result", {
-              vendorId,
-              ok: vendorEmailResponse.ok,
-              status: vendorEmailResponse.status,
-              body: vendorEmailResult,
-            });
-          } catch (vendorEmailError) {
-            logStep("Warning: Vendor notification email failed", {
-              vendorId,
-              error: vendorEmailError instanceof Error ? vendorEmailError.message : String(vendorEmailError),
-            });
+              const vendorEmailResult = await vendorEmailResponse.json().catch(() => ({}));
+              logStep("Vendor notification email result", {
+                vendorId,
+                attempt,
+                ok: vendorEmailResponse.ok,
+                status: vendorEmailResponse.status,
+                body: vendorEmailResult,
+              });
+
+              if (vendorEmailResponse.ok && (vendorEmailResult as { success?: boolean }).success) {
+                sent = true;
+              } else {
+                lastError = vendorEmailResult;
+                if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+              }
+            } catch (vendorEmailError) {
+              lastError = vendorEmailError instanceof Error ? vendorEmailError.message : String(vendorEmailError);
+              logStep("Warning: Vendor notification email attempt failed", { vendorId, attempt, error: lastError });
+              if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+            }
+          }
+
+          if (!sent) {
+            logStep("Vendor notification not sent inline — will be retried by hourly sweep", { vendorId, lastError });
           }
         }
       } catch (vendorNotifyError) {
