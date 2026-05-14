@@ -1052,6 +1052,8 @@ const Admin = () => {
                   <TestRunsManager />
                 </CardContent>
               </Card>
+
+              <MarketplaceSmokeTestRunner />
             </div>
           </TabsContent>
 
