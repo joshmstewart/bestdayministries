@@ -114,6 +114,12 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // SMOKE TEST OVERRIDE: redirect all recipients to a test address so real vendors aren't emailed.
+    if (recipientOverride && typeof recipientOverride === "string" && recipientOverride.includes("@")) {
+      console.log(`[SMOKE TEST] Overriding vendor recipients with: ${recipientOverride} (was: ${recipientEmails.join(", ")})`);
+      recipientEmails = [recipientOverride];
+    }
+
     // Get order details
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
