@@ -208,6 +208,12 @@ export const VendorManagement = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelResult, setCancelResult] = useState<{
+    refundId: string | null;
+    refundAmount: number | null;
+    refundCurrency: string | null;
+    refundError: string | null;
+  } | null>(null);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
