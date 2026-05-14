@@ -4404,6 +4404,54 @@ export type Database = {
         }
         Relationships: []
       }
+      e2e_test_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          order_id: string | null
+          overall_status: string
+          product_id: string | null
+          stages: Json
+          started_at: string
+          test_type: string
+          test_user_email: string | null
+          triggered_by: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          order_id?: string | null
+          overall_status?: string
+          product_id?: string | null
+          stages?: Json
+          started_at?: string
+          test_type?: string
+          test_user_email?: string | null
+          triggered_by?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          order_id?: string | null
+          overall_status?: string
+          product_id?: string | null
+          stages?: Json
+          started_at?: string
+          test_type?: string
+          test_user_email?: string | null
+          triggered_by?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: []
+      }
       email_audit_log: {
         Row: {
           created_at: string
