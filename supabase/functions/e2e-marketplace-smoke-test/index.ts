@@ -275,7 +275,7 @@ serve(async (req) => {
     // ───── STAGE 5: Vendor notification email ─────
     await runStage(stages, "5. send-vendor-order-notification", async () => {
       if (dryRunEmails) return { status: "skip", detail: "dryRunEmails=true; not invoking real send" };
-      const r = await callFunction("send-vendor-order-notification", { orderId, vendorId });
+      const r = await callFunction("send-vendor-order-notification", { orderId, vendorId, recipientOverride: testEmail });
       if (!r.ok) return { status: "fail", detail: `HTTP ${r.status}: ${JSON.stringify(r.body).slice(0, 300)}` };
       if (!(r.body as any)?.success) return { status: "fail", detail: `Returned non-success: ${JSON.stringify(r.body).slice(0, 300)}` };
       return { status: "pass", detail: "Function returned success", data: r.body };
