@@ -27,7 +27,7 @@ export const MarketplaceSmokeTestRunner = () => {
     const { data } = await supabase.from("e2e_test_runs")
       .select("*").eq("test_type", "marketplace")
       .order("started_at", { ascending: false }).limit(10);
-    setHistory((data ?? []) as RunRow[]);
+    setHistory((data ?? []) as unknown as RunRow[]);
   };
 
   useEffect(() => { loadHistory(); }, []);
@@ -42,7 +42,7 @@ export const MarketplaceSmokeTestRunner = () => {
       toast.success(`Smoke test ${data.overall.toUpperCase()} — ${data.passed} pass / ${data.failed} fail / ${data.skipped} skip`);
       loadHistory();
     } catch (e: any) {
-      showErrorToast({ title: "Smoke test failed to run", message: e?.message ?? String(e) });
+      showErrorToast(`Smoke test failed to run: ${e?.message ?? String(e)}`);
     } finally {
       setRunning(false);
     }

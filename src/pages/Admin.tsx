@@ -78,6 +78,7 @@ import { ChangeLogManager } from "@/components/admin/ChangeLogManager";
 import { ErrorLogsManager } from "@/components/admin/ErrorLogsManager";
 import IssueReportsManager from "@/components/admin/IssueReportsManager";
 import TestRunsManager from "@/components/admin/TestRunsManager";
+import { MarketplaceSmokeTestRunner } from "@/components/admin/MarketplaceSmokeTestRunner";
 import { StickerCollectionManager } from "@/components/admin/StickerCollectionManager";
 import { ColoringManager } from "@/components/admin/ColoringManager";
 import { NewsletterManager } from "@/components/admin/NewsletterManager";
@@ -1052,6 +1053,8 @@ const Admin = () => {
                   <TestRunsManager />
                 </CardContent>
               </Card>
+
+              <MarketplaceSmokeTestRunner />
             </div>
           </TabsContent>
 
