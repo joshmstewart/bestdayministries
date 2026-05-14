@@ -118,38 +118,41 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | create-stripe-connect-account | Auth | Stripe | Creates Stripe Connect account for vendors |
 | create-user | Admin | Supabase | Creates test user accounts |
 | create-vendor-transfer | Internal | Stripe | Transfers funds to vendor on fulfillment |
-| check-stripe-connect-status | Auth | Stripe | Checks vendor Stripe Connect status |
-| donation-mapping-snapshot | Admin | Stripe, Supabase | Loads all Stripe + DB objects for email + date mapping |
-| generate-receipts | Cron | Resend, Stripe | Batch generates monthly receipts |
-| generate-year-end-summary | Cron | Supabase | Creates annual giving summaries |
-| get-google-places-key | Public | None | Returns Google Places API key |
-| get-sentry-dsn | Public | None | Returns Sentry DSN |
-| github-test-webhook | Webhook | Supabase | Logs GitHub Actions test results |
-| manage-sponsorship | Auth | Stripe | Customer portal access |
-| moderate-content | Auth | Lovable AI | AI text moderation |
-| moderate-image | Auth | Lovable AI | AI image moderation |
-| notify-admin-new-contact | Internal | Resend | **Multi-recipient** admin notifications for contact submissions |
-| process-inbound-email | Webhook | Supabase | Processes CloudFlare email routing with **original sender extraction** |
-| resend-webhook | Webhook | Supabase | Logs Resend email events |
-| reset-daily-cards | Admin | Supabase | Resets daily scratch cards with scope |
-| seed-email-test-data | Test | Supabase | Seeds email test data |
-| seed-halloween-stickers | Admin | Supabase | Seeds Halloween sticker collection |
-| send-approval-notification | Internal | Resend | Sends approval notifications |
-| send-automated-campaign | Admin | Resend | Sends automated campaigns |
-| send-contact-reply | Auth | Resend | Sends contact form replies |
-| send-digest-email | Cron | Resend | Sends batched digest emails |
-| send-message-notification | Internal | Resend | Sends message notifications |
-| send-newsletter | Admin | Resend | Sends newsletter campaigns with logging |
-| send-notification-email | Internal | Resend | Sends individual notifications |
-| send-order-shipped | Internal | Resend | Sends customer shipped/tracking email |
-| send-sponsorship-receipt | Internal | Resend | Sends tax-deductible receipts |
-| send-test-automated-template | Admin | Resend | Sends test automated template emails |
-| send-test-newsletter | Admin | Resend | Sends test newsletters to logged-in admin |
-| sentry-webhook | Webhook | Supabase | Logs Sentry error alerts |
-| stripe-webhook | Webhook | Stripe | Handles all Stripe events |
-| submit-tracking | Vendor | AfterShip | Submits order tracking |
-| sync-donation-history | Auth/Cron | Stripe, Supabase | Syncs Stripe transactions to donation_stripe_transactions, filters marketplace |
-| reconcile-donations-from-stripe | Cron | Stripe, Supabase | Auto-fixes pending donations by checking Stripe status |
+ | check-stripe-connect-status | Auth | Stripe | Checks vendor Stripe Connect status |
+ | donation-mapping-snapshot | Admin | Stripe, Supabase | Loads all Stripe + DB objects for email + date mapping |
+ | generate-receipts | Cron | Resend, Stripe | Batch generates monthly receipts |
+ | generate-year-end-summary | Cron | Supabase | Creates annual giving summaries |
+ | get-google-places-key | Public | None | Returns Google Places API key |
+ | get-sentry-dsn | Public | None | Returns Sentry DSN |
+ | github-test-webhook | Webhook | Supabase | Logs GitHub Actions test results |
+ | manage-sponsorship | Auth | Stripe | Customer portal access |
+ | moderate-content | Auth | Lovable AI | AI text moderation |
+ | moderate-image | Auth | Lovable AI | AI image moderation |
+ | notify-admin-new-contact | Internal | Resend | **Multi-recipient** admin notifications for contact submissions |
+ | process-inbound-email | Webhook | Supabase | Processes CloudFlare email routing with **original sender extraction** |
+ | reconcile-donations-from-stripe | Cron | Stripe, Supabase | Auto-fixes pending donations by checking Stripe status |
+ | resend-webhook | Webhook | Supabase | Logs Resend email events |
+ | reset-daily-cards | Admin | Supabase | Resets daily scratch cards with scope |
+ | retry-vendor-order-notifications | Cron | Supabase, Resend | Hourly sweep for missed vendor order notifications with DLQ |
+ | seed-email-test-data | Test | Supabase | Seeds email test data |
+ | seed-halloween-stickers | Admin | Supabase | Seeds Halloween sticker collection |
+ | send-approval-notification | Internal | Resend | Sends approval notifications |
+ | send-automated-campaign | Admin | Resend | Sends automated campaigns |
+ | send-contact-reply | Auth | Resend | Sends contact form replies |
+ | send-digest-email | Cron | Resend | Sends batched digest emails |
+ | send-message-notification | Internal | Resend | Sends message notifications |
+ | send-newsletter | Admin | Resend | Sends newsletter campaigns with logging |
+ | send-notification-email | Internal | Resend | Sends individual notifications |
+ | send-order-shipped | Internal | Resend | Sends customer shipped/tracking email |
+ | send-sponsorship-receipt | Internal | Resend | Sends tax-deductible receipts |
+ | send-test-automated-template | Admin | Resend | Sends test automated template emails |
+ | send-test-newsletter | Admin | Resend | Sends test newsletters to logged-in admin |
+ | send-vendor-order-notification | Internal | Resend | Sends vendor new order email, logs to email_notifications_log |
+ | sentry-webhook | Webhook | Supabase | Logs Sentry error alerts |
+ | stripe-webhook | Webhook | Stripe | Handles all Stripe events |
+ | submit-tracking | Vendor | AfterShip | Submits order tracking |
+ | sync-donation-history | Auth/Cron | Stripe, Supabase | Syncs Stripe transactions to donation_stripe_transactions, filters marketplace |
+ | verify-marketplace-payment | Auth/Cron | Stripe, Supabase | Verifies payment + sends vendor notifications with inline retry |
 | update-sponsorship | Auth | Stripe | Updates sponsorship tier |
 | verify-marketplace-payment | Auth | Stripe | Polling-based marketplace payment verification |
 | verify-sponsorship-payment | Webhook | Stripe | Verifies payment completion |
