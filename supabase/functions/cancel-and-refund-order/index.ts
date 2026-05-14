@@ -121,7 +121,9 @@ serve(async (req) => {
               metadata: { orderId, cancelledBy: userId, reason: reason || "" },
             });
             refundId = refund.id;
-            log("Refund created", { refundId, amount: refund.amount });
+            refundAmount = typeof refund.amount === "number" ? refund.amount : null;
+            refundCurrency = refund.currency || null;
+            log("Refund created", { refundId, amount: refund.amount, currency: refund.currency });
           } else {
             refundError = `Unrecognized payment id: ${paymentIntentId}`;
           }
