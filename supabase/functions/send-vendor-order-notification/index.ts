@@ -17,6 +17,7 @@ const corsHeaders = {
 interface VendorOrderNotificationRequest {
   orderId: string;
   vendorId: string;
+  recipientOverride?: string; // SMOKE TEST ONLY — redirect email to a test address
 }
 
 const handler = async (req: Request): Promise<Response> => {
