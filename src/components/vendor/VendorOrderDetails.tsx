@@ -267,12 +267,24 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
               Shipping Address
             </h3>
             <div className="text-sm text-muted-foreground space-y-1">
-              <p>{order.shipping_address.line1}</p>
-              {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
-              <p>
-                {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.postal_code}
-              </p>
-              <p>{order.shipping_address.country}</p>
+              {order.shipping_address ? (
+                <>
+                  {order.shipping_address.name && <p>{order.shipping_address.name}</p>}
+                  {order.shipping_address.line1 && <p>{order.shipping_address.line1}</p>}
+                  {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
+                  {(order.shipping_address.city || order.shipping_address.state || order.shipping_address.postal_code) && (
+                    <p>
+                      {[order.shipping_address.city, order.shipping_address.state]
+                        .filter(Boolean)
+                        .join(', ')}
+                      {order.shipping_address.postal_code ? ` ${order.shipping_address.postal_code}` : ''}
+                    </p>
+                  )}
+                  {order.shipping_address.country && <p>{order.shipping_address.country}</p>}
+                </>
+              ) : (
+                <p className="italic">No shipping address on file</p>
+              )}
             </div>
           </div>
 
