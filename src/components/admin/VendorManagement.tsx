@@ -1111,6 +1111,22 @@ export const VendorManagement = () => {
                             <Mail className="h-4 w-4 mr-1" />
                             Test Email
                           </Button>
+                          {canCancelOrder(order.status) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setCancelOrder(order);
+                                setCancelReason("");
+                                setCancelDialogOpen(true);
+                              }}
+                              title="Cancel order and refund customer via Stripe"
+                              className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                            >
+                              <Ban className="h-4 w-4 mr-1" />
+                              Cancel & Refund
+                            </Button>
+                          )}
                           {canDeleteOrder(order.status) && (
                             <Button
                               size="icon"
