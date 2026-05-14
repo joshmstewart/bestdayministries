@@ -64,27 +64,31 @@ async function seedThrowawayOrder(adminUserId: string): Promise<string> {
       user_id: adminUserId,
       customer_email: null, // skip the email branch
       total_amount: 0.5,
-      subtotal: 0.5,
-      shipping_amount: 0,
-      tax_amount: 0,
       status: "pending",
       stripe_mode: "test",
       stripe_payment_intent_id: null, // ← forces "No Stripe payment id" branch
-      metadata: { __e2e_cancel_refund_test: true },
+      notes: "__e2e_cancel_refund_test__",
     })
     .select("id")
     .single();
   if (error) throw new Error(`Seed order failed: ${error.message}`);
 
-  await svc.from("order_items").insert({
-    order_id: data.id,
-    product_id: null,
-    vendor_id: null,
-    quantity: 1,
-    unit_price: 0.5,
-    subtotal: 0.5,
-    fulfillment_status: "pending",
-  });
+  // Try to attach one item so we exercise the order_items update path too.
+  // order_items.product_id is NOT NULL → pick any existing product if one exists.
+  const { data: anyProduct } = await svc
+    .from("products")
+    .select("id")
+    .limit(1)
+    .maybeSingle();
+  if (anyProduct?.id) {
+    await svc.from("order_items").insert({
+      order_id: data.id,
+      product_id: anyProduct.id,
+      quantity: 1,
+      price_at_purchase: 0.5,
+      fulfillment_status: "pending",
+    });
+  }
 
   return data.id;
 }
