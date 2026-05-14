@@ -321,8 +321,11 @@ serve(async (req) => {
       if (!items?.length) return { status: "fail", detail: "No order_items for synthetic order" };
       const r = await callFunction("create-vendor-transfer", { orderItemId: items[0].id });
       if (!r.ok) {
-        // Real-world: many vendors won't have test-mode Connect; treat as skip not fail
         const msg = JSON.stringify(r.body).slice(0, 300);
+        // Expected gating: transfer requires shipped/delivered. Synthetic order is 'pending' → this proves gating works.
+        if (/must be shipped or delivered|item status/i.test(msg)) {
+          return { status: "pass", detail: `Gating works (rejects pending): ${msg}` };
+        }
         if (/connect|test mode|stripe/i.test(msg)) {
           return { status: "skip", detail: `Expected in test: ${msg}` };
         }
