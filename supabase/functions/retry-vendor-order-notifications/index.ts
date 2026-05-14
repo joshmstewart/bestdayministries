@@ -45,7 +45,7 @@ serve(async (req) => {
         orders!inner(id, status, paid_at, created_at)
       `)
       .not('vendor_id', 'is', null)
-      .in('orders.status', ['paid', 'processing', 'completed'])
+      .in('orders.status', ['processing', 'shipped', 'completed'])
       .not('orders.paid_at', 'is', null)
       .lte('orders.paid_at', minAgeISO)
       .gte('orders.paid_at', maxAgeISO);
