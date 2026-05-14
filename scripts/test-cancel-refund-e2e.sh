@@ -48,14 +48,14 @@ fi
 echo "  ✓ admin user id: $USER_ID"
 
 echo "▶ Seeding throwaway TEST-mode order (no Stripe PI)…"
-ORDER_ID=$(psql -At -c "
+ORDER_ID=$(psql -At -q -X -c "
   INSERT INTO public.orders (user_id, total_amount, status, stripe_mode,
                              stripe_payment_intent_id, notes, shipping_address)
   VALUES ('$USER_ID', 0.50, 'pending', 'test', NULL,
           '__e2e_cancel_refund_test__',
           '{\"name\":\"E2E Test\",\"line1\":\"1 Test St\",\"city\":\"Denver\",\"state\":\"CO\",\"postal_code\":\"80202\",\"country\":\"US\"}'::jsonb)
   RETURNING id;
-")
+" | head -n1 | tr -d '[:space:]')
 if [ -z "$ORDER_ID" ]; then echo "✗ Failed to insert order"; exit 1; fi
 echo "  ✓ order id: $ORDER_ID"
 
