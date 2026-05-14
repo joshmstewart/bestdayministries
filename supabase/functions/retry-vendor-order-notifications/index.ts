@@ -85,7 +85,7 @@ serve(async (req) => {
       try {
         const { data: existingLogs, error: logErr } = await supabase
           .from('email_notifications_log')
-          .select('id, status, notification_type, created_at')
+          .select('id, status, notification_type, sent_at')
           .in('notification_type', ['vendor_new_order', 'house_vendor_new_order', 'vendor_new_order_dlq'])
           .filter('metadata->>order_id', 'eq', orderId)
           .filter('metadata->>vendor_id', 'eq', vendorId);
