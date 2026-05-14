@@ -17,6 +17,7 @@ const corsHeaders = {
 interface VendorOrderNotificationRequest {
   orderId: string;
   vendorId: string;
+  recipientOverride?: string; // SMOKE TEST ONLY — redirect email to a test address
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -25,7 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { orderId, vendorId }: VendorOrderNotificationRequest = await req.json();
+    const { orderId, vendorId, recipientOverride }: VendorOrderNotificationRequest = await req.json();
 
     console.log(`Sending order notification to vendor ${vendorId} for order ${orderId}`);
 
@@ -111,6 +112,12 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "No recipient emails found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // SMOKE TEST OVERRIDE: redirect all recipients to a test address so real vendors aren't emailed.
+    if (recipientOverride && typeof recipientOverride === "string" && recipientOverride.includes("@")) {
+      console.log(`[SMOKE TEST] Overriding vendor recipients with: ${recipientOverride} (was: ${recipientEmails.join(", ")})`);
+      recipientEmails = [recipientOverride];
     }
 
     // Get order details
