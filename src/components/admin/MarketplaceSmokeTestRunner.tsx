@@ -42,7 +42,7 @@ export const MarketplaceSmokeTestRunner = () => {
       toast.success(`Smoke test ${data.overall.toUpperCase()} — ${data.passed} pass / ${data.failed} fail / ${data.skipped} skip`);
       loadHistory();
     } catch (e: any) {
-      showErrorToast({ title: "Smoke test failed to run", message: e?.message ?? String(e) });
+      showErrorToast(`Smoke test failed to run: ${e?.message ?? String(e)}`);
     } finally {
       setRunning(false);
     }
