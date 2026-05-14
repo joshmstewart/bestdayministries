@@ -89,6 +89,8 @@ serve(async (req) => {
     // --- Refund via Stripe (best-effort) ---
     let refundId: string | null = null;
     let refundError: string | null = null;
+    let refundAmount: number | null = null;
+    let refundCurrency: string | null = null;
 
     if (order.stripe_payment_intent_id) {
       const stripeMode = order.stripe_mode || "test";
