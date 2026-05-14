@@ -82,28 +82,32 @@ async function callFunction(name: string, body: unknown) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  // Auth: require admin/owner caller
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Authorization required" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  // Auth: require admin/owner caller, OR service-role bearer (for agent-initiated runs)
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const bearer = authHeader.replace(/^Bearer\s+/i, "");
+  const isServiceRole = bearer && bearer === SERVICE_KEY;
+  if (!isServiceRole) {
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authorization required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
     });
-  }
-  const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user } } = await userClient.auth.getUser();
-  if (!user) {
-    return new Response(JSON.stringify({ error: "Invalid auth" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  const { data: roleRow } = await supabase
-    .from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "owner"]).maybeSingle();
-  if (!roleRow) {
-    return new Response(JSON.stringify({ error: "Admin only" }), {
-      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const { data: { user } } = await userClient.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Invalid auth" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roleRow } = await supabase
+      .from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin", "owner"]).maybeSingle();
+    if (!roleRow) {
+      return new Response(JSON.stringify({ error: "Admin only" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
 
   const body = await req.json().catch(() => ({}));
