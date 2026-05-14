@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
+import { EMAILS, SITE_URL } from "../_shared/domainConstants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,12 +155,76 @@ serve(async (req) => {
       .eq("order_id", orderId)
       .neq("fulfillment_status", "delivered");
 
+    // --- Send customer notification email (best-effort) ---
+    let emailSent = false;
+    let emailError: string | null = null;
+    if (order.customer_email) {
+      try {
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        if (!resendKey) throw new Error("RESEND_API_KEY not configured");
+        const resend = new Resend(resendKey);
+
+        const amountStr = `$${Number(order.total_amount || 0).toFixed(2)}`;
+        const refundBlock = refundId
+          ? `<p style="margin:0 0 12px;">A full refund of <strong>${amountStr}</strong> has been issued to your original payment method. Most banks post refunds within 5–10 business days.</p>
+             <p style="margin:0 0 12px;color:#666;font-size:12px;">Stripe refund reference: ${refundId}</p>`
+          : `<p style="margin:0 0 12px;">Your order has been cancelled. We attempted to issue a refund automatically but were unable to complete it through our payment processor. <strong>Our team has been notified and will contact you within 1 business day to resolve your refund of ${amountStr}.</strong></p>
+             ${refundError ? `<p style="margin:0 0 12px;color:#666;font-size:12px;">Reference: ${refundError}</p>` : ""}`;
+
+        const reasonBlock = reason
+          ? `<p style="margin:0 0 12px;"><strong>Reason:</strong> ${String(reason).replace(/[<>]/g, "")}</p>`
+          : "";
+
+        const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;color:#222;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px 0;">
+            <tr><td align="center">
+              <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;max-width:600px;">
+                <tr><td style="padding:24px 28px;">
+                  <h1 style="margin:0 0 16px;font-size:22px;color:#222;">Your order has been cancelled</h1>
+                  <p style="margin:0 0 12px;">Hi,</p>
+                  <p style="margin:0 0 12px;">We're writing to confirm that order <strong>#${orderId.slice(0, 8)}</strong> has been cancelled.</p>
+                  ${reasonBlock}
+                  ${refundBlock}
+                  <p style="margin:24px 0 12px;">If you have any questions, just reply to this email and our team will help.</p>
+                  <p style="margin:24px 0 0;">— Best Day Ministries</p>
+                  <p style="margin:24px 0 0;font-size:12px;color:#999;"><a href="${SITE_URL}" style="color:#999;">${SITE_URL}</a></p>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+        </body></html>`;
+
+        const { error: sendErr } = await resend.emails.send({
+          from: `Best Day Ministries <${EMAILS.orders}>`,
+          to: [order.customer_email],
+          subject: `Order cancelled${refundId ? " and refunded" : ""} — #${orderId.slice(0, 8)}`,
+          html,
+          reply_to: EMAILS.support,
+        });
+
+        if (sendErr) {
+          emailError = sendErr.message || String(sendErr);
+          log("Email send failed", { emailError });
+        } else {
+          emailSent = true;
+          log("Customer email sent", { to: order.customer_email });
+        }
+      } catch (e: any) {
+        emailError = e?.message || String(e);
+        log("Email exception", { emailError });
+      }
+    } else {
+      log("No customer_email on order, skipping email");
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         orderId,
         refundId,
         refundError,
+        emailSent,
+        emailError,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
