@@ -60,7 +60,7 @@ if [ -z "$ORDER_ID" ]; then echo "✗ Failed to insert order"; exit 1; fi
 echo "  ✓ order id: $ORDER_ID"
 
 # Best-effort: attach one item to also exercise the items update path.
-PROD_ID=$(psql -At -c "SELECT id FROM public.products LIMIT 1;" || true)
+PROD_ID=$(psql -At -q -X -c "SELECT id FROM public.products LIMIT 1;" 2>/dev/null | head -n1 | tr -d '[:space:]')
 if [ -n "$PROD_ID" ]; then
   psql -q -c "
     INSERT INTO public.order_items (order_id, product_id, quantity,
