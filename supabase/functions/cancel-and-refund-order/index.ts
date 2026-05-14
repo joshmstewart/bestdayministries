@@ -227,6 +227,8 @@ serve(async (req) => {
         orderId,
         refundId,
         refundError,
+        refundAmount,
+        refundCurrency,
         emailSent,
         emailError,
       }),
