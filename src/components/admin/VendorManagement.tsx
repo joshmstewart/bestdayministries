@@ -444,6 +444,49 @@ export const VendorManagement = () => {
     return ['pending', 'processing', 'completed', 'cancelled'].includes(status);
   };
 
+  // Helper: paid orders that can still be cancelled & refunded
+  const canCancelOrder = (status: string) => {
+    return ['pending', 'processing', 'completed'].includes(status);
+  };
+
+  const handleCancelAndRefund = async () => {
+    if (!cancelOrder) return;
+    try {
+      setCancelLoading(true);
+      const { data, error } = await supabase.functions.invoke('cancel-and-refund-order', {
+        body: { orderId: cancelOrder.id, reason: cancelReason || undefined },
+      });
+      if (error) throw error;
+      if (data?.refundError) {
+        toast({
+          title: "Order cancelled, refund FAILED",
+          description: `Order marked cancelled but Stripe refund failed: ${data.refundError}. Refund manually in Stripe.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Order cancelled & refunded",
+          description: data?.refundId
+            ? `Stripe refund ${data.refundId} issued.`
+            : "Order marked cancelled.",
+        });
+      }
+      setCancelDialogOpen(false);
+      setCancelOrder(null);
+      setCancelReason("");
+      await loadData();
+    } catch (err: any) {
+      toast({
+        title: "Cancel failed",
+        description: err?.message || "Could not cancel order",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+
   // Get deletable orders from selection
   const getDeletableSelectedOrders = () => {
     return orders.filter(o => selectedOrderIds.has(o.id) && canDeleteOrder(o.status));
