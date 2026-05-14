@@ -53,15 +53,17 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`moderate-image`** - [Auth Required] AI image moderation via Lovable AI (Gemini Vision)
 
 ### Marketplace & Vendor Management
-- **`create-marketplace-checkout`** - [Auth Required] Creates checkout for marketplace products
-- **`verify-marketplace-payment`** - [Auth Optional on return] Verifies checkout by order_id + session_id, logs failures to `error_logs` and returns `debug_log_id`
-- **`create-stripe-connect-account`** - [Auth Required] Creates/retrieves Stripe Connect accounts for vendors
-- **`check-stripe-connect-status`** - [Auth Required] Checks vendor's Stripe Connect onboarding status
-- **`create-vendor-transfer`** - [Internal] Transfers funds to vendor on order fulfillment
-- **`send-order-shipped`** - [Internal] Sends customer shipped/tracking email (used by Printify status updates)
-- **`submit-tracking`** - [Vendor Auth] Submits order tracking via AfterShip API
-- **`aftership-webhook`** - [Webhook] Receives AfterShip tracking updates (⚠️ NOT FUNCTIONAL)
-- **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
+ - **`create-marketplace-checkout`** - [Auth Required] Creates checkout for marketplace products
+ - **`verify-marketplace-payment`** - [Auth Optional on return] Verifies checkout by order_id + session_id, logs failures to `error_logs` and returns `debug_log_id`. Also sends vendor order notifications with inline retry.
+ - **`create-stripe-connect-account`** - [Auth Required] Creates/retrieves Stripe Connect accounts for vendors
+ - **`check-stripe-connect-status`** - [Auth Required] Checks vendor's Stripe Connect onboarding status
+ - **`create-vendor-transfer`** - [Internal] Transfers funds to vendor on order fulfillment
+ - **`send-vendor-order-notification`** - [Internal] Sends email to vendor when they receive a new order. Called by verify-marketplace-payment and retry-vendor-order-notifications. Logs success/failure to email_notifications_log.
+ - **`retry-vendor-order-notifications`** - [Cron/Internal] Hourly sweep that detects missed vendor notifications and retries them. DLQ after 5 failures.
+ - **`send-order-shipped`** - [Internal] Sends customer shipped/tracking email (used by Printify status updates)
+ - **`submit-tracking`** - [Vendor Auth] Submits order tracking via AfterShip API
+ - **`aftership-webhook`** - [Webhook] Receives AfterShip tracking updates (⚠️ NOT FUNCTIONAL)
+ - **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
 
 ### Testing & Development
 - **`create-persistent-test-accounts`** - [Admin Only] Creates/verifies persistent test accounts (PROTECTED from cleanup)
