@@ -26,7 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { orderId, vendorId }: VendorOrderNotificationRequest = await req.json();
+    const { orderId, vendorId, recipientOverride }: VendorOrderNotificationRequest = await req.json();
 
     console.log(`Sending order notification to vendor ${vendorId} for order ${orderId}`);
 
