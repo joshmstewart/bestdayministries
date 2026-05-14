@@ -401,4 +401,94 @@ try {
 
 ---
 
-**Last Updated:** 2025-10-22 - After comprehensive donation debugging
+### retry-vendor-order-notifications
+
+**Location:** `supabase/functions/retry-vendor-order-notifications/index.ts`
+
+**Auth:** None (cron-invoked, uses service role key internally)
+
+**Schedule:** `15 * * * *` (hourly at :15 past the hour)
+
+**Purpose:** Self-healing sweep that detects and retries missed vendor order notification emails.
+
+**Detection Rule:**
+An order_item is "missed" when ALL of these are true:
+- Parent order `status IN ('processing', 'shipped', 'completed')` AND `paid_at IS NOT NULL`
+- `vendor_id IS NOT NULL`
+- Order paid_at is between 5 minutes and 30 days old
+- No `email_notifications_log` row exists with `notification_type IN ('vendor_new_order', 'house_vendor_new_order')` AND matching `order_id` + `vendor_id` in metadata
+
+**Process:**
+1. Queries distinct `(order_id, vendor_id)` pairs from `order_items` joined to `orders`
+2. For each pair, checks `email_notifications_log` for existing success
+3. If missed, POSTs to `send-vendor-order-notification` with service role auth
+4. On failure, inserts `status='failed'` row into `email_notifications_log`
+5. After 5 consecutive failures, inserts `vendor_new_order_dlq` row and stops retrying
+
+**Response:**
+```typescript
+{
+  success: true,
+  processed: number,
+  succeeded: number,
+  failed: number,
+  skipped: number,
+  dlq: number,
+  details: Array<{ orderId, vendorId, action, ... }>
+}
+```
+
+**DLQ Behavior:**
+- After 5 failed attempts for same `(order_id, vendor_id)`, a `vendor_new_order_dlq` row is inserted
+- Admins can see DLQ items in the Email Log UI
+- Future sweeps skip DLQ items (idempotent)
+
+**See Also:** `docs/MARKETPLACE_CHECKOUT_SYSTEM.md`
+
+---
+
+### send-vendor-order-notification
+
+**Location:** `supabase/functions/send-vendor-order-notification/index.ts`
+
+**Auth:** None (internal, called by verify-marketplace-payment and retry-vendor-order-notifications)
+
+**Purpose:** Sends a new order email to a vendor and logs the result.
+
+**Request Body:**
+```typescript
+{
+  orderId: string,  // UUID of the order
+  vendorId: string  // UUID of the vendor
+}
+```
+
+**Process:**
+1. Fetches order and vendor details from database
+2. Generates email with order items for that vendor
+3. Sends via Resend to vendor's contact email
+4. **Inserts audit row into `email_notifications_log`** on success or failure
+
+**Audit Trail:**
+- Success → `notification_type: 'vendor_new_order'`, `status: 'sent'`
+- Failure → `notification_type: 'vendor_new_order'`, `status: 'failed'`
+
+**See Also:** `docs/MARKETPLACE_CHECKOUT_SYSTEM.md`
+
+---
+
+### verify-marketplace-payment (Updated)
+
+**Location:** `supabase/functions/verify-marketplace-payment/index.ts`
+
+**Auth:** Optional JWT on return from Stripe (customer may not be logged in)
+
+**Additional Behavior:**
+- After order status update, sends vendor notification email PER vendor in the order
+- **Inline retry:** If a vendor notification fetch fails, retries once with 1s backoff
+- Still swallows errors (does not fail verification) — cron safety net handles persistent failures
+- Calls `send-vendor-order-notification` with service role auth for each unique vendor
+
+---
+
+**Last Updated:** 2025-05-14 - Added retry-vendor-order-notifications and send-vendor-order-notification documentation
