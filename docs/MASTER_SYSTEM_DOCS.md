@@ -1138,23 +1138,30 @@ USAGE:old-domain-redirect-adds-?welcome=true→modal-opens-automatically→user-
 CONTENT:welcome-message+new-domain-reminder+explore-button
 DOC:WELCOME_REDIRECT_MODAL.md[optional]
 
-## MARKETPLACE_CHECKOUT_SYSTEM
-OVERVIEW:Joy-House-Store→unified-marketplace[handmade+Printify-POD+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification
-ROUTE:/marketplace|/store/product/:id|/checkout-success|/orders|/vendor-dashboard|/vendor-auth
-DB:vendors[status+stripe_account_id+stripe_charges_enabled]|products[vendor_id+price+inventory+printify_*]|orders[user_id+status+stripe_mode]|order_items[platform_fee+vendor_payout+fulfillment_status+printify_order_id]|shopping_cart[variant_info]|commission_settings[20%-default]|vendor_earnings-VIEW
-EDGE:create-marketplace-checkout[cart→vendors-verify→fees-calc→stripe-session]|verify-marketplace-payment[polling-based→order-update→cart-clear]|create-vendor-transfer[fulfillment-payout]|submit-tracking[AfterShip-API]|create-printify-order[fulfill-POD]
-COMPS:ProductCard[color-swatches+variant-detection]|ProductGrid|ShopifyProductCard|ShopifyProductGrid|UnifiedCartSheet[both-cart-types]|ShoppingCartSheet[handmade]|ShopifyCartSheet[Shopify]
-ADMIN-COMPS:PrintifyProductImporter|PrintifyPreviewDialog|ProductColorImagesManager|ProductEditDialog|VendorManagement
-VENDOR-COMPS:ProductForm|ProductList|StripeConnectOnboarding|VendorEarnings|VendorOrderList|VendorOrderDetails|VendorProfileSettings|VendorBestieLinkRequest|VendorLinkedBesties|VendorBestieAssetManager
-SHIPPING:$6.99-flat-per-vendor|free-if≥$35-per-vendor
-COMMISSION:commission_settings.commission_percentage|platform_fee=subtotal×%|vendor_payout=subtotal-platform_fee
-VENDOR-STATUS:pending|approved|rejected|suspended→NOT-a-role→any-user-can-apply
-STRIPE-CONNECT:vendors.stripe_account_id|stripe_charges_enabled=true→can-receive-payments
-CHECKOUT-FLOW:cart→create-marketplace-checkout→Stripe→/checkout-success→verify-marketplace-payment[polls-3s×10]→order-confirmed
-VENDOR-FLOW:apply→admin-approve→Stripe-Connect-onboard→add-products→receive-orders→submit-tracking→receive-payout
-VENDOR-PRODUCT-OPTIONS:ProductForm stores handmade options in products.options(JSON). Save is blocked if an option type is chosen with no choices; the in-progress (type+choices) option is auto-included on save. Use Add Another Option to stage multiple option groups. ProductForm also stores per-option image links in products.image_option_mapping, and ProductDetail must use those mappings for regular product color image switching.
-CURRENT-STATUS:Printify-products-imported|checkout-working|polling-verification-NO-webhooks|needs-testing
-DOC:MARKETPLACE_CHECKOUT_SYSTEM.md|PRINTIFY_INTEGRATION.md|VENDOR_SYSTEM_CONCISE.md|VENDOR_AUTH_SYSTEM.md|STRIPE_CONNECT_CONCISE.md
+ ## MARKETPLACE_CHECKOUT_SYSTEM
+ OVERVIEW:Joy-House-Store→unified-marketplace[handmade+Printify-POD+Shopify-merch]|Stripe-Connect-vendors|polling-payment-verification|vendor-notification-retry-sweep
+ ROUTE:/marketplace|/store/product/:id|/checkout-success|/orders|/vendor-dashboard|/vendor-auth
+ DB:vendors[status+stripe_account_id+stripe_charges_enabled]|products[vendor_id+price+inventory+printify_*]|orders[user_id+status+stripe_mode]|order_items[platform_fee+vendor_payout+fulfillment_status+printify_order_id]|shopping_cart[variant_info]|commission_settings[20%-default]|vendor_earnings-VIEW
+ EDGE:create-marketplace-checkout[cart→vendors-verify→fees-calc→stripe-session]|verify-marketplace-payment[polling-based→order-update→cart-clear→INLINE-RETRY-per-vendor-notification]|retry-vendor-order-notifications[cron-sweep→detects-missed-notifications→DLQ-after-5-attempts]|create-vendor-transfer[fulfillment-payout]|submit-tracking[AfterShip-API]|create-printify-order[fulfill-POD]
+ COMPS:ProductCard[color-swatches+variant-detection]|ProductGrid|ShopifyProductCard|ShopifyProductGrid|UnifiedCartSheet[both-cart-types]|ShoppingCartSheet[handmade]|ShopifyCartSheet[Shopify]
+ ADMIN-COMPS:PrintifyProductImporter|PrintifyPreviewDialog|ProductColorImagesManager|ProductEditDialog|VendorManagement
+ VENDOR-COMPS:ProductForm|ProductList|StripeConnectOnboarding|VendorEarnings|VendorOrderList|VendorOrderDetails|VendorProfileSettings|VendorBestieLinkRequest|VendorLinkedBesties|VendorBestieAssetManager
+ SHIPPING:$6.99-flat-per-vendor|free-if≥$35-per-vendor
+ COMMISSION:commission_settings.commission_percentage|platform_fee=subtotal×%|vendor_payout=subtotal-platform_fee
+ VENDOR-STATUS:pending|approved|rejected|suspended→NOT-a-role→any-user-can-apply
+ STRIPE-CONNECT:vendors.stripe_account_id|stripe_charges_enabled=true→can-receive-payments
+ CHECKOUT-FLOW:cart→create-marketplace-checkout→Stripe→/checkout-success→verify-marketplace-payment[polls-3s×10→INLINE-RETRY-per-vendor-notification-1s-backoff]→order-confirmed
+ VENDOR-FLOW:apply→admin-approve→Stripe-Connect-onboard→add-products→receive-orders→submit-tracking→receive-payout
+ VENDOR-NOTIFICATION-RETRY-SYSTEM:
+   DETECTION:paid-order[status=processing/shipped/completed+paid_at NOT NULL+vendor_id NOT NULL]→no-email_notifications_log row[vendor_new_order/house_vendor_new_order]→missed
+   SWEEP:retry-vendor-order-notifications[cron:15 * * * *]→queries-distinct(order_id,vendor_id)→POSTs-to-send-vendor-order-notification→logs-attempts
+   DLQ:after-5-failed-attempts→vendor_new_order_dlq-row→admins-see-in-Email-Log-UI→stops-looping
+   IDEMPOTENCY:re-runs-skip-already-sent→safe-to-run-hourly
+   AGE-RANGE:MIN-5min[give-live-path-chance]|MAX-30days[no-ancient-backlog-spam]
+   DEFENSE-IN-DEPTH:verify-marketplace-payment→INLINE-RETRY-1s-backoff-per-vendor→cron-is-safety-net
+ VENDOR-PRODUCT-OPTIONS:ProductForm stores handmade options in products.options(JSON). Save is blocked if an option type is chosen with no choices; the in-progress (type+choices) option is auto-included on save. Use Add Another Option to stage multiple option groups. ProductForm also stores per-option image links in products.image_option_mapping, and ProductDetail must use those mappings for regular product color image switching.
+ CURRENT-STATUS:Printify-products-imported|checkout-working|polling-verification-NO-webhooks|vendor-notification-retry-system-LIVE
+ DOC:MARKETPLACE_CHECKOUT_SYSTEM.md|PRINTIFY_INTEGRATION.md|VENDOR_SYSTEM_CONCISE.md|VENDOR_AUTH_SYSTEM.md|STRIPE_CONNECT_CONCISE.md
 
 ## PRINTIFY_INTEGRATION
 OVERVIEW:print-on-demand-merchandise|design-in-Printify→import-to-products→customer-purchase→Printify-fulfills
