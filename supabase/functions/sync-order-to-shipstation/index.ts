@@ -133,7 +133,7 @@ serve(async (req) => {
           id,
           name,
           vendor_sku,
-          weight
+          weight_oz
         ),
         coffee_products (
           id,
