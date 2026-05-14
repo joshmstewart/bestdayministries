@@ -158,6 +158,8 @@ interface Order {
   total_amount: number;
   customer_id: string;
   customer_email?: string;
+  stripe_payment_intent_id?: string | null;
+  stripe_mode?: string | null;
   order_items: {
     id: string;
     fulfillment_status: string;
