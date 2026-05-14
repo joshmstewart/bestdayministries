@@ -131,7 +131,7 @@ serve(async (req) => {
     .insert({
       overall_status: "running",
       test_type: "marketplace",
-      triggered_by: null,
+      triggered_by: triggeredBy,
       test_user_email: testEmail,
     })
     .select("id").single();
