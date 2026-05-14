@@ -379,5 +379,5 @@ schedule = "0 */4 * * *"
 [functions.bulk-create-seasonal-stickers]
 verify_jwt = false
 
-[functions._run-smoke-test]
+[functions.run-smoke-test-internal]
 verify_jwt = false
