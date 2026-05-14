@@ -53,15 +53,17 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - **`moderate-image`** - [Auth Required] AI image moderation via Lovable AI (Gemini Vision)
 
 ### Marketplace & Vendor Management
-- **`create-marketplace-checkout`** - [Auth Required] Creates checkout for marketplace products
-- **`verify-marketplace-payment`** - [Auth Optional on return] Verifies checkout by order_id + session_id, logs failures to `error_logs` and returns `debug_log_id`
-- **`create-stripe-connect-account`** - [Auth Required] Creates/retrieves Stripe Connect accounts for vendors
-- **`check-stripe-connect-status`** - [Auth Required] Checks vendor's Stripe Connect onboarding status
-- **`create-vendor-transfer`** - [Internal] Transfers funds to vendor on order fulfillment
-- **`send-order-shipped`** - [Internal] Sends customer shipped/tracking email (used by Printify status updates)
-- **`submit-tracking`** - [Vendor Auth] Submits order tracking via AfterShip API
-- **`aftership-webhook`** - [Webhook] Receives AfterShip tracking updates (⚠️ NOT FUNCTIONAL)
-- **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
+ - **`create-marketplace-checkout`** - [Auth Required] Creates checkout for marketplace products
+ - **`verify-marketplace-payment`** - [Auth Optional on return] Verifies checkout by order_id + session_id, logs failures to `error_logs` and returns `debug_log_id`. Also sends vendor order notifications with inline retry.
+ - **`create-stripe-connect-account`** - [Auth Required] Creates/retrieves Stripe Connect accounts for vendors
+ - **`check-stripe-connect-status`** - [Auth Required] Checks vendor's Stripe Connect onboarding status
+ - **`create-vendor-transfer`** - [Internal] Transfers funds to vendor on order fulfillment
+ - **`send-vendor-order-notification`** - [Internal] Sends email to vendor when they receive a new order. Called by verify-marketplace-payment and retry-vendor-order-notifications. Logs success/failure to email_notifications_log.
+ - **`retry-vendor-order-notifications`** - [Cron/Internal] Hourly sweep that detects missed vendor notifications and retries them. DLQ after 5 failures.
+ - **`send-order-shipped`** - [Internal] Sends customer shipped/tracking email (used by Printify status updates)
+ - **`submit-tracking`** - [Vendor Auth] Submits order tracking via AfterShip API
+ - **`aftership-webhook`** - [Webhook] Receives AfterShip tracking updates (⚠️ NOT FUNCTIONAL)
+ - **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
 
 ### Testing & Development
 - **`create-persistent-test-accounts`** - [Admin Only] Creates/verifies persistent test accounts (PROTECTED from cleanup)
@@ -116,38 +118,41 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 | create-stripe-connect-account | Auth | Stripe | Creates Stripe Connect account for vendors |
 | create-user | Admin | Supabase | Creates test user accounts |
 | create-vendor-transfer | Internal | Stripe | Transfers funds to vendor on fulfillment |
-| check-stripe-connect-status | Auth | Stripe | Checks vendor Stripe Connect status |
-| donation-mapping-snapshot | Admin | Stripe, Supabase | Loads all Stripe + DB objects for email + date mapping |
-| generate-receipts | Cron | Resend, Stripe | Batch generates monthly receipts |
-| generate-year-end-summary | Cron | Supabase | Creates annual giving summaries |
-| get-google-places-key | Public | None | Returns Google Places API key |
-| get-sentry-dsn | Public | None | Returns Sentry DSN |
-| github-test-webhook | Webhook | Supabase | Logs GitHub Actions test results |
-| manage-sponsorship | Auth | Stripe | Customer portal access |
-| moderate-content | Auth | Lovable AI | AI text moderation |
-| moderate-image | Auth | Lovable AI | AI image moderation |
-| notify-admin-new-contact | Internal | Resend | **Multi-recipient** admin notifications for contact submissions |
-| process-inbound-email | Webhook | Supabase | Processes CloudFlare email routing with **original sender extraction** |
-| resend-webhook | Webhook | Supabase | Logs Resend email events |
-| reset-daily-cards | Admin | Supabase | Resets daily scratch cards with scope |
-| seed-email-test-data | Test | Supabase | Seeds email test data |
-| seed-halloween-stickers | Admin | Supabase | Seeds Halloween sticker collection |
-| send-approval-notification | Internal | Resend | Sends approval notifications |
-| send-automated-campaign | Admin | Resend | Sends automated campaigns |
-| send-contact-reply | Auth | Resend | Sends contact form replies |
-| send-digest-email | Cron | Resend | Sends batched digest emails |
-| send-message-notification | Internal | Resend | Sends message notifications |
-| send-newsletter | Admin | Resend | Sends newsletter campaigns with logging |
-| send-notification-email | Internal | Resend | Sends individual notifications |
-| send-order-shipped | Internal | Resend | Sends customer shipped/tracking email |
-| send-sponsorship-receipt | Internal | Resend | Sends tax-deductible receipts |
-| send-test-automated-template | Admin | Resend | Sends test automated template emails |
-| send-test-newsletter | Admin | Resend | Sends test newsletters to logged-in admin |
-| sentry-webhook | Webhook | Supabase | Logs Sentry error alerts |
-| stripe-webhook | Webhook | Stripe | Handles all Stripe events |
-| submit-tracking | Vendor | AfterShip | Submits order tracking |
-| sync-donation-history | Auth/Cron | Stripe, Supabase | Syncs Stripe transactions to donation_stripe_transactions, filters marketplace |
-| reconcile-donations-from-stripe | Cron | Stripe, Supabase | Auto-fixes pending donations by checking Stripe status |
+ | check-stripe-connect-status | Auth | Stripe | Checks vendor Stripe Connect status |
+ | donation-mapping-snapshot | Admin | Stripe, Supabase | Loads all Stripe + DB objects for email + date mapping |
+ | generate-receipts | Cron | Resend, Stripe | Batch generates monthly receipts |
+ | generate-year-end-summary | Cron | Supabase | Creates annual giving summaries |
+ | get-google-places-key | Public | None | Returns Google Places API key |
+ | get-sentry-dsn | Public | None | Returns Sentry DSN |
+ | github-test-webhook | Webhook | Supabase | Logs GitHub Actions test results |
+ | manage-sponsorship | Auth | Stripe | Customer portal access |
+ | moderate-content | Auth | Lovable AI | AI text moderation |
+ | moderate-image | Auth | Lovable AI | AI image moderation |
+ | notify-admin-new-contact | Internal | Resend | **Multi-recipient** admin notifications for contact submissions |
+ | process-inbound-email | Webhook | Supabase | Processes CloudFlare email routing with **original sender extraction** |
+ | reconcile-donations-from-stripe | Cron | Stripe, Supabase | Auto-fixes pending donations by checking Stripe status |
+ | resend-webhook | Webhook | Supabase | Logs Resend email events |
+ | reset-daily-cards | Admin | Supabase | Resets daily scratch cards with scope |
+ | retry-vendor-order-notifications | Cron | Supabase, Resend | Hourly sweep for missed vendor order notifications with DLQ |
+ | seed-email-test-data | Test | Supabase | Seeds email test data |
+ | seed-halloween-stickers | Admin | Supabase | Seeds Halloween sticker collection |
+ | send-approval-notification | Internal | Resend | Sends approval notifications |
+ | send-automated-campaign | Admin | Resend | Sends automated campaigns |
+ | send-contact-reply | Auth | Resend | Sends contact form replies |
+ | send-digest-email | Cron | Resend | Sends batched digest emails |
+ | send-message-notification | Internal | Resend | Sends message notifications |
+ | send-newsletter | Admin | Resend | Sends newsletter campaigns with logging |
+ | send-notification-email | Internal | Resend | Sends individual notifications |
+ | send-order-shipped | Internal | Resend | Sends customer shipped/tracking email |
+ | send-sponsorship-receipt | Internal | Resend | Sends tax-deductible receipts |
+ | send-test-automated-template | Admin | Resend | Sends test automated template emails |
+ | send-test-newsletter | Admin | Resend | Sends test newsletters to logged-in admin |
+ | send-vendor-order-notification | Internal | Resend | Sends vendor new order email, logs to email_notifications_log |
+ | sentry-webhook | Webhook | Supabase | Logs Sentry error alerts |
+ | stripe-webhook | Webhook | Stripe | Handles all Stripe events |
+ | submit-tracking | Vendor | AfterShip | Submits order tracking |
+ | sync-donation-history | Auth/Cron | Stripe, Supabase | Syncs Stripe transactions to donation_stripe_transactions, filters marketplace |
+ | verify-marketplace-payment | Auth/Cron | Stripe, Supabase | Verifies payment + sends vendor notifications with inline retry |
 | update-sponsorship | Auth | Stripe | Updates sponsorship tier |
 | verify-marketplace-payment | Auth | Stripe | Polling-based marketplace payment verification |
 | verify-sponsorship-payment | Webhook | Stripe | Verifies payment completion |
@@ -199,16 +204,18 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - `submit-tracking` - Vendors submit order tracking
 
 ### Internal Only
-**Called only by database triggers, cron jobs, or other edge functions**
-
-- `send-notification-email` - Triggered by notification system
-- `send-digest-email` - Triggered by cron job
-- `send-approval-notification` - Triggered by approval system
-- `send-message-notification` - Triggered by message system
-- `send-sponsorship-receipt` - Triggered by payment webhook
-- `generate-receipts` - Triggered by cron job
-- `generate-year-end-summary` - Triggered by cron job
-- `notify-admin-new-contact` - Triggered by contact form
+ **Called only by database triggers, cron jobs, or other edge functions**
+ 
+ - `send-notification-email` - Triggered by notification system
+ - `send-digest-email` - Triggered by cron job
+ - `send-approval-notification` - Triggered by approval system
+ - `send-message-notification` - Triggered by message system
+ - `send-sponsorship-receipt` - Triggered by payment webhook
+ - `send-vendor-order-notification` - Triggered by verify-marketplace-payment and retry-vendor-order-notifications
+ - `retry-vendor-order-notifications` - Triggered by cron (hourly at :15)
+ - `generate-receipts` - Triggered by cron job
+ - `generate-year-end-summary` - Triggered by cron job
+ - `notify-admin-new-contact` - Triggered by contact form
 
 ### Webhook Signature Required
 **Verifies external service signatures for security**
@@ -394,4 +401,94 @@ try {
 
 ---
 
-**Last Updated:** 2025-10-22 - After comprehensive donation debugging
+### retry-vendor-order-notifications
+
+**Location:** `supabase/functions/retry-vendor-order-notifications/index.ts`
+
+**Auth:** None (cron-invoked, uses service role key internally)
+
+**Schedule:** `15 * * * *` (hourly at :15 past the hour)
+
+**Purpose:** Self-healing sweep that detects and retries missed vendor order notification emails.
+
+**Detection Rule:**
+An order_item is "missed" when ALL of these are true:
+- Parent order `status IN ('processing', 'shipped', 'completed')` AND `paid_at IS NOT NULL`
+- `vendor_id IS NOT NULL`
+- Order paid_at is between 5 minutes and 30 days old
+- No `email_notifications_log` row exists with `notification_type IN ('vendor_new_order', 'house_vendor_new_order')` AND matching `order_id` + `vendor_id` in metadata
+
+**Process:**
+1. Queries distinct `(order_id, vendor_id)` pairs from `order_items` joined to `orders`
+2. For each pair, checks `email_notifications_log` for existing success
+3. If missed, POSTs to `send-vendor-order-notification` with service role auth
+4. On failure, inserts `status='failed'` row into `email_notifications_log`
+5. After 5 consecutive failures, inserts `vendor_new_order_dlq` row and stops retrying
+
+**Response:**
+```typescript
+{
+  success: true,
+  processed: number,
+  succeeded: number,
+  failed: number,
+  skipped: number,
+  dlq: number,
+  details: Array<{ orderId, vendorId, action, ... }>
+}
+```
+
+**DLQ Behavior:**
+- After 5 failed attempts for same `(order_id, vendor_id)`, a `vendor_new_order_dlq` row is inserted
+- Admins can see DLQ items in the Email Log UI
+- Future sweeps skip DLQ items (idempotent)
+
+**See Also:** `docs/MARKETPLACE_CHECKOUT_SYSTEM.md`
+
+---
+
+### send-vendor-order-notification
+
+**Location:** `supabase/functions/send-vendor-order-notification/index.ts`
+
+**Auth:** None (internal, called by verify-marketplace-payment and retry-vendor-order-notifications)
+
+**Purpose:** Sends a new order email to a vendor and logs the result.
+
+**Request Body:**
+```typescript
+{
+  orderId: string,  // UUID of the order
+  vendorId: string  // UUID of the vendor
+}
+```
+
+**Process:**
+1. Fetches order and vendor details from database
+2. Generates email with order items for that vendor
+3. Sends via Resend to vendor's contact email
+4. **Inserts audit row into `email_notifications_log`** on success or failure
+
+**Audit Trail:**
+- Success → `notification_type: 'vendor_new_order'`, `status: 'sent'`
+- Failure → `notification_type: 'vendor_new_order'`, `status: 'failed'`
+
+**See Also:** `docs/MARKETPLACE_CHECKOUT_SYSTEM.md`
+
+---
+
+### verify-marketplace-payment (Updated)
+
+**Location:** `supabase/functions/verify-marketplace-payment/index.ts`
+
+**Auth:** Optional JWT on return from Stripe (customer may not be logged in)
+
+**Additional Behavior:**
+- After order status update, sends vendor notification email PER vendor in the order
+- **Inline retry:** If a vendor notification fetch fails, retries once with 1s backoff
+- Still swallows errors (does not fail verification) — cron safety net handles persistent failures
+- Calls `send-vendor-order-notification` with service role auth for each unique vendor
+
+---
+
+**Last Updated:** 2025-05-14 - Added retry-vendor-order-notifications and send-vendor-order-notification documentation
