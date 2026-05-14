@@ -22,7 +22,8 @@ import {
   Eye,
   Trash2,
   RefreshCw,
-  Truck
+  Truck,
+  Ban
 } from "lucide-react";
 import {
   Dialog,
