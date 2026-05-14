@@ -1270,6 +1270,56 @@ export const VendorManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Cancel & Refund Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={(o) => { if (!cancelLoading) setCancelDialogOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel order & refund customer?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {cancelOrder && (
+                  <div className="rounded-md bg-muted p-3 text-sm">
+                    <div><strong>Order:</strong> {cancelOrder.id.slice(0, 8)}...</div>
+                    <div><strong>Customer:</strong> {cancelOrder.customer_email || "Guest"}</div>
+                    <div><strong>Total:</strong> ${cancelOrder.total_amount?.toFixed(2)}</div>
+                    <div><strong>Stripe mode:</strong> {cancelOrder.stripe_mode || "test"}</div>
+                    {!cancelOrder.stripe_payment_intent_id && (
+                      <div className="mt-2 text-destructive font-medium">
+                        ⚠️ No Stripe payment id on this order — it will be marked cancelled but NO refund will be issued.
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="text-sm">
+                  This will issue a full refund through Stripe, mark the order and all its items as cancelled, and cannot be undone.
+                </p>
+                <div className="space-y-1 pt-2">
+                  <Label htmlFor="cancel-reason">Reason (optional, internal note)</Label>
+                  <Input
+                    id="cancel-reason"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="e.g. customer request, out of stock"
+                    disabled={cancelLoading}
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelLoading}>Keep order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void handleCancelAndRefund(); }}
+              disabled={cancelLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Cancel & Refund
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Product Image Lightbox */}
       <ImageLightbox
         images={lightboxImages}
