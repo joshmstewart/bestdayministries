@@ -204,16 +204,18 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 - `submit-tracking` - Vendors submit order tracking
 
 ### Internal Only
-**Called only by database triggers, cron jobs, or other edge functions**
-
-- `send-notification-email` - Triggered by notification system
-- `send-digest-email` - Triggered by cron job
-- `send-approval-notification` - Triggered by approval system
-- `send-message-notification` - Triggered by message system
-- `send-sponsorship-receipt` - Triggered by payment webhook
-- `generate-receipts` - Triggered by cron job
-- `generate-year-end-summary` - Triggered by cron job
-- `notify-admin-new-contact` - Triggered by contact form
+ **Called only by database triggers, cron jobs, or other edge functions**
+ 
+ - `send-notification-email` - Triggered by notification system
+ - `send-digest-email` - Triggered by cron job
+ - `send-approval-notification` - Triggered by approval system
+ - `send-message-notification` - Triggered by message system
+ - `send-sponsorship-receipt` - Triggered by payment webhook
+ - `send-vendor-order-notification` - Triggered by verify-marketplace-payment and retry-vendor-order-notifications
+ - `retry-vendor-order-notifications` - Triggered by cron (hourly at :15)
+ - `generate-receipts` - Triggered by cron job
+ - `generate-year-end-summary` - Triggered by cron job
+ - `notify-admin-new-contact` - Triggered by contact form
 
 ### Webhook Signature Required
 **Verifies external service signatures for security**
