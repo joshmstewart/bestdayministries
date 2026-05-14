@@ -22,7 +22,8 @@ import {
   Eye,
   Trash2,
   RefreshCw,
-  Truck
+  Truck,
+  Ban
 } from "lucide-react";
 import {
   Dialog,
@@ -158,6 +159,8 @@ interface Order {
   total_amount: number;
   customer_id: string;
   customer_email?: string;
+  stripe_payment_intent_id?: string | null;
+  stripe_mode?: string | null;
   order_items: {
     id: string;
     fulfillment_status: string;
@@ -199,7 +202,13 @@ export const VendorManagement = () => {
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  
+
+  // Cancel & refund state
+  const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<{ image_url: string; caption?: string }[]>([]);
@@ -343,7 +352,7 @@ export const VendorManagement = () => {
     // Fetch orders first
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
-      .select("id, created_at, status, total_amount, customer_id, customer_email")
+      .select("id, created_at, status, total_amount, customer_id, customer_email, stripe_payment_intent_id, stripe_mode")
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -434,6 +443,49 @@ export const VendorManagement = () => {
     // Allow deleting pending, processing, completed, and cancelled orders
     return ['pending', 'processing', 'completed', 'cancelled'].includes(status);
   };
+
+  // Helper: paid orders that can still be cancelled & refunded
+  const canCancelOrder = (status: string) => {
+    return ['pending', 'processing', 'completed'].includes(status);
+  };
+
+  const handleCancelAndRefund = async () => {
+    if (!cancelOrder) return;
+    try {
+      setCancelLoading(true);
+      const { data, error } = await supabase.functions.invoke('cancel-and-refund-order', {
+        body: { orderId: cancelOrder.id, reason: cancelReason || undefined },
+      });
+      if (error) throw error;
+      if (data?.refundError) {
+        toast({
+          title: "Order cancelled, refund FAILED",
+          description: `Order marked cancelled but Stripe refund failed: ${data.refundError}. Refund manually in Stripe.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Order cancelled & refunded",
+          description: data?.refundId
+            ? `Stripe refund ${data.refundId} issued.`
+            : "Order marked cancelled.",
+        });
+      }
+      setCancelDialogOpen(false);
+      setCancelOrder(null);
+      setCancelReason("");
+      await loadData();
+    } catch (err: any) {
+      toast({
+        title: "Cancel failed",
+        description: err?.message || "Could not cancel order",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
 
   // Get deletable orders from selection
   const getDeletableSelectedOrders = () => {
@@ -1059,6 +1111,22 @@ export const VendorManagement = () => {
                             <Mail className="h-4 w-4 mr-1" />
                             Test Email
                           </Button>
+                          {canCancelOrder(order.status) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setCancelOrder(order);
+                                setCancelReason("");
+                                setCancelDialogOpen(true);
+                              }}
+                              title="Cancel order and refund customer via Stripe"
+                              className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                            >
+                              <Ban className="h-4 w-4 mr-1" />
+                              Cancel & Refund
+                            </Button>
+                          )}
                           {canDeleteOrder(order.status) && (
                             <Button
                               size="icon"
@@ -1197,6 +1265,56 @@ export const VendorManagement = () => {
             >
               {deleteLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel & Refund Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={(o) => { if (!cancelLoading) setCancelDialogOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel order & refund customer?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {cancelOrder && (
+                  <div className="rounded-md bg-muted p-3 text-sm">
+                    <div><strong>Order:</strong> {cancelOrder.id.slice(0, 8)}...</div>
+                    <div><strong>Customer:</strong> {cancelOrder.customer_email || "Guest"}</div>
+                    <div><strong>Total:</strong> ${cancelOrder.total_amount?.toFixed(2)}</div>
+                    <div><strong>Stripe mode:</strong> {cancelOrder.stripe_mode || "test"}</div>
+                    {!cancelOrder.stripe_payment_intent_id && (
+                      <div className="mt-2 text-destructive font-medium">
+                        ⚠️ No Stripe payment id on this order — it will be marked cancelled but NO refund will be issued.
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="text-sm">
+                  This will issue a full refund through Stripe, mark the order and all its items as cancelled, and cannot be undone.
+                </p>
+                <div className="space-y-1 pt-2">
+                  <Label htmlFor="cancel-reason">Reason (optional, internal note)</Label>
+                  <Input
+                    id="cancel-reason"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="e.g. customer request, out of stock"
+                    disabled={cancelLoading}
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelLoading}>Keep order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void handleCancelAndRefund(); }}
+              disabled={cancelLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {cancelLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Cancel & Refund
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
