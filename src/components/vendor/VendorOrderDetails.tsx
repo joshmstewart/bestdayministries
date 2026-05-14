@@ -237,9 +237,23 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
               <Package className="h-4 w-4" />
               Customer
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {order.customer?.display_name || 'Guest Customer'}
-            </p>
+            <div className="text-sm text-muted-foreground space-y-0.5">
+              <p>
+                {order.customer?.display_name ||
+                  order.shipping_address?.name ||
+                  'Guest Customer'}
+              </p>
+              {order.customer_email && (
+                <p>
+                  <a
+                    href={`mailto:${order.customer_email}`}
+                    className="text-primary hover:underline break-all"
+                  >
+                    {order.customer_email}
+                  </a>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Shipping Address */}
