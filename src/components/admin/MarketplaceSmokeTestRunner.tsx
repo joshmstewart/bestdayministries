@@ -27,7 +27,7 @@ export const MarketplaceSmokeTestRunner = () => {
     const { data } = await supabase.from("e2e_test_runs")
       .select("*").eq("test_type", "marketplace")
       .order("started_at", { ascending: false }).limit(10);
-    setHistory((data ?? []) as RunRow[]);
+    setHistory((data ?? []) as unknown as RunRow[]);
   };
 
   useEffect(() => { loadHistory(); }, []);
