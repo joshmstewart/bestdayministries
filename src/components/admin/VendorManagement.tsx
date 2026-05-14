@@ -345,7 +345,7 @@ export const VendorManagement = () => {
     // Fetch orders first
     const { data: ordersData, error: ordersError } = await supabase
       .from("orders")
-      .select("id, created_at, status, total_amount, customer_id, customer_email")
+      .select("id, created_at, status, total_amount, customer_id, customer_email, stripe_payment_intent_id, stripe_mode")
       .order("created_at", { ascending: false })
       .limit(50);
 
