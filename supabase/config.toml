@@ -131,7 +131,7 @@ verify_jwt = true
 
 [functions.process-newsletter-queue]
 verify_jwt = false
-schedule = "* * * * *"
+schedule = "*/5 * * * *"
 
 [functions.send-test-newsletter]
 verify_jwt = true
@@ -314,7 +314,7 @@ schedule = "0 12 * * 1"
 
 [functions.process-event-email-queue]
 verify_jwt = false
-schedule = "* * * * *"
+schedule = "*/5 * * * *"
 
 [functions.award-time-trial-rewards]
 verify_jwt = false
