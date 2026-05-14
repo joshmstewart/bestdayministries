@@ -304,6 +304,10 @@ schedule = "0 */4 * * *"
 verify_jwt = false
 schedule = "0 * * * *"
 
+[functions.retry-vendor-order-notifications]
+verify_jwt = false
+schedule = "15 * * * *"
+
 [functions.process-platform-payout]
 verify_jwt = false
 schedule = "0 12 * * 1"
