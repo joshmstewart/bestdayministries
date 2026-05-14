@@ -89,6 +89,8 @@ serve(async (req) => {
     // --- Refund via Stripe (best-effort) ---
     let refundId: string | null = null;
     let refundError: string | null = null;
+    let refundAmount: number | null = null;
+    let refundCurrency: string | null = null;
 
     if (order.stripe_payment_intent_id) {
       const stripeMode = order.stripe_mode || "test";
@@ -119,7 +121,9 @@ serve(async (req) => {
               metadata: { orderId, cancelledBy: userId, reason: reason || "" },
             });
             refundId = refund.id;
-            log("Refund created", { refundId, amount: refund.amount });
+            refundAmount = typeof refund.amount === "number" ? refund.amount : null;
+            refundCurrency = refund.currency || null;
+            log("Refund created", { refundId, amount: refund.amount, currency: refund.currency });
           } else {
             refundError = `Unrecognized payment id: ${paymentIntentId}`;
           }
@@ -223,6 +227,8 @@ serve(async (req) => {
         orderId,
         refundId,
         refundError,
+        refundAmount,
+        refundCurrency,
         emailSent,
         emailError,
       }),

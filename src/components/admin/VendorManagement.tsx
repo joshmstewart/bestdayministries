@@ -208,6 +208,12 @@ export const VendorManagement = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelResult, setCancelResult] = useState<{
+    refundId: string | null;
+    refundAmount: number | null;
+    refundCurrency: string | null;
+    refundError: string | null;
+  } | null>(null);
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -449,14 +455,33 @@ export const VendorManagement = () => {
     return ['pending', 'processing', 'completed'].includes(status);
   };
 
+  const formatRefundAmount = (amount: number | null, currency: string | null) => {
+    if (amount == null) return null;
+    const major = amount / 100;
+    const cur = (currency || "usd").toUpperCase();
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(major);
+    } catch {
+      return `${major.toFixed(2)} ${cur}`;
+    }
+  };
+
   const handleCancelAndRefund = async () => {
     if (!cancelOrder) return;
     try {
       setCancelLoading(true);
+      setCancelResult(null);
       const { data, error } = await supabase.functions.invoke('cancel-and-refund-order', {
         body: { orderId: cancelOrder.id, reason: cancelReason || undefined },
       });
       if (error) throw error;
+      setCancelResult({
+        refundId: data?.refundId ?? null,
+        refundAmount: data?.refundAmount ?? null,
+        refundCurrency: data?.refundCurrency ?? null,
+        refundError: data?.refundError ?? null,
+      });
+      const formatted = formatRefundAmount(data?.refundAmount ?? null, data?.refundCurrency ?? null);
       if (data?.refundError) {
         toast({
           title: "Order cancelled, refund FAILED",
@@ -467,13 +492,10 @@ export const VendorManagement = () => {
         toast({
           title: "Order cancelled & refunded",
           description: data?.refundId
-            ? `Stripe refund ${data.refundId} issued.`
+            ? `Stripe refund ${data.refundId}${formatted ? ` for ${formatted}` : ""} issued.`
             : "Order marked cancelled.",
         });
       }
-      setCancelDialogOpen(false);
-      setCancelOrder(null);
-      setCancelReason("");
       await loadData();
     } catch (err: any) {
       toast({
@@ -1271,10 +1293,27 @@ export const VendorManagement = () => {
       </AlertDialog>
 
       {/* Cancel & Refund Dialog */}
-      <AlertDialog open={cancelDialogOpen} onOpenChange={(o) => { if (!cancelLoading) setCancelDialogOpen(o); }}>
+      <AlertDialog
+        open={cancelDialogOpen}
+        onOpenChange={(o) => {
+          if (cancelLoading) return;
+          setCancelDialogOpen(o);
+          if (!o) {
+            setCancelOrder(null);
+            setCancelReason("");
+            setCancelResult(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel order & refund customer?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {cancelResult
+                ? cancelResult.refundError
+                  ? "Order cancelled — refund failed"
+                  : "Order cancelled & refunded"
+                : "Cancel order & refund customer?"}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 {cancelOrder && (
@@ -1283,39 +1322,84 @@ export const VendorManagement = () => {
                     <div><strong>Customer:</strong> {cancelOrder.customer_email || "Guest"}</div>
                     <div><strong>Total:</strong> ${cancelOrder.total_amount?.toFixed(2)}</div>
                     <div><strong>Stripe mode:</strong> {cancelOrder.stripe_mode || "test"}</div>
-                    {!cancelOrder.stripe_payment_intent_id && (
+                    {!cancelOrder.stripe_payment_intent_id && !cancelResult && (
                       <div className="mt-2 text-destructive font-medium">
                         ⚠️ No Stripe payment id on this order — it will be marked cancelled but NO refund will be issued.
                       </div>
                     )}
                   </div>
                 )}
-                <p className="text-sm">
-                  This will issue a full refund through Stripe, mark the order and all its items as cancelled, and cannot be undone.
-                </p>
-                <div className="space-y-1 pt-2">
-                  <Label htmlFor="cancel-reason">Reason (optional, internal note)</Label>
-                  <Input
-                    id="cancel-reason"
-                    value={cancelReason}
-                    onChange={(e) => setCancelReason(e.target.value)}
-                    placeholder="e.g. customer request, out of stock"
-                    disabled={cancelLoading}
-                  />
-                </div>
+
+                {cancelResult && !cancelResult.refundError && cancelResult.refundId && (
+                  <div className="rounded-md border border-green-500/40 bg-green-500/10 p-3 text-sm space-y-1">
+                    <div className="font-semibold text-green-700 dark:text-green-400">
+                      Stripe refund issued
+                    </div>
+                    <div>
+                      <strong>Amount refunded:</strong>{" "}
+                      {formatRefundAmount(cancelResult.refundAmount, cancelResult.refundCurrency) ?? "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground break-all">
+                      Refund ID: {cancelResult.refundId}
+                    </div>
+                  </div>
+                )}
+
+                {cancelResult?.refundError && (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm space-y-1">
+                    <div className="font-semibold text-destructive">Refund failed</div>
+                    <div className="text-xs break-all">{cancelResult.refundError}</div>
+                    <div className="text-xs text-muted-foreground">
+                      The order is cancelled. Issue the refund manually in Stripe.
+                    </div>
+                  </div>
+                )}
+
+                {!cancelResult && (
+                  <>
+                    <p className="text-sm">
+                      This will issue a full refund through Stripe, mark the order and all its items as cancelled, and cannot be undone.
+                    </p>
+                    <div className="space-y-1 pt-2">
+                      <Label htmlFor="cancel-reason">Reason (optional, internal note)</Label>
+                      <Input
+                        id="cancel-reason"
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="e.g. customer request, out of stock"
+                        disabled={cancelLoading}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelLoading}>Keep order</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); void handleCancelAndRefund(); }}
-              disabled={cancelLoading}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {cancelLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Cancel & Refund
-            </AlertDialogAction>
+            {cancelResult ? (
+              <AlertDialogAction
+                onClick={() => {
+                  setCancelDialogOpen(false);
+                  setCancelOrder(null);
+                  setCancelReason("");
+                  setCancelResult(null);
+                }}
+              >
+                Done
+              </AlertDialogAction>
+            ) : (
+              <>
+                <AlertDialogCancel disabled={cancelLoading}>Keep order</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={(e) => { e.preventDefault(); void handleCancelAndRefund(); }}
+                  disabled={cancelLoading}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {cancelLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Cancel & Refund
+                </AlertDialogAction>
+              </>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
