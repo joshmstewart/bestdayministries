@@ -73,10 +73,11 @@ else
 fi
 
 cleanup() {
-  echo "▶ Cleaning up synthetic order $ORDER_ID…"
-  psql -q -c "DELETE FROM public.order_items WHERE order_id = '$ORDER_ID';" >/dev/null || true
-  psql -q -c "DELETE FROM public.orders      WHERE id       = '$ORDER_ID';" >/dev/null || true
-  echo "  ✓ cleaned"
+  echo "▶ Cleaning up synthetic test orders via cleanup-cancel-refund-test-orders…"
+  CLEAN=$(curl -s -X POST "$URL/functions/v1/cleanup-cancel-refund-test-orders" \
+    -H "apikey: $ANON" -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" -d '{}')
+  echo "  → $CLEAN"
 }
 trap cleanup EXIT
 
@@ -92,12 +93,25 @@ echo "  $BODY"
 
 [ "$HTTP" = "200" ] || { echo "✗ expected HTTP 200"; exit 1; }
 
-ok() { python3 -c "import json,sys;d=json.loads('''$BODY''');assert $1, 'assertion failed: $1 → '+json.dumps(d)" ; }
-ok "d.get('success') is True"
-ok "d.get('orderId') == '$ORDER_ID'"
-ok "d.get('refundId') is None"
-ok "isinstance(d.get('refundError'), str) and 'no stripe payment id' in d['refundError'].lower()"
-echo "  ✓ response shape OK (success, no refund attempted as expected)"
+BODY="$BODY" ORDER_ID="$ORDER_ID" python3 - <<'PY'
+import json, os, sys
+d = json.loads(os.environ["BODY"])
+oid = os.environ["ORDER_ID"]
+checks = [
+    ("success is True", d.get("success") is True),
+    ("orderId matches",  d.get("orderId") == oid),
+    ("refundId is None", d.get("refundId") is None),
+    ("refundError mentions missing Stripe PI",
+     isinstance(d.get("refundError"), str)
+     and "no stripe payment id" in d["refundError"].lower()),
+]
+fails = [name for name, ok in checks if not ok]
+if fails:
+    print("✗ assertion failures:", fails, file=sys.stderr)
+    print("  body:", json.dumps(d), file=sys.stderr)
+    sys.exit(1)
+print("  ✓ response shape OK (success, no refund attempted as expected)")
+PY
 
 echo "▶ Verifying DB side-effects…"
 STATUS=$(psql -At -c "SELECT status FROM public.orders WHERE id = '$ORDER_ID';")
