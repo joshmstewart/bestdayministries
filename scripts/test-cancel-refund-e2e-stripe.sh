@@ -93,17 +93,18 @@ echo "  HTTP $HTTP"
 echo "  $BODY"
 [ "$HTTP" = "200" ] || { echo "✗ expected 200"; exit 1; }
 
-REFUND_ID=$(BODY="$BODY" python3 -c '
+REFUND_ID=$(BODY="$BODY" python3 <<'PY'
 import json, os
 d = json.loads(os.environ["BODY"])
 assert d.get("success") is True, d
-assert d.get("refundError") is None, f"unexpected refundError: {d.get(\"refundError\")}"
+assert d.get("refundError") is None, "unexpected refundError: " + str(d.get("refundError"))
 assert isinstance(d.get("refundId"), str) and d["refundId"].startswith("re_"), d
 assert d.get("refundAmount") == 199, d
 assert d.get("refundCurrency") == "usd", d
-assert d.get("emailSent") is True, f"emailSent={d.get(\"emailSent\")} emailError={d.get(\"emailError\")}"
+assert d.get("emailSent") is True, "emailSent=" + str(d.get("emailSent")) + " emailError=" + str(d.get("emailError"))
 print(d["refundId"])
-')
+PY
+)
 echo "  ✓ refund: $REFUND_ID  (199 usd, email sent)"
 
 echo "▶ Verifying refund directly from Stripe…"
