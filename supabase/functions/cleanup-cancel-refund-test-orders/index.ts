@@ -64,14 +64,26 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Find marker rows
+    // Find marker rows (cancel-and-refund overwrites notes, so also accept
+    // an explicit orderIds list from the caller for post-cancel cleanup).
+    let explicitIds: string[] = [];
+    try {
+      const body = await req.json();
+      if (Array.isArray(body?.orderIds)) {
+        explicitIds = body.orderIds.filter((x: any) => typeof x === "string");
+      }
+    } catch (_) { /* no body is fine */ }
+
     const { data: targets, error: findErr } = await admin
       .from("orders")
       .select("id")
       .like("notes", `%${TEST_MARKER}%`);
     if (findErr) throw findErr;
 
-    const ids = (targets || []).map((r: any) => r.id);
+    const ids = Array.from(new Set([
+      ...(targets || []).map((r: any) => r.id),
+      ...explicitIds,
+    ]));
     if (ids.length === 0) {
       return new Response(
         JSON.stringify({ success: true, deletedOrders: 0, deletedItems: 0 }),
