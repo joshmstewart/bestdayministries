@@ -73,12 +73,12 @@ ORDER_ID=$(psql -At -q -X -c "
 echo "  ✓ order: $ORDER_ID  (customer: $CUSTOMER_EMAIL)"
 
 cleanup() {
-  # cancel-and-refund overwrites notes (removing the marker), so the
-  # cleanup edge fn won't find the row by LIKE. Delete by id directly.
-  echo "▶ Cleaning up synthetic order $ORDER_ID…"
-  psql -q -c "DELETE FROM public.order_items WHERE order_id='$ORDER_ID';" >/dev/null || true
-  psql -q -c "DELETE FROM public.orders      WHERE id      ='$ORDER_ID';" >/dev/null || true
-  echo "  ✓ deleted"
+  echo "▶ Cleaning up synthetic order $ORDER_ID via cleanup edge fn…"
+  curl -s -X POST "$URL/functions/v1/cleanup-cancel-refund-test-orders" \
+    -H "apikey: $ANON" -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"orderIds\":[\"$ORDER_ID\"]}"
+  echo
 }
 trap cleanup EXIT
 
