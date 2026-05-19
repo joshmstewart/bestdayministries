@@ -708,12 +708,42 @@ function extractCcFromRaw(raw: string): string[] {
  * Attempts to remove quoted replies, signatures, and other noise
  */
 function extractMessageContent(content: string): string {
-  // Remove base64-encoded attachment data blocks (prevents PDF/image data in message body)
-  let text = content.replace(/[A-Za-z0-9+/=]{100,}/g, ' [attachment data removed] ');
-  
+  let text = content;
+
+  // Extract text/plain MIME part FIRST (before any base64 stripping)
+  // so we can detect Content-Transfer-Encoding: base64 and decode it properly.
+  const partMatch = text.match(
+    /Content-Type:\s*text\/plain[^\n]*\r?\n((?:[^\n]+\r?\n)*?)\r?\n([\s\S]*?)(?=\r?\n--[_\-0-9a-zA-Z]+|$)/i
+  );
+  if (partMatch) {
+    const partHeaders = partMatch[1] || '';
+    let body = partMatch[2] || '';
+    const encMatch = partHeaders.match(/Content-Transfer-Encoding:\s*([^\r\n;]+)/i);
+    const encoding = (encMatch?.[1] || '').trim().toLowerCase();
+
+    if (encoding === 'base64') {
+      try {
+        const cleaned = body.replace(/[^A-Za-z0-9+/=]/g, '');
+        const bytes = Uint8Array.from(atob(cleaned), c => c.charCodeAt(0));
+        body = new TextDecoder('utf-8').decode(bytes);
+        console.log('[extractMessageContent] Decoded base64 text/plain body');
+      } catch (e) {
+        console.error('[extractMessageContent] base64 decode failed:', e);
+      }
+    } else if (encoding === 'quoted-printable') {
+      body = body
+        .replace(/=\r?\n/g, '')
+        .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+    text = body;
+  }
+
+  // Remove leftover base64-encoded attachment data blocks
+  text = text.replace(/[A-Za-z0-9+/=]{100,}/g, ' [attachment data removed] ');
+
   // Remove HTML tags if present
   text = text.replace(/<[^>]*>/g, ' ');
-  
+
   // Decode HTML entities
   text = text
     .replace(/&nbsp;/g, ' ')
@@ -722,14 +752,6 @@ function extractMessageContent(content: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'");
-  
-  // Handle MIME multipart boundaries - more robust parsing
-  // Match patterns like --_000_BY1PR06MB909466DE7368... or --000000000000...
-  // First try to extract text/plain content
-  const textPlainMatch = text.match(/Content-Type:\s*text\/plain[^\n]*(?:\n[^\n]+)*\n\n([\s\S]*?)(?=--[_\-0-9a-zA-Z]+|$)/i);
-  if (textPlainMatch && textPlainMatch[1]) {
-    text = textPlainMatch[1];
-  }
   
   // Remove all MIME boundary markers (various formats)
   // Match patterns like: --_000_xxx, --000000000, --boundary_xxx, etc.
