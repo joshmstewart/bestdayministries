@@ -49,6 +49,13 @@ export function AppRecoveryBanner() {
     setShowBanner(false);
   };
 
+  const handleContinue = () => {
+    // User wants to try the site as-is — clear the attempt counter so we don't
+    // immediately re-show the banner, and hide it for this session.
+    resetRecoveryAttempts();
+    setShowBanner(false);
+  };
+
   if (!showBanner) {
     return null;
   }
