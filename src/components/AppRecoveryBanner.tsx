@@ -89,23 +89,33 @@ export function AppRecoveryBanner() {
             </p>
 
             {!showManualInstructions ? (
-              <Button 
-                onClick={handleFixNow} 
-                disabled={isRecovering}
-                className="w-full"
-              >
-                {isRecovering ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Fixing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Fix Now
-                  </>
-                )}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  onClick={handleFixNow}
+                  disabled={isRecovering}
+                  className="w-full"
+                >
+                  {isRecovering ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Fixing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Fix Now
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleContinue}
+                  disabled={isRecovering}
+                  className="w-full"
+                >
+                  Continue to site anyway
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm font-medium text-destructive">
