@@ -151,13 +151,18 @@ export function sanitizeBrowserStorageForStartup() {
 
 function shouldForceRefreshFromError(message: string): boolean {
   const m = message.toLowerCase();
+  // Only trigger on errors that are *specifically* about stale/missing JS chunks.
+  // We intentionally DO NOT match generic "unexpected token" or "syntax error" —
+  // those fire for any random JS error (browser extensions, third-party scripts,
+  // Sentry, etc.) and were causing Safari users to get stuck in an endless
+  // cache-clear → reload → recovery-banner loop.
   return (
     m.includes("chunkloaderror") ||
     m.includes("loading chunk") ||
+    m.includes("loading css chunk") ||
     m.includes("importing a module script failed") ||
     m.includes("failed to fetch dynamically imported module") ||
-    m.includes("unexpected token") ||
-    m.includes("syntax error")
+    m.includes("error loading dynamically imported module")
   );
 }
 
