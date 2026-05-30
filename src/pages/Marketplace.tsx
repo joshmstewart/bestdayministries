@@ -237,6 +237,57 @@ const Marketplace = () => {
 
   // Show access denied message if user doesn't have access
   if (accessCheck && !accessCheck.hasAccess) {
+    // Branded "Coming Soon" experience when the shop is intentionally closed to non-admins
+    if (accessCheck.restrictionReason === 'admins_only') {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <UnifiedHeader />
+          <main className="flex-1 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10">
+            <section className="container mx-auto px-4 pt-32 pb-20 flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center mb-6 shadow-lg">
+                <Heart className="w-10 h-10 text-white" />
+              </div>
+
+              <h1 className="font-heading text-4xl md:text-5xl font-bold text-foreground mb-4">
+                Joy House Store
+              </h1>
+              <p className="text-xl md:text-2xl font-semibold text-primary mb-4">
+                Coming Soon
+              </p>
+              <p className="text-muted-foreground max-w-xl mb-10">
+                We're putting the finishing touches on a joyful gift shop celebrating ability, belonging, and purpose. Every purchase will directly support adults with special needs in building independence.
+              </p>
+
+              <Card className="max-w-xl w-full bg-card/80 backdrop-blur-sm border-primary/20 mb-8">
+                <CardContent className="p-5 flex items-center gap-3 text-left">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center flex-shrink-0">
+                    <Heart className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-base">More Than a Shop</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Want to be the first to know when we open? Join our newsletter for the launch announcement.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Button onClick={() => navigate('/newsletter')}>
+                  Notify Me at Launch
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/')}>
+                  Back to Home
+                </Button>
+              </div>
+            </section>
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
+    // Fallback for test_mode / authenticated restrictions
     return (
       <div className="min-h-screen flex flex-col">
         <UnifiedHeader />
@@ -250,9 +301,7 @@ const Marketplace = () => {
               <CardDescription>
                 {accessCheck.restrictionReason === 'test_mode'
                   ? "The store is temporarily down for maintenance. Please check back later."
-                  : accessCheck.restrictionReason === 'admins_only' 
-                    ? "The store is currently in maintenance mode. Please check back later."
-                    : "Please sign in to access the store."}
+                  : "Please sign in to access the store."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -268,6 +317,7 @@ const Marketplace = () => {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen flex flex-col">
