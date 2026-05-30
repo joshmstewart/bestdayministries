@@ -232,50 +232,9 @@ serve(async (req) => {
       html_content: emailHtml,
     });
 
-    // Send to vendor owners and team members
-    if (uniqueVendorEmails.length > 0) {
-      const vendorEmailHtml = emailHtml.replace(
-        'Order Confirmed! 🎉',
-        '🛒 New Order Received!'
-      ).replace(
-        'Thank you for your purchase',
-        `Order from ${customerEmail}`
-      );
-
-      for (let i = 0; i < uniqueVendorEmails.length; i++) {
-        const vendorEmail = uniqueVendorEmails[i];
-        // Rate limit: wait before sending (except first email after customer email)
-        if (i > 0) await emailDelay();
-        
-        try {
-          const vendorEmailResponse = await resend.emails.send({
-            from: "Joy House Store <orders@bestdayministries.org>",
-            to: [vendorEmail],
-            subject: `🛒 New Order - #${orderId.substring(0, 8).toUpperCase()}`,
-            html: vendorEmailHtml,
-          });
-
-          const vendorEmailId = vendorEmailResponse?.data?.id || 'unknown';
-          logStep("Vendor email sent", { vendorEmail, vendorEmailId });
-
-          await supabaseClient.from("email_audit_log").insert({
-            email_type: "order_notification_vendor",
-            recipient_email: vendorEmail,
-            subject: `🛒 New Order - #${orderId.substring(0, 8).toUpperCase()}`,
-            from_email: "orders@bestdayministries.org",
-            from_name: "Joy House Store",
-            status: "sent",
-            related_type: "order",
-            related_id: orderId,
-            resend_email_id: vendorEmailId,
-            sent_at: new Date().toISOString(),
-            html_content: vendorEmailHtml,
-          });
-        } catch (vendorError) {
-          logStep("Vendor email failed", { vendorEmail, error: String(vendorError) });
-        }
-      }
-    }
+    // NOTE: Vendor notifications are sent exclusively by `send-vendor-order-notification`.
+    // Previously this function also sent a vendor copy, causing duplicate vendor emails.
+    // Do NOT re-add a vendor send here.
 
     return new Response(
       JSON.stringify({ success: true, emailId, vendorEmailsSent: uniqueVendorEmails.length }),
