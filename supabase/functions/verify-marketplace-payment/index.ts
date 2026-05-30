@@ -330,10 +330,16 @@ serve(async (req) => {
 
       logStep("Updating order", { order_id, updatePayload });
 
-      const { error: updateError } = await supabaseClient
+      // ATOMIC IDEMPOTENCY GUARD: only the first concurrent caller will match
+      // status='pending' and update a row. Any subsequent caller (React StrictMode
+      // double-mount, polling retry, etc.) will update 0 rows and exit early,
+      // preventing duplicate vendor/customer notification emails.
+      const { data: updatedRows, error: updateError } = await supabaseClient
         .from("orders")
         .update(updatePayload)
-        .eq("id", order_id);
+        .eq("id", order_id)
+        .eq("status", "pending")
+        .select("id");
 
       if (updateError) {
         return await respondFailure(400, `Failed to update order: ${updateError.message}`, {
@@ -342,6 +348,18 @@ serve(async (req) => {
           stripe_mode: stripeMode,
           update_payload: updatePayload,
         });
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        logStep("Order already transitioned out of pending by a concurrent caller — skipping notifications", { order_id });
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: "processing",
+            message: "Payment already verified (concurrent)",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
       }
 
       logStep("Order updated", { status: "processing" });
