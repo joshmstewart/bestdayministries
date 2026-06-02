@@ -1,0 +1,2 @@
+UPDATE public.sticker_collections SET is_featured = false WHERE id = '2b452629-4d65-4e66-947e-882f7865555e';
+UPDATE public.sticker_collections SET is_featured = true WHERE id = '1c317413-1cd6-44f6-8dd8-43dac3a7de0d';
