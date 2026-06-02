@@ -1,0 +1,1 @@
+UPDATE public.sticker_collections SET preview_sticker_id = '4e8d7f0d-bc5c-45ab-9bee-6578dd180186' WHERE id = '1c317413-1cd6-44f6-8dd8-43dac3a7de0d';
