@@ -961,6 +961,22 @@ export const StickerCollectionManager = () => {
   };
 
   const toggleCollectionFeatured = async (id: string, currentlyFeatured: boolean) => {
+    // Only one collection can be featured at a time (enforced by
+    // idx_single_featured_collection unique partial index). Unset any other
+    // currently-featured collection before setting this one.
+    if (!currentlyFeatured) {
+      const { error: unsetError } = await supabase
+        .from('sticker_collections')
+        .update({ is_featured: false })
+        .eq('is_featured', true)
+        .neq('id', id);
+
+      if (unsetError) {
+        toast({ title: "Error", description: unsetError.message, variant: "destructive" });
+        return;
+      }
+    }
+
     const { error } = await supabase
       .from('sticker_collections')
       .update({ is_featured: !currentlyFeatured })
