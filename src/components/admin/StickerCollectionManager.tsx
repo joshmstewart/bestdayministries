@@ -961,13 +961,16 @@ export const StickerCollectionManager = () => {
   };
 
   const toggleCollectionFeatured = async (id: string, currentlyFeatured: boolean) => {
+    const today = new Date().toISOString().split('T')[0];
+
     // Only one collection can be featured at a time (enforced by
     // idx_single_featured_collection unique partial index). Unset any other
-    // currently-featured collection before setting this one.
+    // currently-featured collection first AND clear its featured_start_date so
+    // the UI's date-based "calculated featured" logic doesn't keep showing it.
     if (!currentlyFeatured) {
       const { error: unsetError } = await supabase
         .from('sticker_collections')
-        .update({ is_featured: false })
+        .update({ is_featured: false, featured_start_date: null })
         .eq('is_featured', true)
         .neq('id', id);
 
@@ -977,9 +980,15 @@ export const StickerCollectionManager = () => {
       }
     }
 
+    // When featuring, also set featured_start_date=today so the display logic
+    // (which derives "featured" from featured_start_date) picks it up.
+    // When unfeaturing, clear the date too.
     const { error } = await supabase
       .from('sticker_collections')
-      .update({ is_featured: !currentlyFeatured })
+      .update({
+        is_featured: !currentlyFeatured,
+        featured_start_date: !currentlyFeatured ? today : null,
+      })
       .eq('id', id);
 
     if (error) {
