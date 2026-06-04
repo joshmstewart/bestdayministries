@@ -27,6 +27,7 @@ interface FeaturedItem {
   display_order: number;
   is_public: boolean;
   visible_to_roles: string[];
+  display_locations: string[] | null;
 }
 
 export const FeaturedItemManager = () => {
@@ -53,6 +54,7 @@ export const FeaturedItemManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPublic, setIsPublic] = useState(true);
   const [visibleToRoles, setVisibleToRoles] = useState<string[]>(['caregiver', 'bestie', 'supporter']);
+  const [displayLocations, setDisplayLocations] = useState<string[]>(['landing', 'community']);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string>("");
   const [originalImageUrl, setOriginalImageUrl] = useState<string>("");
