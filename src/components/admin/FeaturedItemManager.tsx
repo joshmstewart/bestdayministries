@@ -210,7 +210,7 @@ export const FeaturedItemManager = () => {
           title: ride.title || "",
           description: ride.description || "",
           image_url: defaultImage,
-          link_url: `/bike-ride/${ride.slug}`,
+          link_url: `/bike-rides/${ride.slug}`,
         });
         if (defaultImage) {
           setImagePreview(defaultImage);
@@ -265,7 +265,7 @@ export const FeaturedItemManager = () => {
       toast.error("Please select a page");
       return;
     } else if (linkType === "bikeRide") {
-      if (!formData.link_url.startsWith("/bike-ride/")) {
+      if (!formData.link_url.startsWith("/bike-rides/")) {
         toast.error("Please select a bike ride");
         return;
       }
@@ -360,7 +360,7 @@ export const FeaturedItemManager = () => {
       setLinkType("post");
     } else if (item.link_url === "/sponsor-bestie") {
       setLinkType("sponsorship");
-    } else if (item.link_url.startsWith("/bike-ride/")) {
+    } else if (item.link_url.startsWith("/bike-rides/")) {
       setLinkType("bikeRide");
     } else if (INTERNAL_PAGES.some(p => p.value === item.link_url)) {
       setLinkType("page");
@@ -625,7 +625,7 @@ export const FeaturedItemManager = () => {
               <div>
                 <Label>Select Bike Ride</Label>
                 <Select
-                  value={bikeRides.find(r => `/bike-ride/${r.slug}` === formData.link_url)?.id || ""}
+                  value={bikeRides.find(r => `/bike-rides/${r.slug}` === formData.link_url)?.id || ""}
                   onValueChange={(value) => handleLinkSelection("bikeRide", value)}
                 >
                   <SelectTrigger>
