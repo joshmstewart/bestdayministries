@@ -174,8 +174,54 @@ export const FeaturedItemManager = () => {
           setImagePreview(post.image_url);
           setOriginalImageUrl(post.image_url);
         }
+        setAvailableImages([]);
+      }
+    } else if (type === "bikeRide") {
+      const ride = bikeRides.find(r => r.id === id);
+      if (ride) {
+        // Fetch scenic photos for this ride
+        const { data: scenics } = await supabase
+          .from("bike_ride_scenic_photos")
+          .select("image_url, caption, is_default, display_order")
+          .eq("event_id", id)
+          .order("display_order", { ascending: true });
+
+        const imgs: { url: string; label: string }[] = [];
+        if (ride.cover_image_url) imgs.push({ url: ride.cover_image_url, label: "Cover" });
+        if (ride.rider_image_url) imgs.push({ url: ride.rider_image_url, label: "Rider" });
+        if (ride.race_logo_url) imgs.push({ url: ride.race_logo_url, label: "Race Logo" });
+        if (ride.route_map_image_url) imgs.push({ url: ride.route_map_image_url, label: "Route Map" });
+        (scenics || []).forEach((s, i) => {
+          if (s.image_url) imgs.push({ url: s.image_url, label: s.caption || `Scenic ${i + 1}` });
+        });
+
+        const defaultImage =
+          scenics?.find(s => s.is_default)?.image_url ||
+          ride.cover_image_url ||
+          imgs[0]?.url ||
+          "";
+
+        setFormData({
+          ...formData,
+          title: ride.title || "",
+          description: ride.description || "",
+          image_url: defaultImage,
+          link_url: `/bike-ride/${ride.slug}`,
+        });
+        if (defaultImage) {
+          setImagePreview(defaultImage);
+          setOriginalImageUrl(defaultImage);
+        }
+        setAvailableImages(imgs);
       }
     }
+  };
+
+  const selectAvailableImage = (url: string) => {
+    setImageFile(null);
+    setFormData({ ...formData, image_url: url });
+    setImagePreview(url);
+    setOriginalImageUrl(url);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
