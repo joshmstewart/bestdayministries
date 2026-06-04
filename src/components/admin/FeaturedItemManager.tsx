@@ -318,6 +318,7 @@ export const FeaturedItemManager = () => {
         is_active: true,
         is_public: isPublic,
         visible_to_roles: finalVisibleRoles,
+        display_locations: displayLocations.length > 0 ? displayLocations : ['landing', 'community'],
       };
 
       if (editingId) {
@@ -378,6 +379,7 @@ export const FeaturedItemManager = () => {
     
     setIsPublic(item.is_public ?? true);
     setVisibleToRoles(item.visible_to_roles?.filter(r => !['admin', 'owner'].includes(r)) || ['caregiver', 'bestie', 'supporter']);
+    setDisplayLocations(item.display_locations && item.display_locations.length > 0 ? item.display_locations : ['landing', 'community']);
     setAspectRatioKey((item.aspect_ratio as any) || '16:9');
     
     if (item.image_url) {
@@ -443,6 +445,7 @@ export const FeaturedItemManager = () => {
     setAspectRatioKey('16:9');
     setIsPublic(true);
     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
+    setDisplayLocations(['landing', 'community']);
     setAvailableImages([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -851,6 +854,43 @@ export const FeaturedItemManager = () => {
                   </label>
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+              <Label>Show On Pages</Label>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="loc-landing"
+                    checked={displayLocations.includes('landing')}
+                    onCheckedChange={(checked) => {
+                      setDisplayLocations(checked
+                        ? [...displayLocations, 'landing']
+                        : displayLocations.filter(l => l !== 'landing'));
+                    }}
+                  />
+                  <label htmlFor="loc-landing" className="text-sm font-medium leading-none">
+                    Landing Page (Home)
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="loc-community"
+                    checked={displayLocations.includes('community')}
+                    onCheckedChange={(checked) => {
+                      setDisplayLocations(checked
+                        ? [...displayLocations, 'community']
+                        : displayLocations.filter(l => l !== 'community'));
+                    }}
+                  />
+                  <label htmlFor="loc-community" className="text-sm font-medium leading-none">
+                    Community Page
+                  </label>
+                </div>
+              </div>
+              {displayLocations.length === 0 && (
+                <p className="text-xs text-destructive">Pick at least one page, or it won't show anywhere.</p>
+              )}
             </div>
 
             <div className="flex gap-2">
