@@ -606,6 +606,51 @@ export const FeaturedItemManager = () => {
               </div>
             )}
 
+            {linkType === "bikeRide" && (
+              <div>
+                <Label>Select Bike Ride</Label>
+                <Select
+                  value={bikeRides.find(r => `/bike-ride/${r.slug}` === formData.link_url)?.id || ""}
+                  onValueChange={(value) => handleLinkSelection("bikeRide", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a bike ride" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bikeRides.map((ride) => (
+                      <SelectItem key={ride.id} value={ride.id}>
+                        {ride.title}{ride.rider_name ? ` — ${ride.rider_name}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {availableImages.length > 1 && (
+              <div>
+                <Label>Choose Image From Page</Label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
+                  {availableImages.map((img) => {
+                    const selected = formData.image_url === img.url;
+                    return (
+                      <button
+                        type="button"
+                        key={img.url}
+                        onClick={() => selectAvailableImage(img.url)}
+                        className={`relative overflow-hidden rounded border-2 transition-all ${
+                          selected ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <img src={img.url} alt={img.label} className="w-full h-20 object-cover" />
+                        <span className="block text-xs py-1 px-1 bg-background/90 truncate">{img.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium mb-1">Title</label>
               <Input
