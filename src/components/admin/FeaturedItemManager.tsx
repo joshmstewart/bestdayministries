@@ -45,6 +45,8 @@ export const FeaturedItemManager = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [albums, setAlbums] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
+  const [bikeRides, setBikeRides] = useState<any[]>([]);
+  const [availableImages, setAvailableImages] = useState<{ url: string; label: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
