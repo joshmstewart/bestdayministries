@@ -82,15 +82,21 @@ export const FeaturedItemManager = () => {
 
   const loadLinkOptions = async () => {
     try {
-      const [eventsData, albumsData, postsData] = await Promise.all([
+      const [eventsData, albumsData, postsData, bikeRidesData] = await Promise.all([
         supabase.from("events").select("id, title, description, image_url").order("event_date", { ascending: false }),
         supabase.from("albums").select("id, title, description, cover_image_url").eq("is_active", true).order("created_at", { ascending: false }),
-        supabase.from("discussion_posts").select("id, title, content, image_url").eq("approval_status", "approved").order("created_at", { ascending: false })
+        supabase.from("discussion_posts").select("id, title, content, image_url").eq("approval_status", "approved").order("created_at", { ascending: false }),
+        supabase.from("bike_ride_events")
+          .select("id, title, description, slug, cover_image_url, rider_image_url, race_logo_url, route_map_image_url, rider_name, ride_date")
+          .eq("is_active", true)
+          .not("slug", "is", null)
+          .order("ride_date", { ascending: true }),
       ]);
 
       if (eventsData.data) setEvents(eventsData.data);
       if (albumsData.data) setAlbums(albumsData.data);
       if (postsData.data) setPosts(postsData.data);
+      if (bikeRidesData.data) setBikeRides(bikeRidesData.data);
     } catch (error) {
       console.error("Error loading link options:", error);
     }
