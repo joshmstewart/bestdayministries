@@ -205,10 +205,21 @@ export const FeaturedItemManager = () => {
           imgs[0]?.url ||
           "";
 
+        const riderName = (ride.rider_name || "").trim();
+        const baseTitle = ride.title || "";
+        const titleWithRider = riderName && !baseTitle.toLowerCase().includes(riderName.toLowerCase())
+          ? `${riderName} – ${baseTitle}`
+          : baseTitle;
+
+        const baseDesc = ride.description || "";
+        const descWithRider = riderName && !baseDesc.toLowerCase().includes(riderName.toLowerCase())
+          ? `Support ${riderName} as they ride to raise funds! ${baseDesc}`.trim()
+          : baseDesc;
+
         setFormData({
           ...formData,
-          title: ride.title || "",
-          description: ride.description || "",
+          title: titleWithRider,
+          description: descWithRider,
           image_url: defaultImage,
           link_url: `/bike-rides/${ride.slug}`,
         });
