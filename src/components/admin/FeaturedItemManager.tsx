@@ -352,6 +352,8 @@ export const FeaturedItemManager = () => {
       setLinkType("post");
     } else if (item.link_url === "/sponsor-bestie") {
       setLinkType("sponsorship");
+    } else if (item.link_url.startsWith("/bike-ride/")) {
+      setLinkType("bikeRide");
     } else if (INTERNAL_PAGES.some(p => p.value === item.link_url)) {
       setLinkType("page");
     } else {
