@@ -14,6 +14,7 @@ import { Pencil, Trash2, Eye, EyeOff, Upload, X, Info, Crop } from "lucide-react
 import { compressImage } from "@/lib/imageUtils";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
+import { resolveInternalPage } from "@/lib/internalPageResolver";
 interface FeaturedItem {
   id: string;
   title: string;
