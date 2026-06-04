@@ -436,6 +436,7 @@ export const FeaturedItemManager = () => {
     setAspectRatioKey('16:9');
     setIsPublic(true);
     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
+    setAvailableImages([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
