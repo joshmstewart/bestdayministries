@@ -5179,6 +5179,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string
+          display_locations: string[]
           display_order: number
           id: string
           image_url: string | null
@@ -5196,6 +5197,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description: string
+          display_locations?: string[]
           display_order?: number
           id?: string
           image_url?: string | null
@@ -5213,6 +5215,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string
+          display_locations?: string[]
           display_order?: number
           id?: string
           image_url?: string | null

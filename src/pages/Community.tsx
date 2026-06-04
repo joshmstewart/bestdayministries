@@ -466,6 +466,7 @@ const Community = () => {
                     <FeaturedItem 
                       canLoad={canLoadSection('featured_item')}
                       onLoadComplete={() => markSectionLoaded('featured_item')}
+                      location="community"
                     />
                   </div>
                 );
