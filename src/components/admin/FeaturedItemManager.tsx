@@ -14,6 +14,7 @@ import { Pencil, Trash2, Eye, EyeOff, Upload, X, Info, Crop } from "lucide-react
 import { compressImage } from "@/lib/imageUtils";
 import { ImageCropDialog } from "@/components/ImageCropDialog";
 import { INTERNAL_PAGES } from "@/lib/internalPages";
+import { resolveInternalPage } from "@/lib/internalPageResolver";
 interface FeaturedItem {
   id: string;
   title: string;
@@ -106,7 +107,7 @@ export const FeaturedItemManager = () => {
 
   const handleLinkSelection = async (type: string, id?: string) => {
     setLinkType(type);
-    if (type !== "bikeRide") setAvailableImages([]);
+    if (type !== "bikeRide" && type !== "page") setAvailableImages([]);
     
     
     if (type === "sponsorship") {
@@ -123,10 +124,23 @@ export const FeaturedItemManager = () => {
     if (type === "page" && id) {
       const page = INTERNAL_PAGES.find(p => p.value === id);
       if (page) {
+        const resolved = await resolveInternalPage(id);
+        const defaultImage = resolved.images[0]?.url || "";
         setFormData({
           ...formData,
+          title: resolved.title,
+          description: resolved.description,
+          image_url: defaultImage,
           link_url: page.value,
         });
+        if (defaultImage) {
+          setImagePreview(defaultImage);
+          setOriginalImageUrl(defaultImage);
+        } else {
+          setImagePreview(null);
+          setOriginalImageUrl(null);
+        }
+        setAvailableImages(resolved.images);
       }
       return;
     }
