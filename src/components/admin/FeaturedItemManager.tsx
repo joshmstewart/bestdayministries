@@ -124,10 +124,23 @@ export const FeaturedItemManager = () => {
     if (type === "page" && id) {
       const page = INTERNAL_PAGES.find(p => p.value === id);
       if (page) {
+        const resolved = await resolveInternalPage(id);
+        const defaultImage = resolved.images[0]?.url || "";
         setFormData({
           ...formData,
+          title: resolved.title,
+          description: resolved.description,
+          image_url: defaultImage,
           link_url: page.value,
         });
+        if (defaultImage) {
+          setImagePreview(defaultImage);
+          setOriginalImageUrl(defaultImage);
+        } else {
+          setImagePreview(null);
+          setOriginalImageUrl(null);
+        }
+        setAvailableImages(resolved.images);
       }
       return;
     }
