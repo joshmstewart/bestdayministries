@@ -504,6 +504,7 @@ export const FeaturedItemManager = () => {
                   <SelectItem value="event">Event</SelectItem>
                   <SelectItem value="album">Album</SelectItem>
                   <SelectItem value="post">Post</SelectItem>
+                  <SelectItem value="bikeRide">Bike Ride Page</SelectItem>
                   <SelectItem value="sponsorship">Sponsorship Page</SelectItem>
                 </SelectContent>
               </Select>
