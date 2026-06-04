@@ -107,7 +107,7 @@ export const FeaturedItemManager = () => {
 
   const handleLinkSelection = async (type: string, id?: string) => {
     setLinkType(type);
-    if (type !== "bikeRide") setAvailableImages([]);
+    if (type !== "bikeRide" && type !== "page") setAvailableImages([]);
     
     
     if (type === "sponsorship") {
