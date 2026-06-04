@@ -262,6 +262,11 @@ export const FeaturedItemManager = () => {
     } else if (linkType === "page" && !formData.link_url) {
       toast.error("Please select a page");
       return;
+    } else if (linkType === "bikeRide") {
+      if (!formData.link_url.startsWith("/bike-ride/")) {
+        toast.error("Please select a bike ride");
+        return;
+      }
     } else if (linkType !== "custom" && linkType !== "page" && !formData.link_url.includes(":")) {
       toast.error(`Please select a ${linkType}`);
       return;
