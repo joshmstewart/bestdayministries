@@ -102,7 +102,7 @@ export const FeaturedItemManager = () => {
     }
   };
 
-  const handleLinkSelection = (type: string, id?: string) => {
+  const handleLinkSelection = async (type: string, id?: string) => {
     setLinkType(type);
     
     if (type === "sponsorship") {
