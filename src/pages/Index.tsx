@@ -129,6 +129,7 @@ const Index = () => {
         <FeaturedItem 
           canLoad={canLoadSection('featured_items')}
           onLoadComplete={() => markSectionLoaded('featured_items')}
+          location="landing"
         />
       </div>
     ),

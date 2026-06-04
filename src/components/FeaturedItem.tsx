@@ -18,6 +18,7 @@ interface FeaturedItemData {
   link_text: string;
   is_public: boolean;
   visible_to_roles: string[];
+  display_locations: string[] | null;
 }
 
 interface EventDetails {
@@ -35,9 +36,10 @@ interface SavedLocation {
 interface FeaturedItemProps {
   canLoad?: boolean;
   onLoadComplete?: () => void;
+  location?: 'landing' | 'community';
 }
 
-export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemProps = {}) => {
+export const FeaturedItem = ({ canLoad = true, onLoadComplete, location = 'landing' }: FeaturedItemProps = {}) => {
   const [items, setItems] = useState<FeaturedItemData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -111,7 +113,11 @@ export const FeaturedItem = ({ canLoad = true, onLoadComplete }: FeaturedItemPro
       const user = authResult.data?.user;
       setIsAuthenticated(!!user);
 
-      let filteredItems = itemsResult.data || [];
+      let filteredItems = (itemsResult.data || []).filter((item: any) => {
+        const locs = item.display_locations;
+        if (!locs || locs.length === 0) return true;
+        return locs.includes(location);
+      });
 
       if (user) {
         // Fetch role from user_roles table (security requirement)
