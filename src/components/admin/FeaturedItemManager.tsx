@@ -45,6 +45,8 @@ export const FeaturedItemManager = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [albums, setAlbums] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
+  const [bikeRides, setBikeRides] = useState<any[]>([]);
+  const [availableImages, setAvailableImages] = useState<{ url: string; label: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -80,22 +82,30 @@ export const FeaturedItemManager = () => {
 
   const loadLinkOptions = async () => {
     try {
-      const [eventsData, albumsData, postsData] = await Promise.all([
+      const [eventsData, albumsData, postsData, bikeRidesData] = await Promise.all([
         supabase.from("events").select("id, title, description, image_url").order("event_date", { ascending: false }),
         supabase.from("albums").select("id, title, description, cover_image_url").eq("is_active", true).order("created_at", { ascending: false }),
-        supabase.from("discussion_posts").select("id, title, content, image_url").eq("approval_status", "approved").order("created_at", { ascending: false })
+        supabase.from("discussion_posts").select("id, title, content, image_url").eq("approval_status", "approved").order("created_at", { ascending: false }),
+        supabase.from("bike_ride_events")
+          .select("id, title, description, slug, cover_image_url, rider_image_url, race_logo_url, route_map_image_url, rider_name, ride_date")
+          .eq("is_active", true)
+          .not("slug", "is", null)
+          .order("ride_date", { ascending: true }),
       ]);
 
       if (eventsData.data) setEvents(eventsData.data);
       if (albumsData.data) setAlbums(albumsData.data);
       if (postsData.data) setPosts(postsData.data);
+      if (bikeRidesData.data) setBikeRides(bikeRidesData.data);
     } catch (error) {
       console.error("Error loading link options:", error);
     }
   };
 
-  const handleLinkSelection = (type: string, id?: string) => {
+  const handleLinkSelection = async (type: string, id?: string) => {
     setLinkType(type);
+    if (type !== "bikeRide") setAvailableImages([]);
+    
     
     if (type === "sponsorship") {
       setFormData({ 
@@ -166,8 +176,54 @@ export const FeaturedItemManager = () => {
           setImagePreview(post.image_url);
           setOriginalImageUrl(post.image_url);
         }
+        setAvailableImages([]);
+      }
+    } else if (type === "bikeRide") {
+      const ride = bikeRides.find(r => r.id === id);
+      if (ride) {
+        // Fetch scenic photos for this ride
+        const { data: scenics } = await supabase
+          .from("bike_ride_scenic_photos")
+          .select("image_url, caption, is_default, display_order")
+          .eq("event_id", id)
+          .order("display_order", { ascending: true });
+
+        const imgs: { url: string; label: string }[] = [];
+        if (ride.cover_image_url) imgs.push({ url: ride.cover_image_url, label: "Cover" });
+        if (ride.rider_image_url) imgs.push({ url: ride.rider_image_url, label: "Rider" });
+        if (ride.race_logo_url) imgs.push({ url: ride.race_logo_url, label: "Race Logo" });
+        if (ride.route_map_image_url) imgs.push({ url: ride.route_map_image_url, label: "Route Map" });
+        (scenics || []).forEach((s, i) => {
+          if (s.image_url) imgs.push({ url: s.image_url, label: s.caption || `Scenic ${i + 1}` });
+        });
+
+        const defaultImage =
+          scenics?.find(s => s.is_default)?.image_url ||
+          ride.cover_image_url ||
+          imgs[0]?.url ||
+          "";
+
+        setFormData({
+          ...formData,
+          title: ride.title || "",
+          description: ride.description || "",
+          image_url: defaultImage,
+          link_url: `/bike-ride/${ride.slug}`,
+        });
+        if (defaultImage) {
+          setImagePreview(defaultImage);
+          setOriginalImageUrl(defaultImage);
+        }
+        setAvailableImages(imgs);
       }
     }
+  };
+
+  const selectAvailableImage = (url: string) => {
+    setImageFile(null);
+    setFormData({ ...formData, image_url: url });
+    setImagePreview(url);
+    setOriginalImageUrl(url);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -296,6 +352,8 @@ export const FeaturedItemManager = () => {
       setLinkType("post");
     } else if (item.link_url === "/sponsor-bestie") {
       setLinkType("sponsorship");
+    } else if (item.link_url.startsWith("/bike-ride/")) {
+      setLinkType("bikeRide");
     } else if (INTERNAL_PAGES.some(p => p.value === item.link_url)) {
       setLinkType("page");
     } else {
@@ -378,6 +436,7 @@ export const FeaturedItemManager = () => {
     setAspectRatioKey('16:9');
     setIsPublic(true);
     setVisibleToRoles(['caregiver', 'bestie', 'supporter']);
+    setAvailableImages([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -450,6 +509,7 @@ export const FeaturedItemManager = () => {
                   <SelectItem value="event">Event</SelectItem>
                   <SelectItem value="album">Album</SelectItem>
                   <SelectItem value="post">Post</SelectItem>
+                  <SelectItem value="bikeRide">Bike Ride Page</SelectItem>
                   <SelectItem value="sponsorship">Sponsorship Page</SelectItem>
                 </SelectContent>
               </Select>
@@ -548,6 +608,51 @@ export const FeaturedItemManager = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {linkType === "bikeRide" && (
+              <div>
+                <Label>Select Bike Ride</Label>
+                <Select
+                  value={bikeRides.find(r => `/bike-ride/${r.slug}` === formData.link_url)?.id || ""}
+                  onValueChange={(value) => handleLinkSelection("bikeRide", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a bike ride" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bikeRides.map((ride) => (
+                      <SelectItem key={ride.id} value={ride.id}>
+                        {ride.title}{ride.rider_name ? ` — ${ride.rider_name}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {availableImages.length > 1 && (
+              <div>
+                <Label>Choose Image From Page</Label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
+                  {availableImages.map((img) => {
+                    const selected = formData.image_url === img.url;
+                    return (
+                      <button
+                        type="button"
+                        key={img.url}
+                        onClick={() => selectAvailableImage(img.url)}
+                        className={`relative overflow-hidden rounded border-2 transition-all ${
+                          selected ? "border-primary ring-2 ring-primary" : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <img src={img.url} alt={img.label} className="w-full h-20 object-cover" />
+                        <span className="block text-xs py-1 px-1 bg-background/90 truncate">{img.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
