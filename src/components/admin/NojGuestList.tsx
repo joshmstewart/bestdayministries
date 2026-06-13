@@ -237,6 +237,9 @@ export function NojGuestList() {
     URL.revokeObjectURL(url);
   };
 
+  const escapeHtml = (s: string) =>
+    String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+
   // Build flat check-in list: one row per attending seat, sorted A→Z by name.
   // Includes confirmed live tickets + confirmed sponsors with included tickets. Excludes test/archived/pending.
   interface CheckInRow {
