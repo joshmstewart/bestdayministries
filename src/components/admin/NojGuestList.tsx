@@ -627,12 +627,30 @@ export function NojGuestList() {
           {showArchived ? "Hide" : "Show"} Archived{archivedCount > 0 ? ` (${archivedCount})` : ""}
         </Button>
         <Button
+          variant="default"
+          size="sm"
+          onClick={printCheckInList}
+          title="Print a paper check-in list with checkboxes"
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Print Check-In List
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={exportCheckInCsv}
+          title="Download a check-in spreadsheet (one row per attendee)"
+        >
+          <ClipboardList className="h-4 w-4 mr-2" />
+          Check-In CSV
+        </Button>
+        <Button
           variant="outline"
           size="sm"
           onClick={() => exportCsv(visibleGuests, "noj-guest-list.csv")}
         >
           <Download className="h-4 w-4 mr-2" />
-          Export
+          Full Export
         </Button>
       </div>
 
