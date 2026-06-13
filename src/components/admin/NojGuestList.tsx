@@ -237,6 +237,112 @@ export function NojGuestList() {
     URL.revokeObjectURL(url);
   };
 
+  // Build flat check-in list: one row per attending seat, sorted A→Z by name.
+  // Includes confirmed live tickets + confirmed sponsors with included tickets. Excludes test/archived/pending.
+  interface CheckInRow {
+    name: string;
+    email: string;
+    seat: string; // e.g. "1 of 2"
+    type: string; // designation cleaned up
+    notes: string;
+  }
+  const buildCheckInRows = (): CheckInRow[] => {
+    const eligible = guests.filter(g =>
+      g.stripe_mode !== "test" &&
+      (g.status === "completed" || g.status === "active")
+    );
+    const rows: CheckInRow[] = [];
+    eligible.forEach(g => {
+      const qty = getTicketsFromDesignation(g.designation) || (isTicket(g) ? getTicketQty(g.designation) : 0);
+      if (qty <= 0) return;
+      const name = g.profile_name || g.contact_name || g.donor_email || "Unknown";
+      const email = g.donor_email || "";
+      const type = (g.designation || "").replace("A Night of Joy – ", "").replace(/\s*\(.*$/, "").trim() || "Ticket";
+      for (let i = 1; i <= qty; i++) {
+        rows.push({
+          name,
+          email,
+          seat: qty > 1 ? `${i} of ${qty}` : "",
+          type,
+          notes: "",
+        });
+      }
+    });
+    rows.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    return rows;
+  };
+
+  const exportCheckInCsv = () => {
+    const rows = buildCheckInRows();
+    const headers = ["Checked In", "Name", "Email", "Seat", "Ticket Type", "Notes"];
+    const csvRows = rows.map(r => ["", r.name, r.email, r.seat, r.type, r.notes]);
+    const csv = [headers, ...csvRows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `noj-checkin-list-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} attendees`);
+  };
+
+  const printCheckInList = () => {
+    const rows = buildCheckInRows();
+    if (rows.length === 0) {
+      toast.error("No confirmed attendees to print");
+      return;
+    }
+    const win = window.open("", "_blank");
+    if (!win) {
+      toast.error("Pop-up blocked — allow pop-ups to print");
+      return;
+    }
+    const dateStr = format(new Date(), "EEEE, MMMM d, yyyy");
+    const html = `<!doctype html><html><head><meta charset="utf-8"/>
+<title>A Night of Joy — Check-In List</title>
+<style>
+  @page { size: letter; margin: 0.5in; }
+  body { font-family: -apple-system, system-ui, sans-serif; color: #111; margin: 0; padding: 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #999; padding: 6px 8px; text-align: left; vertical-align: middle; }
+  th { background: #f3f3f3; }
+  .cb { width: 28px; text-align: center; }
+  .box { display: inline-block; width: 16px; height: 16px; border: 1.5px solid #111; border-radius: 2px; }
+  .seat { width: 70px; white-space: nowrap; color: #555; }
+  .type { width: 140px; color: #444; }
+  .notes { width: 120px; }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  @media print { .noprint { display: none; } }
+  .noprint { margin-bottom: 12px; }
+  button { padding: 8px 14px; font-size: 14px; cursor: pointer; }
+</style></head><body>
+<div class="noprint"><button onclick="window.print()">Print</button></div>
+<h1>A Night of Joy — Check-In List</h1>
+<div class="sub">Printed ${dateStr} · ${rows.length} attendee${rows.length === 1 ? "" : "s"}</div>
+<table>
+  <thead><tr>
+    <th class="cb">✓</th><th>Name</th><th class="seat">Seat</th><th class="type">Ticket Type</th><th class="notes">Notes</th>
+  </tr></thead>
+  <tbody>
+    ${rows.map(r => `<tr>
+      <td class="cb"><span class="box"></span></td>
+      <td><strong>${escapeHtml(r.name)}</strong>${r.email ? `<br/><span style="color:#777;font-size:11px">${escapeHtml(r.email)}</span>` : ""}</td>
+      <td class="seat">${escapeHtml(r.seat)}</td>
+      <td class="type">${escapeHtml(r.type)}</td>
+      <td class="notes"></td>
+    </tr>`).join("")}
+  </tbody>
+</table>
+</body></html>`;
+    win.document.write(html);
+    win.document.close();
+  };
+
+
   const selectedInCurrentView = (list: NojGuest[]) => list.filter(g => selectedIds.has(g.id));
 
   const GuestTable = ({ list }: { list: NojGuest[] }) => {
