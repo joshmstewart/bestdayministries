@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Award, Search, Download, Users, DollarSign, Loader2, Settings, Save, Archive, ArchiveRestore, Eye, EyeOff } from "lucide-react";
+import { Ticket, Award, Search, Download, Users, DollarSign, Loader2, Settings, Save, Archive, ArchiveRestore, Eye, EyeOff, Printer, ClipboardList } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
