@@ -45,6 +45,7 @@ export function NojGuestList() {
   const [ticketCap, setTicketCap] = useState<number>(DEFAULT_NOJ_TICKET_CAP);
   const [savingCap, setSavingCap] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [includePending, setIncludePending] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [archiving, setArchiving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; action: "archive" | "unarchive"; ids: string[] }>({ open: false, action: "archive", ids: [] });
@@ -250,10 +251,12 @@ export function NojGuestList() {
     notes: string;
   }
   const buildCheckInRows = (): CheckInRow[] => {
-    const eligible = guests.filter(g =>
-      g.stripe_mode !== "test" &&
-      (g.status === "completed" || g.status === "active")
-    );
+    const eligible = guests.filter(g => {
+      if (g.stripe_mode === "test") return false;
+      if (g.status === "completed" || g.status === "active") return true;
+      if (includePending && g.status === "pending") return true;
+      return false;
+    });
     const rows: CheckInRow[] = [];
     eligible.forEach(g => {
       const qty = getTicketsFromDesignation(g.designation) || (isTicket(g) ? getTicketQty(g.designation) : 0);
@@ -261,19 +264,21 @@ export function NojGuestList() {
       const name = g.profile_name || g.contact_name || g.donor_email || "Unknown";
       const email = g.donor_email || "";
       const type = (g.designation || "").replace("A Night of Joy – ", "").replace(/\s*\(.*$/, "").trim() || "Ticket";
+      const pendingNote = g.status === "pending" ? "PENDING — confirm payment" : "";
       for (let i = 1; i <= qty; i++) {
         rows.push({
           name,
           email,
           seat: qty > 1 ? `${i} of ${qty}` : "",
           type,
-          notes: "",
+          notes: pendingNote,
         });
       }
     });
     rows.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
     return rows;
   };
+
 
   const exportCheckInCsv = () => {
     const rows = buildCheckInRows();
@@ -331,12 +336,12 @@ export function NojGuestList() {
     <th class="cb">✓</th><th>Name</th><th class="seat">Seat</th><th class="type">Ticket Type</th><th class="notes">Notes</th>
   </tr></thead>
   <tbody>
-    ${rows.map(r => `<tr>
+    ${rows.map(r => `<tr${r.notes ? ' style="background:#fff7e6;"' : ""}>
       <td class="cb"><span class="box"></span></td>
       <td><strong>${escapeHtml(r.name)}</strong>${r.email ? `<br/><span style="color:#777;font-size:11px">${escapeHtml(r.email)}</span>` : ""}</td>
       <td class="seat">${escapeHtml(r.seat)}</td>
       <td class="type">${escapeHtml(r.type)}</td>
-      <td class="notes"></td>
+      <td class="notes">${r.notes ? `<span style="color:#a05a00;font-weight:bold;font-size:11px">${escapeHtml(r.notes)}</span>` : ""}</td>
     </tr>`).join("")}
   </tbody>
 </table>
@@ -625,6 +630,14 @@ export function NojGuestList() {
         >
           {showArchived ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
           {showArchived ? "Hide" : "Show"} Archived{archivedCount > 0 ? ` (${archivedCount})` : ""}
+        </Button>
+        <Button
+          variant={includePending ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setIncludePending(v => !v)}
+          title="Include pending signups (not-yet-confirmed payments) in the check-in list"
+        >
+          {includePending ? "✓ " : ""}Include Pending
         </Button>
         <Button
           variant="default"
