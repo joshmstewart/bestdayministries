@@ -45,6 +45,7 @@ export function NojGuestList() {
   const [ticketCap, setTicketCap] = useState<number>(DEFAULT_NOJ_TICKET_CAP);
   const [savingCap, setSavingCap] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [includePending, setIncludePending] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [archiving, setArchiving] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; action: "archive" | "unarchive"; ids: string[] }>({ open: false, action: "archive", ids: [] });
