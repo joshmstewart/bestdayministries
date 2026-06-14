@@ -336,12 +336,12 @@ export function NojGuestList() {
     <th class="cb">✓</th><th>Name</th><th class="seat">Seat</th><th class="type">Ticket Type</th><th class="notes">Notes</th>
   </tr></thead>
   <tbody>
-    ${rows.map(r => `<tr>
+    ${rows.map(r => `<tr${r.notes ? ' style="background:#fff7e6;"' : ""}>
       <td class="cb"><span class="box"></span></td>
       <td><strong>${escapeHtml(r.name)}</strong>${r.email ? `<br/><span style="color:#777;font-size:11px">${escapeHtml(r.email)}</span>` : ""}</td>
       <td class="seat">${escapeHtml(r.seat)}</td>
       <td class="type">${escapeHtml(r.type)}</td>
-      <td class="notes"></td>
+      <td class="notes">${r.notes ? `<span style="color:#a05a00;font-weight:bold;font-size:11px">${escapeHtml(r.notes)}</span>` : ""}</td>
     </tr>`).join("")}
   </tbody>
 </table>
