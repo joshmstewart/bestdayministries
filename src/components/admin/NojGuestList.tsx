@@ -632,6 +632,14 @@ export function NojGuestList() {
           {showArchived ? "Hide" : "Show"} Archived{archivedCount > 0 ? ` (${archivedCount})` : ""}
         </Button>
         <Button
+          variant={includePending ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setIncludePending(v => !v)}
+          title="Include pending signups (not-yet-confirmed payments) in the check-in list"
+        >
+          {includePending ? "✓ " : ""}Include Pending
+        </Button>
+        <Button
           variant="default"
           size="sm"
           onClick={printCheckInList}
