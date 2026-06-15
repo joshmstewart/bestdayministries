@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { trackDonationStart } from "@/lib/analytics";
+import { OrganizationTaxInfo } from "@/components/OrganizationTaxInfo";
 
 const donationSchema = z.object({
   amount: z.number().min(5, "Minimum donation is $5"),
