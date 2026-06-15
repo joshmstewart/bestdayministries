@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
+import { OrganizationTaxInfo } from "@/components/OrganizationTaxInfo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -644,15 +645,10 @@ const SponsorBestie = () => {
                   </Button>
                   
                   {/* Tax & Legal Info */}
-                  <div className="text-xs text-muted-foreground text-center space-y-1 pt-2">
-                    <p>
-                      Best Day Ministries is a church under section 508(c)(1)(A) of the Internal Revenue Code. 
-                      Your sponsorship may be tax-deductible to the extent allowed by law.
-                    </p>
-                    <p className="font-medium">
-                      100% of your sponsorship goes directly to support the Bestie {coverStripeFee ? '(processing fees covered)' : '(minus processing fees)'}.
-                    </p>
-                  </div>
+                  <OrganizationTaxInfo contributionType="sponsorship" />
+                  <p className="text-xs text-muted-foreground text-center font-medium">
+                    100% of your sponsorship goes directly to support the Bestie {coverStripeFee ? '(processing fees covered)' : '(minus processing fees)'}.
+                  </p>
 
                   {frequency === "monthly" && (
                     <div className="flex items-start gap-2 text-sm bg-accent/10 rounded-lg px-4 py-3 border border-accent/20">
