@@ -356,15 +356,10 @@ export const DonationForm = () => {
         </Button>
 
         {/* Tax & Legal Info */}
-        <div className="text-xs text-muted-foreground text-center space-y-1 pt-2">
-          <p>
-            Best Day Ministries is a church under section 508(c)(1)(A) of the Internal Revenue Code. 
-            Your donation may be tax-deductible to the extent allowed by law.
-          </p>
-          <p className="font-medium">
-            100% of your donation goes directly to support our mission {coverStripeFee ? '(processing fees covered)' : '(minus processing fees)'}.
-          </p>
-        </div>
+        <OrganizationTaxInfo contributionType="donation" />
+        <p className="text-xs text-muted-foreground text-center font-medium">
+          100% of your donation goes directly to support our mission {coverStripeFee ? '(processing fees covered)' : '(minus processing fees)'}.
+        </p>
       </CardContent>
     </Card>
   );
