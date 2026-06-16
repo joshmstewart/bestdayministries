@@ -162,7 +162,7 @@ export default function AlbumDetailDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="!max-w-4xl !max-h-[90vh] !h-[90vh] p-0 overflow-hidden !flex !flex-col"
+        className="!max-w-[min(1600px,95vw)] !w-[95vw] !max-h-[95vh] !h-[95vh] p-0 overflow-hidden !flex !flex-col"
         hideCloseButton
       >
         {/* Header */}
