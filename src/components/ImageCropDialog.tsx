@@ -104,20 +104,36 @@ export function ImageCropDialog({
     setProcessing(true);
     try {
       const image = new Image();
-      image.crossOrigin = "anonymous";
-      image.src = imageUrl;
-      
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = reject;
+      // Attach handlers BEFORE setting src (handles cached images correctly)
+      const loaded = new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("Failed to load image for cropping"));
       });
+      // Only set crossOrigin for remote URLs (data:/blob: don't need it)
+      if (!imageUrl.startsWith("data:") && !imageUrl.startsWith("blob:")) {
+        image.crossOrigin = "anonymous";
+      }
+      image.src = imageUrl;
+      await loaded;
+
+      // Cap output dimensions to prevent mobile Safari memory crashes.
+      // A 4000x3000 crop = ~48MB raw canvas + 30-60MB as PNG blob → tab reload.
+      const MAX_DIMENSION = 2048;
+      let outW = croppedAreaPixels.width;
+      let outH = croppedAreaPixels.height;
+      const longest = Math.max(outW, outH);
+      if (longest > MAX_DIMENSION) {
+        const scale = MAX_DIMENSION / longest;
+        outW = Math.round(outW * scale);
+        outH = Math.round(outH * scale);
+      }
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("No 2d context");
 
-      canvas.width = croppedAreaPixels.width;
-      canvas.height = croppedAreaPixels.height;
+      canvas.width = outW;
+      canvas.height = outH;
 
       ctx.drawImage(
         image,
@@ -127,19 +143,27 @@ export function ImageCropDialog({
         croppedAreaPixels.height,
         0,
         0,
-        croppedAreaPixels.width,
-        croppedAreaPixels.height
+        outW,
+        outH
       );
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          onCropComplete(blob);
-          onOpenChange(false);
-        } else {
-          console.error("Failed to create blob");
-        }
-        setProcessing(false);
-      }, "image/png");
+      // JPEG at 0.9 — 5-10x smaller than PNG, prevents mobile OOM crashes
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            onCropComplete(blob);
+            onOpenChange(false);
+          } else {
+            console.error("Failed to create blob");
+          }
+          // Release canvas memory immediately
+          canvas.width = 0;
+          canvas.height = 0;
+          setProcessing(false);
+        },
+        "image/jpeg",
+        0.9
+      );
     } catch (error) {
       console.error("Error cropping image:", error);
       setProcessing(false);
