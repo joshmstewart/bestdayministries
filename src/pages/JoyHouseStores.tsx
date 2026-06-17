@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { OrganizationTaxInfo } from "@/components/OrganizationTaxInfo";
 import { MapPin, Phone, Clock, ExternalLink, ShoppingBag, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeStoreHours, type StoreDayHours } from "@/lib/storeHours";
@@ -304,6 +305,10 @@ const JoyHouseStores = () => {
                   </div>
                 )}
               </div>
+            </section>
+
+            <section className="container mx-auto px-4 pb-12">
+              <OrganizationTaxInfo contributionType="purchase" />
             </section>
           </>
         )}
