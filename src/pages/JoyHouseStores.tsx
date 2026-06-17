@@ -306,6 +306,10 @@ const JoyHouseStores = () => {
                 )}
               </div>
             </section>
+
+            <section className="container mx-auto px-4 pb-12">
+              <OrganizationTaxInfo contributionType="purchase" />
+            </section>
           </>
         )}
       </main>
