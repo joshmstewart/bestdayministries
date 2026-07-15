@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -145,7 +145,7 @@ export const DonationForm = () => {
         {/* Frequency Selection */}
         <div className="space-y-3">
           <Label className="text-base font-semibold">Donation Type</Label>
-          <RadioGroup value={frequency} onValueChange={(value) => setFrequency(value as "one-time" | "monthly")} className="grid grid-cols-2 gap-3">
+          <div role="radiogroup" aria-label="Donation frequency" className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setFrequency("monthly")}
@@ -155,7 +155,7 @@ export const DonationForm = () => {
                   : "border-border bg-background hover:border-muted-foreground/30"
               }`}
             >
-              <RadioGroupItem value="monthly" id="monthly" className="sr-only" />
+              
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                   frequency === "monthly" 
@@ -187,7 +187,7 @@ export const DonationForm = () => {
                   : "border-border bg-background hover:border-muted-foreground/30"
               }`}
             >
-              <RadioGroupItem value="one-time" id="one-time" className="sr-only" />
+              
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                   frequency === "one-time" 
@@ -209,7 +209,7 @@ export const DonationForm = () => {
                 </div>
               )}
             </button>
-          </RadioGroup>
+          </div>
         </div>
 
         {/* Amount Selection */}
