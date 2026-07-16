@@ -117,3 +117,8 @@ Test user: emailtest-role-sup-1784225798350@example.com (uid 3b200e96-1dd8-4765-
    - **Do not merge until every caller migrated and re-verified.**
 
 Test user left in place (harmless supporter with no data). Screenshots: /tmp/browser/role-supporter/screenshots/g_admin.png, g_guardian.png, g_community.png.
+
+### Evidence 2026-07-16 #3 — role gating: bestie
+- Fresh signup emailtest-bestie-1784226539@example.com → user 17dc1bd5-8db4-4b31-824e-ce4ca9397842, role=bestie (DB verified).
+- Route probes: /admin → /community, /guardian-links → /community, /vendor-dashboard shows "Become a Vendor" apply CTA (no vendor data leaked), /community /discussions /notifications /orders /sponsor-bestie all load.
+- Screenshots: /tmp/browser/role-bestie/b_*.png
