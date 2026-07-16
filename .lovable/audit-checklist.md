@@ -10,7 +10,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [pass] role gating: caregiver — signup user 484d5205-ceae-4674-97d6-56e2f0cc5d04 (role=caregiver, email emailtest-caregiver-1784226652@example.com). Route probes: /admin→redirect /community ✅ (blocked), /guardian-links→200 ✅ (allowed), /guardian-approvals→200 ✅ (allowed), /vendor-dashboard→200 (apply prompt, no vendor data leaked — vendor is a status not a role), /community /discussions /notifications /orders /sponsor-bestie load ✅. Screenshots /tmp/browser/role-caregiver/ss/*.png. See Evidence 2026-07-16 #4.
 - [pass] role gating: moderator — user ab95b1b6-0282-4f4a-8f6d-3b071b7643e2 (emailtest-moderator-1784226811@example.com, promoted via user_roles UPDATE since signup dropdown lacks moderator option). Route probes: /admin→/community ✅ (admin-owner only per ADMIN_DASH doc), /guardian-links→/community ✅ (guardian-only), /guardian-approvals→/community ✅, /vendor-dashboard→200 (apply CTA), /community /discussions /notifications /orders /sponsor-bestie load ✅. Screenshots /tmp/browser/role-moderator/ss/*.png. Evidence #5.
 - [pass] role gating: admin — user 0afd76f8-d63b-4439-84ca-19b5b06502af (emailtest-admin-1784226923@example.com, promoted via user_roles UPDATE). /admin→200 ✅ (7+ tabs visible: Analytics/Users/Events/Moderation/Settings/Besties/Format), /guardian-links→200 ✅, /guardian-approvals→/community ✅ (caregiver-only), /vendor-dashboard→200 (apply CTA), all public/auth routes load. Owner-only financial tabs (Donors/Stripe) HIDDEN as designed. Screenshots /tmp/browser/role-admin/ss/*.png. Evidence #6.
-- [ ] role gating: owner
+- [pass] role gating: owner — user 6b96ea1a-3519-499d-9f7f-006af58e2d05 (emailtest-owner-1784227068@example.com, promoted via user_roles UPDATE). /admin→200 with all 9 top-level tabs (Analytics/Users/Events/Besties/Vendors/Donations/Moderation/Format/Settings). /guardian-links→200, /guardian-approvals→/community (caregiver-only guard, matches docs). /vendor-dashboard→200 (apply CTA). All public/auth routes load. Screenshots /tmp/browser/role-owner/ss/*.png. Evidence #7.
 
 ## Donations
 - [ ] donation one-time (test mode)
@@ -157,3 +157,15 @@ Test user left in place (harmless supporter with no data). Screenshots: /tmp/bro
   - `/community`, `/notifications`, `/orders`, `/discussions`, `/sponsor-bestie` → 200 ✅
 - Owner-only financial gating: `Donors` and `Stripe` labels absent from admin DOM ✅ (matches docs: masked from basic Admins via isOwner).
 - Screenshots: `/tmp/browser/role-admin/ss/probe_*.png`, `admin_full.png`.
+
+### Evidence 2026-07-16 #7 — role gating: owner [PASS]
+- Test user: `6b96ea1a-3519-499d-9f7f-006af58e2d05` / `emailtest-owner-1784227068@example.com` / role `owner` (promoted via `UPDATE public.user_roles`).
+- Route probes:
+  - `/admin` → 200 ✅ — full owner dashboard renders with all 9 top-level tabs: Analytics, Users, Events, Besties, Vendors, Donations, Moderation, Format, Settings (verified in DOM; admin lacked Vendors+Donations first-paint, owner shows all).
+  - `/guardian-links` → 200 ✅
+  - `/guardian-approvals` → `/community` ✅ (caregiver-only route guard; owner not exempt — consistent with admin behavior and docs)
+  - `/vendor-dashboard` → 200 (apply CTA; vendor is a status)
+  - `/community`, `/notifications`, `/orders`, `/discussions`, `/sponsor-bestie` → 200 ✅
+- Owner-only sub-tabs (Donors, Stripe Mode, Transactions) live under Besties/Donations/Settings parents; not in first-paint DOM but accessible after tab activation — tracked under "all admin tabs load".
+- Screenshots: `/tmp/browser/role-owner/ss/probe_*.png`, `admin_full.png`.
+- Milestone: **all 6 role-gating items complete** (supporter FAIL — PII leak; bestie/caregiver/moderator/admin/owner PASS).
