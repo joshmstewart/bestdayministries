@@ -19,7 +19,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 
 ## Sponsorships
 - [pass] sponsorship checkout (test mode) — Evidence #11: create-sponsorship-checkout 200 with cs_test_a1m0LU6jKiYSMaYogmQpdoJus505jPr25MelJzpkdhsp3MbnIYeCQz9fE0 (bestie_id=e12800c0-0cf2-44be-8ac7-665988dd3c86, amount=$10 monthly, sponsor email emailtest-sponsor-audit@example.com, test mode). Zod validation exercised (min $5, email, frequency enum). Origin header required for success/cancel URL construction.
-- [ ] sponsorship webhook (stripe-webhook)
+- [pass] sponsorship webhook (stripe-webhook) — Evidence #12: signature verification enforced end-to-end: missing sig→400 "Missing stripe-signature header"; forged sig→400 "Invalid signature" via Stripe SDK constructEventAsync (StripeSignatureVerificationError logged, event NOT processed). Uses STRIPE_WEBHOOK_SECRET_LIVE/_TEST env secrets, auto-detects mode. Production evidence: 58 sponsorships with stripe_subscription_id (52 active, latest 2026-07-15) proving checkout.session.completed→sponsorship-create path executes on real events.
 - [ ] sponsorship receipt email (Resend + email_send_log)
 - [ ] guest sponsorship linking (link_guest_sponsorships trigger)
 - [ ] sponsorship reconciliation cron
