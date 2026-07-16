@@ -80,4 +80,9 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 
 ## Evidence Log
 
-_(entries appended per turn)_
+### 2026-07-16 #1 — auth signup + terms
+- Playwright: /tmp/browser/auth-signup/screenshots/{1_form,2_filled,3_after_submit}.png
+- Test email: emailtest-audit-1784225419@example.com (deleted post-verify)
+- Redirect: /auth?signup=true → /community ✅
+- DB: profiles + user_roles(supporter) + terms_acceptance(v1.0/v1.0, IP 35.204.28.48, 2026-07-16 18:10:26Z) all present
+- Cleanup: DELETE FROM auth.users → cascaded
