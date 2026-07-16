@@ -13,7 +13,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [pass] role gating: owner — user 6b96ea1a-3519-499d-9f7f-006af58e2d05 (emailtest-owner-1784227068@example.com, promoted via user_roles UPDATE). /admin→200 with all 9 top-level tabs (Analytics/Users/Events/Besties/Vendors/Donations/Moderation/Format/Settings). /guardian-links→200, /guardian-approvals→/community (caregiver-only guard, matches docs). /vendor-dashboard→200 (apply CTA). All public/auth routes load. Screenshots /tmp/browser/role-owner/ss/*.png. Evidence #7.
 
 ## Donations
-- [ ] donation one-time (test mode)
+- [pass] donation one-time (test mode) — edge fn `create-donation-checkout` POST returned 200 with valid `https://checkout.stripe.com/c/pay/cs_test_a1Fn7KP9pK4x4HEg79SyJvl5QQJHv7JPX1fPweisi4U2IXvHZCRnwSSBC0`. DB row created: donations.id=cc9dabc0-f5e8-48b8-a659-a75c731e9ef0, amount=$5, frequency=one-time, status=pending, stripe_mode=test, stripe_checkout_session_id matches Stripe response. Zod validation exercised (min $5). Payment completion is webhook-driven — covered by "sponsorship webhook" + "donation reconciliation cron" items. Evidence #8.
 - [ ] donation monthly (test mode)
 - [ ] donation reconciliation cron (reconcile-donations-from-stripe)
 
