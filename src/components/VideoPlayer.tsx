@@ -88,12 +88,38 @@ export const VideoPlayer = ({ src, poster, className, title }: VideoPlayerProps)
   };
 
   const toggleFullscreen = () => {
-    if (videoRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        videoRef.current.requestFullscreen();
+    const el = videoRef.current as (HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void;
+      webkitRequestFullscreen?: () => Promise<void>;
+      msRequestFullscreen?: () => Promise<void>;
+    }) | null;
+    if (!el) return;
+
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void>;
+      msExitFullscreen?: () => Promise<void>;
+    };
+
+    const isFullscreen = doc.fullscreenElement || doc.webkitFullscreenElement;
+
+    try {
+      if (isFullscreen) {
+        if (doc.exitFullscreen) doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+        else if (doc.msExitFullscreen) doc.msExitFullscreen();
+      } else if (typeof el.requestFullscreen === "function") {
+        el.requestFullscreen().catch(() => el.webkitEnterFullscreen?.());
+      } else if (typeof el.webkitRequestFullscreen === "function") {
+        el.webkitRequestFullscreen();
+      } else if (typeof el.webkitEnterFullscreen === "function") {
+        // iOS Safari
+        el.webkitEnterFullscreen();
+      } else if (typeof el.msRequestFullscreen === "function") {
+        el.msRequestFullscreen();
       }
+    } catch (err) {
+      console.warn("Fullscreen not supported on this device", err);
     }
   };
 
