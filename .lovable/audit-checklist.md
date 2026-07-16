@@ -8,7 +8,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [fail:PII-leak-sponsor_email+profiles-email-readable-by-any-auth-user] role gating: supporter — see Evidence 2026-07-16 #2
 - [pass] role gating: bestie — signup user 17dc1bd5-8db4-4b31-824e-ce4ca9397842 (role=bestie). Route probes: /admin→redirect /community ✅, /guardian-links→redirect /community ✅, /vendor-dashboard→"Become a Vendor" apply prompt (no vendor data) ✅, /community /discussions /notifications /orders /sponsor-bestie load ✅. Screenshots /tmp/browser/role-bestie/b_*.png. See Evidence 2026-07-16 #3.
 - [pass] role gating: caregiver — signup user 484d5205-ceae-4674-97d6-56e2f0cc5d04 (role=caregiver, email emailtest-caregiver-1784226652@example.com). Route probes: /admin→redirect /community ✅ (blocked), /guardian-links→200 ✅ (allowed), /guardian-approvals→200 ✅ (allowed), /vendor-dashboard→200 (apply prompt, no vendor data leaked — vendor is a status not a role), /community /discussions /notifications /orders /sponsor-bestie load ✅. Screenshots /tmp/browser/role-caregiver/ss/*.png. See Evidence 2026-07-16 #4.
-- [ ] role gating: moderator
+- [pass] role gating: moderator — user ab95b1b6-0282-4f4a-8f6d-3b071b7643e2 (emailtest-moderator-1784226811@example.com, promoted via user_roles UPDATE since signup dropdown lacks moderator option). Route probes: /admin→/community ✅ (admin-owner only per ADMIN_DASH doc), /guardian-links→/community ✅ (guardian-only), /guardian-approvals→/community ✅, /vendor-dashboard→200 (apply CTA), /community /discussions /notifications /orders /sponsor-bestie load ✅. Screenshots /tmp/browser/role-moderator/ss/*.png. Evidence #5.
 - [ ] role gating: admin
 - [ ] role gating: owner
 
@@ -134,3 +134,15 @@ Test user left in place (harmless supporter with no data). Screenshots: /tmp/bro
   - `/community`, `/discussions`, `/notifications`, `/orders`, `/sponsor-bestie` → 200 ✅
 - Screenshots: `/tmp/browser/role-caregiver/ss/probe_*.png`.
 - Note: PII leaks flagged under supporter (Evidence #2) apply to all authenticated roles including caregiver; tracked separately. This item validates *route-level* role gating only.
+
+### Evidence 2026-07-16 #5 — role gating: moderator [PASS]
+- Test user: `ab95b1b6-0282-4f4a-8f6d-3b071b7643e2` / `emailtest-moderator-1784226811@example.com` / role `moderator` (promoted via `UPDATE public.user_roles SET role='moderator'` — signup form does not expose moderator in dropdown by design).
+- Login via /auth, redirected to /community.
+- Route probes:
+  - `/admin` → `/community` ✅ (ADMIN_DASH access=admin-owner only)
+  - `/guardian-links` → `/community` ✅ (guardian-only)
+  - `/guardian-approvals` → `/community` ✅ (guardian-only)
+  - `/vendor-dashboard` → 200 (apply CTA; vendor is a status)
+  - `/community`, `/discussions`, `/notifications`, `/orders`, `/sponsor-bestie` → 200 ✅
+- Screenshots: `/tmp/browser/role-moderator/ss/probe_*.png`.
+- Note: moderator-specific moderation UI lives inside /admin Moderation tab and is not reachable by moderators via route — this may be an intentional restriction (admin-owner gate covers the parent shell) but represents a functional gap for the moderator role. Flagged for follow-up under a dedicated "moderator has no route to moderation UI" item, not blocking this route-gating check.
