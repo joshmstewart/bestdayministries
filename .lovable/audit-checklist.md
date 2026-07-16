@@ -5,7 +5,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 ## Auth & Terms
 - [pass] auth signup + terms recording — user a336b2f9-d5e9-4ad6-a1ee-4926a37d62e5, display_name="Audit T", role=supporter, redirected to /community; see Evidence 2026-07-16 #1
 - [pass] terms acceptance recording — terms_acceptance row v1.0/v1.0, IP recorded, timestamped 2026-07-16 18:10:26Z; record-terms-acceptance edge fn awaited during signup (Auth.tsx L266)
-- [ ] role gating: supporter
+- [fail:PII-leak-sponsor_email+profiles-email-readable-by-any-auth-user] role gating: supporter — see Evidence 2026-07-16 #2
 - [ ] role gating: bestie
 - [ ] role gating: caregiver
 - [ ] role gating: moderator
