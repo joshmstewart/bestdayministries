@@ -25,7 +25,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [fixed:added-cron-reconcile-sponsorships-hourly] sponsorship reconciliation cron — Evidence #15: No cron existed for sponsorship reconciliation despite `reconcile-sponsorships-from-stripe` edge fn being deployed. Manual invoke returned 200 with valid missing-sponsorship detection (found pi_3SPERVIBm6LVC7Ls0wc5mV7b test-mode $25 to bestie Noah Olson). Fix: scheduled `reconcile-sponsorships-hourly` (30 * * * *) via cron.schedule → posts to reconcile-sponsorships-from-stripe with `{"mode":"live","dry_run":false}`. Verified cron.job row `active=true`. Mirrors donations reconciliation pattern.
 
 ## Marketplace
-- [ ] marketplace checkout — handmade
+- [pass] marketplace checkout — handmade — Evidence #16: seeded guest cart (session_id=audit-mkt-2026-07-16, product c1e914a1 "Love your people trucker hat" $25, vendor d4e6ec79 stripe_charges_enabled=true, non-Printify). POST /create-marketplace-checkout with calculated_shipping[$6.99] returned 200: order_id=157102da-ddd5-4f46-b447-61e662b98321, session_id=cs_live_b1t9XeOiBT4Hhi7qQfkgtmLzm2GRsvhwj5dGK2DotO6XuPjHRR8yBykGqK. DB row: status=pending, stripe_mode=live, total_amount=$33.26 (subtotal $25 + shipping $6.99 + Stripe fee cover), platform_fee=$5.00 (20%), vendor_payout=$26.99. Order_items row created. Auth via anon-key bearer + Origin header required. Test order + cart cleaned up post-verification.
 - [ ] marketplace checkout — Printify
 - [ ] vendor payout transfer (create-vendor-transfer)
 - [ ] Stripe Connect onboarding
