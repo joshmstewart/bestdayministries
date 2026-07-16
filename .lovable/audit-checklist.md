@@ -3,8 +3,8 @@
 Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail:reason]` broken · `[fixed:desc]` broken then fixed · `[blocked:reason]` cannot test in sandbox
 
 ## Auth & Terms
-- [ ] auth signup + terms recording
-- [ ] terms acceptance recording (record-acceptance edge fn)
+- [pass] auth signup + terms recording — user a336b2f9-d5e9-4ad6-a1ee-4926a37d62e5, display_name="Audit T", role=supporter, redirected to /community; see Evidence 2026-07-16 #1
+- [pass] terms acceptance recording — terms_acceptance row v1.0/v1.0, IP recorded, timestamped 2026-07-16 18:10:26Z; record-terms-acceptance edge fn awaited during signup (Auth.tsx L266)
 - [ ] role gating: supporter
 - [ ] role gating: bestie
 - [ ] role gating: caregiver
