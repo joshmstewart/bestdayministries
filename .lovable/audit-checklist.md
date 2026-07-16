@@ -18,7 +18,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [pass] donation reconciliation cron — Evidence #10: pg_cron job `reconcile-donations-hourly` (0 * * * *) active, last 4 hourly runs succeeded (18:00/17:00/16:00/15:00 UTC). Manual invoke with X-Cron-Secret returned 200 with summary {total:2, skipped:2, activated:0} — correctly skipped both pending test donations (<2h old, per safety threshold). Reconciliation logic executes end-to-end (Stripe search + status match + auto-cancel threshold).
 
 ## Sponsorships
-- [ ] sponsorship checkout (test mode)
+- [pass] sponsorship checkout (test mode) — Evidence #11: create-sponsorship-checkout 200 with cs_test_a1m0LU6jKiYSMaYogmQpdoJus505jPr25MelJzpkdhsp3MbnIYeCQz9fE0 (bestie_id=e12800c0-0cf2-44be-8ac7-665988dd3c86, amount=$10 monthly, sponsor email emailtest-sponsor-audit@example.com, test mode). Zod validation exercised (min $5, email, frequency enum). Origin header required for success/cancel URL construction.
 - [ ] sponsorship webhook (stripe-webhook)
 - [ ] sponsorship receipt email (Resend + email_send_log)
 - [ ] guest sponsorship linking (link_guest_sponsorships trigger)
