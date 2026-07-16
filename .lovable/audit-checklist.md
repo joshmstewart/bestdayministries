@@ -7,7 +7,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [pass] terms acceptance recording — terms_acceptance row v1.0/v1.0, IP recorded, timestamped 2026-07-16 18:10:26Z; record-terms-acceptance edge fn awaited during signup (Auth.tsx L266)
 - [fail:PII-leak-sponsor_email+profiles-email-readable-by-any-auth-user] role gating: supporter — see Evidence 2026-07-16 #2
 - [pass] role gating: bestie — signup user 17dc1bd5-8db4-4b31-824e-ce4ca9397842 (role=bestie). Route probes: /admin→redirect /community ✅, /guardian-links→redirect /community ✅, /vendor-dashboard→"Become a Vendor" apply prompt (no vendor data) ✅, /community /discussions /notifications /orders /sponsor-bestie load ✅. Screenshots /tmp/browser/role-bestie/b_*.png. See Evidence 2026-07-16 #3.
-- [ ] role gating: caregiver
+- [pass] role gating: caregiver — signup user 484d5205-ceae-4674-97d6-56e2f0cc5d04 (role=caregiver, email emailtest-caregiver-1784226652@example.com). Route probes: /admin→redirect /community ✅ (blocked), /guardian-links→200 ✅ (allowed), /guardian-approvals→200 ✅ (allowed), /vendor-dashboard→200 (apply prompt, no vendor data leaked — vendor is a status not a role), /community /discussions /notifications /orders /sponsor-bestie load ✅. Screenshots /tmp/browser/role-caregiver/ss/*.png. See Evidence 2026-07-16 #4.
 - [ ] role gating: moderator
 - [ ] role gating: admin
 - [ ] role gating: owner
@@ -122,3 +122,15 @@ Test user left in place (harmless supporter with no data). Screenshots: /tmp/bro
 - Fresh signup emailtest-bestie-1784226539@example.com → user 17dc1bd5-8db4-4b31-824e-ce4ca9397842, role=bestie (DB verified).
 - Route probes: /admin → /community, /guardian-links → /community, /vendor-dashboard shows "Become a Vendor" apply CTA (no vendor data leaked), /community /discussions /notifications /orders /sponsor-bestie all load.
 - Screenshots: /tmp/browser/role-bestie/b_*.png
+
+### Evidence 2026-07-16 #4 — role gating: caregiver [PASS]
+- Test user: `484d5205-ceae-4674-97d6-56e2f0cc5d04` / `emailtest-caregiver-1784226652@example.com` / role `caregiver` (verified via user_roles join).
+- After signup redirected to `/community` (post-signup landing).
+- Route probes (Playwright, headless Chromium):
+  - `/admin` → redirected to `/community` ✅ (admin gated)
+  - `/guardian-links` → 200 ✅ (caregiver granted per route policy)
+  - `/guardian-approvals` → 200 ✅ (caregiver granted)
+  - `/vendor-dashboard` → 200 (shows "Become a Vendor" apply CTA; vendor is a status not a role — no vendor data exposed)
+  - `/community`, `/discussions`, `/notifications`, `/orders`, `/sponsor-bestie` → 200 ✅
+- Screenshots: `/tmp/browser/role-caregiver/ss/probe_*.png`.
+- Note: PII leaks flagged under supporter (Evidence #2) apply to all authenticated roles including caregiver; tracked separately. This item validates *route-level* role gating only.
