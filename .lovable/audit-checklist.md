@@ -14,7 +14,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 
 ## Donations
 - [pass] donation one-time (test mode) — edge fn `create-donation-checkout` POST returned 200 with valid `https://checkout.stripe.com/c/pay/cs_test_a1Fn7KP9pK4x4HEg79SyJvl5QQJHv7JPX1fPweisi4U2IXvHZCRnwSSBC0`. DB row created: donations.id=cc9dabc0-f5e8-48b8-a659-a75c731e9ef0, amount=$5, frequency=one-time, status=pending, stripe_mode=test, stripe_checkout_session_id matches Stripe response. Zod validation exercised (min $5). Payment completion is webhook-driven — covered by "sponsorship webhook" + "donation reconciliation cron" items. Evidence #8.
-- [ ] donation monthly (test mode)
+- [pass] donation monthly (test mode) — Evidence #9: cs_test_a1BnROpZdhQDmvqUTjOupkG2nLcIgytpqhnDirVtP8CTGZnhjuVV38Wp3Y, donation id 13f8bd5d-7158-4069-9c5f-8d6ec27aeec0, amount=$10, frequency=monthly, status=pending, stripe_mode=test, donor_email=emailtest-donor-monthly@example.com. Edge fn 200 OK, DB row confirmed. Activation deferred to webhook item.
 - [ ] donation reconciliation cron (reconcile-donations-from-stripe)
 
 ## Sponsorships
