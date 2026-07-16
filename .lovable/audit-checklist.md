@@ -86,3 +86,34 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - Redirect: /auth?signup=true → /community ✅
 - DB: profiles + user_roles(supporter) + terms_acceptance(v1.0/v1.0, IP 35.204.28.48, 2026-07-16 18:10:26Z) all present
 - Cleanup: DELETE FROM auth.users → cascaded
+
+### 2026-07-16 #2 — role gating: supporter [FAIL]
+Test user: emailtest-role-sup-1784225798350@example.com (uid 3b200e96-1dd8-4765-8be7-c68ae95347f1), role=supporter, no relationships.
+
+**Route gating (client-side) — OK:**
+- /community, /marketplace, /support, /notifications, /donation-history, /help, /discussions, /events, /profile, /games, /sponsor-bestie → accessible ✅
+- /admin → "Access Denied" toast, no data rendered ✅ (screenshot g_admin.png)
+- /guardian-links → infinite "Loading your links…" spinner (minor UX bug; no data leak, RLS blocks) ⚠
+- /vendor-dashboard → similar, no data ⚠
+
+**RLS (data-layer) — TWO CRITICAL LEAKS:**
+
+1. **`public.sponsorships` — anon+authenticated can SELECT full rows including donor PII**
+   - Policy: `"Users can view sponsorship funding aggregates"` `USING (true)` FOR SELECT TO anon,authenticated.
+   - Reproduction (anon, no auth):
+     `curl .../rest/v1/sponsorships?select=id,sponsor_email,amount&limit=3` → returns real emails: wendy31@skybeam.com $103.30, janart@gvtc.com $206.28, andrea.aguilera4@gmail.com $26.06.
+   - Impact: every donor email + amount + sponsor_id + stripe_customer_id + stripe_subscription_id publicly readable.
+   - Intent of policy: expose aggregates for FundingProgressBar carousel. But RLS is row-level, not column-level, so entire row leaks.
+
+2. **`public.profiles` — any authenticated user can SELECT full profile row (incl. email) for any user with a friend_code set**
+   - Policy: `"Authenticated users can search by friend code"` `USING (friend_code IS NOT NULL)` FOR SELECT TO authenticated.
+   - Reproduction (as supporter test user): `curl .../rest/v1/profiles?select=id,email&limit=20` → returns 20 real user emails.
+   - `profiles_public` view has the same leak because it inherits caller RLS and exposes `email`.
+
+**Not fixed this turn — root-cause fix requires coordinated changes across frontend (SponsorBestieDisplay, GuardianLinks funding logic, friend-code search UI) and edge functions. Applying a partial policy tightening would break the carousel and bestie search. Proposed fix:**
+   - Replace `sponsorships USING(true)` with SECURITY DEFINER function `public.get_bestie_funding(bestie_id, mode)` returning only aggregate columns; refactor SponsorBestieDisplay + FundingProgressBar callers to use it.
+   - Replace `profiles friend_code` policy with SECURITY DEFINER function `public.find_profile_by_friend_code(code)` returning only display_name+avatar+id (no email); refactor bestie-linking UI callers.
+   - Drop `email` column from `profiles_public` view.
+   - **Do not merge until every caller migrated and re-verified.**
+
+Test user left in place (harmless supporter with no data). Screenshots: /tmp/browser/role-supporter/screenshots/g_admin.png, g_guardian.png, g_community.png.
