@@ -1,4 +1,5 @@
 import { UnifiedHeader } from "@/components/UnifiedHeader";
+import { SEOHead } from "@/components/SEOHead";
 import Footer from "@/components/Footer";
 import CoffeeShopMenu from "@/components/CoffeeShopMenu";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,7 @@ const CoffeeShopHome = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Best Day Ever Coffee & Crepes | Inclusive Cafe" description="Visit Best Day Ever Coffee and Crepes for handcrafted drinks and crepes served by an inclusive team of adults with special needs." />
       
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5">

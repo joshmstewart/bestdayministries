@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -78,6 +79,7 @@ const VideosPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Videos | Best Day Ministries" description="Watch stories, program highlights, and updates from Best Day Ministries and the adults with special needs we serve." />
       
       <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
         <div className="mb-12 text-center">
