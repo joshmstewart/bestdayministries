@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import About from "@/components/About";
@@ -69,8 +70,15 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="About Best Day Ministries | Our Story & Mission" description="Learn how Best Day Ministries empowers adults with disabilities through faith, community, and inclusive work programs that spread joy, hope, and purpose." />
       <main className="flex-1 pt-14">
+        <div className="container mx-auto px-4 pt-8 text-center">
+          <h1 className="text-4xl md:text-5xl font-black text-foreground">
+            About Best Day Ministries
+          </h1>
+        </div>
         {sections.map(renderSection)}
+
         
         <section className="py-12 bg-muted/30">
           <div className="container max-w-4xl mx-auto px-4 text-center">

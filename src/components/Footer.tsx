@@ -96,31 +96,32 @@ const Footer = memo(() => {
     {
       title: "About",
       links: [
-        { label: "Our Story", href: "#about" },
-        { label: "Meet the Besties", href: "#" },
-        { label: "Joy Team", href: "#" },
-        { label: "Blog", href: "#" },
+        { label: "Our Story", href: "/about" },
+        { label: "Meet the Team", href: "/meet-the-team" },
+        { label: "Help Center", href: "/help" },
+        { label: "Photo Albums", href: "/gallery" },
       ],
     },
     {
       title: "Get Involved",
       links: [
-        { label: "Donate", href: "#donate" },
-        { label: "Shop", href: "#" },
-        { label: "Events Calendar", href: "#" },
-        { label: "Locations", href: "#" },
+        { label: "Donate", href: "/support" },
+        { label: "Shop", href: "/joyhousestore" },
+        { label: "Events Calendar", href: "/events" },
+        { label: "Locations", href: "/joy-house-stores" },
       ],
     },
     {
       title: "Connect",
       links: [
-        { label: "Contact Us", href: "#" },
+        { label: "Sponsor a Bestie", href: "/sponsor-bestie" },
         { label: "Newsletter", href: "/newsletter" },
-        { label: "Partners", href: "#" },
-        { label: "Best Day Ever Cafe", href: "#" },
+        { label: "Partners", href: "/partners" },
+        { label: "Best Day Ever Cafe", href: "/coffee-shop" },
       ],
     },
   ];
+
 
   return (
     <>

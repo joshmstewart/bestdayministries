@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -322,6 +323,7 @@ const Marketplace = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Joy House Store | Handmade Gifts That Create Jobs" description="Shop handmade gifts, coffee, and merchandise from Joy House Store. Every purchase creates meaningful work for adults with special needs." />
       
       <main className="flex-1">
         {/* Hero Section */}

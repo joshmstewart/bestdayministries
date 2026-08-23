@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,7 @@ export default function HelpCenter() {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Help Center | Best Day Ministries" description="Guided tours, step-by-step guides, and FAQs to help you use the Best Day Ministries community, store, and sponsorship tools." />
       <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 pb-12">
           {/* Header */}

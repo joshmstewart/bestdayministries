@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
 import { OrganizationTaxInfo } from "@/components/OrganizationTaxInfo";
@@ -703,6 +704,7 @@ const SponsorBestie = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Sponsor a Bestie | Best Day Ministries" description="Sponsor a Bestie with a monthly gift and help fund programs, jobs, and community for adults with special needs." />
       <main className="flex-1 pt-14 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute inset-0 opacity-40">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import Footer from "@/components/Footer";
@@ -42,6 +43,7 @@ export default function Partners() {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Our Partners | Best Day Ministries" description="Meet the businesses, churches, and organizations partnering with Best Day Ministries to create inclusive opportunities for adults with special needs." />
       
       <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 pb-16">

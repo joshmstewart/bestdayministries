@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -121,6 +122,7 @@ const JoyHouseStores = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <UnifiedHeader />
+      <SEOHead title="Joy House Store Locations | Best Day Ministries" description="Find Joy House Store locations, hours, and directions. Visit us in person to shop handmade goods that support adults with special needs." />
       <main className="flex-1 pt-24 bg-gradient-to-br from-primary/10 via-background to-accent/10">
         {loading ? (
           <ContentSkeleton />

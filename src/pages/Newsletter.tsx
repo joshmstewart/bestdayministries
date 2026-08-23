@@ -13,8 +13,12 @@ const Newsletter = () => {
       <UnifiedHeader />
       
       <main className="flex-1 container mx-auto px-4 pt-24 pb-12">
+        <h1 className="text-4xl md:text-5xl font-black text-foreground text-center mb-8">
+          Best Day Ministries Newsletter
+        </h1>
         <NewsletterSignup redirectOnSuccess={true} />
       </main>
+
 
       <Footer />
     </div>

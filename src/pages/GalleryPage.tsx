@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,7 @@ const GalleryPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Photo Albums | Best Day Ministries" description="Browse photo albums from Best Day Ministries events, programs, and everyday moments with our Besties." />
       <main className="flex-1 container mx-auto px-4 pt-20 pb-12">
         <div className="max-w-6xl mx-auto space-y-8">
           <div className="text-center space-y-4">
