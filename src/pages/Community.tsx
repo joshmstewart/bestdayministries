@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -340,6 +341,7 @@ const Community = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       <UnifiedHeader />
+        <SEOHead title="Community Hub | Best Day Ministries" description="Join the Best Day Ministries community: daily activities, events, discussions, photo albums, and stories celebrating adults with special needs." />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-16 pb-12 relative">
