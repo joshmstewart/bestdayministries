@@ -147,7 +147,7 @@ const Hero = ({ content = {} }: HeroProps) => {
                 onClick={() => document.getElementById('mission')?.scrollIntoView({ behavior: 'smooth' })}
                 className="px-6 py-6 border-2 hover:bg-primary/5 hover:border-primary transition-all hover:scale-105"
               >
-                Learn More
+                Learn about our mission
               </Button>
             </div>
 
