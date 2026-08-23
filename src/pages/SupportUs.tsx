@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { useSearchParams } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import { SponsorBestieDisplay } from "@/components/SponsorBestieDisplay";
@@ -307,6 +308,7 @@ const SupportUs = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="Support Our Mission | Best Day Ministries" description="Give a one-time or monthly gift, sponsor a Bestie, or shop our wishlist to support adults with special needs through Best Day Ministries." />
       
       <main className="flex-1 pt-24">
         <div className="container mx-auto px-4 py-8 space-y-16">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { UnifiedHeader } from "@/components/UnifiedHeader";
 import About from "@/components/About";
@@ -69,6 +70,7 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <UnifiedHeader />
+      <SEOHead title="About Best Day Ministries | Our Story & Mission" description="Learn how Best Day Ministries empowers adults with disabilities through faith, community, and inclusive work programs that spread joy, hope, and purpose." />
       <main className="flex-1 pt-14">
         {sections.map(renderSection)}
         
