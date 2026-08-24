@@ -29,7 +29,10 @@ interface OrderItemWithProduct {
     id: string;
     name: string;
     sku?: string;
+    vendor_sku?: string;
     weight?: number;
+    weight_oz?: number;
+    is_printify_product?: boolean;
   } | null;
   // Joined coffee product data (nullable)
   coffee_products?: {
