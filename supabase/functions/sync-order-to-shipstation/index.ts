@@ -206,7 +206,8 @@ serve(async (req) => {
           id,
           name,
           vendor_sku,
-          weight_oz
+          weight_oz,
+          is_printify_product
         ),
         coffee_products (
           id,
@@ -217,8 +218,8 @@ serve(async (req) => {
       .eq("order_id", orderId)
       .is("shipstation_order_id", null); // Only items not yet synced
 
-    if (vendorId) {
-      itemsQuery = itemsQuery.eq("vendor_id", vendorId);
+    if (restrictToVendorId) {
+      itemsQuery = itemsQuery.eq("vendor_id", restrictToVendorId);
     }
 
     const { data: items, error: itemsError } = await itemsQuery;
@@ -230,8 +231,12 @@ serve(async (req) => {
       );
     }
 
-    // Type assertion
-    const typedItems = (items || []) as unknown as OrderItemWithProduct[];
+    // Printify items are fulfilled by Printify (create-printify-order) — never
+    // push them to ShipStation or they get fulfilled and charged twice.
+    const typedItems = ((items || []) as unknown as OrderItemWithProduct[]).filter(
+      (item) => !item.products?.is_printify_product
+    );
+
 
     if (typedItems.length === 0) {
       logStep("No unsynced items found");
