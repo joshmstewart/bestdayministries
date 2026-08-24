@@ -29,6 +29,43 @@ serve(async (req) => {
   }
 
   try {
+    // AUTHORIZATION: this function is scheduled (service role) and can be run
+    // manually by an admin. verify_jwt = false, so it must be gated in code —
+    // otherwise anyone could burn AfterShip API quota and flip fulfillment
+    // statuses (which triggers customer emails).
+    const authToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    let isServiceRole = authToken === serviceRoleKey;
+    if (!isServiceRole && authToken) {
+      try {
+        isServiceRole = JSON.parse(atob(authToken.split('.')[1] ?? '')).role === 'service_role';
+      } catch (_e) {
+        isServiceRole = false;
+      }
+    }
+
+    if (!isServiceRole) {
+      const authClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        serviceRoleKey
+      );
+      const { data: userData } = authToken
+        ? await authClient.auth.getUser(authToken)
+        : { data: { user: null } };
+      const caller = userData?.user;
+      const { data: roles } = caller
+        ? await authClient.from('user_roles').select('role').eq('user_id', caller.id)
+        : { data: [] };
+      const isAdmin = (roles ?? []).some((r: { role: string }) => r.role === 'admin' || r.role === 'owner');
+      if (!isAdmin) {
+        logStep('Rejected unauthorized caller');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const aftershipApiKey = Deno.env.get('AFTERSHIP_API_KEY');
     if (!aftershipApiKey) {
       logStep('ERROR: AFTERSHIP_API_KEY not configured');
@@ -46,11 +83,10 @@ serve(async (req) => {
     // Find all order items with tracking that aren't delivered yet
     const { data: pendingItems, error: fetchError } = await supabaseClient
       .from('order_items')
-      .select('id, tracking_number, carrier, fulfillment_status')
+      .select('id, tracking_number, shipping_carrier, fulfillment_status')
       .not('tracking_number', 'is', null)
       .neq('tracking_number', '')
-      .neq('fulfillment_status', 'delivered')
-      .neq('fulfillment_status', 'completed');
+      .in('fulfillment_status', ['pending', 'in_production', 'processing', 'shipped']);
 
     if (fetchError) {
       logStep('Error fetching pending items', { error: fetchError.message });
@@ -79,7 +115,7 @@ serve(async (req) => {
         }
 
         // Get tracking info from AfterShip
-        const slug = item.carrier?.toLowerCase() || 'auto-detect';
+        const slug = item.shipping_carrier?.toLowerCase() || 'auto-detect';
         const trackingUrl = `https://api.aftership.com/v4/trackings/${slug}/${item.tracking_number}`;
         
         logStep('Checking tracking', { tracking: item.tracking_number, carrier: slug });
