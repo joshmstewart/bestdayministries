@@ -94,8 +94,9 @@ serve(async (req) => {
       const queueItem = pendingEmails[i];
       const maxAttempts = queueItem.max_attempts || 3;
       
-      // Skip if max retries exceeded
-      if (queueItem.attempts >= maxAttempts) {
+      // Skip if max retries exceeded (attempts already incremented by the claim RPC)
+      if (queueItem.attempts > maxAttempts) {
+
         console.log(`[process-newsletter-queue] Max attempts (${maxAttempts}) exceeded for ${queueItem.recipient_email}`);
         await supabaseClient
           .from("newsletter_email_queue")
