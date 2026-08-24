@@ -66,7 +66,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
   RE-TEST 3/4 (deployed): no auth → 401; anon key → 401; authenticated non-admin → 401; temporary admin (test account, role granted then revoked) → **200** `{"success":true,"checked":2,"updated":0,...}` — the query now runs; the two pending items both carry the placeholder tracking `4242424242424242` (items bd50beae-…, 0fab8ae1-…) so AfterShip returns 404 `Failed to create: 404`, as expected for a fake number.
   Sub-branch [blocked:no AfterShip sandbox on this account] — a real tracking number lifecycle (InTransit → Delivered → `delivered_at` write → shipped email → vendor transfer) cannot be exercised without registering a genuine carrier tracking number in the live AfterShip account.
   ACTION REQUIRED (user): `AFTERSHIP_WEBHOOK_SECRET` currently holds the temporary audit value `audit-temp-secret-2026-08-24`. Replace it with the real secret from the AfterShip webhook settings or live webhooks will 401.
-- [ ] Shopify cart
+- [x] Shopify cart — [fixed:added /shopify-product/:productId page+route, cartId tracking, useShopifyCartSync clears cart after checkout, checkout error toast] verified live Storefront checkout URL (channel=online_store) and cart auto-clear on empty remote cart
 - [ ] vendor payout cron
 
 ## Messaging & Contact

@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { CartItem, createStorefrontCheckout } from '@/lib/shopify';
+import { CartItem, createStorefrontCheckout, fetchCartQuantity } from '@/lib/shopify';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
 
 interface ShopifyCartStore {
   items: CartItem[];
   checkoutUrl: string | null;
+  cartId: string | null;
   isLoading: boolean;
+  isSyncing: boolean;
   
   // Actions
   addItem: (item: CartItem) => void;
@@ -14,16 +17,21 @@ interface ShopifyCartStore {
   clearCart: () => void;
   setLoading: (loading: boolean) => void;
   createCheckout: () => Promise<string | null>;
+  syncCart: () => Promise<void>;
   getTotalItems: () => number;
   getTotalPrice: () => number;
 }
+
 
 export const useShopifyCartStore = create<ShopifyCartStore>()(
   persist(
     (set, get) => ({
       items: [],
       checkoutUrl: null,
+      cartId: null,
       isLoading: false,
+      isSyncing: false,
+
 
       addItem: (item) => {
         const { items } = get();
@@ -62,7 +70,7 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [], checkoutUrl: null });
+        set({ items: [], checkoutUrl: null, cartId: null });
       },
 
       setLoading: (isLoading) => set({ isLoading }),
@@ -73,16 +81,33 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
 
         setLoading(true);
         try {
-          const checkoutUrl = await createStorefrontCheckout(items);
-          set({ checkoutUrl });
+          const { checkoutUrl, cartId } = await createStorefrontCheckout(items);
+          set({ checkoutUrl, cartId });
           return checkoutUrl;
         } catch (error) {
           console.error('Failed to create checkout:', error);
+          showErrorToastWithCopy('Could not start Shopify checkout', error);
           return null;
         } finally {
           setLoading(false);
         }
       },
+
+      // Clears the local cart once the Shopify cart has been emptied by a completed checkout
+      syncCart: async () => {
+        const { cartId, isSyncing, clearCart } = get();
+        if (!cartId || isSyncing) return;
+
+        set({ isSyncing: true });
+        try {
+          const quantity = await fetchCartQuantity(cartId);
+          if (quantity === 0) clearCart();
+        } finally {
+          set({ isSyncing: false });
+        }
+      },
+
+
 
       getTotalItems: () => {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);
@@ -95,6 +120,11 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
     {
       name: 'shopify-cart',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        items: state.items,
+        cartId: state.cartId,
+        checkoutUrl: state.checkoutUrl,
+      }) as ShopifyCartStore,
     }
   )
 );

@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { useShopifyCartSync } from "@/hooks/useShopifyCartSync";
 import { useAppManifest } from "@/hooks/useAppManifest";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
@@ -75,6 +76,7 @@ const UnsubscribeSuccess = lazy(() => import("./pages/UnsubscribeSuccess"));
 const UnsubscribeError = lazy(() => import("./pages/UnsubscribeError"));
 const VirtualPetPage = lazy(() => import("./pages/VirtualPetPage"));
 const StorePage = lazy(() => import("./pages/Store"));
+const ShopifyProductDetail = lazy(() => import("./pages/ShopifyProductDetail"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const StickerAlbumPage = lazy(() => import("./pages/StickerAlbumPage"));
 const InstallApp = lazy(() => import("./pages/InstallApp"));
@@ -240,6 +242,11 @@ const App = () => {
   // Update app manifest dynamically based on database settings 
   useAppManifest();
 
+  // Clear the Shopify cart once a checkout completes in the other tab
+  useShopifyCartSync();
+
+
+
   // Initialize Sentry for error tracking
   useEffect(() => {
     initializeSentry();
@@ -337,6 +344,7 @@ const App = () => {
             <Route path="/store" element={<StorePage />} />
             <Route path="/store/product/:productId" element={<ProductDetail />} />
             <Route path="/store/coffee/:productId" element={<CoffeeProductDetail />} />
+            <Route path="/shopify-product/:productId" element={<ShopifyProductDetail />} />
             <Route path="/sticker-album" element={<StickerAlbumPage />} />
             <Route path="/install" element={<InstallApp />} />
             <Route path="/workout-tracker" element={<WorkoutTracker />} />
