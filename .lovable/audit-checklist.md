@@ -71,7 +71,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 
 ## Messaging & Contact
 - [fixed:Resend rejected entire send due to leftover @example.com admin accounts — no admin notification had been delivered for ANY contact submission; added deliverable-domain filter + HTML escaping] contact form submit
-- [ ] contact form inbound reply (Cloudflare → process-inbound-email)
+- [testing] contact form inbound reply (Cloudflare → process-inbound-email)
 
 ## Guardian Approvals
 - [ ] guardian approval — post
