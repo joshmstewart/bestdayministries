@@ -194,14 +194,21 @@ export default function GuardianApprovals() {
         post: Array.isArray(c.post) ? c.post[0] : c.post
       })) as PendingComment[]);
 
-      // Load pending vendor link requests count
+      // Load pending vendor link requests + pending vendor asset requests count
       const { count: vendorCount } = await supabase
         .from('vendor_bestie_requests')
         .select('*', { count: 'exact', head: true })
         .in('bestie_id', bestieIds)
         .eq('status', 'pending');
 
-      setPendingVendorLinks(vendorCount || 0);
+      const { count: vendorAssetCount } = await supabase
+        .from('vendor_bestie_assets')
+        .select('*', { count: 'exact', head: true })
+        .in('bestie_id', bestieIds)
+        .eq('approval_status', 'pending_approval');
+
+      setPendingVendorLinks((vendorCount || 0) + (vendorAssetCount || 0));
+
 
       // Load pending sponsor messages count
       const { count: messagesCount } = await supabase
