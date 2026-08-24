@@ -12,6 +12,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const RESERVED_EMAIL_DOMAINS = ["example.com", "example.org", "example.net", "test.com", "localhost"];
+
+// Resend rejects the ENTIRE send if any recipient uses a reserved/test domain,
+// which previously meant a single leftover test admin account silenced every
+// contact-form notification. Filter them out before sending.
+const isDeliverable = (email: string): boolean => {
+  const trimmed = email.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) return false;
+  const domain = trimmed.split("@")[1];
+  return !RESERVED_EMAIL_DOMAINS.includes(domain);
+};
+
+const escapeHtml = (value: unknown): string =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface NotifyAdminRequest {
   submissionId?: string;
   userEmail?: string;
@@ -86,18 +106,25 @@ const handler = async (req: Request): Promise<Response> => {
       
       adminEmails = (profiles || [])
         .map(p => p.email)
-        .filter((email): email is string => !!email && !email.match(/^test\d*@example\.com$/));
+        .filter((email): email is string => !!email && isDeliverable(email));
     }
 
     // Combine settings email with admin emails, deduplicate
     const allRecipients = new Set<string>();
-    if (settingsEmail) allRecipients.add(settingsEmail);
+    if (settingsEmail && isDeliverable(settingsEmail)) allRecipients.add(settingsEmail);
     adminEmails.forEach(email => allRecipients.add(email));
     
     // Fallback if no recipients found
     if (allRecipients.size === 0) {
-      const fallback = Deno.env.get("ADMIN_EMAIL") || "admin@example.com";
-      allRecipients.add(fallback);
+      const fallback = Deno.env.get("ADMIN_EMAIL");
+      if (fallback && isDeliverable(fallback)) allRecipients.add(fallback);
+      if (allRecipients.size === 0) {
+        console.error("[notify-admin-new-contact] No deliverable recipients configured");
+        return new Response(
+          JSON.stringify({ error: "No deliverable admin recipients configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const recipientList = Array.from(allRecipients);
@@ -164,15 +191,15 @@ const handler = async (req: Request): Promise<Response> => {
                       
                       <div style="margin: 20px 0; padding: 15px; background-color: #f9f9f9; border-left: 4px solid #f97316; border-radius: 4px;">
                         <p style="margin: 0 0 10px; font-size: 14px; color: #666;">
-                          <strong style="color: #1a1a1a;">From:</strong> ${submission.name}
+                          <strong style="color: #1a1a1a;">From:</strong> ${escapeHtml(submission.name)}
                         </p>
                         <p style="margin: 0 0 10px; font-size: 14px; color: #666;">
                           <strong style="color: #1a1a1a;">Email:</strong> 
-                          <a href="mailto:${submission.email}" style="color: #f97316; text-decoration: none;">${submission.email}</a>
+                          <a href="mailto:${escapeHtml(submission.email)}" style="color: #f97316; text-decoration: none;">${escapeHtml(submission.email)}</a>
                         </p>
                         ${submission.subject ? `
                         <p style="margin: 0; font-size: 14px; color: #666;">
-                          <strong style="color: #1a1a1a;">Subject:</strong> ${submission.subject}
+                          <strong style="color: #1a1a1a;">Subject:</strong> ${escapeHtml(submission.subject)}
                         </p>
                         ` : ''}
                       </div>
@@ -180,7 +207,7 @@ const handler = async (req: Request): Promise<Response> => {
                       <div style="margin: 20px 0;">
                         <p style="margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Message:</p>
                         <div style="padding: 15px; background-color: #f9f9f9; border-radius: 4px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #4a4a4a;">
-${submission.message}
+${escapeHtml(submission.message)}
                         </div>
                       </div>
 

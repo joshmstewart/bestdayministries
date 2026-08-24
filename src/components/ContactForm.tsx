@@ -159,6 +159,9 @@ export const ContactForm = () => {
       const firstImage = uploadedAttachments.find(a => a.type.startsWith("image/"));
 
       // Save to database
+      // NOTE: anonymous users have INSERT but no SELECT on this table, so we
+      // cannot request the inserted row back; the notifier looks up the newest
+      // submission for this email instead.
       const { error: dbError } = await supabase
         .from("contact_form_submissions")
         .insert({
