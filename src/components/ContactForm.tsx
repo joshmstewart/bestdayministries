@@ -159,7 +159,7 @@ export const ContactForm = () => {
       const firstImage = uploadedAttachments.find(a => a.type.startsWith("image/"));
 
       // Save to database
-      const { error: dbError } = await supabase
+      const { data: inserted, error: dbError } = await supabase
         .from("contact_form_submissions")
         .insert({
           name: data.name,
@@ -169,14 +169,16 @@ export const ContactForm = () => {
           message_type: data.message_type,
           image_url: firstImage?.url || null,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
-        } as any);
+        } as any)
+        .select("id")
+        .single();
 
       if (dbError) throw dbError;
 
       // Send admin notification email
       try {
         const { error: notifyError } = await supabase.functions.invoke("notify-admin-new-contact", {
-          body: { userEmail: data.email },
+          body: { submissionId: inserted?.id, userEmail: data.email },
         });
         if (notifyError) console.error("Admin notification error:", notifyError);
       } catch (notifyError) {

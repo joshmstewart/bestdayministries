@@ -257,7 +257,7 @@ ${escapeHtml(submission.message)}
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: "Best Day Ever Notifications <noreply@bestdayministries.org>",
       to: recipientList,
-      subject: `[Action Required] New ${messageType} submission from ${escapeHtml(submission.name)}`,
+      subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
       html,
     });
 
@@ -279,7 +279,7 @@ ${escapeHtml(submission.message)}
         recipient_email: recipientList.join(', '),
         from_email: "noreply@bestdayministries.org",
         from_name: "Best Day Ever Notifications",
-        subject: `[Action Required] New ${messageType} submission from ${escapeHtml(submission.name)}`,
+        subject: `[Action Required] New ${messageType} submission from ${submission.name}`,
         html_content: html,
         status: 'sent',
         related_id: submission.id,
