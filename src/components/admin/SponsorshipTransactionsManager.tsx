@@ -149,8 +149,9 @@ export const SponsorshipTransactionsManager = () => {
       let profilesMap: Record<string, any> = {};
       if (profileIds.length > 0) {
         const { data: profilesData } = await supabase
-          .from('profiles_public')
+          .from('profiles')
           .select('id, display_name, avatar_url, email')
+
           .in('id', profileIds);
         
         if (profilesData) {
