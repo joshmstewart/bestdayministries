@@ -46,7 +46,13 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
   7. Production proof of the create branch: 7 vendors hold `acct_*` ids, 5 fully onboarded (charges+payouts+details true) — all created by this Express-account flow in live mode.
   Sub-branch [blocked:would-create-a-real-live-Stripe-Express-account] — `accounts.create` + `accountLinks.create` not exercised, since marketplace_stripe_mode=live and a synthetic Express account cannot be deleted from here.
   Note (no fix applied, by design per docs): `check-stripe-connect-status` intentionally lets site admin/owner read any vendor's Connect status; `create-stripe-connect-account` and `create-stripe-login-link` do NOT grant that bypass.
-- [ ] ShipStation sync
+- [fixed:sync-order-to-shipstation now requires service-role/admin/vendor auth and excludes Printify items] ShipStation sync — Evidence #20 (2026-08-24)
+  FAIL 1 (critical, auth): `verify_jwt = true` accepts the **public anon key**, and the function had no in-code authorization. Proof pre-fix: `POST /functions/v1/sync-order-to-shipstation` with only the anon key → `{"message":"No items to sync","synced":0}` 200 for real order `0168caae-…`, and `{"error":"Order not found"}` 404 for a bogus id — i.e. anyone on the internet could push arbitrary orders into the live ShipStation account (real fulfillment/labels).
+  FAIL 2 (double-fulfillment): item query filtered only on `shipstation_order_id is null`; Printify items (11 in production, fulfilled by `create-printify-order`) were also pushed to ShipStation despite the caller comment saying "non-Printify items".
+  FIX: added an authorization gate (service-role JWT for internal calls from `verify-marketplace-payment`/crons; authenticated admin/owner; else vendor owner scoped to their own `vendor_id`, request-supplied `vendorId` cannot escape their own vendors) and a `is_printify_product` exclusion filter on fetched items.
+  RE-TEST (deployed): OPTIONS → 200 with `access-control-allow-origin: *`; anon-key call → `{"error":"Unauthorized"}` 401; authenticated non-vendor (`fef27d7a-…`) → `{"error":"Not authorized to sync this order"}` 403; temporary admin → reaches logic: order `0168caae-…` (already synced) → `No items to sync` 200, bogus id → `Order not found` 404, Printify-only order `f734009d-…` (unsynced item, valid shipping address) → `No items to sync` 200 (pre-fix this would have created a live ShipStation order). Temporary admin role revoked after the test.
+  Production baseline: `SHIPSTATION_API_KEY`/`SHIPSTATION_API_SECRET` present; one real synced item `301f7f2b-…` → ShipStation order `993172539` (2026-05-29).
+  Sub-branch [blocked:would-create-a-real-live-ShipStation-order] — `POST ssapi.shipstation.com/orders/createorder` success path not exercised; ShipStation has no sandbox on this account and a synthetic order would enter real fulfillment.
 - [ ] AfterShip tracking
 - [ ] Shopify cart
 - [ ] vendor payout cron

@@ -29,7 +29,10 @@ interface OrderItemWithProduct {
     id: string;
     name: string;
     sku?: string;
+    vendor_sku?: string;
     weight?: number;
+    weight_oz?: number;
+    is_printify_product?: boolean;
   } | null;
   // Joined coffee product data (nullable)
   coffee_products?: {
@@ -94,7 +97,80 @@ serve(async (req) => {
       );
     }
 
-    logStep("Fetching order", { orderId, vendorId });
+    // ---- Authorization -------------------------------------------------
+    // This function creates real fulfillment orders in ShipStation, so it must
+    // never be reachable with only the public anon key. Allowed callers:
+    //   1. internal service-role calls (verify-marketplace-payment, crons)
+    //   2. authenticated admin/owner users
+    //   3. an authenticated vendor owner/team member, scoped to their vendor
+    const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+
+    let callerRole = "";
+    try {
+      callerRole = JSON.parse(atob(token.split(".")[1] ?? "")).role ?? "";
+    } catch (_e) {
+      callerRole = "";
+    }
+
+    let restrictToVendorId: string | null = vendorId ?? null;
+
+    if (callerRole !== "service_role") {
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      const caller = userData?.user;
+      if (!caller) {
+        logStep("Rejected: caller is not an authenticated user or service role");
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+        );
+      }
+
+      const { data: roles } = await supabaseClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", caller.id);
+      const isAdmin = (roles ?? []).some((r: { role: string }) =>
+        r.role === "admin" || r.role === "owner"
+      );
+
+      if (!isAdmin) {
+        // Vendor path: caller must own (or be on the team of) a vendor account,
+        // and the sync is forced to only their own items.
+        const { data: ownedVendors } = await supabaseClient
+          .from("vendors")
+          .select("id")
+          .eq("user_id", caller.id);
+        const ownedIds = (ownedVendors ?? []).map((v: { id: string }) => v.id);
+
+        if (ownedIds.length === 0) {
+          logStep("Rejected: caller is not an admin or vendor", { userId: caller.id });
+          return new Response(
+            JSON.stringify({ error: "Not authorized to sync this order" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+          );
+        }
+
+        if (restrictToVendorId && !ownedIds.includes(restrictToVendorId)) {
+          logStep("Rejected: vendor mismatch", { userId: caller.id, vendorId: restrictToVendorId });
+          return new Response(
+            JSON.stringify({ error: "Not authorized to sync this vendor's items" }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+          );
+        }
+
+        restrictToVendorId = restrictToVendorId ?? ownedIds[0];
+      }
+    }
+    // ---------------------------------------------------------------------
+
+    logStep("Fetching order", { orderId, vendorId: restrictToVendorId, callerRole: callerRole || "user" });
+
 
     // Fetch order details
     const { data: order, error: orderError } = await supabaseClient
@@ -133,7 +209,8 @@ serve(async (req) => {
           id,
           name,
           vendor_sku,
-          weight_oz
+          weight_oz,
+          is_printify_product
         ),
         coffee_products (
           id,
@@ -144,8 +221,8 @@ serve(async (req) => {
       .eq("order_id", orderId)
       .is("shipstation_order_id", null); // Only items not yet synced
 
-    if (vendorId) {
-      itemsQuery = itemsQuery.eq("vendor_id", vendorId);
+    if (restrictToVendorId) {
+      itemsQuery = itemsQuery.eq("vendor_id", restrictToVendorId);
     }
 
     const { data: items, error: itemsError } = await itemsQuery;
@@ -157,8 +234,12 @@ serve(async (req) => {
       );
     }
 
-    // Type assertion
-    const typedItems = (items || []) as unknown as OrderItemWithProduct[];
+    // Printify items are fulfilled by Printify (create-printify-order) — never
+    // push them to ShipStation or they get fulfilled and charged twice.
+    const typedItems = ((items || []) as unknown as OrderItemWithProduct[]).filter(
+      (item) => !item.products?.is_printify_product
+    );
+
 
     if (typedItems.length === 0) {
       logStep("No unsynced items found");
