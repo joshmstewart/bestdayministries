@@ -92,15 +92,17 @@ serve(async (req) => {
       let recipientProven = false;
 
       if (trigger_event === "newsletter_signup") {
-        // Freshly created OR freshly re-subscribed (guest upsert keeps created_at).
+        // Freshly created OR freshly re-subscribed (guest upsert keeps created_at
+        // but refreshes subscribed_at).
         const { data } = await supabaseClient
           .from("newsletter_subscribers")
-          .select("id, created_at, updated_at")
+          .select("id, created_at, subscribed_at")
           .ilike("email", normalizedRecipient)
           .maybeSingle();
-        const stamp = data?.updated_at ?? data?.created_at;
+        const stamp = data?.subscribed_at ?? data?.created_at;
         recipientProven = !!stamp && stamp >= cutoff;
       } else if (trigger_event === "site_signup") {
+
 
         const { data } = await supabaseClient
           .from("profiles")
