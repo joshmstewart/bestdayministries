@@ -69,7 +69,7 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [], checkoutUrl: null });
+        set({ items: [], checkoutUrl: null, cartId: null });
       },
 
       setLoading: (isLoading) => set({ isLoading }),
@@ -80,16 +80,36 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
 
         setLoading(true);
         try {
-          const checkoutUrl = await createStorefrontCheckout(items);
-          set({ checkoutUrl });
+          const { checkoutUrl, cartId } = await createStorefrontCheckout(items);
+          set({ checkoutUrl, cartId });
           return checkoutUrl;
         } catch (error) {
           console.error('Failed to create checkout:', error);
+          showErrorToastWithCopy(
+            error instanceof Error ? error : new Error('Failed to create checkout'),
+            'Could not start Shopify checkout'
+          );
           return null;
         } finally {
           setLoading(false);
         }
       },
+
+      // Clears the local cart once the Shopify cart has been emptied by a completed checkout
+      syncCart: async () => {
+        const { cartId, isSyncing, clearCart } = get();
+        if (!cartId || isSyncing) return;
+
+        set({ isSyncing: true });
+        try {
+          const quantity = await fetchCartQuantity(cartId);
+          if (quantity === 0) clearCart();
+        } finally {
+          set({ isSyncing: false });
+        }
+      },
+
+
 
       getTotalItems: () => {
         return get().items.reduce((sum, item) => sum + item.quantity, 0);
