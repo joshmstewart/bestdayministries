@@ -9314,6 +9314,38 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsor_message_reads: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          read_at: string
+          sponsor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          read_at?: string
+          sponsor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          read_at?: string
+          sponsor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_message_reads_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "sponsor_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsor_messages: {
         Row: {
           approved_at: string | null
