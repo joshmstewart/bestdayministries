@@ -147,19 +147,25 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!streak) {
+      // Upsert (not insert) — concurrent invocations from the same client
+      // raced and hit user_streaks_user_id_key, returning 500 to the user.
       const { data: newStreak, error: createError } = await adminClient
         .from("user_streaks")
-        .insert({
-          user_id: user.id,
-          current_streak: 0,
-          longest_streak: 0,
-          total_login_days: 0,
-        })
+        .upsert(
+          {
+            user_id: user.id,
+            current_streak: 0,
+            longest_streak: 0,
+            total_login_days: 0,
+          },
+          { onConflict: "user_id", ignoreDuplicates: false },
+        )
         .select()
         .single();
       if (createError) throw createError;
       streak = newStreak;
     }
+
 
     let streakResult: any = {
       current_streak: streak.current_streak,
