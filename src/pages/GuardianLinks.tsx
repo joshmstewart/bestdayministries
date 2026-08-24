@@ -645,72 +645,41 @@ export default function GuardianLinks() {
 
     try {
       const friendCode = `${emoji1}${emoji2}${emoji3}`;
-      
-      // Search for profile by friend code
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles_public")
-        .select("id, display_name, avatar_number, profile_avatar_id, friend_code, bio")
-        .eq("friend_code", friendCode)
-        .maybeSingle();
+
+      // Look up bestie by friend code (exact-match RPC — friend codes are not enumerable)
+      const { data: matches, error: profileError } = await supabase
+        .rpc("find_bestie_by_friend_code", { _friend_code: friendCode });
 
       if (profileError) throw profileError;
-      if (!profile) {
+      const bestie = matches?.[0];
+      if (!bestie) {
         toast({
           title: "Friend code not found",
-          description: "No user found with that friend code",
+          description: "No bestie found with that friend code",
           variant: "destructive",
         });
         setIsSearching(false);
         return;
       }
 
-      // Verify the user has bestie role
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", profile.id)
-        .eq("role", "bestie")
-        .maybeSingle();
+      // Create the link server-side (requires proof of the friend code)
+      const { error: linkError } = await supabase.rpc("link_bestie_by_friend_code", {
+        _friend_code: friendCode,
+        _relationship: relationship.trim(),
+      });
 
-      if (roleError || !roleData) {
+      if (linkError) {
+        const alreadyLinked = linkError.message?.includes("Link already exists");
         toast({
-          title: "Not a bestie",
-          description: "This friend code doesn't belong to a bestie",
+          title: alreadyLinked ? "Link already exists" : "Error creating link",
+          description: alreadyLinked
+            ? `You are already connected to ${bestie.display_name}`
+            : linkError.message,
           variant: "destructive",
         });
         setIsSearching(false);
         return;
       }
-
-      const bestie = profile;
-
-      // Check if already linked
-      const { data: existingLink } = await supabase
-        .from("caregiver_bestie_links")
-        .select("id")
-        .eq("caregiver_id", currentUserId)
-        .eq("bestie_id", bestie.id)
-        .maybeSingle();
-
-      if (existingLink) {
-        toast({
-          title: "Link already exists",
-          description: `You are already connected to ${bestie.display_name}`,
-          variant: "destructive",
-        });
-        setIsSearching(false);
-        return;
-      }
-
-      const { error: insertError } = await supabase
-        .from("caregiver_bestie_links")
-        .insert({
-          caregiver_id: currentUserId,
-          bestie_id: bestie.id,
-          relationship: relationship.trim(),
-        });
-
-      if (insertError) throw insertError;
 
       toast({
         title: "Link created",
@@ -725,6 +694,7 @@ export default function GuardianLinks() {
       
       await loadLinks(currentUserId);
       await loadLinkedBesties(currentUserId);
+
     } catch (error: any) {
       console.error("❌ Error creating link:", error);
       toast({
