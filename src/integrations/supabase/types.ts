@@ -12648,6 +12648,33 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_newsletter_queue_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          campaign_id: string
+          created_at: string
+          error_message: string | null
+          from_email: string
+          from_name: string
+          id: string
+          max_attempts: number | null
+          personalized_html: string
+          processed_at: string | null
+          recipient_email: string
+          recipient_user_id: string | null
+          resend_email_id: string | null
+          status: string
+          subject: string
+          subscriber_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "newsletter_email_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       cleanup_shipping_rate_cache: { Args: never; Returns: undefined }
       deactivate_collections_after_end_date: { Args: never; Returns: undefined }
@@ -12827,6 +12854,10 @@ export type Database = {
           p_recipient_user_id: string
         }
         Returns: undefined
+      }
+      release_newsletter_queue_items: {
+        Args: { p_ids: string[] }
+        Returns: number
       }
       update_featured_collections: { Args: never; Returns: undefined }
       user_can_manage_vendor: {

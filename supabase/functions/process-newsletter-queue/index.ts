@@ -28,18 +28,44 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // --- Authorization: this endpoint sends real email. Cron secret, service role, or admin/owner only. ---
+    const cronSecret = Deno.env.get("NEWSLETTER_QUEUE_CRON_SECRET");
+    let authorized = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
+
+    if (!authorized) {
+      const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
+      if (token && token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+        authorized = true;
+      } else if (token) {
+        const { data: userData } = await supabaseClient.auth.getUser(token);
+        const userId = userData?.user?.id;
+        if (userId) {
+          const { data: roles } = await supabaseClient
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userId);
+          authorized = !!roles?.some((r: { role: string }) => r.role === "admin" || r.role === "owner");
+        }
+      }
+    }
+
+    if (!authorized) {
+      console.warn("[process-newsletter-queue] Unauthorized invocation blocked");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-    // Fetch pending emails (oldest first)
+    // Atomically claim a batch. FOR UPDATE SKIP LOCKED inside the RPC guarantees that
+    // concurrent invocations never claim the same row (previously caused duplicate sends).
     const { data: pendingEmails, error: fetchError } = await supabaseClient
-      .from("newsletter_email_queue")
-      .select("*")
-      .eq("status", "pending")
-      .order("created_at", { ascending: true })
-      .limit(MAX_EMAILS_PER_RUN);
+      .rpc("claim_newsletter_queue_batch", { p_limit: MAX_EMAILS_PER_RUN });
 
     if (fetchError) {
-      console.error("[process-newsletter-queue] Error fetching queue:", fetchError);
+      console.error("[process-newsletter-queue] Error claiming queue batch:", fetchError);
       throw fetchError;
     }
 
@@ -51,6 +77,7 @@ serve(async (req) => {
       );
     }
 
+
     console.log(`[process-newsletter-queue] Processing ${pendingEmails.length} emails`);
 
     let sentCount = 0;
@@ -61,14 +88,22 @@ serve(async (req) => {
       // Check if we're running out of time
       if (Date.now() - startTime > MAX_RUNTIME_MS) {
         console.log(`[process-newsletter-queue] Time limit reached after ${i} emails`);
+        // Release the rows we claimed but never sent so the next run picks them up immediately.
+        const unclaimed = pendingEmails.slice(i).map((q: { id: string }) => q.id);
+        if (unclaimed.length > 0) {
+          await supabaseClient.rpc("release_newsletter_queue_items", { p_ids: unclaimed });
+        }
+
         break;
       }
+
 
       const queueItem = pendingEmails[i];
       const maxAttempts = queueItem.max_attempts || 3;
       
-      // Skip if max retries exceeded
-      if (queueItem.attempts >= maxAttempts) {
+      // Skip if max retries exceeded (attempts already incremented by the claim RPC)
+      if (queueItem.attempts > maxAttempts) {
+
         console.log(`[process-newsletter-queue] Max attempts (${maxAttempts}) exceeded for ${queueItem.recipient_email}`);
         await supabaseClient
           .from("newsletter_email_queue")
@@ -98,11 +133,8 @@ serve(async (req) => {
         continue;
       }
       
-      // Mark as processing
-      await supabaseClient
-        .from("newsletter_email_queue")
-        .update({ status: "processing", attempts: queueItem.attempts + 1 })
-        .eq("id", queueItem.id);
+      // Row already claimed and marked 'processing' atomically by claim_newsletter_queue_batch.
+
 
       try {
         // Rate limiting: wait between sends
