@@ -241,6 +241,11 @@ const App = () => {
   // Update app manifest dynamically based on database settings 
   useAppManifest();
 
+  // Clear the Shopify cart once a checkout completes in the other tab
+  useShopifyCartSync();
+
+
+
   // Initialize Sentry for error tracking
   useEffect(() => {
     initializeSentry();
