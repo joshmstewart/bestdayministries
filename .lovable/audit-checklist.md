@@ -67,10 +67,10 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
   Sub-branch [blocked:no AfterShip sandbox on this account] — a real tracking number lifecycle (InTransit → Delivered → `delivered_at` write → shipped email → vendor transfer) cannot be exercised without registering a genuine carrier tracking number in the live AfterShip account.
   ACTION REQUIRED (user): `AFTERSHIP_WEBHOOK_SECRET` currently holds the temporary audit value `audit-temp-secret-2026-08-24`. Replace it with the real secret from the AfterShip webhook settings or live webhooks will 401.
 - [x] Shopify cart — [fixed:added /shopify-product/:productId page+route, cartId tracking, useShopifyCartSync clears cart after checkout, checkout error toast] verified live Storefront checkout URL (channel=online_store) and cart auto-clear on empty remote cart
-- [ ] vendor payout cron
+- [fixed:auth gate on retry-vendor-transfers+create-vendor-transfer, cancelled/refunded order filter, retry cap, cron now uses X-Cron-Secret] vendor payout cron — see Item 23 evidence at end of file
 
 ## Messaging & Contact
-- [ ] contact form submit
+- [testing] contact form submit
 - [ ] contact form inbound reply (Cloudflare → process-inbound-email)
 
 ## Guardian Approvals
