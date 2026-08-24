@@ -273,7 +273,7 @@ export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps
     );
   }
 
-  if (requests.length === 0) {
+  if (requests.length === 0 && assetRequests.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -293,6 +293,7 @@ export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps
       </Card>
     );
   }
+
 
   return (
     <Card>
