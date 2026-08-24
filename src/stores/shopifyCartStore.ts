@@ -27,7 +27,10 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
     (set, get) => ({
       items: [],
       checkoutUrl: null,
+      cartId: null,
       isLoading: false,
+      isSyncing: false,
+
 
       addItem: (item) => {
         const { items } = get();
