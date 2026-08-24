@@ -70,7 +70,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [fixed:auth gate on retry-vendor-transfers+create-vendor-transfer, cancelled/refunded order filter, retry cap, cron now uses X-Cron-Secret] vendor payout cron — see Item 23 evidence at end of file
 
 ## Messaging & Contact
-- [testing] contact form submit
+- [fixed:Resend rejected entire send due to leftover @example.com admin accounts — no admin notification had been delivered for ANY contact submission; added deliverable-domain filter + HTML escaping] contact form submit
 - [ ] contact form inbound reply (Cloudflare → process-inbound-email)
 
 ## Guardian Approvals
@@ -238,3 +238,12 @@ Evidence after fix (prod edge functions, curl):
 - Admin JWT + cancelled order → 400 "Cannot transfer: order status is \"cancelled\"".
 - Authenticated non-owner (no admin role) → 403 Forbidden.
 - Test order/item deleted afterward; temporary admin role on test@example.com removed. Build OK.
+
+
+### Item 24 — contact form submit [fixed]
+Evidence (localhost Playwright + prod edge logs):
+- Before: insert 201 but `notify-admin-new-contact` 500. Resend 422 `Invalid \`to\` field ... example.com` — recipient list contained `testadmin@example.com`, `emailtest-admin-...@example.com`, `emailtest-owner-...@example.com`, so EVERY admin notification failed (all-or-nothing send).
+- Fix: `isDeliverable()` filters reserved/test domains and malformed addresses (applies to settings recipient, admin profile emails, and ADMIN_EMAIL fallback); returns 500 with clear error when no deliverable recipient exists. Also escaped user-supplied name/email/subject/message in the admin email HTML (HTML injection into admin inbox).
+- After: same flow → function 200, zero console errors, `email_audit_log.status = delivered`, resend id `3da289b1-08c7-4620-b8a2-ff9152111af7`, recipients only real domains.
+- RLS verified: anon INSERT allowed, SELECT/UPDATE/DELETE admin-only. Client keeps email-based lookup because anon has no SELECT (documented in code).
+- Test submissions and their audit-log rows deleted.
