@@ -5,6 +5,25 @@ import { SITE_URL } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+const RESERVED_EMAIL_DOMAINS = ["example.com", "example.org", "example.net", "test.com", "localhost"];
+
+// Resend rejects the ENTIRE send if any recipient uses a reserved/test domain,
+// so a single leftover test admin account would silence every notification.
+const isDeliverable = (email: string): boolean => {
+  const trimmed = email.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) return false;
+  return !RESERVED_EMAIL_DOMAINS.includes(trimmed.split("@")[1]);
+};
+
+const escapeHtml = (value: unknown): string =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -86,7 +105,9 @@ serve(async (req) => {
       throw new Error(`Failed to fetch admin profiles: ${profilesError.message}`);
     }
 
-    const adminEmails = profiles?.map(p => p.email).filter(Boolean) || [];
+    const adminEmails = (profiles || [])
+      .map(p => p.email)
+      .filter((email): email is string => !!email && isDeliverable(email));
     
     if (adminEmails.length === 0) {
       logStep("No admin emails found");
@@ -130,17 +151,17 @@ serve(async (req) => {
           <table style="width: 100%;">
             <tr>
               <td style="padding: 5px 0; color: #666; width: 80px;"><strong>From:</strong></td>
-              <td style="padding: 5px 0;">${senderName} &lt;${senderEmail}&gt;</td>
+              <td style="padding: 5px 0;">${escapeHtml(senderName)} &lt;${escapeHtml(senderEmail)}&gt;</td>
             </tr>
             ${subject ? `
             <tr>
               <td style="padding: 5px 0; color: #666;"><strong>Subject:</strong></td>
-              <td style="padding: 5px 0;">${subject}</td>
+              <td style="padding: 5px 0;">${escapeHtml(subject)}</td>
             </tr>
             ` : ''}
             <tr>
               <td style="padding: 5px 0; color: #666; vertical-align: top;"><strong>Preview:</strong></td>
-              <td style="padding: 5px 0;">${truncatedPreview}</td>
+              <td style="padding: 5px 0;">${escapeHtml(truncatedPreview)}</td>
             </tr>
           </table>
         </div>
@@ -176,6 +197,26 @@ serve(async (req) => {
       subject: `[Action Required] New ${typeLabel} from ${senderName}`,
       html: emailHtml,
     });
+
+    if (emailResponse?.error) {
+      logStep("ERROR sending notification email", { error: emailResponse.error, recipients: adminEmails });
+      await supabaseClient.from("email_audit_log").insert({
+        email_type: "admin_notification",
+        recipient_email: adminEmails.join(", "),
+        subject: `[Action Required] New ${typeLabel} from ${senderName}`,
+        from_email: "noreply@bestdayministries.org",
+        from_name: "Best Day Ever Notifications",
+        status: "failed",
+        error_message: JSON.stringify(emailResponse.error),
+        related_type: type,
+        related_id: submissionId || null,
+        html_content: emailHtml,
+      });
+      return new Response(
+        JSON.stringify({ success: false, error: emailResponse.error }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
 
     const emailId = emailResponse?.data?.id || 'unknown';
     logStep("Notification emails sent", { emailId, recipientCount: adminEmails.length });

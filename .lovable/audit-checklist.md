@@ -71,7 +71,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 
 ## Messaging & Contact
 - [fixed:Resend rejected entire send due to leftover @example.com admin accounts — no admin notification had been delivered for ANY contact submission; added deliverable-domain filter + HTML escaping] contact form submit
-- [ ] contact form inbound reply (Cloudflare → process-inbound-email)
+- [fixed:threading/auth/system-filter all OK; but notify-admins-new-message swallowed Resend errors (resend_email_id "unknown", audit log falsely "sent") and blasted @example.com test admins → no admin was notified of inbound emails/replies. Added deliverable filter, error surfacing (500 + failed audit row), HTML escaping] contact form inbound reply (Cloudflare → process-inbound-email)
 
 ## Guardian Approvals
 - [ ] guardian approval — post
