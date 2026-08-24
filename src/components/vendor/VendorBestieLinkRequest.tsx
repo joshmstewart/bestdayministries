@@ -40,12 +40,11 @@ export const VendorBestieLinkRequest = ({ vendorId, theme }: VendorBestieLinkReq
     setLoading(true);
 
     try {
-      // Look up bestie by friend code
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles_public')
-        .select('id, display_name, friend_code')
-        .eq('friend_code', friendCode)
-        .maybeSingle();
+      // Look up bestie by friend code (exact-match RPC — friend codes are not enumerable)
+      const { data: matches, error: profileError } = await supabase
+        .rpc('find_bestie_by_friend_code', { _friend_code: friendCode });
+      const profile = matches?.[0];
+
 
       if (profileError || !profile) {
         toast.error("Friend code not found");
