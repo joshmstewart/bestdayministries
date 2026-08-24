@@ -304,7 +304,7 @@ export const VendorLinkRequests = ({ onRequestsChange }: VendorLinkRequestsProps
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="links" className="w-full">
+        <Tabs defaultValue={requests.length === 0 ? "assets" : "links"} className="w-full">
           <TabsList className="inline-flex flex-wrap h-auto">
             <TabsTrigger value="links" className="whitespace-nowrap">
               Link Requests
