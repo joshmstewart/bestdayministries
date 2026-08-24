@@ -29,8 +29,9 @@ serve(async (req) => {
     );
 
     // --- Authorization: this endpoint sends real email. Cron secret, service role, or admin/owner only. ---
-    const cronSecret = Deno.env.get("NEWSLETTER_QUEUE_CRON_SECRET");
+    const cronSecret = Deno.env.get("NEWSLETTER_QUEUE_CRON_KEY") ?? Deno.env.get("NEWSLETTER_QUEUE_CRON_SECRET");
     let authorized = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
+
 
     if (!authorized) {
       const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
