@@ -59,18 +59,31 @@ serve(async (req) => {
     );
     
     const signatureBuffer = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
-    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
+    const sigBytes = new Uint8Array(signatureBuffer);
+
+    // AfterShip signs webhooks with base64-encoded HMAC-SHA256.
+    // Hex is also accepted for compatibility with manual/test senders.
+    const expectedBase64 = btoa(String.fromCharCode(...sigBytes));
+    const expectedHex = Array.from(sigBytes)
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    // Verify signature (timing-safe comparison)
-    if (signature !== expectedSignature) {
+    // Constant-time comparison to avoid leaking the signature via timing.
+    const safeEqual = (a: string, b: string): boolean => {
+      if (a.length !== b.length) return false;
+      let diff = 0;
+      for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+      return diff === 0;
+    };
+
+    if (!safeEqual(signature, expectedBase64) && !safeEqual(signature.toLowerCase(), expectedHex)) {
       console.error('[aftership-webhook] Invalid signature');
       return new Response(
         JSON.stringify({ error: 'Invalid signature' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
       );
     }
+
 
     // Parse body after signature validation
     const requestData = JSON.parse(body);
