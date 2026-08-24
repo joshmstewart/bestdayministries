@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { CartItem, createStorefrontCheckout, fetchCartQuantity } from '@/lib/shopify';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
 
 interface ShopifyCartStore {
   items: CartItem[];
@@ -85,10 +86,7 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
           return checkoutUrl;
         } catch (error) {
           console.error('Failed to create checkout:', error);
-          showErrorToastWithCopy(
-            error instanceof Error ? error : new Error('Failed to create checkout'),
-            'Could not start Shopify checkout'
-          );
+          showErrorToastWithCopy('Could not start Shopify checkout', error);
           return null;
         } finally {
           setLoading(false);
@@ -122,6 +120,11 @@ export const useShopifyCartStore = create<ShopifyCartStore>()(
     {
       name: 'shopify-cart',
       storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        items: state.items,
+        cartId: state.cartId,
+        checkoutUrl: state.checkoutUrl,
+      }) as ShopifyCartStore,
     }
   )
 );
