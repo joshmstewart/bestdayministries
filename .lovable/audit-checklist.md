@@ -36,7 +36,16 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
   Success path proven by production data: 2 order_items with transfer_status=transferred and real Stripe transfer IDs tr_1SvyODGaGHBe2ra7qMygXv7h / tr_1SvyOBGaGHBe2ra7P0Sz1J5P ($8.00 each, vendor 05024dba "Joshie's Store", acct_1Ssouc2flIDgV7nD). Balance pre-check + pending_funds retry queue + failed-status recording all present (index.ts L200-341); retry handled by retry-vendor-transfers (next audit item: vendor payout cron).
   Creating a NEW transfer is [blocked:would-move-real-money] — no unpaid shipped item exists for a Connect-enabled vendor, and forcing one would push real funds out of the platform balance.
   HARDENING NOTE (not a failure, carried to "edge function CORS/auth" item): create-vendor-transfer has no caller authorization — any holder of the public anon key can POST an orderItemId. Impact is bounded (funds can only go to the legitimate vendor for the legitimate amount, and only for shipped/delivered items), but it allows a third party to force early payout ahead of the settlement/refund window. All real callers are server-side (submit-tracking, retry-vendor-transfers, e2e-marketplace-smoke-test), so a service-role/vendor-owner check can be added without breaking anything.
-- [ ] Stripe Connect onboarding
+- [pass] Stripe Connect onboarding — Evidence #19 (2026-08-24, live probes against deployed `create-stripe-connect-account` / `check-stripe-connect-status` / `create-stripe-login-link`):
+  1. CORS: OPTIONS → 200, `access-control-allow-origin: *` + full allow-headers list (all 3 fns).
+  2. No auth header → gateway `UNAUTHORIZED_NO_AUTH_HEADER`.
+  3. Authed non-vendor (user 2fa7159b-b643-4c95-a2bb-9902b2d48e9d) → create: `Vendor account not found…`; status: `{"connected":false,"vendorNotFound":true}`.
+  4. Authorization guard — authed user requesting someone else's vendor d4e6ec79: create → `User is not authorized to manage this vendor's Stripe account`; status → `User is not authorized to view this vendor's Stripe status`; login-link → `User is not authorized to access this vendor's Stripe account`. Nonexistent vendor_id → `Vendor not found`.
+  5. Live Stripe read path (temporary owner-role audit user 5b71113d, role revoked after test): status for Stitches by Stephie → `{"connected":true,"accountId":"acct_1TH6MJK2v6rHx6mz","chargesEnabled":true,"payoutsEnabled":true,"detailsSubmitted":true,"onboardingComplete":true}`; Briana's (started, never finished) → `acct_1Tjh4tK7VFsaATya`, all flags false; Beadz Palace (no account) → `{"connected":false,"message":"No Stripe account connected"}`.
+  6. Write-back verified: vendors.updated_at for both probed rows moved to 2026-08-24 00:25:16/00:25:20Z with flags matching Stripe.
+  7. Production proof of the create branch: 7 vendors hold `acct_*` ids, 5 fully onboarded (charges+payouts+details true) — all created by this Express-account flow in live mode.
+  Sub-branch [blocked:would-create-a-real-live-Stripe-Express-account] — `accounts.create` + `accountLinks.create` not exercised, since marketplace_stripe_mode=live and a synthetic Express account cannot be deleted from here.
+  Note (no fix applied, by design per docs): `check-stripe-connect-status` intentionally lets site admin/owner read any vendor's Connect status; `create-stripe-connect-account` and `create-stripe-login-link` do NOT grant that bypass.
 - [ ] ShipStation sync
 - [ ] AfterShip tracking
 - [ ] Shopify cart
