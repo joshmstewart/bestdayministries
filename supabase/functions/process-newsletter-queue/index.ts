@@ -88,8 +88,18 @@ serve(async (req) => {
       // Check if we're running out of time
       if (Date.now() - startTime > MAX_RUNTIME_MS) {
         console.log(`[process-newsletter-queue] Time limit reached after ${i} emails`);
+        // Release the rows we claimed but never sent so the next run picks them up immediately.
+        const unclaimed = pendingEmails.slice(i).map((q: { id: string }) => q.id);
+        if (unclaimed.length > 0) {
+          await supabaseClient
+            .from("newsletter_email_queue")
+            .update({ status: "pending", processed_at: null })
+            .in("id", unclaimed)
+            .eq("status", "processing");
+        }
         break;
       }
+
 
       const queueItem = pendingEmails[i];
       const maxAttempts = queueItem.max_attempts || 3;
