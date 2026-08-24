@@ -177,7 +177,7 @@ export interface CartItem {
   }>;
 }
 
-export async function createStorefrontCheckout(items: CartItem[]): Promise<string> {
+export async function createStorefrontCheckout(items: CartItem[]): Promise<{ checkoutUrl: string; cartId: string }> {
   const lines = items.map(item => ({
     quantity: item.quantity,
     merchandiseId: item.variantId,
@@ -203,5 +203,65 @@ export async function createStorefrontCheckout(items: CartItem[]): Promise<strin
 
   const url = new URL(cart.checkoutUrl);
   url.searchParams.set('channel', 'online_store');
-  return url.toString();
+  return { checkoutUrl: url.toString(), cartId: cart.id };
 }
+
+// Cart state query - used to detect a completed checkout so the local cart can clear
+const CART_QUERY = `
+  query cart($id: ID!) {
+    cart(id: $id) {
+      id
+      totalQuantity
+    }
+  }
+`;
+
+/**
+ * Returns the remaining quantity of a Shopify cart.
+ * null = cart no longer exists (completed checkout or expired) or the request failed.
+ */
+export async function fetchCartQuantity(cartId: string): Promise<number | null> {
+  try {
+    const data = await storefrontApiRequest(CART_QUERY, { id: cartId });
+    if (!data) return null;
+    const cart = data.data?.cart;
+    if (!cart) return 0;
+    return cart.totalQuantity ?? 0;
+  } catch (error) {
+    console.error('Failed to query Shopify cart:', error);
+    return null;
+  }
+}
+
+const PRODUCT_BY_ID_QUERY = `
+  query GetProduct($id: ID!) {
+    product(id: $id) {
+      id
+      title
+      description
+      handle
+      priceRange { minVariantPrice { amount currencyCode } }
+      images(first: 10) { edges { node { url altText } } }
+      variants(first: 50) {
+        edges {
+          node {
+            id
+            title
+            price { amount currencyCode }
+            availableForSale
+            selectedOptions { name value }
+          }
+        }
+      }
+      options { name values }
+    }
+  }
+`;
+
+export async function fetchShopifyProductById(numericId: string): Promise<ShopifyProduct | null> {
+  const gid = numericId.startsWith('gid://') ? numericId : `gid://shopify/Product/${numericId}`;
+  const data = await storefrontApiRequest(PRODUCT_BY_ID_QUERY, { id: gid });
+  if (!data?.data?.product) return null;
+  return { node: data.data.product } as ShopifyProduct;
+}
+
