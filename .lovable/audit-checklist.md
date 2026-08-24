@@ -74,7 +74,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [fixed:threading/auth/system-filter all OK; but notify-admins-new-message swallowed Resend errors (resend_email_id "unknown", audit log falsely "sent") and blasted @example.com test admins → no admin was notified of inbound emails/replies. Added deliverable filter, error surfacing (500 + failed audit row), HTML escaping] contact form inbound reply (Cloudflare → process-inbound-email)
 
 ## Guardian Approvals
-- [testing] guardian approval — post
+- [fixed:CRITICAL — discussion_posts/discussion_comments UPDATE policies had no WITH CHECK, so any author could PATCH approval_status='approved' and publish without guardian approval or AI moderation (proved with bestie JWT). Added BEFORE INSERT/UPDATE triggers enforce_post_approval_integrity / enforce_comment_approval_integrity pinning approval_status+moderation fields for non-guardian/non-admin actors. Guardian approve via /guardian-approvals UI re-verified working. Also fixed 500 race in claim-daily-login-reward (user_streaks unique-key 23505 → upsert; 3 concurrent calls now all 200). Note: besties cannot create posts in the UI (canCreatePosts = caregiver/admin/owner only) — the bestie approval branch in Discussions.tsx is only reachable via API] guardian approval — post
 - [ ] guardian approval — comment
 - [ ] guardian approval — message
 - [ ] guardian approval — vendor asset
