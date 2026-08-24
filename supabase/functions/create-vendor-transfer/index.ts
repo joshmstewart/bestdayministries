@@ -86,6 +86,32 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // --- Authorization: moves real money. Service role, admin/owner, or the owning vendor only. ---
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+      });
+    }
+
+    let callerIsPrivileged = token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    let callerUserId: string | null = null;
+
+    if (!callerIsPrivileged) {
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      callerUserId = userData?.user?.id ?? null;
+      if (!callerUserId) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+        });
+      }
+      const { data: roles } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', callerUserId);
+      callerIsPrivileged = (roles ?? []).some((r: { role: string }) => r.role === 'admin' || r.role === 'owner');
+    }
+
     // Get order item with vendor info
     const { data: orderItem, error: itemError } = await supabaseClient
       .from('order_items')
@@ -98,7 +124,7 @@ serve(async (req) => {
         transfer_status,
         transfer_attempts,
         order_id,
-        orders!inner(stripe_mode, stripe_payment_intent_id)
+        orders!inner(stripe_mode, stripe_payment_intent_id, status)
       `)
       .eq('id', orderItemId)
       .single();
@@ -110,6 +136,33 @@ serve(async (req) => {
 
     if (!orderItem) {
       throw new Error('Order item not found');
+    }
+
+    // Non-privileged callers must own the vendor account for this item
+    if (!callerIsPrivileged) {
+      const { data: ownedVendor } = await supabaseClient
+        .from('vendors')
+        .select('id')
+        .eq('id', orderItem.vendor_id)
+        .eq('user_id', callerUserId)
+        .maybeSingle();
+
+      if (!ownedVendor) {
+        logStep('Forbidden: caller does not own this vendor', { callerUserId, vendorId: orderItem.vendor_id });
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403,
+        });
+      }
+    }
+
+    // Never pay out on a cancelled or refunded order
+    const orderStatus = (orderItem.orders as { status?: string } | null)?.status;
+    if (orderStatus === 'cancelled' || orderStatus === 'refunded') {
+      logStep('Refusing transfer: order is cancelled/refunded', { orderStatus });
+      return new Response(
+        JSON.stringify({ success: false, error: `Cannot transfer: order status is "${orderStatus}"` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     logStep('Order item found', { 

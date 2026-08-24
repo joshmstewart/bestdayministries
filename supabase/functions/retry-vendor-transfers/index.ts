@@ -17,12 +17,47 @@ serve(async (req) => {
   }
 
   try {
-    logStep('Starting retry of pending vendor transfers');
-
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // --- Authorization: this endpoint moves real money. Cron secret, service role, or admin/owner only. ---
+    const cronSecret = Deno.env.get('VENDOR_PAYOUT_CRON_SECRET');
+    const providedCronSecret = req.headers.get('x-cron-secret');
+    let authorized = !!cronSecret && providedCronSecret === cronSecret;
+
+    if (!authorized) {
+      const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+      if (!token) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+        });
+      }
+
+      if (token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+        authorized = true;
+      } else {
+        const { data: userData } = await supabaseClient.auth.getUser(token);
+        const userId = userData?.user?.id;
+        if (userId) {
+          const { data: roles } = await supabaseClient
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId);
+          authorized = (roles ?? []).some((r: { role: string }) => r.role === 'admin' || r.role === 'owner');
+        }
+      }
+    }
+
+    if (!authorized) {
+      logStep('Unauthorized request rejected');
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401,
+      });
+    }
+
+    logStep('Starting retry of pending vendor transfers');
 
     // Find order items that are shipped/delivered but missing stripe_transfer_id
     const { data: pendingItems, error: fetchError } = await supabaseClient
@@ -37,7 +72,11 @@ serve(async (req) => {
       `)
       .in('fulfillment_status', ['shipped', 'delivered'])
       .is('stripe_transfer_id', null)
-      .gt('vendor_payout', 0);
+      .gt('vendor_payout', 0)
+      // Never pay out on orders that were cancelled or refunded
+      .not('orders.status', 'in', '(cancelled,refunded)')
+      // Stop hammering Stripe for items that keep failing permanently
+      .or('transfer_attempts.is.null,transfer_attempts.lt.10');
 
     if (fetchError) {
       logStep('Error fetching pending items', { error: fetchError });
