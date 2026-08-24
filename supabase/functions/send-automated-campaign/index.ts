@@ -484,8 +484,9 @@ const styleFooterImages = (html: string): string => {
       const placeholder = `[${key.toUpperCase()}]`;
       const escapedPlaceholder = escapeRegex(placeholder);
       const raw = trigger_data[key] ?? '';
-      const safeValue = escapeHtml(raw).replace(/\$/g, "$$$$");
-      subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), safeValue);
+      const safeSubjectValue = String(raw).replace(/[<>]/g, "").replace(/\$/g, "$$$$");
+      subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), safeSubjectValue);
+
       content = content.replace(new RegExp(escapedPlaceholder, 'g'), safeValue);
     });
 
