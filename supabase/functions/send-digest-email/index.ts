@@ -29,6 +29,36 @@ const handler = async (req: Request): Promise<Response> => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+  // --- Authorization: this endpoint sends bulk email. Cron secret, service role, or admin/owner only. ---
+  const cronSecret = Deno.env.get("DIGEST_CRON_SECRET");
+  const providedCronSecret = req.headers.get("x-cron-secret");
+  let authorized = !!cronSecret && providedCronSecret === cronSecret;
+
+  if (!authorized) {
+    const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
+    if (token && token === supabaseServiceKey) {
+      authorized = true;
+    } else if (token) {
+      const { data: userData } = await supabase.auth.getUser(token);
+      const userId = userData?.user?.id;
+      if (userId) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
+        authorized = (roles ?? []).some((r: { role: string }) => r.role === "admin" || r.role === "owner");
+      }
+    }
+  }
+
+  if (!authorized) {
+    console.warn("send-digest-email: unauthorized request rejected");
+    return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { frequency } = await req.json();
     
@@ -196,6 +226,15 @@ const handler = async (req: Request): Promise<Response> => {
   }
 };
 
+function escapeHtml(value: string): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function buildDigestEmail(
   notifications: Notification[],
   frequency: string,
@@ -228,7 +267,7 @@ function buildDigestEmail(
   let notificationSections = "";
 
   Object.entries(groupedNotifications).forEach(([type, notifs]) => {
-    const typeLabel = notificationTypeLabels[type] || type;
+    const typeLabel = escapeHtml(notificationTypeLabels[type] || type);
     notificationSections += `
       <div style="margin-bottom: 30px;">
         <h3 style="color: #333; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
@@ -236,8 +275,8 @@ function buildDigestEmail(
         </h3>
         ${notifs.map((notif) => `
           <div style="background: #f9fafb; border-left: 3px solid #3b82f6; padding: 12px 16px; margin-bottom: 12px; border-radius: 4px;">
-            <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${notif.title}</div>
-            <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">${notif.message}</div>
+            <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${escapeHtml(notif.title)}</div>
+            <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">${escapeHtml(notif.message)}</div>
             <div style="font-size: 12px; color: #9ca3af;">
               ${new Date(notif.created_at).toLocaleDateString('en-US', { 
                 month: 'short', 
@@ -264,7 +303,7 @@ function buildDigestEmail(
         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
-            ${logoUrl ? `<img src="${logoUrl}" alt="Logo" style="height: 60px; margin-bottom: 20px; border-radius: 12px;">` : ''}
+            ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="height: 60px; margin-bottom: 20px; border-radius: 12px;">` : ''}
             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">
               Your ${frequency === 'daily' ? 'Daily' : 'Weekly'} Digest
             </h1>
