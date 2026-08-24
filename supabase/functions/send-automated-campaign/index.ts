@@ -469,14 +469,26 @@ const styleFooterImages = (html: string): string => {
 
 // styleEmptyParagraphs is now handled by applyEmailStyles from _shared/emailStyles.ts
 
-    // Replace common placeholders
+    // Replace common placeholders.
+    // Values come from callers (including public signup flows), so they are
+    // HTML-escaped before being interpolated into the email body.
+    const escapeHtml = (str: string) =>
+      String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
     Object.keys(trigger_data).forEach((key) => {
       const placeholder = `[${key.toUpperCase()}]`;
       const escapedPlaceholder = escapeRegex(placeholder);
-      const value = trigger_data[key] || '';
-      subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), value);
-      content = content.replace(new RegExp(escapedPlaceholder, 'g'), value);
+      const raw = trigger_data[key] ?? '';
+      const safeValue = escapeHtml(raw).replace(/\$/g, "$$$$");
+      subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), safeValue);
+      content = content.replace(new RegExp(escapedPlaceholder, 'g'), safeValue);
     });
+
 
     // Construct final HTML with header and footer
     let htmlContent = "";
