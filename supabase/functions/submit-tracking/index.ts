@@ -83,10 +83,13 @@ serve(async (req) => {
   }
 
   try {
-    const { orderItemId, trackingNumber, carrier } = await req.json();
+    const { orderItemId, trackingNumber, carrier } = await req.json().catch(() => ({}));
 
     if (!orderItemId || !trackingNumber || !carrier) {
-      throw new Error('Missing required fields: orderItemId, trackingNumber, carrier');
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: orderItemId, trackingNumber, carrier' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     logStep('Processing', { orderItemId, trackingNumber, carrier });
@@ -96,6 +99,78 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    // ---- Authorization -------------------------------------------------
+    // This function marks an item shipped, triggers a REAL Stripe vendor
+    // payout transfer and emails the customer. `verify_jwt = true` alone
+    // accepts the public anon key, so callers must be verified in-code.
+    // Allowed: service-role (internal), admin/owner, or the vendor that owns
+    // the order item.
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    let callerRole = '';
+    try {
+      callerRole = JSON.parse(atob(token.split('.')[1] ?? '')).role ?? '';
+    } catch (_e) {
+      callerRole = '';
+    }
+
+    if (callerRole !== 'service_role') {
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      const caller = userData?.user;
+      if (!caller) {
+        logStep('Rejected: not an authenticated user or service role');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
+
+      const { data: roles } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', caller.id);
+      const isAdmin = (roles ?? []).some((r: { role: string }) =>
+        r.role === 'admin' || r.role === 'owner'
+      );
+
+      if (!isAdmin) {
+        const { data: targetItem } = await supabaseClient
+          .from('order_items')
+          .select('id, vendor_id')
+          .eq('id', orderItemId)
+          .maybeSingle();
+
+        if (!targetItem) {
+          return new Response(
+            JSON.stringify({ error: 'Order item not found' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+          );
+        }
+
+        const { data: ownedVendors } = await supabaseClient
+          .from('vendors')
+          .select('id')
+          .eq('user_id', caller.id);
+        const ownedIds = (ownedVendors ?? []).map((v: { id: string }) => v.id);
+
+        if (!targetItem.vendor_id || !ownedIds.includes(targetItem.vendor_id)) {
+          logStep('Rejected: caller does not own this order item', { userId: caller.id, orderItemId });
+          return new Response(
+            JSON.stringify({ error: 'Not authorized to submit tracking for this item' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+          );
+        }
+      }
+    }
+    // ---------------------------------------------------------------------
+
 
     // Test tracking number for practice - bypasses AfterShip API
     const TEST_TRACKING_NUMBER = '4242424242424242';
