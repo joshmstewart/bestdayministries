@@ -91,12 +91,9 @@ serve(async (req) => {
         // Release the rows we claimed but never sent so the next run picks them up immediately.
         const unclaimed = pendingEmails.slice(i).map((q: { id: string }) => q.id);
         if (unclaimed.length > 0) {
-          await supabaseClient
-            .from("newsletter_email_queue")
-            .update({ status: "pending", processed_at: null })
-            .in("id", unclaimed)
-            .eq("status", "processing");
+          await supabaseClient.rpc("release_newsletter_queue_items", { p_ids: unclaimed });
         }
+
         break;
       }
 
