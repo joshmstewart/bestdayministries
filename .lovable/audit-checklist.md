@@ -216,3 +216,25 @@ Test user left in place (harmless supporter with no data). Screenshots: /tmp/bro
 - Zod schema enforced (min $5, valid email, frequency enum).
 - Not deleting the pending row (per project rule: never delete financial data autonomously); reconcile-donations-from-stripe cron will auto-cancel after 2h.
 - Payment-completion path (Stripe webhook → status=completed → receipt email) is tested separately under upcoming items.
+
+## Item 23: [fixed] vendor payout cron + create-vendor-transfer (2026-08-24)
+
+Bugs found:
+1. CRITICAL AUTH HOLE — `retry-vendor-transfers` (verify_jwt=false, no in-code check) and `create-vendor-transfer` (no auth at all) were both callable by anyone with the public anon key. Anyone on the internet could trigger real Stripe transfers to vendors.
+   - Evidence before fix: anon POST /create-vendor-transfer → 500 "Failed to fetch order item" (i.e. reached business logic); anon POST /retry-vendor-transfers → 200 {"message":"No pending transfers"}.
+2. No order-status filter — shipped items on cancelled/refunded orders were payout-eligible.
+3. No retry cap — permanently failing items retried against Stripe every 6h forever.
+
+Fixes:
+- `retry-vendor-transfers`: requires X-Cron-Secret (VENDOR_PAYOUT_CRON_SECRET), service-role key, or an admin/owner JWT. cron.job 24 updated to send the secret header instead of the anon key.
+- `create-vendor-transfer`: requires service role, admin/owner, or the vendor that owns the order item; refuses cancelled/refunded orders (400).
+- Query now excludes orders.status in (cancelled, refunded) and items with transfer_attempts >= 10.
+
+Evidence after fix (prod edge functions, curl):
+- anon → 401 Unauthorized (both functions); no auth header → 401; wrong cron secret → 401; CORS preflight → 200.
+- valid cron secret → 200 {"processed":0}.
+- Synthetic test order (pi_audit_test_payout_0001) with shipped item, order cancelled → cron processed 0 (correctly skipped).
+- Same order flipped to shipped → cron processed 1, failed on the expected Stripe Connect check ("Stripe account is not fully set up for payouts") — proves the filter isn't over-blocking.
+- Admin JWT + cancelled order → 400 "Cannot transfer: order status is \"cancelled\"".
+- Authenticated non-owner (no admin role) → 403 Forbidden.
+- Test order/item deleted afterward; temporary admin role on test@example.com removed. Build OK.
