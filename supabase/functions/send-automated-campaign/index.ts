@@ -31,7 +31,108 @@ serve(async (req) => {
 
     const { trigger_event, recipient_email, recipient_user_id, trigger_data = {} }: CampaignRequest = await req.json();
 
-    console.log(`📧 Finding template for event: ${trigger_event}`);
+    if (!trigger_event || typeof trigger_event !== "string" || !recipient_email || typeof recipient_email !== "string") {
+      return new Response(
+        JSON.stringify({ error: "trigger_event and recipient_email are required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // ---------------------------------------------------------------
+    // Authorization gate.
+    // This endpoint sends mail from the organization's verified domain,
+    // so an unauthenticated caller must never be able to pick an
+    // arbitrary recipient. Three tiers:
+    //   1. service-role bearer  -> trusted server caller, unrestricted
+    //   2. admin/owner JWT      -> unrestricted (admin resend UI)
+    //   3. other authenticated  -> recipient must be the caller's own email
+    //   4. anonymous            -> only public self-service triggers, and the
+    //                              recipient must be provably self-registered
+    //                              within the last 15 minutes
+    // ---------------------------------------------------------------
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
+    const normalizedRecipient = recipient_email.trim().toLowerCase();
+
+    let authorized = false;
+    let authMode = "anonymous";
+
+    if (bearer && serviceRoleKey && bearer === serviceRoleKey) {
+      authorized = true;
+      authMode = "service_role";
+    } else if (bearer) {
+      const { data: userData } = await supabaseClient.auth.getUser(bearer);
+      const caller = userData?.user;
+      if (caller) {
+        const { data: isAdmin } = await supabaseClient.rpc("has_admin_access", { _user_id: caller.id });
+        if (isAdmin) {
+          authorized = true;
+          authMode = "admin";
+        } else if ((caller.email ?? "").toLowerCase() === normalizedRecipient) {
+          authorized = true;
+          authMode = "self";
+        }
+      }
+    }
+
+    if (!authorized) {
+      // Anonymous / non-matching caller: only self-service signup triggers,
+      // and only to an address that just registered itself.
+      const PUBLIC_TRIGGERS = ["newsletter_signup", "site_signup", "subscription_created"];
+      if (!PUBLIC_TRIGGERS.includes(trigger_event)) {
+        console.warn(`⛔ Rejected unauthenticated trigger: ${trigger_event}`);
+        return new Response(
+          JSON.stringify({ error: "Not authorized for this trigger" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        );
+      }
+
+      const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      let recipientProven = false;
+
+      if (trigger_event === "newsletter_signup") {
+        // Freshly created OR freshly re-subscribed (guest upsert keeps created_at
+        // but refreshes subscribed_at).
+        const { data } = await supabaseClient
+          .from("newsletter_subscribers")
+          .select("id, created_at, subscribed_at")
+          .ilike("email", normalizedRecipient)
+          .maybeSingle();
+        const stamp = data?.subscribed_at ?? data?.created_at;
+        recipientProven = !!stamp && stamp >= cutoff;
+      } else if (trigger_event === "site_signup") {
+
+
+        const { data } = await supabaseClient
+          .from("profiles")
+          .select("id")
+          .ilike("email", normalizedRecipient)
+          .gte("created_at", cutoff)
+          .maybeSingle();
+        recipientProven = !!data;
+      } else if (trigger_event === "subscription_created") {
+        const { data } = await supabaseClient
+          .from("sponsorships")
+          .select("id")
+          .ilike("sponsor_email", normalizedRecipient)
+          .gte("created_at", cutoff)
+          .maybeSingle();
+        recipientProven = !!data;
+      }
+
+      if (!recipientProven) {
+        console.warn(`⛔ Rejected unverified recipient for ${trigger_event}`);
+        return new Response(
+          JSON.stringify({ error: "Recipient could not be verified for this trigger" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        );
+      }
+      authMode = "public_signup";
+    }
+
+    console.log(`🔐 Authorized as ${authMode} for event: ${trigger_event}`);
+
 
     // Check for duplicate sends within last 24 hours to prevent spam
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -372,14 +473,28 @@ const styleFooterImages = (html: string): string => {
 
 // styleEmptyParagraphs is now handled by applyEmailStyles from _shared/emailStyles.ts
 
-    // Replace common placeholders
+    // Replace common placeholders.
+    // Values come from callers (including public signup flows), so they are
+    // HTML-escaped before being interpolated into the email body.
+    const escapeHtml = (str: string) =>
+      String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
     Object.keys(trigger_data).forEach((key) => {
       const placeholder = `[${key.toUpperCase()}]`;
       const escapedPlaceholder = escapeRegex(placeholder);
-      const value = trigger_data[key] || '';
-      subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), value);
-      content = content.replace(new RegExp(escapedPlaceholder, 'g'), value);
+      const raw = trigger_data[key] ?? '';
+      const safeSubjectValue = String(raw).replace(/[<>]/g, "").replace(/\$/g, "$$$$");
+      subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), safeSubjectValue);
+      const safeValue = escapeHtml(raw).replace(/\$/g, "$$$$");
+      content = content.replace(new RegExp(escapedPlaceholder, 'g'), safeValue);
+
     });
+
 
     // Construct final HTML with header and footer
     let htmlContent = "";
