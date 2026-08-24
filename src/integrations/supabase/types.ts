@@ -12508,8 +12508,6 @@ export type Database = {
           custom_avatar_type: string | null
           custom_avatar_url: string | null
           display_name: string | null
-          email: string | null
-          friend_code: string | null
           id: string | null
           profile_avatar_id: string | null
           role: Database["public"]["Enums"]["user_role"] | null
@@ -12621,6 +12619,19 @@ export type Database = {
       cleanup_rate_limits: { Args: never; Returns: undefined }
       cleanup_shipping_rate_cache: { Args: never; Returns: undefined }
       deactivate_collections_after_end_date: { Args: never; Returns: undefined }
+      find_bestie_by_friend_code: {
+        Args: { _friend_code: string }
+        Returns: {
+          avatar_number: number
+          avatar_url: string
+          bio: string
+          custom_avatar_type: string
+          custom_avatar_url: string
+          display_name: string
+          id: string
+          profile_avatar_id: string
+        }[]
+      }
       generate_daily_scratch_card: {
         Args: { _user_id: string }
         Returns: string
@@ -12769,6 +12780,10 @@ export type Database = {
       is_vendor_team_member: {
         Args: { check_user_id: string; check_vendor_id: string }
         Returns: boolean
+      }
+      link_bestie_by_friend_code: {
+        Args: { _friend_code: string; _relationship: string }
+        Returns: string
       }
       promote_collections_to_ga: { Args: never; Returns: undefined }
       queue_content_like_email: {
