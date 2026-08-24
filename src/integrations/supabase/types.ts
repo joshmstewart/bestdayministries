@@ -12855,6 +12855,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      release_newsletter_queue_items: {
+        Args: { p_ids: string[] }
+        Returns: number
+      }
       update_featured_collections: { Args: never; Returns: undefined }
       user_can_manage_vendor: {
         Args: { p_vendor_id: string }
