@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { CartItem, createStorefrontCheckout } from '@/lib/shopify';
+import { CartItem, createStorefrontCheckout, fetchCartQuantity } from '@/lib/shopify';
 
 interface ShopifyCartStore {
   items: CartItem[];
   checkoutUrl: string | null;
+  cartId: string | null;
   isLoading: boolean;
+  isSyncing: boolean;
   
   // Actions
   addItem: (item: CartItem) => void;
@@ -14,9 +16,11 @@ interface ShopifyCartStore {
   clearCart: () => void;
   setLoading: (loading: boolean) => void;
   createCheckout: () => Promise<string | null>;
+  syncCart: () => Promise<void>;
   getTotalItems: () => number;
   getTotalPrice: () => number;
 }
+
 
 export const useShopifyCartStore = create<ShopifyCartStore>()(
   persist(
