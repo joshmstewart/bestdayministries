@@ -159,7 +159,10 @@ export const ContactForm = () => {
       const firstImage = uploadedAttachments.find(a => a.type.startsWith("image/"));
 
       // Save to database
-      const { data: inserted, error: dbError } = await supabase
+      // NOTE: anonymous users have INSERT but no SELECT on this table, so we
+      // cannot request the inserted row back; the notifier looks up the newest
+      // submission for this email instead.
+      const { error: dbError } = await supabase
         .from("contact_form_submissions")
         .insert({
           name: data.name,
@@ -169,16 +172,14 @@ export const ContactForm = () => {
           message_type: data.message_type,
           image_url: firstImage?.url || null,
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
-        } as any)
-        .select("id")
-        .single();
+        } as any);
 
       if (dbError) throw dbError;
 
       // Send admin notification email
       try {
         const { error: notifyError } = await supabase.functions.invoke("notify-admin-new-contact", {
-          body: { submissionId: inserted?.id, userEmail: data.email },
+          body: { userEmail: data.email },
         });
         if (notifyError) console.error("Admin notification error:", notifyError);
       } catch (notifyError) {
