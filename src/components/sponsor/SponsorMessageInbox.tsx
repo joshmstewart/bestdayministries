@@ -27,6 +27,7 @@ interface SponsorMessageInboxProps {
 
 export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInboxProps) => {
   const [messages, setMessages] = useState<SponsorMessage[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -66,7 +67,22 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
+
+      // Per-sponsor read marks (is_read on the message row is shared by all sponsors)
+      const { data: authData } = await supabase.auth.getUser();
+      const sponsorId = authData.user?.id;
+      const messageIds = (data || []).map(m => m.id);
+      if (sponsorId && messageIds.length > 0) {
+        const { data: reads } = await supabase
+          .from("sponsor_message_reads")
+          .select("message_id")
+          .eq("sponsor_id", sponsorId)
+          .in("message_id", messageIds);
+        setReadIds(new Set((reads || []).map(r => r.message_id)));
+      } else {
+        setReadIds(new Set());
+      }
+
       // Update any "approved" messages to "sent" since they're now in the sponsor's inbox
       const approvedMessages = (data || []).filter(msg => msg.status === 'approved');
       if (approvedMessages.length > 0) {
@@ -93,19 +109,18 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
 
   const markAsRead = async (messageId: string) => {
     try {
+      const { data: authData } = await supabase.auth.getUser();
+      const sponsorId = authData.user?.id;
+      if (!sponsorId) return;
+
       const { error } = await supabase
-        .from("sponsor_messages")
-        .update({ is_read: true })
-        .eq("id", messageId);
+        .from("sponsor_message_reads")
+        .insert({ message_id: messageId, sponsor_id: sponsorId });
 
-      if (error) throw error;
+      // 23505 = already marked read by this sponsor
+      if (error && error.code !== "23505") throw error;
 
-      // Update local state
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId ? { ...msg, is_read: true } : msg
-        )
-      );
+      setReadIds(prev => new Set(prev).add(messageId));
     } catch (error) {
       console.error("Error marking message as read:", error);
     }
@@ -142,7 +157,7 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
         // Mark message as read when accordion is opened
         if (value) {
           const msg = messages.find(m => m.id === value);
-          if (msg && !msg.is_read) {
+          if (msg && !readIds.has(msg.id)) {
             markAsRead(value);
           }
         }
@@ -154,7 +169,7 @@ export const SponsorMessageInbox = ({ bestieId, bestieName }: SponsorMessageInbo
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <div className="font-medium">{msg.subject}</div>
-                    {!msg.is_read && (
+                    {!readIds.has(msg.id) && (
                       <div className="h-2 w-2 rounded-full bg-destructive" title="Unread" />
                     )}
                   </div>

@@ -40,16 +40,32 @@ export const useSponsorUnreadCount = () => {
         return;
       }
 
-      const { count: unreadCount, error: countError } = await supabase
+      const { data: messages, error: messagesError } = await supabase
         .from("sponsor_messages")
-        .select("*", { count: "exact", head: true })
+        .select("id")
         .in("bestie_id", bestieIds)
-        .in("status", ["approved", "sent"])
-        .eq("is_read", false);
+        .in("status", ["approved", "sent"]);
 
-      if (countError) throw countError;
+      if (messagesError) throw messagesError;
 
-      setCount(unreadCount || 0);
+      const messageIds = (messages || []).map(m => m.id);
+      if (messageIds.length === 0) {
+        setCount(0);
+        setLoading(false);
+        return;
+      }
+
+      // Read state is tracked per sponsor, not on the shared message row
+      const { data: reads, error: readsError } = await supabase
+        .from("sponsor_message_reads")
+        .select("message_id")
+        .eq("sponsor_id", user.id)
+        .in("message_id", messageIds);
+
+      if (readsError) throw readsError;
+
+      const readSet = new Set((reads || []).map(r => r.message_id));
+      setCount(messageIds.filter(id => !readSet.has(id)).length);
     } catch (error) {
       console.error("Error fetching unread count:", error);
       setCount(0);
@@ -74,6 +90,11 @@ export const useSponsorUnreadCount = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sponsor_messages" },
+        () => fetchUnreadCount()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sponsor_message_reads" },
         () => fetchUnreadCount()
       )
       .subscribe();
