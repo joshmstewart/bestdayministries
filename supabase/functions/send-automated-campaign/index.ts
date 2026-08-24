@@ -486,8 +486,9 @@ const styleFooterImages = (html: string): string => {
       const raw = trigger_data[key] ?? '';
       const safeSubjectValue = String(raw).replace(/[<>]/g, "").replace(/\$/g, "$$$$");
       subject = subject.replace(new RegExp(escapedPlaceholder, 'g'), safeSubjectValue);
-
+      const safeValue = escapeHtml(raw).replace(/\$/g, "$$$$");
       content = content.replace(new RegExp(escapedPlaceholder, 'g'), safeValue);
+
     });
 
 
