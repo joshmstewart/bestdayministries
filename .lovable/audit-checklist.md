@@ -74,7 +74,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [fixed:threading/auth/system-filter all OK; but notify-admins-new-message swallowed Resend errors (resend_email_id "unknown", audit log falsely "sent") and blasted @example.com test admins → no admin was notified of inbound emails/replies. Added deliverable filter, error surfacing (500 + failed audit row), HTML escaping] contact form inbound reply (Cloudflare → process-inbound-email)
 
 ## Guardian Approvals
-- [ ] guardian approval — post
+- [testing] guardian approval — post
 - [ ] guardian approval — comment
 - [ ] guardian approval — message
 - [ ] guardian approval — vendor asset
