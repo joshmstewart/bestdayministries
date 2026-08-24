@@ -126,11 +126,8 @@ serve(async (req) => {
         continue;
       }
       
-      // Mark as processing
-      await supabaseClient
-        .from("newsletter_email_queue")
-        .update({ status: "processing", attempts: queueItem.attempts + 1 })
-        .eq("id", queueItem.id);
+      // Row already claimed and marked 'processing' atomically by claim_newsletter_queue_batch.
+
 
       try {
         // Rate limiting: wait between sends
