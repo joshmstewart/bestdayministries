@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { parseUserAgent } from "../_shared/userAgentParser.ts";
+import { verifyResendWebhook } from "../_shared/verifyResendWebhook.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,12 +40,26 @@ serve(async (req) => {
   }
 
   try {
+    const rawBody = await req.text();
+
+    const { verified, reason } = await verifyResendWebhook(req, rawBody);
+    if (!verified) {
+      console.warn("[resend-webhook] Signature verification failed:", reason);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized", reason }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const payload = await req.json();
+    const payload = JSON.parse(rawBody);
     console.log("Received Resend webhook:", payload);
 
     const { type, data } = payload;
@@ -109,7 +124,9 @@ serve(async (req) => {
     }
 
     // Update email_audit_log for ALL emails (receipts, notifications, etc.)
-    if (data.email_id) {
+    // Skip if we don't have a real Resend email_id: rows with "unknown" or missing ids
+    // would be updated en masse, corrupting the audit log.
+    if (data.email_id && data.email_id !== "unknown") {
       const updateData: any = {
         status: eventType,
       };
@@ -135,6 +152,10 @@ serve(async (req) => {
       } else {
         console.log("Updated email_audit_log:", { email_id: data.email_id, status: eventType });
       }
+    } else {
+      console.log("[resend-webhook] Skipping email_audit_log update: missing or placeholder email_id", {
+        email_id: data.email_id,
+      });
     }
 
     // Skip newsletter analytics for non-newsletter emails
