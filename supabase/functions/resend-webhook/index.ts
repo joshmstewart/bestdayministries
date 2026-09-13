@@ -259,6 +259,31 @@ serve(async (req) => {
       console.log("[resend-webhook] Soft bounce, subscriber left active:", { email, bounceType });
     }
 
+    // Update automated campaign sends status and engagement tracking
+    if (eventType === "delivered" || eventType === "bounced" || eventType === "failed" ||
+        eventType === "opened" || eventType === "clicked" || eventType === "complained") {
+
+      const updateData: any = {};
+      const now = new Date().toISOString();
+
+      if (eventType === "delivered") {
+        updateData.status = "delivered";
+      } else if (eventType === "bounced") {
+        updateData.status = "bounced";
+        updateData.error_message = "Email bounced";
+      } else if (eventType === "failed") {
+        updateData.status = "failed";
+      } else if (eventType === "complained") {
+        updateData.status = "complained";
+        updateData.complained_at = now;
+      }
+
+      if (eventType === "opened") {
+        updateData.opened_at = now;
+      } else if (eventType === "clicked") {
+        updateData.clicked_at = now;
+      }
+
       // Scope to the single most recent send for this recipient. Updating every
       // row matching the email within 7 days cross-contaminated other campaigns.
       const { data: latestSend } = await supabaseClient
