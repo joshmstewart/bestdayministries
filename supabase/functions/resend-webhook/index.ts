@@ -243,8 +243,11 @@ serve(async (req) => {
       console.error("Error inserting analytics:", insertError);
     }
 
-    // Update subscriber status for bounces and complaints
-    if (eventType === "bounced" || eventType === "complained") {
+    // Update subscriber status for hard bounces and complaints only.
+    // Soft/transient bounces must NOT permanently unsubscribe a real subscriber.
+    const bounceType = (data.bounce?.type || data.bounce_type || "").toLowerCase();
+    const isHardBounce = eventType === "bounced" && !["transient", "soft", "undetermined"].includes(bounceType);
+    if (isHardBounce || eventType === "complained") {
       await supabaseClient
         .from("newsletter_subscribers")
         .update({ 
@@ -252,16 +255,17 @@ serve(async (req) => {
           unsubscribed_at: new Date().toISOString(),
         })
         .eq("email", email);
+    } else if (eventType === "bounced") {
+      console.log("[resend-webhook] Soft bounce, subscriber left active:", { email, bounceType });
     }
 
     // Update automated campaign sends status and engagement tracking
-    if (eventType === "delivered" || eventType === "bounced" || eventType === "failed" || 
+    if (eventType === "delivered" || eventType === "bounced" || eventType === "failed" ||
         eventType === "opened" || eventType === "clicked" || eventType === "complained") {
-      
+
       const updateData: any = {};
       const now = new Date().toISOString();
-      
-      // Set status for terminal states
+
       if (eventType === "delivered") {
         updateData.status = "delivered";
       } else if (eventType === "bounced") {
@@ -273,19 +277,30 @@ serve(async (req) => {
         updateData.status = "complained";
         updateData.complained_at = now;
       }
-      
-      // Track engagement events (don't change status, just add timestamps)
+
       if (eventType === "opened") {
         updateData.opened_at = now;
       } else if (eventType === "clicked") {
         updateData.clicked_at = now;
       }
 
-      await supabaseClient
+      // Scope to the single most recent send for this recipient. Updating every
+      // row matching the email within 7 days cross-contaminated other campaigns.
+      const { data: latestSend } = await supabaseClient
         .from("automated_campaign_sends")
-        .update(updateData)
+        .select("id")
         .eq("recipient_email", email)
-        .gte("sent_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()); // Last 7 days only
+        .gte("sent_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order("sent_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestSend?.id) {
+        await supabaseClient
+          .from("automated_campaign_sends")
+          .update(updateData)
+          .eq("id", latestSend.id);
+      }
     }
 
     return new Response(

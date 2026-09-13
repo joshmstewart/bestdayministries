@@ -248,3 +248,25 @@ Evidence (localhost Playwright + prod edge logs):
 - After: same flow → function 200, zero console errors, `email_audit_log.status = delivered`, resend id `3da289b1-08c7-4620-b8a2-ff9152111af7`, recipients only real domains.
 - RLS verified: anon INSERT allowed, SELECT/UPDATE/DELETE admin-only. Client keeps email-based lookup because anon has no SELECT (documented in code).
 - Test submissions and their audit-log rows deleted.
+
+## Item 94: [fixed — BLOCKED on secret] resend-webhook signature verification + blast-radius bugs (2026-09-13)
+
+Bugs found:
+1. No signature verification at all — any internet caller could POST fake Resend events.
+2. `email_audit_log` updated with `.eq("resend_email_id", data.email_id)` even when email_id was the literal placeholder `"unknown"` → one forged event could mass-rewrite audit rows.
+3. Any `bounced` event (including soft/transient) permanently unsubscribed the subscriber.
+4. `automated_campaign_sends` updated by `recipient_email` + 7-day window → an open/click for one campaign marked EVERY send to that address in 7 days as opened/clicked. No resend_email_id column exists on that table.
+
+Fixes:
+- `_shared/verifyResendWebhook.ts`: Svix HMAC-SHA-256 over `${svix-id}.${svix-timestamp}.${rawBody}`, 5-min tolerance; used by `resend-webhook` and `handle-resend-webhook` (401 on mismatch).
+- audit-log update guarded on real, non-"unknown" email_id.
+- subscriber unsubscribe now only on hard bounce (`bounce.type` not transient/soft/undetermined) or complaint; soft bounce logged, subscriber left active.
+- automated_campaign_sends now resolves the single latest send row id for the recipient and updates by id.
+
+Evidence:
+- Deploy: `resend-webhook` deployed successfully after fix (compile verified).
+- Forged request (bad svix-signature) → **200**, not 401, because `RESEND_WEBHOOK_SECRET` is still unset/invalid (verifier is warning-only when unconfigured). Endpoint is therefore STILL UNPROTECTED.
+- Earlier proof the verifier works: with a temporary valid `whsec_` secret, signed request → 200, forged → 401.
+- Cleanup: temporary `audit-probe@resend.dev` newsletter_subscribers row deleted (count = 0).
+
+BLOCKER: add `RESEND_WEBHOOK_SECRET` (Resend dashboard → Webhooks → Signing secret, starts with `whsec_`). Until then item 94 is code-complete but not enforced.
