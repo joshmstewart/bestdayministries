@@ -40,12 +40,26 @@ serve(async (req) => {
   }
 
   try {
+    const rawBody = await req.text();
+
+    const { verified, reason } = await verifyResendWebhook(req, rawBody);
+    if (!verified) {
+      console.warn("[resend-webhook] Signature verification failed:", reason);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized", reason }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const payload = await req.json();
+    const payload = JSON.parse(rawBody);
     console.log("Received Resend webhook:", payload);
 
     const { type, data } = payload;
