@@ -152,6 +152,10 @@ serve(async (req) => {
       } else {
         console.log("Updated email_audit_log:", { email_id: data.email_id, status: eventType });
       }
+    } else {
+      console.log("[resend-webhook] Skipping email_audit_log update: missing or placeholder email_id", {
+        email_id: data.email_id,
+      });
     }
 
     // Skip newsletter analytics for non-newsletter emails
