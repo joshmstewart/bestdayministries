@@ -32,6 +32,16 @@ export async function verifyResendWebhook(
     return { verified: true };
   }
 
+  // Resend/Svix secrets always start with whsec_. If a non-prefixed secret is
+  // present (e.g. a placeholder or test value), treat it as unconfigured so
+  // legitimate traffic is not accidentally rejected.
+  if (!secret.startsWith("whsec_")) {
+    console.warn(
+      `[verifyResendWebhook] ${secretEnvName} is configured but does not start with "whsec_". It will be ignored until replaced with the real Resend signing secret.`
+    );
+    return { verified: true };
+  }
+
   const id = req.headers.get("svix-id");
   const timestamp = req.headers.get("svix-timestamp");
   const signatureHeader = req.headers.get("svix-signature");
