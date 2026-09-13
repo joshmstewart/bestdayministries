@@ -124,7 +124,9 @@ serve(async (req) => {
     }
 
     // Update email_audit_log for ALL emails (receipts, notifications, etc.)
-    if (data.email_id) {
+    // Skip if we don't have a real Resend email_id: rows with "unknown" or missing ids
+    // would be updated en masse, corrupting the audit log.
+    if (data.email_id && data.email_id !== "unknown") {
       const updateData: any = {
         status: eventType,
       };
