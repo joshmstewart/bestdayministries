@@ -25,11 +25,25 @@ serve(async (req: Request) => {
   }
 
   try {
+    const rawBody = await req.text();
+
+    const { verified, reason } = await verifyResendWebhook(req, rawBody);
+    if (!verified) {
+      console.warn("[handle-resend-webhook] Signature verification failed:", reason);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized", reason }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const payload: ResendWebhookPayload = await req.json();
+    const payload: ResendWebhookPayload = JSON.parse(rawBody);
     console.log("Resend webhook received:", payload.type);
 
     // Only handle email.sent events for tracking ambassador outbound emails
