@@ -40,7 +40,9 @@ Centralized location management allowing admins to create reusable location pres
   - Icon: MapPin with proper alignment
   - Selection updates both dropdown display AND input field
 - **Google Places Autocomplete:** Manual search with autocomplete
-- **Manual Input:** Can type directly if Google API unavailable
+- **Manual Input:** Always available, including while the Google key or SDK loads or fails. Accepts any place name or address; no Google selection is required.
+- **Other place:** Explicit saved-dropdown option focuses the manual field; switching from a saved location clears its address. Typed locations remain intact.
+- Google requests `place_id` for the selection guard and keeps its listener attached until unmount or configuration change.
 
 **Display Format:**
 ```

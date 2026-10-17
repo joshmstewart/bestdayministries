@@ -1115,6 +1115,7 @@ COMPS:Manager[Admin→Format→Locations-CRUD-toggle]|Autocomplete[dropdown-save
 WORKFLOWS:admin[create-toggle]|user[select-saved-or-Google-or-manual]
 INTEGRATION:EventManagement[LocationAutocomplete]|display[match-saved→show-name-bold+address-link]
 GOOGLE:API-key-GOOGLE_PLACES_API_KEY|edge-get-key|fallback[saved+manual-still-work]
+MANUAL:always-visible-during-loading-or-failure|Other-place-option|venue-name-or-address|preserve-DOM-save-fallback
 DESIGN:dropdown[[MapPin]-name-address-muted]|input[[MapPin]-address]|card[[MapPin]-name-address-[Eye]]
 RLS:SELECT[all-auth-active]|INSERT-UPDATE-DELETE[admins]
 

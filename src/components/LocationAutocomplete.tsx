@@ -1,5 +1,5 @@
 /// <reference types="google.maps" />
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin } from "lucide-react";
@@ -25,12 +25,11 @@ export function LocationAutocomplete({
   value, 
   onChange, 
   label = "Location",
-  placeholder = "Search for a location...",
+  placeholder = "Place name or address",
   required = false
 }: LocationAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [apiKey, setApiKey] = useState<string>("");
   const [fetchingKey, setFetchingKey] = useState(true);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
@@ -105,14 +104,14 @@ export function LocationAutocomplete({
     }
 
     // Prevent re-initialization if autocomplete already exists
-    if (autocompleteRef.current || isInitialized) {
+    if (autocompleteRef.current) {
       return;
     }
 
     // Initialize autocomplete
     const autocompleteInstance = new google.maps.places.Autocomplete(inputRef.current, {
       types: ["establishment", "geocode"],
-      fields: ["formatted_address", "name", "geometry"],
+      fields: ["place_id", "formatted_address", "name", "geometry"],
     });
 
     // Listen for place selection - use ref to avoid stale closure
@@ -137,7 +136,6 @@ export function LocationAutocomplete({
     });
 
     autocompleteRef.current = autocompleteInstance;
-    setIsInitialized(true);
 
     return () => {
       if (autocompleteRef.current) {
@@ -145,40 +143,7 @@ export function LocationAutocomplete({
         autocompleteRef.current = null;
       }
     };
-  }, [isLoaded, hasValidKey, isInitialized]);
-
-  if (loadError) {
-    console.error("Error loading Google Maps:", loadError);
-    return (
-      <div className="space-y-2">
-        {label && <Label htmlFor="location">{label}</Label>}
-        <Input
-          id="location"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          required={required}
-        />
-        <p className="text-xs text-muted-foreground">
-          Location autocomplete unavailable. You can still enter locations manually.
-        </p>
-      </div>
-    );
-  }
-
-  if (fetchingKey || (!isLoaded && hasValidKey)) {
-    return (
-      <div className="space-y-2">
-        {label && <Label htmlFor="location">{label}</Label>}
-        <div className="flex items-center gap-2 h-10 px-3 border rounded-md bg-muted/50">
-          <MapPin className="w-4 h-4 animate-pulse" />
-          <span className="text-sm text-muted-foreground">
-            {fetchingKey ? 'Fetching API key...' : 'Loading location search...'}
-          </span>
-        </div>
-      </div>
-    );
-  }
+  }, [isLoaded, hasValidKey]);
 
   return (
     <div className="space-y-2">
@@ -187,8 +152,14 @@ export function LocationAutocomplete({
       {savedLocations.length > 0 && (
         <div className="space-y-2">
           <Select
-            value={selectedLocationId}
+            value={selectedLocationId || (value ? "other" : "")}
             onValueChange={(locationId) => {
+              if (locationId === "other") {
+                setSelectedLocationId("");
+                if (selectedLocationId) onChange("");
+                inputRef.current?.focus();
+                return;
+              }
               const location = savedLocations.find(l => l.id === locationId);
               if (location) {
                 setSelectedLocationId(locationId);
@@ -196,7 +167,7 @@ export function LocationAutocomplete({
               }
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger aria-label="Saved location">
               <SelectValue placeholder="Select a saved location...">
                 {selectedLocationId && (() => {
                   const location = savedLocations.find(l => l.id === selectedLocationId);
@@ -210,9 +181,11 @@ export function LocationAutocomplete({
                     </div>
                   ) : null;
                 })()}
+                {!selectedLocationId && value ? "Other place" : null}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="other">Other place</SelectItem>
               {savedLocations.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   <div className="flex items-start gap-2">
@@ -274,12 +247,8 @@ export function LocationAutocomplete({
         />
         <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
       </div>
-      {!value && (
-        <p className="text-xs text-muted-foreground">
-          {savedLocations.length > 0 
-            ? "Select a saved location above or search for a new one"
-            : "Start typing to search for a location"}
-        </p>
+      {(fetchingKey || (!isLoaded && hasValidKey)) && (
+        <span role="status" className="text-xs text-muted-foreground">Loading place suggestions…</span>
       )}
     </div>
   );
