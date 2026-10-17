@@ -1114,7 +1114,7 @@ DB:saved_locations[name+address+is_active]
 COMPS:Manager[Admin→Format→Locations-CRUD-toggle]|Autocomplete[dropdown-saved+Google-Places+manual]
 WORKFLOWS:admin[create-toggle]|user[select-saved-or-Google-or-manual]
 INTEGRATION:EventManagement[LocationAutocomplete]|display[match-saved→show-name-bold+address-link]
-GOOGLE:API-key-GOOGLE_PLACES_API_KEY|edge-get-key|fallback[saved+manual-still-work]
+GOOGLE:edge-places-autocomplete[auth-required+connector-gateway+Places-New+Longmont-bias]→app-owned-dropdown[300ms-debounce+session-token]|NO-browser-Places-script[Google-disables-input-on-referrer-errors]|fallback[saved+manual-always-work]
 MANUAL:always-visible-during-loading-or-failure|Other-place-option|venue-name-or-address|preserve-DOM-save-fallback
 DESIGN:dropdown[[MapPin]-name-address-muted]|input[[MapPin]-address]|card[[MapPin]-name-address-[Eye]]
 RLS:SELECT[all-auth-active]|INSERT-UPDATE-DELETE[admins]
