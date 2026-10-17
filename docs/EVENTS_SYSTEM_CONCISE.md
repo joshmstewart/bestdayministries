@@ -53,6 +53,7 @@ Create/edit events: title, description, date/time, recurrence settings, image (c
 - Select from saved locations (shows name + full address)
 - Or search with Google Places autocomplete
 - Or type manually
+- Choose “Other place” to enter any venue name or address. The input remains available while Google suggestions load or fail; the existing DOM save fallback is preserved.
 **See:** `docs/SAVED_LOCATIONS_SYSTEM.md` for location management details
 
 ## RLS Policies

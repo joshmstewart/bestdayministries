@@ -1,6 +1,7 @@
 # Option 1+ (Conservative Pyramid) Implementation Tracker
 
 **Status:** 🚧 IN PROGRESS  
+**Location regression coverage:** `tests/integration/location-autocomplete.test.tsx` covers manual place entry during key loading, SDK loading/failure, and switching from a saved venue. These are additional regressions, not E2E conversions; no archival required.
 **Started:** 2025  
 **Target Completion:** 6 weeks
 
