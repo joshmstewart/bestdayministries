@@ -48,16 +48,19 @@ Deno.serve(async (req) => {
     const parsed = Body.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return json({ error: parsed.error.flatten() }, 400);
 
-    const apiKey = Deno.env.get('GOOGLE_PLACES_API_KEY');
-    if (!apiKey) return json({ error: 'Place suggestions are not configured' }, 503);
+    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+    const mapsKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    if (!lovableKey || !mapsKey) return json({ error: 'Place suggestions are not configured' }, 503);
+    const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps/places';
+    const gw = { Authorization: `Bearer ${lovableKey}`, 'X-Connection-Api-Key': mapsKey };
 
     let response: Response;
     if (parsed.data.action === 'autocomplete') {
-      response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+      response = await fetch(`${GATEWAY_URL}/v1/places:autocomplete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
+          ...gw,
           'X-Goog-FieldMask':
             'suggestions.placePrediction.placeId,suggestions.placePrediction.text.text,suggestions.placePrediction.structuredFormat',
         },
@@ -68,10 +71,10 @@ Deno.serve(async (req) => {
         }),
       });
     } else {
-      const url = new URL(`https://places.googleapis.com/v1/places/${parsed.data.placeId}`);
+      const url = new URL(`${GATEWAY_URL}/v1/places/${parsed.data.placeId}`);
       url.searchParams.set('sessionToken', parsed.data.sessionToken);
       response = await fetch(url, {
-        headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'id,displayName,formattedAddress' },
+        headers: { ...gw, 'X-Goog-FieldMask': 'id,displayName,formattedAddress' },
       });
     }
 

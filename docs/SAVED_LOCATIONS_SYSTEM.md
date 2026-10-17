@@ -122,7 +122,7 @@ When viewing events in the admin management interface (`/event-management`):
 
 ## Google Places API
 
-**API Key Storage:** Stored in Supabase secrets as `GOOGLE_PLACES_API_KEY`
+**Suggestions:** `places-autocomplete` edge function (login required) calls Google Places (New) through the managed Google Maps connector. The browser never loads Google Places, so a Google error can never lock the input.
 
 **Edge Function:** `get-google-places-key`
 - Fetches key securely
@@ -185,7 +185,7 @@ When selected:
 | Saved location not appearing in dropdown | `is_active = false` | Toggle active in admin |
 | Selection doesn't save | Not clicking submit after selecting | Verify form submission logic |
 | Address doesn't show in input | `onChange` not called | Check SelectValue implementation |
-| Google autocomplete not working | API key missing/invalid | Check `GOOGLE_PLACES_API_KEY` secret |
+| Google suggestions not appearing | Google Maps connector unlinked or gateway error | Check `places-autocomplete` logs; typing still works |
 | Dropdown shows old selection | State not resetting on form reset | Clear `selectedLocationId` in reset |
 | Manual input doesn't clear dropdown | Missing state update | Add `setSelectedLocationId("")` on input change |
 

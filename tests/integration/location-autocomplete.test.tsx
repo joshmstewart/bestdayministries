@@ -3,15 +3,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { useState } from "react";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 
-const mocks = vi.hoisted(() => ({
-  invoke: vi.fn(),
-  maps: { isLoaded: false, loadError: null as Error | null },
-}));
-vi.mock("@/hooks/useGoogleMapsScript", () => ({ useGoogleMapsScript: () => mocks.maps }));
+const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     functions: { invoke: mocks.invoke },
-    from: () => ({ select: () => ({ eq: () => ({ order: async () => ({ data: [
+    from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: [
       { id: "coffee", name: "Coffee shop", address: "Coffee shop address" },
     ], error: null }) }) }) }),
   },
@@ -23,50 +19,56 @@ function Field() {
 }
 
 beforeEach(() => {
-  mocks.maps.isLoaded = false;
-  mocks.maps.loadError = null;
-  mocks.invoke.mockResolvedValue({ data: { apiKey: "PLACEHOLDER" }, error: null });
+  mocks.invoke.mockReset();
   HTMLElement.prototype.hasPointerCapture = () => false;
   HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 afterEach(cleanup);
 
+const box = () => screen.getByRole("textbox");
+
 describe("Event location entry", () => {
-  it("accepts other places while the key request is pending", () => {
+  it("keeps typed text while suggestions are pending", () => {
     mocks.invoke.mockReturnValue(new Promise(() => {}));
     render(<Field />);
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Community library" } });
-    fireEvent.blur(screen.getByRole("textbox"));
-    expect(screen.getByRole("textbox")).toHaveValue("Community library");
+    fireEvent.change(box(), { target: { value: "Community library" } });
+    fireEvent.blur(box());
+    expect(box()).toHaveValue("Community library");
+    expect(box()).not.toBeDisabled();
   });
 
-  it("accepts other places while Google suggestions are loading", async () => {
-    mocks.invoke.mockResolvedValue({ data: { apiKey: "test-key" }, error: null });
+  it("keeps typed text and stays editable when suggestions fail", async () => {
+    mocks.invoke.mockResolvedValue({ data: null, error: { message: "denied", context: { status: 403 } } });
     render(<Field />);
+    fireEvent.change(box(), { target: { value: "Denver Public Library" } });
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalled());
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "City park" } });
-    expect(screen.getByRole("textbox")).toHaveValue("City park");
+    fireEvent.change(box(), { target: { value: "Denver Public Library annex" } });
+    expect(box()).toHaveValue("Denver Public Library annex");
+    expect(box()).not.toBeDisabled();
   });
 
-  it("retains manual entry and saved choices after Google fails", async () => {
-    mocks.maps.loadError = new Error("Unavailable");
+  it("fills the full address when a suggestion is picked", async () => {
+    mocks.invoke.mockImplementation(async (_n: string, { body }: any) =>
+      body.action === "autocomplete"
+        ? { data: { suggestions: [{ placeId: "p1", text: "Longmont Library, Longmont, CO", main: "Longmont Library", secondary: "Longmont, CO" }] }, error: null }
+        : { data: { value: "Longmont Library, 355 Emery St, Longmont, CO 80501" }, error: null });
     render(<Field />);
-    await screen.findByRole("combobox", { name: "Saved location" });
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Recreation center" } });
-    fireEvent.blur(screen.getByRole("textbox"));
-    expect(screen.getByRole("textbox")).toHaveValue("Recreation center");
+    fireEvent.change(box(), { target: { value: "Longmont lib" } });
+    fireEvent.mouseDown(await screen.findByRole("option", { name: /Longmont Library/ }));
+    await waitFor(() => expect(box()).toHaveValue("Longmont Library, 355 Emery St, Longmont, CO 80501"));
   });
 
   it("switches from the coffee shop to a custom place", async () => {
+    mocks.invoke.mockReturnValue(new Promise(() => {}));
     render(<Field />);
     const select = await screen.findByRole("combobox", { name: "Saved location" });
     fireEvent.pointerDown(select, { button: 0, ctrlKey: false, pointerType: "mouse" });
     fireEvent.click(await screen.findByRole("option", { name: /Coffee shop/ }));
-    expect(screen.getByRole("textbox")).toHaveValue("Coffee shop address");
+    expect(box()).toHaveValue("Coffee shop address");
     fireEvent.pointerDown(select, { button: 0, ctrlKey: false, pointerType: "mouse" });
     fireEvent.click(await screen.findByRole("option", { name: "Other place" }));
-    expect(screen.getByRole("textbox")).toHaveValue("");
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Community library" } });
-    expect(screen.getByRole("textbox")).toHaveValue("Community library");
+    expect(box()).toHaveValue("");
+    fireEvent.change(box(), { target: { value: "Community library" } });
+    expect(box()).toHaveValue("Community library");
   });
 });

@@ -1,10 +1,8 @@
-/// <reference types="google.maps" />
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useGoogleMapsScript } from "@/hooks/useGoogleMapsScript";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface LocationAutocompleteProps {
@@ -21,156 +19,136 @@ interface SavedLocation {
   address: string;
 }
 
-export function LocationAutocomplete({ 
-  value, 
-  onChange, 
+interface Suggestion {
+  placeId: string;
+  text: string;
+  main: string;
+  secondary: string;
+}
+
+/**
+ * Event location box. The text input is plain and always editable; Google
+ * suggestions come from the `places-autocomplete` backend function and are
+ * purely optional — Google never touches the input element itself.
+ */
+export function LocationAutocomplete({
+  value,
+  onChange,
   label = "Location",
   placeholder = "Place name or address",
-  required = false
+  required = false,
 }: LocationAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const [apiKey, setApiKey] = useState<string>("");
-  const [fetchingKey, setFetchingKey] = useState(true);
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
-  
-  // Store onChange in a ref to avoid dependency issues
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [query, setQuery] = useState("");
+  const sessionTokenRef = useRef<string>(crypto.randomUUID());
+  const requestIdRef = useRef(0);
+  const suggestionsDisabledRef = useRef(false);
 
-  // Fetch saved locations
   useEffect(() => {
-    const fetchSavedLocations = async () => {
-      const { data, error } = await supabase
-        .from("saved_locations")
-        .select("id, name, address")
-        .eq("is_active", true)
-        .order("name");
-
-      if (!error && data) {
-        setSavedLocations(data);
-      }
-    };
-
-    fetchSavedLocations();
+    supabase
+      .from("saved_locations")
+      .select("id, name, address")
+      .eq("is_active", true)
+      .order("name")
+      .then(({ data, error }) => {
+        if (!error && data) setSavedLocations(data);
+      });
   }, []);
 
-  // Reset selected location ID when value changes externally (e.g., when editing an event)
   useEffect(() => {
     if (value) {
-      // Check if current value matches a saved location
-      const matchingLocation = savedLocations.find(l => l.address === value);
-      setSelectedLocationId(matchingLocation?.id || "");
+      const match = savedLocations.find((l) => l.address === value);
+      setSelectedLocationId(match?.id || "");
     } else {
       setSelectedLocationId("");
     }
   }, [value, savedLocations]);
 
-  // Fetch API key from edge function
+  // Debounced backend suggestions; only for text the user typed.
   useEffect(() => {
-    const fetchApiKey = async () => {
+    const text = query.trim();
+    if (text.length < 3 || suggestionsDisabledRef.current) {
+      setSuggestions([]);
+      return;
+    }
+    const requestId = ++requestIdRef.current;
+    const timer = setTimeout(async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('get-google-places-key');
-        
+        const { data, error } = await supabase.functions.invoke("places-autocomplete", {
+          body: { action: "autocomplete", input: text, sessionToken: sessionTokenRef.current },
+        });
+        if (requestId !== requestIdRef.current) return; // stale
         if (error) {
-          console.error('Error from edge function:', error);
-          throw error;
+          // Stop asking for the rest of this visit on auth/config failures.
+          const status = (error as { context?: { status?: number } })?.context?.status;
+          if (status === 401 || status === 403 || status === 503) suggestionsDisabledRef.current = true;
+          console.warn("Place suggestions unavailable:", error.message);
+          setSuggestions([]);
+          return;
         }
-        
-        if (data?.apiKey) {
-          setApiKey(data.apiKey);
-        } else {
-          console.error('No API key in response:', data);
-        }
-      } catch (error) {
-        console.error('Error fetching Google Places API key:', error);
-      } finally {
-        setFetchingKey(false);
+        setSuggestions(data?.suggestions ?? []);
+        setActiveIndex(-1);
+        setOpen(true);
+      } catch (e) {
+        console.warn("Place suggestions unavailable:", e);
       }
-    };
-    
-    fetchApiKey();
-  }, []);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
-  // Load Google Maps script with our custom hook
-  const { isLoaded, loadError } = useGoogleMapsScript(apiKey);
-
-  const hasValidKey = apiKey && apiKey !== "PLACEHOLDER";
-
-  useEffect(() => {
-    if (!isLoaded || !inputRef.current || !hasValidKey) {
-      return;
+  const pickSuggestion = async (s: Suggestion) => {
+    setOpen(false);
+    setSuggestions([]);
+    setQuery("");
+    requestIdRef.current++;
+    // Show the suggestion text immediately; upgrade to full address if available.
+    onChange(s.text);
+    try {
+      const { data } = await supabase.functions.invoke("places-autocomplete", {
+        body: { action: "details", placeId: s.placeId, sessionToken: sessionTokenRef.current },
+      });
+      if (data?.value && inputRef.current?.value === s.text) onChange(data.value);
+    } catch {
+      // keep the suggestion text
+    } finally {
+      sessionTokenRef.current = crypto.randomUUID();
     }
+  };
 
-    // Prevent re-initialization if autocomplete already exists
-    if (autocompleteRef.current) {
-      return;
-    }
-
-    // Initialize autocomplete
-    const autocompleteInstance = new google.maps.places.Autocomplete(inputRef.current, {
-      types: ["establishment", "geocode"],
-      fields: ["place_id", "formatted_address", "name", "geometry"],
-    });
-
-    // Listen for place selection - use ref to avoid stale closure
-    // CRITICAL: Only update state if the user actually selected a suggestion.
-    // Google fires place_changed even when the user just clicks away without
-    // selecting anything — in that case getPlace() returns an object WITHOUT
-    // place_id. We must NOT overwrite manual input in that scenario.
-    autocompleteInstance.addListener("place_changed", () => {
-      const place = autocompleteInstance.getPlace();
-      
-      // place_id is ONLY present when the user clicked a suggestion.
-      // Without it, this is a spurious fire — preserve the current value.
-      if (!place.place_id) {
-        return;
-      }
-      
-      if (place.formatted_address) {
-        onChangeRef.current(place.formatted_address);
-      } else if (place.name) {
-        onChangeRef.current(place.name);
-      }
-    });
-
-    autocompleteRef.current = autocompleteInstance;
-
-    return () => {
-      if (autocompleteRef.current) {
-        google.maps.event.clearInstanceListeners(autocompleteRef.current);
-        autocompleteRef.current = null;
-      }
-    };
-  }, [isLoaded, hasValidKey]);
+  const showList = open && suggestions.length > 0;
 
   return (
     <div className="space-y-2">
       {label && <Label htmlFor="location">{label}</Label>}
-      
+
       {savedLocations.length > 0 && (
-        <div className="space-y-2">
-          <Select
-            value={selectedLocationId || (value ? "other" : "")}
-            onValueChange={(locationId) => {
-              if (locationId === "other") {
-                setSelectedLocationId("");
-                if (selectedLocationId) onChange("");
-                inputRef.current?.focus();
-                return;
-              }
-              const location = savedLocations.find(l => l.id === locationId);
-              if (location) {
-                setSelectedLocationId(locationId);
-                onChange(location.address);
-              }
-            }}
-          >
-            <SelectTrigger aria-label="Saved location">
-              <SelectValue placeholder="Select a saved location...">
-                {selectedLocationId && (() => {
-                  const location = savedLocations.find(l => l.id === selectedLocationId);
+        <Select
+          value={selectedLocationId || (value ? "other" : "")}
+          onValueChange={(locationId) => {
+            if (locationId === "other") {
+              setSelectedLocationId("");
+              if (selectedLocationId) onChange("");
+              inputRef.current?.focus();
+              return;
+            }
+            const location = savedLocations.find((l) => l.id === locationId);
+            if (location) {
+              setSelectedLocationId(locationId);
+              setOpen(false);
+              onChange(location.address);
+            }
+          }}
+        >
+          <SelectTrigger aria-label="Saved location">
+            <SelectValue placeholder="Select a saved location...">
+              {selectedLocationId &&
+                (() => {
+                  const location = savedLocations.find((l) => l.id === selectedLocationId);
                   return location ? (
                     <div className="flex items-start gap-2 text-left">
                       <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -181,64 +159,60 @@ export function LocationAutocomplete({
                     </div>
                   ) : null;
                 })()}
-                {!selectedLocationId && value ? "Other place" : null}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="other">Other place</SelectItem>
-              {savedLocations.map((location) => (
-                <SelectItem key={location.id} value={location.id}>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{location.name}</span>
-                      <span className="text-xs text-muted-foreground">{location.address}</span>
-                    </div>
+              {!selectedLocationId && value ? "Other place" : null}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="other">Other place</SelectItem>
+            {savedLocations.map((location) => (
+              <SelectItem key={location.id} value={location.id}>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{location.name}</span>
+                    <span className="text-xs text-muted-foreground">{location.address}</span>
                   </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
-      
+
       <div className="relative">
         <Input
           ref={inputRef}
           id="location"
           value={value}
+          autoComplete="off"
+          role="textbox"
+          aria-autocomplete="list"
+          aria-expanded={showList}
+          aria-controls="location-suggestions"
           onChange={(e) => {
-            // Clear saved location selection when manually typing
             setSelectedLocationId("");
             onChange(e.target.value);
+            setQuery(e.target.value);
           }}
           onBlur={(e) => {
-            // On blur, sync whatever is in the actual DOM input to React state
-            // This catches cases where Google Autocomplete modified the input value
-            // without triggering React's onChange
-            const currentInputValue = e.target.value;
-            if (currentInputValue && currentInputValue !== value) {
-              onChange(currentInputValue);
-            }
+            const current = e.target.value;
+            if (current && current !== value) onChange(current);
+            // Delay so a click on a suggestion still registers.
+            setTimeout(() => setOpen(false), 150);
           }}
           onKeyDown={(e) => {
-            // Prevent Google Autocomplete from eating the Enter key
-            // when the user wants to submit the form with a manual address
-            if (e.key === 'Enter') {
-              // If the pac-container (autocomplete dropdown) is NOT visible,
-              // let the form submit normally with the manual value
-              const pacContainer = document.querySelector('.pac-container');
-              const isDropdownVisible = pacContainer && 
-                window.getComputedStyle(pacContainer).display !== 'none' &&
-                pacContainer.querySelectorAll('.pac-item').length > 0;
-              
-              if (!isDropdownVisible) {
-                // Sync the current input value to React state
-                const currentInputValue = inputRef.current?.value;
-                if (currentInputValue && currentInputValue !== value) {
-                  onChange(currentInputValue);
-                }
-              }
+            if (!showList) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setActiveIndex((i) => Math.max(i - 1, -1));
+            } else if (e.key === "Enter" && activeIndex >= 0) {
+              e.preventDefault();
+              pickSuggestion(suggestions[activeIndex]);
+            } else if (e.key === "Escape") {
+              setOpen(false);
             }
           }}
           placeholder={placeholder}
@@ -246,10 +220,36 @@ export function LocationAutocomplete({
           className="pl-9"
         />
         <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        {showList && (
+          <ul
+            id="location-suggestions"
+            role="listbox"
+            aria-label="Place suggestions"
+            className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md overflow-hidden"
+          >
+            {suggestions.map((s, i) => (
+              <li
+                key={s.placeId}
+                role="option"
+                aria-selected={i === activeIndex}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  pickSuggestion(s);
+                }}
+                className={`flex items-start gap-2 px-3 py-2 cursor-pointer text-sm ${
+                  i === activeIndex ? "bg-accent text-accent-foreground" : "hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                <div className="flex flex-col">
+                  <span className="font-medium">{s.main}</span>
+                  {s.secondary && <span className="text-xs text-muted-foreground">{s.secondary}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-      {(fetchingKey || (!isLoaded && hasValidKey)) && (
-        <span role="status" className="text-xs text-muted-foreground">Loading place suggestions…</span>
-      )}
     </div>
   );
 }

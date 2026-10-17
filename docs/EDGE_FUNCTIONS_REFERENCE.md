@@ -492,3 +492,6 @@ An order_item is "missed" when ALL of these are true:
 ---
 
 **Last Updated:** 2025-05-14 - Added retry-vendor-order-notifications and send-vendor-order-notification documentation
+
+## places-autocomplete
+POST, login required. Body `{action:"autocomplete",input,sessionToken}` → `{suggestions:[{placeId,text,main,secondary}]}` (max 5, Longmont bias) or `{action:"details",placeId,sessionToken}` → `{value}` full address. Uses Google Maps connector (GOOGLE_MAPS_API_KEY + LOVABLE_API_KEY) via gateway. Errors return Google status/body.
