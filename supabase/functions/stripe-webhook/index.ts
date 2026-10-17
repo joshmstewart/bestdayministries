@@ -29,36 +29,65 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Detect if this is a test or live webhook based on the signature
-    const isTestWebhook = signature.startsWith("whsec_test_");
-    const stripeMode = isTestWebhook ? "test" : "live";
-    
-    const webhookSecret = stripeMode === "live"
-      ? Deno.env.get("STRIPE_WEBHOOK_SECRET_LIVE")
-      : Deno.env.get("STRIPE_WEBHOOK_SECRET_TEST");
-    
-    const stripeKey = stripeMode === "live"
-      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
-      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+    // The stripe-signature header is "t=...,v1=..." and never reveals the mode,
+    // so try the live secret first, then the test secret. Mode comes from
+    // event.livemode AFTER successful verification (never trust it before).
+    const liveSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET_LIVE");
+    const testSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET_TEST");
 
-    if (!webhookSecret || !stripeKey) {
-      throw new Error(`Stripe ${stripeMode} webhook secret or API key not configured`);
+    if (!liveSecret && !testSecret) {
+      throw new Error("No Stripe webhook secrets configured");
     }
 
-    const stripe = new Stripe(stripeKey, {
+    // Verify with a keyless client — constructEventAsync only needs the secret.
+    const verifier = new Stripe("sk_placeholder_for_verification", {
       apiVersion: "2025-08-27.basil",
     });
 
-    let event: Stripe.Event;
-    try {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    } catch (err) {
-      console.error("Webhook signature verification failed:", err);
+    let event: Stripe.Event | null = null;
+    let stripeMode: "live" | "test" | null = null;
+
+    if (liveSecret) {
+      try {
+        event = await verifier.webhooks.constructEventAsync(body, signature, liveSecret);
+        stripeMode = "live";
+      } catch { /* not a live-signed event */ }
+    }
+    if (!event && testSecret) {
+      try {
+        event = await verifier.webhooks.constructEventAsync(body, signature, testSecret);
+        stripeMode = "test";
+      } catch { /* not a test-signed event */ }
+    }
+
+    if (!event || !stripeMode) {
+      console.error("Webhook signature verification failed for both live and test secrets");
       return new Response(
         JSON.stringify({ error: "Invalid signature" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+
+    // Cross-check: verified event's livemode must match the secret that verified it.
+    if ((stripeMode === "live") !== event.livemode) {
+      console.error(`Mode mismatch: verified with ${stripeMode} secret but event.livemode=${event.livemode}`);
+      return new Response(
+        JSON.stringify({ error: "Mode mismatch" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    const stripeKey = stripeMode === "live"
+      ? Deno.env.get("STRIPE_SECRET_KEY_LIVE")
+      : Deno.env.get("STRIPE_SECRET_KEY_TEST");
+
+    if (!stripeKey) {
+      throw new Error(`Stripe ${stripeMode} API key not configured`);
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: "2025-08-27.basil",
+    });
 
     console.log(`Processing ${stripeMode} webhook:`, event.type);
 
