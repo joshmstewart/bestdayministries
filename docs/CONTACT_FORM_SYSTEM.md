@@ -68,7 +68,8 @@ The contact form system provides a comprehensive solution for managing user inqu
 {
   submissionId: string (uuid),
   replyMessage: string (1-5000 chars),
-  adminNotes?: string (max 1000 chars)
+  adminNotes?: string (max 1000 chars),
+  attachments?: Array<{ name: string; type: string; size: number; content: string }> // base64 bytes
 }
 ```
 
@@ -951,8 +952,14 @@ graph LR
 
 ### Potential Additional Features
 - Rich text editor for admin replies
-- File attachments in replies
 - Canned response templates
+
+### Admin reply attachments
+- Both MessagesManager and ContactSubmissions use shared ReplyAttachments controls and contactReplyAttachments helpers.
+- Admin/owner authorization is checked before processing; browser and server enforce 10 MiB combined and JPG/JPEG/PNG/GIF/WebP, PDF, DOC/DOCX and XLS/XLSX. HEIC is rejected clearly; server validates decoded bytes and signatures.
+- Files are private in `contact-reply-attachments`; migration 0008 grants read only to authenticated admin/owner through has_admin_access. The server uploads; browsers have no upload grant.
+- Reply `attachments` holds `{name,type,size,url}` with private storage references resolved by openOrDownloadAttachment. Resend receives base64 attachments, not links.
+- Sandbox browser send: email `01a15147-7041-742c-b39d-d12bc452777f`, reply `936af2d0-718f-4d6c-ae6d-6f35cbd26850`, recipient only delivered@resend.dev. Saved PDF 2611 bytes and PNG 1376 bytes; history screenshot `/tmp/browser/reply-attachments/history.png`; private PDF download matches source. Independent provider delivery/attachment receipt remains unverified (read credential returned 401).
 - Search and filter conversation history
 - Export conversation as PDF
 - Webhook signature verification (optional security layer)

@@ -45,6 +45,7 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 **Route:** `/coffee-shop`
 
 **Sections:**
+The supplied Best Day Ever Coffee + Crepes logo appears centered at the top of the coffee page, below navigation. Its original artwork is served through a CDN asset pointer without altering other images.
 1. Hero with background image, heading, subheading, CTA buttons
 2. Mission statement card
 3. Hours/location info cards
