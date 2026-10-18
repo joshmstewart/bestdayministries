@@ -92,7 +92,7 @@ const CoffeeShopHome = () => {
             alt="Best Day Ever Coffee + Crepes logo"
             width={1536}
             height={768}
-            className="mx-auto mb-8 h-auto w-full max-w-xl object-contain"
+            className="mx-auto mb-8 h-auto w-full max-w-xl rounded-3xl object-contain"
           />
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
