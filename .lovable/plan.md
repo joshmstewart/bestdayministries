@@ -1,78 +1,143 @@
-You want Claude Code to own the project and no longer depend on Lovable for day-to-day management. There are two realistic paths. The plan below describes both so you can choose.
+# Security-only signup role fix — SQL review before application
 
-## Path A: Hybrid (stay on Lovable Cloud, use Claude Code for code)
+## Scope
+- Apply only the metadata role allowlist in `public.handle_new_user` and trusted privileged assignment in `supabase/functions/create-user`.
+- No UI changes. Do not edit Auth.tsx or VendorAuth.tsx. Do not change or delete any existing accounts or role rows.
+- Keep the trigger's profile creation, avatars, names, display names, friend codes, SECURITY DEFINER and search_path byte-identical outside the single role expression.
 
-Use this if you want to keep the existing backend running but do your editing in Claude Code.
+## Existing privileged-account audit
+Checked all **10** current admin/owner/moderator role rows against account metadata and `user_roles.created_by`. Three have another account recorded as the role creator. The following seven lack independent creator attribution; this is a review list, **not proof of malicious signup**. `created_at` is account creation time, UTC.
 
-1. Connect the project to GitHub via Lovable (Plus menu → GitHub → Connect project).
-2. Clone the repo locally and open it in Claude Code.
-3. Make frontend/backend code changes in Claude Code, commit, and push.
-4. Lovable auto-syncs the repo and handles deployment of edge functions and migrations.
-5. You still use Lovable for: publishing the frontend, running migrations, deploying edge functions, and managing secrets.
+| User ID | Email | created_at | Current role | Evidence |
+|---|---|---|---|---|
+| ad688e57-6077-455b-853b-a0fd0b458c2e | stewart.m.joshua@gmail.com | 2025-10-01 01:28:25.291840+00 | owner | created_by null; signup role supporter |
+| 21324cb1-30dc-4c0f-8126-9a9de6867919 | marla@joyhousestore.com | 2025-10-02 01:14:00.126365+00 | owner | created_by null; signup role caregiver |
+| 2f10893d-5884-4956-897c-c06c175f7e7c | system@bestdayministries.app | 2026-02-01 21:58:44.571089+00 | owner | self-attributed; signup role owner; matches system provisioner |
+| 23d93b03-423c-4e29-a21d-cf99dc2175c5 | testadmin@example.com | 2026-03-04 18:32:01.508803+00 | admin | self-attributed; signup role admin; matches persistent test provisioner |
+| ab95b1b6-0282-4f4a-8f6d-3b071b7643e2 | emailtest-moderator-1784226811@example.com | 2026-07-16 18:33:35.561625+00 | moderator | created_by null; signup role supporter |
+| 0afd76f8-d63b-4439-84ca-19b5b06502af | emailtest-admin-1784226923@example.com | 2026-07-16 18:35:28.031763+00 | admin | created_by null; signup role supporter |
+| 6b96ea1a-3519-499d-9f7f-006af58e2d05 | emailtest-owner-1784227068@example.com | 2026-07-16 18:37:52.736142+00 | owner | created_by null; signup role supporter |
 
-Trade-offs:
-- Pros: No data migration, no downtime, no new hosting setup.
-- Cons: Lovable still owns the backend runtime; you cannot deploy functions or run migrations from Claude Code directly.
+Only two current privileged accounts also have privileged signup metadata: the system and persistent-test accounts above. Metadata is user-editable and creator attribution is incomplete, so neither metadata nor a null creator proves how an account originally obtained privileges. No records were changed.
 
-## Path B: Full migration to standalone Supabase + self-hosting (recommended for control)
+## SECURITY CHANGE PRE-FLIGHT
+1. Affected tables: new-user inserts into profiles and user_roles through the existing auth.users lifecycle trigger; no table schema changes.
+2. Policies: none added, removed or modified. Existing grants and role enum unchanged. Live enum includes vendor and moderator.
+3. Consumer audit: Auth.tsx and VendorAuth.tsx send bestie/caregiver/supporter; create-user currently trusts the trigger and needs explicit privileged replacement. AuthContext and role-reading hooks/pages consume user_roles; profiles_public joins that table. Existing database helpers include has_admin_access, is_owner, is_admin_or_owner, get_user_role, find_bestie_by_friend_code and link_bestie_by_friend_code; notification helpers also reference roles. Existing FKs reference auth.users for user_id and created_by; no FK targeting user_roles was found. Other policies reference user_roles but none will be modified.
+4. Role access: anonymous public reads unchanged; new ordinary authenticated users preserve bestie/caregiver/supporter; existing bestie, caregiver, supporter, moderator, admin, owner and vendor accounts remain unchanged. Forged privileged metadata intentionally yields supporter.
+5. Cross-system flows: profile/friend-code creation, linking, terms, sponsorship, vendor onboarding and notifications retain their existing code. Runtime regression validation follows application; source audit is not an end-to-end claim.
+6. Exact role query: trigger INSERT into user_roles currently casts metadata directly; afterward only three permitted strings cast, every other/missing value becomes supporter. create-user's existing caller role lookup remains unchanged; its new privileged replacement targets only the just-created user's supporter row.
+7. Ready: ready for review; nothing applied. Apply only after this SQL is reviewed.
 
-Use this if you want Claude Code to manage everything, including backend operations.
+## Exact proposed migration SQL
+The live function definition matches the cited migration. Only the role expression changes:
 
-### Phase 1: Export and prepare
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  new_friend_code TEXT;
+  avatar_url_value TEXT;
+  avatar_num INTEGER;
+  profile_avatar_id_value UUID;
+  first_name_value TEXT;
+  last_name_value TEXT;
+  display_name_value TEXT;
+  attempt INTEGER := 0;
+  emoji_set TEXT[] := ARRAY['🌟', '🌈', '🔥', '🌊', '🌸', '🍕', '🎸', '🚀', '🏆', '⚡', '🎨', '🎭', '🎪', '🏰', '🌵', '🦋', '🐉', '🎯', '🎺', '🌴'];
+BEGIN
+  -- Generate a UNIQUE random emoji friend code.
+  -- 20^3 = 8000 combinations only, so blind generation collided with an
+  -- existing code and aborted the whole signup with a 23505 error.
+  LOOP
+    attempt := attempt + 1;
+    new_friend_code := emoji_set[1 + floor(random() * 20)::int] ||
+                       emoji_set[1 + floor(random() * 20)::int] ||
+                       emoji_set[1 + floor(random() * 20)::int];
 
-1. Export database data from Lovable Cloud: Cloud → Advanced settings → Export data.
-2. Create a new Supabase project (direct Supabase account, not Lovable Cloud).
-3. Set up a new GitHub repo and push the current codebase.
-4. Document all secrets currently in Lovable Cloud: Stripe keys, Resend key, Printify key, ShipStation, AfterShip, Google Places, Sentry DSN, ElevenLabs, etc.
+    -- After 40 tries fall back to a 4-emoji code (160k combinations)
+    IF attempt > 40 THEN
+      new_friend_code := new_friend_code || emoji_set[1 + floor(random() * 20)::int];
+    END IF;
 
-### Phase 2: Backend setup
+    EXIT WHEN NOT EXISTS (
+      SELECT 1 FROM public.profiles p WHERE p.friend_code = new_friend_code
+    );
 
-1. Import the database dump into the new Supabase project.
-2. Verify all RLS policies, GRANTs, triggers, and cron jobs are present.
-3. Recreate storage buckets and bucket policies.
-4. Reconfigure auth providers (Google, email, etc.) in Supabase Auth.
-5. Set all secrets in Supabase Edge Function secrets.
-6. Deploy all edge functions using `supabase functions deploy`.
-7. Recreate cron jobs that invoke edge functions.
+    IF attempt > 80 THEN
+      RAISE EXCEPTION 'Unable to generate a unique friend code';
+    END IF;
+  END LOOP;
 
-### Phase 3: Frontend and hosting
+  -- Extract avatar data if present
+  avatar_url_value := NEW.raw_user_meta_data->>'avatar_url';
 
-1. Update `.env` with the new Supabase URL and publishable key.
-2. Choose hosting: Vercel/Netlify/Cloudflare Pages.
-3. Set environment variables in the hosting platform.
-4. Configure build command (`npm run build`) and output directory (`dist`).
-5. Set up custom domains and DNS.
-6. Configure CI/CD (GitHub Actions) for tests and deploys.
+  IF avatar_url_value IS NOT NULL AND avatar_url_value LIKE 'avatar-%' THEN
+    avatar_num := substring(avatar_url_value FROM 'avatar-(\d+)')::INTEGER;
+  ELSE
+    avatar_num := NULL;
+  END IF;
 
-### Phase 4: Third-party integrations
+  IF NEW.raw_user_meta_data->>'profile_avatar_id' IS NOT NULL THEN
+    profile_avatar_id_value := (NEW.raw_user_meta_data->>'profile_avatar_id')::UUID;
+  ELSE
+    profile_avatar_id_value := NULL;
+  END IF;
 
-1. Update Stripe webhook endpoints to the new Supabase functions URL.
-2. Update Cloudflare email routing/webhook to the new edge function URL.
-3. Reconfigure Printify, ShipStation, AfterShip, and any other webhooks.
-4. Update Sentry DSN and any monitoring alerts.
+  first_name_value := NEW.raw_user_meta_data->>'first_name';
+  last_name_value := NEW.raw_user_meta_data->>'last_name';
 
-### Phase 5: Cutover
+  IF first_name_value IS NOT NULL AND last_name_value IS NOT NULL THEN
+    display_name_value := first_name_value || ' ' || LEFT(last_name_value, 1);
+  ELSE
+    display_name_value := COALESCE(NEW.raw_user_meta_data->>'display_name', 'New Member');
+  END IF;
 
-1. Run parallel: old site live, new site on a staging domain.
-2. Test critical flows: auth, donations, marketplace checkout, sponsorships, vendor payouts, email routing, contact forms.
-3. Switch DNS/custom domain to the new host.
-4. Monitor error logs and Stripe/webhook health for 48 hours.
+  INSERT INTO public.profiles (id, display_name, first_name, last_name, email, friend_code, avatar_number, profile_avatar_id)
+  VALUES (
+    NEW.id,
+    display_name_value,
+    first_name_value,
+    last_name_value,
+    NEW.email,
+    new_friend_code,
+    avatar_num,
+    profile_avatar_id_value
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET display_name = EXCLUDED.display_name,
+      first_name = EXCLUDED.first_name,
+      last_name = EXCLUDED.last_name,
+      email = EXCLUDED.email,
+      friend_code = COALESCE(profiles.friend_code, EXCLUDED.friend_code),
+      avatar_number = EXCLUDED.avatar_number,
+      profile_avatar_id = COALESCE(EXCLUDED.profile_avatar_id, profiles.profile_avatar_id);
 
-## Risks and mitigations
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (
+    NEW.id,
+    CASE
+      WHEN NEW.raw_user_meta_data->>'role' IN ('bestie', 'caregiver', 'supporter')
+        THEN (NEW.raw_user_meta_data->>'role')::user_role
+      ELSE 'supporter'::user_role
+    END
+  )
+  ON CONFLICT (user_id, role) DO NOTHING;
 
-| Risk | Mitigation |
-|------|------------|
-| Data loss during export/import | Request Lovable export, validate row counts, test restore on new project first |
-| Secrets not transferred | Audit `fetch_secrets` output and edge function env usage before cutover |
-| Webhooks break | Recreate every webhook endpoint; test with Stripe test mode and Cloudflare worker |
-| Cron jobs missed | Document all cron schedules and recreate them in new project |
-| Downtime | Stage on temporary domain, verify, then switch DNS |
-| Cost surprise | Compare Supabase + hosting costs vs current Lovable plan before committing |
+  RETURN NEW;
+END;
+$function$;```
 
-## Recommendation
+## Trusted admin-created accounts
+After the existing authenticated admin/owner check and successful account creation, for requested admin/owner/vendor only, replace the newly inserted supporter role **in place** with the requested role and set `created_by` to the authenticated creator. A single scoped UPDATE removes the supporter assignment while setting the requested role atomically, avoiding an insert/delete gap. Require one returned row and fail clearly if assignment fails; never return success for a wrong role. Keep vendor record creation and newsletter behavior unchanged. Do not alter existing caller authorization rules.
 
-Given your goal is control and you already work in Claude Code, **Path B is the right long-term answer**. The codebase itself needs no changes, but the surrounding infrastructure (Supabase project, hosting, webhooks, secrets, cron jobs) must be rebuilt around it. Expect roughly half a day to a day of focused setup plus testing.
-
-If you want to de-risk first, start with Path A for a week or two while you prepare the Supabase migration in parallel.
-
-Next step: confirm which path you want, and I can produce a detailed runbook with exact commands and a checklist.
+## Verification and documentation
+- Add focused regression tests for all three accepted roles; admin/owner/moderator/vendor, missing, empty and unknown metadata all become supporter without enum-cast errors.
+- Verify profile fields and all other trigger statements remain identical; test privileged replacement uses only the newly created account and yields exactly the requested role, with failure handled.
+- Read back deployed function and run controlled signup/admin-create checks; preserve all existing accounts. Revert immediately if the security change regresses legitimate flows.
+- Update auth documentation, edge-function reference, master documentation, test tracker and AGENTS.md only for this fix.
+- Other system/test provisioners already assign roles explicitly but can retain an extra supporter role on future creation; report that out-of-scope risk rather than silently changing them.
