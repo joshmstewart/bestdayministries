@@ -1,4 +1,5 @@
 # Architecture rules
+- Joke-category ownership reads and writes use user_joke_categories; deductCoins alone records spending, preventing duplicate ledger entries and invalid store-item references.
 - Generator preview updates validate same-collection sticker membership; automatic preview assignment remains null-only and scheduled status functions never write previews, preserving explicit choices.
 - SDK CORS imports must use the shared edge CORS extension when browser runtime headers are required, because the SDK header list can lag newer clients.
 

@@ -687,6 +687,7 @@ RULES:✅useAuth-import|✅isAdmin-flags|✅check-loading|✅cache-user-settings
 DOC:HEADER_PERFORMANCE_OPTIMIZATION.md
 
 ## BUTTON_STYLING
+COIN-AUDIT:joke-category ownership uses user_joke_categories; deductCoins alone records spending. Remaining manual deduction paths and non-atomic hook require review; see COIN_DEDUCTION_AUDIT.md.
 VARIANTS:default[gradient-CTAs]|outline[border-secondary]|secondary[solid-supporting]|ghost[transparent-tertiary]
 GRADIENT:✅brand-CTAs|✗custom-colors-secondary-outline-ghost
 CUSTOM:ghost+bg-hsl+hover→solid-custom-NO-gradient

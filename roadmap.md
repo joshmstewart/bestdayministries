@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Coin deduction audit: reproduce and fix joke-category purchase, verify readback; review remaining bypasses and non-atomic deductions before passing.
 - [x] Generator preview selection verified: 8 unit tests; live set/clear/get/list, foreign/missing rejection, null-only insert trigger preservation; audit values verified. Scheduler functions inspected: no preview writes. Temporary records removed.
 - [x] Fix create_sticker: routing fields excluded; 3 tests passed; requested test insert read back and deleted (DB count 0).
 - [x] CORS: 231/231 live preflights and readable browser 401; persistent regression passed.
