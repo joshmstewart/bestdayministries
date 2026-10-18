@@ -7,6 +7,7 @@ import { Coffee, Users, Heart, MapPin, Clock, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isProblematicIOSVersion } from "@/lib/browserDetection";
+import coffeeLogo from "@/assets/best-day-ever-coffee-crepes-logo.png.asset.json";
 
 interface CoffeeShopContent {
   hero_heading?: string;
@@ -86,6 +87,13 @@ const CoffeeShopHome = () => {
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <div className="container mx-auto px-4">
+          <img
+            src={coffeeLogo.url}
+            alt="Best Day Ever Coffee + Crepes logo"
+            width={768}
+            height={768}
+            className="mx-auto mb-8 h-auto w-40 sm:w-48 object-contain"
+          />
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-fade-in">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 backdrop-blur-sm rounded-full border border-accent/20">

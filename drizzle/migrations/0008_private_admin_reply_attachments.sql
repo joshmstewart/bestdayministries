@@ -1,0 +1,1 @@
+CREATE POLICY "Admin owner read reply files" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'contact-reply-attachments' AND public.has_admin_access(auth.uid()));
