@@ -1,4 +1,6 @@
 # Multiple sticker pack covers
+- [ ] Marla: replace top coffee-page logo with supplied 9.PNG; preserve original artwork and menu logos.
+- [ ] Finish reply verification in both admin screens: sandbox-only PDF/image sends, provider attachment counts, admin downloads, non-admin storage denial, invalid/oversize rejection; document private bucket provisioning outside migrations.
 - [x] Current Security Fix 4: GitHub denies unsigned/wrong/supporter, correct header reaches harmless parsing; provider log-only missing-config confirmed, 27 tests pass, four reporting workflows fail visibly on auth errors. Provider checklist documented; no settings/order/user changes.
 - [x] Marla: supplied logo at coffee page top; hosted asset HTTP 200, desktop 192px/phone 160px screenshots verified, artwork preserved.
 - [x] Current request A: correct Cloud secret reaches harmless 400 validation; anon/supporter remain 401; all four Actions workflows forward secret header. Actual GitHub execution not observed.
