@@ -1,4 +1,6 @@
 # Multiple sticker pack covers
+- [x] Investigate next audit item only: RLS. Recorded confirmed anonymous donor-data leak and failed linter with browser/REST evidence; no security or transaction changes applied.
+- [ ] Resolve RLS failure: migrate both funding consumers to privacy-safe aggregates, remove broad sponsorship policy after role verification, and review remaining function/view flags. Not fixed this turn.
 - [x] Add compatible collection fields.
 - [x] Add visual rotate/choose opening and read-only editor previews.
 - [x] Extend generator API and document request/response shapes.

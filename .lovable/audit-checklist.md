@@ -95,7 +95,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 
 ## Security & Infra
 - [fixed:test-mode detection was dead code — signature header never starts with whsec_] Stripe webhook signature verification — 2026-10-17. BUG: `signature.startsWith("whsec_test_")` was always false (header is `t=...,v1=...`), so test-mode events were verified against the LIVE secret and rejected — test webhook deliveries could never succeed via this path. FIX: try live secret then test secret with a keyless verifier client, derive mode from verified `event.livemode`, reject on livemode/secret mismatch. Deployed (sha c3d73e04). Evidence: forged signature POST → 400 `Invalid signature`; missing header → 400 `Missing stripe-signature header`. Historical logs: 142 live successes, 4 test successes pre-fix. Live valid-signature path unchanged (same constructEventAsync). Note: real end-to-end test-mode event confirmation requires Stripe to send one — next test checkout will exercise it.
-- [ ] RLS on every user-facing table (linter pass)
+- [fail:anonymous-donor-data-exposure; remediation-not-applied] RLS on every user-facing table (linter pass) — 2026-10-18: 265/265 public tables have RLS, but linter returned 209 findings. Anonymous HTTP 200 sponsorship SELECT returned 3 rows with donor emails and Stripe identifiers (all values suppressed). Root cause: `Users can view sponsorship funding aggregates` SELECT TO anon,authenticated USING(true). Browser and REST evidence below. This is NOT a completed all-table security audit and NOT fixed; restrictive changes require coordinated funding consumer migration and role regression checks.
 - [ ] edge function CORS on every function
 
 ## Games & Features
@@ -270,3 +270,16 @@ Evidence:
 - Cleanup: temporary `audit-probe@resend.dev` newsletter_subscribers row deleted (count = 0).
 
 BLOCKER: add `RESEND_WEBHOOK_SECRET` (Resend dashboard → Webhooks → Signing secret, starts with `whsec_`). Until then item 94 is code-complete but not enforced.
+
+## 2026-10-18 — RLS audit [FAIL; unresolved]
+
+- Live catalog: 265 public ordinary tables; 265 RLS enabled; 0 disabled. Two tables have no policies (`password_reset_tokens`, `sticker_admin_log`); default denial is not an exposure.
+- Live database linter: 209 findings: 2 no-policy INFO, 1 security-definer-view ERROR, 4 mutable-search-path WARN, 1 public-extension WARN, 99 anonymous-executable-definer-function WARN, 101 authenticated-executable-definer-function WARN, 1 password-protection WARN. Flags are not all confirmed vulnerabilities; passing RLS-enabled checks does not establish isolation.
+- Anonymous Data API reproduction: `/rest/v1/sponsorships?select=id,sponsor_email,stripe_customer_id,stripe_subscription_id&limit=3` → HTTP 200, 3 rows; all 3 contained donor emails and Stripe identifiers. Evidence IDs: `a383ac53-cce4-4900-9c2a-e5cb69234c40`, `dd217b9e-453b-480e-8bd4-7dd5b2c9582b`, `33b1fb79-9427-44fc-87d6-c6812937d3b9`. Private values never written to evidence output.
+- Signed-out Chromium reproduction using the app client independently returned status 200, 3 rows, 3 email fields and 3 Stripe identifier fields. Evidence `/tmp/browser/rls-audit/browser-exposure.json`, script `verify_exposure.py`, screenshot `anonymous-sponsor-page.png`. Screenshot is navigation evidence only; returned-field counts establish the leak. The screenshot captured page loading, not a completed sponsorship-page rendering check.
+- REST comparison: anonymous `profiles`, `sponsorship_receipts`, `orders`, `notification_preferences` returned HTTP 200 with zero rows. Evidence `/tmp/browser/rls-audit/anonymous-probes.json`.
+- Scope of exposed table: 67 sponsorship rows; 42 contain donor email. Only 3 sampled; full donor contents were not exported.
+- Confirmed live policy root cause: `Users can view sponsorship funding aggregates`, SELECT TO anon,authenticated, USING(true). RLS cannot enforce the frontend's chosen columns. Also live `profiles` retains `Authenticated users can search by friend code` USING(friend_code IS NOT NULL); signed-in non-admin exposure was not re-tested this turn.
+- Consumer audit located public raw funding reads at `src/components/SponsorBestieDisplay.tsx:179-183` and `src/pages/GuardianLinks.tsx:463-467`. Direct private user/admin and service-role consumers were separately identified. Existing aggregate view calls `get_sponsor_bestie_funding_progress()` but does not provide ending totals; replacing the permissive policy alone would break both ending-funding paths.
+- Remediation NOT applied: replace public raw reads with a fixed-search-path aggregate RPC retaining existing LIVE-mode totals and ending split, then remove only the broad policy after verifying public carousel, guardian totals, sponsor-owned/shared rows, and admin access. Additional linter function/view warnings still require review. No permission changes, new accounts, transaction writes, or deletions this turn.
+- This item remains FAIL; do not convert to PASS/FIXED from RLS-enabled counts or the narrower reproduction alone.
