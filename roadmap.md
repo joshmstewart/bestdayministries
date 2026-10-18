@@ -1,6 +1,6 @@
 # Multiple sticker pack covers
 - [ ] Security fix 3 after fix 2: inventory production test/dev functions and callers; harmless exposure checks; shared-secret/admin authorization; CI updates; anon/supporter 401 evidence. No user-data changes or function deletions.
-- [ ] Coffee menu: add Calvin’s Famous Green Chili take-home options from uploaded poster, pint $12 and quart $23.
+- [x] Coffee menu: Calvin’s Famous Green Chili added under Take Home, pint $12 and quart $23; both prices and supplied artwork verified on the public page.
 - [ ] Security fix 2: live profile/sponsorship policy and REST evidence; migrate other-member reads; remove broad profile policy; verify authorized paths and update audit. No user-data changes.
 - [x] Security-only signup role fix: reviewed privileged-account list and SQL approved; allowlist migration applied; trusted create-user deployed; 18 tests pass and five live account roles read back through admin UI. Existing accounts/UI unchanged. Fresh test-account redirect did not complete and is not claimed verified.
 - [x] Audit daily fortune release MST only: fixed one-hour DST cron delay; live reveal/view/reload, browser date-boundary switch, duplicate-generator rejection and 3 regression tests verified. Next actual midnight scheduled execution remains unobserved and is explicitly noted in audit evidence.
