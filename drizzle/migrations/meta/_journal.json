@@ -15,6 +15,13 @@
       "when": 1792303636084,
       "tag": "0001_sticker_pack_multiple_covers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792305215606,
+      "tag": "0002_privacy_safe_sponsorship_funding_aggregates",
+      "breakpoints": true
     }
   ]
 }
