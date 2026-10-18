@@ -1,4 +1,6 @@
-# Security fix 4 — implemented, provider verification log-only
+# Security fix 4 — implemented; Printify ENFORCING, Sentry log-only
+
+2026-10-18 23:46 UTC update (Josh-approved): `printify-webhook` now ENFORCES `X-Pfy-Signature` (HMAC-SHA256 over raw body, constant-time compare) and returns 401 before any parsing or work on missing/invalid signatures. With `PRINTIFY_WEBHOOK_SECRET` absent it fails closed: every request is rejected and logs `provider=printify outcome=missing-config`. Safe to enforce because the Joy House shop (id 9815220) has zero webhook subscriptions — verified via `GET /v1/shops/9815220/webhooks.json` returning `[]`. Printify's API cannot set a secret on an existing subscription (update accepts only `url`; the secret is Printify-generated at creation), so no in-place update was possible or needed. Probes: unsigned POST → 401, bad-signature POST → 401, OPTIONS → 200; log at 23:46:15Z confirms missing-config. Deployed source SHA-256 `5656bc34d05d79978f2122d4e9d3959e678eac16b3a0504d97345c7c0751c49c`. No subscriptions created/modified/deleted; no order/user data changes. Sentry remains log-only.
 
 2026-10-18 23:18 UTC: three receivers deployed. GitHub enforces the existing TEST_FUNCTIONS_SECRET header before parsing or client creation, with no JWT bypass. Printify/Sentry verify raw-body HMAC in LOG-ONLY mode; they do not reject delivery based on verification. TEST_FUNCTIONS_SECRET is configured; PRINTIFY_WEBHOOK_SECRET and SENTRY_WEBHOOK_SECRET remain absent. No provider settings/subscriptions or order/user data changed.
 

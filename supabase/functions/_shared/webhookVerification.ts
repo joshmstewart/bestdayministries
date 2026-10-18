@@ -25,5 +25,5 @@ export function verifyProviderSignature(
 
 export function logProviderVerification(provider: 'printify' | 'sentry', outcome: SignatureOutcome) {
   // Fixed labels only: never request bodies, signatures, secrets, or event fields.
-  console.info(`[webhook-verification] provider=${provider} mode=log-only outcome=${outcome}`);
+  console.info(`[webhook-verification] provider=${provider} outcome=${outcome}`);
 }
