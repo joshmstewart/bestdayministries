@@ -1,3 +1,4 @@
+import { testFunctionsHeaders } from '../../../utils/test-functions';
 /**
  * E2E Email Tests - Newsletter System
  * 
@@ -15,6 +16,7 @@ test.describe('Newsletter System Tests', () => {
   test.beforeAll(async ({ browser }) => {
     // Seed test data with admin user using retry wrapper
     const { data, error } = await supabase.functions.invoke('seed-email-test-data-with-retry', {
+      headers: testFunctionsHeaders(),
       body: { 
         includeAdmin: true,
         includeGuardian: true,
@@ -88,6 +90,7 @@ test.describe('Newsletter System Tests', () => {
     // Cleanup test data
     if (seedData) {
       await supabase.functions.invoke('cleanup-test-data-unified', {
+      headers: testFunctionsHeaders(),
         body: {
           testRunId: seedData.testRunId,
           emailPrefix: seedData.emailPrefix 

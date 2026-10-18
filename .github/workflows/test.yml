@@ -29,6 +29,9 @@ on:
         default: 'false'
         type: boolean
 
+env:
+  TEST_FUNCTIONS_SECRET: ${{ secrets.TEST_FUNCTIONS_SECRET }}
+
 jobs:
   unit-tests:
     if: ${{ inputs.run_unit_tests }}
@@ -213,6 +216,7 @@ jobs:
         curl -X POST "${SUPABASE_URL}/functions/v1/github-test-webhook" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+          -H "x-test-functions-secret: ${TEST_FUNCTIONS_SECRET}" \
           -d '{
             "workflow_run": {
               "id": "${{ github.run_id }}",

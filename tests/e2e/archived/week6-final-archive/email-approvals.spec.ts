@@ -1,3 +1,4 @@
+import { testFunctionsHeaders } from '../../../utils/test-functions';
 /**
  * E2E Email Tests - Approval Notifications
  * 
@@ -36,6 +37,7 @@ test.describe('Approval Notification Email Tests', () => {
     // Seed test data once for all tests using retry wrapper
     const testRunId = Date.now().toString();
     const { data, error } = await supabase.functions.invoke('seed-email-test-data-with-retry', {
+      headers: testFunctionsHeaders(),
       body: { testRunId }
     });
 
@@ -84,6 +86,7 @@ test.describe('Approval Notification Email Tests', () => {
     if (seedData) {
       console.log('🧹 Cleaning up test users and related data...');
       await supabase.functions.invoke('cleanup-test-data-unified', {
+      headers: testFunctionsHeaders(),
         body: { 
           testRunId: seedData.testRunId,
           emailPrefix: seedData.emailPrefix 

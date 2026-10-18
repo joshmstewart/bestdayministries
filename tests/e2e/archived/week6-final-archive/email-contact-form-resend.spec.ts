@@ -1,3 +1,4 @@
+import { testFunctionsHeaders } from '../../../utils/test-functions';
 /**
  * E2E Email Tests - Contact Form (Production-Parity with Resend)
  * 
@@ -33,6 +34,7 @@ test.describe('Contact Form Email Tests (Resend)', () => {
     );
     
     const { error } = await supabase.functions.invoke('cleanup-test-data-unified', {
+      headers: testFunctionsHeaders(),
       body: {
         namePatterns: ['Test User', 'Reply Test User', 'Admin Test User', 'Thread Test User']
       }

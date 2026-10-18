@@ -1,3 +1,4 @@
+import { testFunctionsHeaders } from './test-functions';
 /**
  * Resend Production-Parity Email Testing Helper
  * 
@@ -8,8 +9,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Missing Supabase environment variables for email testing');
@@ -23,6 +24,7 @@ async function callTestHelper(action: string, params: Record<string, any>) {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/test-contact-form-helper`, {
     method: 'POST',
     headers: {
+      ...testFunctionsHeaders(),
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     },

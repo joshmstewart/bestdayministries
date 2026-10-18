@@ -23,6 +23,7 @@
 
 set -euo pipefail
 
+: "${TEST_FUNCTIONS_SECRET:?Set the shared test-functions secret before running}"
 : "${VITE_SUPABASE_URL:?missing}"
 : "${VITE_SUPABASE_PUBLISHABLE_KEY:?missing}"
 
@@ -34,7 +35,8 @@ ADMIN_PASSWORD="testpassword123"
 echo "▶ Ensuring persistent test accounts exist…"
 curl -s -X POST "$URL/functions/v1/create-persistent-test-accounts" \
   -H "apikey: $ANON" -H "Authorization: Bearer $ANON" \
-  -H "Content-Type: application/json" -d '{}' >/dev/null || true
+  -H "x-test-functions-secret: $TEST_FUNCTIONS_SECRET" \
+  -H "Content-Type: application/json" -d '{}' >/dev/null
 
 echo "▶ Signing in as $ADMIN_EMAIL…"
 LOGIN_JSON=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
