@@ -162,6 +162,8 @@ SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = _user_id AND role = _rol
 - Users see own profile
 - Guardians see linked besties
 - Admins see all
+- Linked bestie/caregiver, active sponsor and approved vendor reads retain their policies.
+- Other-member display uses `profiles_public`, which excludes email and friend codes. The broad `friend_code IS NOT NULL` profile policy was removed; ordinary supporters can read only their own private profile.
 
 **user_roles:**
 - SELECT: Authenticated users can view all roles (required for friend code verification)

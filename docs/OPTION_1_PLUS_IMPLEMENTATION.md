@@ -1,6 +1,7 @@
 # Option 1+ (Conservative Pyramid) Implementation Tracker
 
 **Status:** 🚧 IN PROGRESS
+**Profile privacy regression coverage:** Four read-only live REST checks verify supporter own-profile scope, safe public display fields, and anonymous denial of private profiles/sponsorship emails; additional security coverage, not E2E conversion.
 **Signup security regression coverage:** 12 read-only live trigger checks plus 6 actual create-user-handler regression tests; additional security coverage, not E2E conversions, no archival.  
 **Coin regression coverage:** Joke category purchase regression checks correct ownership writes and one deductCoins call; additional coverage, not an E2E conversion.
 **Preview regression coverage:** `tests/unit/sticker-preview.test.ts` verifies same-collection selection, null clearing, and invalid/missing/foreign rejection; additional regressions, not E2E conversions.
