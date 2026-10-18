@@ -1,6 +1,6 @@
 # FUNDING PROGRESS BAR SYSTEM
 
-**Last Updated:** 2025-11-07  
+**Last Updated:** 2026-10-18  
 **Status:** ACTIVE - CRITICAL SYSTEM
 
 ## Table of Contents
@@ -31,7 +31,7 @@ This visual distinction is **critical** because it allows guardians, administrat
 ### Critical Requirements
 ✅ **ALWAYS** pass `endingAmount` prop to `FundingProgressBar`  
 ✅ **ALWAYS** calculate stable and ending amounts separately  
-✅ **ALWAYS** load ALL sponsorships (not just VIEW data)  
+✅ **ALWAYS** use aggregate-only funding reads  
 ✅ **ALWAYS** store ending amounts in component state  
 ✅ **ALWAYS** use LIVE mode for public displays  
 
@@ -43,128 +43,19 @@ This visual distinction is **critical** because it allows guardians, administrat
 
 ## Architecture
 
-### Data Flow
+Public reads call `get_sponsorship_funding_totals(p_bestie_ids uuid[] default null)`, a fixed-search-path SECURITY DEFINER function with explicit anon/authenticated/service execute grants. IDs are capped at 200; eligible sponsor besties are active/public, or visible to admin/linked guardian. Return fields: sponsor_bestie_id, stripe_mode, current_monthly_pledges, stable_amount, ending_amount, monthly_goal, funding_percentage, remaining_needed. Never return donor or Stripe columns.
 
-```
-Database (sponsorships table)
-    ↓
-Load ALL active sponsorships with frequency, amount, ended_at
-    ↓
-Calculate stable amounts (monthly + expired one-time)
-    ↓
-Calculate ending amounts (one-time with future ended_at)
-    ↓
-Store in component state (Map<string, number>)
-    ↓
-Pass to FundingProgressBar component
-    ↓
-Render visual: solid bar + striped bar
-```
+`current_monthly_pledges` preserves the existing total: active monthly plus active unexpired/no-end one-time gifts. `stable_amount` preserves the carousel classification (monthly plus no-end/expired active one-time); `ending_amount` is active one-time with future end. GuardianLinks preserves its existing displayed total by using current minus ending as stable. The intentional legacy difference for expired still-active gifts is not changed by this privacy fix.
 
-### Database Schema
-
-**sponsorships table:**
-```sql
-- sponsor_bestie_id: UUID (which bestie is sponsored)
-- frequency: 'monthly' | 'one-time'
-- amount: DECIMAL
-- status: 'active' | 'cancelled' | 'paused'
-- stripe_mode: 'live' | 'test'
-- ended_at: TIMESTAMP (when one-time expires)
-```
-
-### Component Props
-
-**FundingProgressBar:**
-```typescript
-interface FundingProgressBarProps {
-  currentAmount: number;      // Total current funding
-  goalAmount: number;          // Monthly goal
-  endingAmount?: number;       // Amount ending next period
-  className?: string;
-}
-```
-
----
-
-## Implementation Guide
-
-### Step 1: Load ALL Sponsorships
-
-**CRITICAL:** Do NOT rely on the VIEW alone. You MUST query the sponsorships table directly.
+Both components store ending totals in state and retain LIVE filtering. Own/email, bestie/shared and admin sponsorship row policies remain. The unconditional public SELECT policy is removed. `bestie_funding_progress` now calls aggregate-only `get_featured_bestie_funding_totals()` under an invoker view, preserving its prior monthly totals. The existing by-mode funding view already calls a definer aggregate and continues to work.
 
 ```typescript
-// Load ALL sponsorships for these besties
-const { data: allBestieSponsorships, error } = await supabase
-  .from("sponsorships")
-  .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
-  .in("sponsor_bestie_id", bestieIds)
-  .eq("status", "active");
-
-if (error) {
-  console.error("Error loading sponsorships:", error);
-}
-
-console.log("Loaded sponsorships for progress bars:", allBestieSponsorships?.length || 0, allBestieSponsorships);
+const { data: totals, error } = await supabase.rpc('get_sponsorship_funding_totals', { p_bestie_ids: bestieIds });
+if (error) throw error;
+setEndingAmounts(new Map((totals || []).map(t => [`${t.sponsor_bestie_id}_${t.stripe_mode}`, t.ending_amount])));
 ```
 
-### Step 2: Calculate Stable and Ending Amounts
-
-```typescript
-// Build maps to track stable vs ending amounts by bestie and mode
-const stableAmountsByBestieAndMode = new Map<string, number>();
-const endingAmountsByBestieAndMode = new Map<string, number>();
-
-// Calculate stable and ending amounts from ALL sponsorships
-(allBestieSponsorships || []).forEach(s => {
-  const groupKey = `${s.sponsor_bestie_id}_${s.stripe_mode || 'null'}`;
-  
-  if (s.frequency === 'monthly') {
-    // Monthly = stable (solid orange)
-    const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
-    stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
-  } else if (s.frequency === 'one-time') {
-    // One-time with future ended_at = ending (diagonal stripes)
-    if (s.ended_at && new Date(s.ended_at) > new Date()) {
-      const current = endingAmountsByBestieAndMode.get(groupKey) || 0;
-      endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
-    } else {
-      // One-time already expired = stable
-      const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
-      stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
-    }
-  }
-});
-
-console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode));
-console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode));
-```
-
-### Step 3: Store in Component State
-
-**CRITICAL:** Must use `useState` so the values are accessible during render.
-
-```typescript
-// In component definition
-const [endingAmounts, setEndingAmounts] = useState<Map<string, number>>(new Map());
-
-// After calculation
-setEndingAmounts(endingAmountsByBestieAndMode);
-```
-
-### Step 4: Pass to FundingProgressBar
-
-**CRITICAL:** Always pass `endingAmount` prop using the correct key format.
-
-```tsx
-<FundingProgressBar
-  currentAmount={progress?.current_monthly_pledges || 0}
-  goalAmount={bestie.monthly_goal}
-  endingAmount={endingAmounts.get(`${bestie.id}_live`) || 0}
-/>
-```
-
-**Key Format:** `${bestieId}_${stripeMode}` (e.g., `"abc123_live"`)
+Donor-row queries are permitted only for existing authorized own/shared/admin workflows, never public progress calculation. Regression suite: `tests/security/sponsorship_privacy_test.py` uses live read-only requests; mint an unrelated supporter session for its authenticated test. No transaction creation/deletion is needed.
 
 ---
 
@@ -236,7 +127,7 @@ setEndingAmounts(endingAmountsByBestieAndMode);
 ### Bug #2: Relying on VIEW Only
 **Symptom:** Cannot calculate ending amount correctly  
 **Cause:** VIEW only shows totals, not frequency breakdown  
-**Fix:** Query sponsorships table directly with frequency and ended_at
+**Fix:** Call the aggregate RPC including ending_amount
 
 ### Bug #3: Local Variable Instead of State
 **Symptom:** TypeScript error "Cannot find name 'endingAmountsByBestieAndMode'"  
@@ -338,7 +229,7 @@ console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieA
 3. Check both pages use same stripe_mode filter
 
 **Solutions:**
-- Copy exact calculation code to both locations
+- Use the shared aggregate RPC in both locations
 - Document pattern in MASTER_SYSTEM_DOCS
 - Add integration tests to catch divergence
 
@@ -355,7 +246,7 @@ console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieA
 ## Maintenance Notes
 
 **When adding new pages with funding progress:**
-1. Copy calculation pattern from SponsorBestieDisplay.tsx
+1. Use get_sponsorship_funding_totals as in SponsorBestieDisplay.tsx
 2. Use `useState<Map<string, number>>` for ending amounts
 3. Always pass endingAmount prop
 4. Add console.log debugging

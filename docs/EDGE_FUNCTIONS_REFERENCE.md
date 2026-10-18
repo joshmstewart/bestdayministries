@@ -242,6 +242,9 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 
 ## Common Patterns
 
+### Sticker generator input/error regression (2026-10-18)
+`create_sticker` strips action before INSERT; `update_sticker` strips action/sticker_id before UPDATE. Plain database objects return their message rather than Unknown error. Tests: tests/unit/sticker-admin-request.test.ts. No new secret or request format.
+
 ### CORS Headers (Required for All)
 Browser calls also send `x-supabase-client-platform`, `x-supabase-client-platform-version`, `x-supabase-client-runtime`, and `x-supabase-client-runtime-version`. All preflight and error responses must allow them. SDK imports use `../_shared/corsHeaders.ts`, which extends rather than replaces the SDK headers; preserve webhook and tracing header extras.
 ```typescript
