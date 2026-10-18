@@ -139,7 +139,7 @@ export const ColoringCommunityGallery = ({ userId, onSelectColoring }: ColoringC
       // Fetch creator names separately
       const creatorIds = [...new Set(data.map((c) => c.user_id))];
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name")
         .in("id", creatorIds);
 

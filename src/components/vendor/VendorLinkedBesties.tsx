@@ -74,8 +74,8 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
       // Get bestie profiles separately
       const bestieIds = requests.map(r => r.bestie_id);
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_number, avatar_url, friend_code')
+        .from('profiles_public')
+        .select('id, display_name, avatar_number, avatar_url')
         .in('id', bestieIds);
 
       if (profilesError) throw profilesError;
@@ -131,8 +131,8 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
       // Get bestie profiles separately
       const bestieIds = requests.map(r => r.bestie_id);
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, display_name, friend_code')
+        .from('profiles_public')
+        .select('id, display_name')
         .in('id', bestieIds);
 
       if (profilesError) throw profilesError;
@@ -285,9 +285,6 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
                         Pending Approval
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Friend Code: {(request.profiles as any)?.friend_code}
-                    </p>
                     {request.message && (
                       <p className="text-xs text-muted-foreground mt-1">
                         "{request.message}"

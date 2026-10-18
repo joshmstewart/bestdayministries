@@ -56,7 +56,7 @@ export const VendorBestieAssetManager = ({ vendorId, theme }: VendorBestieAssetM
 
       // Get bestie profiles
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('id, display_name, avatar_url, avatar_number')
         .in('id', bestieIds);
 

@@ -53,7 +53,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     queryKey: ["auto-share-workout-images", userId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("auto_share_workout_images")
         .eq("id", userId)
         .single();
@@ -68,7 +68,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
   const toggleAutoShareMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       const { error } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .update({ auto_share_workout_images: enabled })
         .eq("id", userId);
 
@@ -108,7 +108,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     queryFn: async () => {
       if (userIds.length === 0) return {};
       const { data, error } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name")
         .in("id", userIds);
 

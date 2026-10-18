@@ -59,7 +59,7 @@ export const VendorOrderList = ({ vendorId, theme }: VendorOrderListProps) => {
       // Fetch customer profiles separately
       const customerIds = [...new Set(ordersData?.map(o => o.customer_id) || [])];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('id, display_name')
         .in('id', customerIds);
 

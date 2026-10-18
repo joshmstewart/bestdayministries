@@ -125,7 +125,7 @@ export const BeatPadGallery: React.FC<BeatPadGalleryProps> = ({ onLoadBeat, onRe
       // Get creator profiles separately
       const creatorIds = [...new Set((data || []).map(c => c.creator_id))];
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('id, display_name, avatar_number')
         .in('id', creatorIds);
       

@@ -103,7 +103,7 @@ const RecipeGallery = () => {
       
       if (creatorIds.length > 0) {
         const { data: profiles } = await supabase
-          .from("profiles")
+          .from("profiles_public")
           .select("id, display_name")
           .in("id", creatorIds);
         

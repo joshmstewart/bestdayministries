@@ -164,7 +164,7 @@ export const DrinkGallery = ({ userId }: DrinkGalleryProps) => {
     // Fetch creator names separately
     const creatorIds = [...new Set(data.map((d) => d.creator_id))];
     const { data: profiles } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("id, display_name")
       .in("id", creatorIds);
 

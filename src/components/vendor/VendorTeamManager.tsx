@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Crown, Shield, User, Mail, Clock, CheckCircle, XCircle, Check } from "lucide-react";
+import { UserPlus, Trash2, Crown, Shield, User, Clock, CheckCircle, XCircle, Check } from "lucide-react";
 import { format } from "date-fns";
 import { VendorThemePreset } from "@/lib/vendorThemePresets";
 
@@ -31,7 +31,6 @@ interface TeamMember {
   created_at: string;
   profile?: {
     display_name: string;
-    email: string;
     avatar_number: number | null;
   };
 }
@@ -60,7 +59,7 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
     enabled: !!vendorId && !!currentUser?.id,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("is_vendor_owner", {
-        _user_id: currentUser!.id,
+        _user_id: currentUser?.id || "",
         _vendor_id: vendorId,
       });
       if (error) throw error;
@@ -84,8 +83,8 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
       // Then fetch profiles for each member
       const userIds = members.map(m => m.user_id);
       const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, display_name, email, avatar_number")
+        .from("profiles_public")
+        .select("id, display_name, avatar_number")
         .in("id", userIds);
       
       // Combine the data
@@ -101,8 +100,8 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
     queryKey: ["all-users-for-team"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, email")
+        .from("profiles_public")
+        .select("id, display_name")
         .order("display_name", { ascending: true });
       if (error) throw error;
       return data;
@@ -269,14 +268,13 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
                           <CommandGroup>
                             {availableUsers
                               .filter(u => 
-                                u.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                                u.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
                               )
                               .slice(0, 10)
                               .map((user) => (
                                 <CommandItem
                                   key={user.id}
-                                  value={user.display_name || user.email || user.id}
+                                  value={user.display_name || user.id}
                                   onSelect={() => setSelectedUserId(user.id)}
                                   className="cursor-pointer"
                                 >
@@ -286,7 +284,6 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
                                     </div>
                                     <div>
                                       <div className="font-medium">{user.display_name || "Unknown"}</div>
-                                      <div className="text-xs text-muted-foreground">{user.email}</div>
                                     </div>
                                   </div>
                                   {selectedUserId === user.id && (
@@ -303,7 +300,6 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
                     <div className="flex items-center gap-2 p-2 bg-primary/5 rounded-md border border-primary/20">
                       <Check className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">{selectedUser.display_name}</span>
-                      <span className="text-xs text-muted-foreground">({selectedUser.email})</span>
                     </div>
                   )}
                 </div>
@@ -470,10 +466,6 @@ export const VendorTeamManager = ({ vendorId, theme }: VendorTeamManagerProps) =
                     <Badge variant={getRoleBadgeVariant(member.role)} className="text-xs">
                       {member.role}
                     </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Mail className="h-3 w-3" />
-                    {member.profile?.email || "No email"}
                   </div>
                   {member.accepted_at && (
                     <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">

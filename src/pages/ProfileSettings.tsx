@@ -151,23 +151,17 @@ const ProfileSettings = () => {
       while (attempts < maxAttempts) {
         const newCode = generateRandomFriendCode();
         
-        // Check if this code is available
-        const { data: existing } = await supabase
+        // Let the unique constraint resolve races without reading other profiles.
+        const { error } = await supabase
           .from("profiles")
-          .select("id")
-          .eq("friend_code", newCode)
-          .maybeSingle();
+          .update({ friend_code: newCode })
+          .eq("id", user.id);
 
-        if (!existing) {
-          // This code is available, use it
-          const { error } = await supabase
-            .from("profiles")
-            .update({
-              friend_code: newCode,
-            })
-            .eq("id", user.id);
-
-          if (error) throw error;
+        if (error?.code === "23505") {
+          attempts++;
+          continue;
+        }
+        if (error) throw error;
 
           toast({
             title: "Friend code generated",
@@ -177,9 +171,6 @@ const ProfileSettings = () => {
           await loadProfile(user.id);
           setGeneratingCode(false);
           return;
-        }
-
-        attempts++;
       }
 
       throw new Error("Could not generate unique friend code. Please try again.");

@@ -66,7 +66,7 @@ export function FortuneComments({ fortunePostId, onDiscussionCreated }: FortuneC
         if (data && data.length > 0) {
           const userIds = [...new Set(data.map((c) => c.author_id))];
           const { data: profiles } = await supabase
-            .from("profiles")
+            .from("profiles_public")
             .select("id, display_name, avatar_number, avatar_url, profile_avatar_id")
             .in("id", userIds);
 

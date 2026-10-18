@@ -97,7 +97,7 @@ export const VendorBestieAssetSelector = ({
 
       // Load profile avatar
       const { data: profile } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("avatar_url, display_name")
         .eq("id", bestieId)
         .single();
