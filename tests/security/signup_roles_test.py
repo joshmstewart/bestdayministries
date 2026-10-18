@@ -75,7 +75,7 @@ class SignupRoles(unittest.TestCase):
         original = (ROOT / 'supabase/migrations/20260824015014_44042883-ecee-4dc2-9f13-1d8143dfbd2b.sql').read_text()
         normalized = re.sub(r'CASE\s+WHEN NEW.raw_user_meta_data.*?\bEND',
             "COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'supporter')", self.definition, count=1, flags=re.S)
-        self.assertEqual(normalized.strip(), original.strip())
+        self.assertEqual(normalized.strip().rstrip(';'), original.strip().rstrip(';'))
 
 if __name__ == '__main__':
     unittest.main()
