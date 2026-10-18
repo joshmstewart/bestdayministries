@@ -50,6 +50,13 @@
       "when": 1792360158541,
       "tag": "0006_allowlist_signup_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792361176251,
+      "tag": "0007_remove_public_profile_email_leak",
+      "breakpoints": true
     }
   ]
 }

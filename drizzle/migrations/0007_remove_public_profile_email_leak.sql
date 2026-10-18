@@ -1,0 +1,2 @@
+DROP POLICY "Authenticated users can search by friend code" ON public.profiles;
+COMMENT ON VIEW public.profiles_public IS 'Public display-only profile projection. Never add email, friend_code, or private preferences. Friend-code discovery uses authenticated SECURITY DEFINER RPCs.';
