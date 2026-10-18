@@ -1,5 +1,5 @@
 # Multiple sticker pack covers
-- [ ] Add and verify generator preview selection, null clearing, membership validation, readback, and audit logging only.
+- [x] Generator preview selection verified: 8 unit tests; live set/clear/get/list, foreign/missing rejection, null-only insert trigger preservation; audit values verified. Scheduler functions inspected: no preview writes. Temporary records removed.
 - [x] Fix create_sticker: routing fields excluded; 3 tests passed; requested test insert read back and deleted (DB count 0).
 - [x] CORS: 231/231 live preflights and readable browser 401; persistent regression passed.
 - [x] Requested sponsorship privacy fix: aggregate reads preserve totals, broad policy removed; anonymous/unrelated supporter REST and browser return zero donor rows.
