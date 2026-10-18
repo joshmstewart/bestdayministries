@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Edit, Trash2, GripVertical, Eye, EyeOff, Coffee } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { showErrorToast } from "@/lib/errorToast";
+import { showErrorToastWithCopy } from "@/lib/errorToast";
 
 interface MenuCategory {
   id: string;
@@ -369,7 +369,7 @@ const CoffeeShopMenuManager = () => {
       const { data } = supabase.storage.from("app-assets").getPublicUrl(path);
       setItemForm(prev => ({ ...prev, vendor_logo_url: data.publicUrl }));
     } catch (err) {
-      showErrorToast("Logo upload failed", err);
+      showErrorToastWithCopy("Logo upload failed", err);
     } finally {
       setUploadingLogo(false);
     }

@@ -74,3 +74,8 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 ---
 
 **Last Updated:** After implementing database-driven menu management
+
+## Vendor Logos on Menu Items
+- `coffee_shop_menu_items.vendor_logo_url` + `vendor_name` (nullable)
+- Admin: Menu item dialog → "Vendor logo" upload → `app-assets/coffee-shop/vendor-logos/`
+- Frontend: `CoffeeShopMenu.tsx` shows the logo beside the item name in all layouts
