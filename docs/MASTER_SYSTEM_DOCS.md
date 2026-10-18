@@ -668,7 +668,7 @@ EDGE:record-acceptance[auth-required|IP-tracking+audit-trail]→called-DURING-si
 SECURITY:handle_new_user()[DEFINER;metadata-allowlist:bestie|caregiver|supporter;all-other→supporter]|has_role()[DEFINER]
 ADMIN-CREATE:create-user[existing-admin-owner-check→new-supporter-row-atomic-replacement:admin|owner|vendor+created_by;failure→500]|DOC:SIGNUP_ROLE_SECURITY.md
 RLS:profiles[own+guardians-linked+admins-all]|user_roles[SELECT-auth|INSERT-UPDATE-DELETE-admins]
-PROFILE-PRIVACY:other-member-display→profiles_public[no-email/no-friend_code]; exact-code-lookup/link→authenticated-definer-RPCs; broad-friend-code-profile-SELECT-removed
+PROFILE-PRIVACY:other-member-display→profiles_public[no-email/no-friend_code]; exact-code-lookup/link→authenticated-definer-RPCs; broad-friend-code-profile-SELECT-removed|RESUMED-EVIDENCE:PROFILE_EMAIL_SECURITY_FIX_2.md[applied-0007-ledger-hash+exact-file-inventory+REST/browser-recheck;linked-role-UI-unverified]
 UI-DIVIDER:Or-divider-z-stacking[line-z-0→white-box-z-10→Or-text-z-20→SignIn-button-z-30]→button-shadow-shows-above-white-box
 DOC:AUTH_SYSTEM_CONCISE.md|CHANGELOG_2025_10_25.md
 
