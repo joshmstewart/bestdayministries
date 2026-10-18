@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Enlarge Charlie Joe Chai logo beside Chai Latte slightly; preserve supplied transparent image and other vendor artwork.
 - [ ] Move Best Day Ever Coffee and Crepes navigation under Stores; inspect current saved links and verify the menu destination.
 - [ ] After security fix 3: admin/owner reply attachments in both inboxes; real Resend attachments ≤10 MB, browser/server type validation, private storage/history, PDF+image sandbox end-to-end evidence. No existing message changes or new compose feature.
 - [x] Show one smaller Calvin’s poster for both sizes: browser confirms one 384px image, both pork/chicken descriptions, and unchanged $12/$23 prices; build OK.
