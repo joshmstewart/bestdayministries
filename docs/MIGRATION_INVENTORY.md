@@ -78,7 +78,8 @@ SELECT cron.schedule(
   $$
 );
 
--- generate-fortune-posts-daily (daily at 07:00)
+-- generate-fortune-posts-daily: legacy schedule below; after restore apply
+-- drizzle/migrations/0004_daily_fortune_denver_midnight.sql for DST-aware Denver midnight.
 SELECT cron.schedule(
   'generate-fortune-posts-daily',
   '0 7 * * *',

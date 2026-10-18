@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [x] Audit daily fortune release MST only: fixed one-hour DST cron delay; live reveal/view/reload, browser date-boundary switch, duplicate-generator rejection and 3 regression tests verified. Next actual midnight scheduled execution remains unobserved and is explicitly noted in audit evidence.
 - [x] Audit sticker pack opening only: existing free test card opened, three inventory rows and reward verified; fresh sign-in readback and repeat rejection confirmed.
 - [x] Coin audit: joke purchase reproduced and repaired; live ownership and single -50 ledger row verified; original ledger preserved with additive test reimbursement.
 - [ ] Complete coin deduction remediation: manual bypasses in ColoringBook/CardCreator/useStorePurchases/MemoryMatch/usePet and non-atomic hook/purchase writes remain; audit marked failed, not complete.

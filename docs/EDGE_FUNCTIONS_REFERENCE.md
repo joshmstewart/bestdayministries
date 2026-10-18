@@ -17,6 +17,9 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 
 ## By Category
 
+### Daily fortune release
+`generate-fortune-posts` retains its existing request/response contract and duplicate-date handling. The daily job now checks 06:00 and 07:00 UTC and calls the generator only at Denver midnight (DST-aware); no new secrets or function changes. See `DAILY_FORTUNE_RELEASE_AUDIT.md`.
+
 ### Sticker generator API
 `update_collection` accepts optional `preview_sticker_id: UUID | null`; same-collection membership is validated (400 on missing/foreign sticker). Null clears the preview. Full-row get/list responses include it; audit detail records its new value. Existing null-only auto-set and scheduled status updates preserve chosen previews.
 - **`sticker-admin-api`** — Shared `x-sticker-admin-key`; `set_pack_images` request `{action:"set_pack_images",collection_id:"UUID",image_urls:string[]}` validates 1–6 public URLs from this project's `sticker-images` bucket, writes `pack_image_urls` and `pack_image_url=image_urls[0]`, and logs to `sticker_admin_log`. Success `{ok:true,data:<full collection row>}`; validation 400, missing collection 404, unauthorized 401, all `{ok:false,error:string}`. `create_collection`/`update_collection` additionally accept `pack_cover_mode:"rotate"|"choose"`; creation defaults to rotate and remains inactive. Existing fields and response envelopes unchanged. Covers never affect `scratch-card`. See `STICKER_PACK_SYSTEM.md`.
