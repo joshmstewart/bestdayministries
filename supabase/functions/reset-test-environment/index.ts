@@ -1,6 +1,6 @@
 import { corsHeaders } from '../_shared/corsHeaders.ts';
 import { requireTestFunctionsAuth } from '../_shared/testFunctionsAuth.ts';
-import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 
 
