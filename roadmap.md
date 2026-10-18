@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Current Security Fix 4: enforce GitHub shared header; log-only raw-body Printify/Sentry HMAC; harmless deployed probes and provider checklist. No provider settings or order/user writes.
 - [x] Marla: supplied logo at coffee page top; hosted asset HTTP 200, desktop 192px/phone 160px screenshots verified, artwork preserved.
 - [x] Current request A: correct Cloud secret reaches harmless 400 validation; anon/supporter remain 401; all four Actions workflows forward secret header. Actual GitHub execution not observed.
 - [ ] Current request B: both controls implemented; 13 rule tests pass, sandbox email 01a15147-7041-742c-b39d-d12bc452777f accepted, private saved files/history and matching PDF download verified, server rejects HEIC/fake PDF and supporter. Blocker: independent provider receipt check returned 401 using available read credential; delivery/received attachment verification remains unavailable.
