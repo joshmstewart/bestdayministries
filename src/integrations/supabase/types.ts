@@ -2720,6 +2720,8 @@ export type Database = {
           price_small: number | null
           single_price: number | null
           updated_at: string
+          vendor_logo_url: string | null
+          vendor_name: string | null
         }
         Insert: {
           category_id: string
@@ -2738,6 +2740,8 @@ export type Database = {
           price_small?: number | null
           single_price?: number | null
           updated_at?: string
+          vendor_logo_url?: string | null
+          vendor_name?: string | null
         }
         Update: {
           category_id?: string
@@ -2756,6 +2760,8 @@ export type Database = {
           price_small?: number | null
           single_price?: number | null
           updated_at?: string
+          vendor_logo_url?: string | null
+          vendor_name?: string | null
         }
         Relationships: [
           {

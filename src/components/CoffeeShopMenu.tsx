@@ -23,6 +23,8 @@ interface MenuItem {
   single_price: number | null;
   display_order: number;
   is_featured: boolean;
+  vendor_logo_url?: string | null;
+  vendor_name?: string | null;
 }
 
 interface MenuAddon {
@@ -184,6 +186,7 @@ const CoffeeShopMenu = () => {
                                       <span className="inline-block w-2 h-2 bg-orange-500 rounded-full" title="Featured" />
                                     )}
                                     <span className="font-medium text-amber-900">{item.name}</span>
+{item.vendor_logo_url && (<img src={item.vendor_logo_url} alt={item.vendor_name || "Vendor logo"} title={item.vendor_name || undefined} className="h-8 w-8 object-contain flex-shrink-0" loading="lazy" />)}
                                   </div>
                                   {item.description && (
                                     <p className="text-sm text-amber-600 mt-0.5">{item.description}</p>
@@ -212,6 +215,7 @@ const CoffeeShopMenu = () => {
                                   <span className="inline-block w-2 h-2 bg-orange-500 rounded-full flex-shrink-0" title="Featured" />
                                 )}
                                 <h4 className="font-semibold text-amber-900">{item.name}</h4>
+{item.vendor_logo_url && (<img src={item.vendor_logo_url} alt={item.vendor_name || "Vendor logo"} title={item.vendor_name || undefined} className="h-8 w-8 object-contain flex-shrink-0" loading="lazy" />)}
                               </div>
                               {item.description && (
                                 <p className="text-sm text-amber-700/80 mt-1">{item.description}</p>
@@ -247,6 +251,7 @@ const CoffeeShopMenu = () => {
                                     <span className="inline-block w-2 h-2 bg-orange-500 rounded-full flex-shrink-0" title="Featured" />
                                   )}
                                   <h4 className="font-semibold text-amber-900">{item.name}</h4>
+{item.vendor_logo_url && (<img src={item.vendor_logo_url} alt={item.vendor_name || "Vendor logo"} title={item.vendor_name || undefined} className="h-8 w-8 object-contain flex-shrink-0" loading="lazy" />)}
                                 </div>
                                 {item.description && (
                                   <p className="text-sm text-amber-700/80 mt-1">{item.description}</p>

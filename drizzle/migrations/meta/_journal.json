@@ -36,6 +36,13 @@
       "when": 1792307767191,
       "tag": "0004_daily_fortune_denver_midnight",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792356077196,
+      "tag": "0005_coffee_menu_item_vendor_logo",
+      "breakpoints": true
     }
   ]
 }
