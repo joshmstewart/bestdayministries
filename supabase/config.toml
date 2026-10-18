@@ -381,3 +381,6 @@ verify_jwt = false
 
 [functions.run-smoke-test-internal]
 verify_jwt = false
+
+[functions.sticker-admin-api]
+verify_jwt = false
