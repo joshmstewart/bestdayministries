@@ -735,7 +735,7 @@ CRITICAL-SCHEMA:contact_form_submissions|contact_form_replies|notifications|emai
 VERIFICATION:DB-state[NOT-email-capture]|check-logs-tables|verify-notifications-created
 
 ## CONTACT_FORM
-REPLY-ATTACHMENTS:MessagesManager+ContactSubmissions→shared-picker+browser/server-validation[10MiB-total|images/PDF/Word/Excel|HEIC-rejection]→send-contact-reply[admin-owner-only]→Resend-base64-attachments+private-storage→reply.attachments→authenticated-openOrDownloadAttachment. Sandbox send/history/download verified; provider receipt unverified. See CONTACT_FORM_SYSTEM.md.
+REPLY-ATTACHMENTS:MessagesManager+ContactSubmissions→shared-picker+browser/server-validation[10MiB-total|images/PDF/Word/Excel|HEIC-rejection]→send-contact-reply[admin-owner-only]→Resend-base64-attachments+native-private-bucket-provisioning[policy-only-migration-0008]→reply.attachments→authenticated-openOrDownloadAttachment. Both sandbox flows/history/download/invalid-file/storage-denial verified; MessagesManager directly mounted, normal Admin only renders ContactSubmissions. Provider count/receipt blocked by send-only key. See CONTACT_FORM_SYSTEM.md and ADMIN_REPLY_ATTACHMENT_VERIFICATION.md.
 DB:contact_form_settings|contact_form_submissions|contact_form_replies
 FRONTEND:ContactForm[auto-load-settings+validate-Zod+save-DB+email-optional-graceful]|ContactSubmissions[unified-modal-2025-11-04]|MessagesManager[admin-messages]
 VALIDATION:client-Zod|server-edge

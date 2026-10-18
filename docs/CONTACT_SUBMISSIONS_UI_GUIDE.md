@@ -662,7 +662,7 @@ const [dialogOpen, setDialogOpen] = useState(false);
 
 ### Planned Features
 - [ ] Rich text editor for replies (formatting, links)
-- [x] Reply file selection/removal, 10 MiB combined validation and private attachment history are implemented in both inbox components; HEIC guidance is explicit. Sandbox PDF/image send, history and matching private download verified. Independent Resend receipt remains unverified; see CONTACT_FORM_SYSTEM.md for evidence.
+- [x] Both inbox components verified with sandbox PDF/PNG sends, two saved history files, matching admin downloads and clear >10 MiB/EXE rejection; supporter storage reads denied. MessagesManager tested directly because no Admin entry renders it. Provider count/receipt remains blocked by Resend's send-only key; bucket provisioned natively, policy in 0008. See ADMIN_REPLY_ATTACHMENT_VERIFICATION.md.
 - [ ] Canned response templates
 - [ ] Search and filter submissions
 - [ ] Export conversations as PDF

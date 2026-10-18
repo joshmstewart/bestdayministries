@@ -957,9 +957,9 @@ graph LR
 ### Admin reply attachments
 - Both MessagesManager and ContactSubmissions use shared ReplyAttachments controls and contactReplyAttachments helpers.
 - Admin/owner authorization is checked before processing; browser and server enforce 10 MiB combined and JPG/JPEG/PNG/GIF/WebP, PDF, DOC/DOCX and XLS/XLSX. HEIC is rejected clearly; server validates decoded bytes and signatures.
-- Files are private in `contact-reply-attachments`; migration 0008 grants read only to authenticated admin/owner through has_admin_access. The server uploads; browsers have no upload grant.
+- Files are private in `contact-reply-attachments`, created through the native Storage API; migration 0008 contains only the admin/owner SELECT policy through has_admin_access, not bucket creation. Native bucket provisioning is required because bucket SQL in migrations is unsupported. The server uploads; browsers have no upload grant.
 - Reply `attachments` holds `{name,type,size,url}` with private storage references resolved by openOrDownloadAttachment. Resend receives base64 attachments, not links.
-- Sandbox browser send: email `01a15147-7041-742c-b39d-d12bc452777f`, reply `936af2d0-718f-4d6c-ae6d-6f35cbd26850`, recipient only delivered@resend.dev. Saved PDF 2611 bytes and PNG 1376 bytes; history screenshot `/tmp/browser/reply-attachments/history.png`; private PDF download matches source. Independent provider delivery/attachment receipt remains unverified (read credential returned 401).
+- Fresh sandbox sends in both inbox components, saved counts=2, controls/history/downloads/invalid-file checks and non-admin storage denial are documented in [ADMIN_REPLY_ATTACHMENT_VERIFICATION.md](./ADMIN_REPLY_ATTACHMENT_VERIFICATION.md). Resend IDs `01a15154-ffb4-77ce-a7e7-ac0cfa47740f` and `01a15157-5306-78b5-81ad-8fd16fdd4893`; provider attachment-list requests return 401 restricted_api_key, so provider count/delivery receipt remain unverified. MessagesManager was mounted for testing because it currently has no rendered Admin entry; normal Contact Submissions navigation was exercised.
 - Search and filter conversation history
 - Export conversation as PDF
 - Webhook signature verification (optional security layer)
