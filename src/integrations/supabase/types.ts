@@ -9719,6 +9719,33 @@ export type Database = {
           },
         ]
       }
+      sticker_admin_log: {
+        Row: {
+          action: string
+          collection_id: string | null
+          created_at: string
+          detail: Json | null
+          id: string
+          sticker_id: string | null
+        }
+        Insert: {
+          action: string
+          collection_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          sticker_id?: string | null
+        }
+        Update: {
+          action?: string
+          collection_id?: string | null
+          created_at?: string
+          detail?: Json | null
+          id?: string
+          sticker_id?: string | null
+        }
+        Relationships: []
+      }
       sticker_collections: {
         Row: {
           completion_badge_id: string | null
