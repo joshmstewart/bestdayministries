@@ -17,6 +17,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw, CheckCircle, XCircle, Globe, Inbox, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ReplyAttachments, ReplyAttachmentHistory } from './ReplyAttachments';
+import { sendContactReply, type ThreadAttachment } from '@/lib/contactReplyAttachments';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const settingsSchema = z.object({
   is_enabled: z.boolean(),
@@ -52,6 +56,7 @@ interface Submission {
 }
 
 interface Reply {
+  attachments?: ThreadAttachment[] | null;
   id: string;
   submission_id: string;
   sender_type: 'admin' | 'user';
@@ -64,6 +69,8 @@ interface Reply {
 }
 
 export const MessagesManager = () => {
+  const { isAdmin, isOwner } = useAuth();
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -320,6 +327,7 @@ export const MessagesManager = () => {
   };
 
   const openReplyDialog = (submission: Submission) => {
+    setReplyFiles([]);
     setSelectedSubmission(submission);
     setReplyMessage("");
     setAdminNotes(submission.admin_notes || "");
@@ -398,20 +406,16 @@ export const MessagesManager = () => {
   };
 
   const sendReply = async () => {
-    if (!selectedSubmission || !replyMessage.trim()) return;
+    if (!selectedSubmission || !replyMessage.trim() || (!isAdmin && !isOwner)) return;
 
     setSending(true);
     try {
-      const { error } = await supabase.functions.invoke('send-contact-reply', {
-        body: {
+      await sendContactReply({
           submissionId: selectedSubmission.id,
           replyMessage: replyMessage.trim(),
           adminNotes: adminNotes.trim() || undefined,
           ccEmails: ccEmails.length > 0 ? ccEmails : undefined,
-        },
-      });
-
-      if (error) throw error;
+      }, replyFiles);
 
       // Update cc_emails in the database for future replies
       await supabase
@@ -426,17 +430,14 @@ export const MessagesManager = () => {
       });
 
       setReplyDialogOpen(false);
+      setReplyFiles([]);
       setReplyMessage("");
       setCcEmails([]);
       loadReplies(selectedSubmission.id);
       loadSubmissions();
     } catch (error: any) {
       console.error("Error sending reply:", error);
-      toast({
-        title: "Failed to Send Reply",
-        description: error.message || "An error occurred while sending the reply",
-        variant: "destructive",
-      });
+      showErrorToastWithCopy('Failed to Send Reply', error);
     } finally {
       setSending(false);
     }
@@ -1025,6 +1026,7 @@ export const MessagesManager = () => {
                           </div>
                         )}
                         <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                        <ReplyAttachmentHistory attachments={reply.attachments} />
                       </div>
                     ))}
                   </div>
@@ -1129,6 +1131,7 @@ export const MessagesManager = () => {
                         </div>
                       )}
                       <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+                      <ReplyAttachmentHistory attachments={reply.attachments} />
                     </div>
                   ))}
                 </div>
@@ -1145,6 +1148,7 @@ export const MessagesManager = () => {
                 />
               </div>
 
+              {(isAdmin || isOwner) && <ReplyAttachments files={replyFiles} onChange={setReplyFiles} disabled={sending} />}
               <div className="space-y-2">
                 <label className="text-sm font-medium">CC Recipients</label>
                 <div className="flex gap-2">
@@ -1208,7 +1212,7 @@ export const MessagesManager = () => {
                 </Button>
                 <Button
                   onClick={sendReply}
-                  disabled={sending || !replyMessage.trim()}
+                  disabled={sending || !replyMessage.trim() || (!isAdmin && !isOwner)}
                   className="gap-2"
                 >
                   {sending ? (

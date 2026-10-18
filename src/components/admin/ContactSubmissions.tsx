@@ -15,6 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { openOrDownloadAttachment } from "@/lib/downloadFile";
+import { ReplyAttachments, ReplyAttachmentHistory } from './ReplyAttachments';
+import { sendContactReply, type ThreadAttachment } from '@/lib/contactReplyAttachments';
+import { showErrorToastWithCopy } from '@/lib/errorToast';
 
 interface AdminUser {
   id: string;
@@ -51,7 +54,7 @@ interface Reply {
   message: string;
   created_at: string;
   cc_emails?: string[] | null;
-  attachments?: any;
+  attachments?: ThreadAttachment[] | null;
 }
 
 const STATUS_OPTIONS = [
@@ -67,7 +70,8 @@ type AssignmentFilter = 'all' | 'mine' | 'unassigned' | string; // string for sp
 
 export default function ContactSubmissions() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin, isOwner } = useAuth();
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -279,6 +283,7 @@ export default function ContactSubmissions() {
   };
 
   const openDialogForSubmission = (sub: Submission) => {
+    setReplyFiles([]);
     setSelectedSubmission(sub);
     setReplyMessage("");
     setAdminNotes(sub.admin_notes || "");
@@ -373,18 +378,16 @@ export default function ContactSubmissions() {
   };
 
   const sendReply = async () => {
-    if (!selectedSubmission || !replyMessage.trim()) return;
+    if (!selectedSubmission || !replyMessage.trim() || (!isAdmin && !isOwner)) return;
 
     setSending(true);
     try {
-      await supabase.functions.invoke('send-contact-reply', {
-        body: {
+      await sendContactReply({
           submissionId: selectedSubmission.id,
           replyMessage: replyMessage.trim(),
           adminNotes: adminNotes.trim() || undefined,
           ccEmails: ccEmails.length > 0 ? ccEmails : undefined,
-        },
-      });
+      }, replyFiles);
 
       // Persist for future replies in the same thread
       await supabase
@@ -395,10 +398,11 @@ export default function ContactSubmissions() {
       const ccText = ccEmails.length > 0 ? ` (CC: ${ccEmails.length})` : "";
       toast({ title: `Reply sent!${ccText}` });
       setReplyMessage("");
+      setReplyFiles([]);
       loadReplies(selectedSubmission.id);
       loadSubmissions();
     } catch (error: any) {
-      toast({ title: "Failed to send", description: error.message, variant: "destructive" });
+      showErrorToastWithCopy('Failed to send reply', error);
     } finally {
       setSending(false);
     }
@@ -859,15 +863,7 @@ export default function ContactSubmissions() {
                           </div>
                         )}
                         <p className="mt-1 whitespace-pre-wrap">{r.message}</p>
-                        {r.attachments && Array.isArray(r.attachments) && r.attachments.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {(r.attachments as any[]).map((att: any, i: number) => (
-                              <button key={i} onClick={() => openOrDownloadAttachment(att.url, att.name, att.type)} className="flex items-center gap-2 text-xs text-primary hover:underline">
-                                {att.type?.startsWith('image/') ? '🖼️' : att.type?.includes('pdf') ? '📄' : '📎'} {att.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        <ReplyAttachmentHistory attachments={r.attachments} />
                       </div>
                     ))}
                   </div>
@@ -884,6 +880,7 @@ export default function ContactSubmissions() {
                   rows={6}
                 />
 
+                {(isAdmin || isOwner) && <ReplyAttachments files={replyFiles} onChange={setReplyFiles} disabled={sending} />}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">CC recipients (optional)</label>
                   <div className="flex gap-2">
@@ -929,7 +926,7 @@ export default function ContactSubmissions() {
                   placeholder="Admin notes (internal only)..."
                   rows={3}
                 />
-                <Button onClick={sendReply} disabled={sending || !replyMessage.trim()}>
+                <Button onClick={sendReply} disabled={sending || !replyMessage.trim() || (!isAdmin && !isOwner)}>
                   {sending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
