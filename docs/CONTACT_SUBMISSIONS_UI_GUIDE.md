@@ -662,7 +662,7 @@ const [dialogOpen, setDialogOpen] = useState(false);
 
 ### Planned Features
 - [ ] Rich text editor for replies (formatting, links)
-- [ ] File attachments in replies
+- [x] Reply file selection/removal, 10 MiB combined validation and private attachment history are implemented in both inbox components; HEIC guidance is explicit. Sandbox PDF/image send, history and matching private download verified. Independent Resend receipt remains unverified; see CONTACT_FORM_SYSTEM.md for evidence.
 - [ ] Canned response templates
 - [ ] Search and filter submissions
 - [ ] Export conversations as PDF
