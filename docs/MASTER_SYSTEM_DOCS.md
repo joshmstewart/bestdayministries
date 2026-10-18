@@ -701,7 +701,7 @@ ROUTE:/coffee-shop
 DB:app_settings.coffee_shop_content[JSONB]
 ADMIN:edit-hero|mission|buttons|location|menu-toggle
 FRONTEND:Hero|Mission|Hours|Menu[conditional]
-MENU-ARTWORK:Calvin’s-green-chili-pint/quart→edge-to-edge-category-width-supplied-poster[no-image-width-cap+natural-aspect]; choices[pork|chicken]; other-vendor-logos-and-prices-unchanged
+MENU-ARTWORK:Calvin’s-green-chili-pint/quart→one-shared-centered-supplied-poster[max-width-384px+natural-aspect]; choices[pork|chicken]; other-vendor-logos-and-prices-unchanged
 
 ## COFFEE_VENDOR_PRODUCTS
 ADMIN:Admin→Vendors→Coffee→Products

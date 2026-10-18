@@ -155,6 +155,7 @@ const CoffeeShopMenu = () => {
               const categoryAddons = getAddonsForCategory(category.id);
               const isCoffeeStyle = hasCoffeePricing(category.id);
               const isSmallLarge = hasSmallLargePricing(category.id);
+              const sharedArtwork = categoryItems.find(item => hasLargeVendorArtwork(item) && item.vendor_logo_url);
 
               if (categoryItems.length === 0) return null;
 
@@ -168,7 +169,15 @@ const CoffeeShopMenu = () => {
                     )}
                   </div>
 
-                  <div className={categoryItems.every(hasLargeVendorArtwork) ? "py-6" : "p-6"}>
+                  <div className="p-6">
+                    {sharedArtwork && (
+                      <img
+                        src={sharedArtwork.vendor_logo_url || undefined}
+                        alt={sharedArtwork.vendor_name || "Vendor logo"}
+                        className="block w-full max-w-sm h-auto mx-auto mb-6"
+                        loading="lazy"
+                      />
+                    )}
                     {/* Coffee-style pricing table */}
                     {isCoffeeStyle ? (
                       <div className="overflow-x-auto">
@@ -249,15 +258,7 @@ const CoffeeShopMenu = () => {
                             key={item.id} 
                             className={hasLargeVendorArtwork(item) ? "md:col-span-2 lg:col-span-3 min-w-0" : "p-4 rounded-xl bg-gradient-to-r from-amber-50/80 to-orange-50/50 border border-amber-100"}
                           >
-                            {hasLargeVendorArtwork(item) && item.vendor_logo_url && (
-                              <img
-                                src={item.vendor_logo_url}
-                                alt={item.vendor_name || "Vendor logo"}
-                                className="block w-full h-auto mb-4"
-                                loading="lazy"
-                              />
-                            )}
-                            <div className={`flex items-start justify-between gap-3 ${hasLargeVendorArtwork(item) ? "px-6 pb-4" : ""}`}>
+                            <div className={`flex items-start justify-between gap-3 ${hasLargeVendorArtwork(item) ? "pb-4" : ""}`}>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   {item.is_featured && (
