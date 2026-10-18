@@ -449,28 +449,11 @@ export default function GuardianLinks() {
         fundingData = fData || [];
       }
 
-      // Get funding progress for sponsor besties (by mode)
-      const { data: sponsorFundingData } = await supabase
-        .from("sponsor_bestie_funding_progress_by_mode")
-        .select("sponsor_bestie_id, stripe_mode, current_monthly_pledges, monthly_goal")
-        .in("sponsor_bestie_id", sponsorBestieIds);
-
-      // Load ALL active sponsorships for these sponsor besties (from ALL users)
-      // This is needed to correctly calculate stable vs ending amounts for progress bars
-      let allBestieSponsorships: any[] = [];
-      if (sponsorBestieIds.length > 0) {
-        const { data: allBestieSponsData, error: allSponsError } = await supabase
-          .from("sponsorships")
-          .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
-          .in("sponsor_bestie_id", sponsorBestieIds)
-          .eq("status", "active");
-        
-        if (allSponsError) {
-          console.error("Error loading all bestie sponsorships:", allSponsError);
-        }
-        
-        allBestieSponsorships = allBestieSponsData || [];
-      }
+      // Funding totals include all authorized public contributions, never donor rows.
+      const { data: sponsorFundingData, error: fundingError } = await supabase.rpc(
+        'get_sponsorship_funding_totals', { p_bestie_ids: sponsorBestieIds },
+      );
+      if (fundingError) throw fundingError;
 
       // Combine the data
       const transformedData = allSponsorships
@@ -585,22 +568,12 @@ export default function GuardianLinks() {
       const stableAmountsByBestieAndMode = new Map<string, number>();
       const endingAmountsByBestieAndMode = new Map<string, number>();
       
-      // Use ALL besties' sponsorships (from all users) to correctly calculate stable/ending amounts
-      allBestieSponsorships.forEach((s: any) => {
-        const bestieKey = s.sponsor_bestie_id || s.bestie_id;
-        if (!bestieKey) return;
-        
-        // Group by BOTH bestie AND stripe_mode
-        const groupKey = `${bestieKey}|${s.stripe_mode}`;
-        
-        if (s.frequency === 'monthly' && s.status === 'active') {
-          const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
-          stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
-        } else if (s.frequency === 'one-time' && s.status === 'active' && s.ended_at && new Date(s.ended_at) > new Date()) {
-          const current = endingAmountsByBestieAndMode.get(groupKey) || 0;
-          endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
-        }
-      });
+      for (const total of sponsorFundingData || []) {
+        const groupKey = `${total.sponsor_bestie_id}|${total.stripe_mode}`;
+        // Keep the guardian's existing current funding total (expired gifts excluded).
+        stableAmountsByBestieAndMode.set(groupKey, total.current_monthly_pledges - total.ending_amount);
+        endingAmountsByBestieAndMode.set(groupKey, total.ending_amount);
+      }
 
       // Attach amounts to transformed data using LIVE mode only
       const finalData = transformedData.map(s => {

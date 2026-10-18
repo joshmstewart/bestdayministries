@@ -174,76 +174,21 @@ export const SponsorBestieDisplay = ({ selectedBestieId, canLoad = true, onLoadC
         if (bestiesWithGoals.length > 0) {
           const bestieIds = bestiesWithGoals.map(b => b.id);
           
-          // Load ALL sponsorships for these besties to calculate stable vs ending amounts
-          const { data: allBestieSponsorships, error: allSponsError } = await supabase
-            .from("sponsorships")
-            .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
-            .in("sponsor_bestie_id", bestieIds)
-            .eq("status", "active");
-          
-          if (allSponsError) {
-            console.error("Error loading all bestie sponsorships:", allSponsError);
-          }
-          
-          // Query funding progress for LIVE mode only
-          const { data: liveModeData } = await supabase
-            .from('sponsor_bestie_funding_progress_by_mode')
-            .select('*')
-            .in('sponsor_bestie_id', bestieIds)
-            .eq('stripe_mode', 'live');
-
-          // Query for besties with no sponsorships (null mode)
-          const { data: nullModeData } = await supabase
-            .from('sponsor_bestie_funding_progress_by_mode')
-            .select('*')
-            .in('sponsor_bestie_id', bestieIds)
-            .is('stripe_mode', null);
-
-          // Build maps to track stable vs ending amounts by bestie and mode
-          const stableAmountsByBestieAndMode = new Map<string, number>();
-          const endingAmountsByBestieAndMode = new Map<string, number>();
-
-          // Calculate stable and ending amounts from ALL sponsorships
-          (allBestieSponsorships || []).forEach(s => {
-            const groupKey = `${s.sponsor_bestie_id}_${s.stripe_mode || 'null'}`;
-            
-            if (s.frequency === 'monthly') {
-              // Monthly = stable (solid orange)
-              const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
-              stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
-            } else if (s.frequency === 'one-time') {
-              // One-time with future ended_at = ending (diagonal stripes)
-              if (s.ended_at && new Date(s.ended_at) > new Date()) {
-                const current = endingAmountsByBestieAndMode.get(groupKey) || 0;
-                endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
-              } else {
-                // One-time already expired = stable
-                const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
-                stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
-              }
-            }
-          });
-
-          // Store ending amounts in state for rendering
-          setEndingAmounts(endingAmountsByBestieAndMode);
-
-          // Build progress map: prioritize LIVE data over null
+          const { data: totals, error: fundingError } = await supabase.rpc(
+            'get_sponsorship_funding_totals', { p_bestie_ids: bestieIds },
+          );
+          if (fundingError) throw fundingError;
           const progressMap: Record<string, FundingProgress> = {};
-
-          // First add besties with no sponsorships ($0)
-          if (nullModeData) {
-            nullModeData.forEach(p => {
-              progressMap[p.sponsor_bestie_id] = p;
-            });
+          const endingMap = new Map<string, number>();
+          for (const total of totals || []) {
+            if (total.stripe_mode === null || total.stripe_mode === 'live') {
+              if (!progressMap[total.sponsor_bestie_id] || total.stripe_mode === 'live') {
+                progressMap[total.sponsor_bestie_id] = total;
+              }
+              endingMap.set(`${total.sponsor_bestie_id}_${total.stripe_mode || 'null'}`, total.ending_amount);
+            }
           }
-
-          // Then overwrite with LIVE sponsorships (real funding)
-          if (liveModeData) {
-            liveModeData.forEach(p => {
-              progressMap[p.sponsor_bestie_id] = p;
-            });
-          }
-
+          setEndingAmounts(endingMap);
           setFundingProgress(progressMap);
         }
       }
