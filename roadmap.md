@@ -1,4 +1,6 @@
 # Multiple sticker pack covers
+- [ ] Finish CORS audit: fix missing runtime headers and verify browser requests.
+- [ ] Requested now: fix broad sponsorship RLS, retain public aggregate funding reads, verify signed-out and unauthorized donor access is denied.
 - [x] Investigate next audit item only: RLS. Recorded confirmed anonymous donor-data leak and failed linter with browser/REST evidence; no security or transaction changes applied.
 - [ ] Resolve RLS failure: migrate both funding consumers to privacy-safe aggregates, remove broad sponsorship policy after role verification, and review remaining function/view flags. Not fixed this turn.
 - [x] Add compatible collection fields.
