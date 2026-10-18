@@ -665,7 +665,8 @@ ROLES:supporter|bestie|caregiver|moderator|admin|owner
 AVATAR:1-12→composite-{n}.png
 TERMS:Guard+Dialog→versions-in-useTermsCheck→FIXED-2025-10-25[no-double-prompt]
 EDGE:record-acceptance[auth-required|IP-tracking+audit-trail]→called-DURING-signup
-SECURITY:handle_new_user()[DEFINER]|has_role()[DEFINER]
+SECURITY:handle_new_user()[DEFINER;metadata-allowlist:bestie|caregiver|supporter;all-other→supporter]|has_role()[DEFINER]
+ADMIN-CREATE:create-user[existing-admin-owner-check→new-supporter-row-atomic-replacement:admin|owner|vendor+created_by;failure→500]|DOC:SIGNUP_ROLE_SECURITY.md
 RLS:profiles[own+guardians-linked+admins-all]|user_roles[SELECT-auth|INSERT-UPDATE-DELETE-admins]
 UI-DIVIDER:Or-divider-z-stacking[line-z-0→white-box-z-10→Or-text-z-20→SignIn-button-z-30]→button-shadow-shows-above-white-box
 DOC:AUTH_SYSTEM_CONCISE.md|CHANGELOG_2025_10_25.md

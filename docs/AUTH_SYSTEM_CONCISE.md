@@ -115,7 +115,8 @@ Uses the same persistent client and redirect logic as email/password login:
 - `owner` - Super admin
 
 **Assignment:**
-- Signup: User selects supporter/bestie/caregiver
+- Signup: `handle_new_user` accepts only exact supporter/bestie/caregiver metadata strings; privileged, unknown, empty or missing roles become supporter.
+- Trusted `create-user`: after its existing admin/owner authorization, admin/owner/vendor requests atomically replace the newly created supporter row and record `created_by`; failure returns 500, not success. Existing accounts are unchanged. See `SIGNUP_ROLE_SECURITY.md`.
 - Post-signup: Admin assigns via User Management
 - Vendor status: Applied via `/vendor-auth`, checked via vendors table
 - Stored in `user_roles` table (NEVER in profiles)
