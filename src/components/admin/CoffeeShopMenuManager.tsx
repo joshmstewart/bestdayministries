@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Plus, Edit, Trash2, GripVertical, Eye, EyeOff, Coffee } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { showErrorToast } from "@/lib/errorToast";
 
 interface MenuCategory {
   id: string;
@@ -36,6 +37,8 @@ interface MenuItem {
   display_order: number;
   is_active: boolean;
   is_featured: boolean;
+  vendor_logo_url: string | null;
+  vendor_name: string | null;
 }
 
 interface MenuAddon {
@@ -69,8 +72,11 @@ const CoffeeShopMenuManager = () => {
     price_iced_16oz: "",
     price_iced_24oz: "",
     single_price: "",
-    is_featured: false
+    is_featured: false,
+    vendor_logo_url: "",
+    vendor_name: ""
   });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [addonForm, setAddonForm] = useState({ category_id: "", name: "", price: "" });
 
   // Fetch categories
@@ -186,6 +192,8 @@ const CoffeeShopMenuManager = () => {
       price_iced_24oz: number | null;
       single_price: number | null;
       is_featured: boolean;
+      vendor_logo_url: string | null;
+      vendor_name: string | null;
     }) => {
       if (editingItem) {
         const { error } = await supabase
@@ -302,7 +310,9 @@ const CoffeeShopMenuManager = () => {
       price_iced_16oz: "",
       price_iced_24oz: "",
       single_price: "",
-      is_featured: false
+      is_featured: false,
+      vendor_logo_url: "",
+      vendor_name: ""
     });
   };
 
@@ -325,7 +335,9 @@ const CoffeeShopMenuManager = () => {
       price_iced_16oz: item.price_iced_16oz?.toString() || "",
       price_iced_24oz: item.price_iced_24oz?.toString() || "",
       single_price: item.single_price?.toString() || "",
-      is_featured: item.is_featured
+      is_featured: item.is_featured,
+      vendor_logo_url: item.vendor_logo_url || "",
+      vendor_name: item.vendor_name || ""
     });
     setItemDialogOpen(true);
   };
@@ -347,6 +359,22 @@ const CoffeeShopMenuManager = () => {
     });
   };
 
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `coffee-shop/vendor-logos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("app-assets").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from("app-assets").getPublicUrl(path);
+      setItemForm(prev => ({ ...prev, vendor_logo_url: data.publicUrl }));
+    } catch (err) {
+      showErrorToast("Logo upload failed", err);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const handleSaveItem = () => {
     const parsePrice = (val: string) => val ? parseFloat(val) : null;
     saveItemMutation.mutate({
@@ -360,7 +388,9 @@ const CoffeeShopMenuManager = () => {
       price_iced_16oz: parsePrice(itemForm.price_iced_16oz),
       price_iced_24oz: parsePrice(itemForm.price_iced_24oz),
       single_price: parsePrice(itemForm.single_price),
-      is_featured: itemForm.is_featured
+      is_featured: itemForm.is_featured,
+      vendor_logo_url: itemForm.vendor_logo_url || null,
+      vendor_name: itemForm.vendor_name.trim() || null
     });
   };
 
@@ -498,7 +528,12 @@ const CoffeeShopMenuManager = () => {
                               <div className="flex items-start gap-3 min-w-0 flex-1">
                                 <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-1" />
                                 <div className="min-w-0 flex-1">
-                                  <p className="font-medium">{item.name}</p>
+                                  <p className="font-medium flex items-center gap-2">
+                                    {item.name}
+                                    {item.vendor_logo_url && (
+                                      <img src={item.vendor_logo_url} alt={item.vendor_name || "Vendor logo"} className="h-5 w-5 object-contain" />
+                                    )}
+                                  </p>
                                   <p className="text-sm text-muted-foreground">
                                     {item.description || "No description"}
                                   </p>
@@ -758,6 +793,37 @@ const CoffeeShopMenuManager = () => {
                     placeholder="$0.00"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 border-t pt-4">
+              <Label>Vendor logo (optional)</Label>
+              <Input
+                value={itemForm.vendor_name}
+                onChange={(e) => setItemForm(prev => ({ ...prev, vendor_name: e.target.value }))}
+                placeholder="Vendor name (e.g. who makes the Chai)"
+              />
+              <div className="flex items-center gap-3">
+                {itemForm.vendor_logo_url && (
+                  <img src={itemForm.vendor_logo_url} alt="Vendor logo" className="h-12 w-12 object-contain rounded border bg-background" />
+                )}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingLogo}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleLogoUpload(f);
+                    e.target.value = "";
+                  }}
+                />
+                {uploadingLogo && <Loader2 className="w-4 h-4 animate-spin" />}
+                {itemForm.vendor_logo_url && (
+                  <Button type="button" variant="ghost" size="icon" title="Remove logo"
+                    onClick={() => setItemForm(prev => ({ ...prev, vendor_logo_url: "" }))}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
