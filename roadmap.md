@@ -1,4 +1,6 @@
 # Multiple sticker pack covers
+- [ ] Current request A: verify saved shared secret with harmless accepted validation and anon/supporter denial; inspect Actions header forwarding.
+- [ ] Current request B: implement both reply controls, private server storage and real email attachments; run rule regressions and sandbox PDF/image send/history/download checks.
 - [x] Enlarge Charlie Joe Chai logo beside Chai Latte: fresh public browser confirms 48×48px and supplied transparent image; screenshot /tmp/browser/chai-logo/chai.png; other artwork unchanged.
 - [x] Move Best Day Ever Coffee and Crepes navigation under Stores: saved existing link now points to Stores parent, order 2, unchanged /coffee-shop destination. Full browser dropdown check blocked by header/session loading and not claimed verified.
 - [ ] After security fix 3: admin/owner reply attachments in both inboxes; real Resend attachments ≤10 MB, browser/server type validation, private storage/history, PDF+image sandbox end-to-end evidence. No existing message changes or new compose feature.

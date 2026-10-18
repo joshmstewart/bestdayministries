@@ -1,30 +1,23 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
-import { Resend } from "https://esm.sh/resend@2.0.0";
-import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
+import { z } from "npm:zod@3";
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { validateReplyAttachments, validateReplyFileBytes, REPLY_ATTACHMENT_LIMIT } from '../_shared/replyAttachments.ts';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const supabaseUrl = Deno.env.get("SUPABASE_URL") || '';
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || '';
 
 const replySchema = z.object({
   submissionId: z.string().uuid(),
   replyMessage: z.string().trim().min(1).max(5000),
   adminNotes: z.string().trim().max(1000).optional(),
   ccEmails: z.array(z.string().email()).optional(),
+  attachments: z.array(z.object({ name: z.string().max(255), type: z.string().max(150), size: z.number().int().positive().max(REPLY_ATTACHMENT_LIMIT), content: z.string().max(Math.ceil(REPLY_ATTACHMENT_LIMIT / 3) * 4) })).default([]),
 });
 
-interface ContactReplyRequest {
-  submissionId: string;
-  replyMessage: string;
-  adminNotes?: string;
-  ccEmails?: string[];
-}
+type ContactReplyRequest = z.infer<typeof replySchema>;
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -55,22 +48,39 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Validate input
-    const requestData = await req.json();
+    const { data: roles, error: roleError } = await supabase.from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'owner']).limit(1);
+    if (roleError || !roles?.length) return new Response(JSON.stringify({ error: 'Only admins and owners can send replies.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+    // Limit encoded request before parsing. Ten MB of files expands to roughly fourteen MB in base64.
+    const rawBody = await req.text();
+    if (rawBody.length > Math.ceil(REPLY_ATTACHMENT_LIMIT / 3) * 4 + 100000) return new Response(JSON.stringify({ error: 'Attachments must total 10 MB or less per reply.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    let requestData;
+    try { requestData = JSON.parse(rawBody); } catch { return new Response(JSON.stringify({ error: 'Invalid reply request.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
     const validationResult = replySchema.safeParse(requestData);
     
     if (!validationResult.success) {
       console.error("[send-contact-reply] Validation failed:", validationResult.error.errors);
       return new Response(
         JSON.stringify({ 
-          error: "Invalid input data",
+          error: "Invalid reply or attachment data. Files must total 10 MB or less.",
           details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { submissionId, replyMessage, adminNotes, ccEmails }: ContactReplyRequest = validationResult.data;
+    const { submissionId, replyMessage, adminNotes, ccEmails, attachments }: ContactReplyRequest = validationResult.data;
+    const decoded: { name: string; type: string; size: number; content: string; bytes: Uint8Array }[] = [];
+    try {
+      validateReplyAttachments(attachments);
+      for (const file of attachments) {
+        if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.content)) throw new Error(`${file.name}: invalid attachment encoding.`);
+        const bytes = Uint8Array.from(atob(file.content), c => c.charCodeAt(0));
+        if (bytes.length !== file.size) throw new Error(`${file.name}: attachment size does not match.`);
+        validateReplyFileBytes(file.name, bytes);
+        decoded.push({ ...file, bytes });
+      }
+    } catch (error) { return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid attachment' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
 
     console.log("[send-contact-reply] Processing reply for submission:", submissionId);
 
@@ -199,6 +209,15 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
     // Build recipient list - primary recipient plus any CC emails
     const toRecipients = [submission.email];
     const ccRecipients = ccEmails && ccEmails.length > 0 ? ccEmails : [];
+    // A sandbox thread can never accidentally CC a real person.
+    if (submission.email.toLowerCase() === 'delivered@resend.dev' && ccRecipients.some(email => email.toLowerCase() !== 'delivered@resend.dev')) return new Response(JSON.stringify({ error: 'Sandbox replies may only be sent to delivered@resend.dev.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const storedAttachments: { name: string; type: string; size: number; url: string }[] = [];
+    for (const file of decoded) {
+      const path = `${submissionId}/${crypto.randomUUID()}/${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('contact-reply-attachments').upload(path, file.bytes, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error(`Could not save ${file.name} privately. Reply was not sent.`);
+      storedAttachments.push({ name: file.name, type: file.type, size: file.size, url: `private://contact-reply-attachments/${path}` });
+    }
     
     console.log("[send-contact-reply] Sending to:", { to: toRecipients, cc: ccRecipients });
     
@@ -209,6 +228,7 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
       reply_to: replyFromEmail,
       subject: `Re: ${submission.subject || 'Your message'}`,
       html: emailHtml,
+      attachments: decoded.map(file => ({ filename: file.name, content: file.content, content_type: file.type })),
     });
 
     const { data: emailData, error: emailError } = emailResponse;
@@ -241,7 +261,8 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
         metadata: { 
           admin_name: adminName, 
           admin_id: user.id,
-          cc_emails: ccRecipients.length > 0 ? ccRecipients : undefined
+          cc_emails: ccRecipients.length > 0 ? ccRecipients : undefined,
+          attachments: storedAttachments
         }
       });
     } catch (logError) {
@@ -250,7 +271,7 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
     }
 
     // Save reply to the threaded conversation table
-    const { error: replyError } = await supabase
+    const { data: savedReply, error: replyError } = await supabase
       .from("contact_form_replies")
       .insert({
         submission_id: submissionId,
@@ -260,11 +281,12 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
         sender_email: fromEmail,
         message: replyMessage,
         cc_emails: ccRecipients.length > 0 ? ccRecipients : null,
-      });
+        attachments: storedAttachments.length ? storedAttachments : null,
+      }).select('id').single();
 
     if (replyError) {
       console.error("[send-contact-reply] Error saving reply:", replyError);
-      // Don't fail the request since email was sent successfully
+      return new Response(JSON.stringify({ error: 'Email was sent, but conversation history could not be saved. Do not resend; contact an owner.', emailId: emailData?.id }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Update the submission with reply timestamp and admin notes
@@ -289,7 +311,7 @@ ${submission.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
     }
 
     return new Response(
-      JSON.stringify({ success: true, emailId: emailData?.id }),
+      JSON.stringify({ success: true, emailId: emailData?.id, replyId: savedReply?.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
