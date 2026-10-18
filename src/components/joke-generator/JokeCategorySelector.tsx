@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CoinIcon } from '@/components/CoinIcon';
 import { useCoins } from '@/hooks/useCoins';
 import { toast } from 'sonner';
+import { showErrorToast, showErrorToastWithCopy } from '@/lib/errorToast';
 
 interface JokeCategory {
   id: string;
@@ -59,12 +60,12 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
     // Fetch purchased categories if user is logged in
     if (user) {
       const { data: purchaseData } = await supabase
-        .from('user_store_purchases')
-        .select('store_item_id')
+        .from('user_joke_categories')
+        .select('category_id')
         .eq('user_id', user.id);
       
       if (purchaseData) {
-        setPurchasedCategories(purchaseData.map(p => p.store_item_id).filter(Boolean) as string[]);
+        setPurchasedCategories(purchaseData.map(p => p.category_id));
       }
     }
     
@@ -94,12 +95,12 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
 
   const handlePurchase = async (category: JokeCategory) => {
     if (!user) {
-      toast.error('Please log in to purchase categories');
+      showErrorToast('Please log in to purchase categories');
       return;
     }
 
     if (coins < category.coin_price) {
-      toast.error(`Not enough coins! You need ${category.coin_price} coins.`);
+      showErrorToast(`Not enough coins! You need ${category.coin_price} coins.`);
       return;
     }
 
@@ -107,32 +108,21 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
 
     try {
       // Deduct coins
-      const deducted = await deductCoins(category.coin_price, `Purchased joke category: ${category.name}`);
+      const deducted = await deductCoins(category.coin_price, `Purchased joke category: ${category.name}`, category.id);
       if (!deducted) {
         throw new Error('Failed to deduct coins');
       }
 
       // Record the purchase
       const { error: purchaseError } = await supabase
-        .from('user_store_purchases')
+        .from('user_joke_categories')
         .insert({
           user_id: user.id,
-          store_item_id: category.id,
-          item_type: 'joke_category',
-          item_name: `Joke Category: ${category.name}`,
+          category_id: category.id,
           coins_spent: category.coin_price,
         });
 
       if (purchaseError) throw purchaseError;
-
-      // Record transaction
-      await supabase.from('coin_transactions').insert({
-        user_id: user.id,
-        amount: -category.coin_price,
-        transaction_type: 'purchase',
-        description: `Purchased joke category: ${category.name}`,
-        related_item_id: category.id,
-      });
 
       // Refresh data
       await fetchData();
@@ -144,7 +134,7 @@ export const JokeCategorySelector: React.FC<JokeCategorySelectorProps> = ({
       toast.success(`Unlocked ${category.name} jokes! 🎉`);
     } catch (error) {
       console.error('Purchase error:', error);
-      toast.error('Failed to purchase category');
+      showErrorToastWithCopy('Failed to purchase category', error);
     } finally {
       setPurchasingId(null);
     }

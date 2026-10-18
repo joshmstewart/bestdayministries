@@ -99,7 +99,7 @@ Legend: `[ ]` untested · `[testing]` in progress · `[pass]` verified · `[fail
 - [fixed:extended 37 incomplete browser header lists] edge function CORS on every function — 2026-10-18: 231/231 live OPTIONS requests pass with browser runtime headers; location browser request changed from blocked TypeError to readable 401. Evidence /tmp/browser/cors-audit/preflight-summary-after.json, browser-result.json; regression tests/security/sponsorship_privacy_test.py. No business operations invoked.
 
 ## Games & Features
-- [ ] coin deduction via deductCoins hook
+- [fail:manual-deduction-bypasses-and-nonatomic-hook; joke-purchase-fixed] coin deduction via deductCoins hook — 2026-10-18: real test-account joke purchase spent 50 but failed ownership write (nonexistent item_type/item_name on user_store_purchases). Fixed selector to read/write user_joke_categories and removed duplicate negative ledger insert. Re-test: 50→0, ownership 59393b33-25f3-4fbe-93c4-6fc035c700ac, exactly one new spending row da32a9e6-cf87-44cf-b76e-14319e37e648 (-50, related category c1459152-6b49-4351-8372-add5ce257414). Screenshot /tmp/browser/coin-audit/baseline-purchased.png shows Holidays unlocked, 9 categories and zero balance. Failed original row 93d16ede-299a-4407-9e8b-dc34306266a5 preserved; additive test reimbursement c14343b3-a65a-43b0-b476-ae14fbfa4985. Remaining manual spending: ColoringBook, CardCreator, useStorePurchases, MemoryMatch, usePet; useCoins balance/ledger writes are non-atomic. NOT a passing or fully fixed coin audit. No edge function invoked by this purchase, no real money moved. See docs/COIN_DEDUCTION_AUDIT.md.
 - [ ] sticker pack opening
 - [ ] daily fortune release MST
 - [ ] wordle daily
