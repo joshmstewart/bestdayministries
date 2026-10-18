@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Audit daily fortune release MST only: verify Mountain-time date selection and signed-in readback with live evidence.
 - [x] Audit sticker pack opening only: existing free test card opened, three inventory rows and reward verified; fresh sign-in readback and repeat rejection confirmed.
 - [x] Coin audit: joke purchase reproduced and repaired; live ownership and single -50 ledger row verified; original ledger preserved with additive test reimbursement.
 - [ ] Complete coin deduction remediation: manual bypasses in ColoringBook/CardCreator/useStorePurchases/MemoryMatch/usePet and non-atomic hook/purchase writes remain; audit marked failed, not complete.
