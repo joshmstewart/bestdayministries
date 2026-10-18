@@ -243,6 +243,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 ## Common Patterns
 
 ### CORS Headers (Required for All)
+Browser calls also send `x-supabase-client-platform`, `x-supabase-client-platform-version`, `x-supabase-client-runtime`, and `x-supabase-client-runtime-version`. All preflight and error responses must allow them. SDK imports use `../_shared/corsHeaders.ts`, which extends rather than replaces the SDK headers; preserve webhook and tracing header extras.
 ```typescript
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

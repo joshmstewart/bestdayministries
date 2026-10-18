@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { corsHeaders } from "../_shared/corsHeaders.ts";
 import { validatePackCoverMode, validatePackImageUrls } from "./packCoverValidation.ts";
 
 const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;

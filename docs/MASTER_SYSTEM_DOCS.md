@@ -1,5 +1,8 @@
 MASTER_SYSTEM_DOCS
 
+## EDGE_FUNCTION_CORS
+All browser preflight/error responses must allow authorization, apikey, content-type, x-client-info and four x-supabase-client platform/runtime headers. SDK-based functions import the extension in `supabase/functions/_shared/corsHeaders.ts`; retain custom webhook/tracing extras. Reference: EDGE_FUNCTIONS_REFERENCE.md.
+
 ## ⚠️ CRITICAL: DOCUMENTATION WORKFLOW - READ FIRST ⚠️
 
 **THIS IS MANDATORY. NO EXCEPTIONS. DOCUMENTATION = SOURCE OF TRUTH.**
