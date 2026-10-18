@@ -79,4 +79,4 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 - `coffee_shop_menu_items.vendor_logo_url` + `vendor_name` (nullable)
 - Admin: Menu item dialog → "Vendor logo" upload → `app-assets/coffee-shop/vendor-logos/`
 - Frontend: `CoffeeShopMenu.tsx` shows the logo beside the item name in all layouts
-- Calvin’s take-home pint/quart artwork fills the menu category width at its natural aspect ratio, without an image width cap or surrounding item inset. Other vendor logos retain their inline sizing. Descriptions include pork or chicken choices; pint $12 and quart $23 remain unchanged.
+- Calvin’s take-home pint/quart entries share one centered supplied poster above the size choices, at natural aspect ratio with a 384px maximum width. Other vendor logos retain their inline sizing. Descriptions include pork or chicken choices; pint $12 and quart $23 remain unchanged.
