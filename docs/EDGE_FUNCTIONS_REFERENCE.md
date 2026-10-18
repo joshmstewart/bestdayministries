@@ -73,6 +73,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
  - **`broadcast-product-update`** - [Admin Only] Sends notifications to all users about product updates
 
 ### Testing & Development
+- **Security Fix 3:** fifteen test/development and test-send handlers use a shared pre-work guard accepting only `x-test-functions-secret` or verified admin/owner JWT; anon/supporter 401 verified. See `TEST_FUNCTION_SECURITY_FIX_3.md` for inventory, caller evidence and outstanding shared-secret setup.
 - **`create-persistent-test-accounts`** - [Admin Only] Creates/verifies persistent test accounts (PROTECTED from cleanup)
 - **`seed-email-test-data`** - [Test Only] Seeds test users and data for email testing
 - **`cleanup-email-test-data`** - [Test Only] Removes test data by email prefix

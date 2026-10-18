@@ -264,6 +264,7 @@ VISIBILITY:role≠vendor→shows
 SCROLL:shows[<150px|scroll-UP]|hides[>150px+scroll-DOWN]
 CRITICAL:all-pages-pt-24[96px-clearance]
 DB:navigation_links→realtime
+COFFEE-LINK:Best-Day-Ever-coffee+crepes→Stores-child→/coffee-shop
 ORDERING:top-level[display_order]→children[display_order-within-parent]
 PARENT-LINKS:dropdown-parents-CAN-have-href[label-clicks→navigates|arrow→dropdown]|optional-href[empty→dropdown-only]
 PERF-OPTIMIZATION:uses-AuthContext→single-auth-call-for-all-badge-hooks→see-AUTH_CONTEXT
@@ -702,6 +703,7 @@ DB:app_settings.coffee_shop_content[JSONB]
 ADMIN:edit-hero|mission|buttons|location|menu-toggle
 FRONTEND:Hero|Mission|Hours|Menu[conditional]
 MENU-ARTWORK:Calvin’s-green-chili-pint/quart→one-shared-centered-supplied-poster[max-width-384px+natural-aspect]; choices[pork|chicken]; other-vendor-logos-and-prices-unchanged
+CHAI-ARTWORK:Chai-Latte-only→48px-inline-transparent-Charlie-Joe-Chai-logo; other-inline-logos-remain-32px
 
 ## COFFEE_VENDOR_PRODUCTS
 ADMIN:Admin→Vendors→Coffee→Products
