@@ -58,7 +58,7 @@ export const VendorOrderDetails = ({ orderId, vendorId, theme, onBack }: VendorO
       let customerProfile = null;
       if (orderData.customer_id) {
         const { data } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('display_name, id')
           .eq('id', orderData.customer_id)
           .maybeSingle();

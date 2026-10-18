@@ -104,7 +104,7 @@ export const JokeCommunityGallery = ({ userId }: JokeCommunityGalleryProps) => {
     // Fetch creator names separately
     const creatorIds = [...new Set(data.map((j) => j.user_id))];
     const { data: profiles } = await supabase
-      .from("profiles")
+      .from("profiles_public")
       .select("id, display_name")
       .in("id", creatorIds);
 

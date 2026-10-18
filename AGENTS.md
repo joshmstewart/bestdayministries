@@ -1,4 +1,5 @@
 # Architecture rules
+- Other-member display reads use profiles_public; private profiles remain scoped to own/admin/linked relationships, and friend-code discovery uses authenticated definer RPCs to prevent email enumeration.
 - Daily fortune scheduling preserves its existing command and gates the two possible UTC midnight slots by America/Denver local hour, avoiding daylight-saving release delays without changing global cron timezone.
 - Joke-category ownership reads and writes use user_joke_categories; deductCoins alone records spending, preventing duplicate ledger entries and invalid store-item references.
 - Generator preview updates validate same-collection sticker membership; automatic preview assignment remains null-only and scheduled status functions never write previews, preserving explicit choices.

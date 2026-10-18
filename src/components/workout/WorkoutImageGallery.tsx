@@ -108,7 +108,7 @@ export const WorkoutImageGallery = ({ userId }: WorkoutImageGalleryProps) => {
     queryFn: async () => {
       if (userIds.length === 0) return {};
       const { data, error } = await supabase
-        .from("profiles")
+        .from("profiles_public")
         .select("id, display_name")
         .in("id", userIds);
 

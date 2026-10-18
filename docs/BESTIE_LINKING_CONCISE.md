@@ -16,9 +16,9 @@
 
 **Flow:**
 1. Guardian enters 3 emojis at `/guardian-links`
-2. System searches `profiles_public` by `friend_code`
-3. Verifies user has 'bestie' role via `user_roles` table (requires SELECT policy)
-4. Creates link with approval settings (posts, comments, featured posts)
+2. `find_bestie_by_friend_code` performs authenticated exact-code lookup and returns only display/avatar fields.
+3. `link_bestie_by_friend_code` validates caregiver/admin authority and creates the link; both definer functions fix `search_path=public` and deny PUBLIC/anon execution.
+4. Linked profile reads retain relationship policies; generic displays use `profiles_public` without email or friend codes. Code regeneration retries unique-constraint collisions rather than scanning other profiles.
 
 **Guardian Can:**
 - View/unlink besties

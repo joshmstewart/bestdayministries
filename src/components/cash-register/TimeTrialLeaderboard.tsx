@@ -48,7 +48,7 @@ export function TimeTrialLeaderboard() {
       if (data && data.length > 0) {
         const userIds = data.map((d) => d.user_id);
         const { data: profiles } = await supabase
-          .from("profiles")
+          .from("profiles_public")
           .select("id, display_name, avatar_number")
           .in("id", userIds);
 

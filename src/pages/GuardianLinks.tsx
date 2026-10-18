@@ -397,7 +397,7 @@ export default function GuardianLinks() {
       let profilesData: any[] = [];
       if (bestieIds.length > 0) {
         const { data, error: profilesError } = await supabase
-          .from("profiles")
+          .from("profiles_public")
           .select("id, display_name, avatar_number, profile_avatar_id")
           .in("id", bestieIds);
 

@@ -18,7 +18,6 @@ interface LinkedBestie {
   display_name: string;
   avatar_number: number | null;
   avatar_url: string | null;
-  friend_code: string | null;
   status: string;
   is_featured: boolean;
   bestie_role: string;
@@ -74,8 +73,8 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
       // Get bestie profiles separately
       const bestieIds = requests.map(r => r.bestie_id);
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_number, avatar_url, friend_code')
+        .from('profiles_public')
+        .select('id, display_name, avatar_number, avatar_url')
         .in('id', bestieIds);
 
       if (profilesError) throw profilesError;
@@ -96,7 +95,6 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
           display_name: profile?.display_name || 'Bestie',
           avatar_number: profile?.avatar_number,
           avatar_url: profile?.avatar_url,
-          friend_code: profile?.friend_code,
           status: req.status,
           is_featured: vendor?.featured_bestie_id === req.bestie_id,
           bestie_role: req.bestie_role || 'Creator',
@@ -131,8 +129,8 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
       // Get bestie profiles separately
       const bestieIds = requests.map(r => r.bestie_id);
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, display_name, friend_code')
+        .from('profiles_public')
+        .select('id, display_name')
         .in('id', bestieIds);
 
       if (profilesError) throw profilesError;
@@ -285,9 +283,6 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
                         Pending Approval
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Friend Code: {(request.profiles as any)?.friend_code}
-                    </p>
                     {request.message && (
                       <p className="text-xs text-muted-foreground mt-1">
                         "{request.message}"
@@ -362,11 +357,6 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
                     <p className="text-sm font-medium text-primary">
                       {bestie.bestie_role}
                     </p>
-                    {bestie.friend_code && (
-                      <p className="text-xs text-muted-foreground">
-                        {bestie.friend_code}
-                      </p>
-                    )}
                   </div>
 
                   <div className="flex gap-2">
