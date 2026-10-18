@@ -108,7 +108,10 @@ serve(async (req) => {
       test_user_email: testEmail,
     })
     .select("id").single();
-  const runId: string = runRow!.id;
+  if (!runRow) return new Response(JSON.stringify({ error: 'Could not record test run' }), {
+    status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+  const runId: string = runRow.id;
 
   try {
     // ───── STAGE 1: Pick vendor + product ─────
