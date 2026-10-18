@@ -136,9 +136,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Note: The trigger handle_new_user() will automatically:
-    // 1. Create profile entry
-    // 2. Insert role into user_roles table
+    // The trigger creates the profile and only accepts public signup roles.
+    // Replace its supporter assignment atomically for trusted privileged creation.
+    if (['admin', 'owner', 'vendor'].includes(role)) {
+      const { data: assignedRole, error: assignmentError } = await supabaseAdmin
+        .from('user_roles')
+        .update({ role, created_by: requestingUser.id })
+        .eq('user_id', newUser.user.id)
+        .eq('role', 'supporter')
+        .select('role')
+        .single();
+
+      if (assignmentError || assignedRole?.role !== role) {
+        console.error('Failed to assign requested role:', assignmentError);
+        return new Response(
+          JSON.stringify({ error: 'Account created, but role assignment failed. Contact an owner before retrying.' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
     
     // If the role is vendor, also create a vendor record with approved status
     if (role === 'vendor') {
