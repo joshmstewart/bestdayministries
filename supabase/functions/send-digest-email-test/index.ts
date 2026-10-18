@@ -1,16 +1,15 @@
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireTestFunctionsAuth } from '../_shared/testFunctionsAuth.ts';
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2.38.4";
+import { Resend } from "npm:resend@2.0.0";
 import { SITE_URL, SENDERS } from "../_shared/domainConstants.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseUrl = (Deno.env.get("SUPABASE_URL") ?? "");
+const supabaseServiceKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+
 
 interface Notification {
   id: string;
@@ -26,30 +25,29 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const testAuthorization = await requireTestFunctionsAuth(req, corsHeaders);
+  if (testAuthorization.response) return testAuthorization.response;
+
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // Verify admin access
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+    const { frequency, testAdminUserId } = await req.json();
+    const recipientId = testAuthorization.userId || testAdminUserId;
+    if (typeof recipientId !== 'string') {
+      return new Response(JSON.stringify({ error: 'testAdminUserId is required for shared-secret digest tests' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      throw new Error("Not authenticated");
+    // A shared-secret test must explicitly name an existing admin recipient; never infer a real recipient.
+    const { data: recipientRoles, error: recipientRoleError } = await supabase.from('user_roles')
+      .select('role').eq('user_id', recipientId).in('role', ['admin', 'owner']).limit(1);
+    if (recipientRoleError || !recipientRoles?.length) {
+      return new Response(JSON.stringify({ error: 'An admin/owner recipient is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+    const user = { id: recipientId, email: undefined as string | undefined };
 
-    // Check if user is admin
-    const { data: hasAdminAccess } = await supabase.rpc('has_admin_access', { _user_id: user.id });
-    if (!hasAdminAccess) {
-      throw new Error("Admin access required");
-    }
-
-    const { frequency } = await req.json();
-    
     if (!frequency || !['daily', 'weekly'].includes(frequency)) {
       throw new Error("Invalid frequency. Must be 'daily' or 'weekly'");
     }

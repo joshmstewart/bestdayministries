@@ -1,14 +1,16 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireTestFunctionsAuth } from '../_shared/testFunctionsAuth.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2.58.0';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const testAuthorization = await requireTestFunctionsAuth(req, corsHeaders);
+  if (testAuthorization.response) return testAuthorization.response;
 
   try {
     console.log('🧹 Starting test environment reset...');
@@ -24,30 +26,6 @@ Deno.serve(async (req) => {
         }
       }
     );
-
-    // Check if user is admin (required for this operation)
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    // Verify admin role
-    const { data: roles } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
-
-    const isAdmin = roles?.some(r => r.role === 'admin' || r.role === 'owner');
-    if (!isAdmin) {
-      throw new Error('Admin access required');
-    }
 
     // Delete test data (patterns: Test*, E2E*, emailtest*)
     console.log('🗑️  Deleting test users...');

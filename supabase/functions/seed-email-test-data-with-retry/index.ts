@@ -1,9 +1,8 @@
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireTestFunctionsAuth, testFunctionsForwardHeaders } from '../_shared/testFunctionsAuth.ts';
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+
 
 /**
  * Wrapper edge function that adds retry logic to seed-email-test-data
@@ -18,6 +17,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const testAuthorization = await requireTestFunctionsAuth(req, corsHeaders);
+  if (testAuthorization.response) return testAuthorization.response;
 
   try {
     console.log('🔄 Starting seed-email-test-data with retry logic...');
@@ -46,10 +48,7 @@ serve(async (req) => {
           `${Deno.env.get('SUPABASE_URL')}/functions/v1/seed-email-test-data`,
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${serviceRoleKey}`,
-            },
+            headers: testFunctionsForwardHeaders(req),
             body: requestBody,
             signal: controller.signal,
           }

@@ -1,3 +1,5 @@
+import { corsHeaders } from '../_shared/corsHeaders.ts';
+import { requireTestFunctionsAuth } from '../_shared/testFunctionsAuth.ts';
 // Deletes orders (and their order_items) created by the cancel-and-refund
 // E2E harness. Admin-only. Filters strictly by the test marker note so it
 // can never touch a real customer order.
@@ -7,12 +9,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+
 
 const TEST_MARKER = "__e2e_cancel_refund_test__";
 
@@ -21,48 +18,15 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const testAuthorization = await requireTestFunctionsAuth(req, corsHeaders);
+  if (testAuthorization.response) return testAuthorization.response;
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Missing auth" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const token = authHeader.replace("Bearer ", "");
-
-    const userClient = createClient(supabaseUrl, anonKey);
-    const { data: claimsData, error: claimsErr } =
-      await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const userId = claimsData.claims.sub;
+    const supabaseUrl = (Deno.env.get("SUPABASE_URL") ?? "");
+    const anonKey = (Deno.env.get("SUPABASE_ANON_KEY") ?? "");
+    const serviceKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data: roles } = await admin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const isAdminOrOwner = (roles || []).some(
-      (r: any) => r.role === "admin" || r.role === "owner",
-    );
-    if (!isAdminOrOwner) {
-      return new Response(
-        JSON.stringify({ error: "Admin or owner required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
 
     // Find marker rows (cancel-and-refund overwrites notes, so also accept
     // an explicit orderIds list from the caller for post-cancel cleanup).
