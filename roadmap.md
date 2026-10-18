@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Security-only signup role fix: privileged-account audit and exact SQL review first; then allowlist trigger and explicit create-user role replacement, focused tests and readback. No existing account or UI changes.
 - [x] Audit daily fortune release MST only: fixed one-hour DST cron delay; live reveal/view/reload, browser date-boundary switch, duplicate-generator rejection and 3 regression tests verified. Next actual midnight scheduled execution remains unobserved and is explicitly noted in audit evidence.
 - [x] Audit sticker pack opening only: existing free test card opened, three inventory rows and reward verified; fresh sign-in readback and repeat rejection confirmed.
 - [x] Coin audit: joke purchase reproduced and repaired; live ownership and single -50 ledger row verified; original ledger preserved with additive test reimbursement.
