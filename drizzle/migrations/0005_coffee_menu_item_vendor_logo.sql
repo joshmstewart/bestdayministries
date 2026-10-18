@@ -1,0 +1,1 @@
+ALTER TABLE public.coffee_shop_menu_items ADD COLUMN IF NOT EXISTS vendor_logo_url text, ADD COLUMN IF NOT EXISTS vendor_name text;
