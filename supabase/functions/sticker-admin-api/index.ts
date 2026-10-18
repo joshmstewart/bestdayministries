@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { validatePackCoverMode, validatePackImageUrls } from "./packCoverValidation.ts";
 
 const RARITIES = ["common", "uncommon", "rare", "epic", "legendary"] as const;
 
 const COLLECTION_FIELDS = [
   "name", "description", "theme", "start_date", "end_date", "ga_date",
   "featured_start_date", "visible_to_roles", "stickers_per_pack",
-  "rarity_percentages", "display_order", "is_active",
+  "rarity_percentages", "display_order", "is_active", "pack_cover_mode",
 ] as const;
 
 const STICKER_FIELDS = [
@@ -135,7 +136,8 @@ serve(async (req) => {
       }
 
       case "create_collection": {
-        const { out, unknown } = pickFields(body, [...COLLECTION_FIELDS, "action"]);
+        const { action: _action, ...fields } = body;
+        const { out, unknown } = pickFields(fields, COLLECTION_FIELDS);
         if (unknown.length) {
           return json({ ok: false, error: `Unknown fields: ${unknown.join(", ")}` }, 400);
         }
@@ -146,6 +148,8 @@ serve(async (req) => {
         }
         const rpErr = validateRarityPercentages(out.rarity_percentages);
         if (rpErr) return json({ ok: false, error: rpErr }, 400);
+        const modeErr = validatePackCoverMode(out.pack_cover_mode);
+        if (modeErr) return json({ ok: false, error: modeErr }, 400);
 
         const insert = {
           ...out,
@@ -158,12 +162,12 @@ serve(async (req) => {
           .select()
           .single();
         if (error) throw error;
-        await log({ collection_id: data.id, name: data.name });
+        await log({ collection_id: data.id, name: data.name, pack_cover_mode: data.pack_cover_mode });
         return json({ ok: true, data });
       }
 
       case "update_collection": {
-        const { collection_id, ...rest } = body;
+        const { collection_id, action: _action, ...rest } = body;
         if (!collection_id) return json({ ok: false, error: "collection_id required" }, 400);
         const { out, unknown } = pickFields(rest, COLLECTION_FIELDS);
         if (unknown.length) {
@@ -173,6 +177,8 @@ serve(async (req) => {
           const rpErr = validateRarityPercentages(out.rarity_percentages);
           if (rpErr) return json({ ok: false, error: rpErr }, 400);
         }
+        const modeErr = validatePackCoverMode(out.pack_cover_mode);
+        if (modeErr) return json({ ok: false, error: modeErr }, 400);
         if (Object.keys(out).length === 0) {
           return json({ ok: false, error: "No fields to update" }, 400);
         }
@@ -224,6 +230,22 @@ serve(async (req) => {
         if (error) throw error;
         if (!data) return json({ ok: false, error: "Collection not found" }, 404);
         await log({ collection_id, image_url });
+        return json({ ok: true, data });
+      }
+
+      case "set_pack_images": {
+        const { collection_id, image_urls } = body;
+        if (typeof collection_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(collection_id)) {
+          return json({ ok: false, error: 'collection_id must be a UUID' }, 400);
+        }
+        const imageErr = validatePackImageUrls(image_urls, Deno.env.get('SUPABASE_URL') ?? '');
+        if (imageErr) return json({ ok: false, error: imageErr }, 400);
+        const { data, error } = await supabase.from('sticker_collections')
+          .update({ pack_image_urls: image_urls, pack_image_url: image_urls[0] })
+          .eq('id', collection_id).select().maybeSingle();
+        if (error) throw error;
+        if (!data) return json({ ok: false, error: 'Collection not found' }, 404);
+        await log({ collection_id, image_urls });
         return json({ ok: true, data });
       }
 
