@@ -3,11 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { JokeCategorySelector } from '@/components/joke-generator/JokeCategorySelector';
 
 const mocks = vi.hoisted(() => ({
+  user: { id: 'test-user' },
   deduct: vi.fn().mockResolvedValue(true),
   insert: vi.fn().mockResolvedValue({ error: null }),
   from: vi.fn(),
 }));
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'test-user' } }) }));
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: mocks.user }) }));
+vi.mock('@/components/CoinIcon', () => ({ CoinIcon: () => null }));
 vi.mock('@/hooks/useCoins', () => ({ useCoins: () => ({ coins: 50, deductCoins: mocks.deduct, refetch: vi.fn() }) }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: mocks.from } }));
 vi.mock('@/lib/errorToast', () => ({ showErrorToast: vi.fn(), showErrorToastWithCopy: vi.fn() }));
