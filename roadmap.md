@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] Show one smaller Calvin’s poster for both sizes, preserving pork/chicken choices and prices.
 - [x] Make Calvin’s artwork edge-to-edge: removed poster cap and item/category insets; browser measured 1022px desktop / 356px phone, both pork/chicken descriptions present and build OK.
 - [x] Enlarge Calvin’s green chili artwork to full menu width (672px maximum) and add pork or chicken choices; public desktop/phone screenshots verify both entries and unchanged $12/$23 prices.
 - [x] Enlarge Calvin’s Famous Green Chili artwork: both posters 256px high, Chai unchanged at 32px; desktop/phone menu screenshots verified, prices unchanged.
