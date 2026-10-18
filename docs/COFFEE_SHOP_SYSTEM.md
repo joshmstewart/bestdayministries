@@ -45,7 +45,7 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 **Route:** `/coffee-shop`
 
 **Sections:**
-Marla's replacement horizontal Best Day Ever Coffee + Crepes logo (9.PNG) appears centered at the top of the coffee page, below navigation, at its original 2:1 aspect ratio with a 576px maximum width. Its original artwork is served through a dedicated CDN asset pointer without altering menu/vendor images.
+Marla's replacement horizontal Best Day Ever Coffee + Crepes logo (9.PNG) appears centered at the top of the coffee page, below navigation, at its original 2:1 aspect ratio with a 576px maximum width and 24px rounded corners (`rounded-3xl`). Its original artwork is served through a dedicated CDN asset pointer without altering menu/vendor images.
 1. Hero with background image, heading, subheading, CTA buttons
 2. Mission statement card
 3. Hours/location info cards
