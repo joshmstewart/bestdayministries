@@ -701,6 +701,7 @@ ROUTE:/coffee-shop
 DB:app_settings.coffee_shop_content[JSONB]
 ADMIN:edit-hero|mission|buttons|location|menu-toggle
 FRONTEND:Hero|Mission|Hours|Menu[conditional]
+MENU-ARTWORK:Calvin’s-green-chili-pint/quart→large-supplied-poster-above-item-name; other-vendor-logos-unchanged
 
 ## COFFEE_VENDOR_PRODUCTS
 ADMIN:Admin→Vendors→Coffee→Products

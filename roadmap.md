@@ -1,4 +1,6 @@
 # Multiple sticker pack covers
+- [x] Enlarge Calvin’s Famous Green Chili artwork: both posters 256px high, Chai unchanged at 32px; desktop/phone menu screenshots verified, prices unchanged.
+- [ ] Security fix 4 after fix 3: inspect Printify/Sentry/GitHub receivers and legitimate callers; harmless unsigned probes; verify signatures before work; provider-dependent Printify/Sentry enforcement stays log-only until configured; GitHub shared-secret workflow headers; re-test. No existing order/user-data changes.
 - [ ] Security fix 3 after fix 2: inventory production test/dev functions and callers; harmless exposure checks; shared-secret/admin authorization; CI updates; anon/supporter 401 evidence. No user-data changes or function deletions.
 - [x] Coffee menu: Calvin’s Famous Green Chili added under Take Home, pint $12 and quart $23; both prices and supplied artwork verified on the public page.
 - [ ] Security fix 2: live profile/sponsorship policy and REST evidence; migrate other-member reads; remove broad profile policy; verify authorized paths and update audit. No user-data changes.
