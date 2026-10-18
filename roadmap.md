@@ -1,4 +1,5 @@
 # Multiple sticker pack covers
+- [ ] After security fix 3: admin/owner reply attachments in both inboxes; real Resend attachments ≤10 MB, browser/server type validation, private storage/history, PDF+image sandbox end-to-end evidence. No existing message changes or new compose feature.
 - [x] Show one smaller Calvin’s poster for both sizes: browser confirms one 384px image, both pork/chicken descriptions, and unchanged $12/$23 prices; build OK.
 - [x] Make Calvin’s artwork edge-to-edge: removed poster cap and item/category insets; browser measured 1022px desktop / 356px phone, both pork/chicken descriptions present and build OK.
 - [x] Enlarge Calvin’s green chili artwork to full menu width (672px maximum) and add pork or chicken choices; public desktop/phone screenshots verify both entries and unchanged $12/$23 prices.
