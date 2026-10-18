@@ -228,8 +228,8 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 **Verifies external service signatures for security**
 
 - `stripe-webhook` - Verifies Stripe signature
-- `github-test-webhook` - Verifies GitHub signature
-- `sentry-webhook` - Verifies Sentry signature
+- `github-test-webhook` - **Not verified as of 2026-10-18**: unsigned malformed requests reach JSON parsing; shared-header verification queued after fix 3. See `WEBHOOK_SECURITY_FIX_4.md`.
+- `sentry-webhook` - **Not verified as of 2026-10-18**: unsigned malformed requests reach JSON parsing; integration signature rollout queued after fix 3. See `WEBHOOK_SECURITY_FIX_4.md`.
 - `resend-webhook` - Verifies Resend signature, skips non-campaign emails
 - `process-inbound-email` - Verifies CloudFlare signature
 - `aftership-webhook` - ⚠️ NOT FUNCTIONAL

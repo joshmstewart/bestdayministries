@@ -79,3 +79,4 @@ Dedicated website for Best Day Ever Coffee & Crepes (`/coffee-shop` route) with 
 - `coffee_shop_menu_items.vendor_logo_url` + `vendor_name` (nullable)
 - Admin: Menu item dialog → "Vendor logo" upload → `app-assets/coffee-shop/vendor-logos/`
 - Frontend: `CoffeeShopMenu.tsx` shows the logo beside the item name in all layouts
+- Calvin’s take-home pint/quart entries display the supplied artwork above the item name at 256px high; other vendor logos retain their inline sizing. Prices remain unchanged.

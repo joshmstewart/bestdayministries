@@ -40,6 +40,11 @@ const formatPrice = (price: number | null) => {
   return `$${price.toFixed(2)}`;
 };
 
+// Keep the larger poster presentation scoped to the two requested menu entries.
+const hasLargeVendorArtwork = (item: MenuItem) =>
+  item.id === "52f539a7-aa50-49fa-a649-9d51c83bf373" ||
+  item.id === "b6567119-de93-4656-b326-f5145d55eba2";
+
 const CoffeeShopMenu = () => {
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["coffee-menu-categories-public"],
@@ -244,6 +249,14 @@ const CoffeeShopMenu = () => {
                             key={item.id} 
                             className="p-4 rounded-xl bg-gradient-to-r from-amber-50/80 to-orange-50/50 border border-amber-100"
                           >
+                            {hasLargeVendorArtwork(item) && item.vendor_logo_url && (
+                              <img
+                                src={item.vendor_logo_url}
+                                alt={item.vendor_name || "Vendor logo"}
+                                className="h-64 w-full object-contain mb-4"
+                                loading="lazy"
+                              />
+                            )}
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
@@ -251,7 +264,7 @@ const CoffeeShopMenu = () => {
                                     <span className="inline-block w-2 h-2 bg-orange-500 rounded-full flex-shrink-0" title="Featured" />
                                   )}
                                   <h4 className="font-semibold text-amber-900">{item.name}</h4>
-{item.vendor_logo_url && (<img src={item.vendor_logo_url} alt={item.vendor_name || "Vendor logo"} title={item.vendor_name || undefined} className="h-8 w-8 object-contain flex-shrink-0" loading="lazy" />)}
+{item.vendor_logo_url && !hasLargeVendorArtwork(item) && (<img src={item.vendor_logo_url} alt={item.vendor_name || "Vendor logo"} title={item.vendor_name || undefined} className="h-8 w-8 object-contain flex-shrink-0" loading="lazy" />)}
                                 </div>
                                 {item.description && (
                                   <p className="text-sm text-amber-700/80 mt-1">{item.description}</p>
