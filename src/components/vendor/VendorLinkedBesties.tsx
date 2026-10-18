@@ -18,7 +18,6 @@ interface LinkedBestie {
   display_name: string;
   avatar_number: number | null;
   avatar_url: string | null;
-  friend_code: string | null;
   status: string;
   is_featured: boolean;
   bestie_role: string;
@@ -96,7 +95,6 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
           display_name: profile?.display_name || 'Bestie',
           avatar_number: profile?.avatar_number,
           avatar_url: profile?.avatar_url,
-          friend_code: profile?.friend_code,
           status: req.status,
           is_featured: vendor?.featured_bestie_id === req.bestie_id,
           bestie_role: req.bestie_role || 'Creator',
@@ -359,11 +357,6 @@ export const VendorLinkedBesties = ({ vendorId, theme }: VendorLinkedBestiesProp
                     <p className="text-sm font-medium text-primary">
                       {bestie.bestie_role}
                     </p>
-                    {bestie.friend_code && (
-                      <p className="text-xs text-muted-foreground">
-                        {bestie.friend_code}
-                      </p>
-                    )}
                   </div>
 
                   <div className="flex gap-2">
