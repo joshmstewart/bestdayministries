@@ -26,7 +26,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 
 ### Authentication & User Management
 - **`record-terms-acceptance`** - [Auth Required] Records terms acceptance with IP, user agent, timestamp audit trail
-- **`create-user`** - [Admin Only] Creates new user accounts for testing/development
+- **`create-user`** - [Admin/Owner Only] Existing request/response unchanged. For admin/owner/vendor requests, atomically replaces the new trigger-created supporter role with the requested role and records the authenticated creator. Assignment failure returns 500 with an account-created warning; no account deletion. Ordinary role, vendor record, and newsletter paths unchanged. See `SIGNUP_ROLE_SECURITY.md`.
 
 ### Payments & Donations
 - **`create-donation-checkout`** - [Public] Creates Stripe checkout for one-time and recurring donations

@@ -8,3 +8,5 @@
 - Pack cover selection is presentation-only in packCovers/PackOpeningDialog; scratch-card receives only its existing card and collection identifiers so cover variants cannot influence sticker pulls.
 - Generator pack-cover URL validation stays inside sticker-admin-api; it only accepts this project's public sticker-images bucket to prevent arbitrary external cover URLs.
 - Public funding displays must use aggregate-only funding functions, while donor-row reads remain on authorized own/shared/admin paths, to preserve totals without exposing donor identifiers.
+
+- Public signup roles are allowlisted in the auth lifecycle trigger; trusted create-user assigns privileged roles by atomically replacing only the new default role and recording the authenticated creator, preventing metadata escalation and duplicate-role accounts.

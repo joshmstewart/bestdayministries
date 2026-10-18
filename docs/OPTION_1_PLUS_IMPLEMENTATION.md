@@ -1,6 +1,7 @@
 # Option 1+ (Conservative Pyramid) Implementation Tracker
 
-**Status:** 🚧 IN PROGRESS  
+**Status:** 🚧 IN PROGRESS
+**Signup security regression coverage:** 12 read-only live trigger checks plus 6 actual create-user-handler regression tests; additional security coverage, not E2E conversions, no archival.  
 **Coin regression coverage:** Joke category purchase regression checks correct ownership writes and one deductCoins call; additional coverage, not an E2E conversion.
 **Preview regression coverage:** `tests/unit/sticker-preview.test.ts` verifies same-collection selection, null clearing, and invalid/missing/foreign rejection; additional regressions, not E2E conversions.
 **Security regression coverage:** Additional CORS and sponsorship privacy regressions verify live preflight headers and scoped funding access; these are not E2E conversions and require no archival.
