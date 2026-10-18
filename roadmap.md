@@ -1,9 +1,9 @@
 # Multiple sticker pack covers
-- [ ] Fix create_sticker 500: inspect logs, expose safe database errors, insert and delete one sticker in the specified inactive test collection.
-- [ ] Finish CORS audit: fix missing runtime headers and verify browser requests.
-- [ ] Requested now: fix broad sponsorship RLS, retain public aggregate funding reads, verify signed-out and unauthorized donor access is denied.
+- [x] Fix create_sticker: routing fields excluded; 3 tests passed; requested test insert read back and deleted (DB count 0).
+- [x] CORS: 231/231 live preflights and readable browser 401; persistent regression passed.
+- [x] Requested sponsorship privacy fix: aggregate reads preserve totals, broad policy removed; anonymous/unrelated supporter REST and browser return zero donor rows.
 - [x] Investigate next audit item only: RLS. Recorded confirmed anonymous donor-data leak and failed linter with browser/REST evidence; no security or transaction changes applied.
-- [ ] Resolve RLS failure: migrate both funding consumers to privacy-safe aggregates, remove broad sponsorship policy after role verification, and review remaining function/view flags. Not fixed this turn.
+- [ ] Complete all-table RLS/function/view audit beyond the fixed sponsorship exposure; 209 prior linter findings still require review.
 - [x] Add compatible collection fields.
 - [x] Add visual rotate/choose opening and read-only editor previews.
 - [x] Extend generator API and document request/response shapes.

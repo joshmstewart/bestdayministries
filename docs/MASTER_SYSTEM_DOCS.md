@@ -1,5 +1,8 @@
 MASTER_SYSTEM_DOCS
 
+## STICKER_GENERATOR_ERRORS
+Generator create/update strip routing fields before database writes; plain-object database errors return message in the existing error envelope. See STICKER_PACK_SYSTEM.md.
+
 ## EDGE_FUNCTION_CORS
 All browser preflight/error responses must allow authorization, apikey, content-type, x-client-info and four x-supabase-client platform/runtime headers. SDK-based functions import the extension in `supabase/functions/_shared/corsHeaders.ts`; retain custom webhook/tracing extras. Reference: EDGE_FUNCTIONS_REFERENCE.md.
 
@@ -512,7 +515,7 @@ FUNDING-PROGRESS-SYSTEM:
   DISPLAY-LOCATIONS:GuardianLinks-page|SponsorBestieDisplay-carousel|anywhere-showing-funding-progress
 
   CALCULATION-PATTERN:
-    STEP-1:load-ALL-sponsorships[.select(sponsor_bestie_id,frequency,amount,status,stripe_mode,ended_at)]
+    STEP-1:load-aggregate-totals[get_sponsorship_funding_totals]
     STEP-2:filter[status=active]→group-by[sponsor_bestie_id+stripe_mode]
     STEP-3:calculate-stable-amounts:
       monthly-sponsorships→add-to-stableAmounts
@@ -523,7 +526,7 @@ FUNDING-PROGRESS-SYSTEM:
     STEP-6:pass-to-FundingProgressBar[endingAmount=map.get(bestieId_live)]
 
   IMPLEMENTATION-REQUIREMENTS:
-    ✅ALWAYS-load-ALL-sponsorships-not-just-VIEW-data
+    ✅ALWAYS-use-aggregate-RPC-never-public-donor-row-queries
     ✅ALWAYS-calculate-stable-and-ending-amounts-separately
     ✅ALWAYS-store-endingAmounts-in-component-state[useState]
     ✅ALWAYS-pass-endingAmount-prop-to-FundingProgressBar
@@ -545,42 +548,17 @@ FUNDING-PROGRESS-SYSTEM:
 
   DATABASE-QUERY-PATTERN:
 ```typescript
-// CRITICAL: This pattern MUST be used everywhere FundingProgressBar is rendered
-const { data: allBestieSponsorships } = await supabase
-  .from("sponsorships")
-  .select("sponsor_bestie_id, frequency, amount, status, stripe_mode, ended_at")
-  .in("sponsor_bestie_id", bestieIds)
-  .eq("status", "active");
-
-const stableAmountsByBestieAndMode = new Map<string, number>();
-const endingAmountsByBestieAndMode = new Map<string, number>();
-
-(allBestieSponsorships || []).forEach(s => {
-  const groupKey = `${s.sponsor_bestie_id}_${s.stripe_mode || 'null'}`;
-  
-  if (s.frequency === 'monthly') {
-    // Monthly = stable (solid orange)
-    const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
-    stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
-  } else if (s.frequency === 'one-time') {
-    // One-time with future ended_at = ending (diagonal stripes)
-    if (s.ended_at && new Date(s.ended_at) > new Date()) {
-      const current = endingAmountsByBestieAndMode.get(groupKey) || 0;
-      endingAmountsByBestieAndMode.set(groupKey, current + s.amount);
-    } else {
-      // One-time already expired = stable
-      const current = stableAmountsByBestieAndMode.get(groupKey) || 0;
-      stableAmountsByBestieAndMode.set(groupKey, current + s.amount);
-    }
-  }
-});
+const { data: totals, error } = await supabase.rpc('get_sponsorship_funding_totals', { p_bestie_ids: bestieIds });
+// Only grouped totals: no donor records or Stripe identifiers.
+// current_monthly_pledges preserves existing expiration rules; ending_amount
+// is active one-time funding with a future end. Keep LIVE filtering for public UI.
 ```
 
   COMPONENT-STATE-PATTERN:
 ```typescript
 const [endingAmounts, setEndingAmounts] = useState<Map<string, number>>(new Map());
 // ... after calculation ...
-setEndingAmounts(endingAmountsByBestieAndMode);
+setEndingAmounts(new Map((totals || []).map(t => [`${t.sponsor_bestie_id}_${t.stripe_mode}`, t.ending_amount])));
 ```
 
   RENDER-PATTERN:
@@ -593,7 +571,7 @@ setEndingAmounts(endingAmountsByBestieAndMode);
 ```
 
   DEBUGGING-LOGS:
-    console.log("Loaded sponsorships for progress bars:", allBestieSponsorships?.length, allBestieSponsorships)
+    console.log("Loaded aggregate funding totals")
     console.log("Stable amounts by mode:", Object.fromEntries(stableAmountsByBestieAndMode))
     console.log("Ending amounts by mode:", Object.fromEntries(endingAmountsByBestieAndMode))
 
