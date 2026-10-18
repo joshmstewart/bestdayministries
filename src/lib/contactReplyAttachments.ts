@@ -2,6 +2,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { validateReplyAttachments, validateReplyFileBytes, replyAttachmentType } from '../../supabase/functions/_shared/replyAttachments';
 export { REPLY_ATTACHMENT_ACCEPT, validateReplyAttachments } from '../../supabase/functions/_shared/replyAttachments';
 export interface ThreadAttachment { name: string; url: string; type: string; size: number }
+export function parseThreadAttachments(value: unknown): ThreadAttachment[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((file): file is ThreadAttachment => file && typeof file.name === 'string' && typeof file.url === 'string' && typeof file.type === 'string' && typeof file.size === 'number');
+}
 export async function encodeReplyFiles(files: File[]) {
   validateReplyAttachments(files);
   return Promise.all(files.map(async file => {

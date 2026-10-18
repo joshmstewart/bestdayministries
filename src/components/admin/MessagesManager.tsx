@@ -18,7 +18,7 @@ import { Loader2, Save, Mail, Trash2, Eye, Check, X, Reply, RefreshCw, CheckCirc
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ReplyAttachments, ReplyAttachmentHistory } from './ReplyAttachments';
-import { sendContactReply, type ThreadAttachment } from '@/lib/contactReplyAttachments';
+import { sendContactReply, parseThreadAttachments, type ThreadAttachment } from '@/lib/contactReplyAttachments';
 import { showErrorToastWithCopy } from '@/lib/errorToast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -375,7 +375,7 @@ export const MessagesManager = () => {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setReplies((data || []) as Reply[]);
+      setReplies((data || []).map(row => ({ ...row, sender_type: row.sender_type === 'admin' ? 'admin' : 'user', attachments: parseThreadAttachments(row.attachments) })));
       
       // Update replied_at to mark all replies as viewed (add 1 second buffer for timing)
       const now = new Date();

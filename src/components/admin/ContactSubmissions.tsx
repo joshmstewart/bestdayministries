@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { openOrDownloadAttachment } from "@/lib/downloadFile";
 import { ReplyAttachments, ReplyAttachmentHistory } from './ReplyAttachments';
-import { sendContactReply, type ThreadAttachment } from '@/lib/contactReplyAttachments';
+import { sendContactReply, parseThreadAttachments, type ThreadAttachment } from '@/lib/contactReplyAttachments';
 import { showErrorToastWithCopy } from '@/lib/errorToast';
 
 interface AdminUser {
@@ -254,7 +254,7 @@ export default function ContactSubmissions() {
       .eq("submission_id", submissionId)
       .order("created_at", { ascending: true });
 
-    setReplies((data || []) as Reply[]);
+    setReplies((data || []).map(row => ({ ...row, sender_type: row.sender_type === 'admin' ? 'admin' : 'user', attachments: parseThreadAttachments(row.attachments) })));
     setLoadingReplies(false);
     
     // Update replied_at to mark all replies as viewed (add 1 second buffer for timing)
